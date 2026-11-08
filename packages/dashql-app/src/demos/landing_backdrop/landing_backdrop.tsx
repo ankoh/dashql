@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { springAtRest, stepSpring, type AgentFaceBrand, type Spring } from '../../agent/agent_face_morph.js';
+import { outlineBounds, springAtRest, stepSpring, type AgentFaceBrand, type Spring } from '../../agent/agent_face_morph.js';
 import * as styles from './landing_backdrop_page.module.css';
 
 interface LandingBackdropProps {
@@ -16,6 +16,8 @@ interface LandingBackdropProps {
     dots: number;
     /// The number of particles of the ring around the cloud
     particles: number;
+    /// How many frames per second the ring draws while no particles are on their way
+    ringFps: number;
     /// How far the particles of the ring wobble, relative to their distance
     outerWobble: number;
     /// How many seconds the light takes to circle over the brand mark
@@ -58,10 +60,9 @@ export const CLOUD_DENSITIES = [5000, 10000, 20000, 40000];
 const DOT_SIZE = 2.0;
 /// The share of the dots of the full sphere that is drawn. The front is enough, plus a margin for the wobble of its edge.
 const DRAWN_SHARE = 0.56;
-/// The time between two frames while a shape turns into the other, while only slow things move, and without the focus
+/// The time between two frames while a shape turns into the other, and while only slow things move
 const FAST_FRAME_MS = 1000 / 60;
 const REST_FRAME_MS = 1000 / 30;
-const UNFOCUSED_FRAME_MS = 1000 / 15;
 /// The radius of the sphere in units of the viewBox of the mark, the disk of the agent face
 const SPHERE_RADIUS = 70;
 /// The units of the viewBox of the mark in half of the height of the page
@@ -121,6 +122,9 @@ const LIGHT_STILL_ANGLE = 2.4;
 const MORPH_STIFFNESS = 11;
 const MORPH_DAMPING = 5.2;
 
+/// The color of the page, the canvas of the ring is opaque and clears to it
+const PAGE_RGB = [8, 9, 11];
+
 /// A small generator of random numbers, the cloud is the same on every load
 function seededRandom(seed: number): () => number {
     let state = seed;
@@ -176,11 +180,10 @@ function markLattice(brand: AgentFaceBrand, count: number): { x: number; y: numb
     return places;
 }
 
-/// The floats of a dot: its direction on the sphere, its place on the mark, how much later it starts, and the twinkle on the
-/// sphere and on the mark, a seed and a speed each
-const CLOUD_FLOATS = 10;
+/// The floats of a dot: its direction on the sphere, its place on the mark, how much later it starts, and its twinkle
+const CLOUD_FLOATS = 7;
 /// The floats of a particle: four seeds, if and when it joins a shape, its twinkle, and then a dot of the shape
-const PARTICLE_FLOATS = 16;
+const PARTICLE_FLOATS = 14;
 const CLOUDS = new Map<string, Float32Array>();
 
 /// Every dot of the sphere gets a place on the mark.
@@ -205,13 +208,10 @@ function buildCloud(brand: AgentFaceBrand, count: number): Float32Array {
         cloud[offset] = Math.cos(angle) * ring;
         cloud[offset + 1] = Math.sin(angle) * ring;
         cloud[offset + 2] = z;
-        cloud[offset + 6] = random();
-        cloud[offset + 7] = 0.7 + 0.6 * random();
         sides[z >= 0 ? 0 : 1].push(i);
     }
 
     const lattice = markLattice(brand, sides[0].length);
-    const latticeTwinkle = lattice.map(() => [random(), 0.7 + 0.6 * random()]);
     let longest = 0;
     for (const sources of sides) {
         if (sources.length === 0) continue;
@@ -234,8 +234,6 @@ function buildCloud(brand: AgentFaceBrand, count: number): Float32Array {
                 const travel = Math.hypot(cloud[offset] * SPHERE_RADIUS - x, cloud[offset + 1] * SPHERE_RADIUS - y, cloud[offset + 2] * SPHERE_RADIUS);
                 cloud[offset + 5] = travel;
                 longest = Math.max(longest, travel);
-                cloud[offset + 8] = latticeTwinkle[rowTargets[k]][0];
-                cloud[offset + 9] = latticeTwinkle[rowTargets[k]][1];
             }
         }
     }
@@ -243,6 +241,16 @@ function buildCloud(brand: AgentFaceBrand, count: number): Float32Array {
     for (let i = 0; i < drawn; ++i) {
         cloud[CLOUD_FLOATS * i + 5] = 1 - cloud[CLOUD_FLOATS * i + 5] / (longest || 1);
     }
+    // The dots are in a random order, their twinkle is their place in that order: the visible ones are one slice of the buffer
+    for (let i = drawn - 1; i > 0; --i) {
+        const j = Math.floor(random() * (i + 1));
+        for (let k = 0; k < CLOUD_FLOATS; ++k) {
+            const swap = cloud[CLOUD_FLOATS * i + k];
+            cloud[CLOUD_FLOATS * i + k] = cloud[CLOUD_FLOATS * j + k];
+            cloud[CLOUD_FLOATS * j + k] = swap;
+        }
+    }
+    for (let i = 0; i < drawn; ++i) cloud[CLOUD_FLOATS * i + 6] = (i + 0.5) / drawn;
     CLOUDS.set(key, cloud);
     return cloud;
 }
@@ -269,19 +277,20 @@ function buildEyes(): Float32Array {
 /// and hides with it.
 function buildParticles(brand: AgentFaceBrand, dots: number, count: number): Float32Array {
     const cloud = buildCloud(brand, dots);
-    const front = Math.floor(dots / 2);
     const particles = new Float32Array(PARTICLE_FLOATS * count);
     const random = seededRandom(23);
+    // The dots of the front of the sphere
+    const fronts: number[] = [];
+    for (let i = 0; i < cloud.length / CLOUD_FLOATS; ++i) if (cloud[CLOUD_FLOATS * i + 2] >= 0) fronts.push(i);
     for (let i = 0; i < count; ++i) {
         const offset = PARTICLE_FLOATS * i;
         for (let k = 0; k < 4; ++k) particles[offset + k] = random();
         particles[offset + 4] = random() < PARTICLE_JOIN_SHARE ? 1 : 0;
         particles[offset + 5] = random();
-        particles[offset + 6] = random();
-        particles[offset + 7] = 0.7 + 0.6 * random();
-        const dot = CLOUD_FLOATS * Math.floor(random() * front);
-        particles.set(cloud.subarray(dot, dot + 6), offset + 8);
-        particles.set(cloud.subarray(dot + 8, dot + 10), offset + 14);
+        // The twinkle is the place in the buffer, the other seeds are random
+        particles[offset + 6] = (i + 0.5) / count;
+        const dot = CLOUD_FLOATS * fronts[Math.floor(random() * fronts.length)];
+        particles.set(cloud.subarray(dot, dot + CLOUD_FLOATS), offset + 7);
     }
     return particles;
 }
@@ -311,9 +320,10 @@ out float vAlpha;
 out vec3 vColor;
 
 // A dot is visible for a share of its own cycle, so that this share of the dots is visible at any time
-float twinkle(vec2 seed, float density) {
+// All dots share the length of the cycle: the visible ones are one slice of the buffers, the rest does not even get here
+float twinkle(float seed, float density) {
     if (density >= 0.99) return 1.0;
-    float way = fract(seed.x + uTime * seed.y / uTwinkle);
+    float way = fract(seed + uTime / uTwinkle);
     float edge = min(0.5 * density, 0.15);
     return smoothstep(0.0, edge, way) * (1.0 - smoothstep(density - edge, density, way));
 }
@@ -371,8 +381,7 @@ const CLOUD_VERTEX = /* glsl */ `${VERTEX_HEAD}
 in vec3 aSphere;
 in vec2 aMark;
 in float aLag;
-in vec2 aSphereTwinkle;
-in vec2 aMarkTwinkle;
+in float aSeed;
 uniform float uSphereDensity;
 // The glance of the eyes, how open they are, and if they are shown
 uniform vec4 uEyes;
@@ -388,15 +397,15 @@ void main() {
     float settled = settledAt(aLag);
     // A switch dissolves the old shape dot by dot while it melts, and its dots light up one by one as the particles build
     // the new one
-    float dissolveAt = aSphereTwinkle.x * ${DISSOLVE_SPREAD.toFixed(2)} * uFly;
+    float dissolveAt = aSeed * ${DISSOLVE_SPREAD.toFixed(2)} * uFly;
     float dissolve = smoothstep(dissolveAt, dissolveAt + ${DISSOLVE_FADE.toFixed(2)} * uFly, uSwitch);
-    float revealAt = (${REVEAL_START.toFixed(2)} + aSphereTwinkle.x * ${REVEAL_SPREAD.toFixed(2)}) * uFly;
+    float revealAt = (${REVEAL_START.toFixed(2)} + aSeed * ${REVEAL_SPREAD.toFixed(2)}) * uFly;
     float reveal = smoothstep(revealAt, revealAt + ${REVEAL_FADE.toFixed(2)} * uFly, uSwitch);
     float switching = mix(1.0, mix(${SHAPE_TRACE.toFixed(2)}, 1.0, reveal), dissolve);
 
     // The brand mark at rest needs nothing of the sphere, the back of the sphere has no dots on it
     if (settled >= 1.0) {
-        float shown = aSphere.z >= 0.0 ? twinkle(aMarkTwinkle, uDensity) : 0.0;
+        float shown = aSphere.z >= 0.0 ? twinkle(aSeed, uDensity) : 0.0;
         if (shown <= 0.0) {
             hide();
             return;
@@ -441,8 +450,8 @@ void main() {
         underEye = mix(1.0, smoothstep(2.5, 6.5, d), smoothstep(0.03, 0.18, open));
     }
 
-    float sphereShown = twinkle(aSphereTwinkle, uSphereDensity) * underEye;
-    float markShown = settled > 0.0 ? twinkle(aMarkTwinkle, uDensity) : 0.0;
+    float sphereShown = twinkle(aSeed, uSphereDensity) * underEye;
+    float markShown = settled > 0.0 ? twinkle(aSeed, uDensity) : 0.0;
     float shown = mix(sphereShown, markShown, settled);
     if (shown <= 0.0) {
         hide();
@@ -519,20 +528,16 @@ void main() {
     outColor = vec4(vColor * a, a);
 }`;
 
-/// The page behind the dots and the color of its glow, a gradient that the browser paints once
-const PAGE_COLOR = 'rgb(8, 9, 11)';
-const GLOW_COLOR = '110, 115, 130';
-
 const PARTICLE_VERTEX = /* glsl */ `${VERTEX_HEAD}
 in vec4 aSeeds;
 // If it joins a shape, and when it leaves
 in vec2 aJoin;
-in vec2 aTwinkle;
+in float aTwinkle;
 // The dot of the shape that the particle becomes if it joins
 in vec3 aSphere;
 in vec2 aMark;
 in float aLag;
-in vec2 aMarkTwinkle;
+in float aMarkSeed;
 uniform float uOuterWobble;
 uniform float uGap;
 uniform float uRingDensity;
@@ -589,7 +594,7 @@ void main() {
     // Only the particles on their way or on a shape need the shape
     if (arrive > 0.0) {
         float landed = settledAt(aLag);
-        float markShown = landed > 0.0 ? twinkle(aMarkTwinkle, uDensity) : 0.0;
+        float markShown = landed > 0.0 ? twinkle(aMarkSeed, uDensity) : 0.0;
         float lit = landed > 0.0 ? markLit(aMark) : 0.0;
         vec3 onShape = mix(sphereSurface(aSphere, landed), landed > 0.0 ? markSurface(aMark) : vec3(0.0), landed);
         p = mix(p, onShape, arrive);
@@ -659,62 +664,73 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
     React.useEffect(() => {
         const host = hostRef.current;
         if (host == null) return;
-        const canvas = document.createElement('canvas');
-        host.append(canvas);
+        // Two canvases, because showing a canvas costs far more than drawing its dots and it costs by the pixel. The ring moves
+        // slowly and is large: it does not need many frames, and it is opaque so that nothing has to be blended. The shapes need
+        // the frames and are small. They lie on top, with the ring showing through them.
+        const ringCanvas = document.createElement('canvas');
+        const shapeCanvas = document.createElement('canvas');
+        host.append(ringCanvas, shapeCanvas);
         // A dual GPU laptop should not wake its large GPU for a background
-        const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' });
-        if (gl == null) {
+        const attributes = { premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' } as const;
+        const ringGl = ringCanvas.getContext('webgl2', { ...attributes, alpha: false });
+        const shapeGl = shapeCanvas.getContext('webgl2', { ...attributes, alpha: true });
+        if (ringGl == null || shapeGl == null) {
             console.warn('The backdrop needs WebGL2');
-            canvas.remove();
+            ringCanvas.remove();
+            shapeCanvas.remove();
             return;
         }
         let cloudProgram: WebGLProgram;
-        let particleProgram: WebGLProgram;
         let eyeProgram: WebGLProgram;
+        let particleProgram: WebGLProgram;
         try {
-            cloudProgram = createProgram(gl, CLOUD_VERTEX, CLOUD_FRAGMENT);
-            particleProgram = createProgram(gl, PARTICLE_VERTEX, CLOUD_FRAGMENT);
-            eyeProgram = createProgram(gl, EYE_VERTEX, CLOUD_FRAGMENT);
+            cloudProgram = createProgram(shapeGl, CLOUD_VERTEX, CLOUD_FRAGMENT);
+            eyeProgram = createProgram(shapeGl, EYE_VERTEX, CLOUD_FRAGMENT);
+            particleProgram = createProgram(ringGl, PARTICLE_VERTEX, CLOUD_FRAGMENT);
         } catch (error) {
             console.error(error);
-            canvas.remove();
+            ringCanvas.remove();
+            shapeCanvas.remove();
             return;
         }
         const drawnDots = Math.ceil(dots * DRAWN_SHARE);
-        const cloudVertices = createVertices(gl, cloudProgram, CLOUD_FLOATS, buildCloud(brand, dots), [
-            ['aSphere', 3, 0], ['aMark', 2, 3], ['aLag', 1, 5], ['aSphereTwinkle', 2, 6], ['aMarkTwinkle', 2, 8],
+        const cloudVertices = createVertices(shapeGl, cloudProgram, CLOUD_FLOATS, buildCloud(brand, dots), [
+            ['aSphere', 3, 0], ['aMark', 2, 3], ['aLag', 1, 5], ['aSeed', 1, 6],
         ]);
-        const particleVertices = createVertices(gl, particleProgram, PARTICLE_FLOATS, buildParticles(brand, dots, particles), [
-            ['aSeeds', 4, 0], ['aJoin', 2, 4], ['aTwinkle', 2, 6], ['aSphere', 3, 8], ['aMark', 2, 11], ['aLag', 1, 13], ['aMarkTwinkle', 2, 14],
+        const particleVertices = createVertices(ringGl, particleProgram, PARTICLE_FLOATS, buildParticles(brand, dots, particles), [
+            ['aSeeds', 4, 0], ['aJoin', 2, 4], ['aTwinkle', 1, 6], ['aSphere', 3, 7], ['aMark', 2, 10], ['aLag', 1, 12], ['aMarkSeed', 1, 13],
         ]);
         const eyeData = buildEyes();
-        const eyeVertices = createVertices(gl, eyeProgram, 4, eyeData, [['aEye', 4, 0]]);
-        const eyeUniforms = uniformLocations(gl, eyeProgram, [...SHARED_UNIFORMS, 'uEyes', 'uPixels']);
-        const cloudUniforms = uniformLocations(gl, cloudProgram, [...SHARED_UNIFORMS, 'uSphereDensity', 'uEyes']);
-        const particleUniforms = uniformLocations(gl, particleProgram, [...SHARED_UNIFORMS, 'uOuterWobble', 'uGap', 'uRingDensity']);
+        const eyeVertices = createVertices(shapeGl, eyeProgram, 4, eyeData, [['aEye', 4, 0]]);
+        const eyeUniforms = uniformLocations(shapeGl, eyeProgram, [...SHARED_UNIFORMS, 'uEyes', 'uPixels']);
+        const cloudUniforms = uniformLocations(shapeGl, cloudProgram, [...SHARED_UNIFORMS, 'uSphereDensity', 'uEyes']);
+        const particleUniforms = uniformLocations(ringGl, particleProgram, [...SHARED_UNIFORMS, 'uOuterWobble', 'uGap', 'uRingDensity']);
 
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
-        gl.clearColor(0, 0, 0, 0);
+        for (const gl of [ringGl, shapeGl]) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE);
+        }
+        ringGl.clearColor(PAGE_RGB[0] / 255, PAGE_RGB[1] / 255, PAGE_RGB[2] / 255, 1);
+        shapeGl.clearColor(0, 0, 0, 0);
 
-        // The canvas only covers the shapes and the ring, not the page: the browser has to composite every pixel of it in every
-        // frame, and most of the page is empty
+        // How far the brand mark reaches from its middle, in units of the viewBox
+        let markReach = 0;
+        for (const piece of brand.pieces) {
+            const [minX, minY, maxX, maxY] = outlineBounds(piece.logo);
+            markReach = Math.max(markReach, 100 - minX, maxX - 100, 100 - minY, maxY - 100);
+        }
+
+        // The canvases only cover what they show, one pixel of them is one pixel of the display: the browser would otherwise
+        // resample them and the fine pattern of the dots would shimmer. An even size in the middle of the page lies on whole
+        // pixels of the display.
         let dpr = 1;
-        let viewX = 1, viewY = 1;
-        let layoutKey = '';
-        const layout = () => {
+        const ringView = { x: 1, y: 1 };
+        const shapeView = { x: 1, y: 1 };
+        const place = (canvas: HTMLCanvasElement, gl: WebGL2RenderingContext, view: { x: number; y: number }, reach: number, towardsViewer: number) => {
             const current = latest.current;
             const pageWidth = host.clientWidth, pageHeight = host.clientHeight;
-            const key = `${pageWidth} ${pageHeight} ${window.devicePixelRatio} ${current.scale} ${current.gap} ${current.outerWobble}`;
-            if (key === layoutKey) return;
-            layoutKey = key;
-            // How far the ring reaches at most, with its wobble and the flare at a switch, and closer to the viewer
-            const reach = Math.max(current.gap + RING_WIDTH, 1) * SPHERE_RADIUS * (1.02 + current.outerWobble + 0.1);
-            const perspective = 1 / Math.max(0.2, 1 - RING_REACH_TOWARDS_VIEWER * (reach / UNITS_PER_PAGE) * current.scale * PERSPECTIVE);
+            const perspective = 1 / Math.max(0.2, 1 - towardsViewer * (reach / UNITS_PER_PAGE) * current.scale * PERSPECTIVE);
             const halfSide = (reach / UNITS_PER_PAGE) * current.scale * perspective * (pageHeight / 2) + 8;
-            // One pixel of the canvas is one pixel of the display: the browser would otherwise resample it, the fine pattern of the
-            // dots would shimmer. An even size in the middle of the page lies on whole pixels of the display.
-            dpr = window.devicePixelRatio;
             const pageDeviceWidth = Math.round(pageWidth * dpr), pageDeviceHeight = Math.round(pageHeight * dpr);
             const deviceWidth = Math.min(pageDeviceWidth, 2 * Math.ceil(halfSide * dpr));
             const deviceHeight = Math.min(pageDeviceHeight, 2 * Math.ceil(halfSide * dpr));
@@ -724,9 +740,21 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
             canvas.style.height = `${deviceHeight / dpr}px`;
             canvas.style.left = `${Math.floor((pageDeviceWidth - deviceWidth) / 2) / dpr}px`;
             canvas.style.top = `${Math.floor((pageDeviceHeight - deviceHeight) / 2) / dpr}px`;
-            viewX = pageHeight / Math.max(1, deviceWidth / dpr);
-            viewY = pageHeight / Math.max(1, deviceHeight / dpr);
+            view.x = pageHeight / Math.max(1, deviceWidth / dpr);
+            view.y = pageHeight / Math.max(1, deviceHeight / dpr);
             gl.viewport(0, 0, canvas.width, canvas.height);
+        };
+        let layoutKey = '';
+        const layout = () => {
+            const current = latest.current;
+            const key = `${host.clientWidth} ${host.clientHeight} ${window.devicePixelRatio} ${current.scale} ${current.gap} ${current.outerWobble} ${current.wobble} ${current.markWobble}`;
+            if (key === layoutKey) return;
+            layoutKey = key;
+            dpr = window.devicePixelRatio;
+            // How far the ring reaches at most with its wobble. The flare at a switch may touch the edge for a moment.
+            place(ringCanvas, ringGl, ringView, (current.gap + RING_WIDTH) * SPHERE_RADIUS * (1.04 + current.outerWobble), RING_REACH_TOWARDS_VIEWER);
+            // The shapes are as large as the sphere with its wobble, or the brand mark, with the ripple on their way
+            place(shapeCanvas, shapeGl, shapeView, Math.max(SPHERE_RADIUS * (1 + 1.4 * current.wobble), markReach + SPHERE_RADIUS * 1.5 * current.markWobble) + 4, 1);
         };
         layout();
 
@@ -756,9 +784,9 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
         let switchedAt = -100;
         let lastTarget = 0;
 
-        const setShared = (u: Record<(typeof SHARED_UNIFORMS)[number], WebGLUniformLocation | null>, rotation: number[]) => {
+        const setShared = (gl: WebGL2RenderingContext, view: { x: number; y: number }, u: Record<(typeof SHARED_UNIFORMS)[number], WebGLUniformLocation | null>, rotation: number[]) => {
             const current = latest.current;
-            gl.uniform2f(u.uView, viewX, viewY);
+            gl.uniform2f(u.uView, view.x, view.y);
             gl.uniform1f(u.uTime, time);
             gl.uniform1f(u.uMorph, morph.value);
             gl.uniform1f(u.uDpr, dpr);
@@ -777,52 +805,86 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
             gl.uniform1f(u.uFly, current.fly);
         };
 
-        const draw = () => {
-            const current = latest.current;
-            layout();
-            gl.clear(gl.COLOR_BUFFER_BIT);
+        // Draws the slice of a buffer that holds the visible dots: all dots go through their cycle in the order of the buffer
+        const drawVisible = (gl: WebGL2RenderingContext, count: number, density: number) => {
+            if (density >= 0.99) {
+                gl.drawArrays(gl.POINTS, 0, count);
+                return;
+            }
+            const phase = time / latest.current.twinkleSeconds;
+            const start = Math.floor((1 - (phase - Math.floor(phase))) * count) % count;
+            const length = Math.min(count, Math.ceil(density * count) + 2);
+            if (start + length <= count) {
+                gl.drawArrays(gl.POINTS, start, length);
+            } else {
+                gl.drawArrays(gl.POINTS, start, count - start);
+                gl.drawArrays(gl.POINTS, 0, start + length - count);
+            }
+        };
 
+        const rotationNow = () => {
             // It barely turns, a slow sway and a slight lean towards the pointer
             const sway = motion ? Math.sin(time * 0.33) * 0.02 : 0;
             const yaw = sway + pointer.x * 0.02, pitch = pointer.y * 0.015;
             const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-            const rotation = [cy, sp * sy, -cp * sy, 0, cp, sp, sy, -sp * cy, cp * cy];
+            return [cy, sp * sy, -cp * sy, 0, cp, sp, sy, -sp * cy, cp * cy];
+        };
 
+        const drawShape = () => {
+            const current = latest.current;
+            const gl = shapeGl;
+            layout();
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            const rotation = rotationNow();
             gl.useProgram(cloudProgram);
-            setShared(cloudUniforms, rotation);
-            gl.uniform1f(cloudUniforms.uSphereDensity, motion ? current.sphereDensity : 1);
+            setShared(gl, shapeView, cloudUniforms, rotation);
+            const sphereDensity = motion ? current.sphereDensity : 1;
+            gl.uniform1f(cloudUniforms.uSphereDensity, sphereDensity);
             const blinkT = (performance.now() - nextBlink) / BLINK_MS;
             const blink = blinkT > 0 && blinkT < 1 ? Math.abs(2 * blinkT - 1) : 1;
             const open = eyesOpen * blink;
             gl.uniform4f(cloudUniforms.uEyes, glance.value, look.value, open, current.eyes ? 1 : 0);
             gl.bindVertexArray(cloudVertices.vao);
-            gl.drawArrays(gl.POINTS, 0, drawnDots);
+            // While the shapes turn into each other, both twinkles count
+            if (morph.value < 0.001) drawVisible(gl, drawnDots, sphereDensity);
+            else if (morph.value > 0.999) drawVisible(gl, drawnDots, motion ? current.density : 1);
+            else gl.drawArrays(gl.POINTS, 0, drawnDots);
 
             if (current.eyes && open > 0.03) {
                 gl.useProgram(eyeProgram);
-                setShared(eyeUniforms, rotation);
+                setShared(gl, shapeView, eyeUniforms, rotation);
                 gl.uniform4f(eyeUniforms.uEyes, glance.value, look.value, open, 1);
-                gl.uniform2f(eyeUniforms.uPixels, canvas.width / 2, canvas.height / 2);
+                gl.uniform2f(eyeUniforms.uPixels, shapeCanvas.width / 2, shapeCanvas.height / 2);
                 gl.bindVertexArray(eyeVertices.vao);
                 gl.drawArrays(gl.POINTS, 0, eyeData.length / 4);
             }
-
-            if (particles > 0) {
-                gl.useProgram(particleProgram);
-                setShared(particleUniforms, rotation);
-                gl.uniform1f(particleUniforms.uOuterWobble, current.outerWobble);
-                gl.uniform1f(particleUniforms.uGap, current.gap);
-                gl.uniform1f(particleUniforms.uRingDensity, motion ? current.ringDensity : 1);
-                gl.bindVertexArray(particleVertices.vao);
-                gl.drawArrays(gl.POINTS, 0, particles);
-            }
         };
 
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-        const renderer = String(debugInfo == null ? gl.getParameter(gl.RENDERER) : gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+        const drawRing = () => {
+            const current = latest.current;
+            const gl = ringGl;
+            layout();
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            if (particles === 0) return;
+            gl.useProgram(particleProgram);
+            setShared(gl, ringView, particleUniforms, rotationNow());
+            gl.uniform1f(particleUniforms.uOuterWobble, current.outerWobble);
+            gl.uniform1f(particleUniforms.uGap, current.gap);
+            const ringDensity = motion ? current.ringDensity : 1;
+            gl.uniform1f(particleUniforms.uRingDensity, ringDensity);
+            gl.bindVertexArray(particleVertices.vao);
+            // The particles that join a shape are visible whatever their twinkle says
+            const joining = time - switchedAt < current.fly * (JOIN_SPREAD + 1 + JOIN_HOLD) + 0.7;
+            if (joining) gl.drawArrays(gl.POINTS, 0, particles);
+            else drawVisible(gl, particles, ringDensity);
+        };
+
+        const debugInfo = shapeGl.getExtension('WEBGL_debug_renderer_info');
+        const renderer = String(debugInfo == null ? shapeGl.getParameter(shapeGl.RENDERER) : shapeGl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
         let frame = 0;
         let last = performance.now();
-        let lastDraw = 0;
+        let lastShapeDraw = 0;
+        let lastRingDraw = 0;
         let frames = 0;
         let statsFrom = last;
         // The browser stops calling this in a hidden tab
@@ -837,8 +899,6 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
             const phase = (time / current.period) % 1;
             const target = phase > 0.1 && phase < 0.6 ? 1 : 0;
             if (!springAtRest(morph, target)) stepSpring(morph, target, MORPH_STIFFNESS, MORPH_DAMPING, dt);
-            // The end of the spring is too slow to see
-            const morphing = Math.abs(morph.value - target) > 0.02;
             if (target !== lastTarget) {
                 lastTarget = target;
                 switchedAt = time;
@@ -865,13 +925,18 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
             pointer.x += (aim.x - pointer.x) * follow;
             pointer.y += (aim.y - pointer.y) * follow;
 
-            // Most of the time only slow things move. Only the particles and the dots on their way need every frame.
+            // Most of the time only slow things move. Only the particles on their way need every frame.
             const flying = time - switchedAt < current.fly * (JOIN_SPREAD + 1);
-            const interval = !document.hasFocus() ? UNFOCUSED_FRAME_MS : morphing || flying ? FAST_FRAME_MS : REST_FRAME_MS;
-            if (now - lastDraw >= interval - 2) {
-                lastDraw = now;
-                draw();
+            if (now - lastShapeDraw >= (flying ? FAST_FRAME_MS : REST_FRAME_MS) - 2) {
+                lastShapeDraw = now;
+                drawShape();
                 frames += 1;
+                // The ring draws in a frame of the shapes: the browser composes the page for every frame with a change, one
+                // with both changes costs about as much as one with one of them
+                if (now - lastRingDraw >= (flying ? FAST_FRAME_MS : 1000 / current.ringFps) - 2) {
+                    lastRingDraw = now;
+                    drawRing();
+                }
             }
             if (now - statsFrom >= 1000) {
                 current.onStats?.({ fps: Math.round((frames * 1000) / (now - statsFrom)), renderer });
@@ -879,44 +944,48 @@ export function LandingBackdrop(props: LandingBackdropProps): React.ReactElement
                 statsFrom = now;
             }
         };
+        const drawAll = () => {
+            drawRing();
+            drawShape();
+        };
         const observer = new ResizeObserver(() => {
             layout();
-            if (!motion) draw();
+            if (!motion) drawAll();
         });
         observer.observe(host);
         if (motion) {
             frame = requestAnimationFrame(render);
         } else {
-            draw();
-            redrawRef.current = draw;
+            drawAll();
+            redrawRef.current = drawAll;
         }
         return () => {
             redrawRef.current = null;
             cancelAnimationFrame(frame);
             observer.disconnect();
             window.removeEventListener('pointermove', onPointerMove);
-            gl.deleteBuffer(cloudVertices.buffer);
-            gl.deleteVertexArray(cloudVertices.vao);
-            gl.deleteBuffer(particleVertices.buffer);
-            gl.deleteVertexArray(particleVertices.vao);
-            gl.deleteProgram(cloudProgram);
-            gl.deleteProgram(particleProgram);
-            gl.deleteBuffer(eyeVertices.buffer);
-            gl.deleteVertexArray(eyeVertices.vao);
-            gl.deleteProgram(eyeProgram);
-            gl.getExtension('WEBGL_lose_context')?.loseContext();
-            canvas.remove();
+            shapeGl.deleteBuffer(cloudVertices.buffer);
+            shapeGl.deleteVertexArray(cloudVertices.vao);
+            shapeGl.deleteBuffer(eyeVertices.buffer);
+            shapeGl.deleteVertexArray(eyeVertices.vao);
+            shapeGl.deleteProgram(cloudProgram);
+            shapeGl.deleteProgram(eyeProgram);
+            ringGl.deleteBuffer(particleVertices.buffer);
+            ringGl.deleteVertexArray(particleVertices.vao);
+            ringGl.deleteProgram(particleProgram);
+            for (const gl of [ringGl, shapeGl]) gl.getExtension('WEBGL_lose_context')?.loseContext();
+            ringCanvas.remove();
+            shapeCanvas.remove();
         };
     }, [brand, motion, dots, particles]);
 
     React.useEffect(() => { redrawRef.current?.(); }, [props.contrast, props.wobble, props.markWobble, props.scale, props.outerWobble, props.gap, props.lightSeconds, props.glow, props.density, props.sphereDensity, props.ringDensity, props.twinkleSeconds]);
 
-    const glow = Math.min(0.35, 0.09 * props.contrast);
     return (
         <div
             ref={hostRef}
             className={styles.host}
-            style={{ background: `radial-gradient(ellipse 70% 80% at 50% 50%, rgba(${GLOW_COLOR}, ${glow}), transparent 100%), ${PAGE_COLOR}` }}
+            style={{ background: `rgb(${PAGE_RGB.join(', ')})` }}
             aria-hidden="true"
         />
     );

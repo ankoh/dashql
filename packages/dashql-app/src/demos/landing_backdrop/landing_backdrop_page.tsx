@@ -67,6 +67,7 @@ function LandingBackdropPage(): React.ReactElement {
     const [contrast, setContrast] = React.useState(0.4);
     const [density, setDensity] = React.useState(0);
     const [particles, setParticles] = React.useState(5000);
+    const [ringFps, setRingFps] = React.useState(15);
     const [outerWobble, setOuterWobble] = React.useState(0.06);
     const [gap, setGap] = React.useState(2);
     const [fly, setFly] = React.useState(0.5);
@@ -87,7 +88,7 @@ function LandingBackdropPage(): React.ReactElement {
 
     return (
         <div className={`${baseStyles.page} ${setupStyles.page} ${styles.page}`}>
-            <LandingBackdrop brand={BRANDS[brand].brand} period={period} contrast={contrast} motion={motion} dots={CLOUD_DENSITIES[density]} wobble={wobble} markWobble={markWobble} scale={scale} eyes={eyes} particles={particles} outerWobble={outerWobble} gap={gap} fly={fly} lightSeconds={lightSeconds} glow={glow} density={logoDensity} sphereDensity={sphereDensity} ringDensity={ringDensity} twinkleSeconds={twinkleSeconds} onStats={setStats} />
+            <LandingBackdrop brand={BRANDS[brand].brand} period={period} contrast={contrast} motion={motion} dots={CLOUD_DENSITIES[density]} wobble={wobble} markWobble={markWobble} scale={scale} eyes={eyes} particles={particles} ringFps={ringFps} outerWobble={outerWobble} gap={gap} fly={fly} lightSeconds={lightSeconds} glow={glow} density={logoDensity} sphereDensity={sphereDensity} ringDensity={ringDensity} twinkleSeconds={twinkleSeconds} onStats={setStats} />
             {foreground === 0 && <SetupCardMock />}
             {foreground === 1 && (
                 <div className={`${setupStyles.foreground} ${styles.greeting}`}>
@@ -179,6 +180,12 @@ function LandingBackdropPage(): React.ReactElement {
                             <input id="landing-backdrop-particles" type="range" min={0} max={10000} step={100} value={particles}
                                 onChange={e => setParticles(Number(e.target.value))} />
                             <span className={styles.knob_value}>{particles}</span>
+                        </label>
+                        <label className={styles.knob}>
+                            <span className={styles.control_label}>Ring fps</span>
+                            <input id="landing-backdrop-ring-fps" type="range" min={5} max={60} step={1} value={ringFps}
+                                onChange={e => setRingFps(Number(e.target.value))} />
+                            <span className={styles.knob_value}>{ringFps}</span>
                         </label>
                         <label className={styles.knob}>
                             <span className={styles.control_label}>Fly in</span>
