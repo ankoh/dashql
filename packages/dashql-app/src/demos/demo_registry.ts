@@ -32,4 +32,10 @@ export const DEMOS: readonly DemoEntry[] = [
         description: 'The face of the agent that glances around and melts into the DashQL brand mark, with knobs to tune its motion.',
         load: () => import('./agent_face/agent_face_page.js'),
     },
+    {
+        id: 'landing_backdrop',
+        title: 'Landing Backdrop',
+        description: 'A sphere of dots that turns into the brand mark, the backdrop of the landing pages of the app, with knobs to tune it.',
+        load: () => import('./landing_backdrop/landing_backdrop_page.js'),
+    },
 ];
