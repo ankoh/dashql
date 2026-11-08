@@ -1,4 +1,4 @@
-import { ClientFunctionAttribute, ClientFunctionCallBinding, ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSchema, ClientFunctionSpec } from './clfn_spec.js';
+import { ClientFunctionAttribute, ClientFunctionError, ClientFunction, ClientFunctionSchema, ClientFunctionSpec } from './clfn_spec.js';
 
 /// The options that the runtime applies itself, they are never sent
 export const STANDARD_OPTIONS = ['_next', '_pages', '_poll', '_wait'] as const;
@@ -19,28 +19,6 @@ export interface ClientFunctionRequest {
     body: string | null;
     /// The URL to follow instead of the path and query
     followUrl: string | null;
-}
-
-/// Set a JSON pointer in place
-function writeJsonPointer(target: Record<string, unknown>, pointer: string, value: unknown): void {
-    const segments = pointer.split('/').slice(1).map(s => s.replace(/~1/g, '/').replace(/~0/g, '~'));
-    let current: any = target;
-    for (const segment of segments.slice(0, -1)) {
-        current = current[segment];
-    }
-    current[segments[segments.length - 1]] = value;
-}
-
-/// Fill in the bindings of a call. What can't be resolved fails, unless `resolve` chooses otherwise.
-export async function bindCallOptions(
-    description: ClientFunctionCallDescription,
-    resolve: (binding: ClientFunctionCallBinding) => unknown | Promise<unknown>,
-): Promise<Record<string, unknown>> {
-    const options = structuredClone(description.options);
-    for (const binding of description.bindings ?? []) {
-        writeJsonPointer(options, binding.pointer, await resolve(binding));
-    }
-    return options;
 }
 
 /// The attribute of a name
@@ -188,7 +166,7 @@ function buildRawRequest(spec: ClientFunctionSpec, fn: ClientFunction, options: 
     };
 }
 
-/// Build the request of a call from options whose bindings are filled in. The standard options are ignored.
+/// Build the request of a call. The standard options are ignored.
 export function buildClientFunctionRequest(spec: ClientFunctionSpec, fn: ClientFunction, options: Record<string, unknown>, variables: Record<string, string>): ClientFunctionRequest {
     if (fn.raw) {
         const rest = Object.fromEntries(Object.entries(options).filter(([name]) => !(STANDARD_OPTIONS as readonly string[]).includes(name)));

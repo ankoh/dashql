@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
 import { parseTrinoTimestampMs } from '../trino/arrow_conversion.js';
-import { bindCallOptions, buildClientFunctionRequest, followRequest, ClientFunctionRequest, requestUrl, STANDARD_OPTIONS } from './clfn_request.js';
+import { buildClientFunctionRequest, followRequest, ClientFunctionRequest, requestUrl, STANDARD_OPTIONS } from './clfn_request.js';
 import {
     findClientFunction,
     ClientFunctionCallDescription,
@@ -32,8 +32,6 @@ export interface ClientFunctionEnvironment {
     resolveHost(host: string): Promise<ClientFunctionHostTarget>;
     /// The values of the variables in the base paths
     variables?(): Record<string, string>;
-    /// The values of the parameters of the script
-    params?: Record<string, unknown>;
     /// Sleep while a pending result polls, for tests
     sleep?(ms: number, abort?: AbortSignal): Promise<void>;
     /// The current time in milliseconds, for tests
@@ -520,25 +518,26 @@ function abortableSleep(ms: number, abort?: AbortSignal): Promise<void> {
 /// Run a call. A call that writes is sent like any other: the planner leaves a script with one out of the runs of the
 /// session and of input changes, and agents don't run it, see docs/design/client_functions.md.
 export async function runClientFunctionCall(spec: ClientFunctionSpec, description: ClientFunctionCallDescription, env: ClientFunctionEnvironment, abort?: AbortSignal): Promise<ClientFunctionResult> {
-    const options = await bindCallOptions(description, async binding => {
-        const name = binding.param;
-        if (env.params === undefined || !(name in env.params)) {
-            throw new ClientFunctionError(`the parameter :${name} has no value`);
-        }
-        return env.params[name];
-    });
+    requireValues(description);
     const run = new ClientFunctionCallRun(spec, description, env, abort);
-    return run.run(options);
+    return run.run(description.options);
+}
+
+/// A plan puts the values of its inputs in a description and the shell has none, so a description here has them. Its options
+/// would be sent with a null otherwise.
+function requireValues(description: ClientFunctionCallDescription): void {
+    const binding = description.bindings?.[0];
+    if (binding !== undefined) {
+        throw new ClientFunctionError(`the parameter :${binding.param} has no value`);
+    }
 }
 
 /// The result of `EXPLAIN CALL`: the resolved request. It sends nothing, needs no credentials, and shows the name of the
-/// host. A parameter without a value prints as `:name`.
-export async function explainClientFunctionCall(spec: ClientFunctionSpec, description: ClientFunctionCallDescription, env: Pick<ClientFunctionEnvironment, 'variables' | 'params'> = {}): Promise<ClientFunctionResult> {
+/// host.
+export async function explainClientFunctionCall(spec: ClientFunctionSpec, description: ClientFunctionCallDescription, env: Pick<ClientFunctionEnvironment, 'variables'> = {}): Promise<ClientFunctionResult> {
     const fn = findClientFunction(spec, description.function);
-    const options = await bindCallOptions(description, binding => {
-        const name = binding.param;
-        return env.params !== undefined && name in env.params ? env.params[name] : `:${name}`;
-    });
+    requireValues(description);
+    const options = description.options;
     // A base path shows its variables if the binding isn't there to fill them
     const variables = new Proxy(env.variables?.() ?? {}, {
         get: (target, name: string) => target[name] ?? `{${name}}`,

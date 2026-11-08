@@ -265,14 +265,13 @@ describe('client function requests', () => {
         expect(initOf(csv.fetch, 0).body).toEqual('id,name');
     });
 
-    it('fills in parameters', async () => {
-        const fn: ClientFunction = { name: 'p', options: [{ name: 'a', in: 'query' }, { name: 'key', api_name: 'apiKey', in: 'header' }] };
-        const description = call('p', { a: null, key: null }, [{ pointer: '/a', param: 'x' }, { pointer: '/key', param: 'k' }]);
-        const { fetch, environment } = env([json({})], { params: { x: 7, k: 'abc' } });
-        await runClientFunctionCall(spec([fn]), description, environment);
-        expect(new URL(urlOf(fetch, 0)).searchParams.get('a')).toEqual('7');
-        expect(new Headers(initOf(fetch, 0).headers).get('apiKey')).toEqual('abc');
-        await expect(runClientFunctionCall(spec([fn]), description, env([], { params: { k: 'abc' } }).environment)).rejects.toThrow(/:x has no value/);
+    it('sends nothing for a parameter without a value', async () => {
+        const fn: ClientFunction = { name: 'p', options: [{ name: 'a', in: 'query' }] };
+        const description = call('p', { a: null }, [{ pointer: '/a', param: 'x' }]);
+        const { fetch, environment } = env([]);
+        await expect(runClientFunctionCall(spec([fn]), description, environment)).rejects.toThrow(/:x has no value/);
+        await expect(explainClientFunctionCall(spec([fn]), description)).rejects.toThrow(/:x has no value/);
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     it('sends writes like any other call', async () => {
@@ -664,13 +663,13 @@ describe('client function EXPLAIN', () => {
     };
 
     it('prints the request with API names and sends nothing, even for a write', async () => {
-        const description = call('create', { project: 'a', page_size: 5, signing_key: null, token: 'abc' }, [{ pointer: '/signing_key', param: 'k' }]);
+        const description = call('create', { project: 'a', page_size: 5, signing_key: 'key', token: 'abc' });
         const result = await explainClientFunctionCall(spec([fn]), description, { variables: () => ({ version: '2' }) });
         expect(cell(result, 0, 'method')).toEqual('POST');
         expect(cell(result, 0, 'host')).toEqual('api');
         expect(cell(result, 0, 'path')).toEqual('/v2/projects/a');
         expect(cell(result, 0, 'query')).toEqual('pageSize=5');
-        expect(JSON.parse(cell(result, 0, 'body') as string)).toEqual({ signingKey: ':k' });
+        expect(JSON.parse(cell(result, 0, 'body') as string)).toEqual({ signingKey: 'key' });
         expect(JSON.parse(cell(result, 0, 'headers') as string)['X-Token']).toEqual('abc');
     });
 

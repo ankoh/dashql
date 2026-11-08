@@ -636,7 +636,6 @@ Electron has an HTTP proxy (`packages/dashql-native-proxy/src/http_proxy.rs`) th
 
 - **It needs no credentials.** The binding isn't asked to resolve the host, so `host` is the spec's name for it, and `headers` only holds what the options and the body format set.
 - **`path` has its base path and placeholders filled in.** A variable that the binding doesn't provide prints as `{name}`. For a followed `_next` or `_poll` URL, `path` is that URL.
-- **A parameter without a value** prints as `:name`.
 - **`standard_options`** holds the `_next`, `_pages`, `_poll` and `_wait` of the call, which aren't sent themselves.
 
 ## The escape hatch

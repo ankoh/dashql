@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { explainClientFunctionCall, ClientFunctionEnvironment, runClientFunctionCall } from './clfn_runtime.js';
-import type { ClientFunctionCallDescription, ClientFunctionSpec } from './clfn_spec.js';
+import { jsonPointerSegments, type ClientFunctionCallDescription, type ClientFunctionSpec } from './clfn_spec.js';
 
 /// The real spec and its fixtures, see extensions/d360-api/clfn/tests. Their requests are computed apart from this runtime.
 const SPEC = import.meta.glob<ClientFunctionSpec>('@dashql/extensions/d360-api/clfn/spec/spec.json', { import: 'default', eager: true });
@@ -19,9 +19,16 @@ interface FixtureCase {
 const spec = Object.values(SPEC)[0];
 const API_VERSION = '68.0';
 
-/// The parameters of a call print like in EXPLAIN
-function bindingValues(description: ClientFunctionCallDescription): Record<string, unknown> {
-    return Object.fromEntries((description.bindings ?? []).map(b => [b.param, `:${b.param}`]));
+/// A description as the runtime gets it, with values in place of its parameters. The fixtures expect `:name`.
+function withValues(description: ClientFunctionCallDescription): ClientFunctionCallDescription {
+    const options = structuredClone(description.options);
+    for (const { pointer, param } of description.bindings ?? []) {
+        const path = jsonPointerSegments(pointer);
+        const last = path.pop()!;
+        const target = path.reduce<any>((value, segment) => value[segment], options);
+        target[last] = `:${param}`;
+    }
+    return { ...description, options, bindings: undefined };
 }
 
 describe('The Data 360 client functions', () => {
@@ -37,7 +44,7 @@ describe('The Data 360 client functions', () => {
         describe(family, () => {
             it('builds the expected requests', async () => {
                 for (const fixtureCase of fixture.cases) {
-                    const result = await explainClientFunctionCall(spec, fixtureCase.description, {
+                    const result = await explainClientFunctionCall(spec, withValues(fixtureCase.description), {
                         variables: () => ({ api_version: API_VERSION }),
                     });
                     const field = (name: string) => result.rows[0][result.schema.fields.findIndex(f => f.name === name)] as string | null;
@@ -70,9 +77,8 @@ describe('The Data 360 client functions', () => {
                         http: { fetch: async () => new Response(JSON.stringify(body), { status, headers }) },
                         resolveHost: async () => ({ baseUrl: new URL('https://org.example.com'), headers: {} }),
                         variables: () => ({ api_version: API_VERSION }),
-                        params: bindingValues(fixtureCase.description),
                     };
-                    const result = await runClientFunctionCall(spec, fixtureCase.description, env);
+                    const result = await runClientFunctionCall(spec, withValues(fixtureCase.description), env);
                     const names = result.schema.fields.map(f => f.name);
                     const rows = result.rows.map(row => Object.fromEntries(names
                         .filter(name => name !== '_poll')
