@@ -678,7 +678,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "Vd5jH4RzDUKbCwKzlr8ERK2u7nFnDBrahz9Y/EGycWc=",
+        "bzlTransitiveDigest": "arKw8jdHjM3eNMF9pdSkjdaGZc3Um5DMHJqRQHIboFA=",
         "usagesDigest": "x0vrCWeHpY81Qjj7vEW+k03YwVf1a+fL0Y9237dy0E4=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -954,7 +954,7 @@
     },
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+crate_core": {
       "general": {
-        "bzlTransitiveDigest": "oRT3UomGgtiGJaeJ0qujSwD2YtkHxj5jYsZPSMBq21c=",
+        "bzlTransitiveDigest": "VlQgaGZgS4/MHjNifkXkiOJp0Aci+ddcu/pB9cPSMuw=",
         "usagesDigest": "id4N9zEG9cWA5LDGcYo8hdxu2eyQz5Hfz/JFLqMRbmQ=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -2453,7 +2453,7 @@
     },
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+crate_native": {
       "general": {
-        "bzlTransitiveDigest": "oRT3UomGgtiGJaeJ0qujSwD2YtkHxj5jYsZPSMBq21c=",
+        "bzlTransitiveDigest": "VlQgaGZgS4/MHjNifkXkiOJp0Aci+ddcu/pB9cPSMuw=",
         "usagesDigest": "3/DmVioXgFIFN/Jo9a7YdSw0S/nDMVuPivUrD29+nr4=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -7358,7 +7358,7 @@
     },
     "@@rules_rust+//crate_universe/private:internal_extensions.bzl%cu_nr": {
       "general": {
-        "bzlTransitiveDigest": "UAtFfmP2JwkoVsNdnWBN5YFEzEHFjclIhgt31JRH2ag=",
+        "bzlTransitiveDigest": "/hV7EO/6PCa8zs8xmnvkznjKOI+QqPzSIeRDfKVqRxk=",
         "usagesDigest": "ZmL90WEq2B6/NJ8rtHAqdnDPn+/9xG/GWR5K4UU4tyo=",
         "recordedInputs": [
           "REPO_MAPPING:bazel_features+,bazel_features_globals bazel_features++version_extension+bazel_features_globals",
