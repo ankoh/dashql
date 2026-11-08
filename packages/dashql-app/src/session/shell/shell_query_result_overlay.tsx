@@ -4,6 +4,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { ErrorBoundary } from '../../ui/foundations/error_boundary.js';
 import { useFocusTrap } from '../../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
 import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
@@ -33,6 +34,8 @@ const DEFAULT_DEPENDENCIES: ShellQueryResultOverlayDependencies = {
 interface Props {
     query: QueryExecutionState;
     onClose: () => void;
+    /// The result failed to render, the overlay closes as well
+    onError?: (error: unknown, info: React.ErrorInfo) => void;
     dismissOnClickOutside?: boolean;
     dependencies?: ShellQueryResultOverlayDependencies;
 }
@@ -47,7 +50,21 @@ const enum ResultTab {
     Plan = 1,
 }
 
-export const ShellQueryResultOverlay: React.FC<Props> = ({
+/// A result that fails to render only closes the overlay, the terminal of the shell keeps its state
+export const ShellQueryResultOverlay: React.FC<Props> = props => {
+    const { onClose, onError } = props;
+    const handleError = (error: unknown, info: React.ErrorInfo) => {
+        onError?.(error, info);
+        onClose();
+    };
+    return (
+        <ErrorBoundary key={props.query.queryId} fallback={() => null} onError={handleError}>
+            <ResultOverlay {...props} />
+        </ErrorBoundary>
+    );
+};
+
+const ResultOverlay: React.FC<Props> = ({
     query,
     onClose,
     dismissOnClickOutside = true,

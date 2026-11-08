@@ -28,6 +28,8 @@ import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import { SessionViewMode, SessionViewModeProvider, useSessionViewMode } from '../session_view_mode.js';
 import { resolveClientFunctionCall } from './session_shell_environment.js';
 import { SessionShellPage, type SessionShellPageDependencies } from './session_shell_page.js';
+import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
+import { ProfileExecutionState } from '../../query/profile_execution_state.js';
 import * as completionListStyles from '../../views/completion_list/completion_list.module.css';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -110,11 +112,23 @@ function Capture(props: { capture: (api: Api) => void; children: React.ReactElem
     return props.children;
 }
 
+/// Does the content of the overlay fail to render?
+let resultFails = false;
+
 /// The overlay has its own tests, this shows which result the page opens
 const dependencies: SessionShellPageDependencies = {
-    ShellQueryResultOverlay: ({ query, onClose }) => (
-        <div role="dialog" data-query-id={query.queryId}>
-            <button type="button" aria-label="Close shell query results" onClick={onClose} />
+    ShellQueryResultOverlay: props => resultFails ? (
+        <ShellQueryResultOverlay
+            {...props}
+            dependencies={{
+                QueryResultDetails: () => { throw new Error('boom'); },
+                QueryProfileView: () => <></>,
+                useQueryProfile: () => ({ plan: null, execution: ProfileExecutionState.EMPTY, rejected: false }),
+            }}
+        />
+    ) : (
+        <div role="dialog" data-query-id={props.query.queryId}>
+            <button type="button" aria-label="Close shell query results" onClick={props.onClose} />
         </div>
     ),
 };
@@ -182,6 +196,7 @@ describe('SessionShellPage', () => {
         vi.unstubAllGlobals();
         vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
         vi.restoreAllMocks();
+        resultFails = false;
         // Shells that a page loaded and no longer needs are destroyed once their load ends
         await vi.waitFor(() => expect(created.filter(shell => !destroyed.has(shell))).toEqual([]), WAIT);
     });
@@ -379,6 +394,26 @@ describe('SessionShellPage', () => {
             act(() => closeOverlay()!.click());
             expect(overlay()).toBeNull();
             await vi.waitFor(() => expect(api.computations()).not.toContain(queryId), WAIT);
+        });
+
+        it('keeps the terminal when a result fails to render', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => { });
+            const connection = createConnection(MAIN);
+            const table = tableFromArrays({ answer: [42] });
+            await open([connection]);
+            run('.output ui');
+            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
+
+            resultFails = true;
+            const failed = await showResult(table, [connection]);
+            await vi.waitFor(() => expect(screen()).toContain('Failed to show the result: boom'), WAIT);
+            expect(overlay()).toBeNull();
+            await vi.waitFor(() => expect(api.computations()).not.toContain(failed), WAIT);
+
+            // The next result opens again
+            resultFails = false;
+            await showResult(table, [connection]);
+            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
         });
 
         it('releases the shown result when another one replaces it', async () => {

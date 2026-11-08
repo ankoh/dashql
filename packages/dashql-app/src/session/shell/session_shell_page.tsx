@@ -83,6 +83,11 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         if (resultQueryId == null) return;
         return () => releaseResult(resultQueryId);
     }, [resultQueryId, releaseResult]);
+    const showResultError = (error: unknown, info: React.ErrorInfo) => {
+        // The terminal says what happened, an error would also raise a toast
+        logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
+        controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
+    };
     const connectorName = connection?.connectorInfo.names.displayShort ?? '';
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
     const shellName = connection == null ? 'Shell' : `${connectionLabelText(connectionLabelParts(connection, ordinal))} Shell`;
@@ -224,7 +229,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                 </div>
             )}
             {resultQuery != null && (
-                <ResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} />
+                <ResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} onError={showResultError} />
             )}
             {snippetsBrowserDialog}
             {fileDialogs}

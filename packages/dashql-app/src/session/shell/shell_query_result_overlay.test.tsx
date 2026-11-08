@@ -67,6 +67,29 @@ describe('ShellQueryResultOverlay', () => {
         document.getElementById('__dashqlPortalRoot__')?.remove();
     });
 
+    it('closes and reports the error when the result fails to render', () => {
+        vi.spyOn(console, 'error').mockImplementation(() => { });
+        const onClose = vi.fn();
+        const onError = vi.fn();
+        const error = new Error('boom');
+        act(() => root.render(
+            <>
+                <span data-testid="sibling" />
+                <ShellQueryResultOverlay
+                    query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
+                    onClose={onClose}
+                    onError={onError}
+                    dependencies={{ ...dependencies, QueryResultDetails: () => { throw error; } }}
+                />
+            </>,
+        ));
+        expect(onError.mock.calls[0][0]).toBe(error);
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(dialog()).toBeNull();
+        // Whatever renders next to the overlay stays, like the terminal of the shell
+        expect(container.querySelector('[data-testid="sibling"]')).not.toBeNull();
+    });
+
     it('does not dismiss on outside mouse events when disabled', () => {
         const onClose = vi.fn();
         act(() => root.render(

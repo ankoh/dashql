@@ -91,10 +91,16 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating hyperdb-wasm');
     const shellRef = React.useRef<DashQLShell | null>(null);
+    const controllerRef = React.useRef<BrowserShellController | null>(null);
     React.useEffect(() => {
         shellRef.current?.setKeywordCase(keywordCase);
     }, [keywordCase]);
     const { resultQuery, showResultQuery, closeResultQuery } = useShellQueryResult(queryExecutions);
+    const showResultError = (error: unknown, info: React.ErrorInfo) => {
+        // The terminal says what happened, an error would also raise a toast
+        logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
+        controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
+    };
 
     React.useEffect(() => {
         if (hyperDBSupportError != null) return;
@@ -294,6 +300,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 return;
             }
             controller = nextController;
+            controllerRef.current = nextController;
             setStatus('');
 
             // Offer the statements of a shared script one after another
@@ -323,6 +330,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         return () => {
             cancelled = true;
             controller?.dispose();
+            controllerRef.current = null;
             shell?.destroy();
             shellRef.current = null;
             fileRegistryRef.current = null;
@@ -357,6 +365,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 <ShellQueryResultOverlay
                     query={resultQuery}
                     onClose={closeResultQuery}
+                    onError={showResultError}
                     dismissOnClickOutside={false}
                 />
             )}

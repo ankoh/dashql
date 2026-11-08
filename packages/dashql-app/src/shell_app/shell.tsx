@@ -6,6 +6,7 @@ import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
+import { ShellErrorBoundary } from './shell_error_boundary.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
 import { ShellQueryHistoryProvider } from './shell_query_history.js';
@@ -38,7 +39,7 @@ export const Shell: React.FC = () => {
     return (
         <BrowserRouter>
             <LoggerProvider>
-                <>
+                <ShellErrorBoundary>
                     <LoggerToast />
                     <AppConfigProvider>
                         <PlatformEventListenerProvider>
@@ -66,7 +67,7 @@ export const Shell: React.FC = () => {
                             </HttpClientProvider>
                         </PlatformEventListenerProvider>
                     </AppConfigProvider>
-                </>
+                </ShellErrorBoundary>
             </LoggerProvider>
         </BrowserRouter>
     );
