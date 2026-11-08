@@ -302,7 +302,7 @@ AVAILABLE → SELECTED_CANDIDATE → SELECTED_CATALOG_OBJECT
 
 The user sees inline hints showing the top candidate's text diff.
 Pressing **Tab** applies the candidate patch — replacing the target text with the candidate's completion text.
-The status advances to `SELECTED_CANDIDATE`.
+The status advances to `SELECTED_CANDIDATE`. The list closes until the next input, and only the hint of the next step remains.
 
 ### Step 2: Catalog object qualification (Tab)
 
@@ -371,6 +371,8 @@ The shell shows the same list over the terminal (`shell/completion_overlay.ts`).
 - **Mount:** the list sits in the terminal container and not on `body`, so it hides with a page that goes to the background. It's dark in both schemes, like the terminal.
 - **Variants:** Left and Right cycle the qualified names that the shell offers, which can be fewer than the catalog objects of a candidate. The shell packs only the objects with a qualified name, or the first one if there are none, so that the arrows of a row appear exactly when Left and Right cycle.
 - **Dot commands:** a command is a candidate without an info, with the keyword badge and no pane.
+- **Tab without a list:** it asks for candidates, since a terminal has no tab to insert. One candidate is applied right away, several open the list.
+- **Enter with a list:** it accepts the selected candidate like Tab, and submits only after that.
 
 ### Patch computation
 

@@ -750,6 +750,39 @@ fn navigates_and_accepts_terminal_completion_overlay() {
 }
 
 #[test]
+fn accepting_a_candidate_closes_the_list_until_the_next_input() {
+    let catalog = catalog();
+    let _schema = load_schema(&catalog, "CREATE TABLE foo(first_column BIGINT, second_column BIGINT);");
+    let mut shell = shell(&catalog, 80);
+
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Text, "select * from foo x where x.").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_some());
+
+    let output = consume(&mut shell, Key::Tab, "");
+    assert_eq!(output.status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_none());
+    let accepted = shell.move_prompt_right().text;
+    assert!(accepted.ends_with("x.first_column") || accepted.ends_with("x.second_column"), "{accepted}");
+
+    // The next character asks for completions again
+    assert_eq!(consume(&mut shell, Key::Backspace, "").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_some());
+}
+
+#[test]
+fn accepting_with_enter_closes_the_list_and_does_not_submit() {
+    let catalog = catalog();
+    let mut shell = shell(&catalog, 80);
+
+    assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
+    assert_eq!(consume(&mut shell, Key::Text, "sel").status, ShellStatus::Ok);
+    let output = consume(&mut shell, Key::Enter, "");
+    assert_eq!(output.action, PromptInputAction::None);
+    assert!(shell.terminal_completion_list().is_none());
+}
+
+#[test]
 fn lists_hints_and_accepts_column_after_fully_qualified_table_alias() {
     let catalog = catalog();
     let _schema = load_schema(&catalog, "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);");
@@ -1009,6 +1042,8 @@ fn applies_keyword_completion_in_multiple_steps() {
     assert!(rendered.contains(&format!("{}supplier{}", vt100::FOREGROUND_SILVER, vt100::RESET_ATTRIBUTES)), "{rendered}");
     assert!(rendered.contains(&format!("{}group{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)), "{rendered}");
     assert!(rendered.contains(&bright(" by")), "{rendered}");
+    // The next step is only a hint, the list stays closed
+    assert!(shell.terminal_completion_list().is_none());
 
     assert_eq!(shell.move_prompt_right().text, "SELECT * FROM supplier group");
 
@@ -1197,8 +1232,11 @@ fn renders_and_accepts_qualification_hint_before_cursor() {
     let output = consume(&mut shell, Key::Tab, "");
     assert_eq!(output.status, ShellStatus::Ok);
     assert!(data(&output).contains(&sequence(2, Command::InsertCharacter)));
+    // The qualification is only a hint, the list stays closed
+    assert!(shell.terminal_completion_list().is_none());
 
     assert_eq!(consume(&mut shell, Key::Tab, "").status, ShellStatus::Ok);
+    assert!(shell.terminal_completion_list().is_none());
     assert!(shell.move_prompt_right().text.contains(".customer_id"));
 }
 

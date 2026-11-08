@@ -126,6 +126,9 @@ describe('the completion list of the browser shell', () => {
         const name = rows()[selection].querySelector(`.${styles.candidate_name}`)!.textContent!;
         press('Tab');
         expect(shell.movePromptRight().text).toBe(COLUMNS_PROMPT + name);
+        // Like in the editor, the list stays closed until the next input
+        await vi.waitFor(() => expect(isShown(list())).toBe(false));
+        expect(shell.terminalCompletionList()).toBeNull();
     });
 
     it('closes with Escape and keeps the prompt', async () => {

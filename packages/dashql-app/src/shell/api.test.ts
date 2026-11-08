@@ -580,6 +580,7 @@ describe('DashQL shell Wasm', () => {
         const accepted = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(accepted.action).toBe(DashQLShellPromptAction.NONE);
         expect(accepted.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'select' + VT100.RESET_ATTRIBUTES);
+        expect(shell.terminalCompletionList()).toBeNull();
         expect(shell.movePromptRight().text).toBe('select');
 
         shell.consumeTerminalInput(DashQLShellPromptInput.CANCEL);

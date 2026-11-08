@@ -1054,7 +1054,7 @@ impl ShellSession {
             }
             let hint_only = overlay.hint_only;
             if key == PromptInputKey::Tab || (key == PromptInputKey::Enter && !hint_only) {
-                return self.accept_terminal_completion(catalog);
+                return Ok(self.accept_terminal_completion());
             }
             if key == PromptInputKey::Escape || key == PromptInputKey::Abort {
                 let mut output = self.clear_terminal_completion_overlay();
@@ -1110,13 +1110,8 @@ impl ShellSession {
         if action == PromptInputAction::Complete {
             let (candidates, completion) = self.complete_prompt_packed(50, catalog)?;
             if candidates.len() == 1 {
-                let snapshot = self.apply_completion(&candidates[0]);
-                if snapshot.status != ShellStatus::Ok {
-                    return Ok(ShellOperation::new(snapshot.status, snapshot.message));
-                }
-                output_prefix.extend(self.render_terminal_prompt());
-                output_prefix.extend(self.refresh_terminal_completion_overlay(catalog)?);
-                return Ok(ShellOperation::ok(output_prefix));
+                let candidate = candidates.into_iter().next().unwrap();
+                return Ok(self.apply_terminal_candidate(candidate, 0, output_prefix));
             }
             if candidates.len() > 1 {
                 output_prefix.extend(self.open_terminal_completion_overlay(candidates, completion));
@@ -1700,12 +1695,22 @@ impl ShellSession {
         output
     }
 
-    fn accept_terminal_completion(&mut self, catalog: &Catalog) -> Result<ShellOperation, String> {
-        let mut output = self.clear_terminal_completion_overlay();
+    fn accept_terminal_completion(&mut self) -> ShellOperation {
+        let output = self.clear_terminal_completion_overlay();
         let overlay = self.overlay.take().unwrap();
-        let hint_only = overlay.hint_only;
         let variant_selection = overlay.variant_selection;
-        let mut candidate = overlay.candidates.into_iter().nth(overlay.selection).unwrap();
+        let candidate = overlay.candidates.into_iter().nth(overlay.selection).unwrap();
+        self.apply_terminal_candidate(candidate, variant_selection, output)
+    }
+
+    /// Apply a candidate after the output so far. The list stays closed, like in the editor: only the hint of the next
+    /// step remains, a qualification or a keyword continuation.
+    fn apply_terminal_candidate(
+        &mut self,
+        mut candidate: CompletionCandidate,
+        variant_selection: usize,
+        mut output: Vec<u8>,
+    ) -> ShellOperation {
         let continuation = candidate.continuation_text.clone();
         let qualification = if candidate.qualification_texts.is_empty() {
             String::new()
@@ -1723,7 +1728,7 @@ impl ShellSession {
         }
         let snapshot = self.apply_completion(&candidate);
         if snapshot.status != ShellStatus::Ok {
-            return Ok(ShellOperation::new(snapshot.status, snapshot.message));
+            return ShellOperation::new(snapshot.status, snapshot.message);
         }
         self.prompt.script_mut().parse();
         output.extend(self.render_terminal_prompt());
@@ -1767,10 +1772,8 @@ impl ShellSession {
                 ..Default::default()
             });
             output.extend(self.render_terminal_completion_hint());
-        } else if !hint_only {
-            output.extend(self.refresh_terminal_completion_overlay(catalog)?);
         }
-        Ok(ShellOperation::ok(output))
+        ShellOperation::ok(output)
     }
 
     fn move_terminal_completion(&mut self, direction: i32) -> ShellOperation {
