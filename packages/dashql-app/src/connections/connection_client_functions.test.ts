@@ -10,6 +10,7 @@ import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_
 import { createConnectionStateDetails } from './connection_state_details.js';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
+import { SALESFORCE_CLIENT_FUNCTIONS } from './salesforce/salesforce_client_functions.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -65,6 +66,23 @@ describe('The client functions of a connection', () => {
         ensureConnectionClientFunctions(connections, 'c', onDidUpdate as never, logger);
         expect(register).toHaveBeenCalledTimes(1);
         expect(onDidUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('are tried again if their spec failed to load', async () => {
+        const state = connection(ConnectorType.SALESFORCE_DATA_CLOUD);
+        const connections = new Map([['c', state]]);
+        const loadSpec = vi.spyOn(SALESFORCE_CLIENT_FUNCTIONS, 'loadSpec').mockRejectedValueOnce(new Error('chunk failed'));
+        const failed = vi.fn();
+        ensureConnectionClientFunctions(connections, 'c', failed, logger);
+        await new Promise(resolve => setTimeout(resolve));
+        expect(loadSpec).toHaveBeenCalledTimes(1);
+        expect(failed).not.toHaveBeenCalled();
+        expect(calls(state)).toEqual(0);
+        const onDidUpdate = vi.fn();
+        ensureConnectionClientFunctions(connections, 'c', onDidUpdate, logger);
+        await vi.waitFor(() => expect(onDidUpdate).toHaveBeenCalledWith('c'), { timeout: 5000 });
+        expect(calls(state)).toEqual(1);
+        loadSpec.mockRestore();
     });
 
     it('survive a reset of the connection', async () => {

@@ -57,8 +57,10 @@ export function ensureConnectionClientFunctions(
             registration.namespace = catalog.registerClientFunctions(JSON.stringify(spec));
             onDidUpdate(connectionId);
         } catch (error) {
-            // It stays unregistered: a script then gets no checks and no completion, and a call goes to the backend
+            // It stays unregistered: a script then gets no checks and no completion, and a call goes to the backend. The next
+            // change of the registry tries again, a chunk of the spec may only have failed to load.
             logger.error('Failed to register client functions', { connectionId, error: String(error) }, LOG_CTX);
+            if (REGISTRATIONS.get(catalog) === registration) REGISTRATIONS.delete(catalog);
         }
     })();
 }
