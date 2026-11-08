@@ -77,6 +77,8 @@ const EYE_DY = 10;
 const EYE_WIDTH = 17;
 const EYE_HEIGHT = 27;
 const EYE_DOT_SPACING = 3.1;
+/// The dots per row of an eye from top to bottom: a pill like the eyes of the agent face, straight sides with round ends
+const EYE_ROWS = [2, 4, 6, 6, 6, 6, 6, 6, 4, 2];
 /// How far the eyes glance, and how often they glance and blink
 const GLANCE_AMPLITUDE = 15;
 const GLANCE_INTERVAL_MS = 2400;
@@ -257,19 +259,16 @@ function buildCloud(brand: AgentFaceBrand, count: number): Float32Array {
 
 /// The dots of the two eyes: the center of the eye and the place of the dot in it
 function buildEyes(): Float32Array {
-    const halfWidth = EYE_WIDTH / 2, halfHeight = EYE_HEIGHT / 2;
     const places: number[] = [];
-    let row = 0;
-    for (let y = -halfHeight; y <= halfHeight; y += EYE_DOT_SPACING * 0.866, ++row) {
-        for (let x = -halfWidth + (row % 2 === 0 ? 0 : EYE_DOT_SPACING / 2); x <= halfWidth; x += EYE_DOT_SPACING) {
-            // Inside of a pill
-            const dy = Math.max(0, Math.abs(y) - (halfHeight - halfWidth));
-            if (Math.hypot(x, dy) <= halfWidth) {
-                places.push(-EYE_DX, EYE_DY, x, y);
-                places.push(EYE_DX, EYE_DY, x, y);
-            }
+    const rowStep = EYE_DOT_SPACING * 0.866;
+    EYE_ROWS.forEach((dots, row) => {
+        const y = (row - (EYE_ROWS.length - 1) / 2) * rowStep;
+        for (let dot = 0; dot < dots; ++dot) {
+            const x = (dot - (dots - 1) / 2) * EYE_DOT_SPACING;
+            places.push(-EYE_DX, EYE_DY, x, y);
+            places.push(EYE_DX, EYE_DY, x, y);
         }
-    }
+    });
     return new Float32Array(places);
 }
 
@@ -481,7 +480,7 @@ void main() {
     vColor = ramp(tone);
 }`;
 
-/// The dots of the eyes, a small honeycomb that slides over the sphere as a block when the eyes glance, and squeezes together
+/// The dots of the eyes, a small grid that slides over the sphere as a block when the eyes glance, and squeezes together
 /// when they blink. A dot never enters or leaves an eye. These dots are the brightest and the closest ones, on them even a
 /// shift of a part of a pixel shows as a shimmer: they lie on whole pixels at a fixed distance, the pattern never changes.
 const EYE_VERTEX = /* glsl */ `${VERTEX_HEAD}
@@ -503,9 +502,9 @@ void main() {
     float pixelsPerUnit = uScale / ${UNITS_PER_PAGE.toFixed(1)} * uView.y * uPixels.y;
     vec2 center = floor(place.xy * perspective * uView * uPixels) + 0.5 + vec2(floor(aEye.x * pixelsPerUnit + 0.5), 0.0);
 
-    // An even distance of the dots in a row: the dots of every other row lie in the middle between them on a whole pixel
+    // An even distance of the dots: half of it is the distance of the dots of a row with an even number of them to its middle
     float pitch = max(4.0, 2.0 * floor(0.5 * ${EYE_DOT_SPACING.toFixed(1)} * pixelsPerUnit + 0.5));
-    // Rows at the same distance, closer ones would make the dots touch, on these few pixels
+    // Rows at the same distance, the dots lie in a square grid
     float rowPitch = pitch;
     vec2 cell = aEye.zw / vec2(${EYE_DOT_SPACING.toFixed(1)}, ${(EYE_DOT_SPACING * 0.866).toFixed(4)});
     // A blink squeezes the dots together, and the eye gets a little wider
