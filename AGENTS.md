@@ -22,8 +22,11 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/core_quirks.md`
     - `docs/design/trino_plan.md` (Trino plan fragments to one operator tree, tree layout, stage contours)
 
-- Extensions (core and runtime implemented, Salesforce connections get checks and completion, calls run, a script with a call that writes runs only on request and agents never run it: an extension is a folder in `extensions/`, `CALL` is generic, declarative client functions shadow a namespace on a connection and reach a REST API, any other call goes to the backend)
-    - `docs/design/extensions.md` (the statement, spec format, connector binding, checks, completion, paging, pending results, security, the core)
+- Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
+    - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
+
+- Client functions (core and runtime implemented, Salesforce connections get checks and completion, calls run, a script with a call that writes runs only on request and agents never run it: `CALL` is generic, declarative client functions shadow a namespace on a connection and reach a REST API, any other call goes to the backend)
+    - `docs/design/client_functions.md` (the statement, spec format, connector binding, checks, completion, paging, pending results, results, security, the core, the runtime)
     - `docs/design/extensions/api_survey.md` (the format measured against Snowflake, GitHub and Stripe, similar formats)
 
 - CDP SQL (proposed, not implemented: the first extension, `CALL cdp.*` over the Salesforce Data 360 API)

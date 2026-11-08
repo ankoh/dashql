@@ -66,7 +66,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 
 **Database.com** spreads the Salesforce descriptor and turns the binding off, since it isn't known whether it has this API, see the [open questions](#open-questions).
 
-**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../../../docs/design/extensions.md#running-calls).
+**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../../../docs/design/client_functions.md#writes).
 
 ## How Data 360 fits the format
 
@@ -85,7 +85,7 @@ The Salesforce connector's descriptor (`packages/dashql-app/src/connections/sale
 | 404 for an empty result (DMO mappings) | `empty_on` on that function |
 | 200 with errors (consent) | The `result` column on every row, which a script reads. No `error_if`, since no source gives a pointer that means failure |
 | Connect errors: an array whose `message` may be a JSON string | `errors` at the top level, with `message_is_json` |
-| CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../../../docs/design/extensions.md#open-questions) |
+| CSV upload (`ingest_job_upload`) | `body: "text/csv"`. The 150 MB case is an [open question](../../../../docs/design/client_functions.md#open-questions) |
 | `agent_id`: a header on most agentic memory calls, a query parameter on one | `in` per function |
 | Data space filtering that the API doesn't support | Not handled. Values are API values, and the client adds no filtering |
 | Segment SQL rules, call order, readiness | Stay out of the spec. The server decides, and [the notes](api_notes.md) explain |
@@ -189,7 +189,7 @@ A schema inferred from examples can miss attributes. The prototype hit this with
 
 ### Variants
 
-The contract has 10 request attributes that are one of several schemas, and these become [unions](../../../../docs/design/extensions.md#the-spec). Each is named after its first use, such as `transform_create.definition`.
+The contract has 10 request attributes that are one of several schemas, and these become [unions](../../../../docs/design/client_functions.md#the-spec). Each is named after its first use, such as `transform_create.definition`.
 
 The contract declares no discriminators: variants inherit the attribute from a shared base, with the same enum. So nothing official says which value selects which variant. The `tag` of a union connects them where the value and the variant have the same name:
 
@@ -265,7 +265,7 @@ Connection credentials are a list of `(param_name, value)` pairs, as the API has
 
 ## The escape hatch
 
-`cdp.request` is the spec's [raw function](../../../../docs/design/extensions.md#the-escape-hatch):
+`cdp.request` is the spec's [raw function](../../../../docs/design/client_functions.md#the-escape-hatch):
 
 ```sql
 CALL cdp.request (method => 'POST', path => '/ssot/new-thing', host => 'tenant', body => (a = 1), someParam => 1);
@@ -301,7 +301,7 @@ It's the only function with a `body` option.
 
 ## Roadmap
 
-The [extension roadmap](../../../../docs/design/extensions.md#roadmap) comes first. The spec exists. For Data 360:
+The [client function roadmap](../../../../docs/design/client_functions.md#roadmap) comes first. The spec exists. For Data 360:
 
 1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Built. It still needs a browser CORS check on the tenant host, since only `GET` on `/services/data` is exercised today.
 2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.

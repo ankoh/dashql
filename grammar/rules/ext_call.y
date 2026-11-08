@@ -2,7 +2,7 @@
 // CALL <name>(<option> => <value>, ...)
 //
 // A generic statement, it knows no client function. Keys reuse vararg_key, so every keyword is a valid name and no keyword
-// list changes. See docs/design/extensions.md.
+// list changes. See docs/design/client_functions.md.
 
 call_stmt:
     CALL_P sql_qualified_name LRB RRB {

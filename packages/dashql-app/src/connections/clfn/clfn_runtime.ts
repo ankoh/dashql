@@ -488,7 +488,7 @@ function abortableSleep(ms: number, abort?: AbortSignal): Promise<void> {
 }
 
 /// Run a call. A call that writes is sent like any other: the planner leaves a script with one out of the runs of the
-/// session and of input changes, and agents don't run it, see docs/design/extensions.md.
+/// session and of input changes, and agents don't run it, see docs/design/client_functions.md.
 export async function runClientFunctionCall(spec: ClientFunctionSpec, description: ClientFunctionCallDescription, env: ClientFunctionEnvironment, abort?: AbortSignal): Promise<ClientFunctionResult> {
     const options = await bindCallOptions(description, async binding => {
         const name = binding.param;

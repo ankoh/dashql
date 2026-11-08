@@ -225,7 +225,7 @@ catalog unchanged.
 `clear` keeps them. They are no entries: they have no layer and no declarations, `flatten` and
 `describe_entries` leave them out, and the app doesn't store them. A snapshot holds them so that an
 analysis and completion read the spec of the catalog version they resolved against, see
-[Extensions](extensions.md#namespaces).
+[Client functions](client_functions.md#namespaces).
 
 ### Resolution
 
@@ -415,7 +415,7 @@ resolved references) and the analysis's snapshot (the name indexes and declarati
 entries, tables by schema). `ScriptView::catalog()` returns that snapshot, or the catalog's current
 snapshot for a script without analysis. Every location completion handles, from the analysis or
 from a name index, refers to the same snapshot. The client function specs come from the same
-snapshot, see [Completion](extensions.md#completion).
+snapshot, see [Completion](client_functions.md#completion).
 
 The session refreshes an outdated analysis before it places the cursor, so editor completion sees
 the current catalog. Completion on an outdated analysis through the `Script` API sees the catalog

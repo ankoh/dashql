@@ -1,6 +1,6 @@
 //! Client functions: a declarative description of an API that shadows a namespace of `CALL` on a connection.
 //!
-//! A host registers a spec on the catalog of a connection (see `docs/design/extensions.md`). The core reads the
+//! A host registers a spec on the catalog of a connection (see `docs/design/client_functions.md`). The core reads the
 //! generic part of the spec: namespaces, functions, typed named options, nested schemas and result columns. Everything
 //! a request needs (methods, paths, API names) stays in the document for the runtime of the host, the core ignores it.
 

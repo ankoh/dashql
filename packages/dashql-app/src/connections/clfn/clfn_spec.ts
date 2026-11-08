@@ -1,4 +1,4 @@
-/// The spec of client functions, see docs/design/extensions.md. The core reads the signatures of the same document.
+/// The spec of client functions, see docs/design/client_functions.md. The core reads the signatures of the same document.
 
 /// An option of a function or an attribute of a schema
 export interface ClientFunctionAttribute {

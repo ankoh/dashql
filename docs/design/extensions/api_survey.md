@@ -1,6 +1,6 @@
 # API Survey
 
-Status: research, as of 2026-11. It backs the format in [extensions.md](../extensions.md), and it measures whether the format stays general, or only fits the API it was designed on.
+Status: research, as of 2026-11. It backs the format in [client_functions.md](../client_functions.md), and it measures whether the format stays general, or only fits the API it was designed on.
 
 **The short version:** the layers, named hosts and the `name` and `api_name` split hold up. The first version of the format was shaped too closely to Data 360: Stripe couldn't be expressed at all, and Snowflake only in part. The changes below are now in the format.
 
@@ -69,7 +69,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 
 ## What had to change
 
-| Finding | Change in [the format](../extensions.md) |
+| Finding | Change in [the format](../client_functions.md) |
 |---|---|
 | Snowflake declares `Link` on 13 `POST` and `PUT` operations, and the URL points at a results path | A followed URL always uses `GET` with no body. Otherwise, fetching page 2 could repeat a create |
 | Next values live in headers and in rows, not only in the body | `from` takes `body`, `link`, `header` or `last_row` |
@@ -84,7 +84,7 @@ The first two are transport behavior that the runtime can handle per spec. The t
 | Stripe has 197 responses with one array plus other fields, but only 135 are `data` | `rows` is explicit, and a generator never guesses it |
 | 349 top-level array responses on Snowflake and GitHub | `rows: ""` |
 | Merging Snowflake's 55 files gives 39 duplicate schema names | A generator prefixes them, since `schemas` is one flat map |
-| `Link` and `Location` aren't readable cross-origin without `Access-Control-Expose-Headers` | A check per service, in [Security](../extensions.md#security) |
+| `Link` and `Location` aren't readable cross-origin without `Access-Control-Expose-Headers` | A check per service, in [Security](../client_functions.md#security) |
 
 **Data 360's contract alone would have shown almost none of these.** It has no top-level array responses, no array bodies and no form encoding, and it doesn't record response headers. A format is only as general as the APIs it has met.
 

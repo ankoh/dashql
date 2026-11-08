@@ -3,7 +3,7 @@
 //!
 //! `CALL` is a generic statement. A spec shadows its namespace on a connection, every other call goes to the backend as
 //! written and the checks don't apply to it. They walk the value of the script, so recursive schemas need no care. See
-//! `docs/design/extensions.md`.
+//! `docs/design/client_functions.md`.
 
 use super::state::AnalysisState;
 use super::AnalyzedScript;

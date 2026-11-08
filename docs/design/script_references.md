@@ -48,7 +48,7 @@ result cache that is mounted read-write at `/mnt/external/cache`, not as a path 
 
 ## Client Function Calls
 
-A script that is a single `CALL` of a client function that reads (`extensions.md`, Running calls) has a result like
+A script that is a single `CALL` of a client function that reads (`client_functions.md`, Running calls) has a result like
 a query: the columns of the function followed by the standard columns, `_status`, `_next`, `_poll` if the function
 can answer before it finishes, `_meta` and `_raw`. The call runs in the host and not in a database, no query can
 inline it, so only a **scan** reads it:
@@ -65,7 +65,7 @@ with a call isn't cacheable, so its file is transient and a script that reads it
 
 ## Scripts That Run on Request
 
-A script that calls a client function that writes runs only on request too, without a tag (`extensions.md`, Writes).
+A script that calls a client function that writes runs only on request too, without a tag (`client_functions.md`, Writes).
 
 A script whose query is too expensive without a filter is a building block. A `@manual` tag in a comment of any of
 its statements says so; the text after the tag is free, e.g. the reason:

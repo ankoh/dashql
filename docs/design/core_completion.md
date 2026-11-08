@@ -14,7 +14,7 @@ Completion::compute(cursor, k)
 ├─ [the name of a table parameter in table position, `from :fo|`] the names of the scripts with a result, then stop
 │  (complete_table_parameter, see script_references.md)
 ├─ [in a CALL of a namespace with client functions] its functions, options and attributes, then stop
-│  (complete_client_function_call, see extensions.md)
+│  (complete_client_function_call, see client_functions.md)
 ├─ Select target symbol (current vs. previous)
 ├─ Detect dot-completion context
 ├─ Skip non-completable symbols (constants, operators, punctuation)
