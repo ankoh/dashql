@@ -278,20 +278,23 @@ describe('agent commands', () => {
         await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('The connection db of orders is not online');
     });
 
-    it('never runs a script that calls a client function that writes', async () => {
+    it('runs a script that calls a client function that writes', async () => {
+        const ran: number[] = [];
+        env.onScriptRun = (_session, scriptKey) => ran.push(scriptKey);
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null, manual: false, writes: true };
-        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders calls a client function that writes, so only the user runs it');
-        await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('only the user runs it');
+        // The session of these tests has no core to plan with, so the run fails after it started
+        await run('run', { script: 'orders' }).catch(() => {});
+        expect(ran).toEqual([1]);
     });
 
-    it('decides on a write with the analysis of the run, not with the annotations before it', async () => {
+    it('decides on a tag with the analysis of the run, not with the annotations before it', async () => {
         // The script was never analyzed, its annotations say nothing yet
         state.scripts[1].analysisOutdated = true;
         const ran: number[] = [];
         env.onScriptRun = (_session, scriptKey) => ran.push(scriptKey);
-        const analyzed = { ...state.scripts[1], analysisOutdated: false, annotations: { tableDefs: [], visualizeQuery: null, manual: false, writes: true } };
+        const analyzed = { ...state.scripts[1], analysisOutdated: false, annotations: { tableDefs: [], visualizeQuery: null, manual: true } };
         modify.mockImplementation(async () => ({ ...state, scripts: { ...state.scripts, 1: analyzed } }));
-        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders calls a client function that writes, so only the user runs it');
+        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders runs only on request (@manual)');
         expect(env.executeQuery).not.toHaveBeenCalled();
         expect(ran).toEqual([]);
         expect(isSessionExecutionRunning(state)).toBe(false);

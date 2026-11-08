@@ -7,13 +7,6 @@ import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js
 import { isSessionExecutionRunning, releaseSessionExecution, waitForSessionExecution } from './session_execution.js';
 import { runPlannedScript, scriptRunServices, type ScriptRunOptions } from './script_run.js';
 
-/// How a script runs on its connection
-export interface SessionScriptRunOptions extends ScriptRunOptions {
-    /// Leave a script out that calls a client function that writes, for a run that nobody asked for. Only the analysis
-    /// before the run can tell, its annotations are out of date before that.
-    skipWrites?: boolean;
-}
-
 /// Run a script on its connection, resolves when the run ended. A failed statement and a plan that fails, e.g. with an
 /// unknown script, show their errors in the script. A refresh reads no cached results, neither of the script nor of
 /// the scripts it references.
@@ -23,7 +16,7 @@ export async function runSessionScript(
     executeQuery: QueryExecutor,
     modifySessionScripts: ModifySessionScripts,
     logger: LoggerLike,
-    options: SessionScriptRunOptions = {},
+    options: ScriptRunOptions = {},
 ): Promise<void> {
     if (isSessionExecutionRunning(sessionScripts)) return;
     logger?.info('Session script execution requested', {
@@ -52,7 +45,6 @@ export async function runSessionScript(
         }, 'session_execution');
         scriptData = analyzed;
     }
-    if (options.skipWrites && scriptData.annotations.writes) return;
     await executeSessionScript(scriptData, sessionScripts, executeQuery, modifySessionScripts, logger, false, options);
 }
 

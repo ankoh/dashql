@@ -11,14 +11,14 @@ import { SessionTestBackend } from '../../storage/session_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
 import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isSessionExecutionRunning, planSessionScripts, prepareSessionScripts, subscribeSessionExecutions, type ExecutionMounts } from './session_execution.js';
 import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
-import { runSessionScript } from './rerun_query.js';
+import { runSessionScript, runSessionScriptForResult } from './rerun_query.js';
 import {
     ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createEmptyScriptData, reduceSessionScripts,
     scriptResultOwner,
     replaceScriptSessionText, SET_SCRIPT_CONNECTION, type SessionScripts, type SessionScriptsAction,
 } from './session_scripts.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
-import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata, createScriptRef } from './script_types.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -200,18 +200,12 @@ describe('script runs', () => {
         expect(scan.cacheable).toBeFalsy();
     });
 
-    it('leaves a script out that a run without a request finds to write once it is analyzed', async () => {
-        const spec = JSON.stringify({ format: 1, namespace: 't', functions: [{ name: 'remove', method: 'DELETE', effect: 'write' }, { name: 'list', method: 'GET', effect: 'read' }] });
-        const f = fixture([['remove.sql', 'call t.remove ();'], ['list.sql', 'call t.list ();']], ['remove.sql', 'list.sql'], true, spec);
-        // The annotations of a script before its analysis say nothing
-        const outdated = { ...f.script('remove.sql'), analysisOutdated: true, annotations: createEmptyAnnotations() };
-        await runSessionScript(f.session(), outdated, f.executeQuery, f.modifySessionScripts, logger, { skipWrites: true });
-        expect(f.executeQuery).not.toHaveBeenCalled();
-        await runSessionScript(f.session(), f.script('list.sql'), f.executeQuery, f.modifySessionScripts, logger, { skipWrites: true });
+    it('sends a write in a run of an agent', async () => {
+        const spec = JSON.stringify({ format: 1, namespace: 't', functions: [{ name: 'remove', method: 'DELETE', effect: 'write' }] });
+        const f = fixture([['remove.sql', 'call t.remove ();']], ['remove.sql'], true, spec);
+        await runSessionScriptForResult(() => f.session(), f.script('remove.sql').scriptKey, f.executeQuery, f.modifySessionScripts, logger);
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        // A run on request sends it
-        await runSessionScript(f.session(), f.script('remove.sql'), f.executeQuery, f.modifySessionScripts, logger);
-        expect(f.executeQuery).toHaveBeenCalledTimes(2);
+        expect(f.executeQuery.mock.calls[0][1].clientFunctionCall).toMatchObject({ function: 'remove', effect: 'write' });
     });
 
     it('reuses the cached result of a materialized script of another connection', async () => {

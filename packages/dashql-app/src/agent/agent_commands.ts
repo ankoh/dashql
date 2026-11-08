@@ -425,10 +425,6 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     const modify: ModifySessionScripts = action => env.modifySessionScripts(sessionId, action);
     // What a script may do comes from its analysis, which is only current right before the run
     const beforeRun = (current: ScriptData) => {
-        // A call that writes changes the service, only the user runs it
-        if (current.annotations.writes) {
-            fail(`${name} calls a client function that writes, so only the user runs it. Ask the user to run ${name}, and use EXPLAIN CALL to show the request before.`);
-        }
         // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
         if (current.annotations.manual && !force) {
             fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or ask the user whether to run it in full.`);

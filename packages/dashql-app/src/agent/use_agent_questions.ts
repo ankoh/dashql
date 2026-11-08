@@ -38,7 +38,7 @@ export interface AgentQuestionsArgs {
     agent: AgentBridge | null;
     /// The scripts of the session
     sessionScripts: SessionScripts;
-    /// Runs a script that the agent wrote, unless it calls a client function that writes: only the user runs that
+    /// Runs a script that the agent wrote
     runScript: (next: SessionScripts, scriptData: ScriptData) => void;
     /// Follows the agent to a script, every time the agent edits or runs it
     followScript?: (scriptKey: number, target: AgentFollowTarget) => void;

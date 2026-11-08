@@ -38,7 +38,7 @@ import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_fo
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { runSessionScript, type SessionScriptRunOptions } from '../scripts/rerun_query.js';
+import { runSessionScript } from '../scripts/rerun_query.js';
 import { computeScriptResultCacheKey, scriptRunServices } from '../scripts/script_run.js';
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
@@ -563,18 +563,14 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         const scriptData = created != null ? next.scripts[created.scriptId] : undefined;
         return scriptData != null ? { next, scriptData } : null;
     }, [props.modifySessionScripts]);
-    const runAppendedScript = React.useCallback((next: SessionScripts, scriptData: ScriptData, options?: SessionScriptRunOptions) => {
+    const runAppendedScript = React.useCallback((next: SessionScripts, scriptData: ScriptData) => {
         // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
             connectionAttention?.request(next.sessionId);
             return;
         }
-        dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger, options);
+        dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger);
     }, [connectionAttention, executeQuery, logger, props.modifySessionScripts]);
-    // A call that writes changes the service, only the user runs it
-    const runAgentScript = React.useCallback((next: SessionScripts, scriptData: ScriptData) => {
-        runAppendedScript(next, scriptData, { skipWrites: true });
-    }, [runAppendedScript]);
 
     // Scroll a script into view.
     // A script with results that does not fit shows its results, once its row is mounted and the results are measured.
@@ -670,7 +666,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const composerAgent = useComposerAgent({
         agent,
         sessionScripts: props.sessionScripts,
-        runScript: runAgentScript,
+        runScript: runAppendedScript,
         followScript: followAgentScript,
         showScript: handleShowAgentScript,
     });

@@ -464,10 +464,10 @@ CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake p
 | The shell of the connection | Runs, the statement is typed there |
 | Execute All, a run of the session | Left out (`runs_on_request` of the planner) |
 | A changed input | Left out, the dataflow marks the script `manual` |
-| An agent's `run` command | Refused, also with `force`: the agent asks the user to run it, and can show the request with `EXPLAIN CALL` |
-| A script that an agent wrote and didn't run | Not run when the answer ends |
+| An agent's `run` command | Runs |
+| A script that an agent wrote and didn't run | Runs when the answer ends, like any script of an agent |
 
-Both agent paths decide on the analysis that the run itself gets, not on the annotations before it, which say nothing about a script that isn't analyzed yet.
+An agent runs a write for now, and its guide says that a write takes effect as soon as its script runs. An approval step is planned.
 
 - **The feed marks the script** with `writes` (`EditorScriptAnnotations.writes`, `AnalyzedScript::calls_writes`).
 - **No script reads its result,** see [Running calls](#running-calls).
@@ -684,7 +684,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 `executeConnectionClientFunction` (`connections/connection_client_functions.ts`) connects it to a connection: it takes the binding of the connector, loads the spec and returns the stream.
 
-**The runtime doesn't gate writes.** Which runs include a write is decided before, by the planner and the agent commands, see [Writes](#writes). `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
+**The runtime doesn't gate writes.** Which runs include a write is decided before, by the planner, see [Writes](#writes). `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
 
 **The tests use a mock `HttpClient`,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_fixtures.test.ts` runs it on the real Data 360 spec, `query_executor.test.tsx` runs a call through the executor without touching the backend, and `clfn_result_stream.hyper.test.ts` analyzes a result in Hyper.
 
@@ -709,7 +709,7 @@ Each phase lands separately.
 2. **Runtime:** calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
-5. **Writes:** mutating calls run, a script with one runs only on request, and agents don't run it, see [Writes](#writes). Done, apart from `billed`, which no function sets yet, and the [secret store](../wip/secret_store.md), which is deferred.
+5. **Writes:** mutating calls run, a script with one runs only on request, see [Writes](#writes). An approval step for agents is still to come. Done, apart from `billed`, which no function sets yet, and the [secret store](../wip/secret_store.md), which is deferred.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 
 ## Open questions

@@ -558,7 +558,7 @@ describe('Session feed composer', () => {
         expect(modify).toHaveBeenCalledExactlyOnceWith({ type: CREATE_SCRIPT, value: { index: null, text: 'select 1' } });
         await vi.waitFor(() => expect(feedState.runSessionScript).toHaveBeenCalledOnce());
         expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(
-            next, next.scripts[1], feedState.executeQuery, modify, expect.anything(), undefined);
+            next, next.scripts[1], feedState.executeQuery, modify, expect.anything());
         expect(attention.request).not.toHaveBeenCalled();
     });
 
@@ -711,7 +711,7 @@ describe('Session feed composer', () => {
         await act(async () => feedState.agentListener!.done('There are 3 rows'));
         const answered = { question: 'how many rows', status: null, error: null, note: 'There are 3 rows', scripts: [1] };
         expect(feedState.composerProps?.agent?.turns).toEqual([{ questionId: 1, question: answered, scripts: [{ scriptKey: 1, scriptName: '1_alpha' }] }]);
-        expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything(), { skipWrites: true });
+        expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything());
         await act(async () => feedState.composerProps!.agent!.onDismiss(1));
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
     });
@@ -869,8 +869,6 @@ describe('Session feed composer', () => {
         render(withCatalog(onLake, emptyCatalog), vi.fn(), offline, new Map([['database', offline], ['lake', lake]]));
         await ask();
         expect(feedState.runSessionScript).toHaveBeenCalledOnce();
-        // A call that writes in a script of the agent stays for the user to run
-        expect(feedState.runSessionScript.mock.lastCall![5]).toEqual({ skipWrites: true });
     });
 
     it('does not rerun a script that the agent ran itself', async () => {

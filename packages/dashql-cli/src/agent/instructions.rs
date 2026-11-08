@@ -179,8 +179,9 @@ const DASHQL_NOTES: [Note; 8] = [
         text: "A connection can have client functions, which `catalog <id>` lists. `CALL <namespace>.<function> (<option> =>
   <value>, ...)` in a script of that connection calls its REST API instead of its database, and returns one table.
   `lint` checks the options and suggests the names it knows. `EXPLAIN CALL` prints the request and sends nothing.
-  `run` refuses a script with a function that writes, ask the user to run it. A script of the embedded Hyper reads
-  the result of a script that is a single call that reads, as a table parameter.",
+  A function that writes changes the service as soon as its script runs, also when your answer ends with the script
+  not run yet. A script of the embedded Hyper reads the result of a script that is a single call that reads, as a
+  table parameter.",
     },
     Note {
         feature: FEATURE_RESULT_CACHING,
