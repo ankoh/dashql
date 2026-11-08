@@ -22,6 +22,12 @@ describe('The Data 360 client functions of a Salesforce connection', () => {
         expect(target.headers.Authorization).toEqual(authorization);
     });
 
+    it('say so when the token of the tenant has expired', async () => {
+        const token = (expiresAt: string) => ({ channel: { ...CONNECTED.channel, dataCloudToken: { ...CONNECTED.channel!.dataCloudToken, expiresAt } } }) as unknown as SalesforceConnectionStateDetails;
+        await expect(SALESFORCE_CLIENT_FUNCTIONS.resolveHost(token('2000-01-01T00:00:00Z'), 'tenant')).rejects.toThrow(/has expired, connect again/);
+        await expect(SALESFORCE_CLIENT_FUNCTIONS.resolveHost(token('2999-01-01T00:00:00Z'), 'tenant')).resolves.toBeDefined();
+    });
+
     it('have no other host', async () => {
         await expect(SALESFORCE_CLIENT_FUNCTIONS.resolveHost(CONNECTED, 'other')).rejects.toThrow(/no host other/);
     });

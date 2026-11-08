@@ -32,6 +32,10 @@ export const SALESFORCE_CLIENT_FUNCTIONS: ClientFunctionBinding<SalesforceConnec
             case 'connect':
                 return target(coreToken.instanceUrl, coreToken.accessToken, host);
             case 'tenant':
+                // The service would only answer with a 401
+                if (Date.parse(dataCloudToken.expiresAt) <= Date.now()) {
+                    throw new ClientFunctionError('the Data 360 token of the Salesforce connection has expired, connect again');
+                }
                 return target(dataCloudToken.instanceUrl, dataCloudToken.jwt?.raw, host);
             default:
                 throw new ClientFunctionError(`Salesforce connections have no host ${host}`);
