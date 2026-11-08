@@ -1,5 +1,6 @@
-/* The backdrop draws the whole page */
+/* The backdrop draws the whole page, the canvases and the controls are placed in it */
 .page {
+    position: relative;
     overflow: hidden;
 }
 
@@ -16,31 +17,6 @@
 .host canvas {
     position: absolute;
     display: block;
-}
-
-/* The face next to its question, white on the dark page like on the empty session */
-.greeting {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-    color-scheme: dark;
-    color: var(--color_fg);
-}
-
-.greeting_face {
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-}
-
-.greeting_text {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 400;
-    font-style: italic;
-    line-height: 1.3;
 }
 
 .controls {

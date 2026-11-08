@@ -1,14 +1,11 @@
 import * as React from 'react';
 
 import * as baseStyles from '../../ui/foundations/banner_page.module.css';
-import * as setupStyles from '../../app/app_loading_page.module.css';
 
 import { useFlavorAgentFaceBrand } from '../../agent/agent_face.js';
 import { DASHQL_BRAND, DBCOM_BRAND } from '../../agent/agent_face_morph.js';
-import { AgentGreeting } from '../../agent/agent_greeting.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { CLOUD_DENSITIES, LandingBackdrop, type BackdropStats } from './landing_backdrop.js';
 import * as styles from './landing_backdrop_page.module.css';
 
@@ -17,49 +14,7 @@ const BRANDS = [
     { label: 'Database.com', brand: DBCOM_BRAND },
 ];
 
-const FOREGROUNDS = ['Card', 'Face', 'None'];
-
-/// The steps of the mock of the setup page
-const SETUP_STEPS: { label: string; status: IndicatorStatus }[] = [
-    { label: 'Apply Migrations', status: IndicatorStatus.Succeeded },
-    { label: 'Initialize Core', status: IndicatorStatus.Succeeded },
-    { label: 'Initialize HyperDB', status: IndicatorStatus.Running },
-    { label: 'Discover Sessions', status: IndicatorStatus.None },
-    { label: 'Load Session Scripts', status: IndicatorStatus.None },
-];
-
-/// A mock of the card of the setup page, to judge the backdrop in the place it is meant for
-function SetupCardMock(): React.ReactElement {
-    return (
-        <div className={`${baseStyles.banner_and_content_container} ${setupStyles.foreground}`}>
-            <div className={baseStyles.content_container}>
-                <div className={baseStyles.card}>
-                    <div className={baseStyles.card_header}>
-                        <div className={baseStyles.card_header_left_container}>
-                            <div className={baseStyles.card_header_left_title}>Setup</div>
-                        </div>
-                    </div>
-                    <div className={baseStyles.card_section}>
-                        <div className={baseStyles.section_entries}>
-                            <div className={setupStyles.detail_entries}>
-                                {SETUP_STEPS.map(step => (
-                                    <React.Fragment key={step.label}>
-                                        <div className={setupStyles.detail_entry_key}>{step.label}</div>
-                                        <div className={setupStyles.detail_entry_value}>
-                                            <StatusIndicator fill="var(--color_fg)" width="14px" height="14px" status={step.status} />
-                                        </div>
-                                    </React.Fragment>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-/// The sphere of dots that turns into the brand mark, with knobs to tune it on the page it is meant for
+/// The sphere of dots that turns into the brand mark, with knobs to tune it
 function LandingBackdropPage(): React.ReactElement {
     const flavorBrand = useFlavorAgentFaceBrand();
     const [brand, setBrand] = React.useState(() => Math.max(0, BRANDS.findIndex(entry => entry.brand === flavorBrand)));
@@ -83,19 +38,11 @@ function LandingBackdropPage(): React.ReactElement {
     const [eyes, setEyes] = React.useState(true);
     const [stats, setStats] = React.useState<BackdropStats | null>(null);
     const [motion, setMotion] = React.useState(() => !(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false));
-    const [foreground, setForeground] = React.useState(0);
     const [controlsShown, setControlsShown] = React.useState(true);
 
     return (
-        <div className={`${baseStyles.page} ${setupStyles.page} ${styles.page}`}>
+        <div className={`${baseStyles.page} ${styles.page}`}>
             <LandingBackdrop brand={BRANDS[brand].brand} period={period} contrast={contrast} motion={motion} dots={CLOUD_DENSITIES[density]} wobble={wobble} markWobble={markWobble} scale={scale} eyes={eyes} particles={particles} ringFps={ringFps} outerWobble={outerWobble} gap={gap} fly={fly} lightSeconds={lightSeconds} glow={glow} density={logoDensity} sphereDensity={sphereDensity} ringDensity={ringDensity} twinkleSeconds={twinkleSeconds} onStats={setStats} />
-            {foreground === 0 && <SetupCardMock />}
-            {foreground === 1 && (
-                <div className={`${setupStyles.foreground} ${styles.greeting}`}>
-                    <AgentGreeting face={{ brand: BRANDS[brand].brand, className: styles.greeting_face, label: 'Agent face' }}
-                        questionClassName={styles.greeting_text} questionElement="p" />
-                </div>
-            )}
             {controlsShown
                 ? (
                     <div className={styles.controls}>
@@ -226,14 +173,6 @@ function LandingBackdropPage(): React.ReactElement {
                             <SegmentedControl aria-label="Motion" size={SegmentedControlSize.Small} onChange={index => setMotion(index === 0)}>
                                 <SegmentedControl.Button selected={motion}>On</SegmentedControl.Button>
                                 <SegmentedControl.Button selected={!motion}>Still</SegmentedControl.Button>
-                            </SegmentedControl>
-                        </div>
-                        <div className={styles.control_row}>
-                            <span className={styles.control_label}>In front</span>
-                            <SegmentedControl aria-label="In front of the backdrop" size={SegmentedControlSize.Small} onChange={setForeground}>
-                                {FOREGROUNDS.map((label, i) => (
-                                    <SegmentedControl.Button key={label} selected={foreground === i}>{label}</SegmentedControl.Button>
-                                ))}
                             </SegmentedControl>
                         </div>
                         <Button size={ButtonSize.Small} variant={ButtonVariant.Default} onClick={() => setControlsShown(false)}>
