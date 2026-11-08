@@ -17,6 +17,15 @@ pub enum CatalogChangeKind {
     DropRelation,
 }
 
+/// A column of a created relation
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CatalogChangeColumn {
+    /// The column name
+    pub name: String,
+    /// The text of the type, None if nothing tells the type
+    pub column_type: Option<String>,
+}
+
 /// A change of a relation of the catalog, implied by a successful statement
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CatalogChange {
@@ -30,8 +39,18 @@ pub struct CatalogChange {
     pub relation_name: String,
     /// Is the relation only created if it does not exist yet?
     pub if_not_exists: bool,
-    /// The column names of a created relation, in declaration order
-    pub column_names: Vec<String>,
+    /// The columns of a created relation, in declaration order
+    pub columns: Vec<CatalogChangeColumn>,
+}
+
+impl CatalogChangeColumn {
+    /// Write the column for a descriptor or the boundary
+    fn pack(&self) -> TableColumnT {
+        let mut column = TableColumnT::default();
+        column.column_name = Some(self.name.clone());
+        column.column_type = self.column_type.clone();
+        column
+    }
 }
 
 impl CatalogChange {
@@ -52,7 +71,15 @@ impl CatalogChange {
             schema_name: change.schema_name.clone().unwrap_or_default(),
             relation_name: change.relation_name.clone().unwrap_or_default(),
             if_not_exists: change.if_not_exists,
-            column_names: change.column_names.clone().unwrap_or_default(),
+            columns: change
+                .columns
+                .iter()
+                .flatten()
+                .map(|column| CatalogChangeColumn {
+                    name: column.column_name.clone().unwrap_or_default(),
+                    column_type: column.column_type.clone(),
+                })
+                .collect(),
         })
     }
 
@@ -68,7 +95,7 @@ impl CatalogChange {
         change.relation_name = Some(self.relation_name.clone());
         change.if_not_exists = self.if_not_exists;
         if self.kind == CatalogChangeKind::CreateRelation {
-            change.column_names = Some(self.column_names.clone());
+            change.columns = Some(self.columns.iter().map(CatalogChangeColumn::pack).collect());
         }
         change
     }
@@ -99,14 +126,10 @@ fn apply_to_descriptor(descriptor: &mut CatalogDescriptorT, changes: &[CatalogCh
                 let mut seen = std::collections::HashSet::new();
                 table.table_columns = Some(
                     change
-                        .column_names
+                        .columns
                         .iter()
-                        .filter(|c| !c.is_empty() && seen.insert(c.as_str()))
-                        .map(|c| {
-                            let mut column = TableColumnT::default();
-                            column.column_name = Some(c.clone());
-                            column
-                        })
+                        .filter(|c| !c.name.is_empty() && seen.insert(c.name.as_str()))
+                        .map(CatalogChangeColumn::pack)
                         .collect(),
                 );
                 match position {

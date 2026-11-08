@@ -118,7 +118,8 @@ another entry stays valid without borrowing that entry's name registry.
 
 **Script entries** are produced by the analyzer from `CREATE TABLE`, `CREATE TABLE AS`,
 `CREATE VIEW`, `SELECT INTO` and `CREATE FUNCTION`. Derived tables (`AS SELECT`) get their columns
-from the output columns of the defining scope.
+from the output columns of the defining scope. A column that is passed through keeps the type of its
+source, other expressions have no type because the analyzer doesn't type expressions.
 
 **Descriptor entries** (`catalog/descriptor.rs`) import a `CatalogDescriptor` FlatBuffer: validated
 (`validate_descriptor`), then registered name by name. They keep their bytes

@@ -303,7 +303,7 @@ describe('real-core startup catalog restoration', () => {
         const schema = 'CREATE TABLE "hyper"."public"."dropped"(id integer); CREATE TABLE "hyper"."public"."kept"(id integer);';
         const changesSql = dql.appendCatalogChangesSql('', [
             new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.DROP_RELATION, 'hyper', 'public', 'dropped'),
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', ['a']),
+            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', [new dashql.buffers.analyzer.TableColumnT(0, 'a')]),
         ]);
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, schema);
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, changesSql);
@@ -326,7 +326,7 @@ describe('real-core startup catalog restoration', () => {
         const functions = 'CREATE FUNCTION "hyper"."public"."kept_function"(value integer) RETURNS bigint;';
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."gone"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, dql.appendCatalogChangesSql('', [
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', ['a']),
+            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', [new dashql.buffers.analyzer.TableColumnT(0, 'a')]),
         ]));
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
@@ -353,7 +353,7 @@ describe('real-core startup catalog restoration', () => {
         const functions = 'CREATE FUNCTION "hyper"."public"."kept_function"(value integer) RETURNS bigint;';
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."gone"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, dql.appendCatalogChangesSql('', [
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', ['a']),
+            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', [new dashql.buffers.analyzer.TableColumnT(0, 'a')]),
         ]));
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));

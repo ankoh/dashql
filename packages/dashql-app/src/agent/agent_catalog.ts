@@ -97,7 +97,7 @@ export function buildSchemaContext(connectionId: string, conn: ConnectionState |
 
     const statements = [...relations.statements];
     if (changes.statements.length > 0) {
-        statements.push('-- Changes of executed statements since the last catalog refresh, column types are unknown', ...changes.statements);
+        statements.push('-- Changes of executed statements since the last catalog refresh, a column type may be unknown', ...changes.statements);
     }
     if (sessionTables.length > 0) {
         statements.push('-- Tables defined by the session, column types are unknown', ...sessionTables);

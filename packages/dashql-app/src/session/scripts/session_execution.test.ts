@@ -147,7 +147,7 @@ describe('runSessionExecution', () => {
 
     it('passes the catalog changes of planned statements to the executor', async () => {
         const f = fixture();
-        const change = new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, '', '', 't', ['a']);
+        const change = new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, '', '', 't', [new core.buffers.analyzer.TableColumnT(0, 'a')]);
         (f.graph.nodes[0] as { catalogChanges?: core.buffers.catalog.CatalogChangeT[] }).catalogChanges = [change];
         await runSessionExecution(f.args);
         expect(f.executeQuery.mock.calls[0][1].catalogChanges).toEqual([change]);

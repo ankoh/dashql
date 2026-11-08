@@ -130,7 +130,7 @@ function relationsOf(database: ConnectionState): string[] {
 }
 
 function change(type: dashql.buffers.catalog.CatalogChangeType, schema: string, relation: string, columns: string[] = []) {
-    return new dashql.buffers.catalog.CatalogChangeT(type, '', schema, relation, columns, false);
+    return new dashql.buffers.catalog.CatalogChangeT(type, '', schema, relation, columns.map(c => new dashql.buffers.analyzer.TableColumnT(0, c)), false);
 }
 
 describe('catalog changes of executed statements', () => {

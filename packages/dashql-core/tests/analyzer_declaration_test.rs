@@ -121,3 +121,24 @@ fn set_operation_uses_left_input_columns() {
     let script = analyze_single_table("create view result as select 1 as first union all select 2 as second", &catalog);
     expect_columns(single_table(&script), &["first"]);
 }
+
+#[test]
+fn derived_tables_keep_the_types_of_passed_through_columns() {
+    let mut catalog = Catalog::new();
+    let _schema = load_source_schema(&mut catalog);
+
+    let script = analyze_single_table(
+        "create table result as with selected as (select * from source) select *, amount + 1 as next, id as renamed from selected",
+        &catalog,
+    );
+    let types: Vec<(&str, Option<&str>)> = single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
+    assert_eq!(
+        types,
+        vec![("amount", Some("integer")), ("id", Some("integer")), ("next", None), ("renamed", Some("integer"))]
+    );
+
+    // Column aliases name the output columns by position
+    let script = analyze_single_table("create view aliased (a, b) as select amount + 1, id from source", &catalog);
+    let types: Vec<(&str, Option<&str>)> = single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
+    assert_eq!(types, vec![("a", None), ("b", Some("integer"))]);
+}

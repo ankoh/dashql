@@ -335,22 +335,27 @@ impl NameResolutionPass {
             }
         }
         let outputs = &state.out.name_scopes[output_scope as usize].output_columns;
-        let column_names: Vec<Name> = if !pending.column_aliases.is_empty() {
+        // The names of the columns with their output columns
+        let columns: Vec<(Name, u32)> = if !pending.column_aliases.is_empty() {
             let count = pending.column_aliases.len().min(outputs.len());
-            pending.column_aliases[..count].to_vec()
+            pending.column_aliases[..count].iter().cloned().zip(0..).collect()
         } else {
             // A declared table has unique column names
             let mut seen = HashSet::default();
             outputs
                 .iter()
-                .filter(|o| !o.column_name.text.is_empty() && seen.insert(o.column_name.text.clone()))
-                .map(|o| o.column_name.clone())
+                .zip(0..)
+                .filter(|(o, _)| !o.column_name.text.is_empty() && seen.insert(o.column_name.text.clone()))
+                .map(|(o, output)| (o.column_name.clone(), output))
                 .collect()
         };
         let table_index = pending.table;
         let table_id = state.out.entry.table_declarations[table_index as usize].table_id();
-        let column_ids = state.reserve_column_ids(table_id, column_names.iter().map(|n| &n.text));
-        for (column_index, column_name) in column_names.into_iter().enumerate() {
+        let column_ids = state.reserve_column_ids(table_id, columns.iter().map(|(n, _)| &n.text));
+        for (column_index, (column_name, output)) in columns.into_iter().enumerate() {
+            // Only a column that is passed through keeps a known type, expressions have no type in the analyzer
+            let source = Self::resolved_table_column(state, ColumnResolution::ScopeColumn { scope: output_scope, column: output });
+            let column_type = source.and_then(|loc| state.table(loc.table)?.table_columns.get(loc.column as usize)?.column_type.clone());
             let table = &mut state.entry_mut().table_declarations[table_index as usize];
             table.table_columns_by_name.entry(column_name.text.clone()).or_insert(column_index);
             table.table_columns.push(TableColumn {
@@ -358,7 +363,7 @@ impl NameResolutionPass {
                 table: Some(table_id),
                 ast_node_id: None,
                 column_name: column_name.clone(),
-                column_type: None,
+                column_type,
                 location: None,
             });
             let loc = ColumnLoc {
@@ -1641,26 +1646,17 @@ impl NameResolutionPass {
         }
     }
 
-    /// The catalog ids of a resolved column
-    fn resolved_column_ids(state: &AnalysisState, resolution: ColumnResolution) -> Option<ResolvedColumnIds> {
-        let table_column_ids = |loc: ColumnLoc| {
-            let table = state.table(loc.table)?;
-            let column = table.table_columns.get(loc.column as usize)?;
-            Some(ResolvedColumnIds {
-                catalog_schema_id: table.catalog_schema_id,
-                catalog_table_column_id: column.object_id,
-                referenced_catalog_version: table.catalog_version,
-            })
-        };
+    /// The table column behind a resolved column, scope columns are followed through their source expressions
+    fn resolved_table_column(state: &AnalysisState, resolution: ColumnResolution) -> Option<ColumnLoc> {
         let mut current = resolution;
         for _ in 0..256 {
             match current {
                 ColumnResolution::Unresolved => return None,
-                ColumnResolution::TableColumn(loc) => return table_column_ids(loc),
+                ColumnResolution::TableColumn(loc) => return Some(loc),
                 ColumnResolution::ScopeColumn { scope, column } => {
                     let column = state.out.name_scopes[scope as usize].output_columns.get(column as usize)?;
                     match column.source {
-                        ScopeColumnSource::TableColumn(loc) => return table_column_ids(loc),
+                        ScopeColumnSource::TableColumn(loc) => return Some(loc),
                         ScopeColumnSource::Computed => return None,
                         ScopeColumnSource::Expression(expr) => {
                             current = state.out.expressions[expr as usize].column_ref()?.resolved;
@@ -1670,6 +1666,18 @@ impl NameResolutionPass {
             }
         }
         None
+    }
+
+    /// The catalog ids of a resolved column
+    fn resolved_column_ids(state: &AnalysisState, resolution: ColumnResolution) -> Option<ResolvedColumnIds> {
+        let loc = Self::resolved_table_column(state, resolution)?;
+        let table = state.table(loc.table)?;
+        let column = table.table_columns.get(loc.column as usize)?;
+        Some(ResolvedColumnIds {
+            catalog_schema_id: table.catalog_schema_id,
+            catalog_table_column_id: column.object_id,
+            referenced_catalog_version: table.catalog_version,
+        })
     }
 
     fn compute_resolved_column_ids(state: &mut AnalysisState) {

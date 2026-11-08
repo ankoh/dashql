@@ -4,7 +4,7 @@
 use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::{QualifiedTableNameT, TableColumnT, TableT};
 use dashql_buffers::catalog::CatalogDescriptorT;
-use dashql_core::catalog::changes::{CatalogChange, CatalogChangeKind};
+use dashql_core::catalog::changes::{CatalogChange, CatalogChangeColumn, CatalogChangeKind};
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_core_session::catalog_changes::{
     append_catalog_changes_sql, compact_catalog_changes, derive_catalog_change, parse_catalog_changes_sql, qualify_catalog_changes,
@@ -30,7 +30,7 @@ fn describe(change: &CatalogChange) -> String {
             "create{} {}({})",
             if change.if_not_exists { " if not exists" } else { "" },
             name,
-            change.column_names.join(", ")
+            change.columns.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", ")
         ),
         CatalogChangeKind::DropRelation => format!("drop {name}"),
     }
@@ -58,7 +58,7 @@ fn change(kind: CatalogChangeKind, database: &str, schema: &str, relation: &str,
         schema_name: schema.to_string(),
         relation_name: relation.to_string(),
         if_not_exists: false,
-        column_names: columns.iter().map(|c| c.to_string()).collect(),
+        columns: columns.iter().map(|c| CatalogChangeColumn { name: c.to_string(), column_type: None }).collect(),
     }
 }
 
@@ -246,13 +246,13 @@ fn changes_roundtrip_through_sql() {
         "-- Catalog changes of executed statements
 
 CREATE TABLE \"db\".\"main\".\"orders\" (
-    \"id\" VARCHAR,
-    \"Mixed Case\" VARCHAR,
-    \"quote\"\"d\" VARCHAR
+    \"id\" unknown,
+    \"Mixed Case\" unknown,
+    \"quote\"\"d\" unknown
 );
 
 CREATE TABLE IF NOT EXISTS \"db\".\"main\".\"maybe\" (
-    \"a\" VARCHAR
+    \"a\" unknown
 );
 
 CREATE TABLE \"db\".\"main\".\"empty\" ();
@@ -263,6 +263,91 @@ DROP TABLE \"db\".\"main\".\"gone\";
     let parsed: Vec<String> = parse_catalog_changes_sql(&changes_sql).unwrap().iter().map(describe).collect();
     let expected: Vec<String> = changes.iter().map(describe).collect();
     assert_eq!(parsed, expected);
+}
+
+/// The columns of a change as (name, type)
+fn typed_columns(change: &CatalogChange) -> Vec<(&str, Option<&str>)> {
+    change.columns.iter().map(|c| (c.name.as_str(), c.column_type.as_deref())).collect()
+}
+
+/// A change with typed columns
+fn create_typed(relation: &str, columns: &[(&str, Option<&str>)]) -> CatalogChange {
+    let mut change = create("db", "main", relation, &[]);
+    change.columns = columns
+        .iter()
+        .map(|(name, column_type)| CatalogChangeColumn { name: name.to_string(), column_type: column_type.map(str::to_string) })
+        .collect();
+    change
+}
+
+#[test]
+fn derives_the_types_of_declared_and_passed_through_columns() {
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text(
+        "create table orders (id bigint, amount numeric(10,2), placed timestamp with time zone);
+         create table totals as select id, amount as total, amount + 1 as next, 1 as one, id::text as cast_id from orders;
+         create view report (a, b) as select id, placed from orders;
+         select placed as copied into copies from orders;",
+    );
+    script.analyze(&catalog, true).unwrap();
+    let analyzed = script.analyzed.clone().unwrap();
+    let options = CatalogChangeOptions::default();
+    let changes: Vec<CatalogChange> = (0..4).map(|id| derive_catalog_change(&analyzed, id, &options).unwrap()).collect();
+    assert_eq!(
+        typed_columns(&changes[0]),
+        vec![("id", Some("bigint")), ("amount", Some("numeric(10,2)")), ("placed", Some("timestamp with time zone"))]
+    );
+    // An expression has no type in the analyzer
+    assert_eq!(
+        typed_columns(&changes[1]),
+        vec![("id", Some("bigint")), ("total", Some("numeric(10,2)")), ("next", None), ("one", None), ("cast_id", None)]
+    );
+    assert_eq!(typed_columns(&changes[2]), vec![("a", Some("bigint")), ("b", Some("timestamp with time zone"))]);
+    assert_eq!(typed_columns(&changes[3]), vec![("copied", Some("timestamp with time zone"))]);
+}
+
+#[test]
+fn column_types_roundtrip_through_sql() {
+    let changes = vec![create_typed(
+        "t",
+        &[
+            ("a", Some("numeric(10,2)")),
+            ("b", Some("timestamp with time zone")),
+            ("c", Some("integer[]")),
+            ("d", Some("my_type")),
+            ("e", None),
+        ],
+    )];
+    let changes_sql = render_catalog_changes_sql(&changes);
+    assert!(changes_sql.contains("\"a\" numeric(10,2),"), "{changes_sql}");
+    assert!(changes_sql.contains("\"e\" unknown"), "{changes_sql}");
+    assert_eq!(parse_catalog_changes_sql(&changes_sql).unwrap(), changes);
+    // ... and survive the next append
+    let appended = append_catalog_changes_sql(&changes_sql, &[drop("db", "main", "other")]).unwrap();
+    assert_eq!(parse_catalog_changes_sql(&appended).unwrap()[0], changes[0]);
+}
+
+#[test]
+fn a_type_that_does_not_parse_keeps_the_changes_sql_readable() {
+    let changes_sql = render_catalog_changes_sql(&[create_typed("t", &[("a", Some("My Type")), ("b", Some("int); drop table u; --")), ("c", Some("text"))])]);
+    let parsed = parse_catalog_changes_sql(&changes_sql).unwrap();
+    assert_eq!(parsed.len(), 1);
+    assert_eq!(typed_columns(&parsed[0]), vec![("a", None), ("b", None), ("c", Some("text"))]);
+}
+
+#[test]
+fn applying_changes_keeps_the_column_types() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.apply_catalog_changes(id, CatalogLayer::CONNECTION, &[create_typed("t", &[("a", Some("integer")), ("b", None)])]).unwrap();
+
+    // A later statement reads the types from the catalog
+    let mut script = Script::new(&catalog);
+    script.replace_text("create table copy as select a, b from db.main.t");
+    script.analyze(&catalog, true).unwrap();
+    let copy = derive_catalog_change(script.analyzed.as_ref().unwrap(), 0, &CatalogChangeOptions::default()).unwrap();
+    assert_eq!(typed_columns(&copy), vec![("a", Some("integer")), ("b", None)]);
 }
 
 #[test]

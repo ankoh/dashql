@@ -31,7 +31,7 @@ describe('Agent catalog', () => {
             ].join('\n');
             const catalogChangesSql = dql.appendCatalogChangesSql('', [
                 new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.DROP_RELATION, 'db', 'public', 'orders'),
-                new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'db', 'public', 'staged', ['id', 'note']),
+                new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'db', 'public', 'staged', [new core.buffers.analyzer.TableColumnT(0, 'id', null, 'integer'), new core.buffers.analyzer.TableColumnT(0, 'note')]),
             ]);
             const conn = { catalogRelationScript: { toString: () => relations }, catalogChangesSql };
             const sessionScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { connectionId: 'db', catalog } } } } as any;
@@ -39,9 +39,9 @@ describe('Agent catalog', () => {
             expect(buildSchemaContext('db', conn as any, sessionScripts, logger)).toBe([
                 'CREATE TABLE "db"."public"."orders" ("id" INTEGER, "amount" FLOAT);',
                 'CREATE TABLE "db"."sales"."customers" ("id" INTEGER);',
-                '-- Changes of executed statements since the last catalog refresh, column types are unknown',
+                '-- Changes of executed statements since the last catalog refresh, a column type may be unknown',
                 'DROP TABLE "db"."public"."orders";',
-                'CREATE TABLE "db"."public"."staged" (\n    "id" VARCHAR,\n    "note" VARCHAR\n);',
+                'CREATE TABLE "db"."public"."staged" (\n    "id" integer,\n    "note" unknown\n);',
                 '-- Tables defined by the session, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));

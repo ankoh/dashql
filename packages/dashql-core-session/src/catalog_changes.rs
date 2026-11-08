@@ -8,8 +8,9 @@
 //! same derivation.
 
 use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType, TempType};
+use dashql_core::analyzer::sql_types::parse_sql_type;
 use dashql_core::analyzer::AnalyzedScript;
-use dashql_core::catalog::changes::{CatalogChange, CatalogChangeKind};
+use dashql_core::catalog::changes::{CatalogChange, CatalogChangeColumn, CatalogChangeKind};
 use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
 use dashql_core::pack::pack_parsed_statement;
@@ -18,6 +19,8 @@ use dashql_parser::parser::ParsedScript;
 
 /// The header of rendered changes SQL
 const CHANGES_SQL_HEADER: &str = "-- Catalog changes of executed statements";
+/// The type of a column in changes SQL when nothing tells the type, a column definition needs one
+const UNKNOWN_COLUMN_TYPE: &str = "unknown";
 
 /// How statements are turned into catalog changes
 #[derive(Clone, Debug, Default)]
@@ -115,7 +118,7 @@ pub fn derive_catalog_change(analyzed: &AnalyzedScript, statement_id: usize, opt
         schema_name: target.schema_name.unwrap_or_default(),
         relation_name,
         if_not_exists: classified.if_not_exists,
-        column_names: Vec::new(),
+        columns: Vec::new(),
     };
     if classified.kind == CatalogChangeKind::CreateRelation {
         let table = analyzed
@@ -126,7 +129,13 @@ pub fn derive_catalog_change(analyzed: &AnalyzedScript, statement_id: usize, opt
         // The analyzer sorts the columns of CREATE TABLE by name, the AST nodes restore the declaration order
         let mut columns: Vec<_> = table.table_columns.iter().collect();
         columns.sort_by_key(|c| c.ast_node_id.unwrap_or(u32::MAX));
-        change.column_names = columns.iter().map(|c| c.column_name.text.to_string()).collect();
+        change.columns = columns
+            .iter()
+            .map(|c| CatalogChangeColumn {
+                name: c.column_name.text.to_string(),
+                column_type: c.column_type.as_deref().map(str::to_string),
+            })
+            .collect();
     }
     Some(change)
 }
@@ -197,12 +206,15 @@ pub fn render_catalog_changes_sql(changes: &[CatalogChange]) -> String {
                 out.push_str(if change.if_not_exists { "\n\nCREATE TABLE IF NOT EXISTS " } else { "\n\nCREATE TABLE " });
                 write_qualified_name(change, &mut out);
                 out.push_str(" (");
-                for (i, column) in change.column_names.iter().enumerate() {
+                for (i, column) in change.columns.iter().enumerate() {
                     out.push_str(if i == 0 { "\n    " } else { ",\n    " });
-                    quote_identifier(column, &mut out);
-                    out.push_str(" VARCHAR");
+                    quote_identifier(&column.name, &mut out);
+                    out.push(' ');
+                    // The text of a type is not always SQL that parses, e.g. a quoted name of a generic type
+                    let column_type = column.column_type.as_deref().filter(|t| parse_sql_type(t).is_some());
+                    out.push_str(column_type.unwrap_or(UNKNOWN_COLUMN_TYPE));
                 }
-                out.push_str(if change.column_names.is_empty() { ");" } else { "\n);" });
+                out.push_str(if change.columns.is_empty() { ");" } else { "\n);" });
             }
             CatalogChangeKind::DropRelation => {
                 out.push_str("\n\nDROP TABLE ");
@@ -226,9 +238,13 @@ pub fn parse_catalog_changes_sql(text: &str) -> Result<Vec<CatalogChange>> {
         return Err(Error::invalid_argument("invalid catalog changes SQL"));
     }
     let options = CatalogChangeOptions::default();
-    Ok((0..analyzed.parsed.statements.len())
+    let mut changes: Vec<CatalogChange> = (0..analyzed.parsed.statements.len())
         .filter_map(|id| derive_catalog_change(&analyzed, id, &options))
-        .collect())
+        .collect();
+    for column in changes.iter_mut().flat_map(|c| &mut c.columns) {
+        column.column_type.take_if(|t| t.as_str() == UNKNOWN_COLUMN_TYPE);
+    }
+    Ok(changes)
 }
 
 /// Append changes to changes SQL and compact it

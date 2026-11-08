@@ -28,8 +28,7 @@ function tablesOf(catalog: dashql.DashQLCatalog, entryId: number): string[] {
 }
 
 /// Plan a script and collect the catalog changes of its statements
-function runScript(text: string): dashql.buffers.catalog.CatalogChangeT[] {
-    const catalog = dql.createCatalog();
+function runScript(text: string, catalog = dql.createCatalog()): dashql.buffers.catalog.CatalogChangeT[] {
     const session = dql.createScriptSession(catalog);
     session.replaceText(0n, text);
     session.analyze();
@@ -46,11 +45,29 @@ function runScript(text: string): dashql.buffers.catalog.CatalogChangeT[] {
 describe('Catalog changes', () => {
     it('are carried by the planned statements and qualified with the defaults', () => {
         const changes = runScript('create table t (b int, a int); create table s.u as select 1 as x; drop table v; select 1');
-        expect(changes.map(c => [c.changeType, c.databaseName, c.schemaName, c.relationName, c.columnNames])).toEqual([
+        expect(changes.map(c => [c.changeType, c.databaseName, c.schemaName, c.relationName, c.columns.map(column => column.columnName)])).toEqual([
             [ChangeType.CREATE_RELATION, 'db', 'main', 't', ['b', 'a']],
             [ChangeType.CREATE_RELATION, 'db', 's', 'u', ['x']],
             [ChangeType.DROP_RELATION, 'db', 'main', 'v', []],
         ]);
+    });
+
+    it('carry the column types into the descriptor entry and through SQL', () => {
+        const changes = runScript('create table t (a int, b text)');
+        // A later statement reads the types from the catalog
+        const columnsOf = (catalog: dashql.DashQLCatalog) => runScript('create table copy as select a, b from db.main.t', catalog)[0].columns
+            .map(column => [column.columnName, column.columnType]);
+        const expected = [['a', 'integer'], ['b', 'text']];
+
+        const catalog = dql.createCatalog();
+        const entryId = catalog.allocateEntryId();
+        catalog.applyCatalogChanges(entryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, changes);
+        expect(columnsOf(catalog)).toEqual(expected);
+
+        const restored = dql.createCatalog();
+        const restoredId = restored.allocateEntryId();
+        restored.applyCatalogChangesSql(restoredId, dashql.buffers.catalog.CatalogLayer.CONNECTION, dql.appendCatalogChangesSql('', changes));
+        expect(columnsOf(restored)).toEqual(expected);
     });
 
     it('patch descriptor entries and roundtrip through SQL', () => {

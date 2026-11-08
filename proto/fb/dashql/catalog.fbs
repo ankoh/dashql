@@ -29,8 +29,8 @@ table CatalogChange {
     schema_name: string;
     /// The relation name
     relation_name: string;
-    /// The column names of a created relation, in declaration order
-    column_names: [string];
+    /// The columns of a created relation with their names and types, in declaration order
+    columns: [dashql.buffers.analyzer.TableColumn];
     /// Is the relation only created if it does not exist yet?
     if_not_exists: bool;
 }

@@ -96,7 +96,7 @@ fn encode_catalog_changes(script: &AnalyzedScript) -> Option<Node> {
                 .collect();
             m.plain("name", &name.join("."));
             if change.kind == CatalogChangeKind::CreateRelation {
-                let columns = change.column_names.into_iter().map(Node::auto).collect();
+                let columns = change.columns.into_iter().map(|c| Node::auto(c.name)).collect();
                 m.insert("columns", Node::flow_seq(columns));
             }
             Some(m.into_node())

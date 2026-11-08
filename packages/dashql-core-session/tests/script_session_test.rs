@@ -549,7 +549,8 @@ fn planned_statements_carry_their_catalog_changes() {
     assert_eq!(created.len(), 1);
     assert_eq!(created[0].change_type, CatalogChangeType::CREATE_RELATION);
     assert_eq!(created[0].relation_name.as_deref(), Some("items"));
-    assert_eq!(created[0].column_names.as_deref(), Some(&["id".to_string(), "name".to_string()][..]));
+    let columns: Vec<_> = created[0].columns.iter().flatten().map(|c| c.column_name.as_deref().unwrap()).collect();
+    assert_eq!(columns, ["id", "name"]);
     assert!(nodes[1].catalog_changes.is_none());
     let dropped = nodes[2].catalog_changes.as_ref().unwrap();
     assert_eq!(dropped[0].change_type, CatalogChangeType::DROP_RELATION);
