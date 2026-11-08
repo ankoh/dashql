@@ -1,6 +1,6 @@
 """Repository rule for Playwright's pinned Firefox build."""
 
-_REVISION = "1555"
+_REVISION = "1572"
 
 # Mirrors in the order Playwright's own installer tries them. The first one
 # redirects to playwright.download.prss.microsoft.com, which does not always
@@ -14,22 +14,22 @@ _MIRRORS = [
 _PLATFORMS = {
     ("darwin", "aarch64"): (
         "firefox-mac-arm64.zip",
-        "72eb32289f368789786d16d252e8e4fef7b62ae721d57f82d3d6d9221d3fd2af",
+        "9691b4a07405d8faf8a44f6378d66db480d36159d9e9c4ed1d6066687697e1f2",
         "firefox/Nightly.app/Contents/MacOS/firefox",
     ),
     ("darwin", "x86_64"): (
         "firefox-mac.zip",
-        "ae2c6e477d4c5f59e76be39ca0db6c003e9bcf9bb9b3c4e13cf545275d6be388",
+        "f31ac41e6450c5c9040fc7290f3da8a6a5f5672b0075f18b37cbd28fbf95ad36",
         "firefox/Nightly.app/Contents/MacOS/firefox",
     ),
     ("linux", "aarch64"): (
         "firefox-ubuntu-24.04-arm64.zip",
-        "fe2e1fd49048866e9b9249d1b9394b4989f58f589a35b19edcbce8aab1501f8c",
+        "0c60e94f3095eb5503dda490ab0ae5d338783a94511ed6fb410c2d7fdcbe29f9",
         "firefox/firefox",
     ),
     ("linux", "x86_64"): (
         "firefox-ubuntu-24.04.zip",
-        "564f74fa3c46cb83c6252145cf1569c95236c8c404d6a5a80cc736cf32265f0c",
+        "189ce3e09c61776010ab8a7cbffaa016b8b1914d3c9b50cb5ab6d0c5db4c368f",
         "firefox/firefox",
     ),
 }
