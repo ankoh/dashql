@@ -15,7 +15,7 @@ use dashql_buffers::parser::{AttributeKey as K, Node, NodeType};
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
-use dashql_parser::scanner::ScannedScript;
+use dashql_parser::scanner::{ScannedScript, Symbol};
 use dashql_parser::symbol_kind::*;
 use serde_json::{json, Map, Number, Value};
 use std::sync::Arc;
@@ -439,13 +439,38 @@ fn pointer_segment(segment: &str) -> String {
     segment.replace('~', "~0").replace('/', "~1")
 }
 
-/// The SQL text of a query value, without the parentheses around it
-fn select_text(text: &str) -> &str {
-    let mut text = text.trim();
-    while let Some(inner) = text.strip_prefix('(').and_then(|t| t.strip_suffix(')')) {
-        text = inner.trim();
+/// Does a parenthesis around all of these tokens match? A query can start and end with parentheses of its own, as in
+/// `(select 1) union (select 2)`.
+fn is_parenthesized(symbols: &[Symbol]) -> bool {
+    if symbols.first().is_none_or(|s| s.kind != S_LRB) {
+        return false;
     }
-    text
+    let mut depth = 0;
+    for (i, symbol) in symbols.iter().enumerate() {
+        match symbol.kind {
+            S_LRB => depth += 1,
+            S_RRB => depth -= 1,
+            _ => {}
+        }
+        if depth == 0 {
+            return i + 1 == symbols.len();
+        }
+    }
+    false
+}
+
+/// The SQL text of a query value, without the parentheses around it. The tokens tell, since a string can hold a parenthesis.
+fn select_text<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
+    let scanned = &parsed.scanned;
+    let span = node.symbol_span();
+    let mut symbols = &scanned.symbols[span.offset() as usize..(span.offset() + span.length()) as usize];
+    while is_parenthesized(symbols) {
+        symbols = &symbols[1..symbols.len() - 1];
+    }
+    match (symbols.first(), symbols.last()) {
+        (Some(first), Some(last)) => &scanned.text[first.location.offset as usize..last.location.end() as usize],
+        _ => "",
+    }
 }
 
 /// The number of a literal, as exact as JSON allows
@@ -484,7 +509,7 @@ impl Describer<'_> {
             NodeType::BOOL => Value::Bool(node.children_begin_or_value() != 0),
             NodeType::LITERAL_INTEGER | NodeType::LITERAL_FLOAT | NodeType::OBJECT_SQL_NARY_EXPRESSION => number(text),
             NodeType::LITERAL_STRING => Value::String(string_text(text)),
-            NodeType::OBJECT_SQL_SELECT_EXPRESSION => Value::String(select_text(text).to_string()),
+            NodeType::OBJECT_SQL_SELECT_EXPRESSION => Value::String(select_text(&parsed, node).to_string()),
             NodeType::OBJECT_SQL_PARAMETER_REF => {
                 let id = node_id(&parsed, node);
                 let name = self.analyzed.parameters.iter().find(|p| p.ast_node_id == id).and_then(|p| p.name.clone());

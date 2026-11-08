@@ -183,6 +183,104 @@ planner-snapshots:
           error: true
           message: 'analyzer: unknown function tickets.backend_procedure'
 
+  - name: CallEmbeddedQuery
+    client_functions: tickets
+    targets: [queries]
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (select 1));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1))));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => ((select 1) union (select 2)));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1) union (select 2))));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (with a as (select ')' as b) select b from a));
+    expected:
+      valid: true
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: false
+          terminal-statement-id: 4
+          signature: "a657b609f98aaa233db2dd0ec7bdda3c"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: queries
+          statement-id: 0
+          type: CALL
+          sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (select 1))"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select 1\"}}"
+          produces-output: true
+          barrier: true
+          accesses: []
+        - id: 1
+          script: queries
+          statement-id: 1
+          type: CALL
+          sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1))))"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select 1\"}}"
+          produces-output: true
+          barrier: true
+          accesses: []
+        - id: 2
+          script: queries
+          statement-id: 2
+          type: CALL
+          sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => ((select 1) union (select 2)))"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"(select 1) union (select 2)\"}}"
+          produces-output: true
+          barrier: true
+          accesses: []
+        - id: 3
+          script: queries
+          statement-id: 3
+          type: CALL
+          sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1) union (select 2))))"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"(select 1) union (select 2)\"}}"
+          produces-output: true
+          barrier: true
+          accesses: []
+        - id: 4
+          script: queries
+          statement-id: 4
+          type: CALL
+          sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (with a as (select ')' as b) select b from a))"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"with a as (select ')' as b) select b from a\"}}"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 0
+          to: 1
+          reason: SEQUENCE
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: SEQUENCE
+        - from: 2
+          to: 3
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: SEQUENCE
+        - from: 3
+          to: 4
+          reason: BARRIER
+        - from: 3
+          to: 4
+          reason: SEQUENCE
+      diagnostics: []
+
   - name: CallInputs
     client_functions: tickets
     scripts:

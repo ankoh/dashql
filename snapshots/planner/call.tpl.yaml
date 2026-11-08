@@ -30,6 +30,20 @@ planner-snapshots:
           call other.procedure (a => 1);
           call tickets.backend_procedure (a => 1);
 
+  # A query value is its text without the parentheses around all of it. A query can start and end with its own, and a
+  # string can hold one.
+  - name: CallEmbeddedQuery
+    client_functions: tickets
+    targets: [queries]
+    scripts:
+      - name: queries
+        input: |
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (select 1));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1))));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => ((select 1) union (select 2)));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1) union (select 2))));
+          call tickets.ticket_create (project => 'a', title => 'b', affected => (with a as (select ')' as b) select b from a));
+
   # The values of the inputs fill in the parameters of a call
   - name: CallInputs
     client_functions: tickets
