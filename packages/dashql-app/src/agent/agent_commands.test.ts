@@ -278,15 +278,6 @@ describe('agent commands', () => {
         await expect(run('run', { script: 'orders', force: true })).rejects.toThrow('The connection db of orders is not online');
     });
 
-    it('runs a script that calls a client function that writes', async () => {
-        const ran: number[] = [];
-        env.onScriptRun = (_session, scriptKey) => ran.push(scriptKey);
-        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null, manual: false, writes: true };
-        // The session of these tests has no core to plan with, so the run fails after it started
-        await run('run', { script: 'orders' }).catch(() => {});
-        expect(ran).toEqual([1]);
-    });
-
     it('decides on a tag with the analysis of the run, not with the annotations before it', async () => {
         // The script was never analyzed, its annotations say nothing yet
         state.scripts[1].analysisOutdated = true;

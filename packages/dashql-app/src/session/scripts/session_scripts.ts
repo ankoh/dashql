@@ -1593,7 +1593,6 @@ function deriveScriptAnnotations(
             : null,
         lastStatementIsQuery: lastStatement?.statementType === core.buffers.parser.StatementType.SELECT,
         manual: update.scriptAnnotations?.manual ?? false,
-        writes: update.scriptAnnotations?.writes ?? false,
     };
 }
 
