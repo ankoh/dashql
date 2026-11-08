@@ -167,6 +167,21 @@ analyzer-snapshots:
       input: |
         call tickets.ticket_list (project => 'a', _pages => 0);
         call tickets.ticket_delete (id => 1, _next => 'x', _unknown => 1);
+  # The keys of a map are free, its values follow the schema, also in an array of maps. A name only counts in its own value.
+  - name: call_map
+    catalog:
+      client_functions: tickets
+    script:
+      input: |
+        call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (id = 1), Second = (id = 2, notify = true)));
+        call tickets.ticket_create (project => 'a', title => 'b', owners => [(id = (id = 1))]);
+  - name: call_map_errors
+    catalog:
+      client_functions: tickets
+    script:
+      input: |
+        call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (notify = true), second = (id = 2, notifi = true)));
+        call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (id = 1), first = (id = 2)));
   # A function with pending results waits and polls, a poll needs no other option
   - name: call_pending
     catalog:

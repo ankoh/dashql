@@ -332,10 +332,27 @@ impl Checker<'_, '_, '_> {
         self.state.add_error(AnalyzerErrorType::CLIENT_FUNCTION_UNKNOWN_OPTION, severity, id, message);
     }
 
-    /// Check a value
+    /// Check the value of an option or attribute
     fn check_value(&mut self, value: &Node, attribute: Option<&ClientFunctionAttribute>) {
+        self.check_nested_value(value, attribute, attribute.is_some_and(|a| a.map));
+    }
+
+    /// Check a value. `map` says that an object is the map of the attribute: its keys are free, and the attribute holds for
+    /// its values.
+    fn check_nested_value(&mut self, value: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool) {
         let parsed = self.state.parsed;
         match value.node_type() {
+            NodeType::ARRAY if map => {
+                let mut seen: Vec<KeyName> = Vec::new();
+                for (key, item) in fields_of(parsed, value) {
+                    let name = read_key(parsed, key);
+                    if seen.iter().any(|s| s.text == name.text) {
+                        self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, key, format!("duplicate key {}", name.text));
+                    }
+                    seen.push(name);
+                    self.check_nested_value(item, attribute, false);
+                }
+            }
             // An object
             NodeType::ARRAY => {
                 let spec = self.spec;
@@ -345,7 +362,7 @@ impl Checker<'_, '_, '_> {
             NodeType::OBJECT_EXT_VARARG_ARRAY => {
                 let [values] = attrs!(parsed.children(value), [K::EXT_VARARG_ARRAY_VALUES]);
                 for item in values.map(|v| parsed.children(v)).unwrap_or(&[]) {
-                    self.check_value(item, attribute);
+                    self.check_nested_value(item, attribute, map);
                 }
             }
             NodeType::LITERAL_NULL
@@ -500,8 +517,14 @@ struct Describer<'a> {
 }
 
 impl Describer<'_> {
-    /// The value of a node, a parameter leaves a null and a binding
+    /// The value of an option or attribute
     fn value(&mut self, node: &Node, attribute: Option<&ClientFunctionAttribute>, pointer: &str) -> Value {
+        self.nested_value(node, attribute, attribute.is_some_and(|a| a.map), pointer)
+    }
+
+    /// The value of a node, a parameter leaves a null and a binding. `map` says that an object is the map of the attribute:
+    /// its keys stay as written, and the attribute holds for its values.
+    fn nested_value(&mut self, node: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool, pointer: &str) -> Value {
         let parsed = self.analyzed.parsed.clone();
         let text = source(&parsed, node);
         match node.node_type() {
@@ -519,7 +542,7 @@ impl Describer<'_> {
             NodeType::OBJECT_EXT_VARARG_ARRAY => {
                 let [values] = attrs!(parsed.children(node), [K::EXT_VARARG_ARRAY_VALUES]);
                 let items = values.map(|v| parsed.children(v)).unwrap_or(&[]);
-                Value::Array(items.iter().enumerate().map(|(i, item)| self.value(item, attribute, &format!("{pointer}/{i}"))).collect())
+                Value::Array(items.iter().enumerate().map(|(i, item)| self.nested_value(item, attribute, map, &format!("{pointer}/{i}"))).collect())
             }
             NodeType::ARRAY => {
                 let spec = self.spec;
@@ -527,6 +550,12 @@ impl Describer<'_> {
                 let mut object = Map::new();
                 for (key, value) in fields_of(&parsed, node) {
                     let name = read_key(&parsed, key);
+                    if map {
+                        let field_pointer = format!("{pointer}/{}", pointer_segment(&name.text));
+                        let field_value = self.nested_value(value, attribute, false, &field_pointer);
+                        object.insert(name.text, field_value);
+                        continue;
+                    }
                     let field_attribute = schema.and_then(|s| spec.attribute_of(s, &name.text, name.quoted));
                     let field_name = field_attribute.map_or(name.text, |a| a.name.clone());
                     let field_pointer = format!("{pointer}/{}", pointer_segment(&field_name));

@@ -89,6 +89,7 @@ pub const TICKETS: &str = r#"{
         { "name": "labels", "api_name": "labels", "in": "body", "type": "any" },
         { "name": "assignee", "api_name": "assignee", "in": "body", "schema": "Assignee" },
         { "name": "components", "api_name": "components", "in": "body", "schema": "Component" },
+        { "name": "owners", "api_name": "ownerMap", "in": "body", "schema": "Assignee", "map": true },
         { "name": "inferred", "api_name": "inferred", "in": "body", "schema": "Inferred" },
         { "name": "metadata", "api_name": "metadata", "in": "body", "schema": "Free" },
         { "name": "affected", "api_name": "affected", "in": "body", "type": "sql" },

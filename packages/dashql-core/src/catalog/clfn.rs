@@ -69,6 +69,8 @@ pub struct ClientFunctionAttribute {
     pub value_type: Option<String>,
     /// The schema of an object value
     pub schema: Option<String>,
+    /// Is the value a map? Its keys are free, the type or schema holds for its values.
+    pub map: bool,
     /// Is the attribute required?
     pub required: bool,
     /// The description that completion shows

@@ -464,6 +464,110 @@ completion-snapshots:
           objects: []
       text: "("
 
+  - name: call_map_keys
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => ("
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: "owners => ("
+        index: 11
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      client-function-name: 1
+      entries: []
+      text: "("
+
+  - name: call_map_values
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => (first = ("
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: "first = ("
+        index: 9
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      client-function-name: 1
+      entries:
+        - score: 1310720
+          value: id
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 1048577
+          value: notify
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
+  - name: call_map_next_key
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => (first = (id = 1), "
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: "(id = 1), "
+        index: 10
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      client-function-name: 1
+      entries: []
+      text: ","
+
+  - name: call_map_in_array
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => [(first = ("
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: "first = ("
+        index: 9
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      client-function-name: 1
+      entries:
+        - score: 1310720
+          value: id
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - score: 1048577
+          value: notify
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "("
+
   - name: call_attributes_recursive
     catalog:
       client_functions: tickets

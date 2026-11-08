@@ -321,8 +321,8 @@ functions:
           data_connectors => ['my_website_connector'],
           dataspace => 'default',
           substitution_definitions => (
-              bannerTitle = (label = 'Banner Title', configType = 'SchemaPath', defaultValue = '{{recommendation.title}}', overridable = true, required = true),
-              ctaText = (label = 'Call to Action Text', configType = 'Static', defaultValue = 'Shop Now', overridable = true, required = true)
+              bannerTitle = (label = 'Banner Title', config_type = 'SchemaPath', default_value = '{{recommendation.title}}', overridable = true, required = true),
+              ctaText = (label = 'Call to Action Text', config_type = 'Static', default_value = 'Shop Now', overridable = true, required = true)
           ),
           transformer_type_details => (
               html = $$<div class="promo-banner"><h2>{{bannerTitle}}</h2><button class="cta-button">{{ctaText}}</button></div>$$,

@@ -53,6 +53,25 @@ function cell(result: ClientFunctionResult, row: number, column: string): unknow
     return result.rows[row][result.schema.fields.findIndex(f => f.name === column)];
 }
 
+describe('client function maps', () => {
+    const owner = { attributes: [{ name: 'first_name', api_name: 'firstName' }] };
+    const options = [{ name: 'owners', api_name: 'ownerMap', in: 'body', schema: 'Owner', map: true }];
+
+    it('keeps the keys of a map and spells its values like the API', async () => {
+        const fn: ClientFunction = { name: 'create', method: 'POST', options };
+        const { fetch, environment } = env([json({})]);
+        await runClientFunctionCall(spec([fn], { schemas: { Owner: owner } }), call('create', { owners: { first_name: { first_name: 'A' } } }), environment);
+        expect(JSON.parse(initOf(fetch, 0).body as string)).toEqual({ ownerMap: { first_name: { firstName: 'A' } } });
+    });
+
+    it('reads an array of maps', async () => {
+        const fn: ClientFunction = { name: 'create', method: 'POST', options };
+        const { fetch, environment } = env([json({})]);
+        await runClientFunctionCall(spec([fn], { schemas: { Owner: owner } }), call('create', { owners: [{ a: { first_name: 'A' } }, { b: { first_name: 'B' } }] }), environment);
+        expect(JSON.parse(initOf(fetch, 0).body as string)).toEqual({ ownerMap: [{ a: { firstName: 'A' } }, { b: { firstName: 'B' } }] });
+    });
+});
+
 describe('client function polls', () => {
     it('does not send a write again for a poll value that only a repeated request has', async () => {
         const create: ClientFunction = { name: 'create', method: 'POST', effect: 'write', pending: { status: 202, poll: { header: 'Location' } } };

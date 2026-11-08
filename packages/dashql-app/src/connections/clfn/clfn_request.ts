@@ -64,12 +64,16 @@ function findSchemaAttribute(spec: ClientFunctionSpec, schema: ClientFunctionSch
 }
 
 /// A value in the spelling of the API
-function toApiValue(spec: ClientFunctionSpec, value: unknown, attribute: ClientFunctionAttribute | undefined): unknown {
+function toApiValue(spec: ClientFunctionSpec, value: unknown, attribute: ClientFunctionAttribute | undefined, map: boolean = attribute?.map === true): unknown {
     if (Array.isArray(value)) {
-        return value.map(item => toApiValue(spec, item, attribute));
+        return value.map(item => toApiValue(spec, item, attribute, map));
     }
     if (typeof value !== 'object' || value === null) {
         return value;
+    }
+    // The keys of a map stay as written, the attribute holds for its values
+    if (map) {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toApiValue(spec, item, attribute, false)]));
     }
     const schema = attribute?.schema !== undefined ? spec.schemas?.[attribute.schema] : undefined;
     const out: Record<string, unknown> = {};

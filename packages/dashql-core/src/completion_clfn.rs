@@ -36,8 +36,10 @@ enum Frame<'s> {
     Options(&'s ClientFunction),
     /// The fields of an object: its schema, None for a free-form object
     Fields(Option<&'s ClientFunctionSchema>),
-    /// The items of an array of the attribute
-    Items(Option<&'s ClientFunctionAttribute>),
+    /// The map of an attribute: its keys are free, the attribute holds for its values
+    Map(&'s ClientFunctionAttribute),
+    /// The items of an array of the attribute, and is the array a value of its map?
+    Items(Option<&'s ClientFunctionAttribute>, bool),
     /// Anything else, such as the arguments of a function
     Opaque,
 }
@@ -55,7 +57,7 @@ struct Scope<'s> {
 
 impl<'s> Scope<'s> {
     fn new(frame: Frame<'s>) -> Self {
-        let at_key = matches!(frame, Frame::Options(_) | Frame::Fields(_));
+        let at_key = matches!(frame, Frame::Options(_) | Frame::Fields(_) | Frame::Map(_));
         Self { frame, used: Vec::new(), attribute: None, at_key }
     }
 
@@ -160,8 +162,8 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
                 }
             }
             S_COMMA => {
-                top.attribute = top.attribute.filter(|_| matches!(top.frame, Frame::Items(_)));
-                top.at_key = matches!(top.frame, Frame::Options(_) | Frame::Fields(_));
+                top.attribute = top.attribute.filter(|_| matches!(top.frame, Frame::Items(..)));
+                top.at_key = matches!(top.frame, Frame::Options(_) | Frame::Fields(_) | Frame::Map(_));
             }
             S_LRB if matches!(top.frame, Frame::Opaque) => stack.push(Scope::new(Frame::Opaque)),
             S_LRB if top.at_key => stack.push(Scope::new(Frame::Opaque)),
@@ -187,21 +189,28 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
                         return Position::Outside;
                     }
                 } else {
-                    let attribute = match top.frame {
-                        Frame::Items(attribute) => attribute,
-                        _ => top.attribute,
+                    let (attribute, in_map) = match top.frame {
+                        Frame::Items(attribute, in_map) => (attribute, in_map),
+                        Frame::Map(attribute) => (Some(attribute), true),
+                        _ => (top.attribute, false),
                     };
-                    let schema = attribute.and_then(|a| a.schema.as_deref()).and_then(|s| spec.schema(s));
-                    stack.push(Scope::new(Frame::Fields(schema)));
+                    match attribute.filter(|a| a.map && !in_map) {
+                        Some(map) => stack.push(Scope::new(Frame::Map(map))),
+                        None => {
+                            let schema = attribute.and_then(|a| a.schema.as_deref()).and_then(|s| spec.schema(s));
+                            stack.push(Scope::new(Frame::Fields(schema)));
+                        }
+                    }
                 }
             }
             S_LSB => {
-                let attribute = match top.frame {
-                    Frame::Items(attribute) => attribute,
-                    Frame::Opaque => None,
-                    _ => top.attribute,
+                let (attribute, in_map) = match top.frame {
+                    Frame::Items(attribute, in_map) => (attribute, in_map),
+                    Frame::Map(attribute) => (Some(attribute), true),
+                    Frame::Opaque => (None, false),
+                    _ => (top.attribute, false),
                 };
-                stack.push(Scope::new(Frame::Items(attribute)));
+                stack.push(Scope::new(Frame::Items(attribute, in_map)));
             }
             S_EQUALS | S_EQUALS_GREATER => {}
             _ if top.at_key => {
@@ -325,7 +334,7 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         }
         Position::Key(spec, scope) => {
             let free_form = match scope.frame {
-                Frame::Fields(None) => true,
+                Frame::Fields(None) | Frame::Map(_) => true,
                 Frame::Fields(Some(schema)) => schema.attributes.is_empty() && schema.unknown == ClientFunctionUnknownPolicy::Allow,
                 _ => false,
             };

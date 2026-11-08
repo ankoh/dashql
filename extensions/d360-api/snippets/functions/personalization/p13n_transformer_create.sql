@@ -15,15 +15,15 @@ call cdp.p13n_transformer_create (
     substitution_definitions => (
         "bannerTitle" = (
             label = 'Banner Title',
-            configType = 'SchemaPath',
-            defaultValue = '{{recommendation.title}}',
+            config_type = 'SchemaPath',
+            default_value = '{{recommendation.title}}',
             overridable = true,
             required = true
         ),
         "ctaText" = (
             label = 'Call to Action Text',
-            configType = 'Static',
-            defaultValue = 'Shop Now',
+            config_type = 'Static',
+            default_value = 'Shop Now',
             overridable = true,
             required = true
         )

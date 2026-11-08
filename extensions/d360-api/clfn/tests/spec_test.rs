@@ -139,7 +139,14 @@ fn completion_offers_the_attributes_of_every_object_option() {
             for variant in schema["variants"].as_array().into_iter().flatten() {
                 expected.extend(names(spec["schemas"][variant.as_str().unwrap()].get("attributes")));
             }
-            let actual = complete(&catalog, &format!("call cdp.{name} ({option_name} => ("));
+            // The keys of a map are free, its values have the attributes
+            let value = if option["map"] == true {
+                assert!(complete(&catalog, &format!("call cdp.{name} ({option_name} => (")).is_empty(), "{name}.{option_name}");
+                "(key = ("
+            } else {
+                "("
+            };
+            let actual = complete(&catalog, &format!("call cdp.{name} ({option_name} => {value}"));
             assert_eq!(actual, expected, "{name}.{option_name}");
             checked += 1;
         }

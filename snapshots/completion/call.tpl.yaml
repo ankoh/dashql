@@ -167,6 +167,51 @@ completion-snapshots:
     completions:
       limit: 5
   # The attributes of the item schema of an array, and of a recursive schema
+  # The keys of a map are free, its values follow the schema
+  - name: call_map_keys
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => ("
+    cursor:
+      search:
+        text: "owners => ("
+        index: 11
+    completions:
+      limit: 5
+  - name: call_map_values
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => (first = ("
+    cursor:
+      search:
+        text: "first = ("
+        index: 9
+    completions:
+      limit: 5
+  - name: call_map_next_key
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => (first = (id = 1), "
+    cursor:
+      search:
+        text: "(id = 1), "
+        index: 10
+    completions:
+      limit: 5
+  - name: call_map_in_array
+    catalog:
+      client_functions: tickets
+    editor:
+      input: "call tickets.ticket_create (owners => [(first = ("
+    cursor:
+      search:
+        text: "first = ("
+        index: 9
+    completions:
+      limit: 5
   - name: call_attributes_recursive
     catalog:
       client_functions: tickets

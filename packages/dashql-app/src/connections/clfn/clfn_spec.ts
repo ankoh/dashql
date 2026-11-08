@@ -12,6 +12,8 @@ export interface ClientFunctionAttribute {
     type?: string;
     /// The schema of an object
     schema?: string;
+    /// Is the value a map? Its keys are free, the schema holds for its values.
+    map?: boolean;
     /// Is the option required?
     required?: boolean;
     /// Query options with arrays or objects, `repeat` by default

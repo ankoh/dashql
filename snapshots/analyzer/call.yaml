@@ -1002,6 +1002,155 @@ analyzer-snapshots:
         - expression: 4
           text: "1"
 
+  - name: call_map
+    catalog:
+      client_functions: tickets
+    script:
+      input: |
+        call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (id = 1), Second = (id = 2, notify = true)));
+        call tickets.ticket_create (project => 'a', title => 'b', owners => [(id = (id = 1))]);
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":1},\"Second\":{\"id\":2,\"notify\":true}}}}"
+        - statement: 1
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":[{\"id\":{\"id\":1}}]}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 4
+          type: literal/string
+          is-const: true
+          statement-id: 1
+          text: "'a'"
+        - expression-idx: 5
+          type: literal/string
+          is-const: true
+          statement-id: 1
+          text: "'b'"
+        - expression-idx: 6
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "1"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'b'"
+        - expression: 2
+          text: "1"
+        - expression: 3
+          text: "2"
+        - expression: 4
+          text: "'a'"
+        - expression: 5
+          text: "'b'"
+        - expression: 6
+          text: "1"
+
+  - name: call_map_errors
+    catalog:
+      client_functions: tickets
+    script:
+      input: |
+        call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (notify = true), second = (id = 2, notifi = true)));
+        call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (id = 1), first = (id = 2)));
+      catalog-id: 1
+      errors:
+        - type: CLIENT_FUNCTION_MISSING_OPTION
+          message: needs the attribute id
+          text: "(notify = true)"
+        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
+          message: 'no attribute notifi here, did you mean notify?'
+          text: "notifi"
+        - type: CLIENT_FUNCTION_DUPLICATE_OPTION
+          message: duplicate key first
+          text: "first"
+      client-function-calls:
+        - statement: 0
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"notify\":true},\"second\":{\"id\":2,\"notifi\":true}}}}"
+        - statement: 1
+          namespace: tickets
+          function: ticket_create
+          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":2}}}}"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'b'"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 3
+          type: literal/string
+          is-const: true
+          statement-id: 1
+          text: "'a'"
+        - expression-idx: 4
+          type: literal/string
+          is-const: true
+          statement-id: 1
+          text: "'b'"
+        - expression-idx: 5
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "1"
+        - expression-idx: 6
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "'b'"
+        - expression: 2
+          text: "2"
+        - expression: 3
+          text: "'a'"
+        - expression: 4
+          text: "'b'"
+        - expression: 5
+          text: "1"
+        - expression: 6
+          text: "2"
+
   - name: call_pending
     catalog:
       client_functions: tickets

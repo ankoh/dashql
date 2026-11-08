@@ -222,7 +222,7 @@ This is the whole shape of a spec, with one function:
 | `in` | Options only: `path`, `query`, `header`, `body`, or `body_root` when this option is the whole body. A `path` option fills the placeholder of its `api_name`, which isn't sent any other way, so the placeholder is the spelling |
 | `type` | `string`, `integer`, `number`, `boolean`, `object`, `sql` or `any`. Values aren't checked against it |
 | `enum`, `format` | The values and the format of a scalar, such as `date-time`. Not checked either |
-| `array`, `map` | The nesting of a value: how many arrays, and whether it's a map |
+| `array`, `map` | The nesting of a value: how many arrays, and whether it's a map. The keys of a map are free and keep the script's spelling, and its `type` or `schema` holds for its values |
 | `schema` | A name in `schemas`, in place of `type`, for an object |
 | `required` | Missing it is an error |
 | `style` | Query options holding arrays or objects: `repeat` (`a=1&a=2`, the default), `csv` (`a=1,2`) or `deep` (`created[gte]=1`) |
@@ -344,6 +344,8 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 | `CALL tickets.\|` | Every function of the namespace, those that only read first |
 | `CALL tickets.ticket_list (\|` | That function's options, minus those already used, required ones first |
 | `assignee => (\|` | The attributes of that schema, minus those already used |
+| `owners => (\|` | None on a `map`, whose keys are free |
+| `owners => (first = (\|` | The attributes of the map's schema |
 | `labels => [(\|` | The attributes of the array's item schema |
 | Inside `(SELECT \|` | Core SQL, as usual |
 | A free-form value | None |

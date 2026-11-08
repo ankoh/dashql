@@ -747,7 +747,7 @@
     },
     {
       "function": "p13n_transformer_create",
-      "call": "CALL cdp.p13n_transformer_create (\n    name => 'promo_banner_transformer',\n    label => 'Promotional Banner Transformer',\n    channel => 'WebApp',\n    transformer_type => 'Handlebars',\n    is_enabled => true,\n    data_connectors => ['my_website_connector'],\n    dataspace => 'default',\n    substitution_definitions => (\n        bannerTitle = (label = 'Banner Title', configType = 'SchemaPath', defaultValue = '{{recommendation.title}}', overridable = true, required = true),\n        ctaText = (label = 'Call to Action Text', configType = 'Static', defaultValue = 'Shop Now', overridable = true, required = true)\n    ),\n    transformer_type_details => (\n        html = $$<div class=\"promo-banner\"><h2>{{bannerTitle}}</h2><button class=\"cta-button\">{{ctaText}}</button></div>$$,\n        disable_auto_injection_of_engagement_attributes = false\n    )\n)",
+      "call": "CALL cdp.p13n_transformer_create (\n    name => 'promo_banner_transformer',\n    label => 'Promotional Banner Transformer',\n    channel => 'WebApp',\n    transformer_type => 'Handlebars',\n    is_enabled => true,\n    data_connectors => ['my_website_connector'],\n    dataspace => 'default',\n    substitution_definitions => (\n        bannerTitle = (label = 'Banner Title', config_type = 'SchemaPath', default_value = '{{recommendation.title}}', overridable = true, required = true),\n        ctaText = (label = 'Call to Action Text', config_type = 'Static', default_value = 'Shop Now', overridable = true, required = true)\n    ),\n    transformer_type_details => (\n        html = $$<div class=\"promo-banner\"><h2>{{bannerTitle}}</h2><button class=\"cta-button\">{{ctaText}}</button></div>$$,\n        disable_auto_injection_of_engagement_attributes = false\n    )\n)",
       "description": {
         "namespace": "cdp",
         "function": "p13n_transformer_create",
@@ -766,15 +766,15 @@
           "substitution_definitions": {
             "bannerTitle": {
               "label": "Banner Title",
-              "configType": "SchemaPath",
-              "defaultValue": "{{recommendation.title}}",
+              "config_type": "SchemaPath",
+              "default_value": "{{recommendation.title}}",
               "overridable": true,
               "required": true
             },
             "ctaText": {
               "label": "Call to Action Text",
-              "configType": "Static",
-              "defaultValue": "Shop Now",
+              "config_type": "Static",
+              "default_value": "Shop Now",
               "overridable": true,
               "required": true
             }

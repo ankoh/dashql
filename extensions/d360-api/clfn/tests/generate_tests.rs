@@ -57,8 +57,16 @@ fn find_schema_attribute<'a>(spec: &'a Value, schema: &'a Value, name: &str) -> 
 
 /// A value in the spelling of the API
 fn to_api(spec: &Value, value: &Value, attribute: Option<&Value>) -> Value {
+    to_api_nested(spec, value, attribute, attribute.is_some_and(|a| a["map"] == true))
+}
+
+/// `map` says that an object is the map of the attribute: its keys stay as written, the attribute holds for its values
+fn to_api_nested(spec: &Value, value: &Value, attribute: Option<&Value>, map: bool) -> Value {
     match value {
-        Value::Array(items) => Value::Array(items.iter().map(|i| to_api(spec, i, attribute)).collect()),
+        Value::Array(items) => Value::Array(items.iter().map(|i| to_api_nested(spec, i, attribute, map)).collect()),
+        Value::Object(fields) if map => {
+            Value::Object(fields.iter().map(|(key, item)| (key.clone(), to_api_nested(spec, item, attribute, false))).collect())
+        }
         Value::Object(fields) => {
             let schema = attribute.and_then(|a| a["schema"].as_str()).map(|s| &spec["schemas"][s]);
             let mut out = Map::new();
