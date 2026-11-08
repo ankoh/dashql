@@ -162,14 +162,18 @@ export function pendingOf(spec: ClientFunctionSpec, fn: ClientFunction): ClientF
     return fn.pending === undefined ? (spec.pending ?? null) : fn.pending;
 }
 
+/// The segments of a JSON pointer
+export function jsonPointerSegments(pointer: string): string[] {
+    return pointer.split('/').slice(1).map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
+}
+
 /// Read a JSON pointer, undefined if the path doesn't exist
 export function readJsonPointer(value: unknown, pointer: string): unknown {
     if (pointer === '') {
         return value;
     }
     let current = value;
-    for (const raw of pointer.split('/').slice(1)) {
-        const segment = raw.replace(/~1/g, '/').replace(/~0/g, '~');
+    for (const segment of jsonPointerSegments(pointer)) {
         if (Array.isArray(current)) {
             current = current[Number(segment)];
         } else if (typeof current === 'object' && current !== null) {

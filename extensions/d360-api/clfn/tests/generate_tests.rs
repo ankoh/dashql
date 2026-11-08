@@ -221,6 +221,18 @@ fn set_pointer(target: &mut Value, pointer: &str, value: Value) {
 }
 
 /// The row of an item: the columns in their spelling, the rest in `_raw`
+/// An object without the value at a path and without the objects that this leaves empty, None if nothing is left
+fn without_path(fields: &Map<String, Value>, path: &[&str]) -> Option<Map<String, Value>> {
+    let mut out = fields.clone();
+    let child = out.remove(path[0]);
+    if let (Some(Value::Object(child)), true) = (&child, path.len() > 1) {
+        if let Some(inner) = without_path(child, &path[1..]) {
+            out.insert(path[0].to_string(), Value::Object(inner));
+        }
+    }
+    (!out.is_empty()).then_some(out)
+}
+
 fn expected_row(function: &Value, item: &Value, status: i64, next: &Value, meta: &Value) -> Value {
     let mut rest = item.as_object().cloned().unwrap_or_default();
     let mut row = Map::new();
@@ -271,9 +283,8 @@ fn assumed_response(function: &Value, options: &Value) -> (Value, Value) {
     }
     let meta = match (rows, &body) {
         (Some(pointer), Value::Object(fields)) if !pointer.is_empty() => {
-            let rows_field = pointer.split('/').nth(1).unwrap();
-            let rest: Map<String, Value> = fields.iter().filter(|(k, _)| k.as_str() != rows_field).map(|(k, v)| (k.clone(), v.clone())).collect();
-            if rest.is_empty() { Value::Null } else { Value::Object(rest) }
+            let path: Vec<&str> = pointer.split('/').skip(1).collect();
+            without_path(fields, &path).map_or(Value::Null, Value::Object)
         }
         _ => Value::Null,
     };

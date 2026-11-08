@@ -324,7 +324,11 @@
             "publish_schedule_start_date_time": "{\"assumed\":\"publish_schedule_start_date_time\"}",
             "_status": 200,
             "_next": "assumed-token",
-            "_meta": null,
+            "_meta": {
+              "collection": {
+                "nextPageToken": "assumed-token"
+              }
+            },
             "_raw": {
               "assumedUnlistedField": true
             }

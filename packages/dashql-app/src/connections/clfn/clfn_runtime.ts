@@ -12,6 +12,7 @@ import {
     ClientFunctionPending,
     ClientFunctionSpec,
     ClientFunctionValueSource,
+    jsonPointerSegments,
     pendingOf,
     readJsonPointer,
 } from './clfn_spec.js';
@@ -226,6 +227,19 @@ function errorMessage(spec: ClientFunctionSpec, fn: ClientFunction, body: unknow
     return typeof body === 'string' && body !== '' ? body : fallback;
 }
 
+/// Is a value an object?
+function isObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/// An object without the value at a path and without the objects that this leaves empty, null if nothing is left
+function withoutPath(object: Record<string, unknown>, [segment, ...rest]: string[]): Record<string, unknown> | null {
+    const { [segment]: child, ...others } = object;
+    const inner = rest.length > 0 && isObject(child) ? withoutPath(child, rest) : null;
+    const out = inner === null ? others : { ...others, [segment]: inner };
+    return Object.keys(out).length > 0 ? out : null;
+}
+
 /// Read the page of a finished response
 function readPage(fn: ClientFunction, status: number, body: unknown, headers: Headers): Page {
     if (fn.raw || fn.rows === undefined) {
@@ -237,12 +251,7 @@ function readPage(fn: ClientFunction, status: number, body: unknown, headers: He
     if (!Array.isArray(items) && !isEmpty) {
         return { status, items: [], meta: null, body, headers, unexpected: body };
     }
-    let meta: Record<string, unknown> | null = null;
-    if (fn.rows !== '' && typeof body === 'object' && body !== null && !Array.isArray(body)) {
-        const rowsField = fn.rows.split('/')[1];
-        const entries = Object.entries(body).filter(([name]) => name !== rowsField);
-        meta = entries.length > 0 ? Object.fromEntries(entries) : null;
-    }
+    const meta = fn.rows !== '' && isObject(body) ? withoutPath(body, jsonPointerSegments(fn.rows)) : null;
     return { status, items: Array.isArray(items) ? items : [], meta, body, headers };
 }
 

@@ -62,6 +62,33 @@ describe('client function polls', () => {
     });
 });
 
+describe('client function responses with nested rows', () => {
+    const list = (rows: string): ClientFunction => ({ name: 'list', rows });
+
+    it('keeps everything but the rows in _meta', async () => {
+        const body = { queryResults: { queryData: { columns: ['a'], rows: [{ a: 1 }] }, queryMetadata: { id: 1 } }, status: 'ok' };
+        const result = await runClientFunctionCall(spec([list('/queryResults/queryData/rows')]), call('list'), env([json(body)]).environment);
+        expect(JSON.parse(cell(result, 0, '_meta') as string)).toEqual({
+            queryResults: { queryData: { columns: ['a'] }, queryMetadata: { id: 1 } },
+            status: 'ok',
+        });
+    });
+
+    it('leaves out the objects that only held the rows', async () => {
+        const nested = await runClientFunctionCall(spec([list('/a/b/rows')]), call('list'), env([json({ a: { b: { rows: [{}] } }, c: 1 })]).environment);
+        expect(cell(nested, 0, '_meta')).toEqual('{"c":1}');
+        const nothing = await runClientFunctionCall(spec([list('/a/rows')]), call('list'), env([json({ a: { rows: [{}] } })]).environment);
+        expect(cell(nothing, 0, '_meta')).toBeNull();
+    });
+
+    it('does not change the fields that it keeps for paging', async () => {
+        const fn: ClientFunction = { ...list('/collection/items'), options: [{ name: 'token', in: 'query' }], paging: { kind: 'token', from: { body: '/collection/next' }, option: 'token' } };
+        const result = await runClientFunctionCall(spec([fn]), call('list'), env([json({ collection: { items: [{}], next: 'a' } })]).environment);
+        expect(cell(result, 0, '_next')).toEqual('a');
+        expect(cell(result, 0, '_meta')).toEqual('{"collection":{"next":"a"}}');
+    });
+});
+
 describe('client function responses without the rows of the spec', () => {
     const list: ClientFunction = {
         name: 'list',
