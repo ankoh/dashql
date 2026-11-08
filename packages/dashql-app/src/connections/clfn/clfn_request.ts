@@ -80,9 +80,12 @@ function toApiValue(spec: ClientFunctionSpec, value: unknown, attribute: ClientF
     return out;
 }
 
-/// A scalar in a query string or a form
-function scalarText(value: unknown): string {
-    return typeof value === 'string' ? value : String(value);
+/// A scalar in a path, a header, a query string or a form. Anything else would be sent as `null` or `[object Object]`.
+function scalarText(name: string, value: unknown): string {
+    if (value === null || value === undefined || typeof value === 'object') {
+        throw new ClientFunctionError(`the option ${name} takes a string or a number here`);
+    }
+    return String(value);
 }
 
 /// Flatten a value to `a[b][0]=1` pairs, a null is left out
@@ -97,7 +100,7 @@ function flatten(name: string, value: unknown, out: [string, string][]): void {
             flatten(`${name}[${key}]`, field, out);
         }
     } else {
-        out.push([name, scalarText(value)]);
+        out.push([name, scalarText(name, value)]);
     }
 }
 
@@ -110,27 +113,25 @@ function addQueryOption(name: string, value: unknown, style: ClientFunctionAttri
         if (style === 'deep') {
             flatten(name, value, out);
         } else if (style === 'csv') {
-            out.push([name, value.map(scalarText).join(',')]);
+            out.push([name, value.map(item => scalarText(name, item)).join(',')]);
         } else {
-            value.forEach(item => out.push([name, scalarText(item)]));
+            value.forEach(item => out.push([name, scalarText(name, item)]));
         }
     } else if (typeof value === 'object') {
         flatten(name, value, out);
     } else {
-        out.push([name, scalarText(value)]);
+        out.push([name, scalarText(name, value)]);
     }
 }
 
-/// Encode a value of a path. It can't reach another endpoint: a multi-segment value is encoded per segment, and it has no
-/// `.` or `..` segment.
+/// Encode a value of a path. It can't reach another endpoint: a URL resolves a `.` or `..` segment and percent-encoding
+/// leaves those as they are, so they are errors, and so is an empty value, which would reach the parent. A multi-segment
+/// value is encoded per segment.
 function encodePathValue(name: string, value: unknown, multiSegment: boolean): string {
-    const text = scalarText(value);
-    if (!multiSegment) {
-        return encodeURIComponent(text);
-    }
-    const segments = text.split('/');
-    if (segments.some(s => s === '.' || s === '..')) {
-        throw new ClientFunctionError(`the path option ${name} has a relative segment`);
+    const text = scalarText(name, value);
+    const segments = multiSegment ? text.split('/') : [text];
+    if (text === '' || segments.some(s => s === '.' || s === '..')) {
+        throw new ClientFunctionError(`the path option ${name} would reach another endpoint`);
     }
     return segments.map(encodeURIComponent).join('/');
 }
@@ -212,7 +213,8 @@ export function buildClientFunctionRequest(spec: ClientFunctionSpec, fn: ClientF
         } else if (location === 'query') {
             addQueryOption(apiName, toApiValue(spec, value, attribute), attribute?.style, query);
         } else if (location === 'header') {
-            headers.push([apiName, scalarText(value)]);
+            // A null leaves the header out, as on a followed URL
+            if (value !== null) headers.push([apiName, scalarText(name, value)]);
         } else if (location === 'body_root') {
             rootBody = toApiValue(spec, value, attribute);
         } else if (location === 'body') {

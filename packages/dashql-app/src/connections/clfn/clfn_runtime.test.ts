@@ -129,7 +129,30 @@ describe('client function requests', () => {
         const { fetch, environment } = env([json({})]);
         await runClientFunctionCall(spec([fn]), call('read', { path: 'a b/c' }), environment);
         expect(new URL(urlOf(fetch, 0)).pathname).toEqual('/v2/files/a%20b/c');
-        await expect(runClientFunctionCall(spec([fn]), call('read', { path: '../admin' }), env([]).environment)).rejects.toThrow(/relative segment/);
+        await expect(runClientFunctionCall(spec([fn]), call('read', { path: '../admin' }), env([]).environment)).rejects.toThrow(/would reach another endpoint/);
+    });
+
+    it('never turns a value into another endpoint', async () => {
+        const fn: ClientFunction = { name: 'remove', method: 'DELETE', path: '/connections/{id}/actions/run', options: [{ name: 'id', in: 'path' }] };
+        for (const id of ['..', '.', '', null, { a: 1 }, ['a', 'b']]) {
+            const { fetch, environment } = env([]);
+            await expect(runClientFunctionCall(spec([fn]), call('remove', { id }), environment)).rejects.toThrow(ClientFunctionError);
+            expect(fetch).not.toHaveBeenCalled();
+        }
+    });
+
+    it('encodes what only looks like a relative segment', async () => {
+        const fn: ClientFunction = { name: 'read', path: '/files/{id}/x', options: [{ name: 'id', in: 'path' }] };
+        const { fetch, environment } = env([json({})]);
+        await runClientFunctionCall(spec([fn]), call('read', { id: '%2e%2e' }), environment);
+        expect(new URL(urlOf(fetch, 0)).pathname).toEqual('/v2/files/%252e%252e/x');
+    });
+
+    it('leaves a header out when its value is null', async () => {
+        const fn: ClientFunction = { name: 'read', options: [{ name: 'trace', api_name: 'X-Trace', in: 'header' }] };
+        const { fetch, environment } = env([json({})]);
+        await runClientFunctionCall(spec([fn]), call('read', { trace: null }), environment);
+        expect(new Headers(initOf(fetch, 0).headers).has('X-Trace')).toBe(false);
     });
 
     it('encodes form and whole bodies', async () => {

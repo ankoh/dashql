@@ -611,14 +611,11 @@ A spec drives a client that holds credentials, so these hold for every spec:
 
 - **A spec names hosts, the binding resolves them.** A spec has relative paths only, so it can't send a token to a host of its choosing.
 - **URLs from responses stay on their origin.** A next or poll URL on another origin is an error, and it never receives the token. Relative ones resolve against the host.
-- **Path values are percent-encoded,** so a `/` in a value can't reach a different endpoint. A `multi_segment` option is encoded per segment, and a `.` or `..` segment is an error. GitHub has 68 operations whose path values can contain `/`.
+- **A path value can't reach another endpoint.** It is percent-encoded, and since that leaves dots alone, a `.` or `..` is an error, as is an empty value or anything that isn't a scalar. A `multi_segment` option is encoded per segment under the same rule. GitHub has 68 operations whose path values can contain `/`.
 - **Specs come with connectors,** never from script text.
 - **`effect` is only trusted on a bundled spec.** If specs can come from elsewhere later, every non-GET counts as `write` whatever it declares, since a spec can't be allowed to talk itself past run gating.
 
-**Known gaps in the path rule.** Requests stay on the host of the binding in both cases, but they can leave the endpoint or base path:
-
-- Percent-encoding leaves dots alone, so a plain path option with the whole value `.` or `..` isn't rejected. `project => '..'` on `/projects/{project}/tickets` requests `/tickets`.
-- The [escape hatch](#the-escape-hatch) rejects `.` and `..` segments, but not `%2e%2e`, which the URL parser treats the same way. Such a path leaves the base path of its host.
+**A known gap in the path rule.** The [escape hatch](#the-escape-hatch) rejects `.` and `..` segments, but not `%2e%2e`, which the URL parser treats the same way. Such a path leaves the base path of its host, though not the host.
 
 **Browser reach:** CSP isn't a limit, since `connect-src` allows `http:` and `https:`. CORS is, in two ways:
 - The app ships no CORS proxy, so a service has to allow the app's origin.
