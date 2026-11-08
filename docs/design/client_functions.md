@@ -258,6 +258,8 @@ There are three places to see the actual names: the reference of a spec, such as
 - A generator keeps schemas named. Stripe has 124 recursive references, so unfolding them doesn't terminate in practice.
 - It reports the operations it can't express. Non-JSON responses are the expected ones.
 
+**Registering a spec checks it,** so a mistake fails there and not in the middle of a run: `offset` paging needs `rows`, and so does `page` paging without an `end` that's an object, since they count the rows of a page. `url` and `token` paging need `from`, the options that paging names have to exist, a placeholder needs a required `path` option and the other way around, and only a function that reads can `repeat` a pending request.
+
 **What stays out of a spec:**
 - **Authentication and URLs.** They belong to the connection, see [Security](#security).
 - **Expressions and hooks.** Only JSON pointers and fixed fields. Similar formats take the other route: Airbyte evaluates values as Jinja2, and dlt falls back to custom Python paginators. Neither fits a [no evaluated code](app_csp.md) app, and a format with hooks turns into a small language. An API outside the vocabulary pages less conveniently, by hand through `_raw`.

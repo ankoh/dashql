@@ -125,7 +125,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         const script = f.script('1_call.sql');
         script.connection.catalog.registerClientFunctions(JSON.stringify({
             format: 1, namespace: 'clfn', functions: [{
-                name: 'item_get', method: 'GET', options: [{ name: 'id', in: 'path' }, { name: 'size', in: 'query' }],
+                name: 'item_get', method: 'GET', path: '/items/{id}', options: [{ name: 'id', in: 'path', required: true }, { name: 'size', in: 'query' }],
             }],
         }));
         const args: QueryExecutionArgs[] = [];

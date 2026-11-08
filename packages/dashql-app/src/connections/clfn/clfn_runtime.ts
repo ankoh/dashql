@@ -399,6 +399,10 @@ class ClientFunctionCallRun {
         if (poll !== null && this.pending === null) {
             throw new ClientFunctionError(`${spec.namespace}.${fn.name} has no option _poll`);
         }
+        // Only a request that repeats has this value, anything else would send the request again, even a write
+        if (poll === POLL_SAME && (this.pending === null || !('repeat' in this.pending.poll))) {
+            throw new ClientFunctionError(`${spec.namespace}.${fn.name} polls a URL, _poll takes the value of its result`);
+        }
         if ((next !== null || pages > 1) && paging === undefined) {
             throw new ClientFunctionError(`${spec.namespace}.${fn.name} doesn't page`);
         }

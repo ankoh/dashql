@@ -53,6 +53,15 @@ function cell(result: ClientFunctionResult, row: number, column: string): unknow
     return result.rows[row][result.schema.fields.findIndex(f => f.name === column)];
 }
 
+describe('client function polls', () => {
+    it('does not send a write again for a poll value that only a repeated request has', async () => {
+        const create: ClientFunction = { name: 'create', method: 'POST', effect: 'write', pending: { status: 202, poll: { header: 'Location' } } };
+        const { fetch, environment } = env([]);
+        await expect(runClientFunctionCall(spec([create]), call('create', { _poll: 'same' }), environment)).rejects.toThrow(/polls a URL/);
+        expect(fetch).not.toHaveBeenCalled();
+    });
+});
+
 describe('client function responses without the rows of the spec', () => {
     const list: ClientFunction = {
         name: 'list',

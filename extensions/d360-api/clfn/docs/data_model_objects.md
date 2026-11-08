@@ -351,7 +351,7 @@ Add or update field mappings on an existing mapping, with one field mapping name
 
 | Option | API name | In | Type | Required | Description |
 |---|---|---|---|---|---|
-| `field_source_target_map_developer_name` | `fieldSourceTargetMapDeveloperName` | path | string |  | Developer name of the field source target mapping between a DLO and a DMO. Required when adding new field mappings. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0. |
+| `field_source_target_map_developer_name` | `fieldSourceTargetMapDeveloperName` | path | string | yes | Developer name of the field source target mapping between a DLO and a DMO. Required when adding new field mappings. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0. |
 | `object_source_target_map_developer_name` | `objectSourceTargetMapDeveloperName` | path | string | yes | Developer name of the object source target mapping between a DLO and a DMO. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0. |
 | `dataspace` | `dataspace` | query | string |  | Name of the data space. If unspecified, the `default` data space is used. Since v61.0. |
 | `dataspace_name` | `dataSpaceName` | body | string |  | Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0. |

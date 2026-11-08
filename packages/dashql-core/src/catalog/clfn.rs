@@ -2,7 +2,8 @@
 //!
 //! A host registers a spec on the catalog of a connection (see `docs/design/client_functions.md`). The core reads the
 //! generic part of the spec: namespaces, functions, typed named options, nested schemas and result columns. Everything
-//! a request needs (methods, paths, API names) stays in the document for the runtime of the host, the core ignores it.
+//! a request needs (methods, paths, API names) stays in the document for the runtime of the host. The core only checks
+//! the parts of it that would otherwise fail at run time, or send the wrong request.
 
 use crate::error::{Error, Result};
 use crate::hash::HashMap;
@@ -58,8 +59,11 @@ pub enum ClientFunctionEffect {
 pub struct ClientFunctionAttribute {
     /// The name in a script
     pub name: String,
-    /// The spelling of the API. Only the check of a union reads it, the runtime sends it.
+    /// The spelling of the API. Only the checks of a spec read it, the runtime sends it.
     pub api_name: Option<String>,
+    /// Options only: where the value goes
+    #[serde(rename = "in")]
+    pub location: Option<String>,
     /// The type of a scalar value
     #[serde(rename = "type")]
     pub value_type: Option<String>,
@@ -157,6 +161,12 @@ pub struct ClientFunctionPaging {
     pub kind: String,
     /// The option that `_next` sets, none for `url`
     pub option: Option<String>,
+    /// Where the value for the next page is
+    pub from: Option<serde_json::Value>,
+    /// The option with the page size
+    pub size: Option<String>,
+    /// When the list ends, a documented rule if it's an object
+    pub end: Option<serde_json::Value>,
 }
 
 /// A function of a spec
@@ -169,10 +179,14 @@ pub struct ClientFunction {
     pub family: Option<String>,
     /// The HTTP method, it decides the default effect
     pub method: Option<String>,
+    /// The path below the host, with `{placeholders}`
+    pub path: Option<String>,
     /// The options
     pub options: Vec<ClientFunctionAttribute>,
     /// What an option that is not listed does
     pub unknown: ClientFunctionUnknownPolicy,
+    /// The JSON pointer to the rows of a response, absent means one row
+    pub rows: Option<String>,
     /// The result columns
     pub columns: Vec<ClientFunctionColumn>,
     /// The paging, if the function pages
@@ -305,7 +319,78 @@ fn check_union(owner: &str, schema: &ClientFunctionSchema, schemas: &HashMap<Str
     Ok(())
 }
 
+/// Check how a function pages. An offset advances by the rows a page returned, and a list without a documented end ends
+/// with a page without rows, so without `rows` they would count the whole response as one row and never end.
+fn check_paging(function: &ClientFunction) -> Result<()> {
+    let Some(paging) = &function.paging else { return Ok(()) };
+    let invalid = |message: String| Err(Error::invalid_argument(format!("{}: {message}", function.name)));
+    let documented_end = paging.end.as_ref().is_some_and(serde_json::Value::is_object);
+    let (from, option, rows) = match paging.kind.as_str() {
+        "url" => (true, false, false),
+        "token" => (true, true, false),
+        "offset" => (false, true, true),
+        "page" => (false, true, !documented_end),
+        kind => return invalid(format!("the unknown paging kind {kind:?}")),
+    };
+    if from && paging.from.is_none() {
+        return invalid(format!("paging by {} needs `from`", paging.kind));
+    }
+    if option && paging.option.is_none() {
+        return invalid(format!("paging by {} needs `option`", paging.kind));
+    }
+    if rows && function.rows.is_none() {
+        return invalid(format!("paging by {} needs `rows`", paging.kind));
+    }
+    for name in paging.option.iter().chain(paging.size.iter()) {
+        if !function.options.iter().any(|o| o.name == *name) {
+            return invalid(format!("the paging names the unknown option {name}"));
+        }
+    }
+    Ok(())
+}
+
+/// The placeholders of a path
+fn placeholders(path: &str) -> impl Iterator<Item = &str> {
+    path.split('{').skip(1).filter_map(|rest| rest.split_once('}').map(|(name, _)| name))
+}
+
+/// Check that the path options of a function fill its path: a required option for every placeholder, and no option that
+/// has no placeholder and wouldn't be sent.
+fn check_path(function: &ClientFunction) -> Result<()> {
+    let invalid = |message: String| Err(Error::invalid_argument(format!("{}: {message}", function.name)));
+    let path = function.path.as_deref().unwrap_or("");
+    let api_name = |option: &'_ ClientFunctionAttribute| option.api_name.clone().unwrap_or_else(|| option.name.clone());
+    let is_path = |option: &&ClientFunctionAttribute| option.location.as_deref() == Some("path");
+    for placeholder in placeholders(path) {
+        match function.options.iter().filter(is_path).find(|o| api_name(o) == placeholder) {
+            Some(option) if option.required => {}
+            Some(option) => return invalid(format!("the path option {} has to be required", option.name)),
+            None => return invalid(format!("no option fills the placeholder {{{placeholder}}}")),
+        }
+    }
+    for option in function.options.iter().filter(is_path) {
+        if !placeholders(path).any(|placeholder| placeholder == api_name(option)) {
+            return invalid(format!("the path has no placeholder for the option {}", option.name));
+        }
+    }
+    Ok(())
+}
+
 impl ClientFunctionSpec {
+    /// Check how a function answers before it finishes. Repeating a request is only safe if it reads.
+    fn check_pending(&self, function: &ClientFunction) -> Result<()> {
+        let invalid = |message: String| Err(Error::invalid_argument(format!("{}: {message}", function.name)));
+        let Some(pending) = function.pending.as_ref().or(self.pending.as_ref()).filter(|p| !p.is_null()) else { return Ok(()) };
+        let poll = &pending["poll"];
+        if !pending["status"].is_number() || !(poll["header"].is_string() || poll["repeat"] == true) {
+            return invalid("a pending rule needs a `status`, and a `poll` with a `header` or `repeat`".to_string());
+        }
+        if poll["repeat"] == true && function.effect() != ClientFunctionEffect::Read {
+            return invalid("only a function that reads can repeat its request while it's pending".to_string());
+        }
+        Ok(())
+    }
+
     /// Read and check a spec
     pub fn parse(json: &str) -> Result<Self> {
         let mut spec: ClientFunctionSpec =
@@ -335,6 +420,9 @@ impl ClientFunctionSpec {
             if let Some(column) = function.columns.iter().find(|c| c.name.starts_with('_')) {
                 return Err(Error::invalid_argument(format!("{}: the column {} is reserved", function.name, column.name)));
             }
+            check_paging(function)?;
+            check_path(function)?;
+            spec.check_pending(function)?;
         }
         Ok(spec)
     }
@@ -476,6 +564,54 @@ mod tests {
         assert!(ClientFunctionSpec::parse(&function("f", r#", "options": [{"name": "a"}, {"name": "A"}]"#)).is_err());
     }
 
+    #[test]
+    fn rejects_paging_that_could_not_work() {
+        let option = r#", "options": [{"name": "o"}]"#;
+        let valid = |extra: &str| ClientFunctionSpec::parse(&function("f", extra)).is_ok();
+        assert!(!valid(r#", "paging": {"kind": "next"}"#));
+        assert!(valid(r#", "paging": {"kind": "url", "from": {"body": "/n"}}"#));
+        assert!(!valid(r#", "paging": {"kind": "url"}"#));
+        assert!(valid(&format!(r#"{option}, "paging": {{"kind": "token", "from": {{"body": "/n"}}, "option": "o"}}"#)));
+        assert!(!valid(&format!(r#"{option}, "paging": {{"kind": "token", "from": {{"body": "/n"}}}}"#)));
+        // An offset moves by the rows of a page, so it needs them
+        assert!(valid(&format!(r#"{option}, "rows": "/items", "paging": {{"kind": "offset", "option": "o"}}"#)));
+        assert!(!valid(&format!(r#"{option}, "paging": {{"kind": "offset", "option": "o"}}"#)));
+        // A page number only needs them if a page without rows ends the list
+        assert!(!valid(&format!(r#"{option}, "paging": {{"kind": "page", "option": "o"}}"#)));
+        assert!(!valid(&format!(r#"{option}, "paging": {{"kind": "page", "option": "o", "end": "short_page"}}"#)));
+        assert!(valid(&format!(r#"{option}, "paging": {{"kind": "page", "option": "o", "end": {{"total": "/t"}}}}"#)));
+        // The options it names exist
+        assert!(!valid(r#", "rows": "/items", "paging": {"kind": "offset", "option": "o"}"#));
+        assert!(!valid(&format!(r#"{option}, "rows": "/items", "paging": {{"kind": "offset", "option": "o", "size": "s"}}"#)));
+    }
+
+    #[test]
+    fn rejects_a_path_that_its_options_do_not_fill() {
+        let valid = |extra: &str| ClientFunctionSpec::parse(&function("f", extra)).is_ok();
+        let path = r#", "path": "/a/{id}/b""#;
+        assert!(valid(&format!(r#"{path}, "options": [{{"name": "x", "api_name": "id", "in": "path", "required": true}}]"#)));
+        assert!(!valid(path));
+        assert!(!valid(&format!(r#"{path}, "options": [{{"name": "id", "in": "path"}}]"#)));
+        assert!(!valid(&format!(r#"{path}, "options": [{{"name": "id", "in": "query", "required": true}}]"#)));
+        assert!(!valid(r#", "path": "/a", "options": [{"name": "id", "in": "path", "required": true}]"#));
+    }
+
+    #[test]
+    fn only_repeats_a_pending_request_that_reads() {
+        let valid = |extra: &str| ClientFunctionSpec::parse(&function("f", extra)).is_ok();
+        let repeat = r#""pending": {"status": 202, "poll": {"repeat": true}}"#;
+        assert!(valid(&format!(r#", "method": "GET", {repeat}"#)));
+        assert!(!valid(&format!(r#", "method": "POST", {repeat}"#)));
+        assert!(valid(r#", "method": "POST", "pending": {"status": 202, "poll": {"header": "Location"}}"#));
+        assert!(!valid(r#", "method": "GET", "pending": {"status": 202}"#));
+        assert!(!valid(r#", "method": "GET", "pending": {"poll": {"header": "Location"}}"#));
+        // The default of the spec holds for every function
+        let default = format!(r#"{{"format": 1, "namespace": "t", {repeat}, "functions": [{{"name": "f", "method": "POST"}}]}}"#);
+        assert!(ClientFunctionSpec::parse(&default).is_err());
+        let opted_out = format!(r#"{{"format": 1, "namespace": "t", {repeat}, "functions": [{{"name": "f", "method": "POST", "pending": null}}]}}"#);
+        assert!(ClientFunctionSpec::parse(&opted_out).is_ok());
+    }
+
     const UNION: &str = r#"{"format": 1, "namespace": "t", "schemas": {
         "A": {"attributes": [{"name": "kind"}, {"name": "a"}, {"name": "both"}]},
         "B": {"attributes": [{"name": "kind"}, {"name": "b"}, {"name": "both"}]},
@@ -563,7 +699,7 @@ mod tests {
     #[test]
     fn pending_follows_the_default_of_the_spec() {
         let spec = ClientFunctionSpec::parse(
-            r#"{"format": 1, "namespace": "t", "pending": {"status": 202}, "functions": [
+            r#"{"format": 1, "namespace": "t", "pending": {"status": 202, "poll": {"header": "Location"}}, "functions": [
                 {"name": "a"}, {"name": "b", "pending": null}
             ]}"#,
         )
@@ -577,7 +713,7 @@ mod tests {
         let spec = ClientFunctionSpec::parse(
             r#"{"format": 1, "namespace": "t", "functions": [
                 {"name": "a", "columns": [{"name": "id"}, {"name": "label"}]},
-                {"name": "b", "columns": [{"name": "id"}], "pending": {"status": 202}},
+                {"name": "b", "columns": [{"name": "id"}], "pending": {"status": 202, "poll": {"header": "Location"}}},
                 {"name": "c", "columns": [{"name": "id"}], "raw": true}
             ]}"#,
         )
