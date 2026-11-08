@@ -265,6 +265,15 @@ describe('client function requests', () => {
         expect(initOf(csv.fetch, 0).body).toEqual('id,name');
     });
 
+    it('keeps the path of the escape hatch below the base path of its host', async () => {
+        const raw: ClientFunction = { name: 'request', raw: true };
+        for (const path of ['/%2e%2e/x', '/a/%2E%2e/x', '/%2e/x', '/a\\..\\x', '/x?a=1', '/x#a']) {
+            const { fetch, environment } = env([]);
+            await expect(runClientFunctionCall(spec([raw]), call('request', { method: 'GET', path, host: 'api' }), environment)).rejects.toThrow(/relative to its host/);
+            expect(fetch).not.toHaveBeenCalled();
+        }
+    });
+
     it('sends nothing for a parameter without a value', async () => {
         const fn: ClientFunction = { name: 'p', options: [{ name: 'a', in: 'query' }] };
         const description = call('p', { a: null }, [{ pointer: '/a', param: 'x' }]);

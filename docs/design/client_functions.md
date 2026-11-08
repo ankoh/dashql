@@ -622,8 +622,6 @@ A spec drives a client that holds credentials, so these hold for every spec:
 - **Specs come with connectors,** never from script text.
 - **`effect` is only trusted on a bundled spec.** If specs can come from elsewhere later, every non-GET counts as `write` whatever it declares, since a spec can't be allowed to talk itself past run gating.
 
-**A known gap in the path rule.** The [escape hatch](#the-escape-hatch) rejects `.` and `..` segments, but not `%2e%2e`, which the URL parser treats the same way. Such a path leaves the base path of its host, though not the host.
-
 **Browser reach:** CSP isn't a limit, since `connect-src` allows `http:` and `https:`. CORS is, in two ways:
 - The app ships no CORS proxy, so a service has to allow the app's origin.
 - A browser only shows a script `Link` and `Location` if the service lists them in `Access-Control-Expose-Headers`. Header paging and header polling need that checked per service, even where the request itself works.
@@ -647,7 +645,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 ```
 
 - It takes `method`, `path`, `host` and `body`. Any other option becomes a query parameter.
-- `host` is one of the spec's names, and `path` is relative, so the [security rules](#security) still hold.
+- `host` is one of the spec's names, and `path` is relative, so the [security rules](#security) still hold. It stays below the base path of its host, so a `.` or `..` segment is an error, spelled with `%2e` as well, and its query comes from the other options.
 - Its `body` accepts any value, because the call has no schema.
 - Its result is one row with the response in `_raw`.
 - It counts as a write, unless its `method` is the literal `'GET'`. A parameter as the method is a write.

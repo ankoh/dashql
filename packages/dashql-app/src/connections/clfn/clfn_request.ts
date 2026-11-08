@@ -144,8 +144,9 @@ function buildRawRequest(spec: ClientFunctionSpec, fn: ClientFunction, options: 
     if (typeof method !== 'string' || typeof path !== 'string') {
         throw new ClientFunctionError(`${spec.namespace}.${fn.name} needs the options method and path`);
     }
-    if (!path.startsWith('/') || path.startsWith('//') || path.split('/').some(s => s === '.' || s === '..')) {
-        throw new ClientFunctionError(`the path of ${spec.namespace}.${fn.name} must be relative to its host`);
+    // A URL reads `%2e` as a dot and a backslash as a slash. A query in a path would be sent as part of the path.
+    if (!path.startsWith('/') || path.startsWith('//') || /[\\?#]/.test(path) || path.split('/').some(s => /^(\.|%2e){1,2}$/i.test(s))) {
+        throw new ClientFunctionError(`the path of ${spec.namespace}.${fn.name} must be relative to its host, and any other option goes to its query`);
     }
     const hostName = typeof host === 'string' ? host : fn.host;
     if (hostName === undefined) {
