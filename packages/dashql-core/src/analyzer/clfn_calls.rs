@@ -46,19 +46,20 @@ impl ClientFunctionCall {
 
 /// Does a statement start with a call in a namespace with client functions? This comes from the tokens, so it also holds
 /// for a call that doesn't parse, which the analysis never sees. A host that sends text to a backend asks this first.
+/// An EXPLAIN may put anything before the call: `EXPLAIN (analyze) CALL` doesn't parse, and no backend may get it either.
 pub fn starts_client_function_call(scanned: &ScannedScript, catalog: &CatalogSnapshot) -> bool {
-    scanned.symbols.split(|symbol| symbol.kind == S_SEMICOLON).any(|statement| {
-        let body = match statement.first() {
-            Some(symbol) if symbol.kind == S_EXPLAIN => &statement[1..],
-            _ => statement,
-        };
-        let [call, namespace, dot, ..] = body else { return false };
+    let starts_call = |symbols: &[Symbol]| {
+        let [call, namespace, dot, ..] = symbols else { return false };
         if call.kind != S_CALL_P || (dot.kind != S_DOT && dot.kind != S_DOT_TRAILING) {
             return false;
         }
         let location = namespace.location;
         let name = &scanned.text.as_bytes()[location.offset as usize..(location.offset + location.length) as usize];
         catalog.client_function_spec(&String::from_utf8_lossy(name).trim_matches('"').to_ascii_lowercase()).is_some()
+    };
+    scanned.symbols.split(|symbol| symbol.kind == S_SEMICOLON).any(|statement| match statement.split_first() {
+        Some((first, rest)) if first.kind == S_EXPLAIN => (0..rest.len()).any(|i| starts_call(&rest[i..])),
+        _ => starts_call(statement),
     })
 }
 

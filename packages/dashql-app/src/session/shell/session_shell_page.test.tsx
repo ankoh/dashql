@@ -541,6 +541,13 @@ describe('SessionShellPage', () => {
             expect(execute).not.toHaveBeenCalled();
         });
 
+        it('fails an EXPLAIN with options of a call without running anything', async () => {
+            await openWithSpec();
+            run('explain (analyze) call cdp.segment_list ();');
+            await vi.waitFor(() => expect(screen()).toMatch(/syntax error/i), WAIT);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
         it('fails a call next to another statement', async () => {
             const catalog = core.createCatalog();
             catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));

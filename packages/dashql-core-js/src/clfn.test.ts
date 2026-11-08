@@ -94,10 +94,17 @@ describe('Client functions', () => {
         expect(starts('call tickets.')).toBe(true);
         expect(starts('CALL "TICKETS".ticket_list ();')).toBe(true);
         expect(starts('/* first */ explain call tickets.ticket_list ();')).toBe(true);
+        expect(starts('explain (analyze) call tickets.ticket_list ();')).toBe(true);
+        expect(starts('EXPLAIN (format json, foo (a, b)) CALL tickets.ticket_list ();')).toBe(true);
+        expect(starts('explain analyze call tickets.ticket_list ();')).toBe(true);
+        expect(starts('explain (analyze call tickets.ticket_list ();')).toBe(true);
         expect(starts('select 1; call tickets.ticket_list (')).toBe(true);
         expect(starts('call other.ticket_list ();')).toBe(false);
         expect(starts('call ticket_list ();')).toBe(false);
         expect(starts(`select 'call tickets.ticket_list ()';`)).toBe(false);
+        expect(starts('explain (analyze) call other.ticket_list ();')).toBe(false);
+        expect(starts('explain (analyze) select 1;')).toBe(false);
+        expect(starts(`explain select 'call tickets.ticket_list ()';`)).toBe(false);
         catalog.dropClientFunctions('tickets');
         expect(starts('call tickets.ticket_list ();')).toBe(false);
     });

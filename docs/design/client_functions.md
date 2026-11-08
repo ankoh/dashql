@@ -422,7 +422,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 
 **The executor** gets the description as `clientFunctionCall` of its arguments, and `executeConnectionQuery` hands it to the runtime instead of the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
 
-**The shell of a connection** has no plan. `resolveClientFunctionCall` (`session/shell/session_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
+**The shell of a connection** has no plan. `resolveClientFunctionCall` (`session/shell/session_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse, `EXPLAIN (analyze) CALL` included, also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
 
 **An agent** finds the functions of a connection in `dashql agent catalog`, a family per line, and the guide of `dashql agent` says how to call them. It checks a call with `lint` and shows its request with `EXPLAIN CALL`.
 
