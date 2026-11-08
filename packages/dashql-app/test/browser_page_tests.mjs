@@ -34,6 +34,30 @@ async function openSessionWithQuery(page, navigate) {
 /// The pathname of the page
 const pathnameOf = page => new URL(page.url()).pathname;
 
+/// A long line wraps in the card of the feed, the editor is as high as its text and does not scroll sideways.
+/// An editor that measured before the list had a width would stay thousands of pixels too high.
+async function testAppWrappedScript(page, navigate) {
+    await navigate('/');
+    await page.getByTestId('composer-send').waitFor();
+    await page.locator('.cm-content').first().click();
+    const columns = Array.from({ length: 30 }, (_, i) => `1 as column_${i}_with_a_long_name`);
+    await page.keyboard.insertText(`select ${columns.join(', ')};`);
+    await page.getByTestId('composer-send').click();
+    await page.getByText('Statement executed successfully').waitFor();
+    const { contentHeight, scrollerHeight, overflow, rowHeight } = await scriptEditor(page, 'column_0_with_a_long_name').evaluate(content => {
+        const scroller = content.closest('.cm-scroller');
+        return {
+            contentHeight: content.getBoundingClientRect().height,
+            scrollerHeight: scroller.getBoundingClientRect().height,
+            overflow: scroller.scrollWidth - scroller.clientWidth,
+            rowHeight: parseFloat(getComputedStyle(content).lineHeight),
+        };
+    });
+    if (contentHeight < 2 * rowHeight) throw new Error(`The line does not wrap, the text is ${contentHeight}px high`);
+    if (Math.abs(scrollerHeight - contentHeight) > 1) throw new Error(`The editor is ${scrollerHeight}px high, its text ${contentHeight}px`);
+    if (overflow > 0) throw new Error(`The editor scrolls ${overflow}px sideways`);
+}
+
 /// The greeter at the root: a session only appears with its first script, a reload stays in it, the brand goes back
 async function testAppGreeter(page, navigate) {
     const expectGreeter = async () => {
@@ -226,6 +250,7 @@ const NARROW = { viewport: { width: 420, height: 800 } };
 const PAGE_TESTS = [
     { name: 'app_session', options: DESKTOP, test: testAppSession },
     { name: 'app_greeter', options: DESKTOP, test: testAppGreeter },
+    { name: 'app_wrapped_script', options: DESKTOP, test: testAppWrappedScript },
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
     { name: 'app_shared_session', options: DESKTOP, test: testAppSharedSession },
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },

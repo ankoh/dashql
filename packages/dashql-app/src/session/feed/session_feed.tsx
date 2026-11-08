@@ -692,6 +692,10 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
 
     // The checked script references of every script, the check runs again only when a script changes
     const scriptReferences = React.useMemo(() => checkSessionScriptReferences(props.sessionScripts), [props.sessionScripts]);
+    // The rows mount their editors once the list has a width. The list takes a width only after the size observer of
+    // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
+    // lines at a few characters per row, and gets no resize event to correct that.
+    const rowsActive = props.active && feedLayout.listWidth > 0;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         sessionId: props.sessionScripts.sessionId,
         scriptReferences,
@@ -705,7 +709,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         formattingDebugMode,
         keywordCase,
         focusedFileName: props.sessionScripts.scriptFocus.fileName,
-        active: props.active,
+        active: rowsActive,
         onFocus: handleFocus,
         onDelete: handleDelete,
         onRename: handleRename,
@@ -728,7 +732,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, rowsActive, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 

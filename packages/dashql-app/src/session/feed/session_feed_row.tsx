@@ -323,6 +323,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                                 scriptKey={props.scriptData.scriptKey}
                                 className={styles.feed_script_editor}
                                 autoHeight
+                                lineWrapping
                                 onFocus={() => props.onFocus(props.scriptFileName)}
                                 setView={handleEditorView}
                             />

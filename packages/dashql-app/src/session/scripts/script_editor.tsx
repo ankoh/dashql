@@ -40,6 +40,7 @@ export interface ScriptEditorProps {
     scriptKey: number;
     className?: string;
     autoHeight?: boolean;
+    lineWrapping?: boolean;
     setView?: (view: EditorView) => void;
     onFocus?: () => void;
     onNavigateToScript?: (scriptKey: number) => void;
@@ -62,8 +63,11 @@ const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
     useLogger,
 };
 
+const LINE_WRAPPING_EXTENSIONS = [EditorView.lineWrapping];
+
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const extraExtensions = props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : undefined;
     const logger = dependencies.useLogger();
     const config = dependencies.useAppConfig();
     const [scripts, modifyScripts] = dependencies.useSessionScripts(props.sessionId);
@@ -98,7 +102,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
-        updateEditor(view, scripts, scriptData, modifyScripts, logger, config, dependencies.createCodeMirrorExtensions, props.onNavigateToScript);
+        // Binding a script replaces the editor state, which has to keep the extensions of the mount
+        const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...(extraExtensions ?? [])];
+        updateEditor(view, scripts, scriptData, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
     }, [
         config,
         view,
@@ -139,6 +145,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
             <dependencies.CodeMirror
                 ref={setViewState}
                 initialDoc={initialDoc}
+                extraExtensions={extraExtensions}
                 style={props.autoHeight ? { height: 'auto' } : undefined}
             />
         </div>
