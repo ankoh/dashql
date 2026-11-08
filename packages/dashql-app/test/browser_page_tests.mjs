@@ -7,8 +7,8 @@
 //
 // A test fails if the page logs a console error, throws, or does not reach the state that the test waits for.
 //
-// The pages run without WebGL. Without a GPU, the particle flow of the loading page stalls the main thread for seconds in
-// software rendering, every boot took 6 to 14 s instead of 1 s. The pages have to work without WebGL anyway.
+// The pages run without WebGL. Without a GPU, the particle flow of some pages stalls the main thread for seconds in software
+// rendering. The pages have to work without WebGL anyway.
 
 import { join } from 'node:path';
 

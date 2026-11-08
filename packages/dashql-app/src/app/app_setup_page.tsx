@@ -4,7 +4,6 @@ import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { ParticleFlowBackground } from '../ui/particle_flow/particle_flow_background.js';
 import { CompactNavBar } from './navbar.js';
 
 /// The steps of the setup of the app, in the order they are shown
@@ -43,7 +42,6 @@ interface AppSetupPageProps {
 /// It needs no app providers, the storage shows it while it is migrated.
 export const AppSetupPage: React.FC<AppSetupPageProps> = (props: AppSetupPageProps) => (
     <div className={`${baseStyles.page} ${pageStyles.page}`} data-electron-drag-region>
-        <ParticleFlowBackground />
         <CompactNavBar showInternals={props.showInternals} />
         <div className={`${baseStyles.banner_and_content_container} ${pageStyles.foreground}`} data-electron-drag-region>
             <div className={baseStyles.content_container} data-electron-drag-region>
