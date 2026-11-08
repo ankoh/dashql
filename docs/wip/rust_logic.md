@@ -136,11 +136,7 @@ plan, in both orientations, and confirm edges and stage contours draw correctly.
 
 These are TS fixes rather than ports, and are separate from the steps above:
 
-1. **`mapDataType` substring match** (`connections/catalog/catalog_sql_generator.ts:41`): `interval` and `point` become
-   `INTEGER`. The core ignores column types, but the agent's schema context copies the statement text, so agents see
-   the wrong type. Keeping types verbatim is unsafe because the parser rejects forms like `row(bigint, varchar)`, and
-   one rejection fails the whole script. So parse each distinct type once and fall back to `VARCHAR`.
-2. **BigInt in Trino stats** (`connections/trino/trino_api_client.ts:435`, `query/query_progress_model.ts:214`): a stat
+1. **BigInt in Trino stats** (`connections/trino/trino_api_client.ts:435`, `query/query_progress_model.ts:214`): a stat
    of 2^53 or more makes `JSON.stringify` throw. It is caught, so the query continues, but progress stops updating and
    the download of the progress recording throws too. Rare (about 9 PiB). Fix: convert BigInts under `stats` to
    `Number` in the slow path of `parseTrinoJson`.

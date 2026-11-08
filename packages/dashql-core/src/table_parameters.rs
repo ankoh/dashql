@@ -212,6 +212,7 @@ fn result_table(index: u32, name: &str, columns: Vec<Arc<str>>) -> TableDeclarat
             table: Some(table_id),
             ast_node_id: None,
             column_name: name_of(column),
+            column_type: None,
             location: None,
         });
     }

@@ -7,7 +7,7 @@ import type { QueryExecutor } from '../query_executor.js';
 
 import {
     quoteIdentifier,
-    mapDataType,
+    quoteDataType,
     generateQualifiedTableName,
     generateCreateTableSQL,
     generateSchemaSQL,
@@ -44,49 +44,23 @@ describe('SQL Generator Utilities', () => {
         });
     });
 
-    describe('mapDataType', () => {
-        it('maps integer types', () => {
-            expect(mapDataType('integer')).toBe('INTEGER');
-            expect(mapDataType('int')).toBe('INTEGER');
-            expect(mapDataType('bigint')).toBe('INTEGER');
-            expect(mapDataType('smallint')).toBe('INTEGER');
-            expect(mapDataType('serial')).toBe('INTEGER');
-            expect(mapDataType('bigserial')).toBe('INTEGER');
+    describe('quoteDataType', () => {
+        it('keeps the text of a type', () => {
+            expect(quoteDataType('bigint')).toBe('"bigint"');
+            expect(quoteDataType('numeric(10,2)')).toBe('"numeric(10,2)"');
+            expect(quoteDataType('timestamp with time zone')).toBe('"timestamp with time zone"');
+            expect(quoteDataType('USER-DEFINED')).toBe('"USER-DEFINED"');
+            expect(quoteDataType('row(bigint, varchar)')).toBe('"row(bigint, varchar)"');
         });
 
-        it('maps floating point types', () => {
-            expect(mapDataType('float')).toBe('FLOAT');
-            expect(mapDataType('double')).toBe('FLOAT');
-            expect(mapDataType('real')).toBe('FLOAT');
-            expect(mapDataType('numeric')).toBe('FLOAT');
-            expect(mapDataType('decimal')).toBe('FLOAT');
+        it('escapes quotes', () => {
+            expect(quoteDataType('"char"')).toBe('"""char"""');
         });
 
-        it('maps boolean types', () => {
-            expect(mapDataType('boolean')).toBe('BOOLEAN');
-            expect(mapDataType('bool')).toBe('BOOLEAN');
-        });
-
-        it('maps date types', () => {
-            expect(mapDataType('date')).toBe('DATE');
-            expect(mapDataType('timestamp')).toBe('TIMESTAMP');
-            expect(mapDataType('datetime')).toBe('TIMESTAMP');
-        });
-
-        it('defaults to VARCHAR', () => {
-            expect(mapDataType('varchar')).toBe('VARCHAR');
-            expect(mapDataType('text')).toBe('VARCHAR');
-            expect(mapDataType('char')).toBe('VARCHAR');
-            expect(mapDataType('unknown_type')).toBe('VARCHAR');
-            expect(mapDataType(null)).toBe('VARCHAR');
-            expect(mapDataType(undefined)).toBe('VARCHAR');
-            expect(mapDataType('')).toBe('VARCHAR');
-        });
-
-        it('handles case-insensitive types', () => {
-            expect(mapDataType('INTEGER')).toBe('INTEGER');
-            expect(mapDataType('Float')).toBe('FLOAT');
-            expect(mapDataType('BOOLEAN')).toBe('BOOLEAN');
+        it('says if a type is unknown', () => {
+            expect(quoteDataType(null)).toBe('"unknown"');
+            expect(quoteDataType(undefined)).toBe('"unknown"');
+            expect(quoteDataType('')).toBe('"unknown"');
         });
     });
 
@@ -123,8 +97,8 @@ describe('SQL Generator Utilities', () => {
             const sql = generateCreateTableSQL('mydb', 'myschema', 'users', columns);
 
             expect(sql).toContain('CREATE TABLE "mydb"."myschema"."users"');
-            expect(sql).toContain('"id" INTEGER');
-            expect(sql).toContain('"name" VARCHAR');
+            expect(sql).toContain('"id" "integer"');
+            expect(sql).toContain('"name" "varchar"');
         });
 
         it('sorts columns by ordinal position', () => {
@@ -153,8 +127,8 @@ describe('SQL Generator Utilities', () => {
 
             const sql = generateCreateTableSQL('db', 'schema', 'users', columns);
 
-            expect(sql).toContain('"id" VARCHAR');
-            expect(sql).toContain('"name" VARCHAR');
+            expect(sql).toContain('"id" "unknown"');
+            expect(sql).toContain('"name" "unknown"');
         });
 
         it('handles special characters in column names', () => {
@@ -165,8 +139,8 @@ describe('SQL Generator Utilities', () => {
 
             const sql = generateCreateTableSQL('db', 'schema', 'users', columns);
 
-            expect(sql).toContain('"user id" INTEGER');
-            expect(sql).toContain('"user""name" VARCHAR');
+            expect(sql).toContain('"user id" "integer"');
+            expect(sql).toContain('"user""name" "varchar"');
         });
     });
 
@@ -221,7 +195,7 @@ describe('SQL Generator Utilities', () => {
 
             const sql = generateUnqualifiedSchemaSQL(tables);
 
-            expect(sql).toBe('CREATE TABLE "Account__dll" (\n    "Id__c" VARCHAR\n);');
+            expect(sql).toBe('CREATE TABLE "Account__dll" (\n    "Id__c" "text"\n);');
             expect(sql).not.toContain('"salesforce"."datacloud"');
         });
     });

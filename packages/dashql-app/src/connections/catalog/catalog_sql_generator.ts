@@ -27,42 +27,11 @@ export function quoteIdentifier(identifier: string): string {
     return `"${escaped}"`;
 }
 
-/// Maps SQL data types to simplified DashQL types.
-/// Falls back to VARCHAR for unknown types.
-export function mapDataType(sqlType: string | null | undefined): string {
-    if (!sqlType) {
-        return 'VARCHAR';
-    }
-
-    const normalized = sqlType.toLowerCase().trim();
-
-    // Integer types
-    if (normalized.includes('int') || normalized.includes('serial') || normalized.includes('bigserial')) {
-        return 'INTEGER';
-    }
-
-    // Floating point types
-    if (normalized.includes('float') || normalized.includes('double') ||
-        normalized.includes('real') || normalized.includes('numeric') ||
-        normalized.includes('decimal')) {
-        return 'FLOAT';
-    }
-
-    // Boolean types
-    if (normalized.includes('bool')) {
-        return 'BOOLEAN';
-    }
-
-    // Date/time types
-    if (normalized.includes('date') && !normalized.includes('time')) {
-        return 'DATE';
-    }
-    if (normalized.includes('timestamp') || normalized.includes('datetime')) {
-        return 'TIMESTAMP';
-    }
-
-    // Default to VARCHAR for text and unknown types
-    return 'VARCHAR';
+/// The type of a column of a generated CREATE TABLE.
+/// A backend can name any type, such as `USER-DEFINED` or `numeric(10,2)`, and some of those aren't SQL types.
+/// A quoted name always parses, and the catalog keeps its text.
+export function quoteDataType(sqlType: string | null | undefined): string {
+    return quoteIdentifier(sqlType?.trim() || 'unknown');
 }
 
 /// Generates a qualified table name (database.schema.table).
@@ -92,7 +61,7 @@ export function generateCreateTableSQL(
     // Generate column definitions
     const columnDefs = sortedColumns.map(col => {
         const colName = quoteIdentifier(col.name);
-        const colType = mapDataType(col.dataType);
+        const colType = quoteDataType(col.dataType);
         return `    ${colName} ${colType}`;
     }).join(',\n');
 

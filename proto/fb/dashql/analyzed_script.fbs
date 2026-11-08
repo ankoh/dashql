@@ -74,6 +74,8 @@ table TableColumn {
     column_name: string;
     // The UTF-8 byte span of the column definition in the declaring script, absent if derived
     location: dashql.buffers.parser.TextSpan;
+    // The text of the declared type, absent if a column has no declaration or nothing tells the type
+    column_type: string;
 }
 
 table Table {

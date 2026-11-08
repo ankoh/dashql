@@ -74,7 +74,7 @@ describe('Hyper catalog query generation', () => {
 
         expect(sql).toContain('CREATE TABLE "cloud attachment"."sales"."orders"');
         expect(sql).not.toContain('CREATE TABLE "Cloud Database"');
-        expect(sql.indexOf('"id" INTEGER')).toBeLessThan(sql.indexOf('"name" VARCHAR'));
+        expect(sql.indexOf('"id" "bigint"')).toBeLessThan(sql.indexOf('"name" "text"'));
     });
 
     it('declares a column once when the Hyper Cloud metadata lists it twice', () => {
@@ -88,8 +88,8 @@ describe('Hyper catalog query generation', () => {
         const logger = { warn: vi.fn() };
         const sql = generateCatalogSQLFromHyperCloud(result as any, 'lakehouse', logger as any);
 
-        expect(sql.match(/"id" INTEGER/g)).toHaveLength(1);
-        expect(sql.match(/"name" VARCHAR/g)).toHaveLength(1);
+        expect(sql.match(/"id" "bigint"/g)).toHaveLength(1);
+        expect(sql.match(/"name" "text"/g)).toHaveLength(1);
         expect(logger.warn).toHaveBeenCalledTimes(1);
         expect(logger.warn.mock.calls[0][1]).toMatchObject({ database: 'lakehouse', duplicates: '2', schema: 'sales', table: 'orders', column: 'id' });
     });
@@ -164,7 +164,7 @@ describe('updateHyperCatalog', () => {
         );
 
         expect(result.failures).toEqual([]);
-        expect(script.toString().match(/"id" INTEGER/g)).toHaveLength(1);
+        expect(script.toString().match(/"id" "bigint"/g)).toHaveLength(1);
         expect(catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
     });
 

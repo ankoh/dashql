@@ -412,6 +412,7 @@ pub fn pack_table(table: &TableDeclaration) -> TableT {
                 .map(|c| build!(TableColumnT {
                     column_name: Some(c.column_name.text.to_string()),
                     location: c.location.map(text_span),
+                    column_type: c.column_type.as_deref().map(str::to_string),
                 }))
                 .collect(),
         ),

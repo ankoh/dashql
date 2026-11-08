@@ -10,6 +10,7 @@
 //!
 //! The node states hold vectors of ids, and merging a child moves its entries to the end.
 
+use super::sql_types::read_sql_type;
 use super::state::{quote_identifier, AnalysisState};
 use super::types::*;
 use crate::catalog::*;
@@ -31,6 +32,8 @@ struct PendingColumn {
     ast_node_id: u32,
     /// The column name
     column_name: Name,
+    /// The text of the declared type
+    column_type: Option<Arc<str>>,
 }
 
 /// The state of a node during name resolution
@@ -355,6 +358,7 @@ impl NameResolutionPass {
                 table: Some(table_id),
                 ast_node_id: None,
                 column_name: column_name.clone(),
+                column_type: None,
                 location: None,
             });
             let loc = ColumnLoc {
@@ -1111,13 +1115,14 @@ impl NameResolutionPass {
                         return;
                     }
                 }
-                let [name] = attrs!(state.children(node), [K::SQL_COLUMN_DEF_NAME]);
+                let [name, column_type] = attrs!(state.children(node), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
                 if let Some(name) = name.filter(|n| n.node_type() == NodeType::NAME) {
                     let name = state.node_name(name);
                     state.tag(&name, NameTag::COLUMN_NAME);
                     node_state.table_columns.push(PendingColumn {
                         ast_node_id: node_id,
                         column_name: name,
+                        column_type: column_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string())),
                     });
                 }
             }
@@ -1418,6 +1423,7 @@ impl NameResolutionPass {
                         table: Some(table_id),
                         ast_node_id: Some(column.ast_node_id),
                         column_name: column.column_name.clone(),
+                        column_type: column.column_type.clone(),
                         location: Some(state.text_span(*state.ast[column.ast_node_id as usize].symbol_span())),
                     });
                 }

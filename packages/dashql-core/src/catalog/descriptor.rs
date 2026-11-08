@@ -282,6 +282,7 @@ impl DescriptorEntry {
                             table: Some(table_id),
                             ast_node_id: None,
                             column_name,
+                            column_type: source_column.column_type().map(Arc::from),
                             location: source_column.location().map(|l| TextSpan::new(l.offset(), l.length())),
                         });
                     }

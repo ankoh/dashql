@@ -118,6 +118,9 @@ pub struct TableColumn {
     pub ast_node_id: Option<u32>,
     /// The column name
     pub column_name: Name,
+    /// The text of the declared type, None if a column has no declaration or nothing tells the type.
+    /// It's text because nothing reads more than that, and a packed catalog would have to parse every column again.
+    pub column_type: Option<Arc<str>>,
     /// The text of the column definition in the declaring script, None for derived columns
     pub location: Option<TextSpan>,
 }
