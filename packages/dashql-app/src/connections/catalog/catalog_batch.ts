@@ -6,11 +6,15 @@ import { createBatchWorker, type DashQLBatchWorker } from '@ankoh/dashql-core/br
 
 export type BatchProcessor = (request: BatchRequest) => Promise<BatchResult>;
 
-/// A script of the connection catalog, published as a descriptor in the connection layer
-export interface CatalogBatchEntry {
-    script: DashQLScript;
+/// SQL of the connection catalog, published as a descriptor in the connection layer. A script keeps the text, an entry
+/// id only gets the descriptor.
+export type CatalogBatchEntry = ({ script: DashQLScript; entryId?: undefined } | { entryId: number; script?: undefined }) & {
     text: string;
     requireFunctions?: boolean;
+};
+
+function entryIdOf(entry: CatalogBatchEntry): number {
+    return entry.script?.catalog_entry_id ?? entry.entryId!;
 }
 
 export interface CatalogBatchOptions {
@@ -72,7 +76,7 @@ export function beginCatalogBatch(catalog: DashQLCatalog, options: CatalogBatchO
 
 function batchRequest(entries: CatalogBatchEntry[]): BatchRequest {
     return { scripts: entries.map(entry => ({
-        id: entry.script.catalog_entry_id.toString(),
+        id: entryIdOf(entry).toString(),
         text: entry.text,
         outputs: ['catalogDescriptor'],
     })) };
@@ -82,7 +86,7 @@ function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[]
     validate();
     if (result.scripts.length !== entries.length) throw new Error('Catalog batch returned an unexpected script count');
     const prepared = entries.map(entry => {
-        const matches = result.scripts.filter(script => script.id === entry.script.catalog_entry_id.toString());
+        const matches = result.scripts.filter(script => script.id === entryIdOf(entry).toString());
         const output = matches[0];
         if (matches.length !== 1 || output.failure) {
             throw new Error(output?.failure ?? 'Catalog batch did not return a descriptor');
@@ -99,13 +103,13 @@ function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[]
     validate();
     for (let i = 0; i < entries.length; ++i) {
         const entry = entries[i];
-        const previousText = entry.script.toString();
+        const previousText = entry.script?.toString();
         try {
-            entry.script.replaceText(entry.text);
-            catalog.replaceDescriptor(entry.script.catalog_entry_id, buffers.catalog.CatalogLayer.CONNECTION, prepared[i].descriptor);
+            entry.script?.replaceText(entry.text);
+            catalog.replaceDescriptor(entryIdOf(entry), buffers.catalog.CatalogLayer.CONNECTION, prepared[i].descriptor);
         } catch (error) {
             try {
-                entry.script.replaceText(previousText);
+                if (previousText != null) entry.script?.replaceText(previousText);
             } catch {
                 // Preserve the import/write failure if restoring this source also fails.
             }

@@ -5,8 +5,7 @@
 //! [`ShellStatus::Pending`] with an effect envelope (version, type, id, payload), and the host
 //! completes or cancels the effect by id, which yields the rendered output.
 //!
-//! The session does not own its catalog. Operations that read it take `&Catalog`, operations that
-//! may publish session relations take `&mut Catalog` (see [`ShellSession`]).
+//! The session does not own its catalog, operations that read it take `&Catalog` (see [`ShellSession`]).
 //!
 //! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error,
 //! and outputs are terminal bytes.
@@ -14,7 +13,6 @@
 pub mod arrow_renderer;
 pub mod prompt_buffer;
 mod session;
-pub mod session_relations;
 pub mod unicode;
 pub mod vt100;
 

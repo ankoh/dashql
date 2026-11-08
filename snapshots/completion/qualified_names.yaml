@@ -22,15 +22,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: AmbiguousAttribute1
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: AmbiguousAttribute2
-            columns: [attr1]
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
@@ -119,15 +115,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: AmbiguousAttribute1
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: AmbiguousAttribute2
-            columns: [attr1]
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" where attr
@@ -212,15 +204,11 @@ completion-snapshots:
               - catalog-id: "256.65537.4294967297.0"
                 name: attr1
                 text: "attr1 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: db0.schema0.AmbiguousCrossSchema
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: db0.schema1.AmbiguousCrossSchema
-            columns: [attr1]
         errors: []
     editor:
       input: select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
@@ -315,15 +303,11 @@ completion-snapshots:
               - catalog-id: "257.65537.4294967297.0"
                 name: attr1
                 text: "attr1 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: db0.schema0.AmbiguousAttribute1
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: db1.schema0.AmbiguousAttribute2
-            columns: [attr1]
         errors: []
     editor:
       input: select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
@@ -412,15 +396,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: AmbiguousAttribute1
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: AmbiguousAttribute2
-            columns: [attr1]
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
@@ -509,15 +489,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: AmbiguousAttribute1
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: AmbiguousAttribute2
-            columns: [attr1]
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
@@ -597,11 +573,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: attr
                 text: "attr int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: foo.bar
-            columns: [attr]
         errors: []
     editor:
       input: select * from foo bar

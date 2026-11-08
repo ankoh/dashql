@@ -20,7 +20,6 @@ async function createShell(): Promise<DashQLShell> {
         environment: { executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file') },
         terminalColumns: 80,
         core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
-        trackSessionRelations: true,
     });
     const script = shell.core.createScript(shell.catalog);
     script.replaceText('create table orders(order_id bigint, amount double);');
@@ -104,8 +103,12 @@ describe('the completion list of the browser shell', () => {
         expect(pane.textContent!.toLowerCase()).toMatch(/bigint|double/);
     });
 
-    it('shows the column types of a table that the shell created', async () => {
-        await shell.executeQuery('create table created (created_id bigint, created_at timestamp)');
+    it('shows the column types of a table of the catalog', async () => {
+        const script = shell.core.createScript(shell.catalog);
+        script.replaceText('create table created (created_id bigint, created_at timestamp);');
+        script.analyze();
+        shell.catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
+        script.destroy();
         controller.queuePrompts(['select * from created c where c.created_']);
         await vi.waitFor(() => expect(isShown(list())).toBe(true));
         const pane = list().querySelector(`.${styles.details_container}`)!;

@@ -24,11 +24,6 @@ export interface QueryExecutionArgs {
     onLog?: (message: string) => void;
     /// Reports labeled query lifecycle timings before the complete execution promise resolves.
     onTiming?: (label: string, elapsedMs: number) => void;
-    /// The catalog changes of the statement, applied to the catalog of the connection once it succeeded.
-    catalogChanges?: buffers.catalog.CatalogChangeT[];
-    /// Called after a statement changed the catalog of the connection, e.g. to re-analyze the scripts
-    /// that reference it.
-    onCatalogChanged?: () => void;
     /// Called once after the backend result is fully consumed, but before optional result analysis.
     /// The normal execution promise still resolves only after postprocessing completes.
     onResultsReady?: () => void;

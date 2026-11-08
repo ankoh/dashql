@@ -166,8 +166,8 @@ fn load_scripts_publishes_one_generation() {
         })
         .collect();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0], (functions.catalog_entry_id(), CatalogLayer::SESSION, 0, 1));
-    assert_eq!(entries[1], (relations.catalog_entry_id(), CatalogLayer::CONNECTION, 1, 0));
+    assert_eq!(entries[0], (relations.catalog_entry_id(), CatalogLayer::CONNECTION, 1, 0));
+    assert_eq!(entries[1], (functions.catalog_entry_id(), CatalogLayer::SESSION, 0, 1));
 }
 
 #[test]
@@ -193,7 +193,7 @@ fn load_scripts_updates_loaded_scripts_and_layers_once() {
         catalog.entries_ranked().map(|(layer, entry)| (entry.data().catalog_entry_id, layer)).collect();
     assert_eq!(
         ranked,
-        vec![(second.catalog_entry_id(), CatalogLayer::SESSION), (first.catalog_entry_id(), CatalogLayer::CONNECTION)]
+        vec![(first.catalog_entry_id(), CatalogLayer::CONNECTION), (second.catalog_entry_id(), CatalogLayer::SESSION)]
     );
     let entry = catalog.entry(first.catalog_entry_id()).expect("first").data();
     assert_eq!(entry.table_declarations.len(), 1);
@@ -240,11 +240,11 @@ fn describe_entries_lists_scripts_as_one_anonymous_schema() {
     // The entries are described in resolution order, with their layers
     let entries = catalog.describe_entries().entries.unwrap();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].catalog_entry_id, second.catalog_entry_id());
-    assert_eq!(entries[1].catalog_entry_id, first.catalog_entry_id());
-    assert_eq!(entries[0].layer, CatalogLayer::SESSION);
-    assert_eq!(entries[1].layer, CatalogLayer::CONNECTION);
-    let schemas = entries[1].schemas.as_ref().unwrap();
+    assert_eq!(entries[0].catalog_entry_id, first.catalog_entry_id());
+    assert_eq!(entries[1].catalog_entry_id, second.catalog_entry_id());
+    assert_eq!(entries[0].layer, CatalogLayer::CONNECTION);
+    assert_eq!(entries[1].layer, CatalogLayer::SESSION);
+    let schemas = entries[0].schemas.as_ref().unwrap();
     assert_eq!(schemas.len(), 1);
     let tables = schemas[0].tables.as_ref().unwrap();
     assert_eq!(tables.len(), 2);
@@ -442,7 +442,7 @@ fn republishing_equal_declarations_keeps_the_version() {
     for (text, layer) in [
         ("create table a (x integer, z integer)", CatalogLayer::SESSION),
         ("create table b (x integer, z integer)", CatalogLayer::SESSION),
-        ("create table b (x integer, z integer)", CatalogLayer::EXECUTED),
+        ("create table b (x integer, z integer)", CatalogLayer::CONNECTION),
     ] {
         script.replace_text(text);
         script.analyze(&catalog, true).unwrap();

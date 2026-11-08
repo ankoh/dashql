@@ -55,7 +55,7 @@ bazel build //...
 | `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `dashql-core-js`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `dashql-core-js`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
-| `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, catalog changes, visualizations |
+| `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
@@ -104,7 +104,7 @@ bazel test //...
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
-| `//packages/dashql-core-session:all` | Session, compiler, batch and catalog change tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
+| `//packages/dashql-core-session:all` | Session, compiler, batch and touched relation tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |

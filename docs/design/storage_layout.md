@@ -20,9 +20,8 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 │   └── attachments/<name>.parquet             attached Parquet files
 ├── cache/<hash>.<uuid>.parquet[.last_access]  query result cache of the app
 ├── connections/<connection-id>/               files of a global connection
-│   ├── dashql-catalog-relations.sql           catalog of the last refresh
+│   ├── dashql-catalog-relations.sql           relations of the catalog, written and read as SQL
 │   ├── dashql-catalog-functions.sql
-│   ├── dashql-catalog-changes.sql             catalog changes since the refresh
 │   └── monitoring.hyper                       extract of the Hyper log of the connection
 ├── shell/                                     files of the standalone shell
 │   └── salesforce-login-history.json

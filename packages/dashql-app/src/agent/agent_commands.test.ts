@@ -62,7 +62,8 @@ describe('agent commands', () => {
             connectionHealth: ConnectionHealth.ONLINE,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             details: { type: HYPER_CONNECTOR, value: { proto: {} } },
-            catalogRelationScript: '',
+            catalog: { readDescriptor: () => null },
+            catalogRelationEntryId: 1,
             queriesActive: new Map(),
             queriesFinished: new Map(),
         }]]);
@@ -106,12 +107,12 @@ describe('agent commands', () => {
             connectionId: 'lake',
             connectionHealth: ConnectionHealth.ONLINE,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            details: { type: TRINO_CONNECTOR },
+            details: { type: TRINO_CONNECTOR, value: { proto: {} } },
             queriesActive: new Map(),
             queriesFinished: new Map(),
         });
     };
-    const lakeConnection = { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: undefined, params: undefined, local: false };
+    const lakeConnection = { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: undefined, params: undefined, local: false, catalogNameDefaults: { databaseName: '', schemaName: '' } };
 
     it('marks read-only connections', async () => {
         useLake();
@@ -134,7 +135,7 @@ describe('agent commands', () => {
 
     it('offers the embedded Hyper to a session that does not use it', async () => {
         state = session([onLake(script(3, 'events.sql', 'select 3'))]);
-        connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR } });
+        connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR, value: { proto: {} } } });
         const result = await run('scripts');
         expect(result.text).toContain('Connections: lake (Trino, read-only, online, caches results), db (embedded Hyper, read-write, online)');
         expect((await run('catalog', { connection: 'db' })).data).toMatchObject({ connection: 'db' });
@@ -144,7 +145,7 @@ describe('agent commands', () => {
         state = session([onLake(script(3, 'events.sql', 'select 3'))]);
         const db = connections.get('db');
         connections.delete('db');
-        connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR } });
+        connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR, value: { proto: {} } } });
         env.embeddedConnection = vi.fn(() => {
             connections.set('db', db);
             return db;

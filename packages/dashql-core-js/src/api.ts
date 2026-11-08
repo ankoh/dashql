@@ -24,8 +24,7 @@ export type DashQLBindings = Pick<
     | 'quoteIdentifier'
     | 'quoteColumnName'
     | 'processBatch'
-    | 'appendCatalogChangesSql'
-    | 'qualifyCatalogChanges'
+    | 'touchedRelations'
     | 'installPanicHook'
     | 'Shell'
 >;
@@ -53,6 +52,8 @@ export interface SessionPlanConnection {
     dialect?: buffers.formatting.FormattingDialect;
     /// The catalog of the connection, its scripts are analyzed with it
     catalog: DashQLCatalog;
+    /// The database and schema of relations without those names, `create table t` and `db.schema.t` are one relation
+    defaults?: CatalogNameDefaults;
 }
 
 /// A script of a session plan
@@ -78,6 +79,24 @@ export interface SessionPlanAttachment {
     stamp: string;
     /// The columns of the file, absent if the host didn't read them yet
     columns?: string[] | null;
+}
+
+/// The relations that the statements of a text create or drop
+export interface TouchedRelations {
+    /// Did the text parse? A statement that doesn't parse can touch any relation.
+    parsed: boolean;
+    /// The relations in statement order
+    relations: buffers.analyzer.QualifiedTableNameT[];
+}
+
+/// Tables of a descriptor entry that a connection reported anew
+export interface CatalogTableUpdate {
+    /// The databases that the tables describe in full, their other tables are gone
+    databases?: string[];
+    /// The relations that the tables describe, one without a table is gone
+    relations?: buffers.analyzer.QualifiedTableNameT[];
+    /// The tables
+    tables: buffers.analyzer.TableT[];
 }
 
 /// A request to plan the scripts of a session
@@ -173,15 +192,6 @@ const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
 const QUERY_PROFILE_TYPE = Symbol('QUERY_PROFILE_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
-
-/// Pack catalog changes as `CatalogChanges`
-function packCatalogChanges(changes: buffers.catalog.CatalogChangeT[]): Uint8Array {
-    const list = new buffers.catalog.CatalogChangesT();
-    list.changes = changes;
-    const builder = new flatbuffers.Builder();
-    builder.finish(list.pack(builder));
-    return builder.asUint8Array();
-}
 
 /// Load the wasm binary next to this module
 async function loadDefaultWasm(): Promise<Uint8Array | URL> {
@@ -302,7 +312,7 @@ export class DashQL {
                 if (connection.catalog.ptr.api !== this) {
                     throw new Error('planner catalog belongs to a different DashQL instance');
                 }
-                native.addConnection(connection.id, connection.local, connection.catalog.ptr.assertNotNull(), connection.dialect ?? buffers.formatting.FormattingDialect.HYPER);
+                native.addConnection(connection.id, connection.local, connection.catalog.ptr.assertNotNull(), connection.dialect ?? buffers.formatting.FormattingDialect.HYPER, connection.defaults?.databaseName ?? '', connection.defaults?.schemaName ?? '');
             }
             for (const script of request.scripts) {
                 if (!(script.session instanceof DashQLScriptSession)) {
@@ -405,15 +415,10 @@ export class DashQL {
         return new DashQLQueryProfile(ptr, layoutConfig);
     }
 
-    /// Append catalog changes to catalog changes SQL, returns the compacted SQL
-    public appendCatalogChangesSql(changesSql: string, changes: buffers.catalog.CatalogChangeT[]): string {
-        return this.bindings.appendCatalogChangesSql(changesSql, packCatalogChanges(changes));
-    }
-
-    /// Fill the missing database and schema names of catalog changes with the defaults of a connection
-    public qualifyCatalogChanges(changes: buffers.catalog.CatalogChangeT[], defaults: CatalogNameDefaults): buffers.catalog.CatalogChangeT[] {
-        const bytes = this.bindings.qualifyCatalogChanges(packCatalogChanges(changes), defaults.databaseName, defaults.schemaName);
-        return buffers.catalog.CatalogChanges.getRootAsCatalogChanges(new flatbuffers.ByteBuffer(bytes)).unpack().changes;
+    /// The relations that the statements of a text create or drop, named as written
+    public touchedRelations(text: string): TouchedRelations {
+        const touched = buffers.catalog.TouchedRelations.getRootAsTouchedRelations(new flatbuffers.ByteBuffer(this.bindings.touchedRelations(text))).unpack();
+        return { parsed: touched.parsed, relations: touched.relations };
     }
 }
 
@@ -1072,19 +1077,22 @@ export class DashQLCatalog {
         this.ptr.assertNotNull().dropClientFunctions(namespace);
         this.deleteFlat();
     }
-    /// Apply catalog changes to a descriptor entry, an unknown entry is created in the layer
-    public applyCatalogChanges(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, changes: buffers.catalog.CatalogChangeT[]): void {
+    /// Update the tables of a descriptor entry, an unknown entry is created in the layer
+    public replaceTables(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, update: CatalogTableUpdate): void {
         assertUint32(catalogEntryId, 'catalogEntryId');
         assertLayer(layer);
-        this.ptr.assertNotNull().applyCatalogChanges(catalogEntryId, layer, packCatalogChanges(changes));
+        const packed = new buffers.catalog.CatalogTableUpdateT(update.databases ?? [], update.relations ?? [], update.tables);
+        const builder = new flatbuffers.Builder();
+        builder.finish(packed.pack(builder));
+        this.ptr.assertNotNull().replaceTables(catalogEntryId, layer, builder.asUint8Array());
         this.deleteFlat();
     }
-    /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created in the layer
-    public applyCatalogChangesSql(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, changesSql: string): void {
+    /// The declarations of a descriptor entry, null for another entry
+    public readDescriptor(catalogEntryId: number): buffers.catalog.CatalogDescriptorT | null {
         assertUint32(catalogEntryId, 'catalogEntryId');
-        assertLayer(layer);
-        this.ptr.assertNotNull().applyCatalogChangesSql(catalogEntryId, layer, changesSql);
-        this.deleteFlat();
+        const bytes = this.ptr.assertNotNull().descriptorBytes(catalogEntryId);
+        if (bytes == null) return null;
+        return buffers.catalog.CatalogDescriptor.getRootAsCatalogDescriptor(new flatbuffers.ByteBuffer(bytes)).unpack();
     }
     /// Contains an entry id?
     public containsEntryId(entryId: number): boolean {

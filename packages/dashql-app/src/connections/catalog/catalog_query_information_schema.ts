@@ -6,8 +6,8 @@ import { QueryExecutionArgs } from '../query_execution_args.js';
 import { DynamicConnectionDispatch } from "../connection_registry.js";
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
 import { QueryType } from "../../query/query_execution_state.js";
-import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
-import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from './catalog_batch.js';
+import { catalogTablesOfSchema, packCatalogDescriptor, packCatalogTable, packRelationName, quoteLiteral, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
+import { beginCatalogBatch, type CatalogBatchOptions } from './catalog_batch.js';
 
 export type InformationSchemaColumnsTable = arrow.Table<{
     table_catalog: arrow.Utf8;
@@ -21,10 +21,10 @@ export type InformationSchemaColumnsTable = arrow.Table<{
 }>;
 
 /**
- * Generates SQL DDL from information_schema query results.
- * Builds a hierarchy of catalog -> schema -> table -> columns and generates CREATE TABLE statements.
+ * The tables of information_schema query results.
+ * Builds a hierarchy of catalog -> schema -> table -> columns.
  */
-function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumnsTable): string {
+function catalogTablesFromInformationSchema(result: InformationSchemaColumnsTable): CatalogTable[] {
     // Build hierarchy: catalog -> schema -> table -> columns
     const catalogs = new Map<string, Map<string, Map<string, ColumnMetadata[]>>>();
 
@@ -79,18 +79,8 @@ function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumn
         }
     }
 
-    // Generate SQL for all schemas
-    const sqlStatements: string[] = [];
-    for (const [catalogName, catalogSchemas] of catalogs) {
-        for (const [schemaName, schemaTables] of catalogSchemas) {
-            const sql = generateSchemaSQL(catalogName, schemaName, schemaTables);
-            if (sql.length > 0) {
-                sqlStatements.push(sql);
-            }
-        }
-    }
-
-    return sqlStatements.join('\n\n');
+    return [...catalogs].flatMap(([catalogName, schemas]) =>
+        [...schemas].flatMap(([schemaName, tables]) => catalogTablesOfSchema(catalogName, schemaName, tables)));
 }
 
 /// A catalog and the schemas of it whose columns are read, no schemas for all of them
@@ -99,6 +89,8 @@ export interface InformationSchemaScope {
     catalog: string;
     /// The schema names, empty for all schemas of the catalog
     schemas: string[];
+    /// The relations, all relations of the schemas if absent
+    relations?: RelationName[];
 }
 
 /// Quote an identifier
@@ -106,15 +98,14 @@ function quoteIdentifier(name: string): string {
     return `"${name.replace(/"/g, '""')}"`;
 }
 
-/// Quote a string literal
-function quoteLiteral(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`;
-}
-
 /// The query of the columns of the scopes.
 /// Every catalog has an information_schema of its own, the query reads the one of every catalog.
 export function informationSchemaColumnsQuery(scopes: InformationSchemaScope[]): string {
-    const select = (source: string, schemas: string[]) => `SELECT
+    const condition = (scope: InformationSchemaScope) => {
+        if (scope.relations != null) return `\nWHERE ${relationFilter('table_schema', 'table_name', scope.relations)}`;
+        return scope.schemas.length > 0 ? `\nWHERE table_schema IN (${scope.schemas.map(quoteLiteral).join(', ')})` : '';
+    };
+    const select = (source: string, scope: InformationSchemaScope) => `SELECT
     table_catalog,
     table_schema,
     table_name,
@@ -122,10 +113,9 @@ export function informationSchemaColumnsQuery(scopes: InformationSchemaScope[]):
     ordinal_position,
     is_nullable,
     data_type
-FROM ${source}${schemas.length > 0 ? `
-WHERE table_schema IN (${schemas.map(quoteLiteral).join(', ')})` : ''}`;
+FROM ${source}${condition(scope)}`;
     return scopes
-        .map(scope => select(`${quoteIdentifier(scope.catalog)}.information_schema.columns`, scope.schemas))
+        .map(scope => select(`${quoteIdentifier(scope.catalog)}.information_schema.columns`, scope))
         .join('\nUNION ALL\n');
 }
 
@@ -154,6 +144,34 @@ export async function queryInformationSchema(connectionId: string, connectionDis
     return queryResult;
 }
 
+/// The scopes of relations: their catalogs
+export function relationScopes(relations: RelationName[]): InformationSchemaScope[] {
+    const catalogs = [...new Set(relations.map(relation => relation.databaseName))];
+    return catalogs.map(catalog => ({ catalog, schemas: [], relations: relations.filter(relation => relation.databaseName === catalog) }));
+}
+
+/// Ask the information_schema about relations and update them in the catalog
+export async function updateInformationSchemaRelations(
+    connectionId: string,
+    connectionDispatch: DynamicConnectionDispatch,
+    updateId: number,
+    relations: RelationName[],
+    executor: QueryExecutor,
+    catalog: dashql.DashQLCatalog,
+    relationEntryId: number,
+    options: CatalogBatchOptions = {},
+): Promise<void> {
+    const validate = beginCatalogBatch(catalog, options);
+    const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, relationScopes(relations), executor, options.abortSignal);
+    validate();
+    const tables = queryResult == null ? [] : catalogTablesFromInformationSchema(queryResult);
+    connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
+    catalog.replaceTables(relationEntryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, {
+        relations: relations.map(packRelationName),
+        tables: tables.map(packCatalogTable),
+    });
+}
+
 export async function updateInformationSchemaCatalog(
     connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
@@ -161,9 +179,7 @@ export async function updateInformationSchemaCatalog(
     scopes: InformationSchemaScope[],
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
-    dql: dashql.DashQL,
-    catalogRelationScript: dashql.DashQLScript,
-    _catalogFunctionScript: dashql.DashQLScript,
+    relationEntryId: number,
     options: CatalogBatchOptions = {},
 ): Promise<void> {
     // Every information_schema belongs to a catalog, without one there is nothing to read
@@ -172,28 +188,17 @@ export async function updateInformationSchemaCatalog(
     }
     const validate = beginCatalogBatch(catalog, options);
     // Query the information schema. If the query errors it throws and propagates
-    // to the caller so we never overwrite the existing catalog script with partial data.
+    // to the caller so we never overwrite the existing catalog with partial data.
     const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, scopes, executor, options.abortSignal);
     validate();
     if (queryResult == null || queryResult.numRows === 0) {
         throw new Error('information_schema returned no catalog relations');
     }
-
-    // Generate SQL from query results before touching the script so an empty
-    // result (after row-level filtering) doesn't clobber a restored catalog.
-    const header = generateCatalogScriptHeader(CatalogSource.InformationSchema);
-    const catalogSQL = generateCatalogSQLFromInformationSchema(queryResult);
-    if (catalogSQL.length === 0) {
+    // An empty result after row-level filtering doesn't clobber a restored catalog
+    const tables = catalogTablesFromInformationSchema(queryResult);
+    if (tables.length === 0) {
         throw new Error('information_schema returned no usable catalog relations');
     }
-
-    // Mark loading started
-    connectionDispatch(connectionId, {
-        type: CATALOG_UPDATE_SCHEMA_SCRIPT,
-        value: [updateId]
-    });
-
-    await publishCatalogBatch(dql, catalog, [{
-        script: catalogRelationScript, text: `${header}${catalogSQL}`,
-    }], options, validate);
+    connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
+    catalog.replaceDescriptor(relationEntryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, packCatalogDescriptor(tables));
 }

@@ -17,7 +17,6 @@ use dashql_core::vis_rewrite::VisBoard;
 use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
 use dashql_core::script::Script;
 use dashql_core_session::script_session::ScriptSession;
-use dashql_buffers::catalog::CatalogChangeType;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::execution::{ExecutionGraphT, ScriptCompilationResultT};
 use std::cell::RefCell;
@@ -25,7 +24,7 @@ use std::rc::Rc;
 
 /// Plan scripts of one catalog as the session of one connection
 fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
-    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER }];
+    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER, default_database: "", default_schema: "" }];
     let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None }).collect();
     plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "", attachments: &[], attachment_prefix: "" })
 }
@@ -529,32 +528,6 @@ fn published_sessions_refresh_at_final_catalog_revision_before_planning() {
         assert_eq!(script.analyzed_catalog_revision, final_revision as u64);
     }
     assert_eq!(catalog_ref.version(), final_revision);
-}
-
-#[test]
-fn planned_statements_carry_their_catalog_changes() {
-    let catalog = new_catalog();
-    let mut session = session(&catalog, UTF8);
-    let text = "create table items (id int, name text); select id from items; drop table items";
-    assert!(analyze(&mut session, text).analysis_available);
-    session.load_into_catalog(CatalogLayer::SESSION).unwrap();
-    session.analyze();
-
-    let catalog_ref = catalog.borrow();
-    let graph = plan_scripts(&catalog_ref, &[session.script()]);
-    assert!(graph.valid);
-    let nodes = graph.nodes.as_ref().unwrap();
-    assert_eq!(nodes.len(), 3);
-    let created = nodes[0].catalog_changes.as_ref().unwrap();
-    assert_eq!(created.len(), 1);
-    assert_eq!(created[0].change_type, CatalogChangeType::CREATE_RELATION);
-    assert_eq!(created[0].relation_name.as_deref(), Some("items"));
-    let columns: Vec<_> = created[0].columns.iter().flatten().map(|c| c.column_name.as_deref().unwrap()).collect();
-    assert_eq!(columns, ["id", "name"]);
-    assert!(nodes[1].catalog_changes.is_none());
-    let dropped = nodes[2].catalog_changes.as_ref().unwrap();
-    assert_eq!(dropped[0].change_type, CatalogChangeType::DROP_RELATION);
-    assert_eq!(dropped[0].relation_name.as_deref(), Some("items"));
 }
 
 #[test]
@@ -1326,8 +1299,8 @@ fn cursor_context_follows_a_declaration_that_moved_without_a_new_catalog_version
 }
 
 #[test]
-fn cursor_context_points_into_the_catalog_script_that_declares_the_table() {
-    // The connection catalog is a script whose descriptor is published, like a catalog batch
+fn cursor_context_names_the_descriptor_that_declares_the_table() {
+    // A descriptor has no script, so it names the entry without a location
     let catalog_sql = "create table items (\n    id integer,\n    name text\n);";
     let catalog = new_catalog();
     let descriptor_entry = {
@@ -1340,19 +1313,16 @@ fn cursor_context_points_into_the_catalog_script_that_declares_the_table() {
         catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &bytes).unwrap();
         id
     };
-    let declared = |context: &dashql_buffers::editor::EditorCursorSemanticContextT| {
+    let check = |context: &dashql_buffers::editor::EditorCursorSemanticContextT| {
         assert_eq!(context.declaration_catalog_entry_id, descriptor_entry);
-        let span = context.declaration_location.as_ref().expect("declaration location");
-        &catalog_sql[span.offset as usize..(span.offset + span.length) as usize]
+        assert!(context.declaration_location.is_none());
     };
 
     let mut session = session(&catalog, UTF8);
     let text = "select name from items";
     assert!(analyze(&mut session, text).analysis_available);
-    let column = session.set_primary_cursor(session.text_version(), 9);
-    assert_eq!(declared(column.primary_cursor_context.as_ref().unwrap()), "name text");
-    let table = session.set_primary_cursor(session.text_version(), text.find("items").unwrap() as u64 + 1);
-    assert_eq!(declared(table.primary_cursor_context.as_ref().unwrap()), "items");
+    check(session.set_primary_cursor(session.text_version(), 9).primary_cursor_context.as_ref().unwrap());
+    check(session.set_primary_cursor(session.text_version(), text.find("items").unwrap() as u64 + 1).primary_cursor_context.as_ref().unwrap());
 }
 
 #[test]

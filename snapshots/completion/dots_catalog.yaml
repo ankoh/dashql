@@ -13,11 +13,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: dbname.schemaname.foo
-            columns: [a]
         errors: []
     editor:
       input: select * from dbname.
@@ -64,11 +62,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: dbname.schemaname.foo
-            columns: [a]
         errors: []
     editor:
       input: select * from dbname.sch
@@ -103,11 +99,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: dbname.schemaname.foo
-            columns: [a]
         errors: []
     editor:
       input: select * from dbname.sch
@@ -154,11 +148,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: dbname.schemaname.foo
-            columns: [a]
         errors: []
     editor:
       input: select * from dbname."sch"
@@ -207,11 +199,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: dbname.schemaname.foo
-          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved
@@ -261,15 +251,11 @@ completion-snapshots:
               - catalog-id: "257.65537.4294967297.0"
                 name: b
                 text: "b int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: x.foo
-            columns: [a]
           - statement-id: 1
-            type: create
             name: x.foo.bar
-            columns: [b]
         errors: []
     editor:
       input: select * from x.

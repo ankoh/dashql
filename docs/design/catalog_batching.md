@@ -1,9 +1,9 @@
 # Catalog Batching
 
-Catalog loading produces independent SQL sources per connection, typically one relation catalog and one
-function catalog. Scanning, parsing and analyzing large generated sources on the browser event loop blocks
-the UI, and publishing each source as it finishes could expose a partially refreshed catalog. The batch API
-separates preparation from publication:
+A batch turns SQL text into catalog descriptors. Connections need that for the SQL they have: the file with their relations
+when a connection is restored, and their functions, which come as SQL. The relations that a refresh reads are no SQL, they
+become descriptors directly (see `core_analysis_catalog.md`). Scanning, parsing and analyzing a large file on the browser
+event loop blocks the UI, so the batch API separates preparation from publication:
 
 - A request carries complete source texts instead of coordinating live scripts across threads.
 - Preparation runs in a dedicated worker with its own core module and never touches the UI's catalog.
@@ -14,7 +14,7 @@ separates preparation from publication:
 The native API is synchronous; the worker provides the asynchronous boundary. A batch processes its scripts
 sequentially. Interactive editing, completion and query execution do not use the batch API.
 
-How descriptor entries live in the catalog (layers, versions, `replace_descriptor`, catalog changes) is
+How descriptor entries live in the catalog (layers, versions, `replace_descriptor`, the relations of executed statements) is
 described in `core_analysis_catalog.md`.
 
 ## Execution Model
@@ -29,7 +29,7 @@ sequenceDiagram
     W-->>UI: Diagnostics and descriptor buffers
     UI->>UI: Check generation, abort signal and results
     loop Each entry
-        UI->>UI: Replace the catalog script text
+        UI->>UI: Replace the text of its script, if it has one
         UI->>UI: Replace its descriptor (one catalog version)
     end
 ```
@@ -90,10 +90,10 @@ only `catalogDescriptor` outputs.
 - Immediately before commit, `publishCatalogBatch` checks the generation, the abort signal, an optional
   `isCurrent()` connection check, and the core lifetime. It then prechecks every result: count, matching ids,
   failures, error diagnostics, descriptor presence, and `requireFunctions` (a non-empty function catalog).
-- Entries are then committed sequentially without an asynchronous gap: `script.replaceText` of the catalog
-  script, then `catalog.replaceDescriptor(entryId, CatalogLayer.CONNECTION, bytes)`. If a step fails, only
-  that entry's text is restored. Earlier entries stay published and later ones are not attempted, so a
-  refresh is atomic per descriptor but not across descriptors.
+- Entries are then committed sequentially without an asynchronous gap: `script.replaceText` of an entry with a
+  script, then `catalog.replaceDescriptor(entryId, CatalogLayer.CONNECTION, bytes)`. An entry with only an id keeps no
+  text. If a step fails, only that entry's text is restored. Earlier entries stay published and later ones are not
+  attempted, so a refresh is atomic per descriptor but not across descriptors.
 - Cancellation stops waiting and prevents publication; it does not interrupt a job already running in the
   worker.
 - `catalog_loader.tsx` queues forced refreshes behind the running one. Automatic refresh skips connections
@@ -103,13 +103,14 @@ only `catalogDescriptor` outputs.
 
 | Path | Inputs |
 |---|---|
-| Restoring a connection catalog (`connection_restore.ts`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only. The catalog changes file is applied with `applyCatalogChangesSql`, not batched. |
-| Hyper refresh (`hyper/hyper_catalog_update.ts`) | Relations from `pg_attribute` per attached database (or the hyper.cloud catalog query); functions from `pg_proc` for the WASM protocol, otherwise prefetched function SQL. `requireFunctions` is set unless the live `pg_proc` catalog is used. |
-| Salesforce refresh (`salesforce/salesforce_catalog_update.ts`) | Metadata-derived relations and prefetched functions |
-| Trino refresh (`catalog_query_information_schema.ts`) | Relations from `information_schema` |
+| Restoring a connection catalog (`connection_restore.ts`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only. |
+| Hyper refresh (`hyper/hyper_catalog_update.ts`) | Functions from `pg_proc` for the WASM protocol, otherwise prefetched function SQL. `requireFunctions` is set unless the live `pg_proc` catalog is used. |
+| Salesforce refresh (`salesforce/salesforce_catalog_update.ts`) | Prefetched functions |
+
+The functions of a refresh are published first. Its relations follow without a batch, a failure leaves them as they were.
 
 `publishCatalogBatchSync` runs the same preparation and commit on the main thread. Its only caller,
-`loadPrefetchedHyperFunctions`, is used by tests; `updatePgCatalog` likewise has no production caller.
+`loadPrefetchedHyperFunctions`, is used by tests.
 
 The live Hyper function query uses `unnest(...) WITH ORDINALITY` and `format_type` over native arrays
 (`catalog_query_pg_proc.ts`), because Hyper WASM supports neither `array_to_json` nor casting `oidvector` to

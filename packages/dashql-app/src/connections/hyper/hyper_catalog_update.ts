@@ -3,8 +3,8 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { DynamicConnectionDispatch } from '../connection_registry.js';
-import { CatalogSource, DEFAULT_DATABASE_NAME, generateCatalogScriptHeader, generateCatalogScriptHeaderForSource, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog/catalog_sql_generator.js';
-import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, generateCatalogSQLFromPgAttribute } from '../catalog/catalog_query_pg_attribute.js';
+import { catalogTablesOfSchema, DEFAULT_DATABASE_NAME, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '../catalog/catalog_sql_generator.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, catalogTablesFromPgAttribute } from '../catalog/catalog_query_pg_attribute.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import { QueryExecutor } from '../query_executor.js';
 import { QueryType } from '../../query/query_execution_state.js';
@@ -16,8 +16,6 @@ import { generateFunctionScriptHeaderForSource } from '../catalog/catalog_functi
 import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog/catalog_query_pg_proc.js';
 
 const LOG_CTX = 'hyper_catalog';
-const SECTION_BEGIN = '-- DashQL Hyper Catalog Section: ';
-const SECTION_END = '-- DashQL Hyper Catalog Section End';
 
 export type HyperCloudCatalogTable = arrow.Table<{
     schema_name: arrow.Utf8;
@@ -64,7 +62,7 @@ function buildCatalogTargets(attachedDatabases: AttachedDatabase[]): CatalogTarg
     }));
 }
 
-export function buildHyperCloudCatalogQuery(databaseAlias: string): string {
+export function buildHyperCloudCatalogQuery(databaseAlias: string, relations: RelationName[] | null = null): string {
     const database = quoteIdentifier(databaseAlias);
     const table = (name: string) => `${database}.${quoteIdentifier('_hyper_catalog')}.${quoteIdentifier(name)}`;
     return `
@@ -85,6 +83,7 @@ export function buildHyperCloudCatalogQuery(databaseAlias: string): string {
           ON c.account_id = o.account_id
          AND c.object_id = o.object_id
         WHERE o.object_type IN ('ICEBERG_TABLE', 'VIEW')
+        ${relations == null ? '' : `AND ${relationFilter('s.schema_name_display', 'o.object_name_display', relations)}`}
         ORDER BY
             s.schema_name_display,
             o.object_name_display,
@@ -92,7 +91,7 @@ export function buildHyperCloudCatalogQuery(databaseAlias: string): string {
     `;
 }
 
-export function generateCatalogSQLFromHyperCloud(result: HyperCloudCatalogTable, connectionName: string, logger?: LoggerLike): string {
+export function catalogTablesFromHyperCloud(result: HyperCloudCatalogTable, connectionName: string, logger?: LoggerLike): CatalogTable[] {
     const schemas = new Map<string, Map<string, ColumnMetadata[]>>();
     const seenColumns = new Set<string>();
     let duplicateColumns = 0;
@@ -138,11 +137,7 @@ export function generateCatalogSQLFromHyperCloud(result: HyperCloudCatalogTable,
         }, LOG_CTX);
     }
 
-    const statements: string[] = [];
-    for (const schemaName of [...schemas.keys()].sort()) {
-        statements.push(generateSchemaSQL(connectionName, schemaName, schemas.get(schemaName)!));
-    }
-    return statements.filter(Boolean).join('\n\n');
+    return [...schemas.keys()].sort().flatMap(schemaName => catalogTablesOfSchema(connectionName, schemaName, schemas.get(schemaName)!));
 }
 
 async function queryHyperCloudCatalog(
@@ -152,9 +147,10 @@ async function queryHyperCloudCatalog(
     databaseAlias: string,
     executor: QueryExecutor,
     abortSignal: AbortSignal,
+    relations: RelationName[] | null,
 ): Promise<HyperCloudCatalogTable> {
     const args: QueryExecutionArgs = {
-        query: buildHyperCloudCatalogQuery(databaseAlias),
+        query: buildHyperCloudCatalogQuery(databaseAlias, relations),
         abortSignal,
         readTimeoutMs: CATALOG_QUERY_READ_TIMEOUT_MS,
         throwOnError: true,
@@ -172,41 +168,10 @@ async function queryHyperCloudCatalog(
         value: [updateId, queryId],
     });
     const result = await queryExecution as HyperCloudCatalogTable | null;
-    if (result == null || result.numRows === 0) {
+    if (result == null || (relations == null && result.numRows === 0)) {
         throw new Error(`Hyper Cloud catalog for ${databaseAlias} returned no relations`);
     }
     return result;
-}
-
-function parseCatalogSections(script: string): Map<string, string> {
-    const sections = new Map<string, string>();
-    let offset = 0;
-    while (true) {
-        const begin = script.indexOf(SECTION_BEGIN, offset);
-        if (begin < 0) break;
-        const keyEnd = script.indexOf('\n', begin);
-        if (keyEnd < 0) break;
-        const end = script.indexOf(SECTION_END, keyEnd + 1);
-        if (end < 0) break;
-        try {
-            const key = JSON.parse(script.slice(begin + SECTION_BEGIN.length, keyEnd)) as string;
-            sections.set(key, script.slice(keyEnd + 1, end).trim());
-        } catch {
-            // Ignore malformed legacy markers and rebuild the successfully queried sections.
-        }
-        offset = end + SECTION_END.length;
-    }
-    return sections;
-}
-
-function renderCatalogSections(sections: Map<string, string>, targetOrder: string[], source: string | null): string {
-    const rendered = targetOrder
-        .filter((key, index) => targetOrder.indexOf(key) === index && sections.has(key))
-        .map(key => `${SECTION_BEGIN}${JSON.stringify(key)}\n${sections.get(key)}\n${SECTION_END}`);
-    const header = source == null
-        ? generateCatalogScriptHeader(CatalogSource.Hyper)
-        : generateCatalogScriptHeaderForSource(source);
-    return `${header}${rendered.join('\n\n')}\n`;
 }
 
 export async function updateHyperCatalog(
@@ -218,11 +183,13 @@ export async function updateHyperCatalog(
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
-    catalogRelationScript: dashql.DashQLScript,
+    relationEntryId: number,
     catalogFunctionScript: dashql.DashQLScript,
     resolveLiveFunctionCatalog: boolean,
     abortSignal: AbortSignal,
     options: CatalogBatchOptions = {},
+    /// The relations to ask about, all relations and the functions if absent
+    relations: RelationName[] | null = null,
 ): Promise<HyperCatalogUpdateResult> {
     options = { ...options, abortSignal };
     const validate = beginCatalogBatch(catalog, options);
@@ -230,7 +197,9 @@ export async function updateHyperCatalog(
     const aliasCounts = new Map<string, number>();
     for (const target of targets) aliasCounts.set(target.key, (aliasCounts.get(target.key) ?? 0) + 1);
 
-    const results = await Promise.all(targets.map(async target => {
+    const relationsOf = (target: CatalogTarget) => relations?.filter(relation => relation.databaseName === target.databaseName) ?? null;
+    const queriedTargets = relations == null ? targets : targets.filter(target => relationsOf(target)!.length > 0);
+    const results = await Promise.all(queriedTargets.map(async target => {
         try {
             abortSignal.throwIfAborted();
             if (attachedDatabases.length > 0 && !target.key.trim()) {
@@ -240,7 +209,7 @@ export async function updateHyperCatalog(
                 throw new Error(`Attached database alias ${JSON.stringify(target.key)} is not unique`);
             }
 
-            let sql: string;
+            let tables: CatalogTable[];
             if (target.path.startsWith('hyper.cloud')) {
                 const result = await queryHyperCloudCatalog(
                     connectionId,
@@ -249,8 +218,9 @@ export async function updateHyperCatalog(
                     target.databaseName,
                     executor,
                     abortSignal,
+                    relationsOf(target),
                 );
-                sql = generateCatalogSQLFromHyperCloud(result, target.databaseName, logger);
+                tables = catalogTablesFromHyperCloud(result, target.databaseName, logger);
             } else {
                 const result = await queryPgAttribute(
                     connectionId,
@@ -261,26 +231,40 @@ export async function updateHyperCatalog(
                     executor,
                     target.queryDatabaseName,
                     abortSignal,
+                    relationsOf(target),
                 );
-                if (result == null || result.numRows === 0) {
+                if (result == null || (relations == null && result.numRows === 0)) {
                     throw new Error(`pg_attribute for ${target.databaseName} returned no relations`);
                 }
-                sql = generateCatalogSQLFromPgAttribute(result, target.databaseName);
+                tables = catalogTablesFromPgAttribute(result, target.databaseName);
             }
-            if (!sql.trim()) throw new Error(`Catalog for ${target.databaseName} returned no usable relations`);
-            return { target, sql, error: null };
+            if (relations == null && tables.length === 0) throw new Error(`Catalog for ${target.databaseName} returned no usable relations`);
+            return { target, tables, error: null };
         } catch (error) {
-            return { target, sql: null, error: toError(error) };
+            return { target, tables: null, error: toError(error) };
         }
     }));
 
     validate();
-    const successful = results.filter(result => result.sql != null);
+    const successful = results.filter(result => result.tables != null);
     const failures = results
         .filter(result => result.error != null)
         .map(result => ({ database: result.target.key || result.target.path, error: result.error! }));
-    if (successful.length === 0) {
+    if (successful.length === 0 && (relations == null || failures.length > 0)) {
         throw summarizeFailures('Failed to refresh every attached database', failures);
+    }
+    const updatedDatabases = successful.map(result => result.target.key);
+    const tables = successful.flatMap(result => result.tables!);
+    const layer = dashql.buffers.catalog.CatalogLayer.CONNECTION;
+
+    // The answer about relations updates them, the rest of the catalog stays
+    if (relations != null) {
+        const answered = successful.flatMap(result => relationsOf(result.target)!);
+        if (answered.length > 0) {
+            connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
+            catalog.replaceTables(relationEntryId, layer, { relations: answered.map(packRelationName), tables: tables.map(packCatalogTable) });
+        }
+        return { updatedDatabases, failures };
     }
 
     let functionSQL: string;
@@ -303,35 +287,26 @@ export async function updateHyperCatalog(
     }
 
     validate();
-    const sections = parseCatalogSections(catalogRelationScript.toString());
-    const desiredKeys = targets.map(target => target.key);
-    for (const key of [...sections.keys()]) {
-        if (!desiredKeys.includes(key)) sections.delete(key);
-    }
-    for (const result of successful) sections.set(result.target.key, result.sql!);
-
-    const nextText = renderCatalogSections(
-        sections,
-        desiredKeys,
-        resolveLiveFunctionCatalog ? 'HyperDB WASM pg_class' : null,
-    );
     connectionDispatch(connectionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId],
     });
-    const [relations, functions] = await publishCatalogBatch(dql, catalog, [
-        { script: catalogRelationScript, text: nextText },
+    const [functions] = await publishCatalogBatch(dql, catalog, [
         { script: catalogFunctionScript, text: functionSQL, requireFunctions: !resolveLiveFunctionCatalog },
     ], options, validate);
+    validate();
+    // A database that failed keeps the relations it had
+    if (failures.length === 0) {
+        catalog.replaceDescriptor(relationEntryId, layer, packCatalogDescriptor(tables));
+    } else {
+        catalog.replaceTables(relationEntryId, layer, { databases: successful.map(result => result.target.databaseName), tables: tables.map(packCatalogTable) });
+    }
     logger.info('Updated Hyper catalog relations', {
         updateId: updateId.toString(),
         databasesUpdated: successful.length.toString(),
         databasesFailed: failures.length.toString(),
-        tables: relations.tables.toString(),
+        tables: tables.length.toString(),
         functions: functions.functions.toString(),
     }, LOG_CTX);
-    return {
-        updatedDatabases: successful.map(result => result.target.key),
-        failures,
-    };
+    return { updatedDatabases, failures };
 }

@@ -27,6 +27,7 @@ export const STORAGE_CATALOG_RELATIONS = 'dashql-catalog-relations.sql';
 /// The functions of the catalog
 export const STORAGE_CATALOG_FUNCTIONS = 'dashql-catalog-functions.sql';
 /// The catalog changes of executed statements since the last catalog refresh
+/// Older versions of the app kept the changes of executed statements here, the file is cleared when it is found
 export const STORAGE_CATALOG_CHANGES = 'dashql-catalog-changes.sql';
 export const STORAGE_SCRIPT_EXTENSION = '.sql';
 

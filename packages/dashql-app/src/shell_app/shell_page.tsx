@@ -12,6 +12,7 @@ import type { BrowserShellController } from '../shell/browser_shell.js';
 import { analyzeTable } from '../compute/analyze_table.js';
 import { useComputationDispatch } from '../compute/computation_registry.js';
 import { ShellQueryResultOverlay } from '../session/shell/shell_query_result_overlay.js';
+import { EmbeddedDatabaseCatalog } from './embedded_database_catalog.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
@@ -109,6 +110,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         let cancelled = false;
         let connection: EmbeddedConnection | null = null;
         let shell: DashQLShell | null = null;
+        let shellCatalog: EmbeddedDatabaseCatalog | null = null;
         let controller: BrowserShellController | null = null;
         let fileRegistry: ShellFileRegistry | null = null;
 
@@ -268,8 +270,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         database,
                         logger,
                     ),
+                    afterStatement: statement => shellCatalog?.afterStatement(statement) ?? Promise.resolve(),
                 }),
-                trackSessionRelations: true,
                 autoQualifyNonDefaultDatabaseTables: true,
                 commands,
             });
@@ -278,6 +280,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 return;
             }
             shell = nextShell;
+            shellCatalog = new EmbeddedDatabaseCatalog(nextShell.core, nextShell.catalog, text => connection!.query(text));
             shellRef.current = nextShell;
             nextShell.setKeywordCase(keywordCaseRef.current);
             const { embedDashQLShell } = await import('../shell/browser_shell.js');
@@ -331,6 +334,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             cancelled = true;
             controller?.dispose();
             controllerRef.current = null;
+            shellCatalog?.destroy();
             shell?.destroy();
             shellRef.current = null;
             fileRegistryRef.current = null;

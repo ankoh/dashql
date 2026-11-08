@@ -75,6 +75,7 @@ export function sessionPlanRequest(
             local: c.local ?? false,
             catalog: c.catalog,
             dialect: formattingDialectForConnector(c.connectorInfo?.connectorType),
+            defaults: c.catalogNameDefaults,
         })),
         scripts: scripts.map((script, index) => ({
             name: scriptDisplayName(files[index]),

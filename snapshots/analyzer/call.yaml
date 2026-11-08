@@ -191,11 +191,9 @@ analyzer-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: level
                 text: "level int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: alerts
-            columns: [host,level]
         errors: []
     script:
       input: call tickets.ticket_create (project => 'a', title => 'b', affected => ((select host from alerts where level > 1)));

@@ -121,8 +121,6 @@ table ExecutionGraphNode {
     barrier: bool;
     accesses: [ExecutionGraphAccess];
     visualization: CompiledVisualization;
-    /// The changes of the catalog of the connection once the statement succeeded
-    catalog_changes: [dashql.buffers.catalog.CatalogChange];
     /// The connection index
     connection: uint32;
     /// The materialization that the result of the node is written to

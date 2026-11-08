@@ -2,7 +2,6 @@
 
 use super::arrow_renderer::ArrowRenderer;
 use super::prompt_buffer::{find_from, PromptBuffer};
-use super::session_relations::SessionRelationCatalog;
 use super::unicode::{display_width, is_valid, next_grapheme};
 use super::vt100::{self, append_sequence, Command};
 use super::*;
@@ -432,8 +431,6 @@ struct PendingEffect {
     id: u64,
     /// The kind of the effect
     effect_type: EffectType,
-    /// The payload, the query or command text
-    payload: Vec<u8>,
 }
 
 /// An interactive shell session
@@ -441,8 +438,6 @@ struct PendingEffect {
 /// Queries and dot commands suspend once on their effect and finish when it completes. They are
 /// pending effects: starting one encodes its envelope, completing it renders the result.
 pub struct ShellSession {
-    /// The relations of successful DDL statements, if tracked
-    session_relations: Option<SessionRelationCatalog>,
     /// The prompt
     prompt: PromptBuffer,
     /// The renderer of query results
@@ -490,7 +485,6 @@ pub struct ShellSession {
 impl ShellSession {
     pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Self {
         Self {
-            session_relations: None,
             prompt: PromptBuffer::new(catalog),
             renderer: ArrowRenderer::new(terminal_columns),
             history: VecDeque::new(),
@@ -524,13 +518,6 @@ impl ShellSession {
         &mut self.prompt
     }
 
-    /// Drop the session relations from the catalog
-    pub fn detach(&mut self, catalog: &mut Catalog) {
-        if let Some(relations) = self.session_relations.take() {
-            relations.detach(catalog);
-        }
-    }
-
     pub fn resize(&mut self, terminal_columns: u32) {
         self.renderer.resize(terminal_columns);
     }
@@ -551,18 +538,6 @@ impl ShellSession {
     fn upper_keywords(&self) -> bool {
         // static_cast to the uint8 enum
         self.keyword_case as u8 == 1
-    }
-
-    /// Track relations of successful DDL statements in the catalog
-    pub fn set_track_session_relations(&mut self, enabled: bool, catalog: &mut Catalog) {
-        if enabled == self.session_relations.is_some() {
-            return;
-        }
-        if enabled {
-            self.session_relations = Some(SessionRelationCatalog::new(catalog));
-        } else {
-            self.detach(catalog);
-        }
     }
 
     /// Register the dot commands, one name per line
@@ -1386,7 +1361,7 @@ impl ShellSession {
         encoded.extend_from_slice(&(effect_type as u32).to_le_bytes());
         encoded.extend_from_slice(&id.to_le_bytes());
         encoded.extend_from_slice(&payload);
-        self.pending_effects.push(PendingEffect { id, effect_type, payload });
+        self.pending_effects.push(PendingEffect { id, effect_type });
         ShellOperation::new(ShellStatus::Pending, encoded)
     }
 
@@ -1396,19 +1371,11 @@ impl ShellSession {
         effect_id: u64,
         status: EffectCompletionStatus,
         data: &[u8],
-        catalog: &mut Catalog,
     ) -> ShellOperation {
         let Some(index) = self.pending_effects.iter().position(|e| e.id == effect_id) else {
             return ShellOperation::new(ShellStatus::StaleEffect, "effect is no longer pending");
         };
         let effect = self.pending_effects.remove(index);
-        if status == EffectCompletionStatus::Success && effect.effect_type == EffectType::ExecuteQuery {
-            if let Some(relations) = self.session_relations.as_mut() {
-                if let Ok(query) = std::str::from_utf8(&effect.payload) {
-                    relations.apply_successful_query(query, catalog);
-                }
-            }
-        }
         match (effect.effect_type, status) {
             (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => self.render_arrow_ipc(data),
             (EffectType::ExecuteCommand, EffectCompletionStatus::Success) => {
@@ -1424,8 +1391,8 @@ impl ShellSession {
     }
 
     /// Cancel an effect
-    pub fn cancel_effect(&mut self, effect_id: u64, catalog: &mut Catalog) -> ShellOperation {
-        self.complete_effect(effect_id, EffectCompletionStatus::Cancelled, &[], catalog)
+    pub fn cancel_effect(&mut self, effect_id: u64) -> ShellOperation {
+        self.complete_effect(effect_id, EffectCompletionStatus::Cancelled, &[])
     }
 
     /// Redraw the prompt with highlighting

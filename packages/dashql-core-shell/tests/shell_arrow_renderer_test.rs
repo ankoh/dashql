@@ -214,7 +214,7 @@ fn read_u64(data: &[u8], offset: usize) -> u64 {
 
 #[test]
 fn suspends_and_resumes_query_coroutine() {
-    let mut catalog = Catalog::new();
+    let catalog = Catalog::new();
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"SELECT 42", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
@@ -225,7 +225,7 @@ fn suspends_and_resumes_query_coroutine() {
 
     let ipc = write_ipc(&make_batch());
     let complete =
-        session.complete_effect(read_u64(&pending.data, 8), EffectCompletionStatus::Success, &ipc, &mut catalog);
+        session.complete_effect(read_u64(&pending.data, 8), EffectCompletionStatus::Success, &ipc);
     assert_eq!(complete.status, ShellStatus::Ok);
     assert!(text(&complete.data).contains("alpha"));
     assert!(complete.data.ends_with(vt100::NEW_LINE.as_bytes()));
@@ -233,7 +233,7 @@ fn suspends_and_resumes_query_coroutine() {
 
 #[test]
 fn keeps_empty_query_results_empty() {
-    let mut catalog = Catalog::new();
+    let catalog = Catalog::new();
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"CREATE TABLE foo(a INT)", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
@@ -246,7 +246,7 @@ fn keeps_empty_query_results_empty() {
     .unwrap();
     let ipc = write_ipc(&empty);
     let complete =
-        session.complete_effect(read_u64(&pending.data, 8), EffectCompletionStatus::Success, &ipc, &mut catalog);
+        session.complete_effect(read_u64(&pending.data, 8), EffectCompletionStatus::Success, &ipc);
     assert_eq!(complete.status, ShellStatus::Ok);
     assert_eq!(complete.data, b"No results\r\n");
 }
@@ -340,20 +340,20 @@ fn runs_vis_tags_as_plain_queries() {
 
 #[test]
 fn rejects_concurrent_queries_and_stale_completions() {
-    let mut catalog = Catalog::new();
+    let catalog = Catalog::new();
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"SELECT 1", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
     let effect_id = read_u64(&pending.data, 8);
 
     assert_eq!(session.start_query(b"SELECT 2", &catalog).status, ShellStatus::Busy);
-    assert_eq!(session.cancel_effect(effect_id, &mut catalog).data, b"Cancelled");
-    assert_eq!(session.cancel_effect(effect_id, &mut catalog).status, ShellStatus::StaleEffect);
+    assert_eq!(session.cancel_effect(effect_id).data, b"Cancelled");
+    assert_eq!(session.cancel_effect(effect_id).status, ShellStatus::StaleEffect);
 }
 
 #[test]
 fn converts_query_errors_to_output() {
-    let mut catalog = Catalog::new();
+    let catalog = Catalog::new();
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"SELECT * FROM missing_table", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
@@ -361,7 +361,6 @@ fn converts_query_errors_to_output() {
         read_u64(&pending.data, 8),
         EffectCompletionStatus::Error,
         b"syntax error",
-        &mut catalog,
     );
     assert_eq!(complete.status, ShellStatus::Ok);
     assert_eq!(complete.data, b"syntax error");

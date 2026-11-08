@@ -492,7 +492,7 @@ export async function runExecutionGraph(args: {
         const planned = plannedStatements[nodeIndex];
         const extra = node.scriptResult ? args.resultQueryArgs?.(scriptIndex) ?? {} : {};
         const [queryId, execution] = args.executeQuery(connectionId, {
-            query: String(node.sql ?? ''), catalogChanges: node.catalogChanges, cacheable: false, throwOnError: true, abortSignal: signal,
+            query: String(node.sql ?? ''), cacheable: false, throwOnError: true, abortSignal: signal,
             clientFunctionCall: node.clientFunctionCall != null ? JSON.parse(String(node.clientFunctionCall)) as ClientFunctionCallDescription : undefined,
             analyzeResults: output, publishResults: output || materialization != null,
             onResultsReady: materialization == null ? release : undefined,
@@ -594,7 +594,8 @@ export async function runExecutionGraph(args: {
 }
 
 /// Validate a plan against the live session: the session keeps its scripts, their order and their connections, and
-/// the planned scripts keep the text and catalog revisions of the plan
+/// the planned scripts keep the text of the plan. The catalog may move on, the plan holds the statements as written and
+/// the catalog follows them while they run.
 export function sessionPlanValidator(args: {
     graph: core.buffers.execution.ExecutionGraphT;
     session: SessionScripts;
@@ -625,8 +626,7 @@ export function sessionPlanValidator(args: {
             const scriptSession = script.scriptSession;
             if (metadata.scriptId !== scriptSession.getCatalogEntryId()
                 || metadata.textVersion !== scriptSession.getTextVersion()
-                || metadata.analyzedTextVersion !== metadata.textVersion
-                || metadata.analyzedCatalogRevision !== scriptSession.getCatalogRevision()) {
+                || metadata.analyzedTextVersion !== metadata.textVersion) {
                 throw new Error(`Stale execution plan: ${files[index]}`);
             }
         });
@@ -738,6 +738,8 @@ export async function runSessionPlan(args: {
         }
         const mountPrefix = mounts?.prefix ?? createMountPrefix();
         const planWith = (provided: number[] = [], names: Map<number, string> = new Map()) => {
+            // A catalog update may have landed since the preparation, the planner needs the current analysis
+            for (const script of scripts) script.scriptSession.analyze();
             const plan = planSessionScripts({
                 instance, scripts, files, mountPrefix, targets, materialized: provided, materializationFile: index => names.get(index), session,
             });

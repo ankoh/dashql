@@ -13,6 +13,12 @@ import {
     generateSchemaSQL,
     generateUnqualifiedSchemaSQL,
     generateCatalogSQL,
+    relationFilter,
+    catalogTablesOfDescriptor,
+    generateCatalogTablesSQL,
+    generateRelationsFile,
+    packCatalogDescriptor,
+    type CatalogTable,
     type ColumnMetadata,
     type SchemaMetadata
 } from './catalog_sql_generator.js';
@@ -362,5 +368,68 @@ describe('PostgreSQL function SQL descriptors', () => {
         expect(output.diagnostics).toEqual([]);
         expect(dashql.buffers.catalog.CatalogDescriptor.getRootAsCatalogDescriptor(new flatbuffers.ByteBuffer(output.catalogDescriptor!))
             .functionDeclarationsLength()).toBe(1);
+    });
+});
+
+describe('the catalog on disk', () => {
+    const TABLES: CatalogTable[] = [{
+        databaseName: 'db', schemaName: 'sales', tableName: 'Orders',
+        columns: [
+            { name: 'zone', ordinalPosition: 1, dataType: 'text' },
+            { name: 'amount', ordinalPosition: 2, dataType: 'numeric(10,2)' },
+            { name: 'note "quoted"', ordinalPosition: 3, dataType: 'USER-DEFINED' },
+            { name: 'plain', ordinalPosition: 4, dataType: null },
+        ],
+    }, {
+        databaseName: 'db', schemaName: 'sales', tableName: 'tags',
+        columns: [{ name: 'id', ordinalPosition: 1, dataType: 'int8' }],
+    }];
+    const OUTPUT = (tables: CatalogTable[]) => tables.map(table => ({
+        name: `${table.databaseName}.${table.schemaName}.${table.tableName}`,
+        columns: table.columns.map(column => [column.name, column.dataType]),
+    }));
+
+    it('reads back what the connection reported, columns in its order', async () => {
+        const dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        const catalog = dql.createCatalog();
+        const entry = catalog.allocateEntryId();
+        catalog.replaceDescriptor(entry, dashql.buffers.catalog.CatalogLayer.CONNECTION, packCatalogDescriptor(TABLES));
+        const before = catalogTablesOfDescriptor(catalog.readDescriptor(entry));
+        expect(OUTPUT(before)).toEqual(OUTPUT(TABLES));
+
+        // Save, then restart: the batch parses the file once into a descriptor
+        const reload = (file: string) => {
+            const restored = dql.processBatch({ scripts: [{ id: 'relations', text: file, outputs: ['catalogDescriptor'] }] }).scripts[0];
+            expect(restored.failure).toBeUndefined();
+            expect(restored.diagnostics).toEqual([]);
+            const next = dql.createCatalog();
+            const nextEntry = next.allocateEntryId();
+            next.replaceDescriptor(nextEntry, dashql.buffers.catalog.CatalogLayer.CONNECTION, restored.catalogDescriptor!);
+            return next.readDescriptor(nextEntry);
+        };
+        const after = reload(generateRelationsFile(catalog.readDescriptor(entry)));
+        // The names and the order stay, the parser normalizes the spelling of types
+        expect(OUTPUT(catalogTablesOfDescriptor(after))).toEqual([{
+            name: 'db.sales.Orders',
+            columns: [['zone', 'text'], ['amount', 'numeric(10,2)'], ['note "quoted"', 'user-defined'], ['plain', 'unknown']],
+        }, {
+            name: 'db.sales.tags',
+            columns: [['id', 'bigint']],
+        }]);
+        // From then on the file doesn't change anymore
+        const file = generateRelationsFile(after);
+        expect(generateRelationsFile(reload(file))).toBe(file);
+    });
+
+    it('writes one statement per table', () => {
+        expect(generateCatalogTablesSQL(TABLES).match(/CREATE TABLE/g)).toHaveLength(2);
+        expect(generateRelationsFile(null)).toContain('-- DashQL Connection Relations.');
+    });
+});
+
+describe('relationFilter', () => {
+    it('selects relations by schema and name and quotes their names', () => {
+        expect(relationFilter('s', 't', [{ databaseName: 'db', schemaName: "o'x", tableName: 'a' }, { databaseName: 'db', schemaName: 'y', tableName: 'b' }]))
+            .toBe("((s = 'o''x' AND t = 'a') OR (s = 'y' AND t = 'b'))");
     });
 });

@@ -25,7 +25,7 @@ describe('V2 app state loader', () => {
     beforeEach(() => {
         let scriptId = 0;
         core = {
-            createCatalog: vi.fn(() => ({ replaceDescriptor: vi.fn(), destroy: vi.fn() })),
+            createCatalog: vi.fn(() => ({ allocateEntryId: () => 1000, replaceDescriptor: vi.fn(), destroy: vi.fn() })),
             createScript: vi.fn(() => {
                 let text = '';
                 return {
@@ -199,26 +199,24 @@ describe('V2 app state loader', () => {
 
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
-        expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledWith(schemaSQL);
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledWith(functionsSQL);
         expect(processor).toHaveBeenCalledWith({ scripts: [
-            { id: connection.catalogRelationScript.catalog_entry_id.toString(), text: schemaSQL, outputs: ['catalogDescriptor'] },
+            { id: connection.catalogRelationEntryId.toString(), text: schemaSQL, outputs: ['catalogDescriptor'] },
             { id: connection.catalogFunctionScript.catalog_entry_id.toString(), text: functionsSQL, outputs: ['catalogDescriptor'] },
         ] });
         expect(vi.mocked(connection.catalog.replaceDescriptor).mock.calls).toEqual([
-            [connection.catalogRelationScript.catalog_entry_id, expect.any(Number), expect.any(Uint8Array)],
+            [connection.catalogRelationEntryId, expect.any(Number), expect.any(Uint8Array)],
             [connection.catalogFunctionScript.catalog_entry_id, expect.any(Number), expect.any(Uint8Array)],
         ]);
         expect(connection.catalogUpdates.restoredAt).toBeInstanceOf(Date);
     });
 
-    it('keeps initial source SQL and leaves restoration pending when batch processing fails', async () => {
+    it('leaves restoration pending when batch processing fails', async () => {
         connectionFiles.set(relationsFile, 'CREATE TABLE restored(id int);');
         vi.mocked(processor).mockRejectedValue(new Error('worker failed'));
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).not.toHaveBeenCalled();
-        expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledTimes(1);
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledTimes(1);
         expect(connection.catalogUpdates.restoredAt).toBeNull();
         expect(result.sessionScripts.has(TEST_SESSION_ID)).toBe(true);
@@ -230,15 +228,12 @@ describe('V2 app state loader', () => {
         const replaceDescriptor = vi.fn<dashql.DashQLCatalog['replaceDescriptor']>(() => { throw new Error('publication failed'); });
         if (source === 'functions') replaceDescriptor.mockImplementationOnce(() => {});
         vi.mocked(core.createCatalog).mockImplementation(() => ({
-            replaceDescriptor, destroy: vi.fn(),
+            allocateEntryId: () => 1000, replaceDescriptor, destroy: vi.fn(),
         }) as any);
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).toHaveBeenCalledTimes(source === 'relations' ? 1 : 2);
-        expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledTimes(source === 'relations' ? 3 : 2);
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledTimes(source === 'relations' ? 1 : 3);
-        if (source === 'relations') expect(connection.catalogRelationScript.toString()).not.toContain('CREATE TABLE restored');
-        else expect(connection.catalogRelationScript.toString()).toBe('CREATE TABLE restored(id int);');
         expect(connection.catalogFunctionScript.toString()).not.toContain('CREATE FUNCTION restored_fn');
         expect(connection.catalogUpdates.restoredAt).toBeNull();
     });
@@ -295,27 +290,20 @@ describe('real-core startup catalog restoration', () => {
         dql.resetUnsafe();
     });
 
-    it('applies the persisted catalog changes on top of the restored relations', async () => {
+    it('clears the catalog changes of older versions and refreshes the connection on connect', async () => {
         const backend = new SessionTestBackend();
         backend.sessions.set(TEST_SESSION_ID, testSession({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } } as any }),
         }));
-        const schema = 'CREATE TABLE "hyper"."public"."dropped"(id integer); CREATE TABLE "hyper"."public"."kept"(id integer);';
-        const changesSql = dql.appendCatalogChangesSql('', [
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.DROP_RELATION, 'hyper', 'public', 'dropped'),
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', [new dashql.buffers.analyzer.TableColumnT(0, 'a')]),
-        ]);
+        const schema = 'CREATE TABLE "hyper"."public"."kept"(id integer);';
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, schema);
-        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, changesSql);
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, '-- Catalog changes of executed statements\n\nDROP TABLE "hyper"."public"."kept";\n');
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
         const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
-        expect(main.catalogChangesSql).toBe(changesSql);
-        expect(main.catalogRelationScript.toString()).toBe(schema);
-        const entries = main.catalog.describeEntriesOf(main.catalogRelationScript.catalog_entry_id)
-            .unpack() as dashql.buffers.catalog.CatalogEntriesT;
-        const tables = entries.entries.flatMap(entry => entry.schemas.flatMap(schema => schema.tables.map(table => table.tableName)));
-        expect(tables.sort()).toEqual(['created', 'kept']);
+        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+        expect(main.catalogUpdates.restoredAt).toBeNull();
+        expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`)).toBe('');
     });
 
     it('drops the persisted relations and changes of an embedded connection that only a session knows', async () => {
@@ -325,16 +313,13 @@ describe('real-core startup catalog restoration', () => {
         }));
         const functions = 'CREATE FUNCTION "hyper"."public"."kept_function"(value integer) RETURNS bigint;';
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."gone"(id integer);');
-        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, dql.appendCatalogChangesSql('', [
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', [new dashql.buffers.analyzer.TableColumnT(0, 'a')]),
-        ]));
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, '-- Catalog changes of executed statements\n\nCREATE TABLE "hyper"."public"."created" ("a" unknown);\n');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
         const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
 
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
-        expect(main.catalogChangesSql).toBe('');
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         // The catalog is refreshed on connect instead
         expect(main.catalogUpdates.restoredAt).toBeNull();
@@ -352,16 +337,13 @@ describe('real-core startup catalog restoration', () => {
         backend.sessions.set(TEST_SESSION_ID, testSession({ ...testConnections({ connectionId: TEST_CONNECTION_ID, params } as any) }));
         const functions = 'CREATE FUNCTION "hyper"."public"."kept_function"(value integer) RETURNS bigint;';
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."gone"(id integer);');
-        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, dql.appendCatalogChangesSql('', [
-            new dashql.buffers.catalog.CatalogChangeT(dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'hyper', 'public', 'created', [new dashql.buffers.analyzer.TableColumnT(0, 'a')]),
-        ]));
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, '-- Catalog changes of executed statements\n\nCREATE TABLE "hyper"."public"."created" ("a" unknown);\n');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
         const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
         const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
 
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
-        expect(main.catalogChangesSql).toBe('');
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         expect(main.catalogUpdates.restoredAt).toBeNull();
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe('');
@@ -371,7 +353,7 @@ describe('real-core startup catalog restoration', () => {
             sessionScripts: restored.sessionScripts.get(TEST_SESSION_ID)! });
     });
 
-    it('routes restored relations/functions to the main catalog using receiver source identities and retains persisted SQL', async () => {
+    it('routes restored relations/functions to the main catalog using receiver source identities ', async () => {
         const backend = new SessionTestBackend();
         const remoteId = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
         backend.sessions.set(TEST_SESSION_ID, testSession({
@@ -388,13 +370,12 @@ describe('real-core startup catalog restoration', () => {
         const main = restored.connectionStates.get(remoteId)!;
         const attached = restored.connectionStates.get(TEST_CONNECTION_ID)!;
         const session = restored.sessionScripts.get(TEST_SESSION_ID)!;
-        expect(main.catalogRelationScript.toString()).toBe(schema);
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         expect(processor).toHaveBeenCalledTimes(1);
         expect(session.scripts[session.scriptRefs['01_query.sql'].scriptId].connection.catalog).toBe(main.catalog);
         const entries = main.catalog.describeEntries().unpack().entries as dashql.buffers.catalog.CatalogEntryT[];
         expect(entries.map(entry => entry.catalogEntryId).sort((a, b) => a - b)).toEqual([
-            main.catalogRelationScript.catalog_entry_id, main.catalogFunctionScript.catalog_entry_id,
+            main.catalogRelationEntryId, main.catalogFunctionScript.catalog_entry_id,
         ].sort((a, b) => a - b));
         expect(entries.every(entry => entry.catalogEntryType === dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL)).toBe(true);
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
@@ -404,7 +385,7 @@ describe('real-core startup catalog restoration', () => {
         query.replaceText('SELECT id FROM db.public.restored_items;');
         query.analyze();
         expect(query.getAnalyzed().unpack().tableReferences[0].resolvedTable.catalogTableId)
-            .toBe(dashql.ExternalObjectID.create(main.catalogRelationScript.catalog_entry_id, 0));
+            .toBe(dashql.ExternalObjectID.create(main.catalogRelationEntryId, 0));
         query.replaceText('SELECT restored_fun');
         query.analyze();
         query.moveCursor('SELECT restored_fun'.length);
@@ -465,7 +446,7 @@ describe('global connections', () => {
         const connection = restored.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.params).toEqual(trino('https://unknown'));
         expect(backend.connections).toMatchObject([{ id: TEST_CONNECTION_ID, params: trino('https://unknown') }]);
-        expect(connection.catalogRelationScript.toString()).toBe('CREATE TABLE db.public.seeded(id integer);');
+        expect(connection.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
         expect(connection.catalogUpdates.restoredAt).toBeInstanceOf(Date);
         for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
     });

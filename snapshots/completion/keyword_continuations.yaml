@@ -422,11 +422,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: foo
-            columns: [a]
         errors: []
     editor:
       input: with fo
@@ -547,11 +545,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: bar
                 text: "bar int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: foo
-            columns: [bar]
         errors: []
     editor:
       input: select ba

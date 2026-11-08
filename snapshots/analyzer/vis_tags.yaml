@@ -20,11 +20,9 @@ analyzer-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [region,revenue,date]
         errors: []
     script:
       input: |
@@ -91,11 +89,9 @@ analyzer-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [region,revenue,date]
         errors: []
     script:
       input: |
@@ -179,11 +175,9 @@ analyzer-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [region,revenue,date]
         errors: []
     script:
       input: |
@@ -292,11 +286,9 @@ analyzer-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [region,revenue,date]
         errors: []
     script:
       input: |
@@ -708,11 +700,9 @@ analyzer-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 1
-          type: create
           name: t
-          columns: [a]
       errors: []
       expressions:
         - expression-idx: 0
@@ -752,11 +742,9 @@ analyzer-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: t
-          columns: [a]
       errors: []
       table-refs:
         - type: name/internal
@@ -808,11 +796,9 @@ analyzer-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: t
-          columns: [a]
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -1051,11 +1037,9 @@ analyzer-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: t
-          columns: [a]
       errors: []
       table-refs:
         - type: name/internal
@@ -1120,11 +1104,9 @@ analyzer-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: t
-          columns: [a]
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING

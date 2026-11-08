@@ -34,7 +34,8 @@ import {
     DELETE_CONNECTION_ENTRY,
     type StorageWriter,
 } from '../storage/storage_writer.js';
-import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../storage/storage_backend.js';
+import { generateRelationsFile } from './catalog/catalog_sql_generator.js';
+import { STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../storage/storage_backend.js';
 import { connectionCatalogIsDurable, connectionParamsEqual, type ConnectionParams } from './connection_params.js';
 
 /// Drafts are written to the app manifest only, edits arrive with every keystroke
@@ -347,26 +348,17 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
     // The relations of a connection whose database doesn't outlive the app are never written.
     const durable = connectionCatalogIsDurable(next.params);
     if (action.type === CATALOG_UPDATE_SUCCEEDED || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED) {
-        const relationsSql = next.catalogRelationScript.toString();
         const functionsSql = next.catalogFunctionScript.toString();
         if (durable) {
             void storageWriter.write(
                 groupConnectionFileWrites(connectionId, STORAGE_CATALOG_RELATIONS),
-                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_RELATIONS, relationsSql] },
+                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_RELATIONS, generateRelationsFile(next.catalog.readDescriptor(next.catalogRelationEntryId))] },
                 DEBOUNCE_DURATION_SESSION_WRITE,
             );
         }
         void storageWriter.write(
             groupConnectionFileWrites(connectionId, STORAGE_CATALOG_FUNCTIONS),
             { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_FUNCTIONS, functionsSql] },
-            DEBOUNCE_DURATION_SESSION_WRITE,
-        );
-    }
-    // Executed statements record catalog changes, a refresh clears them
-    if (durable && next.catalogChangesSql !== prev.catalogChangesSql) {
-        void storageWriter.write(
-            groupConnectionFileWrites(connectionId, STORAGE_CATALOG_CHANGES),
-            { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_CHANGES, next.catalogChangesSql] },
             DEBOUNCE_DURATION_SESSION_WRITE,
         );
     }

@@ -28,10 +28,6 @@ impl TestShell {
         &self.catalog
     }
 
-    pub fn set_track_session_relations(&mut self, enabled: bool) {
-        self.session.set_track_session_relations(enabled, &mut self.catalog.borrow_mut())
-    }
-
     pub fn complete_prompt(&mut self, limit: usize) -> Result<Vec<CompletionCandidate>, String> {
         self.session.complete_prompt(limit, &self.catalog.borrow())
     }
@@ -49,11 +45,11 @@ impl TestShell {
     }
 
     pub fn complete_effect(&mut self, effect_id: u64, status: EffectCompletionStatus, data: &[u8]) -> ShellOperation {
-        self.session.complete_effect(effect_id, status, data, &mut self.catalog.borrow_mut())
+        self.session.complete_effect(effect_id, status, data)
     }
 
     pub fn cancel_effect(&mut self, effect_id: u64) -> ShellOperation {
-        self.session.cancel_effect(effect_id, &mut self.catalog.borrow_mut())
+        self.session.cancel_effect(effect_id)
     }
 }
 
@@ -71,8 +67,3 @@ impl std::ops::DerefMut for TestShell {
     }
 }
 
-impl Drop for TestShell {
-    fn drop(&mut self) {
-        self.session.detach(&mut self.catalog.borrow_mut());
-    }
-}

@@ -30,15 +30,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -125,15 +121,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -217,15 +209,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -290,15 +278,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -403,15 +387,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -505,15 +485,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -809,15 +785,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -912,15 +884,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1036,15 +1004,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1107,15 +1071,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1178,15 +1138,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1246,15 +1202,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1319,15 +1271,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1392,15 +1340,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1460,15 +1404,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1557,15 +1497,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1680,15 +1616,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1781,15 +1713,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -1908,15 +1836,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2003,15 +1927,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2110,15 +2030,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2221,15 +2137,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2319,15 +2231,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2410,15 +2318,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2512,15 +2416,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2666,15 +2566,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2803,15 +2699,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -2909,15 +2801,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-
@@ -3015,15 +2903,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.1"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: t
-            columns: [a,b,name]
           - statement-id: 1
-            type: create
             name: u
-            columns: [a,c]
         errors: []
     editor:
       input: |-

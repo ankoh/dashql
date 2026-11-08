@@ -1,4 +1,6 @@
 import * as core from '@ankoh/dashql-core';
+
+import { catalogNameDefaults } from '../../connections/connector_descriptor.js';
 import * as Immutable from 'immutable';
 
 import { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from '../editor/dashql_processor.js';
@@ -96,6 +98,8 @@ export interface ScriptConnection {
     params?: ConnectionParams;
     /// Is the connection the embedded Hyper, which scans the results of scripts of other connections?
     local?: boolean;
+    /// The database and schema of relations without those names
+    catalogNameDefaults?: core.CatalogNameDefaults;
 }
 
 /// The connection of a script that runs on a connection of the app
@@ -103,6 +107,7 @@ export function scriptConnectionOf(connection: ConnectionState): ScriptConnectio
     return {
         connectionId: connection.connectionId, connectorInfo: connection.connectorInfo, catalog: connection.catalog, params: connection.params,
         local: isHyperWasmConnection(connection),
+        catalogNameDefaults: catalogNameDefaults(connection.details),
     };
 }
 

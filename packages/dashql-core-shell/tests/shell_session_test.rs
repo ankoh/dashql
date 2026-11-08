@@ -563,16 +563,6 @@ fn terminal_status_renders_a_message() {
 }
 
 #[test]
-fn session_relations_can_be_toggled() {
-    let mut shell = new_shell(80);
-    shell.set_track_session_relations(true);
-    // Enabling twice is a no-op
-    shell.set_track_session_relations(true);
-    shell.set_track_session_relations(false);
-    shell.set_track_session_relations(false);
-}
-
-#[test]
 fn keyword_case_applies_to_completions() {
     let mut shell = new_shell(80);
     shell.set_prompt(b"sel");

@@ -32,7 +32,7 @@ rust_test(
 # Tests of the session crate, one libtest binary per test file
 DASHQL_CORE_SESSION_TESTS = [
     "batch_test",
-    "catalog_changes_test",
+    "touched_relations_test",
     "compiler_test",
     "script_session_test",
 ]

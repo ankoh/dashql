@@ -3,10 +3,9 @@
 use super::{encode_location_text, Map};
 use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
-use dashql_core::catalog::changes::CatalogChangeKind;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
-use dashql_core_session::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
+use dashql_core_session::touched_relations::touched_relation;
 use dashql_core::catalog::{Catalog, CatalogLayer, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
@@ -75,30 +74,15 @@ fn encode_tables(e: &Encoder, tables: &[TableDeclaration]) -> Node {
     Node::seq(items)
 }
 
-/// The catalog changes of the statements, derived without defaults so names appear as written
-fn encode_catalog_changes(script: &AnalyzedScript) -> Option<Node> {
-    let options = CatalogChangeOptions::default();
+/// The relations that the statements create or drop, named as written
+fn encode_touched_relations(script: &AnalyzedScript) -> Option<Node> {
     let items: Vec<Node> = (0..script.parsed.statements.len())
         .filter_map(|statement_id| {
-            let change = derive_catalog_change(script, statement_id, &options)?;
+            let relation = touched_relation(&script.parsed, statement_id)?;
+            let name: Vec<&str> = [&relation.database_name, &relation.schema_name, &relation.table_name].into_iter().flatten().map(String::as_str).collect();
             let mut m = Map::new();
             m.int("statement-id", statement_id as i64);
-            let change_type = match change.kind {
-                CatalogChangeKind::CreateRelation if change.if_not_exists => "create-if-not-exists",
-                CatalogChangeKind::CreateRelation => "create",
-                CatalogChangeKind::DropRelation => "drop",
-            };
-            m.plain("type", change_type);
-            let name: Vec<&str> = [&change.database_name, &change.schema_name, &change.relation_name]
-                .into_iter()
-                .filter(|part| !part.is_empty())
-                .map(String::as_str)
-                .collect();
             m.plain("name", &name.join("."));
-            if change.kind == CatalogChangeKind::CreateRelation {
-                let columns = change.columns.into_iter().map(|c| Node::auto(c.name)).collect();
-                m.insert("columns", Node::flow_seq(columns));
-            }
             Some(m.into_node())
         })
         .collect();
@@ -131,8 +115,8 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
     if !script.entry.table_declarations.is_empty() {
         out.insert("tables", encode_tables(&e, &script.entry.table_declarations));
     }
-    if let Some(changes) = encode_catalog_changes(script) {
-        out.insert("catalog-changes", changes);
+    if let Some(relations) = encode_touched_relations(script) {
+        out.insert("touched-relations", relations);
     }
 
     // Errors

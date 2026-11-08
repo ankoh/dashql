@@ -147,15 +147,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: myc
                 text: "myc int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: mytable
-            columns: [mya,myb]
           - statement-id: 1
-            type: create
             name: myone
-            columns: [myc]
         errors: []
     editor:
       input: |-
@@ -280,11 +276,9 @@ completion-snapshots:
           columns:
             - catalog-id: "256.65536.4294967296.0"
               name: a
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: myview
-          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved

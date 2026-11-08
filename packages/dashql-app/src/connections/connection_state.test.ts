@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 import {
-    APPLY_CATALOG_CHANGES,
+    RELATIONS_TOUCHED,
     CATALOG_UPDATE_SUCCEEDED,
     ConnectionStatus,
     createConnectionState,
@@ -40,7 +40,7 @@ function state(): ConnectionState {
 /// Publish the catalog scripts of a connection
 function publishCatalog(database: ConnectionState, relations: string, functions: string | null = null): void {
     publishCatalogBatchSync(dql, database.catalog, [
-        { script: database.catalogRelationScript, text: relations },
+        { entryId: database.catalogRelationEntryId, text: relations },
         ...(functions == null ? [] : [{ script: database.catalogFunctionScript, text: functions }]),
     ]);
 }
@@ -65,7 +65,7 @@ describe('attached database descriptor catalogs', () => {
             });
         }
         const publication = publishCatalogBatch(dql, database.catalog, [{
-            script: database.catalogRelationScript,
+            entryId: database.catalogRelationEntryId,
             text: 'CREATE TABLE pending(id int);',
         }], {
             abortSignal: controllers[0].signal,
@@ -98,82 +98,45 @@ describe('attached database descriptor catalogs', () => {
         expect(next.queriesActiveOrdered).toEqual([]);
     });
 
-    it('drops both descriptors before destroying their text-only source scripts', () => {
+    it('drops both descriptors before destroying the function script', () => {
         const database = state();
         publishCatalog(database, 'CREATE TABLE stored(id int);', 'CREATE FUNCTION stored_fn() RETURNS bigint;');
         const drops = vi.spyOn(database.catalog, 'dropDescriptor');
-        const destroyRelations = vi.spyOn(database.catalogRelationScript, 'destroy');
         const destroyFunctions = vi.spyOn(database.catalogFunctionScript, 'destroy');
         reduceConnectionState(database, { type: DELETE_CONNECTION, value: null }, {} as any);
         expect(drops.mock.calls).toEqual([
-            [database.catalogRelationScript.catalog_entry_id],
+            [database.catalogRelationEntryId],
             [database.catalogFunctionScript.catalog_entry_id],
         ]);
-        expect(destroyRelations).toHaveBeenCalledTimes(1);
         expect(destroyFunctions).toHaveBeenCalledTimes(1);
     });
 });
 
-/// The relations of the relation descriptor as `db.schema.table(a, b)`
-function relationsOf(database: ConnectionState): string[] {
-    const relations: string[] = [];
-    const entries = database.catalog.describeEntriesOf(database.catalogRelationScript.catalog_entry_id)
-        .unpack() as dashql.buffers.catalog.CatalogEntriesT;
-    for (const entry of entries.entries) {
-        for (const schema of entry.schemas) {
-            for (const table of schema.tables) {
-                relations.push(`${schema.databaseName}.${schema.schemaName}.${table.tableName}(${table.columns.map(c => c.columnName).join(', ')})`);
-            }
-        }
-    }
-    return relations.sort();
+function name(schemaName: string | null, tableName: string): dashql.buffers.analyzer.QualifiedTableNameT {
+    return new dashql.buffers.analyzer.QualifiedTableNameT(0, null, schemaName, tableName);
 }
 
-function change(type: dashql.buffers.catalog.CatalogChangeType, schema: string, relation: string, columns: string[] = []) {
-    return new dashql.buffers.catalog.CatalogChangeT(type, '', schema, relation, columns.map(c => new dashql.buffers.analyzer.TableColumnT(0, c)), false);
-}
+describe('relations touched by executed statements', () => {
+    const logger = new TestLogger();
 
-describe('catalog changes of executed statements', () => {
-    const CREATE = dashql.buffers.catalog.CatalogChangeType.CREATE_RELATION;
-    const DROP = dashql.buffers.catalog.CatalogChangeType.DROP_RELATION;
-
-    it('qualify with the connection defaults, patch the relation descriptor and record the changes SQL', () => {
-        const database = state();
-        publishCatalog(database, 'CREATE TABLE "hyper"."public"."stored"(id int);');
-        const next = reduceConnectionState(database, {
-            type: APPLY_CATALOG_CHANGES,
-            value: [change(DROP, '', 'stored'), change(CREATE, 'other', 'created', ['a', 'b'])],
-        }, new TestLogger());
-        expect(relationsOf(next)).toEqual(['hyper.other.created(a, b)']);
-        expect(next.catalogChangesSql).toContain('DROP TABLE "hyper"."public"."stored";');
-        expect(next.catalogChangesSql).toContain('CREATE TABLE "hyper"."other"."created"');
-        // The source script stays as the database reported it
-        expect(next.catalogRelationScript.toString()).toContain('stored');
-    });
-
-    it('supersede a running catalog refresh', () => {
-        const database = state();
-        const validate = beginCatalogBatch(database.catalog);
-        validate();
-        reduceConnectionState(database, {
-            type: APPLY_CATALOG_CHANGES,
-            value: [change(CREATE, '', 'created', ['a'])],
-        }, new TestLogger());
-        expect(validate).toThrow('superseded');
-    });
-
-    it('are cleared by a catalog refresh', () => {
+    it('are qualified with the connection defaults, every relation once', () => {
         let database = state();
-        database = reduceConnectionState(database, {
-            type: APPLY_CATALOG_CHANGES,
-            value: [change(CREATE, '', 'created', ['a'])],
-        }, new TestLogger());
-        expect(database.catalogChangesSql).not.toBe('');
+        database = reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: [name(null, 'a'), name('other', 'b')] }, logger);
+        database = reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: [name(null, 'a')] }, logger);
+        expect(database.catalogUpdates.touchedRelations).toEqual([
+            { databaseName: 'hyper', schemaName: 'public', tableName: 'a' },
+            { databaseName: 'hyper', schemaName: 'other', tableName: 'b' },
+        ]);
+    });
+
+    it('are taken by the next catalog update', () => {
+        let database = state();
+        database = reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: [name(null, 'a')] }, logger);
         database = reduceConnectionState(database, {
             type: UPDATE_CATALOG,
             value: [1, {
                 taskId: 1,
-                taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
+                taskVariant: CatalogUpdateVariant.RELATION_REFRESH,
                 status: CatalogUpdateTaskStatus.STARTED,
                 cancellation: new AbortController(),
                 queries: [],
@@ -182,9 +145,12 @@ describe('catalog changes of executed statements', () => {
                 finishedAt: null,
                 lastUpdateAt: new Date(),
             }],
-        }, new TestLogger());
-        database = reduceConnectionState(database, { type: CATALOG_UPDATE_SUCCEEDED, value: [1] }, new TestLogger());
-        expect(database.catalogChangesSql).toBe('');
+        }, logger);
+        expect(database.catalogUpdates.touchedRelations).toEqual([]);
+        // An update of relations is no full refresh
+        expect(database.catalogUpdates.currentFullRefresh).toBeNull();
+        database = reduceConnectionState(database, { type: CATALOG_UPDATE_SUCCEEDED, value: [1] }, logger);
+        expect(database.catalogUpdates.lastFullRefresh).toBeNull();
     });
 });
 

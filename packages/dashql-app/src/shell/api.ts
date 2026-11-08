@@ -77,7 +77,6 @@ export interface DashQLShellOptions {
     /// The catalog of the shell, it stays with the caller. Without one the shell has a catalog of its own.
     catalog?: DashQLCatalog;
     environment: DashQLShellEnvironment;
-    trackSessionRelations?: boolean;
     autoQualifyNonDefaultDatabaseTables?: boolean;
     commands?: readonly DashQLShellCommand[];
     terminalColumns?: number;
@@ -215,13 +214,6 @@ export class DashQLShell {
             commands,
             settings,
         );
-        if (options.trackSessionRelations) {
-            const status = shell.alive().setSessionRelations(true) as DashQLShellStatus;
-            if (status !== DashQLShellStatus.OK) {
-                shell.destroy();
-                throw new DashQLShellError(status, 'failed to enable session relation tracking');
-            }
-        }
         return shell;
     }
 

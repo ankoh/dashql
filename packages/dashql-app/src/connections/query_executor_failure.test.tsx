@@ -66,9 +66,9 @@ describe('QueryExecutorProvider', () => {
             params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
             details: { type: HYPER_CONNECTOR, value: { proto: {}, channel: { executeQuery, close: vi.fn() } } },
             catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-            catalogRelationScript: { catalog_entry_id: 1, destroy: vi.fn() },
+            catalogRelationEntryId: 1,
             catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-            catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null },
+            catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null, touchedRelations: [] },
             queriesActive: new Map(), queriesActiveOrdered: [],
             queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
         } as unknown as ConnectionState;

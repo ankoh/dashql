@@ -4,7 +4,7 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 
 import { useConnectionDispatch, useConnectionRegistryStore, useDynamicConnectionDispatch } from './connection_registry.js';
-import { APPLY_CATALOG_CHANGES } from './connection_state.js';
+import { RELATIONS_TOUCHED } from './connection_state.js';
 import {
     createQueryResponseStreamMetrics,
     QUERY_CACHE_RECORDED,
@@ -351,16 +351,6 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     });
                 };
 
-                // The catalog follows the DDL statements, a full refresh can be expensive
-                const applyCatalogChanges = (changes: core.buffers.catalog.CatalogChangeT[]) => {
-                    connDispatch(connectionId, { type: APPLY_CATALOG_CHANGES, value: changes });
-                    try {
-                        args.onCatalogChanged?.();
-                    } catch {
-                        // Catalog observers must not interrupt query execution.
-                    }
-                };
-
                 // Compute the cache key up front for cacheable queries. This is best-effort: if the
                 // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
                 // caching and execute normally. Never let a cache concern surface into the query path.
@@ -457,8 +447,15 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     }
                     return null;
                 }
-                if (!servedFromCache && args.catalogChanges != null && args.catalogChanges.length > 0) {
-                    applyCatalogChanges(args.catalogChanges);
+                // The statement may have created or dropped relations, the catalog loader asks the connection about them
+                if (!servedFromCache && args.metadata.userProvided) {
+                    try {
+                        const touched = conn.instance.touchedRelations(args.query);
+                        if (touched.relations.length > 0) connDispatch(connectionId, { type: RELATIONS_TOUCHED, value: touched.relations });
+                    } catch (e: any) {
+                        // The statement succeeded, following the catalog must not fail it
+                        traced.warn("Failed to read the relations of a statement", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                    }
                 }
 
                 reportResultsReady();

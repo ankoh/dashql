@@ -96,9 +96,9 @@ records `text_version` directly from the live script, `analyzed_text_version` fr
 the text snapshot retained by analysis, and `analyzed_catalog_revision` captured
 by analysis. Valid graphs have equal `text_version` and `analyzed_text_version`.
 A plan is a snapshot, not a live view. Before execution, consumers must compare
-each captured `(text_version, analyzed_catalog_revision)` pair for equality with
-the corresponding current `(session.getTextVersion(), catalog revision)` pair
-and reject the graph if either value changed. A plan of the session or of targets rejects missing or stale
+each captured `text_version` for equality with the current `session.getTextVersion()`
+and reject the graph if it changed. The catalog revision may move on: the catalog follows
+the statements that run, and a plan holds the statements as written. A plan of the session or of targets rejects missing or stale
 input analysis with diagnostics and no executable partial nodes, a tolerant plan leaves the script out or takes an
 analysis of an earlier catalog revision.
 

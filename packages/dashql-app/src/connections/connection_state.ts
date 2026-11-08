@@ -39,6 +39,7 @@ import type { TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { ConnectionStateDetailsVariant, createConnectionStateDetails, isSalesforceDetails } from './connection_state_details.js';
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { invalidateCatalogBatch } from './catalog/catalog_batch.js';
+import type { RelationName } from './catalog/catalog_sql_generator.js';
 import { connectionParamsEqual, connectionParamsWithoutDraftRows, getConnectionParamsFromStateDetails, type ConnectionParams } from './connection_params.js';
 import { HYPER_CHANNEL_SETUP_STARTED } from './hyper/hyper_connection_state.js';
 import { OAUTH_STARTED, TRINO_CHANNEL_SETUP_STARTED } from './trino/trino_connection_state.js';
@@ -65,6 +66,8 @@ export interface CatalogUpdates {
     /// (succeeded, failed, or cancelled). Only advances on completion, so components
     /// can depend on it to react when the catalog script has been updated.
     lastFullRefresh: number | null;
+    /// The relations that executed statements created or dropped since the last catalog update
+    touchedRelations: RelationName[];
 }
 
 export interface ConnectionState {
@@ -106,13 +109,10 @@ export interface ConnectionState {
     catalog: core.DashQLCatalog;
     /// The  catalog updates
     catalogUpdates: CatalogUpdates;
-    /// The catalog relation script (consolidated SQL for all relations)
-    catalogRelationScript: core.DashQLScript;
+    /// The catalog entry of the descriptor with the relations of the connection
+    catalogRelationEntryId: number;
     /// The catalog function script (consolidated SQL for all function declarations)
     catalogFunctionScript: core.DashQLScript;
-    /// The catalog changes of executed statements since the last catalog refresh, as SQL.
-    /// They are applied to the relation descriptor on top of the relation script.
-    catalogChangesSql: string;
 
     /// The queries that are currently running
     queriesActive: Map<number, QueryExecutionState>;
@@ -194,8 +194,7 @@ export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId">;
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
 export const SWITCH_CONNECTOR_TYPE = Symbol('SWITCH_CONNECTOR_TYPE');
-export const SET_CATALOG_SCRIPT = Symbol('SET_CATALOG_SCRIPT');
-export const APPLY_CATALOG_CHANGES = Symbol('APPLY_CATALOG_CHANGES');
+export const RELATIONS_TOUCHED = Symbol('RELATIONS_TOUCHED');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
 export const CATALOG_UPDATE_REGISTER_QUERY = Symbol('CATALOG_UPDATE_REGISTER_QUERY');
@@ -216,8 +215,7 @@ export const RENAME_CONNECTION = Symbol('RENAME_CONNECTION');
 export const SET_CONNECTION_QUERY_RESULT_CACHING = Symbol('SET_CONNECTION_QUERY_RESULT_CACHING');
 
 export type CatalogAction =
-    | VariantKind<typeof SET_CATALOG_SCRIPT, core.DashQLScript>
-    | VariantKind<typeof APPLY_CATALOG_CHANGES, core.buffers.catalog.CatalogChangeT[]>
+    | VariantKind<typeof RELATIONS_TOUCHED, core.buffers.analyzer.QualifiedTableNameT[]>
     | VariantKind<typeof UPDATE_CATALOG, [number, CatalogUpdateTaskState]>
     | VariantKind<typeof CATALOG_UPDATE_REGISTER_QUERY, [number, number]>
     | VariantKind<typeof CATALOG_UPDATE_SCHEMA_SCRIPT, [number]>
@@ -302,14 +300,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             } as unknown as ConnectionStateDetailsVariant;
             return { ...state, paramsDraft: undefined, details };
         }
-        case SET_CATALOG_SCRIPT:
-            return {
-                ...state,
-                catalogRelationScript: action.value,
-            };
-
-        case APPLY_CATALOG_CHANGES:
-            return applyCatalogChanges(state, action.value, logger);
+        case RELATIONS_TOUCHED:
+            return recordTouchedRelations(state, action.value);
 
         case UPDATE_CATALOG:
         case CATALOG_UPDATE_REGISTER_QUERY:
@@ -377,11 +369,10 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Text-only source scripts do not own their published descriptors.
             try {
-                state.catalog.dropDescriptor(state.catalogRelationScript.catalog_entry_id);
+                state.catalog.dropDescriptor(state.catalogRelationEntryId);
             } catch (e) {
                 // Descriptor may have already been dropped - ignore error
             }
-            state.catalogRelationScript.destroy();
             try {
                 state.catalog.dropDescriptor(state.catalogFunctionScript.catalog_entry_id);
             } catch (e) {
@@ -517,6 +508,7 @@ function stopConnection(state: ConnectionState, action: ConnectionAction, reason
             currentFullRefresh: null,
             lastFullRefresh: null,
             restoredAt: null,
+            touchedRelations: [],
         },
         queriesActive: new Map(),
         queriesActiveOrdered: [],
@@ -528,34 +520,22 @@ function stopConnection(state: ConnectionState, action: ConnectionAction, reason
     return reduceConnectorDetails(cleaned, action) ?? cleaned;
 }
 
-/// Apply the catalog changes of executed statements to the relation descriptor and record them as SQL.
-/// The changes are qualified with the default database and schema of the connection.
-///
-/// Known limitation: the changes don't distinguish temporary relations. A `CREATE TEMP TABLE` is
-/// recorded and persisted like any other relation, so it outlives the database session it belongs to
-/// and is restored with the catalog after a reconnect.
-function applyCatalogChanges(state: ConnectionState, changes: core.buffers.catalog.CatalogChangeT[], logger: Logger): ConnectionState {
-    if (changes.length === 0) return state;
-    try {
-        const qualified = state.instance.qualifyCatalogChanges(changes, catalogNameDefaults(state.details));
-        state.catalog.applyCatalogChanges(state.catalogRelationScript.catalog_entry_id, core.buffers.catalog.CatalogLayer.CONNECTION, qualified);
-        // A running refresh may have read the metadata before the statements ran, publishing it would undo the changes
-        invalidateCatalogBatch(state.catalog);
-        const catalogChangesSql = state.instance.appendCatalogChangesSql(state.catalogChangesSql, qualified);
-        logger.info('Applied catalog changes of executed statements', {
-            connectionId: state.connectionId,
-            changes: qualified.length.toString(),
-        }, LOG_CTX);
-        return { ...state, catalogChangesSql };
-    } catch (e: unknown) {
-        logger.error('Failed to apply catalog changes of executed statements', {
-            connectionId: state.connectionId,
-            error: stringifyError(e),
-        }, LOG_CTX);
-        return state;
+/// Record the relations that an executed statement created or dropped, the catalog loader asks the connection about them.
+/// The statement names them as written, the defaults of the connection qualify them.
+function recordTouchedRelations(state: ConnectionState, names: core.buffers.analyzer.QualifiedTableNameT[]): ConnectionState {
+    const defaults = catalogNameDefaults(state.details);
+    const touchedRelations = [...state.catalogUpdates.touchedRelations];
+    for (const name of names) {
+        const relation: RelationName = {
+            databaseName: String(name.databaseName ?? '') || defaults.databaseName,
+            schemaName: String(name.schemaName ?? '') || defaults.schemaName,
+            tableName: String(name.tableName ?? ''),
+        };
+        if (touchedRelations.some(r => r.databaseName === relation.databaseName && r.schemaName === relation.schemaName && r.tableName === relation.tableName)) continue;
+        touchedRelations.push(relation);
     }
+    return { ...state, catalogUpdates: { ...state.catalogUpdates, touchedRelations } };
 }
-
 
 export function createConnectionMetrics(): connection.ConnectionMetrics {
     return createQueryExecutionMetrics();
@@ -574,17 +554,15 @@ export interface ConnectionStateOptions {
 /// Create the state of a connection with an empty catalog
 export function createConnectionState(dql: core.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant, options: ConnectionStateOptions = {}): ConnectionStateWithoutId {
     let catalog: core.DashQLCatalog | null = null;
-    let catalogRelationScript: core.DashQLScript | null = null;
+    let catalogRelationEntryId = 0;
     let catalogFunctionScript: core.DashQLScript | null = null;
     try {
         catalog = dql.createCatalog();
-        catalogRelationScript = dql.createScript(catalog);
-        catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
+        catalogRelationEntryId = catalog.allocateEntryId();
         catalogFunctionScript = dql.createScript(catalog);
         catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     } catch (error) {
         catalogFunctionScript?.destroy();
-        catalogRelationScript?.destroy();
         catalog?.destroy();
         throw error;
     }
@@ -605,10 +583,10 @@ export function createConnectionState(dql: core.DashQL, info: ConnectorInfo, det
             currentFullRefresh: null,
             lastFullRefresh: null,
             restoredAt: null,
+            touchedRelations: [],
         },
-        catalogRelationScript,
+        catalogRelationEntryId,
         catalogFunctionScript,
-        catalogChangesSql: '',
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],

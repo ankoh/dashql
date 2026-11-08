@@ -67,7 +67,7 @@ describe('Catalog name index', () => {
             // Relation scripts of connections qualify every table with database and schema
             system.replaceText('create table db.pg_catalog.pg_class (relname text); create table db.information_schema.columns (data_type text);');
             system.analyze();
-            live.loadScript(system, 2);
+            live.loadScript(system, core.buffers.catalog.CatalogLayer.CONNECTION);
 
             const liveIndex = buildCatalogNameIndex(live);
             expect(lookupIdentifier(liveIndex, 'attachments')).toEqual([{ name: 'attachments', kind: CatalogNameKind.Table, table: null }]);

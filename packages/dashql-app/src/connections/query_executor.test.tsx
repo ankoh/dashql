@@ -1,5 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
+import * as core from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -133,10 +134,11 @@ function createDatabase(executeQuery: unknown, setupParams: object | null = { pr
         connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
         params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
         details: { type: HYPER_CONNECTOR, value: { proto: { setupParams }, channel: { executeQuery, close: vi.fn() } } },
+        instance: { touchedRelations: (query: string) => ({ parsed: true, relations: query.startsWith('create table') ? [new core.buffers.analyzer.QualifiedTableNameT(0, null, null, 't')] : [] }) },
         catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-        catalogRelationScript: { catalog_entry_id: 1, destroy: vi.fn() },
+        catalogRelationEntryId: 1,
         catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null },
+        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null, touchedRelations: [] },
         queriesActive: new Map(), queriesActiveOrdered: [],
         queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
     } as unknown as ConnectionState;
@@ -427,11 +429,10 @@ describe('QueryExecutorProvider', () => {
             expect((await finished(queryId)).error?.message).toBe('connection lost');
         });
 
-        it('does not apply the catalog changes of a failed statement', async () => {
+        it('touches no relations with a failed statement', async () => {
             await renderExecutor(vi.fn(async () => { throw new Error('nope'); }));
-            const onCatalogChanged = vi.fn();
-            await run(argsOf({ catalogChanges: [{}] as never, onCatalogChanged }));
-            expect(onCatalogChanged).not.toHaveBeenCalled();
+            await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
+            expect(api!.connection.catalogUpdates.touchedRelations).toEqual([]);
         });
 
         it('rejects for a connection that does not exist', async () => {
@@ -466,21 +467,19 @@ describe('QueryExecutorProvider', () => {
         });
     });
 
-    describe('the catalog changes of a statement', () => {
-        it('tell the observer, an observer that throws does not fail the statement', async () => {
+    describe('the relations of a statement', () => {
+        const T = { databaseName: 'hyper', schemaName: 'public', tableName: 't' };
+
+        it('are touched once a statement of the user succeeded', async () => {
             await renderExecutor(vi.fn(async () => new TestStream()));
-            const onCatalogChanged = vi.fn(() => { throw new Error('observer failed'); });
-            const { queryId, table } = await run(argsOf({ catalogChanges: [{}] as never, onCatalogChanged }));
-            expect(onCatalogChanged).toHaveBeenCalledOnce();
-            expect(table).not.toBeNull();
-            expect((await finished(queryId)).status).toBe(QueryExecutionStatus.SUCCEEDED);
+            await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
+            expect(api!.connection.catalogUpdates.touchedRelations).toEqual([T]);
         });
 
-        it('tell nobody when a statement changed nothing', async () => {
+        it('are not touched by the queries of the app', async () => {
             await renderExecutor(vi.fn(async () => new TestStream()));
-            const onCatalogChanged = vi.fn();
-            await run(argsOf({ catalogChanges: [] as never, onCatalogChanged }));
-            expect(onCatalogChanged).not.toHaveBeenCalled();
+            await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: false } }));
+            expect(api!.connection.catalogUpdates.touchedRelations).toEqual([]);
         });
     });
 
@@ -648,12 +647,11 @@ describe('QueryExecutorProvider', () => {
             expect(api!.connection.queriesFinished.get(queryId)?.cachedAt?.getTime()).toBe(CACHE_HIT.cachedAtMs);
         });
 
-        it('does not apply the catalog changes again for a cached result', async () => {
+        it('touches no relations with a cached result', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
             await renderExecutor(vi.fn(), { cache, compute });
-            const onCatalogChanged = vi.fn();
-            await run(cacheableArgs({ catalogChanges: [{}] as never, onCatalogChanged }));
-            expect(onCatalogChanged).not.toHaveBeenCalled();
+            await run(cacheableArgs({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
+            expect(api!.connection.catalogUpdates.touchedRelations).toEqual([]);
         });
 
         it('runs on the backend for a refresh and stores the new result', async () => {

@@ -4,7 +4,6 @@
 //! so publishing does not keep ASTs or earlier analyses alive (see `docs/design/core_analysis_catalog.md`).
 
 pub mod clfn;
-pub mod changes;
 pub mod descriptor;
 pub mod entry;
 pub mod ids;
@@ -604,6 +603,65 @@ impl Catalog {
         self.publish_entries(scripts, staged)
     }
 
+    /// Update the tables of a descriptor pool with a packed `CatalogTableUpdate`, an unknown pool is created in the
+    /// layer. Tables that the update leaves as they are keep their position, an update that changes nothing keeps
+    /// the catalog version.
+    pub fn replace_tables(&mut self, id: CatalogEntryId, layer: CatalogLayer, update: &[u8]) -> Result<()> {
+        use dashql_buffers::analyzer::{QualifiedTableNameT, TableT};
+        use dashql_buffers::catalog::{CatalogDescriptor, CatalogDescriptorT, CatalogTableUpdate};
+        let update = flatbuffers::root::<CatalogTableUpdate>(update)
+            .map_err(|_| Error::invalid_argument("invalid CatalogTableUpdate FlatBuffer"))?
+            .unpack();
+        let (mut descriptor, layer) = match self.descriptor_entries.get(&id) {
+            Some(entry) => {
+                let descriptor = flatbuffers::root::<CatalogDescriptor>(&entry.bytes)
+                    .map_err(|_| Error::invalid_argument("invalid CatalogDescriptor FlatBuffer"))?
+                    .unpack();
+                (descriptor, entry.layer)
+            }
+            None => (CatalogDescriptorT::default(), layer),
+        };
+        let same_name = |a: &QualifiedTableNameT, b: &QualifiedTableNameT| {
+            a.database_name.as_deref().unwrap_or("") == b.database_name.as_deref().unwrap_or("")
+                && a.schema_name.as_deref().unwrap_or("") == b.schema_name.as_deref().unwrap_or("")
+                && a.table_name.as_deref().unwrap_or("") == b.table_name.as_deref().unwrap_or("")
+        };
+        let name_of = |table: &TableT| table.table_name.as_deref().cloned().unwrap_or_default();
+        let before = descriptor.tables.take().unwrap_or_default();
+        let new_tables = update.tables.unwrap_or_default();
+        let relations = update.relations.unwrap_or_default();
+        let databases = update.databases.unwrap_or_default();
+        let mut tables: Vec<TableT> = Vec::with_capacity(before.len() + new_tables.len());
+        for table in &before {
+            let name = name_of(table);
+            if let Some(next) = new_tables.iter().find(|t| same_name(&name_of(t), &name)) {
+                tables.push(next.clone());
+            } else if !relations.iter().any(|r| same_name(r, &name))
+                && !databases.iter().any(|d| d == name.database_name.as_deref().unwrap_or(""))
+            {
+                tables.push(table.clone());
+            }
+        }
+        for table in &new_tables {
+            if !before.iter().any(|t| same_name(&name_of(t), &name_of(table))) {
+                tables.push(table.clone());
+            }
+        }
+        if tables == before && self.descriptor_entries.contains_key(&id) {
+            return Ok(());
+        }
+        descriptor.tables = Some(tables);
+        let mut builder = flatbuffers::FlatBufferBuilder::new();
+        let packed = descriptor.pack(&mut builder);
+        builder.finish(packed, None);
+        self.replace_descriptor(id, layer, builder.finished_data())
+    }
+
+    /// The bytes of a descriptor pool
+    pub fn descriptor_bytes(&self, id: CatalogEntryId) -> Option<&[u8]> {
+        self.descriptor_entries.get(&id).map(|entry| entry.bytes.as_slice())
+    }
+
     /// Drop a descriptor pool
     pub fn drop_descriptor(&mut self, id: CatalogEntryId) -> Result<()> {
         if !self.descriptor_entries.contains_key(&id) {
@@ -887,31 +945,38 @@ impl CatalogSnapshot {
         self.entries.get(&loc.entry)?.data().table_declarations.get(loc.index as usize)
     }
 
-    /// Resolve a table across all entries except `ignore_entry`
+    /// Resolve a table across all entries except `ignore_entry`. The matches of the first layer that has one are
+    /// the candidates: what the connection reports doesn't compete with what a script declares.
     pub fn resolve_table(&self, name: &QualifiedTableName, ignore_entry: CatalogEntryId, out: &mut Vec<TableLoc>, limit: usize) {
+        self.collect_table_matches(name, ignore_entry, out, limit);
+        if let Some(first) = out.first().and_then(|loc| self.layer(loc.entry)) {
+            out.retain(|loc| self.layer(loc.entry) == Some(first));
+        }
+    }
+
+    /// Collect the matches of a table in resolution order
+    fn collect_table_matches(&self, name: &QualifiedTableName, ignore_entry: CatalogEntryId, out: &mut Vec<TableLoc>, limit: usize) {
         let db = name.database_name.text.clone();
         let schema = name.schema_name.text.clone();
         // Direct lookups of the qualified name
         let lower = (db.clone(), schema.clone(), MIN_LAYER, 0);
         let upper = (db.clone(), schema.clone(), MAX_LAYER, CatalogEntryId::MAX);
         let key = name.key();
-        for ((_, _, _, candidate), _) in self.entries_by_qualified_schema.range(lower..=upper) {
-            if *candidate == ignore_entry {
-                continue;
-            }
-            let entry = self.entries[candidate].data();
-            if let Some(&i) = entry.tables_by_qualified_name.get(&key) {
-                out.push(entry.table_loc(i));
-                if out.len() >= limit {
-                    break;
+        // A name with a database is exact. Any other name reads the same in every layer: `t` of a script
+        // has no qualification and would hit itself directly, ahead of the `db.schema.t` of the connection.
+        if !name.database_name.text.is_empty() {
+            for ((_, _, _, candidate), _) in self.entries_by_qualified_schema.range(lower..=upper) {
+                if *candidate == ignore_entry {
+                    continue;
+                }
+                let entry = self.entries[candidate].data();
+                if let Some(&i) = entry.tables_by_qualified_name.get(&key) {
+                    out.push(entry.table_loc(i));
+                    if out.len() >= limit {
+                        break;
+                    }
                 }
             }
-        }
-        // A direct hit always wins
-        if !out.is_empty() {
-            return;
-        }
-        if !name.database_name.text.is_empty() {
             return;
         }
         if !name.schema_name.text.is_empty() {

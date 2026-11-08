@@ -13,8 +13,6 @@ use support::{SharedCatalog, TestShell as Shell};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-const EFFECT_SUCCESS: EffectCompletionStatus = EffectCompletionStatus::Success;
-const EFFECT_ERROR: EffectCompletionStatus = EffectCompletionStatus::Error;
 
 fn catalog() -> SharedCatalog {
     Rc::new(RefCell::new(Catalog::new()))
@@ -43,20 +41,6 @@ fn consume(shell: &mut Shell, key: Key, text: &str) -> TerminalOutput {
 
 fn count_occurrences(text: &str, needle: &str) -> usize {
     text.matches(needle).count()
-}
-
-fn read_u64(data: &[u8]) -> u64 {
-    u64::from_le_bytes(data[..8].try_into().unwrap())
-}
-
-fn complete_query(shell: &mut Shell, query: &str, completion_status: EffectCompletionStatus) -> ShellStatus {
-    let result = shell.start_query(query.as_bytes());
-    assert_eq!(result.status, ShellStatus::Pending);
-    if result.status != ShellStatus::Pending || result.data.len() < 16 {
-        return ShellStatus::InternalError;
-    }
-    let effect_id = read_u64(&result.data[8..]);
-    shell.complete_effect(effect_id, completion_status, &[]).status
 }
 
 fn complete_text(shell: &mut Shell, query: &str) -> Vec<String> {
@@ -136,93 +120,6 @@ fn edits_and_submits_prompt() {
     assert_eq!(operation.status, ShellStatus::Pending);
     assert!(operation.data.len() >= 16);
     assert_eq!(&operation.data[16..], b"select 01");
-}
-
-#[test]
-fn tracks_created_and_dropped_session_relations() {
-    let catalog = catalog();
-    let mut shell = shell(&catalog, 80);
-    shell.set_track_session_relations(true);
-
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE orders (order_id BIGINT, amount DOUBLE)", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert!(has_completion(&mut shell, "select * from ord", "orders"));
-    assert!(has_completion(&mut shell, "select * from orders where orders.", "order_id"));
-
-    assert_eq!(complete_query(&mut shell, "DROP TABLE orders", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert!(!has_completion(&mut shell, "select * from ord", "orders"));
-}
-
-#[test]
-fn tracks_qualified_and_derived_session_relations() {
-    let catalog = catalog();
-    let mut shell = shell(&catalog, 80);
-    shell.set_track_session_relations(true);
-
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE source (id BIGINT, amount DOUBLE)", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert_eq!(
-        complete_query(&mut shell, "CREATE TABLE analytics.totals AS SELECT id, amount AS total FROM source", EFFECT_SUCCESS),
-        ShellStatus::ArrowError
-    );
-    assert_eq!(complete_query(&mut shell, "CREATE VIEW report AS SELECT * FROM analytics.totals", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert_eq!(
-        complete_query(&mut shell, "SELECT id AS copied_id INTO warehouse.reporting.copied FROM source", EFFECT_SUCCESS),
-        ShellStatus::ArrowError
-    );
-
-    assert!(has_completion(&mut shell, "select * from analytics.tot", "totals"));
-    assert!(has_completion(&mut shell, "select * from analytics.totals t where t.", "total"));
-    assert!(has_completion(&mut shell, "select * from report where report.", "total"));
-    assert!(has_completion(&mut shell, "select * from warehouse.reporting.copied where copied.", "copied_id"));
-}
-
-#[test]
-fn replaces_and_selectively_drops_session_relations() {
-    let catalog = catalog();
-    let mut shell = shell(&catalog, 80);
-    shell.set_track_session_relations(true);
-
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE inventory (old_id BIGINT)", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert_eq!(
-        complete_query(&mut shell, "CREATE TABLE inventory (new_id BIGINT, quantity INTEGER)", EFFECT_SUCCESS),
-        ShellStatus::ArrowError
-    );
-    assert!(!has_completion(&mut shell, "select * from inventory i where i.old", "old_id"));
-    assert!(has_completion(&mut shell, "select * from inventory i where i.new", "new_id"));
-    assert!(has_completion(&mut shell, "select * from inventory i where i.quan", "quantity"));
-
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE public.events (public_id BIGINT)", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE analytics.events (analytics_id BIGINT)", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert_eq!(complete_query(&mut shell, "DROP TABLE analytics.events", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert!(has_completion(&mut shell, "select * from public.events e where e.", "public_id"));
-    assert!(!has_completion(&mut shell, "select * from analytics.eve", "events"));
-}
-
-#[test]
-fn session_relations_only_track_successful_single_ddl_statements() {
-    let catalog = catalog();
-    let mut shell = shell(&catalog, 80);
-    shell.set_track_session_relations(true);
-
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE failed (id BIGINT)", EFFECT_ERROR), ShellStatus::Ok);
-    assert_eq!(
-        complete_query(&mut shell, "CREATE TABLE alpha_untracked (id BIGINT); CREATE TABLE beta_untracked (id BIGINT)", EFFECT_SUCCESS),
-        ShellStatus::ArrowError
-    );
-    assert_eq!(complete_query(&mut shell, "ATTACH DATABASE source AS attached", EFFECT_SUCCESS), ShellStatus::ArrowError);
-
-    assert!(!has_completion(&mut shell, "select * from fail", "failed"));
-    assert!(!has_completion(&mut shell, "select * from alpha_untr", "alpha_untracked"));
-    assert!(!has_completion(&mut shell, "select * from beta_untr", "beta_untracked"));
-    assert!(!has_completion(&mut shell, "select * from atta", "attached"));
-}
-
-#[test]
-fn session_relation_tracking_is_opt_in() {
-    let catalog = catalog();
-    let mut shell = shell(&catalog, 80);
-
-    assert_eq!(complete_query(&mut shell, "CREATE TABLE untracked (id BIGINT)", EFFECT_SUCCESS), ShellStatus::ArrowError);
-    assert!(!has_completion(&mut shell, "select * from untr", "untracked"));
 }
 
 #[test]

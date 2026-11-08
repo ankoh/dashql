@@ -122,19 +122,17 @@ from the output columns of the defining scope. A column that is passed through k
 source, other expressions have no type because the analyzer doesn't type expressions.
 
 **Descriptor entries** (`catalog/descriptor.rs`) import a `CatalogDescriptor` FlatBuffer: validated
-(`validate_descriptor`), then registered name by name. They keep their bytes
-(`DescriptorEntry.bytes`) as the source for `apply_catalog_changes`. Their tables carry
+(`validate_descriptor`), then registered name by name. The relations of a connection are always a descriptor, built from
+the rows of its metadata query, see [The relations of a connection](#the-relations-of-a-connection). They keep their bytes
+(`DescriptorEntry.bytes`), a replacement with the same bytes changes nothing. Their tables carry
 `catalog_version = version + 1`, the version they are published with. Script tables carry 0.
 
 ### Declaration locations
 
-Tables, columns and functions carry a `location`: the UTF-8 byte span of the declaration in the
-script that declares it, the name of a table or function and the definition of a column.
-Script entries take it from their AST. A connection catalog is a SQL script as well: the batch
-analyzes it, `pack_catalog_descriptor` writes the locations into the descriptor, and the import keeps
-them. The descriptor is published under the entry id of that catalog script (`catalogRelationScript`
-in the app), so a location always refers to the text of the script with the declaring entry id.
-Derived columns (`CREATE TABLE AS`, views) have no location.
+Tables, columns and functions of a script carry a `location`: the UTF-8 byte span of the declaration in the
+script, the name of a table or function and the definition of a column. Derived columns (`CREATE TABLE AS`, views) have
+no location. A descriptor has no script, so its declarations have no location either: `pack_catalog_descriptor` leaves
+them out.
 
 ### Name search index
 
@@ -183,15 +181,15 @@ resolution and in `flatten`, and within a layer against the entry with the older
 
 | Layer | Content | Published by |
 |---|---|---|
-| `SESSION` | The scripts of a session | `ScriptSession::load_into_catalog`; in JS `loadIntoCatalog()` takes no layer |
-| `EXECUTED` | Relations created by executed statements | The shell's session relations (`dashql-core-shell/src/session_relations.rs`) |
-| `CONNECTION` | The schema of the connection | Connection catalog batches (`catalog_batch.ts`), the shell's catalog scripts, the CLI's schema files |
+| `CONNECTION` | What the connection reports | Catalog updates (`catalog_loader.tsx`), restored files and functions through batches (`catalog_batch.ts`), the catalog of the standalone shell (`embedded_database_catalog.ts`), the CLI's schema files |
+| `SESSION` | The declarations of the scripts of a session | `ScriptSession::load_into_catalog`; in JS `loadIntoCatalog()` takes no layer |
 
-The layer is part of the core, not chosen by the app: session scripts always shadow the connection
-schema. Ranks used to be numbers chosen by the app (the script key for scripts, 9999 for
-descriptors); since script keys are entry ids, which every script of the module consumes, a long
-session could rank its scripts behind the connection schema
-(`catalog_descriptor_test::session_scripts_shadow_the_connection_whatever_their_entry_ids`).
+The connection is the source of truth: the connection layer only holds what the connection reported,
+and it wins over the declarations of other scripts. Those fill in what it doesn't have, such as the
+tables of a script that hasn't run yet (`catalog_descriptor_test::the_connection_shadows_session_scripts_whatever_their_entry_ids`,
+`session_scripts_fill_in_the_relations_the_connection_does_not_have`). A script resolves its own declarations first,
+also when the connection has the name
+(`a_script_resolves_its_own_declarations_first`).
 `CatalogLayer` is a FlatBuffers enum; publishing rejects other values, and the JS wrapper checks
 them before the bindings would wrap them into a byte.
 
@@ -205,8 +203,8 @@ catalog, so it only moves when what other entries resolve against may have chang
 | `load_script` / `load_scripts` | Publish analyses atomically. Validates catalog id, entry id collisions and canonical ids (`CATALOG_ID_OUT_OF_SYNC`). | **Unchanged** if every analysis replaces a published script in the same layer and `CatalogEntryData::same_declarations`; the entries are swapped in place. Otherwise +1 and all indexes are rebuilt. |
 | `drop_script` | Remove a script entry and its index entries. | +1 if the entry existed |
 | `replace_descriptor` | Import descriptor bytes and publish them. | **Unchanged** if the entry holds the same bytes in the same layer. Otherwise +1. |
+| `replace_tables` | Unpack a descriptor, update tables by name, replace it. | As `replace_descriptor`. **Unchanged** if the update leaves the tables as they are. |
 | `drop_descriptor` | Remove a descriptor. | +1 if it existed |
-| `apply_catalog_changes` | Unpack the descriptor, apply the changes, replace it. | As `replace_descriptor`: unchanged if the changes leave the bytes as they are. |
 | `clear` | Remove all entries (id reservations and client function specs stay). | +1 |
 | `register_client_functions` | Parse a spec and shadow its namespace. A taken namespace is an error. | +1 |
 | `drop_client_functions` | Remove the spec of a namespace. | +1 if it existed |
@@ -234,13 +232,15 @@ analysis and completion read the spec of the catalog version they resolved again
 
 | Name | Strategy |
 |---|---|
-| `db.schema.table` | Exact lookup in the entries of (db, schema), in resolution order. A direct hit wins. |
+| `db.schema.table` | Exact lookup in the entries of (db, schema), in resolution order. |
 | `schema.table` | Entries that populate the schema in any database, in resolution order. |
 | `table` | All entries in resolution order, by unqualified name. |
 
 `ignore_entry` is the analyzing script's own entry id: a script resolves its own declarations from
-its in-progress analysis, never from its published version. Further matches up to `limit` are kept as
-alternatives for ambiguity errors.
+its in-progress analysis, never from its published version. Further matches up to `limit` of the first
+layer that has a match are kept as alternatives for ambiguity errors, the layers don't compete. A name
+without a database is never an exact lookup: `create table t` of a script has no qualification and would
+hit `t` directly, ahead of the `db.schema.t` of the connection.
 
 ## Analysis
 
@@ -379,9 +379,7 @@ tests pair the catalog with the session.
 | `drop_from_catalog(&mut catalog)` | `drop_script` |
 | `Drop` | None; the owner drops the script from the catalog |
 
-The shell (`dashql_core_shell::ShellSession`) follows the same rule: calls that read the catalog take it,
-calls that may publish session relations take it mutably, and its owner calls `detach` before dropping
-it.
+The shell (`dashql_core_shell::ShellSession`) follows the same rule: calls that read the catalog take it.
 
 Every update carries `catalog_revision` and `analysis_available`; the full projection (diagnostics,
 syntax and semantic spans, cursor, annotations, statistics) is included only when the analysis is
@@ -404,10 +402,10 @@ Measured with `bench_session` (40 join queries, 1880 syntax and 400 semantic spa
 | Typed character, of which analysis is about 370 µs | 425 µs | 67 KB |
 
 For a resolved reference under the cursor, `primary_cursor_context` names the entry that declares the
-table (`declaration_catalog_entry_id`) and the declaration in the script of that entry
+table (`declaration_catalog_entry_id`) and, for a script, the declaration in it
 (`declaration_location`: the column definition, else the table name). The span is in UTF-8 bytes of
-that script, not in the offset unit of the session. It is the target of a jump to the declaration
-(`script_session_test::cursor_context_points_into_the_catalog_script_that_declares_the_table`).
+that script, not in the offset unit of the session. A descriptor has no location
+(`script_session_test::cursor_context_names_the_descriptor_that_declares_the_table`).
 
 ## Completion's view of the catalog
 
@@ -422,37 +420,54 @@ The session refreshes an outdated analysis before it places the cursor, so edito
 the current catalog. Completion on an outdated analysis through the `Script` API sees the catalog
 as the analysis saw it.
 
-## Descriptors and catalog changes
+## The relations of a connection
 
-Connections publish their schema as descriptor entries:
-- `replace_descriptor(id, layer, bytes)` imports a full schema (from a batch: metadata → catalog SQL →
-  `process_batch` in a worker → descriptor bytes).
-- `apply_catalog_changes(id, layer, changes)` follows the DDL the user runs, without a full refresh.
+The relations of a connection are a descriptor entry with an id of its own (`catalogRelationEntryId`), and nothing else.
+There is no script behind it. The rows of a metadata query become descriptor tables directly
+(`catalogTablesFrom*`, `packCatalogDescriptor`, `catalog_sql_generator.ts`), so a refresh neither generates nor parses SQL.
+The connection is the only source: a statement that ran is no statement about the connection, and
+`create table if not exists t (a int)` on a `t(a, b)` still leaves `t(a, b)`.
 
-The catalog applies changes (`dashql-core`, `catalog/changes.rs`); deriving, qualifying, compacting and
-persisting them needs the analyzer and scripts and lives in `dashql-core-session` (`catalog_changes.rs`):
-1. `derive_catalog_change(analysis, statement, options)`: a successful `CREATE TABLE`, `CREATE TABLE AS`,
-   `CREATE VIEW`, `SELECT INTO` or `DROP` becomes a `CatalogChange` (a create or drop with plain names,
-   `catalog/changes.rs`; `CatalogChangeT` only at the boundary), with the relation named as written
-   and the columns from the analysis. Temporary relations are skipped unless
-   `CatalogChangeOptions::include_temporary` is set.
-2. `qualify_catalog_changes(changes, defaults)`: qualifies names with the connection's default
-   database and schema.
-3. `compact_catalog_changes`: keeps the last change of every relation. `IF NOT EXISTS` is resolved
-   against the earlier changes: after a creation it changes nothing, after a drop it creates
-   unconditionally.
-4. `apply_catalog_changes`: unpack the descriptor bytes, apply, pack, `replace_descriptor`.
-5. `render_catalog_changes_sql` / `parse_catalog_changes_sql` / `append_catalog_changes_sql`: the changes
-   of a connection persist as a SQL script of `CREATE TABLE` / `DROP TABLE` statements under the header
-   `-- Catalog changes of executed statements`. Parsing runs the script through a throwaway catalog and
-   the normal derivation.
+**On disk** the relations are SQL, the one place where they are text. `generateRelationsFile` renders the descriptor
+when a catalog update is saved. Restoring a connection parses the file once in the batch worker, publishes the descriptor
+and drops the text (`connection_restore.ts`). `pack_catalog_descriptor` keeps the declaration order of the columns, the
+analyzer sorts those of `CREATE TABLE` by name. The parser normalizes the spelling of types (`int8` is `bigint` after a
+restore), the file doesn't change after that. A file `dashql-catalog-changes.sql` of older versions is cleared and the
+connection refreshes on connect.
 
-The planner derives the change of every planned statement (`ExecutionGraphNode.catalog_changes`), the
-query executor applies it once the statement succeeded.
+**After a successful statement** the app asks the connection:
 
-An applied change supersedes a running refresh of the connection (`invalidateCatalogBatch`): the
-refresh may have read the metadata before the statement ran, and publishing it would undo the change.
-The catalog loader starts the refresh again.
+1. The parser names the relation that a statement creates or drops (`touched_relations`,
+   `packages/dashql-core-session/src/touched_relations.rs`). It doesn't analyze, and it names `CREATE TABLE`,
+   `CREATE TABLE AS`, `CREATE VIEW`, `SELECT INTO`, `DROP TABLE` and `DROP VIEW`, temporary ones too.
+2. The query executor runs this for every statement of the user that the backend ran, from a script or a shell
+   (`RELATIONS_TOUCHED`). The defaults of the connection qualify the names into
+   `CatalogUpdates.touchedRelations`.
+3. The catalog loader takes them once no other update runs and the connection has room for another query
+   (`CatalogUpdateVariant.RELATION_REFRESH`). A refresh that runs may have read the relations too early, the update
+   follows it. A full refresh takes them as well, it reads the connection after the statements.
+4. The metadata query of the connector reads these relations only, and `replace_tables` updates them: a relation with rows
+   has a new table in the place of the old one, a relation without rows is gone. An answer that changes nothing keeps the
+   catalog version. Salesforce has no such query and refreshes in full.
+
+A failed lookup leaves the catalog as it is, the declarations of the scripts still resolve. A Hyper refresh that fails
+for an attached database keeps the relations of that database (`CatalogTableUpdate.databases`).
+
+Statements the parser doesn't know, such as `ALTER TABLE`, and changes made outside of DashQL need a manual refresh.
+
+The standalone shell runs on an embedded database without a connection state. It reads the relations of its user
+schemas after a statement that may have changed them, a statement that doesn't parse counts, and replaces its descriptor
+before the prompt returns (`embedded_database_catalog.ts`).
+
+**Copy-on-write.** `replace_tables` builds a new entry next to the old one, a published entry never changes. An analysis
+reads its locations through its snapshot, which keeps the old entry alive, so tables may move in the new entry. The entry is
+the unit of the copy: a connection is one entry, an update of one table unpacks, packs and imports all of its tables.
+Measured on a release build with 20 columns per table, on the main thread:
+
+| Tables | Build a descriptor from rows | Import | `replace_tables` of one table | Without a change |
+|---|---|---|---|---|
+| 1,000 | 22 ms | 20 ms | 20 ms | 4 ms |
+| 10,000 | 287 ms | 135 ms | 228 ms | 34 ms |
 
 ## Wasm boundary and app
 
@@ -460,10 +475,8 @@ The catalog loader starts the refresh again.
 - The JS `Catalog` wraps a `SharedCatalog`, the only shared catalog of the Rust side. `Script`,
   `ScriptSession` and the shell's `Shell` handles clone it, so they can outlive the JS catalog object,
   and pass borrows of it into the core.
-- Freeing a `Script` or `ScriptSession` only frees memory, the app drops their catalog entries
-  explicitly. Freeing a `Shell` detaches its session relations (`SharedCatalog::modify_or_defer`). If
-  the catalog is borrowed at that moment, the modification waits for the next access instead of
-  being lost.
+- Freeing a `Script`, `ScriptSession` or `Shell` only frees memory, the app drops their catalog entries
+  explicitly.
 - All catalogs of a module share one `EntryIdSource`, so an entry id identifies a script across
   catalogs of the same module. The app runs three core modules (main thread, batch worker, shell),
   each with its own id space.
@@ -506,9 +519,8 @@ of the session outdated.
 **Planning and execution** (`session_execution.ts`, and `script_run.ts` for a run of one script)
 analyzes and publishes every script, re-analyzes them at the final catalog version, then calls
 `planSession()`. The planner reads the published declarations and the inputs, and flags a relation whose
-published kind (`TableDeclaration.is_view`) differs from the input. Every node carries the catalog changes
-of its statement (`ExecutionGraphNode.catalog_changes`), and the query executor applies them to the
-connection once the statement succeeded (`QueryExecutionArgs.catalogChanges`).
+published kind (`TableDeclaration.is_view`) differs from the input. A connection of the plan names its default
+database and schema, statements on `t` and `db.schema.t` are ordered as one relation.
 
 ## Invariants
 
@@ -539,7 +551,8 @@ connection once the statement succeeded (`QueryExecutionArgs.catalogChanges`).
 | Descriptors | `packages/dashql-core/src/catalog/descriptor.rs` |
 | Client function specs | `packages/dashql-core/src/catalog/clfn.rs` |
 | Name search index | `packages/dashql-core/src/catalog/names.rs` |
-| Catalog changes: applying / deriving and persisting | `packages/dashql-core/src/catalog/changes.rs` / `packages/dashql-core-session/src/catalog_changes.rs` |
+| The relations that statements touch | `packages/dashql-core-session/src/touched_relations.rs` |
+| The relations of a connection | `packages/dashql-app/src/connections/catalog/catalog_loader.tsx`, `catalog_sql_generator.ts`, `replace_tables` in `catalog/mod.rs` |
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
 | Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |

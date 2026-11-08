@@ -3,7 +3,7 @@ import * as core from '@ankoh/dashql-core';
 import type { Logger } from '../platform/logger/logger.js';
 import type { ConnectionState } from '../connections/connection_state.js';
 import type { SessionScripts } from '../session/scripts/session_scripts.js';
-import { quoteIdentifier } from '../connections/catalog/catalog_sql_generator.js';
+import { catalogTablesOfDescriptor, generateCatalogTablesSQL, quoteIdentifier } from '../connections/catalog/catalog_sql_generator.js';
 import { isSystemSchema } from '../connections/catalog/system_schemas.js';
 
 const LOG_CTX = 'agent_catalog';
@@ -19,34 +19,15 @@ interface ConnectionRelations {
     systemRelations: number;
 }
 
-/// Pick the statements of a connection script that define or drop relations of user schemas.
-/// The text is parsed in a scratch catalog, the shared relation script stays untouched.
-function describeConnectionRelations(instance: core.DashQL, relationScript: string): ConnectionRelations {
+/// The statements of the relations of user schemas of a connection
+function describeConnectionRelations(descriptor: core.buffers.catalog.CatalogDescriptorT | null): ConnectionRelations {
     const relations: ConnectionRelations = { statements: [], systemRelations: 0 };
-    const catalog = instance.createCatalog();
-    const script = instance.createScript(catalog);
-    let parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null = null;
-    try {
-        script.replaceText(relationScript);
-        script.parse();
-        parsed = script.getParsed();
-        const reader = parsed.read();
-        const statement = new core.buffers.parser.Statement();
-        for (let i = 0; i < reader.statementsLength(); ++i) {
-            reader.statements(i, statement);
-            const schemaName = statement.target()?.schemaName() ?? '';
-            if (isSystemSchema(schemaName)) {
-                relations.systemRelations += 1;
-                continue;
-            }
-            const span = statement.statementSpan();
-            if (span != null) {
-                relations.statements.push(`${script.toString(span.offset(), span.length())};`);
-            }
+    for (const table of catalogTablesOfDescriptor(descriptor)) {
+        if (isSystemSchema(table.schemaName)) {
+            relations.systemRelations += 1;
+            continue;
         }
-    } finally {
-        script.destroy();
-        catalog.destroy();
+        relations.statements.push(generateCatalogTablesSQL([table]));
     }
     return relations;
 }
@@ -84,21 +65,14 @@ function describeSessionTables(sessionScripts: SessionScripts, connectionId: str
     return statements;
 }
 
-/// Build the schema that the model may query on a connection: the user relations of the connection, the catalog
-/// changes of executed statements and the tables of the session scripts on it.
+/// Build the schema that the model may query on a connection: the user relations of the connection and the tables of
+/// the session scripts on it.
 /// The schema is cut off at a statement boundary once it exceeds the budget.
 export function buildSchemaContext(connectionId: string, conn: ConnectionState | null, sessionScripts: SessionScripts, logger: Logger): string {
-    const describe = (text: string): ConnectionRelations => text.trim().length > 0
-        ? describeConnectionRelations(sessionScripts.instance, text)
-        : { statements: [], systemRelations: 0 };
-    const relations = describe(conn?.catalogRelationScript.toString() ?? '');
-    const changes = describe(conn?.catalogChangesSql ?? '');
+    const relations = describeConnectionRelations(conn?.catalog.readDescriptor(conn.catalogRelationEntryId) ?? null);
     const sessionTables = describeSessionTables(sessionScripts, connectionId);
 
     const statements = [...relations.statements];
-    if (changes.statements.length > 0) {
-        statements.push('-- Changes of executed statements since the last catalog refresh, a column type may be unknown', ...changes.statements);
-    }
     if (sessionTables.length > 0) {
         statements.push('-- Tables defined by the session, column types are unknown', ...sessionTables);
     }
@@ -122,8 +96,7 @@ export function buildSchemaContext(connectionId: string, conn: ConnectionState |
     }
     logger.debug('Built the schema for the agent', {
         connectionRelations: String(relations.statements.length),
-        catalogChanges: String(changes.statements.length),
-        skippedSystemRelations: String(relations.systemRelations + changes.systemRelations),
+        skippedSystemRelations: String(relations.systemRelations),
         sessionTables: String(sessionTables.length),
         characters: String(schema.length),
         truncated: String(truncated),

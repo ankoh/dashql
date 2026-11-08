@@ -47,28 +47,18 @@ analyzer-snapshots:
           columns:
             - catalog-id: "256.65536.4294967299.0"
               name: copied_id
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: orders
-          columns: [id,amount,customer]
         - statement-id: 1
-          type: create
           name: sales.totals
-          columns: [id,total]
         - statement-id: 2
-          type: create
           name: other.reporting.report
-          columns: [id,amount]
         - statement-id: 3
-          type: create
           name: copies
-          columns: [copied_id]
         - statement-id: 5
-          type: drop
           name: sales.totals
         - statement-id: 6
-          type: drop
           name: other.reporting.report
       errors: []
       table-refs:
@@ -251,23 +241,21 @@ analyzer-snapshots:
           columns:
             - catalog-id: "256.65536.4294967302.0"
               name: id
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create-if-not-exists
           name: events
-          columns: [id,payload]
         - statement-id: 1
-          type: create-if-not-exists
           name: summary
-          columns: [id]
         - statement-id: 2
-          type: create
           name: latest
-          columns: [payload]
         - statement-id: 3
-          type: create
           name: staging
-          columns: [id]
+        - statement-id: 4
+          name: session_only
+        - statement-id: 5
+          name: session_view
+        - statement-id: 6
+          name: copied
       errors: []
       table-refs:
         - type: name/internal
@@ -362,11 +350,9 @@ analyzer-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: b
                 text: "b int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: base
-            columns: [a,b]
         errors: []
     script:
       input: |-
@@ -389,17 +375,12 @@ analyzer-snapshots:
           columns:
             - catalog-id: "256.65536.8589934593.0"
               name: x
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: derived
-          columns: [a,b]
         - statement-id: 1
-          type: create
           name: narrowed
-          columns: [x]
         - statement-id: 2
-          type: drop
           name: base
       errors: []
       table-refs:

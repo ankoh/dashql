@@ -2,6 +2,7 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildSchemaContext } from './agent_catalog.js';
+import { packCatalogTable, type CatalogTable } from '../connections/catalog/catalog_sql_generator.js';
 import { isSystemSchema } from '../connections/catalog/system_schemas.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 
@@ -21,27 +22,22 @@ describe('Agent catalog', () => {
             scriptSession.replaceText(scriptSession.getTextVersion(), 'create table summary as select 1 as total, 2 as count');
             scriptSession.analyze();
             scriptSession.loadIntoCatalog();
-            const relations = [
-                '-- DashQL Connection Relations.',
-                'CREATE TABLE "db"."public"."orders" ("id" INTEGER, "amount" FLOAT);',
-                'CREATE TABLE "db"."pg_catalog"."pg_class" ("oid" INTEGER);',
-                'CREATE TABLE "db"."information_schema"."columns" ("table_name" VARCHAR);',
-                'CREATE TABLE "db"."pg_toast"."pg_toast_123" ("chunk_id" INTEGER);',
-                'CREATE TABLE "db"."sales"."customers" ("id" INTEGER);',
-            ].join('\n');
-            const catalogChangesSql = dql.appendCatalogChangesSql('', [
-                new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.DROP_RELATION, 'db', 'public', 'orders'),
-                new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'db', 'public', 'staged', [new core.buffers.analyzer.TableColumnT(0, 'id', null, 'integer'), new core.buffers.analyzer.TableColumnT(0, 'note')]),
-            ]);
-            const conn = { catalogRelationScript: { toString: () => relations }, catalogChangesSql };
+            const table = (schemaName: string, tableName: string, column: string, dataType: string): CatalogTable => ({
+                databaseName: 'db', schemaName, tableName, columns: [{ name: column, ordinalPosition: 1, dataType }],
+            });
+            const descriptor = { tables: [
+                table('public', 'orders', 'id', 'INTEGER'),
+                table('pg_catalog', 'pg_class', 'oid', 'INTEGER'),
+                table('information_schema', 'columns', 'table_name', 'VARCHAR'),
+                table('pg_toast', 'pg_toast_123', 'chunk_id', 'INTEGER'),
+                table('sales', 'customers', 'id', 'INTEGER'),
+            ].map(packCatalogTable) };
+            const conn = { catalog: { readDescriptor: () => descriptor }, catalogRelationEntryId: 1 };
             const sessionScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { connectionId: 'db', catalog } } } } as any;
             const logger = new TestLogger();
             expect(buildSchemaContext('db', conn as any, sessionScripts, logger)).toBe([
-                'CREATE TABLE "db"."public"."orders" ("id" INTEGER, "amount" FLOAT);',
-                'CREATE TABLE "db"."sales"."customers" ("id" INTEGER);',
-                '-- Changes of executed statements since the last catalog refresh, a column type may be unknown',
-                'DROP TABLE "db"."public"."orders";',
-                'CREATE TABLE "db"."public"."staged" (\n    "id" integer,\n    "note" unknown\n);',
+                'CREATE TABLE "db"."public"."orders" (\n    "id" "INTEGER"\n);',
+                'CREATE TABLE "db"."sales"."customers" (\n    "id" "INTEGER"\n);',
                 '-- Tables defined by the session, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));
@@ -96,13 +92,15 @@ describe('Agent catalog', () => {
     it('truncates a large schema at a statement boundary and warns', () => {
         const catalog = dql.createCatalog();
         try {
-            const columns = Array.from({ length: 200 }, (_, i) => `"column_${i}" INTEGER`).join(', ');
-            const relations = Array.from({ length: 100 }, (_, i) => `CREATE TABLE "public"."t${i}" (${columns});`).join('\n');
+            const descriptor = { tables: Array.from({ length: 100 }, (_, i) => packCatalogTable({
+                databaseName: 'db', schemaName: 'public', tableName: `t${i}`,
+                columns: Array.from({ length: 200 }, (_, c) => ({ name: `column_${c}`, ordinalPosition: c, dataType: 'INTEGER' })),
+            })) };
             const logger = new TestLogger();
             const warn = vi.spyOn(logger, 'warn');
             const schema = buildSchemaContext(
                 'db',
-                { catalogRelationScript: { toString: () => relations } } as any,
+                { catalog: { readDescriptor: () => descriptor }, catalogRelationEntryId: 1 } as any,
                 { instance: dql, connectionCatalog: catalog, scripts: {} } as any,
                 logger,
             );

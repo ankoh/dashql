@@ -53,8 +53,7 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
   of the name, and reordering scripts only rewrites the list.
 - The attachment list is kept in natural order.
 - `connections/<id>/` carries the relation and function catalogs of each connection of the session
-  (`bundleCatalogPath`, `packages/dashql-app/src/storage/session_bundle.ts`). The catalog changes of
-  executed statements are not published. Bundles of format 6 and older carry top-level catalog files, which
+  (`bundleCatalogPath`, `packages/dashql-app/src/storage/session_bundle.ts`). Bundles of format 6 and older carry top-level catalog files, which
   are read for the default connection of that format.
 
 ## Reconciling Lists and Files

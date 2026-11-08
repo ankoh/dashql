@@ -44,11 +44,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: dbname.schemaname.foo
-            columns: [a]
         errors: []
     editor:
       input: select * from db
@@ -106,11 +104,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: dbname.schemaname.foo
-            columns: [a]
         errors: []
     editor:
       input: select * from sch
@@ -168,11 +164,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: foo
-            columns: [a]
         errors: []
     editor:
       input: select * from fo
@@ -235,11 +229,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: foo
-            columns: [a]
         errors: []
     editor:
       input: select * from ( foo );
@@ -285,19 +277,13 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967298.0"
                 name: attr3
                 text: "attr3 integer"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: table1
-            columns: [attr1]
           - statement-id: 1
-            type: create
             name: table2
-            columns: [attr2]
           - statement-id: 2
-            type: create
             name: table3
-            columns: [attr3]
         errors: []
     editor:
       input: select attr2 from tab
@@ -445,11 +431,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: external_name2
                 text: "external_name2 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: external_name1
-            columns: [external_name2]
         errors: []
     editor:
       input: select external_name2 from external_name1 where external_
@@ -545,11 +529,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: external_name2
                 text: "external_name2 int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: external_name1
-            columns: [external_name2]
         errors: []
     editor:
       input: select external_name2 from external_name1 where external_

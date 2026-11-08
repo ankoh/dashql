@@ -1,3 +1,4 @@
+import * as flatbuffers from 'flatbuffers';
 import * as dashql from '@ankoh/dashql-core';
 
 export const DEFAULT_DATABASE_NAME = 'hyper';
@@ -32,6 +33,23 @@ export function quoteIdentifier(identifier: string): string {
 /// A quoted name always parses, and the catalog keeps its text.
 export function quoteDataType(sqlType: string | null | undefined): string {
     return quoteIdentifier(sqlType?.trim() || 'unknown');
+}
+
+/// Quote a string literal
+export function quoteLiteral(value: string): string {
+    return `'${value.replace(/'/g, "''")}'`;
+}
+
+/// A relation of a connection, fully qualified
+export interface RelationName {
+    databaseName: string;
+    schemaName: string;
+    tableName: string;
+}
+
+/// The condition of a metadata query that selects relations
+export function relationFilter(schemaColumn: string, tableColumn: string, relations: RelationName[]): string {
+    return `(${relations.map(r => `(${schemaColumn} = ${quoteLiteral(r.schemaName)} AND ${tableColumn} = ${quoteLiteral(r.tableName)})`).join(' OR ')})`;
 }
 
 /// Generates a qualified table name (database.schema.table).
@@ -86,6 +104,67 @@ export function generateSchemaSQL(
     }
 
     return sqlStatements.join('\n\n');
+}
+
+/// A table that a connection reported
+export interface CatalogTable extends RelationName {
+    columns: ColumnMetadata[];
+}
+
+/// The tables of a schema, sorted by name
+export function catalogTablesOfSchema(databaseName: string, schemaName: string, tables: Map<string, ColumnMetadata[]>): CatalogTable[] {
+    return Array.from(tables.keys()).sort().map(tableName => ({ databaseName, schemaName, tableName, columns: tables.get(tableName)! }));
+}
+
+/// The name of a relation for the core
+export function packRelationName(relation: RelationName): dashql.buffers.analyzer.QualifiedTableNameT {
+    return new dashql.buffers.analyzer.QualifiedTableNameT(0, relation.databaseName, relation.schemaName, relation.tableName);
+}
+
+/// A table of a catalog descriptor, its columns in the order of the connection
+export function packCatalogTable(table: CatalogTable): dashql.buffers.analyzer.TableT {
+    const packed = new dashql.buffers.analyzer.TableT();
+    packed.tableName = packRelationName(table);
+    packed.tableColumns = [...table.columns]
+        .sort((a, b) => a.ordinalPosition - b.ordinalPosition)
+        .map(column => new dashql.buffers.analyzer.TableColumnT(0, column.name, null, column.dataType ?? null));
+    return packed;
+}
+
+/// A catalog descriptor of tables
+export function packCatalogDescriptor(tables: CatalogTable[]): Uint8Array {
+    const descriptor = new dashql.buffers.catalog.CatalogDescriptorT(tables.map(packCatalogTable), []);
+    const builder = new flatbuffers.Builder();
+    builder.finish(descriptor.pack(builder));
+    return builder.asUint8Array();
+}
+
+/// The tables of a catalog descriptor
+export function catalogTablesOfDescriptor(descriptor: dashql.buffers.catalog.CatalogDescriptorT | null): CatalogTable[] {
+    return (descriptor?.tables ?? []).map(table => ({
+        databaseName: String(table.tableName?.databaseName ?? ''),
+        schemaName: String(table.tableName?.schemaName ?? ''),
+        tableName: String(table.tableName?.tableName ?? ''),
+        columns: table.tableColumns.map((column, ordinalPosition) => ({
+            name: String(column.columnName ?? ''),
+            ordinalPosition,
+            dataType: column.columnType == null ? null : String(column.columnType),
+        })),
+    }));
+}
+
+/// CREATE TABLE statements of tables, the catalog of a connection on disk
+export function generateCatalogTablesSQL(tables: CatalogTable[]): string {
+    return tables.map(table => generateCreateTableSQL(table.databaseName, table.schemaName, table.tableName, table.columns)).join('\n\n');
+}
+
+/// The file with the relations of a connection. The catalog holds descriptors, this text is only written and read.
+export function generateRelationsFile(descriptor: dashql.buffers.catalog.CatalogDescriptorT | null): string {
+    return `-- DashQL Connection Relations.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+
+${generateCatalogTablesSQL(catalogTablesOfDescriptor(descriptor))}
+`;
 }
 
 /// Generates unqualified CREATE TABLE statements for all supplied tables.

@@ -103,7 +103,7 @@ describe('reduceCatalogAction', () => {
         const state = {
             active: true,
             connectionId: 'database',
-            catalogRelationScript: {},
+            catalogRelationEntryId: 1,
             catalogFunctionScript: {},
             catalogUpdates: {
                 tasksRunning: new Map([[7, task]]),

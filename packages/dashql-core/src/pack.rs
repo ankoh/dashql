@@ -1022,13 +1022,49 @@ pub fn pack_completion(
     out
 }
 
+/// The text of a type that a connection named. Any text is written as a quoted name to parse, like `"numeric(10,2)"`.
+fn unquote_type(text: &str) -> String {
+    match text.strip_prefix('"').and_then(|t| t.strip_suffix('"')) {
+        Some(inner) if !inner.is_empty() => inner.replace("\"\"", "\""),
+        _ => text.to_string(),
+    }
+}
+
 /// Pack the declarations of a catalog entry as descriptor
 pub fn pack_catalog_descriptor(entry: &CatalogEntryData) -> crate::error::Result<Vec<u8>> {
     let mut descriptor = dashql_buffers::catalog::CatalogDescriptorT::default();
     // Both vectors are always written, even when empty
-    descriptor.tables = Some(entry.table_declarations.iter().map(pack_table).collect());
-    descriptor.function_declarations =
-        Some(entry.function_declarations.iter().map(pack_function_declaration).collect());
+    // A descriptor has no script: it holds no locations, and its columns are in declaration order. The analyzer sorts
+    // the columns of CREATE TABLE by name, the AST nodes restore the order.
+    let tables: Vec<_> = entry
+        .table_declarations
+        .iter()
+        .map(|declaration| {
+            let mut table = pack_table(declaration);
+            table.location = None;
+            if let Some(columns) = table.table_columns.take() {
+                let mut columns: Vec<_> = declaration.table_columns.iter().zip(columns).collect();
+                columns.sort_by_key(|(declared, _)| declared.ast_node_id.unwrap_or(u32::MAX));
+                table.table_columns = Some(
+                    columns
+                        .into_iter()
+                        .map(|(_, mut column)| {
+                            column.location = None;
+                            column.column_type = column.column_type.map(|t| unquote_type(&t));
+                            column
+                        })
+                        .collect(),
+                );
+            }
+            table
+        })
+        .collect();
+    descriptor.tables = Some(tables);
+    let mut functions: Vec<_> = entry.function_declarations.iter().map(pack_function_declaration).collect();
+    for function in &mut functions {
+        function.location = None;
+    }
+    descriptor.function_declarations = Some(functions);
     let mut builder = flatbuffers::FlatBufferBuilder::new();
     let packed = descriptor.pack(&mut builder);
     builder.finish(packed, None);

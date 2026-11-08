@@ -8,8 +8,8 @@ pub type CatalogDatabaseId = u32;
 pub type CatalogSchemaId = u32;
 /// The catalog version, bumped by every modification
 pub type CatalogVersion = u32;
-/// The layer of a catalog entry: names resolve against the session, then the executed statements,
-/// then the connection, and within a layer against older entries first
+/// The layer of a catalog entry: names resolve against the connection, then the session, and within
+/// a layer against older entries first
 pub use dashql_buffers::catalog::CatalogLayer;
 /// The lowest layer in range queries of the catalog indexes
 pub const MIN_LAYER: CatalogLayer = CatalogLayer(u8::MIN);

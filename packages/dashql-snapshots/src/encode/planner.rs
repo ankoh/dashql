@@ -65,6 +65,10 @@ pub struct FixtureConnection {
     pub catalog: Option<String>,
     /// Does the connection speak Trino? Hyper otherwise, `dialect: trino`.
     pub trino: bool,
+    /// The database of relations without a database name, `default-database`
+    pub default_database: String,
+    /// The schema of relations without a schema name, `default-schema`
+    pub default_schema: String,
 }
 
 /// A script of a planner fixture
@@ -140,6 +144,8 @@ impl Fixture {
                     local: c["kind"].as_str() == Some("LOCAL"),
                     catalog: present(&c["catalog"]).then(|| text(&c["catalog"])),
                     trino: c["dialect"].as_str() == Some("trino"),
+                    default_database: text(&c["default-database"]),
+                    default_schema: text(&c["default-schema"]),
                 })
                 .collect(),
             scripts: fixture["scripts"]
@@ -241,6 +247,8 @@ impl PreparedFixture {
                 kind: if c.local { ConnectionKind::Local } else { ConnectionKind::Remote },
                 catalog,
                 dialect: if c.trino { dashql_buffers::formatting::FormattingDialect::TRINO } else { dashql_buffers::formatting::FormattingDialect::HYPER },
+                default_database: &c.default_database,
+                default_schema: &c.default_schema,
             })
             .collect();
         let scripts: Vec<PlannerScript> = self
@@ -273,9 +281,9 @@ pub fn prepare_fixture(fixture: &Fixture) -> Result<PreparedFixture, String> {
     // The connections and their catalogs, an implicit connection without connections
     let declared = !fixture.connections.is_empty();
     let connections: Vec<FixtureConnection> = if declared {
-        fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino }).collect()
+        fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino, default_database: c.default_database.clone(), default_schema: c.default_schema.clone() }).collect()
     } else {
-        vec![FixtureConnection { name: "default".into(), local: false, catalog: fixture.catalog.clone(), trino: false }]
+        vec![FixtureConnection { name: "default".into(), local: false, catalog: fixture.catalog.clone(), trino: false, default_database: String::new(), default_schema: String::new() }]
     };
     let mut catalogs: Vec<Catalog> = Vec::new();
     let mut catalog_scripts = Vec::new();

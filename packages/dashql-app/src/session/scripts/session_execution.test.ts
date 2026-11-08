@@ -98,6 +98,7 @@ describe('runSessionExecution', () => {
             'analyze:2_commands.sql', 'load:2_commands.sql',
             'analyze:10_last.sql', 'load:10_last.sql',
             'analyze:1_empty.sql', 'analyze:2_commands.sql', 'analyze:10_last.sql',
+            'analyze:1_empty.sql', 'analyze:2_commands.sql', 'analyze:10_last.sql',
         ]);
         expect(f.plan.mock.calls[0][0].scripts.map(script => script.session)).toEqual([f.scriptSessions[2], f.scriptSessions[1], f.scriptSessions[0]]);
         expect(f.plan.mock.calls[0][0].scripts.map(script => script.name)).toEqual(['1_empty', '2_commands', '10_last']);
@@ -143,15 +144,6 @@ describe('runSessionExecution', () => {
         expect(g.plan).not.toHaveBeenCalled();
         expect(g.executeQuery).not.toHaveBeenCalled();
         expect(g.lastState()).toEqual(expect.objectContaining({ phase: 'succeeded', totalScripts: 0 }));
-    });
-
-    it('passes the catalog changes of planned statements to the executor', async () => {
-        const f = fixture();
-        const change = new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, '', '', 't', [new core.buffers.analyzer.TableColumnT(0, 'a')]);
-        (f.graph.nodes[0] as { catalogChanges?: core.buffers.catalog.CatalogChangeT[] }).catalogChanges = [change];
-        await runSessionExecution(f.args);
-        expect(f.executeQuery.mock.calls[0][1].catalogChanges).toEqual([change]);
-        expect(f.executeQuery.mock.calls[1][1].catalogChanges).toBeUndefined();
     });
 
     it('yields before planning so the execution status can paint', async () => {
@@ -216,7 +208,7 @@ describe('runSessionExecution', () => {
         await run;
     });
 
-    it.each(['invalid', 'text', 'analysis', 'catalog', 'membership', 'session', 'instance', 'missing'])
+    it.each(['invalid', 'text', 'analysis', 'membership', 'session', 'instance', 'missing'])
         ('rejects %s plans before backend execution', async kind => {
             const f = fixture();
             if (kind === 'invalid') {
@@ -229,7 +221,6 @@ describe('runSessionExecution', () => {
                 switch (kind) {
                     case 'text': f.scriptSessions[2].version++; break;
                     case 'analysis': f.graph.scripts[0].analyzedTextVersion = 0n; break;
-                    case 'catalog': f.graph.scripts[0].analyzedCatalogRevision = 0n; break;
                     case 'membership': delete f.session.scriptRefs['1_empty.sql']; break;
                     case 'session': f.session.scripts[102].scriptSession = f.session.scripts[101].scriptSession; break;
                     case 'instance': f.getSession.mockReturnValue({ ...f.session, instance: {} as core.DashQL }); break;
@@ -242,6 +233,17 @@ describe('runSessionExecution', () => {
             expect(f.lastState()?.error).toBeTruthy();
             expect(f.unpack).toHaveBeenCalledOnce();
         });
+
+    it('runs a plan whose catalog moved on since planning', async () => {
+        const f = fixture();
+        f.onState.mockImplementation(state => {
+            f.states.push(state);
+            if (state.phase === 'running') f.graph.scripts[0].analyzedCatalogRevision = 0n;
+        });
+        await runSessionExecution(f.args);
+        expect(f.executeQuery).toHaveBeenCalled();
+        expect(f.lastState()?.phase).toBe('succeeded');
+    });
 
     it('checks editor update status before publishing', async () => {
         const f = fixture();

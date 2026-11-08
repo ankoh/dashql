@@ -42,7 +42,7 @@ function connection(connectionId: string) {
         params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
         details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_GRPC' } }, channel: { executeQuery: async () => stream, close: vi.fn() } } },
         catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-        catalogRelationScript: { catalog_entry_id: 1, destroy: vi.fn() },
+        catalogRelationEntryId: 1,
         catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
         catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null },
         queriesActive: new Map(), queriesActiveOrdered: [],

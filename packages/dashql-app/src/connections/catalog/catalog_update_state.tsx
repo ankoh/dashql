@@ -7,13 +7,14 @@ import {
     CATALOG_UPDATE_SUCCEEDED,
     CatalogAction,
     ConnectionState,
-    SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
 } from '../connection_state.js';
 
 
 export enum CatalogUpdateVariant {
-    FULL_CATALOG_REFRESH
+    FULL_CATALOG_REFRESH,
+    /// Ask the connection about the relations that executed statements touched
+    RELATION_REFRESH,
 }
 
 export enum CatalogUpdateTaskStatus {
@@ -71,14 +72,11 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                 tasksRunning: state.catalogUpdates.tasksRunning,
                 currentFullRefresh: update.taskVariant == CatalogUpdateVariant.FULL_CATALOG_REFRESH
                     ? updateId
-                    : state.catalogUpdates.currentFullRefresh
+                    : state.catalogUpdates.currentFullRefresh,
+                // The update reads the connection after the statements that touched them
+                touchedRelations: [],
             },
         };
-    }
-
-    // SET_CATALOG_SCRIPT doesn't involve catalog updates
-    if (action.type == SET_CATALOG_SCRIPT) {
-        return state;
     }
 
     const updateId = (action.value as [number, ...any])[0];
@@ -129,6 +127,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             return {
                 ...state,
                 catalogUpdates: {
+                    ...state.catalogUpdates,
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
@@ -150,6 +149,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             return {
                 ...state,
                 catalogUpdates: {
+                    ...state.catalogUpdates,
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
@@ -171,11 +171,10 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             };
             state.catalogUpdates.tasksRunning.delete(updateId);
             state.catalogUpdates.tasksFinished.set(updateId, update);
-            // The refreshed relation script describes the catalog, the changes of earlier statements are part of it
             return {
                 ...state,
-                catalogChangesSql: '',
                 catalogUpdates: {
+                    ...state.catalogUpdates,
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,

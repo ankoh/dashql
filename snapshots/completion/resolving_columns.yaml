@@ -19,11 +19,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.1"
               name: juice0
               text: "juice0 int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: similar_name_0
-          columns: [apple,juice0]
       errors: []
       table-refs:
         - type: name/internal

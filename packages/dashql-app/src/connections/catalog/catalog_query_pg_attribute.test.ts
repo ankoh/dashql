@@ -1,89 +1,8 @@
-import * as arrow from 'apache-arrow';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import * as dashql from '@ankoh/dashql-core';
-import * as flatbuffers from 'flatbuffers';
-import * as buffers from '@ankoh/dashql-core/buffers';
-import type { BatchRequest } from '@ankoh/dashql-core';
+import { describe, expect, it, vi } from 'vitest';
 
-import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, updatePgCatalog, updatePgSchemaScript } from './catalog_query_pg_attribute.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS, catalogTablesFromPgAttribute, pgAttributeQuery, queryPgAttribute } from './catalog_query_pg_attribute.js';
 import type { QueryExecutor } from '../query_executor.js';
-import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-describe('updatePgSchemaScript', () => {
-    it('rejects an empty relation result instead of reporting a successful refresh', async () => {
-        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
-
-        await expect(updatePgSchemaScript(
-            { info: vi.fn() } as any,
-            'session',
-            vi.fn(),
-            7,
-            '',
-            [],
-            executor,
-            {} as any,
-            {} as any,
-        )).rejects.toThrow('pg_attribute returned no catalog relations');
-    });
-});
-
-describe('real-core empty PostgreSQL function refresh', () => {
-    let dql: dashql.DashQL;
-    beforeAll(async () => {
-        dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
-    });
-    afterEach(() => dql.resetUnsafe());
-
-    it('publishes the relations of pg_attribute into the relation script', async () => {
-        const catalog = dql.createCatalog();
-        const relations = dql.createScript(catalog);
-        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({
-            table_schema: ['public', 'public'], table_name: ['items', 'items'], column_name: ['id', 'name'], ordinal_position: [1, 2], data_type: ['bigint', 'text'],
-        }))]);
-        const dispatch = vi.fn();
-        await updatePgSchemaScript({ info: vi.fn() } as any, 'connection', dispatch, 3, 'db', [], executor, catalog, relations,
-            { processor: async request => dql.processBatch(request) });
-        expect(relations.toString()).toContain('"items"');
-        expect(relations.toString()).toContain('"name"');
-        expect(dispatch.mock.calls.map(([, action]) => action.value)).toContainEqual([3]);
-    });
-
-    it('publishes an empty function descriptor to clear stale functions and logs the actual count', async () => {
-        const catalog = dql.createCatalog();
-        const relations = dql.createScript(catalog);
-        const functions = dql.createScript(catalog);
-        let emptyFunctions = false;
-        const executor = vi.fn<QueryExecutor>((_id, args) => [1, Promise.resolve(args.query.includes('FROM pg_proc p')
-            ? emptyFunctions ? tableFromArrays({}) : tableFromArrays({
-                function_schema: ['public'], function_name: ['old_fn'],
-                returns_set: [false], return_type: ['integer'], function_kind: ['f'],
-            }).assign(new arrow.Table({
-                argument_types: vectorFromArray([['integer', 'integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_names: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_modes: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-            }))
-            : tableFromArrays({ table_schema: ['public'], table_name: ['items'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
-        const logger = { info: vi.fn(), warn: vi.fn() };
-        const refresh = () => updatePgCatalog(logger as any, 'connection', vi.fn(), 1, 'db', [], executor,
-            catalog, dql, relations, functions, { processor: async request => dql.processBatch(request) });
-        await refresh();
-        expect(functions.toString()).toContain('"old_fn"');
-        emptyFunctions = true;
-        await refresh();
-        expect(functions.toString()).not.toContain('"old_fn"');
-        expect(catalog.containsEntryId(functions.catalog_entry_id)).toBe(true);
-        expect(logger.info).toHaveBeenLastCalledWith('Collected PostgreSQL catalog',
-            { updateId: '1', tables: '1', functions: '0' }, 'catalog_pg');
-        const query = dql.createScript(catalog);
-        query.replaceText('SELECT old_f');
-        query.analyze();
-        query.moveCursor('SELECT old_f'.length);
-        expect(query.completeAtCursor(50).unpack().candidates.map((candidate: dashql.buffers.completion.CompletionCandidateT) => candidate.completionText))
-            .not.toContain('old_fn()');
-    });
-});
+import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('queryPgAttribute', () => {
     it('safely qualifies an attached database alias', async () => {
@@ -99,54 +18,32 @@ describe('queryPgAttribute', () => {
         expect(query).toContain('JOIN "db""name"."pg_catalog".pg_attribute a');
         expect(executor.mock.calls[0][1].readTimeoutMs).toBe(CATALOG_QUERY_READ_TIMEOUT_MS);
     });
-});
 
-describe('updatePgCatalog', () => {
-    it('prepares relation and function descriptors in one batch and publishes them sequentially', async () => {
-        const catalog = { replaceDescriptor: vi.fn() };
-        const relations = { catalog_entry_id: 1, replaceText: vi.fn(), toString: () => '' };
-        const functions = { catalog_entry_id: 2, replaceText: vi.fn(), toString: () => '' };
-        const builder = new flatbuffers.Builder();
-        builder.finish(new buffers.catalog.CatalogDescriptorT().pack(builder));
-        const descriptor = builder.asUint8Array();
-        const processor = vi.fn(async (request: BatchRequest) => ({ scripts: request.scripts.map(script => ({
-            id: script.id, diagnostics: [], catalogDescriptor: descriptor,
-        })) }));
-        const executor = vi.fn<QueryExecutor>((_id, args) => [1, Promise.resolve(args.query.includes('FROM pg_proc p')
-            ? tableFromArrays({
-                function_schema: ['public'], function_name: ['test_fn'],
-                return_type: ['bigint'], returns_set: [false], function_kind: ['f'],
-            }).assign(new arrow.Table({
-                argument_types: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_names: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-                argument_modes: vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
-            }))
-            : tableFromArrays({ table_schema: ['public'], table_name: ['test_table'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
-        await updatePgCatalog({ info: vi.fn() } as any, 'connection', vi.fn(), 1, 'db', [], executor,
-            catalog as any, {} as any, relations as any, functions as any, { processor });
-        expect(processor).toHaveBeenCalledTimes(1);
-        expect(processor.mock.calls[0][0].scripts).toHaveLength(2);
-        expect(catalog.replaceDescriptor.mock.calls).toEqual([
-            [relations.catalog_entry_id, expect.any(Number), descriptor],
-            [functions.catalog_entry_id, expect.any(Number), descriptor],
-        ]);
-        expect(relations.replaceText).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE "db"."public"."test_table"'));
-        expect(functions.replaceText).toHaveBeenCalledWith(expect.stringContaining('CREATE FUNCTION "db"."public"."test_fn"'));
+    it('reads only the relations that it is asked about', () => {
+        const query = pgAttributeQuery({ relations: [{ databaseName: 'db', schemaName: "o'x", tableName: 'a' }] });
+        expect(query).toContain(`AND ((n.nspname = 'o''x' AND c.relname = 'a'))`);
     });
 
-    it('does not publish relations when the parallel function fetch fails', async () => {
-        const catalog = { replaceDescriptor: vi.fn() };
-        const relations = { replaceText: vi.fn() };
-        const functions = { replaceText: vi.fn() };
-        const executor = vi.fn<QueryExecutor>((_id, args) => [1, args.query.includes('FROM pg_proc p')
-            ? Promise.reject(new Error('functions unavailable'))
-            : Promise.resolve(tableFromArrays({ table_schema: ['public'], table_name: ['test_table'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'] }))]);
-        const processor = vi.fn();
-        await expect(updatePgCatalog({ info: vi.fn() } as any, 'connection', vi.fn(), 1, 'db', [], executor,
-            catalog as any, {} as any, relations as any, functions as any, { processor })).rejects.toThrow('functions unavailable');
-        expect(processor).not.toHaveBeenCalled();
-        expect(catalog.replaceDescriptor).not.toHaveBeenCalled();
-        expect(relations.replaceText).not.toHaveBeenCalled();
-        expect(functions.replaceText).not.toHaveBeenCalled();
+    it('leaves out the schemas of the system on request', () => {
+        expect(pgAttributeQuery()).not.toContain('NOT IN');
+        expect(pgAttributeQuery({ userSchemasOnly: true })).toContain(`AND n.nspname NOT IN ('pg_catalog', 'information_schema')`);
+    });
+});
+
+describe('catalogTablesFromPgAttribute', () => {
+    it('groups the rows by table and keeps the ordinal positions', () => {
+        const rows = tableFromArrays({
+            table_schema: ['public', 'public', 'other'],
+            table_name: ['items', 'items', 'tags'],
+            column_name: ['name', 'id', 'tag'],
+            ordinal_position: [2, 1, 1],
+            data_type: ['text', 'int8', 'text'],
+        });
+        const tables = catalogTablesFromPgAttribute(rows as any, 'db');
+        expect(tables.map(table => `${table.databaseName}.${table.schemaName}.${table.tableName}`)).toEqual(['db.public.items', 'db.other.tags']);
+        expect(tables[0].columns).toEqual([
+            { name: 'name', ordinalPosition: 2, dataType: 'text' },
+            { name: 'id', ordinalPosition: 1, dataType: 'int8' },
+        ]);
     });
 });

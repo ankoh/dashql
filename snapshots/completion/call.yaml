@@ -783,11 +783,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: host
                 text: "host text"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: alerts
-            columns: [host]
         errors: []
     editor:
       input: call tickets.ticket_create (affected => (select * from ale

@@ -7,7 +7,6 @@ into the core, and why we decided against it for now.
 
 | Area | State |
 |---|---|
-| Catalog changes of DDL in planned runs | Done: `ExecutionGraphNode.catalog_changes` |
 | Plan-shape guarantees in the planner | Possible small step, not started |
 | Graph executor in `dashql-core-session` | Deferred |
 
@@ -15,14 +14,13 @@ into the core, and why we decided against it for now.
 
 Every run of a session executes a plan. The planner (`packages/dashql-core-session/src/planner.rs`)
 turns the scripts of a session, or one target script and the scripts it references, into an
-`ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines and the
-catalog changes once it succeeded. Edges order conflicting accesses. The app's
+`ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines. Edges
+order conflicting accesses. The app's
 `packages/dashql-app/src/session/scripts/session_execution.ts` (`runExecutionGraph`) executes
 that graph in TypeScript, for a run of the session (`runSessionExecution`) and for a run of one
 script (`runPlannedScript` in `script_run.ts`).
 
-The scheduling lives outside the core, the core owns the order (the edges) and the catalog
-changes (the nodes).
+The scheduling lives outside the core, the core owns the order (the edges).
 
 ## The proposal
 
@@ -38,8 +36,8 @@ The app would keep the async loop around these calls.
 
 ### Arguments for it
 
-- **One execution protocol.** The order of the statements and their catalog changes would come
-  from the core together with the scheduling.
+- **One execution protocol.** The order of the statements would come from the core together with
+  the scheduling.
 - **The graph's invariants live with the graph.** The planner snapshot test checks that nodes come
   in committed statement order and that edges point forward. `session_execution.ts` deduplicates
   edges, because the planner emits one edge per conflicting entity and reason.
@@ -61,7 +59,6 @@ The app would keep the async loop around these calls.
     previous output (`REGISTER_QUERY`, `REGISTER_SCRIPT_RESULT`, ...)
 - **The app keeps its loop either way.** It would call into wasm on every completion to learn
   what is ready, and still run its own async loop around those calls.
-- **Nodes already carry their catalog changes.**
 - **Risk.** `session_execution.test.ts`, `session_execution_integration.test.ts` and
   `session_commands_execution.test.tsx` cover concurrency, readiness, cancellation and output
   cleanup densely. A rewrite would have to rebuild that coverage against the new split.

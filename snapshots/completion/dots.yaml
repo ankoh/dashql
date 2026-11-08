@@ -15,11 +15,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: dbname.schemaname.foo
-          columns: [a]
       errors: []
       table-refs:
         - type: name/unresolved
@@ -69,11 +67,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: dbname.schemaname.foo
-          columns: [a]
       errors: []
       table-refs:
         - type: name/internal
@@ -128,11 +124,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: schemaname.foo
-          columns: [a]
       errors: []
       table-refs:
         - type: name/internal
@@ -187,11 +181,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: foo
-          columns: [a]
       errors: []
       table-refs:
         - type: name/internal
@@ -266,15 +258,11 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967297.2"
               name: f
               text: "f int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: foo
-          columns: [a,b,c]
         - statement-id: 1
-          type: create
           name: bar
-          columns: [d,e,f]
       errors: []
       table-refs:
         - type: name/internal
@@ -379,15 +367,11 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967297.2"
               name: f
               text: "f int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: foo
-          columns: [a,b,c]
         - statement-id: 1
-          type: create
           name: bar
-          columns: [d,e,f]
       errors: []
       table-refs:
         - type: name/internal
@@ -497,15 +481,11 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967297.2"
               name: f
               text: "f int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: foo
-          columns: [a,b,c]
         - statement-id: 1
-          type: create
           name: bar
-          columns: [d,e,f]
       errors: []
       table-refs:
         - type: name/internal
@@ -607,11 +587,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.4"
               name: e
               text: "e int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: foo
-          columns: [a,b,c,d,e]
       errors: []
       table-refs:
         - type: name/internal
@@ -699,11 +677,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.1"
               name: juice
               text: "juice int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: foo
-          columns: [apple,juice]
       errors: []
       table-refs:
         - type: name/internal

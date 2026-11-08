@@ -4,7 +4,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { SalesforceApiClientInterface, type SalesforceMetadataProgress } from './salesforce_api_client.js';
 import { getSalesforceDataSpace } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
-import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog/catalog_sql_generator.js';
+import { catalogTablesOfSchema, packCatalogDescriptor, type ColumnMetadata } from '../catalog/catalog_sql_generator.js';
 import { LoggerLike } from '../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions } from '../catalog/prefetched_hyper_functions.js';
 import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog/catalog_batch.js';
@@ -72,12 +72,12 @@ export async function updateSalesforceCatalog(
     conn: SalesforceConnectionStateDetails,
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
-    catalogRelationScript: dashql.DashQLScript,
+    relationEntryId: number,
     catalogFunctionScript: dashql.DashQLScript,
     api: SalesforceApiClientInterface,
     abortController: AbortController,
     options: CatalogBatchOptions = {},
-): Promise<dashql.DashQLScript> {
+): Promise<void> {
     options = { ...options, abortSignal: abortController.signal };
     const validate = beginCatalogBatch(catalog, options);
     const coreAccessToken = conn.proto.oauthState?.coreAccessToken;
@@ -97,25 +97,19 @@ export async function updateSalesforceCatalog(
     );
     validate();
 
-    // Generate SQL from metadata
-    const header = generateCatalogScriptHeader(CatalogSource.SalesforceMetadataApi);
-    const catalogSQL = generateSchemaSQL(SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, tables);
-    logger.info("Generated Salesforce catalog script", {
+    const [functions] = await publishCatalogBatch(dql, catalog, [
+        { script: catalogFunctionScript, text: functionsSQL, requireFunctions: true },
+    ], options, validate);
+    validate();
+    catalog.replaceDescriptor(
+        relationEntryId,
+        dashql.buffers.catalog.CatalogLayer.CONNECTION,
+        packCatalogDescriptor(catalogTablesOfSchema(SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, tables)),
+    );
+    logger.info("Loaded Salesforce catalog", {
         dataSpace,
         tables: tables.size.toString(),
         columns: columnCount.toString(),
-        scriptBytes: new TextEncoder().encode(catalogSQL).byteLength.toString(),
-    }, "salesforce_catalog");
-
-    const [relations, functions] = await publishCatalogBatch(dql, catalog, [
-        { script: catalogRelationScript, text: `${header}${catalogSQL}` },
-        { script: catalogFunctionScript, text: functionsSQL, requireFunctions: true },
-    ], options, validate);
-    logger.info("Loaded Salesforce catalog script", {
-        dataSpace,
-        tables: relations.tables.toString(),
         functions: functions.functions.toString(),
     }, "salesforce_catalog");
-
-    return catalogRelationScript;
 }

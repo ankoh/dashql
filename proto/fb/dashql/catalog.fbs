@@ -10,35 +10,22 @@ table CatalogDescriptor {
 
 // ----------------------------------------------------------------------------
 
-/// How a statement changed the catalog
-enum CatalogChangeType: uint8 {
-    NONE = 0,
-    /// The statement created or replaced a relation
-    CREATE_RELATION = 1,
-    /// The statement dropped a relation
-    DROP_RELATION = 2,
+/// Tables of a descriptor entry that a connection reported anew
+table CatalogTableUpdate {
+    /// The databases that the tables describe in full, their other tables are gone
+    databases: [string];
+    /// The relations that the tables describe, one without a table is gone
+    relations: [dashql.buffers.analyzer.QualifiedTableName];
+    /// The tables
+    tables: [dashql.buffers.analyzer.Table];
 }
 
-/// A change of the catalog that a successful statement implies
-table CatalogChange {
-    /// The change type
-    change_type: CatalogChangeType;
-    /// The database name, empty if neither the statement nor the defaults name one
-    database_name: string;
-    /// The schema name, empty if neither the statement nor the defaults name one
-    schema_name: string;
-    /// The relation name
-    relation_name: string;
-    /// The columns of a created relation with their names and types, in declaration order
-    columns: [dashql.buffers.analyzer.TableColumn];
-    /// Is the relation only created if it does not exist yet?
-    if_not_exists: bool;
-}
-
-/// A list of catalog changes
-table CatalogChanges {
-    /// The changes in statement order
-    changes: [CatalogChange];
+/// The relations that the statements of a text create or drop
+table TouchedRelations {
+    /// The relations in statement order, named as written
+    relations: [dashql.buffers.analyzer.QualifiedTableName];
+    /// Did the text parse? A statement that doesn't parse can touch any relation.
+    parsed: bool;
 }
 
 // ----------------------------------------------------------------------------
@@ -56,16 +43,14 @@ enum CatalogEntryType: uint8 {
 }
 
 /// The layer of a catalog entry.
-/// Names resolve against the layers in this order, and within a layer against older entries first:
-/// the scripts of a session shadow the relations created by executed statements, which shadow the
-/// schema of the connection.
+/// Names resolve against the layers in this order, and within a layer against older entries first.
+/// What the connection reported wins, the declarations of the session scripts fill in the relations
+/// that it doesn't have, such as those of scripts that haven't run yet.
 enum CatalogLayer: uint8 {
-    /// The scripts of a session
-    SESSION = 0,
-    /// The relations created by executed statements
-    EXECUTED = 1,
     /// The schema of the connection
-    CONNECTION = 2,
+    CONNECTION = 0,
+    /// The scripts of a session
+    SESSION = 1,
 }
 
 /// A catalog entry.

@@ -159,11 +159,9 @@ completion-snapshots:
             - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-      catalog-changes:
+      touched-relations:
         - statement-id: 0
-          type: create
           name: t
-          columns: [a]
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -349,11 +347,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [region,revenue,date]
         errors: []
     editor:
       input: |
@@ -1046,11 +1042,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: revenue
                 text: "revenue int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [region,revenue]
         errors: []
     editor:
       input: |

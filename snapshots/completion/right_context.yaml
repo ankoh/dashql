@@ -16,11 +16,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: b
                 text: "b int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a,b]
         errors: []
     editor:
       input: 'select a , b from tbl'
@@ -109,11 +107,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: b
                 text: "b int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a,b]
         errors: []
     editor:
       input: 'select x , b from tbl'
@@ -192,11 +188,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: b
                 text: "b int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a,b]
         errors: []
     editor:
       input: 'select * from tbl where a = 1 and b = 2'
@@ -267,15 +261,11 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967297.0"
                 name: id
                 text: "id int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: sales
-            columns: [id]
           - statement-id: 1
-            type: create
             name: customers
-            columns: [id]
         errors: []
     editor:
       input: 'select * from sa , customers'
@@ -360,11 +350,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.2"
                 name: c
                 text: "c int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a,b,c]
         errors: []
     editor:
       input: 'select * from tbl order by a , b'
@@ -450,11 +438,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a]
         errors: []
     editor:
       input: 'select * f from tbl'
@@ -538,11 +524,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a]
         errors: []
     editor:
       input: 'select * from tbl where a be 1'
@@ -626,11 +610,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a]
         errors: []
     editor:
       input: 'select * from tbl where a be 1 and'
@@ -714,11 +696,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a]
         errors: []
     editor:
       input: 'select  garbage'
@@ -754,11 +734,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a]
         errors: []
     editor:
       input: 'select a from tbl gro'
@@ -831,11 +809,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a]
         errors: []
     editor:
       input: 'select a from tbl gro a'
@@ -902,11 +878,9 @@ completion-snapshots:
               - catalog-id: "256.65536.4294967296.1"
                 name: b
                 text: "b int"
-        catalog-changes:
+        touched-relations:
           - statement-id: 0
-            type: create
             name: tbl
-            columns: [a,b]
         errors: []
     editor:
       input: 'select a from tbl gro where b = 1'

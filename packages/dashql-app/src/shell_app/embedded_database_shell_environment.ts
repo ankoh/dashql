@@ -16,6 +16,8 @@ interface EmbeddedDatabaseShellEnvironmentOptions {
     getOutputMode?: () => ShellOutputMode;
     getTerminalColumns?: () => number;
     prepareResult?: (queryId: number, table: arrow.Table) => void | Promise<void>;
+    /// Called after a statement succeeded, before its result shows and the prompt returns
+    afterStatement?: (query: string) => Promise<void>;
 }
 
 export function createEmbeddedDatabaseShellEnvironment(
@@ -44,6 +46,7 @@ export function createEmbeddedDatabaseShellEnvironment(
                         const table = await connection.query(query, cancellation.signal);
                         reportTiming('Results', performance.now() - queryStartedAt);
                         cancellation.signal.throwIfAborted();
+                        await options.afterStatement?.(query);
                         const postprocessingStartedAt = performance.now();
                         try {
                             const metrics = createQueryResponseStreamMetrics();

@@ -91,3 +91,27 @@ planner-snapshots:
         connection: trino
         input: |
           select * from t;
+
+  # A statement writes `orders` and the catalog knows it as `db.main.orders`: one relation with the defaults of the connection
+  - name: DefaultNamesOfTheConnection
+    connections:
+      - name: hyper
+        kind: REMOTE
+        default-database: db
+        default-schema: main
+        catalog: |
+          create table db.main.orders (id int, amount int);
+    scripts:
+      - name: before
+        connection: hyper
+        input: |
+          select id from orders;
+      - name: rebuild
+        connection: hyper
+        input: |
+          drop table orders;
+          create table orders (id int);
+      - name: after
+        connection: hyper
+        input: |
+          select id from db.main.orders;

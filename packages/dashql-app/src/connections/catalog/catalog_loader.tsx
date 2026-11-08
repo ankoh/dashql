@@ -16,11 +16,13 @@ import { getHyperCloudAttachedDatabase, updateSalesforceCatalog } from '../sales
 import { useQueryExecutor } from '../query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
-import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
+import { updateInformationSchemaCatalog, updateInformationSchemaRelations } from './catalog_query_information_schema.js';
+import type { RelationName } from './catalog_sql_generator.js';
 import { queryTrinoCatalogScopes, trinoCatalogScopes } from '../trino/trino_catalogs.js';
 import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
 import { connectionCatalogIsDurable } from '../connection_params.js';
 import { ensureConnectionClientFunctions } from '../connection_client_functions.js';
+import { connectorOfDetails } from '../connector_descriptor.js';
 
 const LOG_CTX = 'catalog_loader';
 
@@ -28,7 +30,10 @@ const CATALOG_REFRESH_AFTER = 60 * 1000;
 let NEXT_CATALOG_UPDATE_ID = 1;
 
 /// The catalog update args
-interface CatalogLoaderArgs { }
+interface CatalogLoaderArgs {
+    /// The relations to ask the connection about, everything if absent
+    relations: RelationName[] | null;
+}
 /// The catalog updater function
 export type CatalogLoader = (connectionId: string, args: CatalogLoaderArgs) => [number, Promise<void>];
 /// A function to add a connection id to a catalog loader queue
@@ -79,25 +84,6 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
     const onCatalogDidUpdate = React.useRef(props.onCatalogDidUpdate);
     onCatalogDidUpdate.current = props.onCatalogDidUpdate;
 
-    // Executed statements change the catalog of a connection. Every session that analyzes its
-    // scripts with the connection may reference the changed relations, so they are re-analyzed.
-    // A refresh clears the changes and announces the new catalog by itself.
-    const catalogChangesRef = React.useRef(new Map<string, string>());
-    React.useEffect(() => {
-        const seen = catalogChangesRef.current;
-        for (const [connectionId, conn] of connMap) {
-            const prev = seen.get(connectionId);
-            if (prev === conn.catalogChangesSql) continue;
-            seen.set(connectionId, conn.catalogChangesSql);
-            if (prev !== undefined && conn.catalogChangesSql) {
-                onCatalogDidUpdate.current?.(connectionId);
-            }
-        }
-        for (const connectionId of [...seen.keys()]) {
-            if (!connMap.has(connectionId)) seen.delete(connectionId);
-        }
-    }, [connReg, connMap]);
-
     // The client functions of a connection come with its connector, scripts that call them are re-analyzed
     React.useEffect(() => {
         for (const connectionId of connMap.keys()) {
@@ -112,7 +98,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
     }, []);
 
     // Execute a query with pre-allocated query id
-    const updateImpl = React.useCallback(async (connectionId: string, _args: CatalogLoaderArgs, updateId: number): Promise<void> => {
+    const updateImpl = React.useCallback(async (connectionId: string, args: CatalogLoaderArgs, updateId: number): Promise<void> => {
         // Each catalog update gets its own trace so failures don't borrow
         // whatever trace happens to be on a shared stack.
         const traced = logger.withTrace(createTrace());
@@ -129,12 +115,15 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
 
         traced.debug("Updating catalog", { connectionId }, LOG_CTX);
 
+        // The Salesforce metadata API describes everything at once
+        const relations = conn.details.type === SALESFORCE_DATA_CLOUD_CONNECTOR ? null : args.relations;
+
         // Accept the query and clear the request
         const abortController = new AbortController();
         const now = new Date();
         const initialState: CatalogUpdateTaskState = {
             taskId: updateId,
-            taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
+            taskVariant: relations != null ? CatalogUpdateVariant.RELATION_REFRESH : CatalogUpdateVariant.FULL_CATALOG_REFRESH,
             status: CatalogUpdateTaskStatus.STARTED,
             cancellation: abortController,
             queries: [],
@@ -170,13 +159,19 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             switch (conn.details.type) {
                 // Update the catalog by querying the information_schema
                 case TRINO_CONNECTOR: {
+                    // Trino folds the names of relations to lower case
+                    if (relations != null) {
+                        const folded = relations.map(r => ({ databaseName: r.databaseName.toLowerCase(), schemaName: r.schemaName.toLowerCase(), tableName: r.tableName.toLowerCase() }));
+                        await updateInformationSchemaRelations(connectionId, connDispatch, updateId, folded, executor, conn.catalog, conn.catalogRelationEntryId, batchOptions);
+                        break;
+                    }
                     const setupParams = conn.details.value.proto.setupParams;
                     let scopes = setupParams ? trinoCatalogScopes(setupParams) : [];
                     // Without configured catalogs, read all catalogs of the server
                     if (scopes.length === 0) {
                         scopes = await queryTrinoCatalogScopes(connectionId, connDispatch, updateId, executor, abortController.signal);
                     }
-                    await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, scopes, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript, batchOptions);
+                    await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, scopes, executor, conn.catalog, conn.catalogRelationEntryId, batchOptions);
                     break;
                 }
                 case HYPER_CONNECTOR: {
@@ -192,11 +187,12 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                         executor,
                         conn.catalog,
                         conn.instance,
-                        conn.catalogRelationScript,
+                        conn.catalogRelationEntryId,
                         conn.catalogFunctionScript,
                         conn.details.value.proto.setupParams?.protocol === 'WASM',
                         abortController.signal,
                         batchOptions,
+                        relations,
                     );
                     if (result.failures.length > 0) {
                         partialError = new Error(result.failures
@@ -221,11 +217,12 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                         executor,
                         conn.catalog,
                         conn.instance,
-                        conn.catalogRelationScript,
+                        conn.catalogRelationEntryId,
                         conn.catalogFunctionScript,
                         false,
                         abortController.signal,
                         batchOptions,
+                        relations,
                     );
                     break;
                 // Update the catalog by querying the Salesforce Metadata Service
@@ -235,7 +232,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                         conn.details.value,
                         conn.catalog,
                         conn.instance,
-                        conn.catalogRelationScript,
+                        conn.catalogRelationEntryId,
                         conn.catalogFunctionScript,
                         sfapi,
                         abortController,
@@ -267,11 +264,6 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
-                // Executed statements changed the catalog during the refresh and superseded it, refresh again
-                const current = connMap.get(connectionId);
-                if (!abortController.signal.aborted && current?.catalog === conn.catalog && current.catalogChangesSql !== conn.catalogChangesSql) {
-                    enqueue(connectionId, true);
-                }
             } else {
                 traced.error("Failed to update catalog", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(connectionId, {
@@ -288,7 +280,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                 "durationMs": totalMs.toFixed(0),
             }, LOG_CTX);
         }
-    }, [connMap, sfapi, executor, dependencies.updateHyperCatalog, enqueue]);
+    }, [connMap, sfapi, executor, dependencies.updateHyperCatalog]);
 
     // Allocate the next query id and start the execution
     const update = React.useCallback<CatalogLoader>((connectionId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
@@ -326,12 +318,12 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
         updatesInProgress.current = inProgress;
 
         // Helper to perform the catalog update
-        const doUpdate = async (connectionId: string) => {
+        const doUpdate = async (connectionId: string, relations: RelationName[] | null) => {
             inProgress.add(connectionId);
             try {
-                logger.info("Starting catalog update", { connectionId }, LOG_CTX);
+                logger.info("Starting catalog update", { connectionId, relations: String(relations?.length ?? 'all') }, LOG_CTX);
                 // Otherwise start the catalog update
-                const [_updateId, updatePromise] = update(connectionId, {});
+                const [_updateId, updatePromise] = update(connectionId, { relations });
                 // Await the update
                 await updatePromise;
             } catch (e: any) {
@@ -339,9 +331,18 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             } finally {
                 inProgress.delete(connectionId);
                 // Pending requests must be reconsidered even if the registry does not change.
-                setQueueState(s => s.queue.has(connectionId) ? { ...s } : s);
+                setQueueState(s => ({ ...s }));
             }
         };
+
+        // Ask the connections about the relations of executed statements, when they have room for another query.
+        // A refresh that runs may have read the relations too early, this update follows it and corrects them.
+        for (const [connectionId, conn] of connReg.connections) {
+            const relations = conn.catalogUpdates.touchedRelations;
+            if (relations.length === 0 || inProgress.has(connectionId) || conn.catalogUpdates.tasksRunning.size > 0) continue;
+            if (conn.queriesActive.size >= connectorOfDetails(conn.details).maxConcurrentQueries(conn.details.value)) continue;
+            doUpdate(connectionId, relations);
+        }
 
         const processed: string[] = [];
         for (const [connectionId, force] of queueState.queue) {
@@ -408,7 +409,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             }
 
             // Perform the catalog update
-            doUpdate(connectionId);
+            doUpdate(connectionId, null);
             processed.push(connectionId);
         }
 

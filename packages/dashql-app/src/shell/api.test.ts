@@ -127,69 +127,6 @@ describe('DashQL shell Wasm', () => {
         expect(shell.movePromptRight().text).toBe('select * from "Account"');
     });
 
-    it('tracks relations created and dropped by successful shell queries', async () => {
-        shell.destroy();
-        shell = await DashQLShell.create({
-            environment: {
-                executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file'),
-            },
-            terminalColumns: 80,
-            trackSessionRelations: true,
-            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
-        });
-
-        await shell.executeQuery('CREATE TABLE orders (order_id BIGINT, amount DOUBLE)');
-        shell.setPrompt('select * from ord');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(true);
-
-        await shell.executeQuery('DROP TABLE orders');
-        shell.setPrompt('select * from ord');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(false);
-    });
-
-    it('does not update session relations after failed queries and ignores attach metadata for now', async () => {
-        shell.destroy();
-        shell = await DashQLShell.create({
-            environment: {
-                executeQuery: async query => {
-                    if (query.startsWith('CREATE TABLE failed') || query.startsWith('DROP TABLE retained')) {
-                        throw new Error('expected');
-                    }
-                    return arrow.tableToIPC(tableFromArrays({}), 'file');
-                },
-            },
-            trackSessionRelations: true,
-            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
-        });
-
-        await expect(shell.executeQuery('CREATE TABLE failed (id BIGINT)')).resolves.toBe('expected\r\n');
-        shell.setPrompt('select * from fail');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'failed')).toBe(false);
-
-        await shell.executeQuery('CREATE TABLE retained (id BIGINT)');
-        await expect(shell.executeQuery('DROP TABLE retained')).resolves.toBe('expected\r\n');
-        shell.setPrompt('select * from reta');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'retained')).toBe(true);
-
-        await shell.executeQuery('ATTACH DATABASE "source.hyper" AS attached');
-        shell.setPrompt('select * from atta');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'attached')).toBe(false);
-    });
-
-    it('does not track session relations unless requested', async () => {
-        shell.destroy();
-        shell = await DashQLShell.create({
-            environment: {
-                executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file'),
-            },
-            core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
-        });
-
-        await shell.executeQuery('CREATE TABLE untracked (id BIGINT)');
-        shell.setPrompt('select * from untr');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'untracked')).toBe(false);
-    });
-
     it('reports messages from worker error events', async () => {
         executeQuery = async () => {
             throw {

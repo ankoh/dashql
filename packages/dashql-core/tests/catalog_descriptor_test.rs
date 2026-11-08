@@ -253,7 +253,7 @@ fn replace_with_identical_bytes_keeps_the_version() {
     assert_eq!(catalog.version(), version);
     assert_eq!(resolve(&catalog, "select a from t"), vec!["a -> t.a"]);
     // Another layer is a change
-    catalog.replace_descriptor(id, CatalogLayer::EXECUTED, &bytes).unwrap();
+    catalog.replace_descriptor(id, CatalogLayer::SESSION, &bytes).unwrap();
     assert!(catalog.version() > version);
 }
 
@@ -287,19 +287,9 @@ fn invalid_replacement_keeps_the_catalog() {
 }
 
 #[test]
-fn lower_layers_win_name_conflicts() {
+fn the_connection_shadows_session_scripts_whatever_their_entry_ids() {
     let mut catalog = Catalog::new();
-    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "t", &["slow"])]));
-    add(&mut catalog, CatalogLayer::EXECUTED, &tables_only(vec![table("", "main", "t", &["fast"])]));
-    assert_eq!(resolve(&catalog, "select fast from t"), vec!["fast -> t.fast"]);
-    let layers: Vec<_> = catalog.entries_ranked().map(|(layer, _)| layer).collect();
-    assert_eq!(layers, vec![CatalogLayer::EXECUTED, CatalogLayer::CONNECTION]);
-}
-
-#[test]
-fn session_scripts_shadow_the_connection_whatever_their_entry_ids() {
-    let mut catalog = Catalog::new();
-    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "t", &["connection_column"])]));
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "t", &["connection_column"])]));
     // Every script of a module allocates an entry id, ids pass any number that a rank could reserve
     for _ in 0..10_000 {
         catalog.allocate_entry_id();
@@ -308,7 +298,49 @@ fn session_scripts_shadow_the_connection_whatever_their_entry_ids() {
     session.insert_text_at(0, "create table t (session_column integer)");
     session.analyze(&catalog, true).unwrap();
     catalog.load_script(session.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    assert_eq!(resolve(&catalog, "select connection_column from t"), vec!["connection_column -> t.connection_column"]);
+    let layers: Vec<_> = catalog.entries_ranked().map(|(layer, _)| layer).collect();
+    assert_eq!(layers, vec![CatalogLayer::CONNECTION, CatalogLayer::SESSION]);
+}
+
+#[test]
+fn session_scripts_fill_in_the_relations_the_connection_does_not_have() {
+    let mut catalog = Catalog::new();
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "other", &["x"])]));
+    let mut session = Script::new(&catalog);
+    session.insert_text_at(0, "create table t (session_column integer)");
+    session.analyze(&catalog, true).unwrap();
+    catalog.load_script(session.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     assert_eq!(resolve(&catalog, "select session_column from t"), vec!["session_column -> t.session_column"]);
+}
+
+#[test]
+fn a_script_resolves_its_own_declarations_first() {
+    let mut catalog = Catalog::new();
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "t", &["connection_column"])]));
+    let mut script = Script::new(&catalog);
+    script.insert_text_at(0, "create table t (own_column integer); select own_column from t");
+    script.analyze(&catalog, true).unwrap();
+    let analyzed = script.analyzed.clone().unwrap();
+    let column_ref = analyzed.expressions.iter().find_map(|e| e.column_ref()).unwrap();
+    let ColumnResolution::TableColumn(column) = column_ref.resolved else { panic!("the column is unresolved") };
+    assert_eq!(column.table.entry, script.catalog_entry_id());
+}
+
+#[test]
+fn the_connection_makes_no_ambiguity_with_session_scripts() {
+    let mut catalog = Catalog::new();
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "t", &["connection_column"])]));
+    let mut session = Script::new(&catalog);
+    session.insert_text_at(0, "create table t (session_column integer)");
+    session.analyze(&catalog, true).unwrap();
+    catalog.load_script(session.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    let mut reader = Script::new(&catalog);
+    reader.insert_text_at(0, "select connection_column from t");
+    reader.analyze(&catalog, true).unwrap();
+    let analyzed = reader.analyzed.clone().unwrap();
+    assert_eq!(analyzed.table_references[0].inner.as_ref().unwrap().resolved_alternatives.len(), 0);
+    assert!(analyzed.errors.is_empty());
 }
 
 #[test]
@@ -412,30 +444,6 @@ fn statistics_count_content_of_all_entries() {
 }
 
 #[test]
-fn descriptors_keep_the_locations_of_their_declarations() {
-    // A descriptor built from a catalog script, like the batch of a connection catalog
-    let sql = "create table main.items (id integer, name text);\ncreate function main.item_count() returns integer;";
-    let source = Catalog::new();
-    let mut script = Script::new(&source);
-    script.insert_text_at(0, sql);
-    script.analyze(&source, true).unwrap();
-    let bytes = pack_catalog_descriptor(&script.analyzed.as_ref().unwrap().entry).unwrap();
-
-    let mut catalog = Catalog::new();
-    let id = add(&mut catalog, CatalogLayer::CONNECTION, &bytes);
-    let data = catalog.entry(id).unwrap().data();
-    let text = |span: Option<dashql_parser::span::TextSpan>| {
-        let span = span.expect("location");
-        &sql[span.offset as usize..(span.offset + span.length) as usize]
-    };
-    let table = &data.table_declarations[0];
-    assert_eq!(text(table.location), "main.items");
-    let columns: Vec<_> = table.table_columns.iter().map(|c| text(c.location)).collect();
-    assert_eq!(columns, vec!["id integer", "name text"]);
-    assert_eq!(text(data.function_declarations[0].location), "main.item_count");
-}
-
-#[test]
 fn replaced_descriptors_keep_the_ids_of_their_tables() {
     let mut catalog = Catalog::new();
     let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "orders", &["id"])]));
@@ -477,4 +485,107 @@ fn dropping_a_script_keeps_the_ids_of_a_descriptor_under_its_id() {
     let data = catalog.entry(id).unwrap().data();
     let refreshed = data.table_declarations.iter().find(|t| t.table_name.table_name.text() == "orders").unwrap();
     assert_eq!(refreshed.object_id, orders);
+}
+
+/// Pack an update of the tables of a descriptor
+fn table_update(databases: &[&str], relations: &[(&str, &str, &str)], tables: Vec<TableT>) -> Vec<u8> {
+    let mut update = dashql_buffers::catalog::CatalogTableUpdateT::default();
+    update.databases = Some(databases.iter().map(|d| d.to_string()).collect());
+    update.relations = Some(relations.iter().map(|(database, schema, name)| *table(database, schema, name, &[]).table_name.unwrap()).collect());
+    update.tables = Some(tables);
+    let mut builder = flatbuffers::FlatBufferBuilder::new();
+    let packed = update.pack(&mut builder);
+    builder.finish(packed, None);
+    builder.finished_data().to_vec()
+}
+
+/// The tables of a descriptor as `schema.table(a, b)`
+fn tables_of(catalog: &Catalog, id: CatalogEntryId) -> Vec<String> {
+    catalog.entry(id).unwrap().data().table_declarations.iter().map(|t| {
+        let columns: Vec<&str> = t.table_columns.iter().map(|c| c.column_name.text()).collect();
+        format!("{}.{}({})", t.table_name.schema_name.text(), t.table_name.table_name.text(), columns.join(", "))
+    }).collect()
+}
+
+#[test]
+fn replace_tables_adds_replaces_and_removes_tables() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    // An unknown entry is created
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "a")], vec![table("db", "s", "a", &["x"])])).unwrap();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "b")], vec![table("db", "s", "b", &["y"])])).unwrap();
+    assert_eq!(tables_of(&catalog, id), ["s.a(x)", "s.b(y)"]);
+    // A table keeps its position, also its id
+    let table_id = catalog.entry(id).unwrap().data().table_declarations[0].object_id;
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "a")], vec![table("db", "s", "a", &["z"])])).unwrap();
+    assert_eq!(tables_of(&catalog, id), ["s.a(z)", "s.b(y)"]);
+    assert_eq!(catalog.entry(id).unwrap().data().table_declarations[0].object_id, table_id);
+    // A relation without a table is gone
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "a")], vec![])).unwrap();
+    assert_eq!(tables_of(&catalog, id), ["s.b(y)"]);
+}
+
+#[test]
+fn replace_tables_keeps_the_version_when_nothing_changes() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "s", "a", &["x"])])).unwrap();
+    let version = catalog.version();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "a")], vec![table("db", "s", "a", &["x"])])).unwrap();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "other")], vec![])).unwrap();
+    assert_eq!(catalog.version(), version);
+}
+
+#[test]
+fn replace_tables_replaces_the_tables_of_a_database() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("one", "s", "a", &["x"]), table("two", "s", "b", &["y"])])).unwrap();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&["one"], &[], vec![table("one", "s", "c", &["z"])])).unwrap();
+    assert_eq!(tables_of(&catalog, id), ["s.b(y)", "s.c(z)"]);
+}
+
+#[test]
+fn replace_tables_leaves_the_catalog_when_it_fails() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "s", "a", &["x"])])).unwrap();
+    let version = catalog.version();
+    assert!(catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "s", "b", &["x", "x"])])).is_err());
+    assert!(catalog.replace_tables(id, CatalogLayer::CONNECTION, &[1, 2, 3]).is_err());
+    assert_eq!(tables_of(&catalog, id), ["s.a(x)"]);
+    assert_eq!(catalog.version(), version);
+}
+
+#[test]
+fn an_older_analysis_keeps_reading_the_table_it_resolved() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "s", "a", &["x"]), table("db", "s", "b", &["y"])])).unwrap();
+    let mut reader = Script::new(&catalog);
+    reader.insert_text_at(0, "select y from b");
+    reader.analyze(&catalog, true).unwrap();
+    let analyzed = reader.analyzed.clone().unwrap();
+    // The table moves in the new version of the entry, the snapshot of the analysis still holds the old one
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "a")], vec![])).unwrap();
+    assert!(!catalog.is_current(&analyzed.snapshot));
+    let column_ref = analyzed.expressions.iter().find_map(|e| e.column_ref()).unwrap();
+    let ColumnResolution::TableColumn(column) = column_ref.resolved else { panic!("the column is unresolved") };
+    assert_eq!(analyzed.table(column.table).unwrap().table_name.table_name.text(), "b");
+}
+
+#[test]
+fn a_descriptor_of_a_script_has_the_declaration_order_and_no_locations() {
+    let source = Catalog::new();
+    let mut script = Script::new(&source);
+    script.insert_text_at(0, "create table main.items (name text, id integer);");
+    script.analyze(&source, true).unwrap();
+    let bytes = pack_catalog_descriptor(&script.analyzed.as_ref().unwrap().entry).unwrap();
+
+    let mut catalog = Catalog::new();
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &bytes);
+    assert_eq!(tables_of(&catalog, id), ["main.items(name, id)"]);
+    let table = &catalog.entry(id).unwrap().data().table_declarations[0];
+    assert!(table.location.is_none());
+    assert!(table.table_columns.iter().all(|c| c.location.is_none()));
 }

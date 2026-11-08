@@ -9,8 +9,6 @@
 //! drops it from the catalog explicitly (`Catalog.dropScript`, `ScriptSession.dropFromCatalog`).
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
-use dashql_core_session::catalog_changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
-use dashql_core::catalog::changes::CatalogChange;
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
@@ -78,68 +76,24 @@ fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u
     config
 }
 
-/// A deferred modification of the catalog
-type CatalogModification = Box<dyn FnOnce(&mut CoreCatalog)>;
-
 /// The catalog shared by the JS objects of the module: the catalog object and the scripts, sessions and
-/// shells created on it.
-///
-/// The JS objects are freed independently. A shell detaches its session relations from the catalog when it is
-/// freed. If the catalog is borrowed at that moment, the modification waits for the next access instead of being
-/// lost.
+/// shells created on it. The JS objects are freed independently.
 #[derive(Clone)]
-pub struct SharedCatalog(Rc<SharedCatalogState>);
-
-/// The state of a shared catalog
-struct SharedCatalogState {
-    /// The catalog
-    catalog: RefCell<CoreCatalog>,
-    /// The modifications that found the catalog borrowed
-    deferred: RefCell<Vec<CatalogModification>>,
-}
+pub struct SharedCatalog(Rc<RefCell<CoreCatalog>>);
 
 impl SharedCatalog {
     fn new(catalog: CoreCatalog) -> Self {
-        Self(Rc::new(SharedCatalogState {
-            catalog: RefCell::new(catalog),
-            deferred: RefCell::new(Vec::new()),
-        }))
-    }
-
-    /// Apply the deferred modifications to a borrowed catalog
-    fn apply_deferred(&self, catalog: &mut CoreCatalog) {
-        let deferred = std::mem::take(&mut *self.0.deferred.borrow_mut());
-        for modification in deferred {
-            modification(catalog);
-        }
+        Self(Rc::new(RefCell::new(catalog)))
     }
 
     /// Read the catalog
     pub fn borrow(&self) -> Ref<'_, CoreCatalog> {
-        if !self.0.deferred.borrow().is_empty() {
-            if let Ok(mut catalog) = self.0.catalog.try_borrow_mut() {
-                self.apply_deferred(&mut catalog);
-            }
-        }
-        self.0.catalog.borrow()
+        self.0.borrow()
     }
 
     /// Modify the catalog
     pub fn borrow_mut(&self) -> RefMut<'_, CoreCatalog> {
-        let mut catalog = self.0.catalog.borrow_mut();
-        self.apply_deferred(&mut catalog);
-        catalog
-    }
-
-    /// Modify the catalog now, or at the next access if it is borrowed
-    pub fn modify_or_defer(&self, modification: impl FnOnce(&mut CoreCatalog) + 'static) {
-        match self.0.catalog.try_borrow_mut() {
-            Ok(mut catalog) => {
-                self.apply_deferred(&mut catalog);
-                modification(&mut catalog);
-            }
-            Err(_) => self.0.deferred.borrow_mut().push(Box::new(modification)),
-        }
+        self.0.borrow_mut()
     }
 }
 
@@ -202,18 +156,16 @@ impl Catalog {
         self.inner.borrow_mut().drop_client_functions(namespace);
     }
 
-    /// Apply packed `CatalogChanges` to a descriptor entry, an unknown entry is created in the layer
-    #[wasm_bindgen(js_name = applyCatalogChanges)]
-    pub fn apply_catalog_changes(&self, id: u32, layer: u8, changes: &[u8]) -> Result<(), JsError> {
-        let changes = unpack_catalog_changes(changes)?;
-        self.inner.borrow_mut().apply_catalog_changes(id, CatalogLayer(layer), &changes).map_err(js_error)
+    /// Update the tables of a descriptor entry with a packed `CatalogTableUpdate`
+    #[wasm_bindgen(js_name = replaceTables)]
+    pub fn replace_tables(&self, id: u32, layer: u8, update: &[u8]) -> Result<(), JsError> {
+        self.inner.borrow_mut().replace_tables(id, CatalogLayer(layer), update).map_err(js_error)
     }
 
-    /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created in the layer
-    #[wasm_bindgen(js_name = applyCatalogChangesSql)]
-    pub fn apply_catalog_changes_sql(&self, id: u32, layer: u8, changes_sql: &str) -> Result<(), JsError> {
-        let changes = parse_catalog_changes_sql(changes_sql).map_err(js_error)?;
-        self.inner.borrow_mut().apply_catalog_changes(id, CatalogLayer(layer), &changes).map_err(js_error)
+    /// The packed `CatalogDescriptor` of a descriptor entry
+    #[wasm_bindgen(js_name = descriptorBytes)]
+    pub fn descriptor_bytes(&self, id: u32) -> Option<Vec<u8>> {
+        self.inner.borrow().descriptor_bytes(id).map(<[u8]>::to_vec)
     }
 
     #[wasm_bindgen(js_name = containsEntryId)]
@@ -815,8 +767,9 @@ impl ScriptSession {
 /// A request to plan the scripts of a session across connections (`planner::SessionPlanRequest`)
 #[wasm_bindgen]
 pub struct SessionPlanRequest {
-    /// The connections: the host id, whether it is the LOCAL connection, its catalog and its formatting dialect
-    connections: Vec<(String, bool, SharedCatalog, u8)>,
+    /// The connections: the host id, whether it is the LOCAL connection, its catalog, its formatting dialect and
+    /// the database and schema of relations without those names
+    connections: Vec<(String, bool, SharedCatalog, u8, String, String)>,
     /// The scripts in session order: the name, the connection index, the session and the name of the file of a
     /// materialized result
     scripts: Vec<(String, u32, Rc<RefCell<CoreScriptSession>>, Option<String>)>,
@@ -849,8 +802,8 @@ impl SessionPlanRequest {
 
     /// Add a connection, returns its index
     #[wasm_bindgen(js_name = addConnection)]
-    pub fn add_connection(&mut self, id: String, local: bool, catalog: &Catalog, dialect: u8) -> u32 {
-        self.connections.push((id, local, catalog.inner.clone(), dialect));
+    pub fn add_connection(&mut self, id: String, local: bool, catalog: &Catalog, dialect: u8, default_database: String, default_schema: String) -> u32 {
+        self.connections.push((id, local, catalog.inner.clone(), dialect, default_database, default_schema));
         (self.connections.len() - 1) as u32
     }
 
@@ -909,17 +862,19 @@ fn with_session_plan_request<R>(
     f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
 ) -> R {
     use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript};
-    let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog, _)| catalog.borrow()).collect();
+    let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog, _, _, _)| catalog.borrow()).collect();
     let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
     let connections: Vec<_> = request
         .connections
         .iter()
         .zip(&catalogs)
-        .map(|((id, local, _, dialect), catalog)| PlannerConnection {
+        .map(|((id, local, _, dialect, default_database, default_schema), catalog)| PlannerConnection {
             id,
             kind: if *local { ConnectionKind::Local } else { ConnectionKind::Remote },
             catalog,
             dialect: dashql_buffers::formatting::FormattingDialect(*dialect),
+            default_database,
+            default_schema,
         })
         .collect();
     let scripts: Vec<_> = request
@@ -1247,29 +1202,10 @@ pub fn quote_column_name(text: &str) -> String {
     dashql_core::utils::quote_column_name(text)
 }
 
-/// Read packed `CatalogChanges`, changes without effect are skipped
-fn unpack_catalog_changes(changes: &[u8]) -> Result<Vec<CatalogChange>, JsError> {
-    let changes = flatbuffers::root::<dashql_buffers::catalog::CatalogChanges>(changes)
-        .map_err(|e| JsError::new(&format!("invalid catalog changes: {e}")))?
-        .unpack();
-    Ok(changes.changes.unwrap_or_default().iter().filter_map(CatalogChange::unpack).collect())
-}
-
-/// Fill the missing database and schema names of packed `CatalogChanges`, returns packed `CatalogChanges`
-#[wasm_bindgen(js_name = qualifyCatalogChanges)]
-pub fn qualify_packed_catalog_changes(changes: &[u8], database_name: String, schema_name: String) -> Result<Vec<u8>, JsError> {
-    let mut changes = unpack_catalog_changes(changes)?;
-    qualify_catalog_changes(&mut changes, &CatalogNameDefaults { database_name, schema_name });
-    let mut list = dashql_buffers::catalog::CatalogChangesT::default();
-    list.changes = Some(changes.iter().map(CatalogChange::pack).collect());
-    Ok(finish!(list))
-}
-
-/// Append packed `CatalogChanges` to catalog changes SQL, returns the compacted SQL
-#[wasm_bindgen(js_name = appendCatalogChangesSql)]
-pub fn append_to_catalog_changes_sql(changes_sql: &str, changes: &[u8]) -> Result<String, JsError> {
-    let changes = unpack_catalog_changes(changes)?;
-    append_catalog_changes_sql(changes_sql, &changes).map_err(js_error)
+/// The relations that the statements of a text create or drop, returns packed `TouchedRelations`
+#[wasm_bindgen(js_name = touchedRelations)]
+pub fn touched_relations(text: &str) -> Vec<u8> {
+    finish!(dashql_core_session::touched_relations::touched_relations(text))
 }
 
 /// Process a batch request into a `BatchResult`

@@ -410,3 +410,138 @@ planner-snapshots:
           reason: DDL
           entity: 'trino/256.65536.4294967296'
       diagnostics: []
+
+  - name: DefaultNamesOfTheConnection
+    connections:
+      - name: hyper
+        kind: REMOTE
+        default-database: db
+        default-schema: main
+        catalog: |
+          create table db.main.orders (id int, amount int);
+    scripts:
+      - name: before
+        connection: hyper
+        input: |
+          select id from orders;
+      - name: rebuild
+        connection: hyper
+        input: |
+          drop table orders;
+          create table orders (id int);
+      - name: after
+        connection: hyper
+        input: |
+          select id from db.main.orders;
+    expected:
+      valid: true
+      connections:
+        - name: hyper
+          kind: REMOTE
+      scripts:
+        - name: before
+          connection: hyper
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bf4ee05879261d3c375044173f6de4b1"
+        - name: rebuild
+          connection: hyper
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "7be4a5d5d12ad2f3888eebe68dbadb8d"
+        - name: after
+          connection: hyper
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e4786c565e5c9f565052554348bc6aff"
+      entities:
+        - catalog-id: 'hyper/256.65536.4294967296'
+          type: TABLE
+          name: db.main.orders
+        - catalog-id: 'hyper/257.65537.12884901888'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: before
+          connection: hyper
+          statement-id: 0
+          type: SELECT
+          sql: "select id from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: 'hyper/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: rebuild
+          connection: hyper
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table orders"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: 'hyper/256.65536.4294967296'
+              mode: DDL
+        - id: 2
+          script: rebuild
+          connection: hyper
+          statement-id: 1
+          type: CREATE_TABLE
+          sql: "create table orders (id int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: 'hyper/257.65537.12884901888'
+              mode: DDL
+        - id: 3
+          script: after
+          connection: hyper
+          statement-id: 0
+          type: SELECT
+          sql: "select id from db.main.orders"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: 'hyper/256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: 'hyper/256.65536.4294967296'
+        - from: 0
+          to: 3
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: 'hyper/257.65537.12884901888'
+        - from: 1
+          to: 3
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: DDL
+          entity: 'hyper/256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: BARRIER
+      diagnostics:
+        - node: 3
+          script: after
+          error: false
+          message: relation was dropped without an earlier lifetime producer; later producer cannot be reordered

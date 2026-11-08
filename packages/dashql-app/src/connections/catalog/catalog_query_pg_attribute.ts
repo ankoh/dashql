@@ -1,16 +1,11 @@
 import * as arrow from "apache-arrow";
-import * as dashql from '@ankoh/dashql-core';
 
 import { QueryExecutor } from '../query_executor.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import { DynamicConnectionDispatch } from '../connection_registry.js';
-import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
+import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
 import { QueryType } from '../../query/query_execution_state.js';
-import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, quoteIdentifier, type ColumnMetadata } from './catalog_sql_generator.js';
-import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
-import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
-import { type LoggerLike } from '../../platform/logger/logger.js';
-import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchEntry, type CatalogBatchOptions } from './catalog_batch.js';
+import { catalogTablesOfSchema, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
 
 const LOG_CTX = "catalog_pg";
 export const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
@@ -27,10 +22,10 @@ export type PgAttributeColumnsTable = arrow.Table<{
 }>;
 
 /**
- * Generates SQL DDL from pg_attribute query results.
- * Builds a hierarchy of schema -> table -> columns and generates CREATE TABLE statements.
+ * The tables of pg_attribute query results.
+ * Builds a hierarchy of schema -> table -> columns.
  */
-export function generateCatalogSQLFromPgAttribute(result: PgAttributeColumnsTable, databaseName: string): string {
+export function catalogTablesFromPgAttribute(result: PgAttributeColumnsTable, databaseName: string): CatalogTable[] {
     // Build hierarchy: schema -> table -> columns
     const schemas = new Map<string, Map<string, ColumnMetadata[]>>();
 
@@ -76,35 +71,33 @@ export function generateCatalogSQLFromPgAttribute(result: PgAttributeColumnsTabl
         }
     }
 
-    // Generate SQL for all schemas
-    const sqlStatements: string[] = [];
-    for (const [schemaName, schemaTables] of schemas) {
-        const sql = generateSchemaSQL(databaseName, schemaName, schemaTables);
-        if (sql.length > 0) {
-            sqlStatements.push(sql);
-        }
-    }
-
-    return sqlStatements.join('\n\n');
+    return [...schemas].flatMap(([schemaName, tables]) => catalogTablesOfSchema(databaseName, schemaName, tables));
 }
 
-export async function queryPgAttribute(
-    connectionId: string,
-    connectionDispatch: DynamicConnectionDispatch,
-    updateId: number,
-    databaseName: string,
-    schemaNames: string[],
-    executor: QueryExecutor,
-    queryDatabaseName: string | null = null,
-    abortSignal?: AbortSignal,
-): Promise<PgAttributeColumnsTable | null> {
-    const pgCatalog = queryDatabaseName == null
+/// What a query of pg_attribute reads
+export interface PgAttributeScope {
+    /// The database to read the catalog of, the default database if absent
+    queryDatabaseName?: string | null;
+    /// The schemas, all schemas if empty
+    schemaNames?: string[];
+    /// The relations, all relations if absent
+    relations?: RelationName[] | null;
+    /// Leave out the schemas of the database system?
+    userSchemasOnly?: boolean;
+}
+
+/// The query of the columns of relations
+export function pgAttributeQuery(scope: PgAttributeScope = {}): string {
+    const pgCatalog = scope.queryDatabaseName == null
         ? 'pg_catalog'
-        : `${quoteIdentifier(queryDatabaseName)}.${quoteIdentifier('pg_catalog')}`;
+        : `${quoteIdentifier(scope.queryDatabaseName)}.${quoteIdentifier('pg_catalog')}`;
+    const schemaNames = scope.schemaNames ?? [];
     const schemaFilter = schemaNames.length > 0
         ? `AND n.nspname IN (${schemaNames.map(name => `'${name.replace(/'/g, "''")}'`).join(', ')})`
         : '';
-    const query = `
+    const relationsFilter = scope.relations != null ? `AND ${relationFilter('n.nspname', 'c.relname', scope.relations)}` : '';
+    const systemFilter = scope.userSchemasOnly ? `AND n.nspname NOT IN ('pg_catalog', 'information_schema')` : '';
+    return `
         SELECT
             n.nspname AS table_schema,
             c.relname AS table_name,
@@ -133,8 +126,24 @@ export async function queryPgAttribute(
           AND a.attnum > 0
           AND NOT a.attisdropped
         ${schemaFilter}
+        ${relationsFilter}
+        ${systemFilter}
         ORDER BY n.nspname, c.relname, a.attnum
     `;
+}
+
+export async function queryPgAttribute(
+    connectionId: string,
+    connectionDispatch: DynamicConnectionDispatch,
+    updateId: number,
+    databaseName: string,
+    schemaNames: string[],
+    executor: QueryExecutor,
+    queryDatabaseName: string | null = null,
+    abortSignal?: AbortSignal,
+    relations: RelationName[] | null = null,
+): Promise<PgAttributeColumnsTable | null> {
+    const query = pgAttributeQuery({ queryDatabaseName, schemaNames, relations });
 
     const args: QueryExecutionArgs = {
         query: query,
@@ -157,86 +166,4 @@ export async function queryPgAttribute(
 
     const queryResult = await queryExecution as PgAttributeColumnsTable;
     return queryResult;
-}
-
-export async function updatePgSchemaScript(
-    logger: LoggerLike,
-    connectionId: string,
-    connectionDispatch: DynamicConnectionDispatch,
-    updateId: number,
-    databaseName: string,
-    schemaNames: string[],
-    executor: QueryExecutor,
-    catalog: dashql.DashQLCatalog,
-    catalogRelationScript: dashql.DashQLScript,
-    options: CatalogBatchOptions = {},
-): Promise<void> {
-    const validate = beginCatalogBatch(catalog, options);
-    const queryResult = await queryPgAttribute(connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor, null, options.abortSignal);
-    validate();
-    if (queryResult == null || queryResult.numRows === 0) {
-        throw new Error('pg_attribute returned no catalog relations');
-    }
-
-    const header = generateCatalogScriptHeader(CatalogSource.PgClass);
-    const catalogSQL = generateCatalogSQLFromPgAttribute(queryResult, databaseName);
-    if (catalogSQL.length === 0) {
-        throw new Error('pg_attribute returned no usable catalog relations');
-    }
-
-    connectionDispatch(connectionId, {
-        type: CATALOG_UPDATE_SCHEMA_SCRIPT,
-        value: [updateId]
-    });
-
-    const [relations] = await publishCatalogBatch(catalogRelationScript.ptr.api, catalog, [{
-        script: catalogRelationScript, text: `${header}${catalogSQL}`,
-    }], options, validate);
-    logger.info("Collected tables from pg_attribute", {
-        "updateId": updateId.toString(),
-        "tables": relations.tables.toString(),
-    }, LOG_CTX);
-}
-
-export async function updatePgCatalog(
-    logger: LoggerLike,
-    connectionId: string,
-    connectionDispatch: DynamicConnectionDispatch,
-    updateId: number,
-    databaseName: string,
-    schemaNames: string[],
-    executor: QueryExecutor,
-    catalog: dashql.DashQLCatalog,
-    dql: dashql.DashQL,
-    catalogRelationScript: dashql.DashQLScript,
-    catalogFunctionScript: dashql.DashQLScript,
-    options: CatalogBatchOptions = {},
-): Promise<void> {
-    const validate = beginCatalogBatch(catalog, options);
-    const [relationsResult, functionsResult] = await Promise.all([
-        queryPgAttribute(connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor, null, options.abortSignal),
-        queryPgProc(connectionId, connectionDispatch, updateId, executor, options.abortSignal),
-    ]);
-    validate();
-    if (relationsResult == null || relationsResult.numRows === 0) {
-        throw new Error('pg_attribute returned no catalog relations');
-    }
-    const relationsSQL = generateCatalogSQLFromPgAttribute(relationsResult, databaseName);
-    if (!relationsSQL) throw new Error('pg_attribute returned no usable catalog relations');
-    const entries: CatalogBatchEntry[] = [{
-        script: catalogRelationScript,
-        text: `${generateCatalogScriptHeader(CatalogSource.PgClass)}${relationsSQL}`,
-    }];
-    if (functionsResult == null) throw new Error('pg_proc returned no function metadata result');
-    entries.push({
-        script: catalogFunctionScript,
-        text: `${generateFunctionScriptHeader(CatalogSource.PgClass)}${generateCatalogSQLFromPgProc(functionsResult, databaseName, logger)}`,
-    });
-    connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
-    const counts = await publishCatalogBatch(dql, catalog, entries, options, validate);
-    logger.info('Collected PostgreSQL catalog', {
-        updateId: updateId.toString(),
-        tables: counts[0].tables.toString(),
-        functions: counts[1].functions.toString(),
-    }, LOG_CTX);
 }

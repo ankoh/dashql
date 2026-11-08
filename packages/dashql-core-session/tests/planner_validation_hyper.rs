@@ -51,7 +51,7 @@ fn provide(connections: &mut [HyperConnection], fixture: &Fixture, planned: &Pla
     let target = Fixture {
         catalog: fixture.catalog.clone(),
         client_functions: fixture.client_functions,
-        connections: fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino }).collect(),
+        connections: fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino, default_database: c.default_database.clone(), default_schema: c.default_schema.clone() }).collect(),
         scripts: fixture.scripts.iter().map(|s| FixtureScript { name: s.name.clone(), input: s.input.clone(), stale_prepend: None, connection: s.connection.clone() }).collect(),
         targets: Some(vec![name.clone()]),
         materialized: Vec::new(),

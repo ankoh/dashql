@@ -33,7 +33,7 @@ function connection(connectionId: string, endpoint: string): ConnectionState {
         params: { trino: { endpoint } },
         details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: { endpoint } } } },
         catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-        catalogRelationScript: { catalog_entry_id: 1, destroy: vi.fn() },
+        catalogRelationEntryId: 1,
         catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
         catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null },
         queriesActive: new Map(), queriesActiveOrdered: [],
