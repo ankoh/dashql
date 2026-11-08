@@ -44,26 +44,76 @@
         "status": 200,
         "headers": {},
         "body": {
-          "currentPageUrl": "current_page_url_value",
-          "nextPageUrl": "next_page_url_value",
-          "totalSize": 2,
-          "dataTransforms": {
-            "assumed": "data_transforms"
-          },
-          "errors": {
-            "assumed": "errors"
-          },
-          "assumedUnlistedField": true
+          "dataTransforms": [
+            {
+              "createdBy": {
+                "assumed": "created_by"
+              },
+              "createdDate": "created_date_value",
+              "id": "id_value",
+              "label": "label_value",
+              "lastModifiedBy": {
+                "assumed": "last_modified_by"
+              },
+              "lastModifiedDate": "last_modified_date_value",
+              "name": "name_value",
+              "namespace": "namespace_value",
+              "url": "url_value",
+              "actionUrls": {
+                "assumed": "action_urls"
+              },
+              "creationType": "creation_type_value",
+              "dataSpaceName": "dataspace_name_value",
+              "definition": {
+                "assumed": "definition"
+              },
+              "definitions": {
+                "assumed": "definitions"
+              },
+              "description": "description_value",
+              "fullRunFrequency": "full_run_frequency_value",
+              "lastRunDate": "last_run_date_value",
+              "lastRunErrorCode": {
+                "assumed": "last_run_error_code"
+              },
+              "lastRunStatus": "last_run_status_value",
+              "schedule": {
+                "assumed": "schedule"
+              },
+              "status": "status_value",
+              "type": "type_value",
+              "version": 2,
+              "assumedUnlistedField": true
+            }
+          ]
         }
       },
       "result": {
         "rows": [
           {
-            "current_page_url": "current_page_url_value",
-            "next_page_url": "next_page_url_value",
-            "total_size": 2,
-            "data_transforms": "{\"assumed\":\"data_transforms\"}",
-            "errors": "{\"assumed\":\"errors\"}",
+            "created_by": "{\"assumed\":\"created_by\"}",
+            "created_date": "created_date_value",
+            "id": "id_value",
+            "label": "label_value",
+            "last_modified_by": "{\"assumed\":\"last_modified_by\"}",
+            "last_modified_date": "last_modified_date_value",
+            "name": "name_value",
+            "namespace": "namespace_value",
+            "url": "url_value",
+            "action_urls": "{\"assumed\":\"action_urls\"}",
+            "creation_type": "creation_type_value",
+            "dataspace_name": "dataspace_name_value",
+            "definition": "{\"assumed\":\"definition\"}",
+            "definitions": "{\"assumed\":\"definitions\"}",
+            "description": "description_value",
+            "full_run_frequency": "full_run_frequency_value",
+            "last_run_date": "last_run_date_value",
+            "last_run_error_code": "{\"assumed\":\"last_run_error_code\"}",
+            "last_run_status": "last_run_status_value",
+            "schedule": "{\"assumed\":\"schedule\"}",
+            "status": "status_value",
+            "type": "type_value",
+            "version": 2,
             "_status": 200,
             "_next": "1",
             "_meta": null,
@@ -206,22 +256,16 @@
         "status": 200,
         "headers": {},
         "body": {
-          "currentPageUrl": "current_page_url_value",
-          "nextPageUrl": "next_page_url_value",
-          "totalSize": 2,
-          "histories": {
-            "assumed": "histories"
-          },
-          "assumedUnlistedField": true
+          "histories": [
+            {
+              "assumedUnlistedField": true
+            }
+          ]
         }
       },
       "result": {
         "rows": [
           {
-            "current_page_url": "current_page_url_value",
-            "next_page_url": "next_page_url_value",
-            "total_size": 2,
-            "histories": "{\"assumed\":\"histories\"}",
             "_status": 200,
             "_next": "1",
             "_meta": null,

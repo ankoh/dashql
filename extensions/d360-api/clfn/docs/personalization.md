@@ -152,7 +152,7 @@ CALL cdp.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website
 
 The public sources don't document this response. One row, with the response in `_raw`.
 
-**Paging:** `limit` (1-299, default 50) and `offset` (default 0).
+**Paging:** `limit` (1-299, default 50) and `offset` (default 0). The response isn't documented, so a script passes `offset` itself.
 
 **Notes:** The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `personalizationExperienceConfigs` with `total_size`, but that's fixture data. No source gives the field that holds the Web Personalization Manager URL from `is_wpm_url_required`.
 
@@ -342,7 +342,7 @@ CALL cdp.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'H
 
 The public sources don't document this response. One row, with the response in `_raw`.
 
-**Paging:** `limit` (1-299, default 50) and `offset` (default 0).
+**Paging:** `limit` (1-299, default 50) and `offset` (default 0). The response isn't documented, so a script passes `offset` itself.
 
 **Notes:** `source` defaults to `Organization`, so Global transformers need `source => 'Global'`. The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `transformers` with `total_size`, but that's fixture data.
 

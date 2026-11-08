@@ -11,7 +11,7 @@ description: |
   - `metadata` returns only the DMOs in use, while [`dmo_list`](data_model_objects.md#dmo_list) returns the whole catalog (community, one org).
   - Pass `entity_name` to `metadata`, because unfiltered responses are large.
   - Profile reads take Profile category DMOs only, and filters are equality joined by AND.
-  - Most record reads return one row, with the records in a `data` JSON column.
+  - Record reads return one row per record, with the fields of a record in `_raw`, and the rest of the response in `_meta`.
 
   ```sql
   /* Inventory, without fields */
@@ -40,18 +40,11 @@ functions:
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
       - {name: time_granularity, api_name: timeGranularity, in: query, type: string, description: "Time range for the measures. Values are `HOUR`, `DAY`, `MONTH`, `QUARTER`, or `YEAR`. If unspecified, no time range is applied. Since v54.0."}
-    columns:
-      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
-      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
-      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
-      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
-      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
-      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
-      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    rows: /data
     paging: {kind: offset, option: offset, size: batch_size, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`."
     notes: |
       **Paging:** `batch_size`, `offset`.
 
@@ -169,18 +162,11 @@ functions:
       - {name: filters, in: query, type: string, required: true, description: "Comma-separated list of equality expressions within square brackets, for example, `[FirstName__c=DON]`. Since v52.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
-    columns:
-      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
-      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
-      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
-      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
-      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
-      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
-      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    rows: /data
     paging: {kind: offset, option: offset, size: batch_size, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`."
     notes: |
       **Paging:** `batch_size`, `offset`.
 
@@ -188,7 +174,7 @@ functions:
 
       `data_model_name` is the [full API name with `__dlm`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md), although [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/QueryTools.java) gives `Individual` and `Account` as examples. The spec has no `dataspace` here, while the tool accepts one.
 
-      Records are in the `data` column as JSON.
+      Each record is a row, with its fields in `_raw`.
 
   - name: profile_get
     method: GET
@@ -206,18 +192,11 @@ functions:
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
       - {name: search_key, api_name: searchKey, in: query, type: string, description: "If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0."}
-    columns:
-      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
-      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
-      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
-      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
-      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
-      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
-      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    rows: /data
     paging: {kind: offset, option: offset, size: batch_size, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`."
     notes: |
       **Paging:** `batch_size`, `offset`.
 
@@ -240,18 +219,11 @@ functions:
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v52.0."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
       - {name: search_key, api_name: searchKey, in: query, type: string, description: "If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0."}
-    columns:
-      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
-      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
-      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
-      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
-      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
-      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
-      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    rows: /data
     paging: {kind: offset, option: offset, size: batch_size, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`."
     notes: |
       **Paging:** `batch_size`, `offset`.
 
@@ -277,18 +249,11 @@ functions:
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0."}
       - {name: search_key, api_name: searchKey, in: query, type: string, description: "If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0."}
       - {name: time_granularity, api_name: timeGranularity, in: query, type: string, description: "Time range for the measures. Values are: `HOUR`, `DAY`, `MONTH`, `QUARTER`, or `YEAR`. If unspecified, no time range is applied. Since v54.0."}
-    columns:
-      - {name: data, type: JSON, description: "Result data set. Since v52.0."}
-      - {name: done, type: BOOLEAN, description: "Specifies whether the query is done (`true`) or not (`false`). Since v52.0."}
-      - {name: end_time, api_name: endTime, type: VARCHAR, description: "Query end time. Not returned for data graphs. Since v52.0."}
-      - {name: metadata, type: JSON, description: "Result metadata set. Not returned for data graphs. Since v52.0."}
-      - {name: query_id, api_name: queryId, type: VARCHAR, description: "Query ID. Not returned for data graphs. Since v52.0."}
-      - {name: row_count, api_name: rowCount, type: BIGINT, description: "Number of rows in the result data set. Not returned for data graphs. Since v52.0."}
-      - {name: start_time, api_name: startTime, type: VARCHAR, description: "Query start time. Not returned for data graphs. Since v52.0."}
+    rows: /data
     paging: {kind: offset, option: offset, size: batch_size, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `CdpQueryOutputRepresentation`.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`."
     notes: |
       **Paging:** `batch_size`, `offset`.
 
@@ -467,14 +432,12 @@ functions:
       - {name: limit, in: query, type: integer, description: "Maximum number of records. The reference gives a default of 49,999."}
       - {name: offset, in: query, type: integer, description: "Number of records to skip."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort fields, with a `-` prefix for descending, such as `LastName__c,-FirstName__c`."}
-    columns:
-      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
-      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    rows: /data
     paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     unknown: warning
     evidence: D
-    result_description: One row.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`."
     notes: |
       **Paging:** `limit`, `offset`.
 
@@ -526,14 +489,12 @@ functions:
       - {name: offset, in: query, type: integer, description: "Number of records to skip."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Sort fields, with a `-` prefix for descending, such as `Email__c,-IsPrimary__c`."}
       - {name: search_key, api_name: searchkey, in: query, type: string, description: "Field to search by, such as `Email__c`."}
-    columns:
-      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
-      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    rows: /data
     paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     unknown: warning
     evidence: D
-    result_description: One row.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`."
     notes: |
       **Paging:** `limit`, `offset`.
 
@@ -628,14 +589,12 @@ functions:
       - {name: filters, in: query, type: string, description: "Filter in the form `[field=value]`, such as `[GenderId__c=Male,FirstName__c=John]`. Values are case-sensitive."}
       - {name: order_by, api_name: orderby, in: query, type: string, description: "Comma-separated sort fields with an optional direction, such as `GenderId__c ASC,Occupation__c DESC`."}
       - {name: time_granularity, api_name: timeGranularity, in: query, type: string, description: "`HOUR`, `DAY`, `MONTH`, `QUARTER` or `YEAR`."}
-    columns:
-      - {name: data, type: JSON, description: "Array of records, as objects keyed by field name."}
-      - {name: done, type: BOOLEAN, description: "Whether all results have been returned."}
+    rows: /data
     paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     unknown: warning
     evidence: D
-    result_description: One row.
+    result_description: "One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`."
     notes: |
       **Paging:** `limit`, `offset`.
 

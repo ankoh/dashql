@@ -79,21 +79,39 @@ CALL cdp.transform_list ();
 
 **Result**
 
-One row. Schema `DataTransformCollectionRepresentation`.
+One row per item of `/dataTransforms` in the response. Other response fields go to `_meta`: `currentPageUrl`, `errors`, `nextPageUrl`, `totalSize`. Schema `DataTransformCollectionRepresentation`.
 
 | Column | API name | Type | Description |
 |---|---|---|---|
-| `current_page_url` | `currentPageUrl` | VARCHAR | Current page URL. Since v60.0. |
-| `next_page_url` | `nextPageUrl` | VARCHAR | Next page URL, if it exists. Since v60.0. |
-| `total_size` | `totalSize` | BIGINT | Total size of the collection. Since v60.0. |
-| `data_transforms` | `dataTransforms` | JSON (array of DataTransformRepresentation) | List of data transforms returned for the current page. Since v60.0. |
-| `errors` | `errors` | JSON (array of FailedResourceCollectionRepresentation) | Error collection of resources that failed to be retrieved. Since v60.0. |
+| `created_by` | `createdBy` | JSON (CdpUserRepresentation) | Who or what created the model configuration, artifact, or other asset. Since v60.0. |
+| `created_date` | `createdDate` | VARCHAR | Date that the artifact was created. Since v60.0. |
+| `id` | `id` | VARCHAR | 18-character ID of the asset. Since v60.0. |
+| `label` | `label` | VARCHAR | Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0. |
+| `last_modified_by` | `lastModifiedBy` | JSON (CdpUserRepresentation) | Who or what last modified the asset. Since v60.0. |
+| `last_modified_date` | `lastModifiedDate` | VARCHAR | When the asset was last modified. Since v60.0. |
+| `name` | `name` | VARCHAR | Name of the asset. Since v60.0. |
+| `namespace` | `namespace` | VARCHAR | Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0. |
+| `url` | `url` | VARCHAR | The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0. |
+| `action_urls` | `actionUrls` | JSON (BatchActionRepresentation) | Actions available for the data transform. Since v60.0. |
+| `creation_type` | `creationType` | VARCHAR | Creation type of the data transform. Since v60.0. |
+| `dataspace_name` | `dataSpaceName` | VARCHAR | Data space for the data transform. Since v60.0. |
+| `definition` | `definition` | JSON | Base definition for the data transform. The endpoint returns the definition output object that corresponds to the type of data transform. For example, the Stl Data Transform Definition Output is returned for the `Stl` and `StlHidden` types. Since v60.0. |
+| `definitions` | `definitions` | JSON (array of DataTransformDefinitionRepresentation) | List of definitions for batch data transforms. Since v63.0. |
+| `description` | `description` | VARCHAR | Description of the data transform. Since v60.0. |
+| `full_run_frequency` | `fullRunFrequency` | VARCHAR | Full run frequency of the data transform. Since v63.0. |
+| `last_run_date` | `lastRunDate` | VARCHAR | Last date the data transform was run. Since v60.0. |
+| `last_run_error_code` | `lastRunErrorCode` | JSON (CdpErrorRepresentation) | Error code of the last run. Since v60.0. |
+| `last_run_status` | `lastRunStatus` | VARCHAR | Status of the last run. Since v60.0. |
+| `schedule` | `schedule` | JSON (ScheduleRepresentation) | The schedule for the data transform. Since v60.0. |
+| `status` | `status` | VARCHAR | The status of the data transform. Since v60.0. |
+| `type` | `type` | VARCHAR | Type of data transform. Since v60.0. |
+| `version` | `version` | BIGINT | Version of the data transform. Since v60.0. |
 
 **Paging:** `limit`, `offset`.
 
 **Notes:** `limit` stops at 20, so page with `offset`.
 
-- `errors` lists transforms that couldn't be read, in a 200 response. Check it as well as `data_transforms`.
+- `errors` in `_meta` lists transforms that couldn't be read, in a 200 response. Check it as well as the rows.
 - Among the transform's own fields, the spec puts only `last_run_error_code` outside `Small`. `filter_group => 'Small'` doesn't drop `definition`, so it won't shrink the response much.
 - The spec's enums are Title Case (`Active`, `Success`), its examples are upper case (`ACTIVE`, `SUCCESS`, `NONE`), and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) records live responses with `status`, `last_run_status`, `creation_type` and `full_run_frequency` values outside the enums, and `definition` shapes outside the schema. Compare case-insensitively and don't reject unknown values.
 
@@ -177,18 +195,11 @@ CALL cdp.transform_run_history_list (data_transform_name_or_id => 'account_summa
 
 **Result**
 
-One row. Schema `DataTransformRunHistoryCollectionRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `current_page_url` | `currentPageUrl` | VARCHAR | Current page URL. Since v60.0. |
-| `next_page_url` | `nextPageUrl` | VARCHAR | Next page URL, if it exists. Since v60.0. |
-| `total_size` | `totalSize` | BIGINT | Total size of the collection. Since v60.0. |
-| `histories` | `histories` | JSON | List of information about the jobs that the data transform has run. Each data transform run is one entry in the array. The endpoint returns the run history output object that corresponds to the type of data transform. For example, the Batch Data Transform Run History Output is returned for the `Batch` data transform type. Since v62.0. |
+One row per item of `/histories` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataTransformRunHistoryCollectionRepresentation`.
 
 **Paging:** `limit`, `offset`.
 
-**Notes:** `histories` is JSON and its fields depend on the transform type.
+**Notes:** The fields of a run are in `_raw` and depend on the transform type.
 
 - **Both:** `request_id` (v67), `definition_name`, `status`, `start_time`, `end_time`, `duration` (seconds), `processedRows`, `isVersionChanged`, `error_message`, `type`.
 - **Batch:** `runMode`, `runModeReason`, `runModeParameters`, and `outputStatus[]` with `name`, `data_object_name`, `data_object_type`, `status`, `totalRows`, `completed_date`.

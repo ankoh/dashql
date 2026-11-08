@@ -178,30 +178,16 @@
         "status": 200,
         "headers": {},
         "body": {
-          "data": {
-            "assumed": "data"
-          },
-          "done": true,
-          "endTime": "end_time_value",
-          "metadata": {
-            "assumed": "metadata"
-          },
-          "queryId": "query_id_value",
-          "rowCount": 2,
-          "startTime": "start_time_value",
-          "assumedUnlistedField": true
+          "data": [
+            {
+              "assumedUnlistedField": true
+            }
+          ]
         }
       },
       "result": {
         "rows": [
           {
-            "data": "{\"assumed\":\"data\"}",
-            "done": true,
-            "end_time": "end_time_value",
-            "metadata": "{\"assumed\":\"metadata\"}",
-            "query_id": "query_id_value",
-            "row_count": 2,
-            "start_time": "start_time_value",
             "_status": 200,
             "_next": "1",
             "_meta": null,

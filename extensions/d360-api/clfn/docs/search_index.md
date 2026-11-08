@@ -381,7 +381,7 @@ CALL cdp.search_index_process_history (search_index_api_name_or_id => 'Articles_
 
 The public sources don't document this response. One row, with the response in `_raw`.
 
-**Paging:** `limit` and 1-based `offset`. Salesforce's tool says pagination "is currently unreliable" and fetches only the first page.
+**Paging:** `limit` and 1-based `offset`. The response isn't documented, so a script passes `offset` itself. Salesforce's tool says pagination "is currently unreliable" and fetches only the first page.
 
 **Notes:** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) says the response is a list of process history records "with status, timestamps, and details", but no source names the fields. There is no spec entry, and [one community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) leaves this call out as unverified.
 

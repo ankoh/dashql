@@ -9,6 +9,5 @@ call cdp.p13n_transformer_list (
     transformer_type => 'Handlebars',
     is_enabled => true,
     connector_name_or_id => 'my_website_connector',
-    limit => 50,
-    _pages => 2
+    limit => 50
 );

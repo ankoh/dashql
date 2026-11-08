@@ -15,7 +15,7 @@ The gotchas that matter most:
 - `metadata` returns only the DMOs in use, while [`dmo_list`](data_model_objects.md#dmo_list) returns the whole catalog (community, one org).
 - Pass `entity_name` to `metadata`, because unfiltered responses are large.
 - Profile reads take Profile category DMOs only, and filters are equality joined by AND.
-- Most record reads return one row, with the records in a `data` JSON column.
+- Record reads return one row per record, with the fields of a record in `_raw`, and the rest of the response in `_meta`.
 
 ```sql
 /* Inventory, without fields */
@@ -53,17 +53,7 @@ CALL cdp.insights_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,Firs
 
 **Result**
 
-One row. Schema `CdpQueryOutputRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Result data set. Since v52.0. |
-| `done` | `done` | BOOLEAN | Specifies whether the query is done (`true`) or not (`false`). Since v52.0. |
-| `end_time` | `endTime` | VARCHAR | Query end time. Not returned for data graphs. Since v52.0. |
-| `metadata` | `metadata` | JSON | Result metadata set. Not returned for data graphs. Since v52.0. |
-| `query_id` | `queryId` | VARCHAR | Query ID. Not returned for data graphs. Since v52.0. |
-| `row_count` | `rowCount` | BIGINT | Number of rows in the result data set. Not returned for data graphs. Since v52.0. |
-| `start_time` | `startTime` | VARCHAR | Query start time. Not returned for data graphs. Since v52.0. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`.
 
 **Paging:** `batch_size`, `offset`.
 
@@ -222,17 +212,7 @@ CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '
 
 **Result**
 
-One row. Schema `CdpQueryOutputRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Result data set. Since v52.0. |
-| `done` | `done` | BOOLEAN | Specifies whether the query is done (`true`) or not (`false`). Since v52.0. |
-| `end_time` | `endTime` | VARCHAR | Query end time. Not returned for data graphs. Since v52.0. |
-| `metadata` | `metadata` | JSON | Result metadata set. Not returned for data graphs. Since v52.0. |
-| `query_id` | `queryId` | VARCHAR | Query ID. Not returned for data graphs. Since v52.0. |
-| `row_count` | `rowCount` | BIGINT | Number of rows in the result data set. Not returned for data graphs. Since v52.0. |
-| `start_time` | `startTime` | VARCHAR | Query start time. Not returned for data graphs. Since v52.0. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`.
 
 **Paging:** `batch_size`, `offset`.
 
@@ -240,7 +220,7 @@ One row. Schema `CdpQueryOutputRepresentation`.
 
 `data_model_name` is the [full API name with `__dlm`](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md), although [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/QueryTools.java) gives `Individual` and `Account` as examples. The spec has no `dataspace` here, while the tool accepts one.
 
-Records are in the `data` column as JSON.
+Each record is a row, with its fields in `_raw`.
 
 ## profile_get
 
@@ -267,17 +247,7 @@ CALL cdp.profile_get (data_model_name => 'ssot__Individual__dlm', id => 'Jean', 
 
 **Result**
 
-One row. Schema `CdpQueryOutputRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Result data set. Since v52.0. |
-| `done` | `done` | BOOLEAN | Specifies whether the query is done (`true`) or not (`false`). Since v52.0. |
-| `end_time` | `endTime` | VARCHAR | Query end time. Not returned for data graphs. Since v52.0. |
-| `metadata` | `metadata` | JSON | Result metadata set. Not returned for data graphs. Since v52.0. |
-| `query_id` | `queryId` | VARCHAR | Query ID. Not returned for data graphs. Since v52.0. |
-| `row_count` | `rowCount` | BIGINT | Number of rows in the result data set. Not returned for data graphs. Since v52.0. |
-| `start_time` | `startTime` | VARCHAR | Query start time. Not returned for data graphs. Since v52.0. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`.
 
 **Paging:** `batch_size`, `offset`.
 
@@ -309,17 +279,7 @@ CALL cdp.profile_child (data_model_name => 'ssot__Individual__dlm', id => '10000
 
 **Result**
 
-One row. Schema `CdpQueryOutputRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Result data set. Since v52.0. |
-| `done` | `done` | BOOLEAN | Specifies whether the query is done (`true`) or not (`false`). Since v52.0. |
-| `end_time` | `endTime` | VARCHAR | Query end time. Not returned for data graphs. Since v52.0. |
-| `metadata` | `metadata` | JSON | Result metadata set. Not returned for data graphs. Since v52.0. |
-| `query_id` | `queryId` | VARCHAR | Query ID. Not returned for data graphs. Since v52.0. |
-| `row_count` | `rowCount` | BIGINT | Number of rows in the result data set. Not returned for data graphs. Since v52.0. |
-| `start_time` | `startTime` | VARCHAR | Query start time. Not returned for data graphs. Since v52.0. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`.
 
 **Paging:** `batch_size`, `offset`.
 
@@ -354,17 +314,7 @@ CALL cdp.profile_insight (data_model_name => 'ssot__Individual__dlm', id => '100
 
 **Result**
 
-One row. Schema `CdpQueryOutputRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Result data set. Since v52.0. |
-| `done` | `done` | BOOLEAN | Specifies whether the query is done (`true`) or not (`false`). Since v52.0. |
-| `end_time` | `endTime` | VARCHAR | Query end time. Not returned for data graphs. Since v52.0. |
-| `metadata` | `metadata` | JSON | Result metadata set. Not returned for data graphs. Since v52.0. |
-| `query_id` | `queryId` | VARCHAR | Query ID. Not returned for data graphs. Since v52.0. |
-| `row_count` | `rowCount` | BIGINT | Number of rows in the result data set. Not returned for data graphs. Since v52.0. |
-| `start_time` | `startTime` | VARCHAR | Query start time. Not returned for data graphs. Since v52.0. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`, `endTime`, `metadata`, `queryId`, `rowCount`, `startTime`. Schema `CdpQueryOutputRepresentation`.
 
 **Paging:** `batch_size`, `offset`.
 
@@ -609,12 +559,7 @@ CALL cdp.direct_profile_list (data_model_name => 'Individual__dlm', fields => 'F
 
 **Result**
 
-One row.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Array of records, as objects keyed by field name. |
-| `done` | `done` | BOOLEAN | Whether all results have been returned. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`.
 
 **Paging:** `limit`, `offset`.
 
@@ -683,12 +628,7 @@ CALL cdp.direct_profile_child (data_model_name => 'Individual__dlm', id => '123'
 
 **Result**
 
-One row.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Array of records, as objects keyed by field name. |
-| `done` | `done` | BOOLEAN | Whether all results have been returned. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`.
 
 **Paging:** `limit`, `offset`.
 
@@ -815,12 +755,7 @@ CALL cdp.direct_insight_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__
 
 **Result**
 
-One row.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `data` | `data` | JSON | Array of records, as objects keyed by field name. |
-| `done` | `done` | BOOLEAN | Whether all results have been returned. |
+One row per item of `/data` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `done`.
 
 **Paging:** `limit`, `offset`.
 

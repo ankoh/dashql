@@ -120,13 +120,11 @@ functions:
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: query, type: string, description: "Developer name of the data kit. Since v63.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of available components to return from `1` through `200`. By default, `200` components are returned. Since v63.0."}
       - {name: offset, in: query, type: integer, description: "Number of records to skip before returning results. If unspecified, no rows are skipped. Since v63.0."}
-    columns:
-      - {name: components, type: JSON, array: 1, schema: DataKitComponentRepresentation, description: "List of data kit components. Since v63.0."}
-      - {name: external_record_identifier, api_name: externalRecordIdentifier, type: VARCHAR, description: "External record ID for `DataStreamBundle` component types. Since v62.0."}
+    rows: /components
     paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `DataKitComponentCollectionRepresentation`.
+    result_description: "One row per item of `/components` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `externalRecordIdentifier`. Schema `DataKitComponentCollectionRepresentation`."
     notes: |
       **Paging:** `limit`, `offset`.
 

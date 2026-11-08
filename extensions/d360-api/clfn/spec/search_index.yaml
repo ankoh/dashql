@@ -321,13 +321,12 @@ functions:
       - {name: search_index_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "ID or API Name of the search index"}
       - {name: limit, in: query, type: integer, description: "Maximum number of records to return (default 50)"}
       - {name: offset, in: query, type: integer, description: "1-based offset for pagination (default 1). Must be >= 1."}
-    paging: {kind: offset, option: offset, size: limit, start: 1}
     effect: read
     unknown: warning
     evidence: S
     result_description: The public sources don't document this response. One row, with the response in `_raw`.
     notes: |
-      **Paging:** `limit` and 1-based `offset`. Salesforce's tool says pagination "is currently unreliable" and fetches only the first page.
+      **Paging:** `limit` and 1-based `offset`. The response isn't documented, so a script passes `offset` itself. Salesforce's tool says pagination "is currently unreliable" and fetches only the first page.
 
       **Notes:** [Salesforce's tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SearchIndexTools.java) says the response is a list of process history records "with status, timestamps, and details", but no source names the fields. There is no spec entry, and [one community plugin](https://github.com/dsouza-anush/sf-plugin-data360/blob/main/docs/API_COVERAGE.md) leaves this call out as unverified.
 

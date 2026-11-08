@@ -358,18 +358,16 @@
         "status": 200,
         "headers": {},
         "body": {
-          "components": {
-            "assumed": "components"
-          },
-          "externalRecordIdentifier": "external_record_identifier_value",
-          "assumedUnlistedField": true
+          "components": [
+            {
+              "assumedUnlistedField": true
+            }
+          ]
         }
       },
       "result": {
         "rows": [
           {
-            "components": "{\"assumed\":\"components\"}",
-            "external_record_identifier": "external_record_identifier_value",
             "_status": 200,
             "_next": "1",
             "_meta": null,

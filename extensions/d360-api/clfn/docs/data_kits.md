@@ -165,12 +165,7 @@ CALL cdp.datakit_components (component_type => 'DataLakeObject', limit => 50);
 
 **Result**
 
-One row. Schema `DataKitComponentCollectionRepresentation`.
-
-| Column | API name | Type | Description |
-|---|---|---|---|
-| `components` | `components` | JSON (array of DataKitComponentRepresentation) | List of data kit components. Since v63.0. |
-| `external_record_identifier` | `externalRecordIdentifier` | VARCHAR | External record ID for `DataStreamBundle` component types. Since v62.0. |
+One row per item of `/components` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `externalRecordIdentifier`. Schema `DataKitComponentCollectionRepresentation`.
 
 **Paging:** `limit`, `offset`.
 

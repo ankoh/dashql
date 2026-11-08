@@ -60,22 +60,41 @@ functions:
       - {name: limit, in: query, type: integer, description: "Maximum number of rows to return from `1` through `20`. If unspecified, the default number of rows is `20`. Since v60.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v60.0."}
       - {name: order_by, api_name: orderBy, in: query, type: string, enum: [DataTransformStatusAsc, DataTransformStatusDesc, LabelAsc, LabelDesc, LastRunStatusAsc, LastRunStatusDesc, LastRunTimeAsc, LastRunTimeDesc, MruAsc, MruDesc, NameAsc, NameDesc, TypeAsc, TypeDesc], description: "Sort order for the result set. If unspecified, items are returned in the order they are retrieved. Since v60.0."}
+    rows: /dataTransforms
     columns:
-      - {name: current_page_url, api_name: currentPageUrl, type: VARCHAR, description: "Current page URL. Since v60.0."}
-      - {name: next_page_url, api_name: nextPageUrl, type: VARCHAR, description: "Next page URL, if it exists. Since v60.0."}
-      - {name: total_size, api_name: totalSize, type: BIGINT, description: "Total size of the collection. Since v60.0."}
-      - {name: data_transforms, api_name: dataTransforms, type: JSON, array: 1, schema: DataTransformRepresentation, description: "List of data transforms returned for the current page. Since v60.0."}
-      - {name: errors, type: JSON, array: 1, schema: FailedResourceCollectionRepresentation, description: "Error collection of resources that failed to be retrieved. Since v60.0."}
+      - {name: created_by, api_name: createdBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what created the model configuration, artifact, or other asset. Since v60.0."}
+      - {name: created_date, api_name: createdDate, type: VARCHAR, description: "Date that the artifact was created. Since v60.0."}
+      - {name: id, type: VARCHAR, description: "18-character ID of the asset. Since v60.0."}
+      - {name: label, type: VARCHAR, description: "Label of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: last_modified_by, api_name: lastModifiedBy, type: JSON, schema: CdpUserRepresentation, description: "Who or what last modified the asset. Since v60.0."}
+      - {name: last_modified_date, api_name: lastModifiedDate, type: VARCHAR, description: "When the asset was last modified. Since v60.0."}
+      - {name: name, type: VARCHAR, description: "Name of the asset. Since v60.0."}
+      - {name: namespace, type: VARCHAR, description: "Namespace of the asset. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: url, type: VARCHAR, description: "The artifact's, configured model's, or other asset's URL. Not applicable to the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. Since v60.0."}
+      - {name: action_urls, api_name: actionUrls, type: JSON, schema: BatchActionRepresentation, description: "Actions available for the data transform. Since v60.0."}
+      - {name: creation_type, api_name: creationType, type: VARCHAR, description: "Creation type of the data transform. Since v60.0."}
+      - {name: dataspace_name, api_name: dataSpaceName, type: VARCHAR, description: "Data space for the data transform. Since v60.0."}
+      - {name: definition, type: JSON, description: "Base definition for the data transform. The endpoint returns the definition output object that corresponds to the type of data transform. For example, the Stl Data Transform Definition Output is returned for the `Stl` and `StlHidden` types. Since v60.0."}
+      - {name: definitions, type: JSON, array: 1, schema: DataTransformDefinitionRepresentation, description: "List of definitions for batch data transforms. Since v63.0."}
+      - {name: description, type: VARCHAR, description: "Description of the data transform. Since v60.0."}
+      - {name: full_run_frequency, api_name: fullRunFrequency, type: VARCHAR, description: "Full run frequency of the data transform. Since v63.0."}
+      - {name: last_run_date, api_name: lastRunDate, type: VARCHAR, description: "Last date the data transform was run. Since v60.0."}
+      - {name: last_run_error_code, api_name: lastRunErrorCode, type: JSON, schema: CdpErrorRepresentation, description: "Error code of the last run. Since v60.0."}
+      - {name: last_run_status, api_name: lastRunStatus, type: VARCHAR, description: "Status of the last run. Since v60.0."}
+      - {name: schedule, type: JSON, schema: ScheduleRepresentation, description: "The schedule for the data transform. Since v60.0."}
+      - {name: status, type: VARCHAR, description: "The status of the data transform. Since v60.0."}
+      - {name: type, type: VARCHAR, description: "Type of data transform. Since v60.0."}
+      - {name: version, type: BIGINT, description: "Version of the data transform. Since v60.0."}
     paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `DataTransformCollectionRepresentation`.
+    result_description: "One row per item of `/dataTransforms` in the response. Other response fields go to `_meta`: `currentPageUrl`, `errors`, `nextPageUrl`, `totalSize`. Schema `DataTransformCollectionRepresentation`."
     notes: |
       **Paging:** `limit`, `offset`.
 
       **Notes:** `limit` stops at 20, so page with `offset`.
 
-      - `errors` lists transforms that couldn't be read, in a 200 response. Check it as well as `data_transforms`.
+      - `errors` in `_meta` lists transforms that couldn't be read, in a 200 response. Check it as well as the rows.
       - Among the transform's own fields, the spec puts only `last_run_error_code` outside `Small`. `filter_group => 'Small'` doesn't drop `definition`, so it won't shrink the response much.
       - The spec's enums are Title Case (`Active`, `Success`), its examples are upper case (`ACTIVE`, `SUCCESS`, `NONE`), and [sf-pi](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/registry/connect-openapi-overrides.json) records live responses with `status`, `last_run_status`, `creation_type` and `full_run_frequency` values outside the enums, and `definition` shapes outside the schema. Compare case-insensitively and don't reject unknown values.
 
@@ -142,19 +161,15 @@ functions:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Developer name or ID of the data transform."}
       - {name: limit, in: query, type: integer, description: "Maximum number of run jobs to return. Since v62.0."}
       - {name: offset, in: query, type: integer, description: "Number of run history records to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v62.0."}
-    columns:
-      - {name: current_page_url, api_name: currentPageUrl, type: VARCHAR, description: "Current page URL. Since v60.0."}
-      - {name: next_page_url, api_name: nextPageUrl, type: VARCHAR, description: "Next page URL, if it exists. Since v60.0."}
-      - {name: total_size, api_name: totalSize, type: BIGINT, description: "Total size of the collection. Since v60.0."}
-      - {name: histories, type: JSON, description: "List of information about the jobs that the data transform has run. Each data transform run is one entry in the array. The endpoint returns the run history output object that corresponds to the type of data transform. For example, the Batch Data Transform Run History Output is returned for the `Batch` data transform type. Since v62.0."}
+    rows: /histories
     paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     evidence: O
-    result_description: One row. Schema `DataTransformRunHistoryCollectionRepresentation`.
+    result_description: "One row per item of `/histories` in the response, with its fields in `_raw`. Other response fields go to `_meta`: `currentPageUrl`, `nextPageUrl`, `totalSize`. Schema `DataTransformRunHistoryCollectionRepresentation`."
     notes: |
       **Paging:** `limit`, `offset`.
 
-      **Notes:** `histories` is JSON and its fields depend on the transform type.
+      **Notes:** The fields of a run are in `_raw` and depend on the transform type.
 
       - **Both:** `request_id` (v67), `definition_name`, `status`, `start_time`, `end_time`, `duration` (seconds), `processedRows`, `isVersionChanged`, `error_message`, `type`.
       - **Batch:** `runMode`, `runModeReason`, `runModeParameters`, and `outputStatus[]` with `name`, `data_object_name`, `data_object_type`, `status`, `totalRows`, `completed_date`.

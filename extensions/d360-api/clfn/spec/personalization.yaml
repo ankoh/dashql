@@ -112,13 +112,12 @@ functions:
       - {name: transformer_name_or_id, api_name: transformerNameOrId, in: query, type: string, description: "Filter by transformer name or ID"}
       - {name: dataspace_id_or_name, api_name: dataSpaceIdOrName, in: query, type: string, description: "Filter by data space ID or name"}
       - {name: is_wpm_url_required, api_name: isWpmUrlRequired, in: query, type: boolean, description: "Include Web Personalization Manager URLs in response (default false)"}
-    paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     unknown: warning
     evidence: S
     result_description: The public sources don't document this response. One row, with the response in `_raw`.
     notes: |
-      **Paging:** `limit` (1-299, default 50) and `offset` (default 0).
+      **Paging:** `limit` (1-299, default 50) and `offset` (default 0). The response isn't documented, so a script passes `offset` itself.
 
       **Notes:** The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `personalizationExperienceConfigs` with `total_size`, but that's fixture data. No source gives the field that holds the Web Personalization Manager URL from `is_wpm_url_required`.
 
@@ -269,13 +268,12 @@ functions:
       - {name: connector_name_or_id, api_name: connectorNameOrId, in: query, type: string, description: "Filter by data connector name or ID"}
       - {name: dataspace_id_or_name, api_name: dataSpaceIdOrName, in: query, type: string, description: "Filter by data space ID or name"}
       - {name: is_data_connector_attached, api_name: isDataConnectorAttached, in: query, type: boolean, description: "Filter by attachment status. When false, returns unattached transformers. Combine with connector_name_or_id to get transformers matching that connector OR unattached"}
-    paging: {kind: offset, option: offset, size: limit, start: 0}
     effect: read
     unknown: warning
     evidence: S
     result_description: The public sources don't document this response. One row, with the response in `_raw`.
     notes: |
-      **Paging:** `limit` (1-299, default 50) and `offset` (default 0).
+      **Paging:** `limit` (1-299, default 50) and `offset` (default 0). The response isn't documented, so a script passes `offset` itself.
 
       **Notes:** `source` defaults to `Organization`, so Global transformers need `source => 'Global'`. The [tests](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/PersonalizationToolsTest.java) mock `transformers` with `total_size`, but that's fixture data.
 
