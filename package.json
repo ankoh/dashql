@@ -6,13 +6,13 @@
   "type": "module",
   "packageManager": "pnpm@12.17.0",
   "dependencies": {
-    "@bufbuild/protobuf": "^2.16.0",
+    "@bufbuild/protobuf": "^2.17.0",
     "flatbuffers": "25.9.23"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.75.0",
-    "@bufbuild/protobuf": "^2.16.0",
-    "@bufbuild/protoc-gen-es": "^2.16.0",
+    "@bufbuild/protobuf": "^2.17.0",
+    "@bufbuild/protoc-gen-es": "^2.17.0",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/language": "^6.13.1",
