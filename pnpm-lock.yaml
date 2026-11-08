@@ -264,7 +264,7 @@ importers:
         specifier: ^4.4.7
         version: 4.4.7
       electron:
-        specifier: ^45.2.2
+        specifier: ^45.2.3
         version: 45.2.3(supports-color@8.1.1)
       electron-builder:
         specifier: ^26.18.0
