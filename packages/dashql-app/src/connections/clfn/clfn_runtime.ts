@@ -42,8 +42,6 @@ export interface ClientFunctionEnvironment {
 export interface ClientFunctionResult {
     schema: arrow.Schema;
     rows: unknown[][];
-    /// Is the call still running? `_poll` holds the value to poll.
-    pending: boolean;
 }
 
 /// The first and the longest wait between two polls
@@ -475,7 +473,7 @@ class ClientFunctionCallRun {
                 if (i > 0) {
                     throw new ClientFunctionError(`${spec.namespace}.${fn.name}: a later page is still running, use _wait`, outcome.status);
                 }
-                return { schema: this.schema(), rows: [this.standardRow(outcome.status, null, outcome.poll, null, null)], pending: true };
+                return { schema: this.schema(), rows: [this.standardRow(outcome.status, null, outcome.poll, null, null)] };
             }
             const page = await this.finish(outcome.response);
             pageRows.push({ page });
@@ -513,7 +511,7 @@ class ClientFunctionCallRun {
             const last = pageRows[pageRows.length - 1].page;
             rows.push(this.standardRow(last.status, lastNext, null, last.meta, null));
         }
-        return { schema: this.schema(), rows, pending: false };
+        return { schema: this.schema(), rows };
     }
 }
 
@@ -572,6 +570,5 @@ export async function explainClientFunctionCall(spec: ClientFunctionSpec, descri
     return {
         schema: new arrow.Schema(fields.map(([name]) => new arrow.Field(name, new arrow.Utf8(), true))),
         rows: [fields.map(([, value]) => value)],
-        pending: false,
     };
 }

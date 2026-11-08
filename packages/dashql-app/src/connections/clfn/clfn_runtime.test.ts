@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
-import { CLIENT_FUNCTION_PENDING_METADATA, ClientFunctionResultStream } from './clfn_result_stream.js';
+import { ClientFunctionResultStream } from './clfn_result_stream.js';
 import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from './clfn_runtime.js';
 import { ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSpec } from './clfn_spec.js';
 
@@ -561,7 +561,6 @@ describe('client function results', () => {
         expect(row['active']).toEqual(true);
         expect(row['created']).toEqual(Date.parse('2026-01-02T03:04:05Z'));
         expect(row['_status']).toEqual(200);
-        expect(stream.getMetadata().size).toEqual(0);
     });
 });
 
@@ -581,11 +580,10 @@ describe('client function pending results', () => {
         const { fetch, environment } = env([accepted()]);
         const result = await runClientFunctionCall(spec([fn]), call('slow', { required: 1 }), environment);
         expect(fetch).toHaveBeenCalledTimes(1);
-        expect(result.pending).toBe(true);
+        expect(cell(result, 0, '_status')).toEqual(202);
         expect(result.rows.length).toEqual(1);
         expect(cell(result, 0, '_status')).toEqual(202);
         expect(cell(result, 0, '_poll')).toEqual('/results/1');
-        expect(new ClientFunctionResultStream(new TestLogger(), result).getMetadata().get(CLIENT_FUNCTION_PENDING_METADATA)).toEqual('true');
     });
 
     it('polls with _poll, with GET and without other options', async () => {
@@ -593,7 +591,7 @@ describe('client function pending results', () => {
         const result = await runClientFunctionCall(spec([fn]), call('slow', { _poll: '/results/1' }), environment);
         expect(urlOf(fetch, 0)).toEqual(`${BASE}/results/1`);
         expect(initOf(fetch, 0).method).toEqual('GET');
-        expect(result.pending).toBe(false);
+        expect(cell(result, 0, '_poll')).toBeNull();
         expect(cell(result, 0, 'id')).toEqual(1);
         expect(cell(result, 0, '_poll')).toBeNull();
     });
@@ -605,14 +603,14 @@ describe('client function pending results', () => {
         expect(time.sleeps).toEqual([5000, 2000]);
         expect(urlOf(fetch, 1)).toEqual(`${BASE}/results/1`);
         expect(initOf(fetch, 1).method).toEqual('GET');
-        expect(result.pending).toBe(false);
+        expect(cell(result, 0, '_poll')).toBeNull();
     });
 
     it('returns the pending row when the time runs out', async () => {
         const time = clock();
         const { environment } = env([accepted(), accepted(), accepted()], time);
         const result = await runClientFunctionCall(spec([fn]), call('slow', { required: 1, _wait: 3 }), environment);
-        expect(result.pending).toBe(true);
+        expect(cell(result, 0, '_status')).toEqual(202);
         expect(time.sleeps).toEqual([1000, 2000]);
     });
 
@@ -641,7 +639,7 @@ describe('client function pending results', () => {
 
     it('treats the status as success without a pending rule', async () => {
         const result = await runClientFunctionCall(spec([{ name: 'done' }]), call('done'), env([new Response('{"a":1}', { status: 202 })]).environment);
-        expect(result.pending).toBe(false);
+        expect(result.schema.fields.some(f => f.name === '_poll')).toBe(false);
         expect(cell(result, 0, '_status')).toEqual(202);
     });
 

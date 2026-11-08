@@ -544,7 +544,7 @@ One call is one page unless a script asks for more, because every page can cost 
 | Consumer | Mechanism |
 |---|---|
 | A script that wants many rows | `_pages` |
-| Someone browsing results | A "Next page" control that re-runs the statement with `_next` applied, without editing the script text, since tokens expire and scripts get shared |
+| Someone browsing results | Not built yet: a "Next page" control that re-runs the statement with `_next` applied, without editing the script text, since tokens expire and scripts get shared. Until then, a literal `_next` |
 | An agent or a person typing | A literal `_next => '...'` |
 
 ## Pending results
@@ -562,7 +562,7 @@ Some services answer before they finish. Snowflake declares `202` on 400 of its 
 
 A status with no `pending` rule is an ordinary success. Data 360's `202`s on deletes are this case.
 
-**The `_poll` column and option.** A function with `pending` has a `VARCHAR` column `_poll` and accepts `_poll => <value>`. It can't share `_next`, because a poll URL and a page token couldn't be told apart. A pending result is one row with only the standard columns, `_status = 202` and `_poll` set, which is the literal `same` for the poll rule `repeat`, and the UI shows it as not finished. Using `_poll` returns the function's normal result, or another pending one.
+**The `_poll` column and option.** A function with `pending` has a `VARCHAR` column `_poll` and accepts `_poll => <value>`. It can't share `_next`, because a poll URL and a page token couldn't be told apart. A pending result is one row with only the standard columns, `_status = 202` and `_poll` set, which is the literal `same` for the poll rule `repeat`. Those columns are how a script and the result table tell that it isn't finished. Using `_poll` returns the function's normal result, or another pending one.
 
 **The `_wait` option.** `_wait => 60` polls for up to that many seconds. It defaults to no polling. A `Retry-After` in seconds sets the wait between polls, which otherwise starts at 1 second and doubles up to 10.
 - If the time runs out, the result is the pending row. That isn't an error, since the call is still running.

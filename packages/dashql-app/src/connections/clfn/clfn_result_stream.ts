@@ -6,9 +6,6 @@ import type { AsyncConsumer } from '../../utils/async_consumer.js';
 import { translateAnyRowsToArrowBatch } from '../trino/arrow_conversion.js';
 import type { ClientFunctionResult } from './clfn_runtime.js';
 
-/// The metadata key that says a call is still running, `_poll` holds the value to poll
-export const CLIENT_FUNCTION_PENDING_METADATA = 'dashql.clfn.pending';
-
 /// The result of a client function call as a query result. A call has finished once its table exists, so this holds one batch.
 export class ClientFunctionResultStream implements QueryExecutionResponseStream {
     private readonly metrics: QueryExecutionMetrics = createQueryResponseStreamMetrics();
@@ -17,7 +14,7 @@ export class ClientFunctionResultStream implements QueryExecutionResponseStream 
     constructor(private readonly logger: Logger, private readonly result: ClientFunctionResult) { }
 
     getMetadata(): Map<string, string> {
-        return new Map(this.result.pending ? [[CLIENT_FUNCTION_PENDING_METADATA, 'true']] : []);
+        return new Map();
     }
     getMetrics(): QueryExecutionMetrics {
         return this.metrics;
