@@ -35,6 +35,11 @@ sql_query_statement:
   | explain_stmt              { $1 }
   | sql_drop_table_stmt       { $1 }
   | sql_drop_view_stmt        { $1 }
+  | sql_alter_table_stmt      { $1 }
+  | sql_alter_view_stmt       { $1 }
+  | sql_create_schema_stmt    { $1 }
+  | sql_drop_schema_stmt      { $1 }
+  | sql_alter_schema_stmt     { $1 }
   | sql_attach_database_stmt  { $1 }
   | sql_insert_stmt           { $1 }
   | sql_delete_stmt           { $1 }

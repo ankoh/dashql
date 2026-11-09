@@ -14,18 +14,17 @@ table CatalogDescriptor {
 table CatalogTableUpdate {
     /// The databases that the tables describe in full, their other tables are gone
     databases: [string];
-    /// The relations that the tables describe, one without a table is gone
+    /// The relations that the tables describe, one without a table is gone and stays hidden in the session layer.
+    /// An empty part of a name matches any database or schema.
     relations: [dashql.buffers.analyzer.QualifiedTableName];
     /// The tables
     tables: [dashql.buffers.analyzer.Table];
 }
 
-/// The relations that the statements of a text create or drop
+/// The relations that the statements of a text create, change or drop
 table TouchedRelations {
     /// The relations in statement order, named as written
     relations: [dashql.buffers.analyzer.QualifiedTableName];
-    /// Did the text parse? A statement that doesn't parse can touch any relation.
-    parsed: bool;
 }
 
 // ----------------------------------------------------------------------------

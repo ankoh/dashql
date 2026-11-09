@@ -498,13 +498,15 @@ impl CatalogEntryData {
         for (i, table) in self.table_declarations.iter().enumerate() {
             self.tables_by_id.insert(table.table_id().object, i);
             let name = &table.table_name;
-            self.tables_by_qualified_name.entry(name.key()).or_insert(i);
-            self.tables_by_unqualified_name.entry(name.table_name.text.clone()).or_default().push(i);
+            // A later declaration of a name replaces an earlier one, a script has one table of a name
+            let earlier = self.tables_by_qualified_name.insert(name.key(), i);
+            let declare = |tables: &mut Vec<usize>| match earlier.and_then(|earlier| tables.iter_mut().find(|t| **t == earlier)) {
+                Some(table) => *table = i,
+                None => tables.push(i),
+            };
+            declare(self.tables_by_unqualified_name.entry(name.table_name.text.clone()).or_default());
             if !name.schema_name.text.is_empty() {
-                self.tables_by_unqualified_schema
-                    .entry((name.schema_name.text.clone(), name.database_name.text.clone()))
-                    .or_default()
-                    .push(i);
+                declare(self.tables_by_unqualified_schema.entry((name.schema_name.text.clone(), name.database_name.text.clone())).or_default());
             }
         }
         for (i, function) in self.function_declarations.iter().enumerate() {

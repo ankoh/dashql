@@ -32,3 +32,31 @@ analyzer-snapshots:
         create table derived as select * from base;
         create view narrowed (x) as select a, b from base;
         drop table base;
+  # An ALTER TABLE touches its table, one that moves the table touches both names
+  - name: touched_relations_alter_table
+    script:
+      input: |-
+        alter table orders add column note text;
+        alter table sales.totals rename to sums;
+        alter table sales.sums set schema archive;
+  # An ALTER changes the declarations of the script, and declares a table of the catalog for the script
+  - name: touched_relations_alter_declarations
+    catalog:
+      script:
+        input: |-
+          create table db.s.base (a int, b int);
+    script:
+      input: |-
+        create table t (a int, b int);
+        alter table t add column c int, drop column a, rename column b to d;
+        alter table t rename to u;
+        select c, d from u;
+        alter table db.s.base add column e int;
+        select e from db.s.base;
+  # Schemas
+  - name: touched_relations_schemas
+    script:
+      input: |-
+        create schema s;
+        alter schema s rename to o;
+        drop schema o cascade;

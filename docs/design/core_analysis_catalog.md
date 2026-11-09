@@ -123,7 +123,7 @@ source, other expressions have no type because the analyzer doesn't type express
 
 **Descriptor entries** (`catalog/descriptor.rs`) import a `CatalogDescriptor` FlatBuffer: validated
 (`validate_descriptor`), then registered name by name. The relations of a connection are always a descriptor, built from
-the rows of its metadata query, see [The relations of a connection](#the-relations-of-a-connection). They keep their bytes
+the rows of its metadata query, see [Catalog Updates](catalog_updates.md). They keep their bytes
 (`DescriptorEntry.bytes`), a replacement with the same bytes changes nothing. Their tables carry
 `catalog_version = version + 1`, the version they are published with. Script tables carry 0.
 
@@ -203,7 +203,7 @@ catalog, so it only moves when what other entries resolve against may have chang
 | `load_script` / `load_scripts` | Publish analyses atomically. Validates catalog id, entry id collisions and canonical ids (`CATALOG_ID_OUT_OF_SYNC`). | **Unchanged** if every analysis replaces a published script in the same layer and `CatalogEntryData::same_declarations`; the entries are swapped in place. Otherwise +1 and all indexes are rebuilt. |
 | `drop_script` | Remove a script entry and its index entries. | +1 if the entry existed |
 | `replace_descriptor` | Import descriptor bytes and publish them. | **Unchanged** if the entry holds the same bytes in the same layer. Otherwise +1. |
-| `replace_tables` | Unpack a descriptor, update tables by name, replace it. | As `replace_descriptor`. **Unchanged** if the update leaves the tables as they are. |
+| `replace_tables` | Unpack a descriptor, update tables by name, replace it, remember relations that are gone. | As `replace_descriptor`. **Unchanged** if the update leaves the tables and the relations that are gone as they are. |
 | `drop_descriptor` | Remove a descriptor. | +1 if it existed |
 | `clear` | Remove all entries (id reservations and client function specs stay). | +1 |
 | `register_client_functions` | Parse a spec and shadow its namespace. A taken namespace is an error. | +1 |
@@ -422,52 +422,9 @@ as the analysis saw it.
 
 ## The relations of a connection
 
-The relations of a connection are a descriptor entry with an id of its own (`catalogRelationEntryId`), and nothing else.
-There is no script behind it. The rows of a metadata query become descriptor tables directly
-(`catalogTablesFrom*`, `packCatalogDescriptor`, `catalog_sql_generator.ts`), so a refresh neither generates nor parses SQL.
-The connection is the only source: a statement that ran is no statement about the connection, and
-`create table if not exists t (a int)` on a `t(a, b)` still leaves `t(a, b)`.
-
-**On disk** the relations are SQL, the one place where they are text. `generateRelationsFile` renders the descriptor
-when a catalog update is saved. Restoring a connection parses the file once in the batch worker, publishes the descriptor
-and drops the text (`connection_restore.ts`). `pack_catalog_descriptor` keeps the declaration order of the columns, the
-analyzer sorts those of `CREATE TABLE` by name. The parser normalizes the spelling of types (`int8` is `bigint` after a
-restore), the file doesn't change after that. A file `dashql-catalog-changes.sql` of older versions is cleared and the
-connection refreshes on connect.
-
-**After a successful statement** the app asks the connection:
-
-1. The parser names the relation that a statement creates or drops (`touched_relations`,
-   `packages/dashql-core-session/src/touched_relations.rs`). It doesn't analyze, and it names `CREATE TABLE`,
-   `CREATE TABLE AS`, `CREATE VIEW`, `SELECT INTO`, `DROP TABLE` and `DROP VIEW`, temporary ones too.
-2. The query executor runs this for every statement of the user that the backend ran, from a script or a shell
-   (`RELATIONS_TOUCHED`). The defaults of the connection qualify the names into
-   `CatalogUpdates.touchedRelations`.
-3. The catalog loader takes them once no other update runs and the connection has room for another query
-   (`CatalogUpdateVariant.RELATION_REFRESH`). A refresh that runs may have read the relations too early, the update
-   follows it. A full refresh takes them as well, it reads the connection after the statements.
-4. The metadata query of the connector reads these relations only, and `replace_tables` updates them: a relation with rows
-   has a new table in the place of the old one, a relation without rows is gone. An answer that changes nothing keeps the
-   catalog version. Salesforce has no such query and refreshes in full.
-
-A failed lookup leaves the catalog as it is, the declarations of the scripts still resolve. A Hyper refresh that fails
-for an attached database keeps the relations of that database (`CatalogTableUpdate.databases`).
-
-Statements the parser doesn't know, such as `ALTER TABLE`, and changes made outside of DashQL need a manual refresh.
-
-The standalone shell runs on an embedded database without a connection state. It reads the relations of its user
-schemas after a statement that may have changed them, a statement that doesn't parse counts, and replaces its descriptor
-before the prompt returns (`embedded_database_catalog.ts`).
-
-**Copy-on-write.** `replace_tables` builds a new entry next to the old one, a published entry never changes. An analysis
-reads its locations through its snapshot, which keeps the old entry alive, so tables may move in the new entry. The entry is
-the unit of the copy: a connection is one entry, an update of one table unpacks, packs and imports all of its tables.
-Measured on a release build with 20 columns per table, on the main thread:
-
-| Tables | Build a descriptor from rows | Import | `replace_tables` of one table | Without a change |
-|---|---|---|---|---|
-| 1,000 | 22 ms | 20 ms | 20 ms | 4 ms |
-| 10,000 | 287 ms | 135 ms | 228 ms | 34 ms |
+The relations of a connection are a descriptor entry that only holds what the connection reported. How it stays in line with
+the connection, the statements it follows, the files on disk and when a full refresh runs is described in
+[Catalog Updates](catalog_updates.md).
 
 ## Wasm boundary and app
 

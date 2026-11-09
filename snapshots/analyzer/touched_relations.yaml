@@ -426,3 +426,148 @@ analyzer-snapshots:
             - name: b
               expression: 1
           text: "select a, .. from base"
+
+  - name: touched_relations_alter_table
+    script:
+      input: |-
+        alter table orders add column note text;
+        alter table sales.totals rename to sums;
+        alter table sales.sums set schema archive;
+      catalog-id: 1
+      touched-relations:
+        - statement-id: 0
+          name: orders
+        - statement-id: 1
+          name: sales.totals
+        - statement-id: 1
+          name: sales.sums
+        - statement-id: 2
+          name: sales.sums
+        - statement-id: 2
+          name: archive.sums
+      errors: []
+
+  - name: touched_relations_alter_declarations
+    catalog:
+      script:
+        input: |-
+          create table db.s.base (a int, b int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: base
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        touched-relations:
+          - statement-id: 0
+            name: db.s.base
+        errors: []
+    script:
+      input: |-
+        create table t (a int, b int);
+        alter table t add column c int, drop column a, rename column b to d;
+        alter table t rename to u;
+        select c, d from u;
+        alter table db.s.base add column e int;
+        select e from db.s.base;
+      catalog-id: 2
+      tables:
+        - catalog-id: "257.65537.8589934592"
+          name: t
+          text: "create tab..nt, b int)"
+          columns:
+            - catalog-id: "257.65537.8589934592.3"
+              name: d
+              text: "b int"
+            - catalog-id: "257.65537.8589934592.2"
+              name: c
+              text: "c int"
+        - catalog-id: "257.65537.8589934593"
+          name: u
+          text: "alter tabl..ename to u"
+          columns:
+            - catalog-id: "257.65537.8589934593.0"
+              name: d
+              text: "b int"
+            - catalog-id: "257.65537.8589934593.1"
+              name: c
+              text: "c int"
+      touched-relations:
+        - statement-id: 0
+          name: t
+        - statement-id: 1
+          name: t
+        - statement-id: 2
+          name: t
+        - statement-id: 2
+          name: u
+        - statement-id: 4
+          name: db.s.base
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "257.65537.8589934593"
+          statement-id: 3
+          text: "u"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 5
+          text: "db.s.base"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "257.65537.8589934593.1"
+          statement-id: 3
+          text: "c"
+        - expression-idx: 1
+          type: colref/internal
+          catalog: "257.65537.8589934593.0"
+          statement-id: 3
+          text: "d"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 5
+          text: "e"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: c
+              expression: 0
+            - name: d
+              expression: 1
+          text: "select c, d from u"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: base
+              text: "db.s.base"
+          columns:
+            - name: e
+              expression: 2
+          text: "select e f.. db.s.base"
+
+  - name: touched_relations_schemas
+    script:
+      input: |-
+        create schema s;
+        alter schema s rename to o;
+        drop schema o cascade;
+      catalog-id: 1
+      touched-relations:
+        - statement-id: 1
+          name: s.
+        - statement-id: 1
+          name: o.
+        - statement-id: 2
+          name: o.
+      errors: []

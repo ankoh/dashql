@@ -7,7 +7,7 @@ import { CatalogLoaderProvider, useCatalogLoaderQueue, type CatalogLoaderDepende
 import { type ConnectionRegistry, type DynamicConnectionDispatch } from '../connection_registry.js';
 import { CATALOG_UPDATE_CANCELLED, CATALOG_UPDATE_FAILED, CATALOG_UPDATE_SUCCEEDED,
     UPDATE_CATALOG, ConnectionHealth, type ConnectionState, type CatalogAction } from '../connection_state.js';
-import { reduceCatalogAction, CatalogUpdateVariant } from './catalog_update_state.js';
+import { reduceCatalogAction, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from './catalog_update_state.js';
 import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
@@ -68,10 +68,10 @@ describe('CatalogLoaderProvider queue', () => {
             connectionId: 'database',
             connectorInfo: {},
             details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: {} } } },
-            catalog: {},
+            catalog: { version: () => 0 },
             catalogUpdates: {
                 tasksRunning: new Map(), tasksFinished: new Map(),
-                currentFullRefresh: null, lastFullRefresh: null, restoredAt: null, touchedRelations: [],
+                currentFullRefresh: null, described: false, touchedRelations: [], touchedFailures: 0,
             },
             queriesActive: new Map(),
         } as unknown as ConnectionState;
@@ -150,7 +150,7 @@ describe('CatalogLoaderProvider queue', () => {
             connectionId: 'salesforce',
             connectorInfo: {},
             details: { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: {} } } },
-            catalog: { registerClientFunctions },
+            catalog: { registerClientFunctions, version: () => 0 },
             catalogUpdates: { tasksRunning: new Map(), touchedRelations: [] },
             queriesActive: new Map(),
         } as unknown as ConnectionState);
@@ -175,10 +175,15 @@ describe('CatalogLoaderProvider queue', () => {
     });
 
     describe('the relations of executed statements', () => {
-        const ORDERS = { databaseName: 'hyper', schemaName: 'public', tableName: 'orders' };
+        const ORDERS = { databaseName: 'hyper', schemaName: '', tableName: 'orders' };
         const touch = () => {
             const connection = registry.connections.get('database')!;
-            registry.connections.set('database', { ...connection, catalogUpdates: { ...connection.catalogUpdates, touchedRelations: [ORDERS] } });
+            registry.connections.set('database', {
+                ...connection,
+                params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } },
+                connectionHealth: ConnectionHealth.ONLINE,
+                catalogUpdates: { ...connection.catalogUpdates, described: true, touchedRelations: [ORDERS] },
+            } as ConnectionState);
             registry = { ...registry };
         };
         const relationsOfCall = (call: number) => updateHyperCatalog.mock.calls[call][13];
@@ -213,9 +218,36 @@ describe('CatalogLoaderProvider queue', () => {
             expect(relationsOfCall(1)).toEqual([ORDERS]);
             await settleUpdate(() => updates[1].resolve());
         });
+
+        it('are asked about again when the update failed', async () => {
+            touch();
+            await render();
+            await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
+            await settleUpdate(() => updates[0].reject(new Error('down')));
+            expect(registry.connections.get('database')!.catalogUpdates.touchedRelations).toEqual([ORDERS]);
+            expect(registry.connections.get('database')!.catalogUpdates.touchedFailures).toBe(1);
+            // Not right away
+            registry = { ...registry };
+            await render();
+            expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
+            registry = { ...registry };
+            await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2), { timeout: 5000 });
+            expect(relationsOfCall(1)).toEqual([ORDERS]);
+            await settleUpdate(() => updates[1].resolve());
+            expect(registry.connections.get('database')!.catalogUpdates.touchedFailures).toBe(0);
+        });
+
+        it('stop being asked about when the attempts are used up', async () => {
+            const connection = registry.connections.get('database')!;
+            registry.connections.set('database', { ...connection, catalogUpdates: { ...connection.catalogUpdates, touchedFailures: MAX_TOUCHED_ATTEMPTS } });
+            touch();
+            await render();
+            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            expect(updateHyperCatalog).not.toHaveBeenCalled();
+        });
     });
 
-    it('drains an auto request after failure without a registry rerender or another enqueue', async () => {
+    it('tries an auto request once more after a failure, without a registry rerender or another enqueue', async () => {
         await render();
         await act(async () => enqueue('database', true));
         await act(async () => enqueue('database', false));
@@ -223,15 +255,40 @@ describe('CatalogLoaderProvider queue', () => {
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         await settleUpdate(() => updates[0].reject(new Error('metadata unavailable')), true);
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_FAILED)).toBe(true);
-        expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         expect(scriptsDispatch).not.toHaveBeenCalled();
-
-        // Completion must consume the throttled request, rather than leave it to run later.
-        const connection = registry.connections.get('database')!;
-        connection.catalogUpdates.lastFullRefresh = null;
+        await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
+        await settleUpdate(() => updates[1].resolve());
         registry = { ...registry };
         await render();
-        expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
+        expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
+    });
+
+    it('runs a forced refresh ahead of a lookup that keeps coming back', async () => {
+        const ORDERS = { databaseName: 'hyper', schemaName: '', tableName: 'orders' };
+        const connection = registry.connections.get('database')!;
+        registry.connections.set('database', {
+            ...connection,
+            params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } },
+            connectionHealth: ConnectionHealth.ONLINE,
+            catalogUpdates: { ...connection.catalogUpdates, described: true, touchedRelations: [ORDERS] },
+        } as ConnectionState);
+        registry = { ...registry };
+        await render();
+        await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
+        expect(updateHyperCatalog.mock.calls[0][13]).toEqual([ORDERS]);
+
+        // The forced refresh cancels the lookup, which gives its relation back
+        await act(async () => enqueue('database', true));
+        expect(updates[0].signal.aborted).toBe(true);
+        await settleUpdate(() => updates[0].reject(new DOMException('cancelled', 'AbortError')), true);
+        await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
+        expect(updateHyperCatalog.mock.calls[1][13]).toBeNull();
+
+        // The lookup follows the refresh
+        await settleUpdate(() => updates[1].resolve());
+        await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(3));
+        expect(updateHyperCatalog.mock.calls[2][13]).toEqual([ORDERS]);
+        await settleUpdate(() => updates[2].resolve());
     });
 
     it('consumes a queued auto request after success without cancelling a later forced refresh', async () => {
@@ -242,7 +299,6 @@ describe('CatalogLoaderProvider queue', () => {
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_SUCCEEDED)).toBe(true);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
-        registry.connections.get('database')!.catalogUpdates.lastFullRefresh = null;
         registry = { ...registry };
         await render();
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
@@ -271,10 +327,7 @@ describe('CatalogLoaderProvider queue', () => {
         registry.connections.set('database', { ...online, connectionHealth: ConnectionHealth.CONNECTING });
         registry = { ...registry };
         await render();
-        registry.connections.set('database', {
-            ...online,
-            catalogUpdates: { ...online.catalogUpdates, lastFullRefresh: null },
-        });
+        registry.connections.set('database', online);
         registry = { ...registry };
         await render();
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
@@ -286,11 +339,31 @@ describe('CatalogLoaderProvider queue', () => {
             ...connection,
             params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } },
             connectionHealth: ConnectionHealth.ONLINE,
-            catalogUpdates: { ...connection.catalogUpdates, restoredAt: new Date() },
+            catalogUpdates: { ...connection.catalogUpdates, described: true },
         } as ConnectionState);
         await render();
         await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
         expect(updateHyperCatalog).not.toHaveBeenCalled();
+    });
+
+    it('asks a restored catalog only about what it has not answered yet', async () => {
+        const ORDERS = { databaseName: 'hyper', schemaName: '', tableName: 'orders' };
+        const connection = registry.connections.get('database')!;
+        registry.connections.set('database', {
+            ...connection,
+            params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } },
+            connectionHealth: ConnectionHealth.CONNECTING,
+            catalogUpdates: { ...connection.catalogUpdates, described: true, touchedRelations: [ORDERS] },
+        } as ConnectionState);
+        await render();
+        await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+        expect(updateHyperCatalog).not.toHaveBeenCalled();
+        registry.connections.set('database', { ...registry.connections.get('database')!, connectionHealth: ConnectionHealth.ONLINE });
+        registry = { ...registry };
+        await render();
+        await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
+        expect(updateHyperCatalog.mock.calls[0][13]).toEqual([ORDERS]);
+        await settleUpdate(() => updates[0].resolve());
     });
 
     it('describes the catalog of a durable connection without one when it comes online', async () => {

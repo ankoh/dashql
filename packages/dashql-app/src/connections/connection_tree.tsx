@@ -21,6 +21,7 @@ import {
     LinkIcon,
     PencilIcon,
     SymbolIcon,
+    AlertIcon,
     SyncIcon,
     TableIcon,
     TrashIcon,
@@ -29,7 +30,7 @@ import { classNames } from '../utils/classnames.js';
 import { ConnectionHealth, type ConnectionState } from './connection_state.js';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { useCatalogLoaderQueue } from './catalog/catalog_loader.js';
-import { isCatalogRefreshRunning } from './catalog/catalog_update_state.js';
+import { isCatalogOutOfDate, isCatalogRefreshRunning } from './catalog/catalog_update_state.js';
 import { canRefreshConnection } from './connection_refresh.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {
@@ -994,14 +995,17 @@ export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = (
             variant={ButtonVariant.Invisible}
             className={styles.database_refresh_button}
             data-testid="connection-refresh"
-            aria-label={`Refresh catalog for ${label}`}
+            aria-label={isCatalogOutOfDate(database) ? `The catalog of ${label} may be out of date, refresh it` : `Refresh catalog for ${label}`}
+            title={isCatalogOutOfDate(database) ? 'The catalog may be out of date. Refresh it.' : undefined}
             aria-busy={isRefreshing}
             disabled={!canRefresh}
             onClick={() => refreshCatalog(database.connectionId, true)}
         >
             {isRefreshing
                 ? <StatusIndicator status={IndicatorStatus.Running} width="14px" height="14px" />
-                : <SyncIcon size={14} />}
+                : isCatalogOutOfDate(database)
+                    ? <AlertIcon size={14} />
+                    : <SyncIcon size={14} />}
         </IconButton>
     );
 };

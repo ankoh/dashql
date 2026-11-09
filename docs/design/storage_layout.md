@@ -22,6 +22,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 ├── connections/<connection-id>/               files of a global connection
 │   ├── dashql-catalog-relations.sql           relations of the catalog, written and read as SQL
 │   ├── dashql-catalog-functions.sql
+│   ├── dashql-catalog-state.json              open questions and relations that are gone, see catalog_updates.md
 │   └── monitoring.hyper                       extract of the Hyper log of the connection
 ├── shell/                                     files of the standalone shell
 │   └── salesforce-login-history.json

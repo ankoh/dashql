@@ -175,8 +175,8 @@ interface RestoreContext {
 interface RestorePendingWrites {
     /// Connections that sessions registered, they are missing in the app manifest
     connectionEntries: ConnectionEntry[];
-    /// Catalog files of connections that hold dropped relations or changes, they are cleared
-    staleConnectionFiles: Array<{ connectionId: string; fileName: string }>;
+    /// Catalog files of connections, in order: those that hold dropped relations or changes are cleared
+    connectionFiles: Array<{ connectionId: string; fileName: string; text: string }>;
     /// Sessions whose copies of connection params are stale
     sessionCopies: Array<{ sessionId: string; connectionId: string }>;
     /// Sessions whose script lists or connections disagree with the restored scripts
@@ -196,7 +196,7 @@ function createRestoreContext(core: DashQL, backend: StorageBackend, logger: Log
         connectionStatesByType: CONNECTOR_TYPES.map(() => []),
         catalogsRestored: new Set(),
         newConnections: new Map(),
-        pendingWrites: { connectionEntries: [], staleConnectionFiles: [], sessionCopies: [], sessionScriptLists: [], promotedSessions: [] },
+        pendingWrites: { connectionEntries: [], connectionFiles: [], sessionCopies: [], sessionScriptLists: [], promotedSessions: [] },
     };
 }
 
@@ -225,8 +225,8 @@ async function restoreCatalog(
     const connectionId = state.connectionId;
     ctx.catalogsRestored.add(connectionId);
     const restored = await restoreConnectionCatalog(ctx, registry, state, logContext);
-    for (const fileName of restored.staleFiles) {
-        ctx.pendingWrites.staleConnectionFiles.push({ connectionId, fileName });
+    for (const file of restored.files) {
+        ctx.pendingWrites.connectionFiles.push({ connectionId, ...file });
     }
     return restored.succeeded;
 }
@@ -492,8 +492,8 @@ async function flushRestoredConnectionWrites(ctx: RestoreContext, registry: Sess
                 return next;
             });
         }
-        for (const { connectionId, fileName } of pendingWrites.staleConnectionFiles) {
-            await registry.saveConnectionFile(connectionId, fileName, '');
+        for (const { connectionId, fileName, text } of pendingWrites.connectionFiles) {
+            await registry.saveConnectionFile(connectionId, fileName, text);
         }
     } catch (error) {
         logger.warn("Failed to persist restored connections", { error: stringifyError(error) }, LOG_CTX);

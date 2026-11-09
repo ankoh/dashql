@@ -161,6 +161,30 @@ async function testAppChrome(page, navigate) {
     await page.waitForFunction(previous => document.documentElement.dataset.colorScheme !== (previous ?? undefined), scheme);
 }
 
+/// The catalog tree follows statements of scripts: a table shows once a script created it, and is gone once another
+/// script dropped it, although the first script still declares it
+async function testAppCatalogFollowsStatements(page, navigate) {
+    await navigate('/');
+    await page.getByTestId('composer-send').waitFor();
+    const send = async (text, label) => {
+        await page.locator('.cm-content').last().click();
+        await page.keyboard.type(text);
+        await page.getByTestId('composer-send').click();
+        await scriptEditor(page, label).waitFor();
+    };
+    await send('create table page_catalog_session (page_column int)', 'page_catalog_session');
+    const tree = page.getByLabel('Connections and catalogs');
+    const table = tree.getByText('page_catalog_session');
+    for (const name of ['Expand hyper', 'Expand public']) {
+        const row = tree.getByRole('button', { name, exact: true });
+        await row.waitFor({ timeout: 30_000 });
+        await row.click();
+    }
+    await table.first().waitFor({ state: 'attached', timeout: 30_000 });
+    await send('drop table page_catalog_session', 'drop table page_catalog_session');
+    await table.first().waitFor({ state: 'detached', timeout: 30_000 });
+}
+
 /// The link of a session opens a second session with its script
 async function testAppSharedSession(page, navigate) {
     await openSessionWithQuery(page, navigate);
@@ -200,6 +224,19 @@ async function testShell(page, navigate) {
     await page.keyboard.press('Escape');
 
     await input.focus();
+    // The catalog follows statements: the shell completes a table that a statement created, with its columns
+    const noResults = page.getByRole('listitem').filter({ hasText: /^\W*No results\W*$/ });
+    await page.keyboard.type('create table page_catalog_orders (order_id int);');
+    await page.keyboard.press('Enter');
+    await noResults.nth(0).waitFor({ state: 'attached' });
+    await page.keyboard.type('alter table page_catalog_orders add column order_total int;');
+    await page.keyboard.press('Enter');
+    await noResults.nth(1).waitFor({ state: 'attached' });
+    await page.keyboard.type('select order_total from page_catalog_or');
+    await page.keyboard.press('Tab');
+    await page.keyboard.type(';');
+    await page.keyboard.press('Enter');
+    await page.getByRole('listitem').filter({ hasText: 'select order_total from page_catalog_orders;' }).first().waitFor({ state: 'attached', timeout: 30_000 });
     await page.keyboard.type('.fs');
     await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Mount filesystem entry' }).click();
@@ -252,6 +289,7 @@ const PAGE_TESTS = [
     { name: 'app_greeter', options: DESKTOP, test: testAppGreeter },
     { name: 'app_wrapped_script', options: DESKTOP, test: testAppWrappedScript },
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
+    { name: 'app_catalog', options: DESKTOP, test: testAppCatalogFollowsStatements },
     { name: 'app_shared_session', options: DESKTOP, test: testAppSharedSession },
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },
     { name: 'shell', options: DESKTOP, test: testShell },

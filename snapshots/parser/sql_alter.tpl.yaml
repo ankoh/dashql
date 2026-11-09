@@ -1,0 +1,61 @@
+parser-snapshots:
+  - name: alter_table_add_column
+    input: |
+      alter table analytics.results add column total bigint
+  - name: alter_table_add_if_not_exists
+    input: |
+      alter table analytics.results add if not exists total bigint
+  - name: alter_table_drop_column
+    input: |
+      alter table if exists analytics.results drop column if exists total
+  - name: alter_table_column_named_if
+    input: |
+      alter table results drop if
+  - name: alter_table_rename_column
+    input: |
+      alter table results rename column total to amount
+  - name: alter_table_rename
+    input: |
+      alter table results rename to analytics.outcomes
+  - name: alter_table_set_schema
+    input: |
+      alter table results set schema analytics
+  - name: alter_table_column_type
+    input: |
+      alter table results alter column total set data type numeric(10, 2)
+  - name: alter_table_actions
+    input: |
+      alter table results add column a int, drop column b, alter c type text
+  - name: alter_table_unknown_action
+    input: |
+      alter table results owner to someone
+  - name: alter_table_drop_column_condition_after
+    input: |
+      alter table results drop column total if exists
+  - name: alter_view_rename
+    input: |
+      alter view if exists analytics.report rename to outcomes
+  - name: alter_view_set_schema
+    input: |
+      alter view report set schema analytics
+  - name: alter_view_unknown_action
+    input: |
+      alter view report add column a int
+  - name: drop_column_cascade
+    input: |
+      alter table t drop column a cascade
+  - name: alter_column_type_using
+    input: |
+      alter table t alter column a type bigint using a::bigint
+  - name: create_schema
+    input: |
+      create schema if not exists analytics
+  - name: drop_schema
+    input: |
+      drop schema if exists lake.analytics cascade
+  - name: drop_schema_restrict
+    input: |
+      drop schema analytics restrict
+  - name: alter_schema_rename
+    input: |
+      alter schema analytics rename to archive

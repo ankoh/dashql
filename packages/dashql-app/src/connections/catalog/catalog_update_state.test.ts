@@ -14,6 +14,7 @@ import {
 function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): ConnectionState {
     return {
         catalogUpdates: {
+            touchedRelations: [], touchedFailures: 0,
             currentFullRefresh,
             tasksRunning: new Map(runningTaskIds.map(taskId => [taskId, {}])),
         },
@@ -55,16 +56,15 @@ describe('reduceCatalogAction', () => {
             error: null,
             startedAt: new Date(),
             finishedAt: null,
-            lastUpdateAt: new Date(),
         });
         for (const newerFinishedFirst of [false, true]) {
             let state = {
                 catalogUpdates: {
+                    touchedRelations: [], touchedFailures: 0,
                     tasksRunning: new Map(),
                     tasksFinished: new Map(),
                     currentFullRefresh: null,
-                    lastFullRefresh: 6,
-                    restoredAt: null,
+                    described: false,
                 },
             } as unknown as ConnectionState;
             state = reduceCatalogAction(state, { type: UPDATE_CATALOG, value: [7, task(7)] });
@@ -76,13 +76,12 @@ describe('reduceCatalogAction', () => {
             expect(state.catalogUpdates.tasksRunning.has(7)).toBe(false);
             expect(state.catalogUpdates.tasksFinished.has(7)).toBe(true);
             expect(state.catalogUpdates.currentFullRefresh).toBe(8);
-            expect(state.catalogUpdates.lastFullRefresh).toBe(newerFinishedFirst ? 8 : 6);
             expect(isCatalogRefreshRunning(state)).toBe(!newerFinishedFirst);
             if (!newerFinishedFirst) {
                 state = reduceCatalogAction(state, { type: CATALOG_UPDATE_SUCCEEDED, value: [8] });
             }
             expect(state.catalogUpdates.currentFullRefresh).toBe(8);
-            expect(state.catalogUpdates.lastFullRefresh).toBe(8);
+            expect(state.catalogUpdates.described).toBe(true);
             expect(isCatalogRefreshRunning(state)).toBe(false);
         }
     });
@@ -98,7 +97,6 @@ describe('reduceCatalogAction', () => {
             error: null,
             startedAt: new Date(),
             finishedAt: null,
-            lastUpdateAt: new Date(),
         };
         const state = {
             active: true,
@@ -106,11 +104,11 @@ describe('reduceCatalogAction', () => {
             catalogRelationEntryId: 1,
             catalogFunctionScript: {},
             catalogUpdates: {
+                touchedRelations: [], touchedFailures: 0,
                 tasksRunning: new Map([[7, task]]),
                 tasksFinished: new Map(),
                 currentFullRefresh: 7,
-                lastFullRefresh: null,
-                restoredAt: null,
+                described: false,
             },
         } as unknown as ConnectionState;
 
@@ -123,5 +121,7 @@ describe('reduceCatalogAction', () => {
         expect(finished.status).toBe(CatalogUpdateTaskStatus.PARTIALLY_SUCCEEDED);
         expect(finished.error).toBe(error);
         expect(next.catalogUpdates.tasksRunning.has(7)).toBe(false);
+        // A partial catalog doesn't describe the connection
+        expect(next.catalogUpdates.described).toBe(false);
     });
 });

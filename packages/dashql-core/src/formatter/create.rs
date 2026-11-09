@@ -177,6 +177,82 @@ impl<'a> Formatter<'a> {
         f.concat(&[f.text("drop "), f.text(object), if_exists_reg, self.reg(name)])
     }
 
+    pub(super) fn format_schema_statement(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [name, condition, cascade, new_name] =
+            attrs!(self.children(node), [K::SQL_SCHEMA_NAME, K::SQL_SCHEMA_IF, K::SQL_SCHEMA_CASCADE, K::SQL_SCHEMA_NEW_NAME]);
+        let Some(name) = name else { return self.format_unimplemented(node) };
+        match (node.node_type(), new_name) {
+            (NodeType::OBJECT_SQL_CREATE_SCHEMA, _) => {
+                let condition = if condition.is_some() { f.text("if not exists ") } else { f.empty() };
+                f.concat(&[f.text("create schema "), condition, self.reg(name)])
+            }
+            (NodeType::OBJECT_SQL_DROP_SCHEMA, _) => {
+                let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
+                f.concat(&[f.text("drop schema "), condition, self.reg(name), self.format_drop_behavior(cascade)])
+            }
+            (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(new_name)) => f.concat(&[f.text("alter schema "), self.reg(name), f.text(" rename to "), self.reg(new_name)]),
+            _ => self.format_unimplemented(node),
+        }
+    }
+
+    fn format_drop_behavior(&self, cascade: Option<&'a Node>) -> FmtReg {
+        let f = &self.fmt;
+        match cascade {
+            Some(cascade) if cascade.children_begin_or_value() != 0 => f.text(" cascade"),
+            Some(_) => f.text(" restrict"),
+            None => f.empty(),
+        }
+    }
+
+    pub(super) fn format_alter_table(&self, node: &'a Node, statement: &'static str) -> FmtReg {
+        let f = &self.fmt;
+        let [name, if_exists, actions] = attrs!(self.children(node), [K::SQL_ALTER_TABLE_NAME, K::SQL_ALTER_TABLE_IF_EXISTS, K::SQL_ALTER_TABLE_ACTIONS]);
+        let (Some(name), Some(actions)) = (name, actions) else { return self.format_unimplemented(node) };
+        let if_exists_reg = if if_exists.is_some() { f.text("if exists ") } else { f.empty() };
+        f.concat(&[f.text(statement), if_exists_reg, self.reg(name), f.text(" "), self.reg(actions)])
+    }
+
+    pub(super) fn format_alter_table_action(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [column, condition, condition_after, new_name, new_table, column_type, cascade, using] = attrs!(self.children(node), [
+                K::SQL_ALTER_ACTION_COLUMN,
+                K::SQL_ALTER_ACTION_IF,
+                K::SQL_ALTER_ACTION_IF_AFTER,
+                K::SQL_ALTER_ACTION_NEW_NAME,
+                K::SQL_ALTER_ACTION_NEW_TABLE,
+                K::SQL_ALTER_ACTION_TYPE,
+                K::SQL_ALTER_ACTION_CASCADE,
+                K::SQL_ALTER_ACTION_USING,
+            ],
+        );
+        match (node.node_type(), column, new_name, new_table, column_type) {
+            (NodeType::OBJECT_SQL_ALTER_ADD_COLUMN, Some(column), _, _, _) => {
+                let condition = if condition.is_some() { f.text("if not exists ") } else { f.empty() };
+                f.concat(&[f.text("add column "), condition, self.reg(column)])
+            }
+            (NodeType::OBJECT_SQL_ALTER_DROP_COLUMN, Some(column), _, _, _) => {
+                // Trino writes the condition before the column, Hyper after it
+                let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
+                let condition_after = if condition_after.is_some() { f.text(" if exists") } else { f.empty() };
+                f.concat(&[f.text("drop column "), condition, self.reg(column), condition_after, self.format_drop_behavior(cascade)])
+            }
+            (NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN, Some(column), Some(new_name), _, _) => {
+                f.concat(&[f.text("rename column "), self.reg(column), f.text(" to "), self.reg(new_name)])
+            }
+            (NodeType::OBJECT_SQL_ALTER_RENAME_TABLE, _, _, Some(new_table), _) => f.concat(&[f.text("rename to "), self.reg(new_table)]),
+            (NodeType::OBJECT_SQL_ALTER_SET_SCHEMA, _, Some(new_name), _, _) => f.concat(&[f.text("set schema "), self.reg(new_name)]),
+            (NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE, Some(column), _, _, Some(column_type)) => {
+                let using = match using {
+                    Some(using) => f.concat(&[f.text(" using "), self.reg(using)]),
+                    None => f.empty(),
+                };
+                f.concat(&[f.text("alter column "), self.reg(column), f.text(" set data type "), self.reg(column_type), using])
+            }
+            _ => self.format_unimplemented(node),
+        }
+    }
+
     pub(super) fn format_attach_database_option(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [key, value] = attrs!(self.children(node), [K::SQL_GENERIC_OPTION_KEY, K::SQL_GENERIC_OPTION_VALUE]);

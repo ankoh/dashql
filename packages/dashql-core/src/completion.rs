@@ -640,6 +640,11 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// The id and data of a name index object
     fn index_object(&self, object: CatalogObjectRef) -> Option<(QualifiedCatalogObjectId, CandidateObjectRef)> {
+        // A script keeps its own declarations, and the published version of it may have other locations
+        let own = self.analyzed().is_some_and(|analyzed| analyzed.entry.catalog_entry_id == object.entry());
+        if !own && self.catalog().is_absent_object(object) {
+            return None;
+        }
         let data = self.entry_data(object.entry())?;
         let id = data.object_id(object);
         let candidate_object = match object {
@@ -1007,6 +1012,10 @@ impl<'c, 'a> Completion<'c, 'a> {
         let search_text = if prefix_text.is_empty() { trim_double_quotes(symbol_text) } else { prefix_text };
 
         for name in index.search(search_text) {
+            // A script doesn't provide what the connection reported as gone
+            if through_catalog && !name.objects.is_empty() && name.objects.iter().all(|o| self.catalog().is_absent_object(*o)) {
+                continue;
+            }
             // Skip the name under the cursor itself
             if !through_catalog
                 && name.occurrences == 1
@@ -1306,6 +1315,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
             entry.data().resolve_table_columns(name, out);
         }
+        out.retain(|column| !self.catalog().is_absent_table(column.table));
         analyzed.entry.resolve_table_columns(name, out);
     }
 
@@ -1334,7 +1344,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                 if &**s != schema {
                     break;
                 }
-                out.extend(tables.iter().map(|&t| (other.table_loc(t), true)));
+                out.extend(tables.iter().map(|&t| (other.table_loc(t), true)).filter(|(loc, _)| !self.catalog().is_absent_table(*loc)));
             }
         }
     }
@@ -1361,7 +1371,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let Some(other) = self.catalog().entry(*entry_id) else { continue };
             let other = other.data();
             if let Some(tables) = other.tables_by_unqualified_schema.get(&key) {
-                out.extend(tables.iter().map(|&t| (other.table_loc(t), true)));
+                out.extend(tables.iter().map(|&t| (other.table_loc(t), true)).filter(|(loc, _)| !self.catalog().is_absent_table(*loc)));
             }
         }
     }

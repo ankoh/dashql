@@ -31,7 +31,8 @@ import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from '../storage/session_test_backend.js';
-import type { StorageWriter } from '../storage/storage_writer.js';
+import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '../storage/storage_writer.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 
 function database(connectionId: string, health: ConnectionHealth): ConnectionState {
@@ -134,11 +135,11 @@ describe('catalog refresh persistence', () => {
             params: { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } },
             connectorInfo: { connectorType: ConnectorType.SALESFORCE_DATA_CLOUD },
             details: { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: { instanceUrl: 'https://example.my.salesforce.com' } } } },
-            catalog: { readDescriptor: () => descriptor },
+            catalog: { readDescriptor: () => descriptor, absentRelations: () => [new dashql.buffers.analyzer.QualifiedTableNameT(0, 'lakehouse', 'public', 'Gone__dlm')] },
             catalogRelationEntryId: 1,
             catalogFunctionScript: script(functionsSQL),
             catalogUpdates: {
-                tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null,
+                tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: true, touchedRelations: [],
             },
         } as unknown as ConnectionState;
         let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
@@ -167,8 +168,7 @@ describe('catalog refresh persistence', () => {
             const task = {
                 taskId: 1, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
                 status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
-                queries: [], error: null, startedAt: new Date(), finishedAt: null, lastUpdateAt: new Date(),
-            };
+                queries: [], error: null, startedAt: new Date(), finishedAt: null,            };
             act(() => {
                 dispatch(TEST_CONNECTION_ID, { type: UPDATE_CATALOG, value: [1, task] });
                 dispatch(TEST_CONNECTION_ID, outcome === 'succeeded'
@@ -183,10 +183,83 @@ describe('catalog refresh persistence', () => {
             expect(backend.calls).not.toContain(`manifest:${TEST_SESSION_ID}`);
             expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(schemaSQL);
             expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(functionsSQL);
+            expect(JSON.parse(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)!)).toEqual({
+                pending: [], gone: [{ databaseName: 'lakehouse', schemaName: 'public', tableName: 'Gone__dlm' }],
+            });
         } finally {
             act(() => root.unmount());
             container.remove();
         }
+    });
+
+    /// The files that a lookup leaves behind when it finishes
+    async function filesAfterLookup(described: boolean, changed: boolean): Promise<SessionTestBackend> {
+        const backend = new SessionTestBackend();
+        backend.sessions.set(TEST_SESSION_ID, testSession());
+        const task = {
+            taskId: 4, taskVariant: CatalogUpdateVariant.RELATION_REFRESH,
+            status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
+            queries: [], error: null, startedAt: new Date(), finishedAt: null,
+        };
+        const connection = {
+            connectionId: TEST_CONNECTION_ID, active: true,
+            params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } },
+            connectorInfo: { connectorType: ConnectorType.HYPER },
+            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: {} } } },
+            catalog: { readDescriptor: () => new dashql.buffers.catalog.CatalogDescriptorT([], []), absentRelations: () => [] },
+            catalogRelationEntryId: 1,
+            catalogFunctionScript: { toString: () => 'unchanged' },
+            catalogUpdates: { tasksRunning: new Map([[4, task]]), tasksFinished: new Map(), currentFullRefresh: null, described, touchedRelations: [], touchedFailures: 0 },
+        } as unknown as ConnectionState;
+        let dispatch!: DynamicConnectionDispatch;
+        let writer!: StorageWriter;
+        let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
+        function Harness() {
+            [, setRegistry] = useConnectionRegistry();
+            [, dispatch] = useDynamicConnectionDispatch();
+            writer = useStorageWriter();
+            return null;
+        }
+        const container = document.createElement('div');
+        const root = createRoot(container);
+        try {
+            await act(async () => root.render(React.createElement(LoggerProvider, null,
+                React.createElement(StorageProvider, { backend },
+                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
+                ),
+            )));
+            act(() => setRegistry(reg => {
+                reg.connections.set(TEST_CONNECTION_ID, connection);
+                return { ...reg };
+            }));
+            act(() => dispatch(TEST_CONNECTION_ID, { type: CATALOG_UPDATE_SUCCEEDED, value: [4, changed] }));
+            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            await writer.flush();
+            return backend;
+        } finally {
+            act(() => root.unmount());
+            container.remove();
+        }
+    }
+
+    it('saves no relations before a refresh described the connection', async () => {
+        const backend = await filesAfterLookup(false, true);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(false);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(false);
+        expect(JSON.parse(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)!)).toEqual({ pending: [], gone: [] });
+    });
+
+    it('saves the relations after a lookup that changed them, and never the functions', async () => {
+        const backend = await filesAfterLookup(true, true);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(true);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(false);
+    });
+
+    it('saves no relations after a lookup that changed nothing', async () => {
+        const backend = await filesAfterLookup(true, false);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(false);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(false);
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)).toBe(true);
     });
 
     it('saves only the functions when the embedded database refreshes', async () => {
@@ -196,8 +269,7 @@ describe('catalog refresh persistence', () => {
         const task = {
             taskId: 3, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
             status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
-            queries: [], error: null, startedAt: new Date(), finishedAt: null, lastUpdateAt: new Date(),
-        };
+            queries: [], error: null, startedAt: new Date(), finishedAt: null,        };
         const embedded = {
             connectionId: TEST_CONNECTION_ID, active: true,
             params: { hyper: { protocol: 'WASM' } },
@@ -207,7 +279,7 @@ describe('catalog refresh persistence', () => {
             catalogFunctionScript: { toString: () => functionsSQL },
             catalogUpdates: {
                 tasksRunning: new Map([[3, task]]), tasksFinished: new Map(), currentFullRefresh: 3,
-                lastFullRefresh: null, restoredAt: null,
+                described: false,
             },
         } as unknown as ConnectionState;
         let dispatch!: DynamicConnectionDispatch;
@@ -249,17 +321,16 @@ describe('catalog refresh persistence', () => {
         const task = {
             taskId: 2, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
             status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
-            queries: [], error: null, startedAt: new Date(), finishedAt: null, lastUpdateAt: new Date(),
-        };
+            queries: [], error: null, startedAt: new Date(), finishedAt: null,        };
         const attached = {
             connectionId: attachedId, active: true,
             params: { salesforce: {} },
             connectorInfo: { connectorType: ConnectorType.SALESFORCE_DATA_CLOUD },
             details: { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: {} } } },
-            catalog: { readDescriptor: () => null }, catalogRelationEntryId: 1, catalogFunctionScript: functionScript,
+            catalog: { readDescriptor: () => null, absentRelations: () => [] }, catalogRelationEntryId: 1, catalogFunctionScript: functionScript,
             catalogUpdates: {
                 tasksRunning: new Map([[2, task]]), tasksFinished: new Map(), currentFullRefresh: 2,
-                lastFullRefresh: null, restoredAt: null,
+                described: true, touchedRelations: [],
             },
         } as unknown as ConnectionState;
         let dispatch!: DynamicConnectionDispatch;
@@ -288,7 +359,8 @@ describe('catalog refresh persistence', () => {
             expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([]);
             await writer.flush();
             expect([...backend.connectionFiles.keys()].every(key => key.startsWith(`${attachedId}/`))).toBe(true);
-            expect(backend.connectionFiles.get(`${attachedId}/dashql-catalog-relations.sql`)).toBe(generateRelationsFile(null));
+            // A catalog that a reset cleared meanwhile doesn't replace what is on disk
+            expect(backend.connectionFiles.has(`${attachedId}/dashql-catalog-relations.sql`)).toBe(false);
             expect(backend.connectionFiles.get(`${attachedId}/dashql-catalog-functions.sql`)).toBe(functionScript.toString());
         } finally {
             act(() => root.unmount());
@@ -415,6 +487,20 @@ describe('shared connection persistence', () => {
         } finally {
             unmount();
         }
+    });
+
+    it('does not recreate the folder of a connection that was deleted with a write pending', async () => {
+        const backend = new SessionTestBackend();
+        const writer = new StorageWriter(new TestLogger(), backend);
+        const written = writer.write(
+            groupConnectionFileWrites(TEST_CONNECTION_ID, 'dashql-catalog-state.json'),
+            { type: WRITE_CONNECTION_FILE, value: [TEST_CONNECTION_ID, 'dashql-catalog-state.json', '{}'] },
+            60_000,
+        );
+        writer.cancelPendingConnectionFileWrites(TEST_CONNECTION_ID);
+        await expect(written).resolves.toBe(false);
+        await writer.flush();
+        expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)).toBe(false);
     });
 
     it('refuses to delete connections that sessions use', async () => {

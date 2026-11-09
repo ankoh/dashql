@@ -23,7 +23,6 @@ describe('information_schema batch refresh', () => {
     table_name,
     column_name,
     ordinal_position,
-    is_nullable,
     data_type
 FROM "hive".information_schema.columns
 WHERE table_schema IN ('sales', 'o''neil')
@@ -34,7 +33,6 @@ SELECT
     table_name,
     column_name,
     ordinal_position,
-    is_nullable,
     data_type
 FROM "my""lake".information_schema.columns`);
     });
@@ -92,7 +90,7 @@ FROM "my""lake".information_schema.columns`);
         const gone = { databaseName: 'hive', schemaName: 'sales', tableName: 'gone' };
         await updateInformationSchemaRelations('connection', vi.fn(), 1, [orders, gone], executor, catalog as any, 7);
         expect(executor.mock.calls[0][1].query).toContain(`FROM "hive".information_schema.columns
-WHERE ((table_schema = 'sales' AND table_name = 'orders') OR (table_schema = 'sales' AND table_name = 'gone'))`);
+WHERE table_schema <> 'information_schema' AND ((table_schema = 'sales' AND table_name = 'orders') OR (table_schema = 'sales' AND table_name = 'gone'))`);
         const update = catalog.replaceTables.mock.calls[0][2];
         expect(update.relations.map((r: buffers.analyzer.QualifiedTableNameT) => r.tableName)).toEqual(['orders', 'gone']);
         expect(update.tables.map((t: buffers.analyzer.TableT) => t.tableName?.tableName)).toEqual(['orders']);

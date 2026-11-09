@@ -710,7 +710,7 @@ parser-snapshots:
                     text: "if"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting TABLE or VIEW'
+        - message: 'syntax error, unexpected SEMICOLON, expecting TABLE or SCHEMA or VIEW'
           text: ";"
       line-breaks:
         - text: [5,6]

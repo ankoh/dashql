@@ -7,7 +7,6 @@ import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
 import { QueryType } from '../../query/query_execution_state.js';
 import { catalogTablesOfSchema, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
 
-const LOG_CTX = "catalog_pg";
 export const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
 
 export type PgAttributeColumnsTable = arrow.Table<{
@@ -16,9 +15,6 @@ export type PgAttributeColumnsTable = arrow.Table<{
     column_name: arrow.Utf8;
     ordinal_position: arrow.Int32;
     data_type: arrow.Utf8;
-    is_nullable: arrow.Utf8;
-    numeric_precision: arrow.Int32;
-    numeric_scale: arrow.Int32;
 }>;
 
 /**
@@ -78,12 +74,8 @@ export function catalogTablesFromPgAttribute(result: PgAttributeColumnsTable, da
 export interface PgAttributeScope {
     /// The database to read the catalog of, the default database if absent
     queryDatabaseName?: string | null;
-    /// The schemas, all schemas if empty
-    schemaNames?: string[];
     /// The relations, all relations if absent
     relations?: RelationName[] | null;
-    /// Leave out the schemas of the database system?
-    userSchemasOnly?: boolean;
 }
 
 /// The query of the columns of relations
@@ -91,41 +83,23 @@ export function pgAttributeQuery(scope: PgAttributeScope = {}): string {
     const pgCatalog = scope.queryDatabaseName == null
         ? 'pg_catalog'
         : `${quoteIdentifier(scope.queryDatabaseName)}.${quoteIdentifier('pg_catalog')}`;
-    const schemaNames = scope.schemaNames ?? [];
-    const schemaFilter = schemaNames.length > 0
-        ? `AND n.nspname IN (${schemaNames.map(name => `'${name.replace(/'/g, "''")}'`).join(', ')})`
-        : '';
     const relationsFilter = scope.relations != null ? `AND ${relationFilter('n.nspname', 'c.relname', scope.relations)}` : '';
-    const systemFilter = scope.userSchemasOnly ? `AND n.nspname NOT IN ('pg_catalog', 'information_schema')` : '';
+    // A name without a schema doesn't mean a table of the system
+    const systemFilter = scope.relations != null ? `AND n.nspname NOT IN ('pg_catalog', 'information_schema')` : '';
     return `
         SELECT
             n.nspname AS table_schema,
             c.relname AS table_name,
             a.attname AS column_name,
             a.attnum AS ordinal_position,
-            t.typname AS data_type,
-            CASE
-                WHEN a.attnotnull THEN 'NO'
-                ELSE 'YES'
-            END AS is_nullable,
-            CASE
-                WHEN a.atttypid = ANY (ARRAY[21, 23, 20]) THEN a.atttypmod - 4
-                WHEN a.atttypid = 1700 THEN ((a.atttypmod - 4) >> 16) & 65535
-                ELSE NULL
-            END AS numeric_precision,
-            CASE
-                WHEN a.atttypid = 1700 THEN (a.atttypmod - 4) & 65535
-                ELSE NULL
-            END AS numeric_scale
+            t.typname AS data_type
         FROM ${pgCatalog}.pg_class c
         JOIN ${pgCatalog}.pg_namespace n ON n.oid = c.relnamespace
         JOIN ${pgCatalog}.pg_attribute a ON a.attrelid = c.oid
         JOIN ${pgCatalog}.pg_type t ON t.oid = a.atttypid
-        LEFT JOIN ${pgCatalog}.pg_attrdef d ON d.adrelid = c.oid AND d.adnum = a.attnum
         WHERE c.relkind IN ('r', 'v', 'm', 'f', 'p')
           AND a.attnum > 0
           AND NOT a.attisdropped
-        ${schemaFilter}
         ${relationsFilter}
         ${systemFilter}
         ORDER BY n.nspname, c.relname, a.attnum
@@ -136,14 +110,12 @@ export async function queryPgAttribute(
     connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
-    databaseName: string,
-    schemaNames: string[],
     executor: QueryExecutor,
     queryDatabaseName: string | null = null,
     abortSignal?: AbortSignal,
     relations: RelationName[] | null = null,
 ): Promise<PgAttributeColumnsTable | null> {
-    const query = pgAttributeQuery({ queryDatabaseName, schemaNames, relations });
+    const query = pgAttributeQuery({ queryDatabaseName, relations });
 
     const args: QueryExecutionArgs = {
         query: query,

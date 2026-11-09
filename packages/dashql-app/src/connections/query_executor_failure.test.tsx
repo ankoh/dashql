@@ -68,7 +68,7 @@ describe('QueryExecutorProvider', () => {
             catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
             catalogRelationEntryId: 1,
             catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-            catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null, touchedRelations: [] },
+            catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false, touchedRelations: [], touchedFailures: 0 },
             queriesActive: new Map(), queriesActiveOrdered: [],
             queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
         } as unknown as ConnectionState;

@@ -4,7 +4,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import type { HyperConnectorAction } from './hyper/hyper_connection_state.js';
 import type { SalesforceConnectionStateAction } from './salesforce/salesforce_connection_state.js';
 import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog/catalog_update_state.js';
-import { generateCatalogScriptHeader, CatalogSource } from './catalog/catalog_sql_generator.js';
+import { CatalogSource } from './catalog/catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog/catalog_function_sql_generator.js';
 import { VariantKind } from '../utils/variant.js';
 import {
@@ -39,7 +39,8 @@ import type { TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { ConnectionStateDetailsVariant, createConnectionStateDetails, isSalesforceDetails } from './connection_state_details.js';
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { invalidateCatalogBatch } from './catalog/catalog_batch.js';
-import type { RelationName } from './catalog/catalog_sql_generator.js';
+import { mergeRelationNames } from './catalog/catalog_update_state.js';
+import { readRelationName, type RelationName } from './catalog/catalog_sql_generator.js';
 import { connectionParamsEqual, connectionParamsWithoutDraftRows, getConnectionParamsFromStateDetails, type ConnectionParams } from './connection_params.js';
 import { HYPER_CHANNEL_SETUP_STARTED } from './hyper/hyper_connection_state.js';
 import { OAUTH_STARTED, TRINO_CHANNEL_SETUP_STARTED } from './trino/trino_connection_state.js';
@@ -56,18 +57,15 @@ export interface CatalogUpdates {
     tasksRunning: Map<number, CatalogUpdateTaskState>;
     /// The finished tasks
     tasksFinished: Map<number, CatalogUpdateTaskState>;
-    /// Restored at a certain time
-    restoredAt: Date | null;
-    /// The id of the running or most recently completed full refresh.
-    /// Set at UPDATE_CATALOG start; used to decide whether to kick off
-    /// an auto-refresh and to surface the currently-displayed refresh task.
+    /// Does the catalog describe the connection, from a restored file or a full refresh that succeeded? Until then a
+    /// connection is described when it comes online, and nothing is saved: a few relations aren't a catalog.
+    described: boolean;
+    /// The id of the running or most recently started full refresh, it tells that a refresh is running
     currentFullRefresh: number | null;
-    /// The id of the most recently *completed*, non-superseded full refresh
-    /// (succeeded, failed, or cancelled). Only advances on completion, so components
-    /// can depend on it to react when the catalog script has been updated.
-    lastFullRefresh: number | null;
-    /// The relations that executed statements created or dropped since the last catalog update
+    /// The relations that executed statements created or dropped and that no update has answered yet
     touchedRelations: RelationName[];
+    /// The updates in a row that failed to answer them
+    touchedFailures: number;
 }
 
 export interface ConnectionState {
@@ -196,9 +194,7 @@ export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
 export const SWITCH_CONNECTOR_TYPE = Symbol('SWITCH_CONNECTOR_TYPE');
 export const RELATIONS_TOUCHED = Symbol('RELATIONS_TOUCHED');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
-export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
 export const CATALOG_UPDATE_REGISTER_QUERY = Symbol('CATALOG_UPDATE_REGISTER_QUERY');
-export const CATALOG_UPDATE_SCHEMA_SCRIPT = Symbol('CATALOG_UPDATE_SCHEMA_SCRIPT');
 export const CATALOG_UPDATE_SUCCEEDED = Symbol('CATALOG_UPDATE_SUCCEEDED');
 export const CATALOG_UPDATE_PARTIALLY_SUCCEEDED = Symbol('CATALOG_UPDATE_PARTIALLY_SUCCEEDED');
 export const CATALOG_UPDATE_FAILED = Symbol('CATALOG_UPDATE_FAILED');
@@ -218,10 +214,9 @@ export type CatalogAction =
     | VariantKind<typeof RELATIONS_TOUCHED, core.buffers.analyzer.QualifiedTableNameT[]>
     | VariantKind<typeof UPDATE_CATALOG, [number, CatalogUpdateTaskState]>
     | VariantKind<typeof CATALOG_UPDATE_REGISTER_QUERY, [number, number]>
-    | VariantKind<typeof CATALOG_UPDATE_SCHEMA_SCRIPT, [number]>
     | VariantKind<typeof CATALOG_UPDATE_CANCELLED, [number, Error]>
     | VariantKind<typeof CATALOG_UPDATE_FAILED, [number, Error]>
-    | VariantKind<typeof CATALOG_UPDATE_SUCCEEDED, [number]>
+    | VariantKind<typeof CATALOG_UPDATE_SUCCEEDED, [number] | [number, boolean]>
     | VariantKind<typeof CATALOG_UPDATE_PARTIALLY_SUCCEEDED, [number, Error]>
     ;
 
@@ -305,7 +300,6 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
         case UPDATE_CATALOG:
         case CATALOG_UPDATE_REGISTER_QUERY:
-        case CATALOG_UPDATE_SCHEMA_SCRIPT:
         case CATALOG_UPDATE_CANCELLED:
         case CATALOG_UPDATE_SUCCEEDED:
         case CATALOG_UPDATE_PARTIALLY_SUCCEEDED:
@@ -506,9 +500,9 @@ function stopConnection(state: ConnectionState, action: ConnectionAction, reason
             tasksRunning: new Map(),
             tasksFinished: new Map(),
             currentFullRefresh: null,
-            lastFullRefresh: null,
-            restoredAt: null,
+            described: false,
             touchedRelations: [],
+            touchedFailures: 0,
         },
         queriesActive: new Map(),
         queriesActiveOrdered: [],
@@ -520,21 +514,20 @@ function stopConnection(state: ConnectionState, action: ConnectionAction, reason
     return reduceConnectorDetails(cleaned, action) ?? cleaned;
 }
 
-/// Record the relations that an executed statement created or dropped, the catalog loader asks the connection about them.
-/// The statement names them as written, the defaults of the connection qualify them.
-function recordTouchedRelations(state: ConnectionState, names: core.buffers.analyzer.QualifiedTableNameT[]): ConnectionState {
+/// Record the relations that an executed statement touched, the catalog loader asks the connection about them. The
+/// defaults of the connection name the database, a statement without a schema leaves that to the connection.
+function recordTouchedRelations(state: ConnectionState, touched: core.buffers.analyzer.QualifiedTableNameT[]): ConnectionState {
     const defaults = catalogNameDefaults(state.details);
-    const touchedRelations = [...state.catalogUpdates.touchedRelations];
-    for (const name of names) {
-        const relation: RelationName = {
-            databaseName: String(name.databaseName ?? '') || defaults.databaseName,
-            schemaName: String(name.schemaName ?? '') || defaults.schemaName,
-            tableName: String(name.tableName ?? ''),
-        };
-        if (touchedRelations.some(r => r.databaseName === relation.databaseName && r.schemaName === relation.schemaName && r.tableName === relation.tableName)) continue;
-        touchedRelations.push(relation);
-    }
-    return { ...state, catalogUpdates: { ...state.catalogUpdates, touchedRelations } };
+    // A name without a database needs one, without a default the statement can't have touched anything
+    const relations = touched.map(name => readRelationName(name, defaults.databaseName)).filter(relation => relation.databaseName !== '');
+    return {
+        ...state,
+        catalogUpdates: {
+            ...state.catalogUpdates,
+            touchedRelations: mergeRelationNames(state.catalogUpdates.touchedRelations, relations),
+            touchedFailures: 0,
+        },
+    };
 }
 
 export function createConnectionMetrics(): connection.ConnectionMetrics {
@@ -581,9 +574,9 @@ export function createConnectionState(dql: core.DashQL, info: ConnectorInfo, det
             tasksRunning: new Map(),
             tasksFinished: new Map(),
             currentFullRefresh: null,
-            lastFullRefresh: null,
-            restoredAt: null,
+            described: false,
             touchedRelations: [],
+            touchedFailures: 0,
         },
         catalogRelationEntryId,
         catalogFunctionScript,

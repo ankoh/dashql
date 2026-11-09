@@ -5,6 +5,7 @@ import type * as core from '@ankoh/dashql-core';
 
 import { useConnectionDispatch, useConnectionRegistryStore, useDynamicConnectionDispatch } from './connection_registry.js';
 import { RELATIONS_TOUCHED } from './connection_state.js';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
 import {
     createQueryResponseStreamMetrics,
     QUERY_CACHE_RECORDED,
@@ -351,6 +352,20 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     });
                 };
 
+                // The statement may have changed relations, the catalog loader asks the connection about them. Also after
+                // a failure: a statement of many may have run, and a cancelled one may have run all the same. Nothing that
+                // runs on Salesforce changes its relations.
+                const followRelations = () => {
+                    if (!args.metadata.userProvided || args.cacheOnly || conn.details.type === SALESFORCE_DATA_CLOUD_CONNECTOR) return;
+                    try {
+                        const touched = conn.instance.touchedRelations(args.query);
+                        if (touched.length > 0) connDispatch(connectionId, { type: RELATIONS_TOUCHED, value: touched });
+                    } catch (e: any) {
+                        // Following the catalog must not change the outcome of the statement
+                        traced.warn("Failed to read the relations of a statement", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                    }
+                };
+
                 // Compute the cache key up front for cacheable queries. This is best-effort: if the
                 // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
                 // caching and execute normally. Never let a cache concern surface into the query path.
@@ -442,21 +457,13 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         logQueryFailure(traced, e, queryId, sessionId);
                         tracked.fail(e, resultStream?.getMetrics() ?? null);
                     }
+                    followRelations();
                     if (args.throwOnError) {
                         throw e;
                     }
                     return null;
                 }
-                // The statement may have created or dropped relations, the catalog loader asks the connection about them
-                if (!servedFromCache && args.metadata.userProvided) {
-                    try {
-                        const touched = conn.instance.touchedRelations(args.query);
-                        if (touched.relations.length > 0) connDispatch(connectionId, { type: RELATIONS_TOUCHED, value: touched.relations });
-                    } catch (e: any) {
-                        // The statement succeeded, following the catalog must not fail it
-                        traced.warn("Failed to read the relations of a statement", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                    }
-                }
+                if (!servedFromCache) followRelations();
 
                 reportResultsReady();
 

@@ -10,9 +10,6 @@ import {
     quoteDataType,
     generateQualifiedTableName,
     generateCreateTableSQL,
-    generateSchemaSQL,
-    generateUnqualifiedSchemaSQL,
-    generateCatalogSQL,
     relationFilter,
     catalogTablesOfDescriptor,
     generateCatalogTablesSQL,
@@ -20,7 +17,6 @@ import {
     packCatalogDescriptor,
     type CatalogTable,
     type ColumnMetadata,
-    type SchemaMetadata
 } from './catalog_sql_generator.js';
 import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
@@ -147,121 +143,6 @@ describe('SQL Generator Utilities', () => {
 
             expect(sql).toContain('"user id" "integer"');
             expect(sql).toContain('"user""name" "varchar"');
-        });
-    });
-
-    describe('generateSchemaSQL', () => {
-        it('generates SQL for multiple tables', () => {
-            const tables = new Map<string, ColumnMetadata[]>();
-            tables.set('users', [
-                { name: 'id', ordinalPosition: 0, dataType: 'integer' },
-                { name: 'name', ordinalPosition: 1, dataType: 'varchar' }
-            ]);
-            tables.set('posts', [
-                { name: 'id', ordinalPosition: 0, dataType: 'integer' },
-                { name: 'title', ordinalPosition: 1, dataType: 'varchar' }
-            ]);
-
-            const sql = generateSchemaSQL('mydb', 'public', tables);
-
-            expect(sql).toContain('CREATE TABLE "mydb"."public"."posts"');
-            expect(sql).toContain('CREATE TABLE "mydb"."public"."users"');
-        });
-
-        it('sorts tables alphabetically', () => {
-            const tables = new Map<string, ColumnMetadata[]>();
-            tables.set('zebra', [
-                { name: 'id', ordinalPosition: 0, dataType: 'integer' }
-            ]);
-            tables.set('apple', [
-                { name: 'id', ordinalPosition: 0, dataType: 'integer' }
-            ]);
-
-            const sql = generateSchemaSQL('db', 'schema', tables);
-
-            const appleIndex = sql.indexOf('"apple"');
-            const zebraIndex = sql.indexOf('"zebra"');
-
-            expect(appleIndex).toBeLessThan(zebraIndex);
-        });
-
-        it('handles empty table map', () => {
-            const tables = new Map<string, ColumnMetadata[]>();
-            const sql = generateSchemaSQL('db', 'schema', tables);
-            expect(sql).toBe('');
-        });
-    });
-
-    describe('generateUnqualifiedSchemaSQL', () => {
-        it('generates tables without database or schema qualifiers', () => {
-            const tables = new Map<string, ColumnMetadata[]>();
-            tables.set('Account__dll', [
-                { name: 'Id__c', ordinalPosition: 0, dataType: 'text' }
-            ]);
-
-            const sql = generateUnqualifiedSchemaSQL(tables);
-
-            expect(sql).toBe('CREATE TABLE "Account__dll" (\n    "Id__c" "text"\n);');
-            expect(sql).not.toContain('"salesforce"."datacloud"');
-        });
-    });
-
-    describe('generateCatalogSQL', () => {
-        it('generates SQL for multiple schemas', () => {
-            const schemas: SchemaMetadata[] = [
-                {
-                    databaseName: 'db1',
-                    schemaName: 'schema1',
-                    tables: [
-                        {
-                            tableName: 'users',
-                            columns: [
-                                { name: 'id', ordinalPosition: 0, dataType: 'integer' },
-                                { name: 'name', ordinalPosition: 1, dataType: 'varchar' }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    databaseName: 'db1',
-                    schemaName: 'schema2',
-                    tables: [
-                        {
-                            tableName: 'posts',
-                            columns: [
-                                { name: 'id', ordinalPosition: 0, dataType: 'integer' },
-                                { name: 'title', ordinalPosition: 1, dataType: 'varchar' }
-                            ]
-                        }
-                    ]
-                }
-            ];
-
-            const sql = generateCatalogSQL(schemas);
-
-            expect(sql).toContain('CREATE TABLE "db1"."schema1"."users"');
-            expect(sql).toContain('CREATE TABLE "db1"."schema2"."posts"');
-        });
-
-        it('handles null database names', () => {
-            const schemas: SchemaMetadata[] = [
-                {
-                    databaseName: null,
-                    schemaName: 'public',
-                    tables: [
-                        {
-                            tableName: 'users',
-                            columns: [
-                                { name: 'id', ordinalPosition: 0, dataType: 'integer' }
-                            ]
-                        }
-                    ]
-                }
-            ];
-
-            const sql = generateCatalogSQL(schemas);
-
-            expect(sql).toContain('CREATE TABLE "hyper"."public"."users"');
         });
     });
 });
@@ -431,5 +312,10 @@ describe('relationFilter', () => {
     it('selects relations by schema and name and quotes their names', () => {
         expect(relationFilter('s', 't', [{ databaseName: 'db', schemaName: "o'x", tableName: 'a' }, { databaseName: 'db', schemaName: 'y', tableName: 'b' }]))
             .toBe("((s = 'o''x' AND t = 'a') OR (s = 'y' AND t = 'b'))");
+    });
+
+    it('selects a name without a schema in every schema, and a whole schema', () => {
+        expect(relationFilter('s', 't', [{ databaseName: 'db', schemaName: '', tableName: 'a' }])).toBe("((t = 'a'))");
+        expect(relationFilter('s', 't', [{ databaseName: 'db', schemaName: 'x', tableName: '' }])).toBe("((s = 'x'))");
     });
 });

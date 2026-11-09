@@ -12,7 +12,7 @@ describe('queryPgAttribute', () => {
             return [1, Promise.resolve(tableFromArrays({}))];
         });
 
-        await queryPgAttribute('session', vi.fn(), 7, 'catalog', [], executor, 'db"name');
+        await queryPgAttribute('session', vi.fn(), 7, executor, 'db"name');
 
         expect(query).toContain('FROM "db""name"."pg_catalog".pg_class c');
         expect(query).toContain('JOIN "db""name"."pg_catalog".pg_attribute a');
@@ -22,11 +22,16 @@ describe('queryPgAttribute', () => {
     it('reads only the relations that it is asked about', () => {
         const query = pgAttributeQuery({ relations: [{ databaseName: 'db', schemaName: "o'x", tableName: 'a' }] });
         expect(query).toContain(`AND ((n.nspname = 'o''x' AND c.relname = 'a'))`);
+        expect(query).toContain(`AND n.nspname NOT IN ('pg_catalog', 'information_schema')`);
     });
 
-    it('leaves out the schemas of the system on request', () => {
+    it('finds a relation without a schema in every schema', () => {
+        const query = pgAttributeQuery({ relations: [{ databaseName: 'db', schemaName: '', tableName: 'a' }] });
+        expect(query).toContain(`AND ((c.relname = 'a'))`);
+    });
+
+    it('reads all schemas without relations', () => {
         expect(pgAttributeQuery()).not.toContain('NOT IN');
-        expect(pgAttributeQuery({ userSchemasOnly: true })).toContain(`AND n.nspname NOT IN ('pg_catalog', 'information_schema')`);
     });
 });
 

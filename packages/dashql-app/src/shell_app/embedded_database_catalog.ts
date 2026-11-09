@@ -2,7 +2,9 @@ import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
 import { catalogTablesFromPgAttribute, pgAttributeQuery, type PgAttributeColumnsTable } from '../connections/catalog/catalog_query_pg_attribute.js';
-import { DEFAULT_DATABASE_NAME, packCatalogDescriptor } from '../connections/catalog/catalog_sql_generator.js';
+import { DEFAULT_DATABASE_NAME, packCatalogTable, packRelationName, readRelationName } from '../connections/catalog/catalog_sql_generator.js';
+
+const LAYER = dashql.buffers.catalog.CatalogLayer.CONNECTION;
 
 /// The catalog of a shell on an embedded database. Its descriptor holds what the database reports.
 export class EmbeddedDatabaseCatalog {
@@ -17,14 +19,17 @@ export class EmbeddedDatabaseCatalog {
         this.entryId = catalog.allocateEntryId();
     }
 
-    /// Read the relations again after a successful statement that may have changed them. The database is local and only
-    /// holds what the shell put into it, so the query reads all of them and a statement that doesn't parse counts.
+    /// Ask the database about what a statement touched, before the prompt returns. Also after a failure: a statement of
+    /// many may have run.
     async afterStatement(statement: string): Promise<void> {
-        const touched = this.core.touchedRelations(statement);
-        if (touched.parsed && touched.relations.length === 0) return;
-        const relations = await this.query(pgAttributeQuery({ userSchemasOnly: true })) as PgAttributeColumnsTable;
-        const tables = catalogTablesFromPgAttribute(relations, DEFAULT_DATABASE_NAME);
-        this.catalog.replaceDescriptor(this.entryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, packCatalogDescriptor(tables));
+        const relations = this.core.touchedRelations(statement).map(name => readRelationName(name, DEFAULT_DATABASE_NAME));
+        for (const databaseName of new Set(relations.map(relation => relation.databaseName))) {
+            const ofDatabase = relations.filter(relation => relation.databaseName === databaseName);
+            const queryDatabaseName = databaseName === DEFAULT_DATABASE_NAME ? null : databaseName;
+            const rows = await this.query(pgAttributeQuery({ queryDatabaseName, relations: ofDatabase })) as PgAttributeColumnsTable;
+            const tables = catalogTablesFromPgAttribute(rows, databaseName);
+            this.catalog.replaceTables(this.entryId, LAYER, { relations: ofDatabase.map(packRelationName), tables: tables.map(packCatalogTable) });
+        }
     }
 
     destroy(): void {

@@ -134,11 +134,11 @@ function createDatabase(executeQuery: unknown, setupParams: object | null = { pr
         connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
         params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
         details: { type: HYPER_CONNECTOR, value: { proto: { setupParams }, channel: { executeQuery, close: vi.fn() } } },
-        instance: { touchedRelations: (query: string) => ({ parsed: true, relations: query.startsWith('create table') ? [new core.buffers.analyzer.QualifiedTableNameT(0, null, null, 't')] : [] }) },
+        instance: { touchedRelations: (query: string) => query.startsWith('create table') ? [new core.buffers.analyzer.QualifiedTableNameT(0, null, null, 't')] : [] },
         catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
         catalogRelationEntryId: 1,
         catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, lastFullRefresh: null, restoredAt: null, touchedRelations: [] },
+        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false, touchedRelations: [], touchedFailures: 0 },
         queriesActive: new Map(), queriesActiveOrdered: [],
         queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
     } as unknown as ConnectionState;
@@ -429,10 +429,10 @@ describe('QueryExecutorProvider', () => {
             expect((await finished(queryId)).error?.message).toBe('connection lost');
         });
 
-        it('touches no relations with a failed statement', async () => {
+        it('touches the relations of a failed statement, a statement of many may have run', async () => {
             await renderExecutor(vi.fn(async () => { throw new Error('nope'); }));
             await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
-            expect(api!.connection.catalogUpdates.touchedRelations).toEqual([]);
+            expect(api!.connection.catalogUpdates.touchedRelations).toEqual([{ databaseName: 'hyper', schemaName: '', tableName: 't' }]);
         });
 
         it('rejects for a connection that does not exist', async () => {
@@ -468,7 +468,7 @@ describe('QueryExecutorProvider', () => {
     });
 
     describe('the relations of a statement', () => {
-        const T = { databaseName: 'hyper', schemaName: 'public', tableName: 't' };
+        const T = { databaseName: 'hyper', schemaName: '', tableName: 't' };
 
         it('are touched once a statement of the user succeeded', async () => {
             await renderExecutor(vi.fn(async () => new TestStream()));

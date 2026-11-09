@@ -722,6 +722,9 @@ impl<'a> Formatter<'a> {
             | K::SQL_VIEW_NAME
             | K::SQL_CREATE_FUNCTION_NAME
             | K::SQL_DROP_NAME
+            | K::SQL_ALTER_TABLE_NAME
+            | K::SQL_ALTER_ACTION_NEW_TABLE
+            | K::SQL_SCHEMA_NAME
             | K::SQL_CALL_NAME
             | K::EXT_VARARG_FIELD_KEY
             | K::SQL_GRAPH_TABLE_GRAPH => self.format_qualified_name(node),
@@ -735,7 +738,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_FUNCTION_TRIM_INPUT
             | K::SQL_ALIAS_COLUMN_NAMES
             | K::SQL_ALIAS_COLUMN_DEFS
-            | K::EXT_VARARG_ARRAY_VALUES => self.format_comma_list(node, true),
+            | K::EXT_VARARG_ARRAY_VALUES
+            | K::SQL_ALTER_TABLE_ACTIONS => self.format_comma_list(node, true),
             _ => self.format_unimplemented(node),
         }
     }
@@ -2671,6 +2675,15 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_CREATE_FUNCTION => self.format_create_function(node),
             NodeType::OBJECT_SQL_DROP_TABLE => self.format_drop(node, true),
             NodeType::OBJECT_SQL_DROP_VIEW => self.format_drop(node, false),
+            NodeType::OBJECT_SQL_ALTER_TABLE => self.format_alter_table(node, "alter table "),
+            NodeType::OBJECT_SQL_ALTER_VIEW => self.format_alter_table(node, "alter view "),
+            NodeType::OBJECT_SQL_CREATE_SCHEMA | NodeType::OBJECT_SQL_DROP_SCHEMA | NodeType::OBJECT_SQL_ALTER_SCHEMA => self.format_schema_statement(node),
+            NodeType::OBJECT_SQL_ALTER_ADD_COLUMN
+            | NodeType::OBJECT_SQL_ALTER_DROP_COLUMN
+            | NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN
+            | NodeType::OBJECT_SQL_ALTER_RENAME_TABLE
+            | NodeType::OBJECT_SQL_ALTER_SET_SCHEMA
+            | NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE => self.format_alter_table_action(node),
             NodeType::OBJECT_SQL_ATTACH_DATABASE => self.format_attach_database(node),
             NodeType::OBJECT_SQL_ATTACH_DATABASE_OPTION => self.format_attach_database_option(node),
             NodeType::OBJECT_SQL_FUNCTION_PARAM => self.format_function_param(node),

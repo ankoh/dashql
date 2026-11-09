@@ -227,6 +227,9 @@ pub struct CatalogSnapshot {
     schemas: BTreeMap<(Arc<str>, Arc<str>), Arc<SchemaDeclaration>>,
     /// The client function specs by namespace, a spec shadows its namespace for `CALL`
     client_function_specs: BTreeMap<Arc<str>, Arc<ClientFunctionSpec>>,
+    /// The relations that the connection reported as gone, their declarations in scripts are hidden until the
+    /// connection has them again. An empty part of a name matches any database or schema.
+    absent_relations: Vec<QualifiedKey>,
 }
 
 /// The catalog: the current snapshot and the ids that outlive snapshots.
@@ -283,6 +286,7 @@ impl Catalog {
                 databases: BTreeMap::new(),
                 schemas: BTreeMap::new(),
                 client_function_specs: BTreeMap::new(),
+                absent_relations: Vec::new(),
             }),
             ids: RefCell::new(IdReservations {
                 database_ids_by_name: HashMap::default(),
@@ -597,15 +601,19 @@ impl Catalog {
             return Ok(());
         }
         let entry = DescriptorEntry::new(self, id, layer, descriptor)?;
+        let reported: Vec<QualifiedKey> = entry.entry.table_declarations.iter().map(|t| t.table_name.key()).collect();
         let mut staged = self.descriptor_entries.clone();
         staged.insert(id, Arc::new(entry));
         let scripts = self.script_entries.clone();
-        self.publish_entries(scripts, staged)
+        self.publish_entries(scripts, staged)?;
+        // The connection has these relations again
+        self.absent_relations.retain(|absent| !reported.iter().any(|table| same_relation(absent, table)));
+        Ok(())
     }
 
     /// Update the tables of a descriptor pool with a packed `CatalogTableUpdate`, an unknown pool is created in the
     /// layer. Tables that the update leaves as they are keep their position, an update that changes nothing keeps
-    /// the catalog version.
+    /// the catalog version. A relation that has no table anymore is gone: scripts that declare it no longer provide it.
     pub fn replace_tables(&mut self, id: CatalogEntryId, layer: CatalogLayer, update: &[u8]) -> Result<()> {
         use dashql_buffers::analyzer::{QualifiedTableNameT, TableT};
         use dashql_buffers::catalog::{CatalogDescriptor, CatalogDescriptorT, CatalogTableUpdate};
@@ -621,40 +629,63 @@ impl Catalog {
             }
             None => (CatalogDescriptorT::default(), layer),
         };
-        let same_name = |a: &QualifiedTableNameT, b: &QualifiedTableNameT| {
-            a.database_name.as_deref().unwrap_or("") == b.database_name.as_deref().unwrap_or("")
-                && a.schema_name.as_deref().unwrap_or("") == b.schema_name.as_deref().unwrap_or("")
-                && a.table_name.as_deref().unwrap_or("") == b.table_name.as_deref().unwrap_or("")
+        let key_of = |name: &QualifiedTableNameT| -> QualifiedKey {
+            (
+                Arc::from(name.database_name.as_deref().unwrap_or("")),
+                Arc::from(name.schema_name.as_deref().unwrap_or("")),
+                Arc::from(name.table_name.as_deref().unwrap_or("")),
+            )
         };
-        let name_of = |table: &TableT| table.table_name.as_deref().cloned().unwrap_or_default();
+        let key_of_table = |table: &TableT| key_of(table.table_name.as_deref().unwrap_or(&QualifiedTableNameT::default()));
         let before = descriptor.tables.take().unwrap_or_default();
         let new_tables = update.tables.unwrap_or_default();
-        let relations = update.relations.unwrap_or_default();
+        let new_keys: Vec<QualifiedKey> = new_tables.iter().map(key_of_table).collect();
+        let relations: Vec<QualifiedKey> = update.relations.unwrap_or_default().iter().map(key_of).collect();
         let databases = update.databases.unwrap_or_default();
         let mut tables: Vec<TableT> = Vec::with_capacity(before.len() + new_tables.len());
+        let mut before_keys: Vec<QualifiedKey> = Vec::with_capacity(before.len());
         for table in &before {
-            let name = name_of(table);
-            if let Some(next) = new_tables.iter().find(|t| same_name(&name_of(t), &name)) {
-                tables.push(next.clone());
-            } else if !relations.iter().any(|r| same_name(r, &name))
-                && !databases.iter().any(|d| d == name.database_name.as_deref().unwrap_or(""))
-            {
+            let key = key_of_table(table);
+            if let Some(next) = new_keys.iter().position(|k| *k == key) {
+                tables.push(new_tables[next].clone());
+            } else if !relations.iter().any(|r| same_relation(r, &key)) && !databases.iter().any(|d| d.as_str() == &*key.0) {
+                tables.push(table.clone());
+            }
+            before_keys.push(key);
+        }
+        for (table, key) in new_tables.iter().zip(&new_keys) {
+            if !before_keys.contains(key) {
                 tables.push(table.clone());
             }
         }
-        for table in &new_tables {
-            if !before.iter().any(|t| same_name(&name_of(t), &name_of(table))) {
-                tables.push(table.clone());
+        // The relations that the connection has no table of are gone, the others are not
+        let mut absent = self.absent_relations.clone();
+        absent.retain(|a| !new_keys.iter().any(|k| same_relation(a, k)));
+        for relation in &relations {
+            if !new_keys.iter().any(|k| same_relation(relation, k)) && !absent.contains(relation) {
+                absent.push(relation.clone());
             }
         }
+        let absent_changed = absent != self.absent_relations;
         if tables == before && self.descriptor_entries.contains_key(&id) {
+            if absent_changed {
+                self.absent_relations = absent;
+                self.version += 1;
+            }
             return Ok(());
         }
         descriptor.tables = Some(tables);
         let mut builder = flatbuffers::FlatBufferBuilder::new();
         let packed = descriptor.pack(&mut builder);
         builder.finish(packed, None);
-        self.replace_descriptor(id, layer, builder.finished_data())
+        self.replace_descriptor(id, layer, builder.finished_data())?;
+        self.absent_relations = absent;
+        Ok(())
+    }
+
+    /// The relations that the connection reported as gone
+    pub fn absent_relations(&self) -> &[QualifiedKey] {
+        &self.absent_relations
     }
 
     /// The bytes of a descriptor pool
@@ -738,6 +769,7 @@ impl Catalog {
         self.descriptor_entries.clear();
         self.schemas.clear();
         self.databases.clear();
+        self.absent_relations.clear();
         self.version += 1;
     }
 
@@ -844,7 +876,10 @@ impl CatalogSnapshot {
 
         // Tables are not deduplicated among entries, the first entry in resolution order wins
         for (_, entry) in self.entries_ranked() {
-            for table in &entry.data().table_declarations {
+            for (index, table) in entry.data().table_declarations.iter().enumerate() {
+                if self.is_absent(entry.data().catalog_entry_id, table) || entry.data().tables_by_qualified_name.get(&table.table_name.key()) != Some(&index) {
+                    continue;
+                }
                 let schema_node = schema_node_map[&table.catalog_schema_id];
                 let table_name = &table.table_name.table_name.text;
                 if schema_nodes[schema_node].children.contains_key(table_name) {
@@ -945,10 +980,33 @@ impl CatalogSnapshot {
         self.entries.get(&loc.entry)?.data().table_declarations.get(loc.index as usize)
     }
 
+    /// Did the connection report a relation that this script declaration names as gone?
+    fn is_absent(&self, entry: CatalogEntryId, table: &TableDeclaration) -> bool {
+        !self.absent_relations.is_empty()
+            && self.script_entries.contains_key(&entry)
+            && self.absent_relations.iter().any(|absent| same_relation(absent, &table.table_name.key()))
+    }
+
+    /// Is a table the declaration of a relation that is gone?
+    pub fn is_absent_table(&self, loc: TableLoc) -> bool {
+        !self.absent_relations.is_empty() && self.table(loc).is_some_and(|table| self.is_absent(loc.entry, table))
+    }
+
+    /// Is an object of a name index part of a relation that is gone?
+    pub fn is_absent_object(&self, object: CatalogObjectRef) -> bool {
+        match object {
+            CatalogObjectRef::Table(table) => self.is_absent_table(table),
+            CatalogObjectRef::Column(column) => self.is_absent_table(column.table),
+            _ => false,
+        }
+    }
+
     /// Resolve a table across all entries except `ignore_entry`. The matches of the first layer that has one are
-    /// the candidates: what the connection reports doesn't compete with what a script declares.
+    /// the candidates: what the connection reports doesn't compete with what a script declares, and a script doesn't
+    /// provide a relation that the connection reported as gone.
     pub fn resolve_table(&self, name: &QualifiedTableName, ignore_entry: CatalogEntryId, out: &mut Vec<TableLoc>, limit: usize) {
         self.collect_table_matches(name, ignore_entry, out, limit);
+        out.retain(|loc| !self.is_absent_table(*loc));
         if let Some(first) = out.first().and_then(|loc| self.layer(loc.entry)) {
             out.retain(|loc| self.layer(loc.entry) == Some(first));
         }
@@ -1007,8 +1065,18 @@ impl CatalogSnapshot {
     }
 }
 
+/// Do two relation names name the same relation? An empty database or schema matches any. An empty table names a whole
+/// schema, which only a relation with that schema is in.
+fn same_relation(a: &QualifiedKey, b: &QualifiedKey) -> bool {
+    let part = |x: &Arc<str>, y: &Arc<str>| x.is_empty() || y.is_empty() || x == y;
+    if a.2.is_empty() || b.2.is_empty() {
+        return a.1 == b.1 && part(&a.0, &b.0);
+    }
+    a.2 == b.2 && part(&a.0, &b.0) && part(&a.1, &b.1)
+}
+
 /// Describe a catalog entry of a layer
-fn describe_entry(layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEntryT {
+fn describe_entry(snapshot: &CatalogSnapshot, layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEntryT {
     use dashql_buffers::catalog::{CatalogEntryT, CatalogEntryType, SchemaDescriptorT, SchemaTableColumnT, SchemaTableT};
     let data = entry.data();
     let mut out = CatalogEntryT::default();
@@ -1022,6 +1090,7 @@ fn describe_entry(layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffer
                 .table_declarations
                 .iter()
                 .enumerate()
+                .filter(|(_, table)| !snapshot.is_absent(data.catalog_entry_id, table))
                 .map(|(i, table)| {
                     let mut t = SchemaTableT::default();
                     t.table_id = i as u32;
@@ -1091,7 +1160,7 @@ impl CatalogSnapshot {
     /// Describe all entries in resolution order
     pub fn describe_entries(&self) -> dashql_buffers::catalog::CatalogEntriesT {
         let mut out = dashql_buffers::catalog::CatalogEntriesT::default();
-        out.entries = Some(self.entries_ranked().map(|(layer, e)| describe_entry(layer, e)).collect());
+        out.entries = Some(self.entries_ranked().map(|(layer, e)| describe_entry(self, layer, e)).collect());
         out
     }
 
@@ -1100,7 +1169,7 @@ impl CatalogSnapshot {
         let entry = self.entries.get(&id)?;
         let layer = self.layer(id)?;
         let mut out = dashql_buffers::catalog::CatalogEntriesT::default();
-        out.entries = Some(vec![describe_entry(layer, entry)]);
+        out.entries = Some(vec![describe_entry(self, layer, entry)]);
         Some(out)
     }
 

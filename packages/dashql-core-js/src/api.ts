@@ -81,19 +81,12 @@ export interface SessionPlanAttachment {
     columns?: string[] | null;
 }
 
-/// The relations that the statements of a text create or drop
-export interface TouchedRelations {
-    /// Did the text parse? A statement that doesn't parse can touch any relation.
-    parsed: boolean;
-    /// The relations in statement order
-    relations: buffers.analyzer.QualifiedTableNameT[];
-}
-
 /// Tables of a descriptor entry that a connection reported anew
 export interface CatalogTableUpdate {
     /// The databases that the tables describe in full, their other tables are gone
     databases?: string[];
-    /// The relations that the tables describe, one without a table is gone
+    /// The relations that the tables describe, one without a table is gone. An empty part of a name matches any database
+    /// or schema.
     relations?: buffers.analyzer.QualifiedTableNameT[];
     /// The tables
     tables: buffers.analyzer.TableT[];
@@ -415,10 +408,10 @@ export class DashQL {
         return new DashQLQueryProfile(ptr, layoutConfig);
     }
 
-    /// The relations that the statements of a text create or drop, named as written
-    public touchedRelations(text: string): TouchedRelations {
-        const touched = buffers.catalog.TouchedRelations.getRootAsTouchedRelations(new flatbuffers.ByteBuffer(this.bindings.touchedRelations(text))).unpack();
-        return { parsed: touched.parsed, relations: touched.relations };
+    /// The relations that the statements of a text create, change or drop, named as written. A statement that doesn't
+    /// parse touches nothing that we know of.
+    public touchedRelations(text: string): buffers.analyzer.QualifiedTableNameT[] {
+        return buffers.catalog.TouchedRelations.getRootAsTouchedRelations(new flatbuffers.ByteBuffer(this.bindings.touchedRelations(text))).unpack().relations;
     }
 }
 
@@ -1086,6 +1079,10 @@ export class DashQLCatalog {
         builder.finish(packed.pack(builder));
         this.ptr.assertNotNull().replaceTables(catalogEntryId, layer, builder.asUint8Array());
         this.deleteFlat();
+    }
+    /// The relations that the connection reported as gone
+    public absentRelations(): buffers.analyzer.QualifiedTableNameT[] {
+        return buffers.catalog.TouchedRelations.getRootAsTouchedRelations(new flatbuffers.ByteBuffer(this.ptr.assertNotNull().absentRelations())).unpack().relations;
     }
     /// The declarations of a descriptor entry, null for another entry
     public readDescriptor(catalogEntryId: number): buffers.catalog.CatalogDescriptorT | null {

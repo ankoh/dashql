@@ -218,7 +218,7 @@ ahead of session order. CTE bindings are not catalog entities in this graph.
 
 The current supported statement families are SELECT, INSERT, DELETE, EXPLAIN,
 CREATE TABLE, CREATE TABLE AS, CREATE VIEW, SELECT INTO, DROP TABLE, and DROP
-VIEW. A script may have several outputs, the last output of a script is its
+VIEW. ALTER and the schema statements are barriers. A script may have several outputs, the last output of a script is its
 result. INSERT and DELETE
 produce output only when their root DML node has RETURNING. Nested DML RETURNING
 never overrides the output classification of an enclosing EXPLAIN.

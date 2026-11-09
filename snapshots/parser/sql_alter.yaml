@@ -1,0 +1,848 @@
+parser-snapshots:
+
+  - name: alter_table_add_column
+    input: |-
+      alter table analytics.results add column total bigint
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "alter tabl..tal bigint"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..tal bigint"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "analytics.results"
+                children:
+                  - type: NAME
+                    text: "analytics"
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "add column..tal bigint"
+                children:
+                  - type: OBJECT_SQL_ALTER_ADD_COLUMN
+                    text: "add column..tal bigint"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: OBJECT_SQL_COLUMN_DEF
+                        text: "total bigint"
+                        children:
+                          - key: SQL_COLUMN_DEF_NAME
+                            type: NAME
+                            text: "total"
+                          - key: SQL_COLUMN_DEF_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "bigint"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT8
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_add_if_not_exists
+    input: |-
+      alter table analytics.results add if not exists total bigint
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "alter tabl..tal bigint"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..tal bigint"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "analytics.results"
+                children:
+                  - type: NAME
+                    text: "analytics"
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "add if not..tal bigint"
+                children:
+                  - type: OBJECT_SQL_ALTER_ADD_COLUMN
+                    text: "add if not..tal bigint"
+                    children:
+                      - key: SQL_ALTER_ACTION_IF
+                        type: BOOL
+                        value: 1
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: OBJECT_SQL_COLUMN_DEF
+                        text: "total bigint"
+                        children:
+                          - key: SQL_COLUMN_DEF_NAME
+                            type: NAME
+                            text: "total"
+                          - key: SQL_COLUMN_DEF_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "bigint"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT8
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_drop_column
+    input: |-
+      alter table if exists analytics.results drop column if exists total
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "alter tabl..ists total"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..ists total"
+            children:
+              - key: SQL_ALTER_TABLE_IF_EXISTS
+                type: BOOL
+                value: 1
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "analytics.results"
+                children:
+                  - type: NAME
+                    text: "analytics"
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "drop colum..ists total"
+                children:
+                  - type: OBJECT_SQL_ALTER_DROP_COLUMN
+                    text: "drop colum..ists total"
+                    children:
+                      - key: SQL_ALTER_ACTION_IF
+                        type: BOOL
+                        value: 1
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "total"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_column_named_if
+    input: |-
+      alter table results drop if
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "alter tabl..ts drop if"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..ts drop if"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "drop if"
+                children:
+                  - type: OBJECT_SQL_ALTER_DROP_COLUMN
+                    text: "drop if"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "if"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_rename_column
+    input: |-
+      alter table results rename column total to amount
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 7
+          description:
+            text: "alter tabl.. to amount"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl.. to amount"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "rename col.. to amount"
+                children:
+                  - type: OBJECT_SQL_ALTER_RENAME_COLUMN
+                    text: "rename col.. to amount"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "total"
+                      - key: SQL_ALTER_ACTION_NEW_NAME
+                        type: NAME
+                        text: "amount"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_rename
+    input: |-
+      alter table results rename to analytics.outcomes
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "alter tabl..s.outcomes"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..s.outcomes"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "rename to ..s.outcomes"
+                children:
+                  - type: OBJECT_SQL_ALTER_RENAME_TABLE
+                    text: "rename to ..s.outcomes"
+                    children:
+                      - key: SQL_ALTER_ACTION_NEW_TABLE
+                        type: ARRAY
+                        text: "analytics.outcomes"
+                        children:
+                          - type: NAME
+                            text: "analytics"
+                          - type: NAME
+                            text: "outcomes"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_set_schema
+    input: |-
+      alter table results set schema analytics
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "alter tabl.. analytics"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl.. analytics"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "set schema.. analytics"
+                children:
+                  - type: OBJECT_SQL_ALTER_SET_SCHEMA
+                    text: "set schema.. analytics"
+                    children:
+                      - key: SQL_ALTER_ACTION_NEW_NAME
+                        type: NAME
+                        text: "analytics"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_column_type
+    input: |-
+      alter table results alter column total set data type numeric(10, 2)
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 12
+          description:
+            text: "alter tabl..ric(10, 2)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..ric(10, 2)"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "alter colu..ric(10, 2)"
+                children:
+                  - type: OBJECT_SQL_ALTER_COLUMN_TYPE
+                    text: "alter colu..ric(10, 2)"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "total"
+                      - key: SQL_ALTER_ACTION_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "numeric(10, 2)"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "numeric(10, 2)"
+                            children:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(10, 2)"
+                                children:
+                                  - type: LITERAL_INTEGER
+                                    text: "10"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_actions
+    input: |-
+      alter table results add column a int, drop column b, alter c type text
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 16
+          description:
+            text: "alter tabl.. type text"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl.. type text"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "add column.. type text"
+                children:
+                  - type: OBJECT_SQL_ALTER_ADD_COLUMN
+                    text: "add column a int"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: OBJECT_SQL_COLUMN_DEF
+                        text: "a int"
+                        children:
+                          - key: SQL_COLUMN_DEF_NAME
+                            type: NAME
+                            text: "a"
+                          - key: SQL_COLUMN_DEF_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "int"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT4
+                  - type: OBJECT_SQL_ALTER_DROP_COLUMN
+                    text: "drop column b"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "b"
+                  - type: OBJECT_SQL_ALTER_COLUMN_TYPE
+                    text: "alter c type text"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "c"
+                      - key: SQL_ALTER_ACTION_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "text"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "text"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "text"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_unknown_action
+    input: |-
+      alter table results owner to someone
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected OWNER'
+          text: "owner"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_table_drop_column_condition_after
+    input: |-
+      alter table results drop column total if exists
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 7
+          description:
+            text: "alter tabl.. if exists"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl.. if exists"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "results"
+                children:
+                  - type: NAME
+                    text: "results"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "drop colum.. if exists"
+                children:
+                  - type: OBJECT_SQL_ALTER_DROP_COLUMN
+                    text: "drop colum.. if exists"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "total"
+                      - key: SQL_ALTER_ACTION_IF_AFTER
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_view_rename
+    input: |-
+      alter view if exists analytics.report rename to outcomes
+    expected:
+      statements:
+        - type: ALTER_VIEW
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "alter view..o outcomes"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_VIEW
+            text: "alter view..o outcomes"
+            children:
+              - key: SQL_ALTER_TABLE_IF_EXISTS
+                type: BOOL
+                value: 1
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "analytics.report"
+                children:
+                  - type: NAME
+                    text: "analytics"
+                  - type: NAME
+                    text: "report"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "rename to outcomes"
+                children:
+                  - type: OBJECT_SQL_ALTER_RENAME_TABLE
+                    text: "rename to outcomes"
+                    children:
+                      - key: SQL_ALTER_ACTION_NEW_TABLE
+                        type: ARRAY
+                        text: "outcomes"
+                        children:
+                          - type: NAME
+                            text: "outcomes"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_view_set_schema
+    input: |-
+      alter view report set schema analytics
+    expected:
+      statements:
+        - type: ALTER_VIEW
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "alter view.. analytics"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_VIEW
+            text: "alter view.. analytics"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "report"
+                children:
+                  - type: NAME
+                    text: "report"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "set schema.. analytics"
+                children:
+                  - type: OBJECT_SQL_ALTER_SET_SCHEMA
+                    text: "set schema.. analytics"
+                    children:
+                      - key: SQL_ALTER_ACTION_NEW_NAME
+                        type: NAME
+                        text: "analytics"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_view_unknown_action
+    input: |-
+      alter view report add column a int
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected ADD_P'
+          text: "add"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: drop_column_cascade
+    input: |-
+      alter table t drop column a cascade
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 7
+          description:
+            text: "alter tabl.. a cascade"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl.. a cascade"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "drop colum.. a cascade"
+                children:
+                  - type: OBJECT_SQL_ALTER_DROP_COLUMN
+                    text: "drop colum.. a cascade"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "a"
+                      - key: SQL_ALTER_ACTION_CASCADE
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_column_type_using
+    input: |-
+      alter table t alter column a type bigint using a::bigint
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 14
+          description:
+            text: "alter tabl.. a::bigint"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl.. a::bigint"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "alter colu.. a::bigint"
+                children:
+                  - type: OBJECT_SQL_ALTER_COLUMN_TYPE
+                    text: "alter colu.. a::bigint"
+                    children:
+                      - key: SQL_ALTER_ACTION_COLUMN
+                        type: NAME
+                        text: "a"
+                      - key: SQL_ALTER_ACTION_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "bigint"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT8
+                      - key: SQL_ALTER_ACTION_USING
+                        type: OBJECT_SQL_TYPECAST_EXPRESSION
+                        text: "a::bigint"
+                        children:
+                          - key: SQL_TYPECAST_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - key: SQL_TYPECAST_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "bigint"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT8
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_schema
+    input: |-
+      create schema if not exists analytics
+    expected:
+      statements:
+        - type: CREATE_SCHEMA
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "create sch.. analytics"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_SCHEMA
+            text: "create sch.. analytics"
+            children:
+              - key: SQL_SCHEMA_IF
+                type: BOOL
+                value: 1
+              - key: SQL_SCHEMA_NAME
+                type: ARRAY
+                text: "analytics"
+                children:
+                  - type: NAME
+                    text: "analytics"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: drop_schema
+    input: |-
+      drop schema if exists lake.analytics cascade
+    expected:
+      statements:
+        - type: DROP_SCHEMA
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "drop schem..cs cascade"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_SCHEMA
+            text: "drop schem..cs cascade"
+            children:
+              - key: SQL_SCHEMA_IF
+                type: BOOL
+                value: 1
+              - key: SQL_SCHEMA_NAME
+                type: ARRAY
+                text: "lake.analytics"
+                children:
+                  - type: NAME
+                    text: "lake"
+                  - type: NAME
+                    text: "analytics"
+              - key: SQL_SCHEMA_CASCADE
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: drop_schema_restrict
+    input: |-
+      drop schema analytics restrict
+    expected:
+      statements:
+        - type: DROP_SCHEMA
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "drop schem..s restrict"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_SCHEMA
+            text: "drop schem..s restrict"
+            children:
+              - key: SQL_SCHEMA_NAME
+                type: ARRAY
+                text: "analytics"
+                children:
+                  - type: NAME
+                    text: "analytics"
+              - key: SQL_SCHEMA_CASCADE
+                type: BOOL
+                value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: alter_schema_rename
+    input: |-
+      alter schema analytics rename to archive
+    expected:
+      statements:
+        - type: ALTER_SCHEMA
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "alter sche..to archive"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_SCHEMA
+            text: "alter sche..to archive"
+            children:
+              - key: SQL_SCHEMA_NAME
+                type: ARRAY
+                text: "analytics"
+                children:
+                  - type: NAME
+                    text: "analytics"
+              - key: SQL_SCHEMA_NEW_NAME
+                type: NAME
+                text: "archive"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

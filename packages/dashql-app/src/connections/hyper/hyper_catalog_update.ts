@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
-import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
+import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { DynamicConnectionDispatch } from '../connection_registry.js';
 import { catalogTablesOfSchema, DEFAULT_DATABASE_NAME, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '../catalog/catalog_sql_generator.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, catalogTablesFromPgAttribute } from '../catalog/catalog_query_pg_attribute.js';
@@ -226,8 +226,6 @@ export async function updateHyperCatalog(
                     connectionId,
                     connectionDispatch,
                     updateId,
-                    target.databaseName,
-                    [],
                     executor,
                     target.queryDatabaseName,
                     abortSignal,
@@ -261,7 +259,6 @@ export async function updateHyperCatalog(
     if (relations != null) {
         const answered = successful.flatMap(result => relationsOf(result.target)!);
         if (answered.length > 0) {
-            connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
             catalog.replaceTables(relationEntryId, layer, { relations: answered.map(packRelationName), tables: tables.map(packCatalogTable) });
         }
         return { updatedDatabases, failures };
@@ -287,10 +284,6 @@ export async function updateHyperCatalog(
     }
 
     validate();
-    connectionDispatch(connectionId, {
-        type: CATALOG_UPDATE_SCHEMA_SCRIPT,
-        value: [updateId],
-    });
     const [functions] = await publishCatalogBatch(dql, catalog, [
         { script: catalogFunctionScript, text: functionSQL, requireFunctions: !resolveLiveFunctionCatalog },
     ], options, validate);

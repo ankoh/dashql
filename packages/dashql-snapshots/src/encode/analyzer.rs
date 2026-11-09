@@ -5,7 +5,7 @@ use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
-use dashql_core_session::touched_relations::touched_relation;
+use dashql_core_session::touched_relations::touched_relations_of_statement;
 use dashql_core::catalog::{Catalog, CatalogLayer, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
@@ -77,13 +77,14 @@ fn encode_tables(e: &Encoder, tables: &[TableDeclaration]) -> Node {
 /// The relations that the statements create or drop, named as written
 fn encode_touched_relations(script: &AnalyzedScript) -> Option<Node> {
     let items: Vec<Node> = (0..script.parsed.statements.len())
-        .filter_map(|statement_id| {
-            let relation = touched_relation(&script.parsed, statement_id)?;
-            let name: Vec<&str> = [&relation.database_name, &relation.schema_name, &relation.table_name].into_iter().flatten().map(String::as_str).collect();
-            let mut m = Map::new();
-            m.int("statement-id", statement_id as i64);
-            m.plain("name", &name.join("."));
-            Some(m.into_node())
+        .flat_map(|statement_id| {
+            touched_relations_of_statement(&script.parsed, statement_id).into_iter().map(move |relation| {
+                let name: Vec<&str> = [&relation.database_name, &relation.schema_name, &relation.table_name].into_iter().flatten().map(String::as_str).collect();
+                let mut m = Map::new();
+                m.int("statement-id", statement_id as i64);
+                m.plain("name", &name.join("."));
+                m.into_node()
+            })
         })
         .collect();
     (!items.is_empty()).then(|| Node::seq(items))

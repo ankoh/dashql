@@ -10,19 +10,6 @@ export interface ColumnMetadata {
     dataType?: string | null;
 }
 
-/// Table metadata for SQL generation
-export interface TableMetadata {
-    tableName: string;
-    columns: ColumnMetadata[];
-}
-
-/// Schema metadata for SQL generation
-export interface SchemaMetadata {
-    databaseName: string | null;
-    schemaName: string;
-    tables: TableMetadata[];
-}
-
 export function quoteIdentifier(identifier: string): string {
     const escaped = identifier.replace(/"/g, '""');
     return `"${escaped}"`;
@@ -40,16 +27,26 @@ export function quoteLiteral(value: string): string {
     return `'${value.replace(/'/g, "''")}'`;
 }
 
-/// A relation of a connection, fully qualified
+/// A relation of a connection
 export interface RelationName {
     databaseName: string;
+    /// The schema, empty if a statement didn't name one. The connection decides which schema that is, it can be a
+    /// temporary schema or one of the search path, so a name without a schema matches every schema.
     schemaName: string;
+    /// The table, empty for everything in the schema
     tableName: string;
 }
 
 /// The condition of a metadata query that selects relations
 export function relationFilter(schemaColumn: string, tableColumn: string, relations: RelationName[]): string {
-    return `(${relations.map(r => `(${schemaColumn} = ${quoteLiteral(r.schemaName)} AND ${tableColumn} = ${quoteLiteral(r.tableName)})`).join(' OR ')})`;
+    const relation = (r: RelationName) => {
+        const parts = [
+            ...(r.schemaName ? [`${schemaColumn} = ${quoteLiteral(r.schemaName)}`] : []),
+            ...(r.tableName ? [`${tableColumn} = ${quoteLiteral(r.tableName)}`] : []),
+        ];
+        return `(${parts.join(' AND ')})`;
+    };
+    return `(${relations.map(relation).join(' OR ')})`;
 }
 
 /// Generates a qualified table name (database.schema.table).
@@ -84,26 +81,6 @@ export function generateCreateTableSQL(
     }).join(',\n');
 
     return `CREATE TABLE ${qualifiedName} (\n${columnDefs}\n);`;
-}
-
-/// Generates CREATE TABLE SQL statements for all tables in a schema.
-export function generateSchemaSQL(
-    databaseName: string | null | undefined,
-    schemaName: string,
-    tables: Map<string, ColumnMetadata[]>
-): string {
-    const sqlStatements: string[] = [];
-
-    // Sort tables by name for consistent output
-    const sortedTableNames = Array.from(tables.keys()).sort();
-
-    for (const tableName of sortedTableNames) {
-        const columns = tables.get(tableName)!;
-        const sql = generateCreateTableSQL(databaseName, schemaName, tableName, columns);
-        sqlStatements.push(sql);
-    }
-
-    return sqlStatements.join('\n\n');
 }
 
 /// A table that a connection reported
@@ -159,20 +136,45 @@ export function generateCatalogTablesSQL(tables: CatalogTable[]): string {
 }
 
 /// The file with the relations of a connection. The catalog holds descriptors, this text is only written and read.
+/// Temporary relations don't outlive the database session, a restart must not bring them back.
 export function generateRelationsFile(descriptor: dashql.buffers.catalog.CatalogDescriptorT | null): string {
+    const tables = catalogTablesOfDescriptor(descriptor).filter(table => !table.schemaName.toLowerCase().startsWith('pg_temp'));
     return `-- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 
-${generateCatalogTablesSQL(catalogTablesOfDescriptor(descriptor))}
+${generateCatalogTablesSQL(tables)}
 `;
 }
 
-/// Generates unqualified CREATE TABLE statements for all supplied tables.
-export function generateUnqualifiedSchemaSQL(tables: Map<string, ColumnMetadata[]>): string {
-    return Array.from(tables.keys())
-        .sort()
-        .map(tableName => generateCreateTableSQL(null, null, tableName, tables.get(tableName)!))
-        .join('\n\n');
+/// What the file with the relations of a connection doesn't say
+export interface CatalogStateFile {
+    /// The relations of executed statements that the connection didn't answer about yet
+    pending: RelationName[];
+    /// The relations that the connection reported as gone, a declaration in a script doesn't provide them
+    gone: RelationName[];
+}
+
+/// A relation name of the core
+export function readRelationName(name: dashql.buffers.analyzer.QualifiedTableNameT, defaultDatabase = ''): RelationName {
+    return {
+        databaseName: String(name.databaseName ?? '') || defaultDatabase,
+        schemaName: String(name.schemaName ?? ''),
+        tableName: String(name.tableName ?? ''),
+    };
+}
+
+/// Read the file with the catalog state, a file that can't be read holds nothing
+export function parseCatalogStateFile(text: string | null): CatalogStateFile {
+    const isRelation = (r: any): r is RelationName => typeof r?.databaseName === 'string' && typeof r?.schemaName === 'string' && typeof r?.tableName === 'string';
+    try {
+        const parsed = JSON.parse(text ?? '');
+        return {
+            pending: Array.isArray(parsed?.pending) ? parsed.pending.filter(isRelation) : [],
+            gone: Array.isArray(parsed?.gone) ? parsed.gone.filter(isRelation) : [],
+        };
+    } catch {
+        return { pending: [], gone: [] };
+    }
 }
 
 export enum CatalogSource {
@@ -183,49 +185,3 @@ export enum CatalogSource {
     Unknown = 4,
 }
 
-export function generateCatalogScriptHeaderForSource(source: string, updatedAt: Date = new Date()): string {
-    return `-- DashQL Connection Relations.
--- This file is auto-generated and can only be updated through a catalog refresh.
---
--- Catalog Source: ${source}
--- Last Refresh: ${updatedAt.toISOString()}
-
-`;
-}
-
-/// Generates a SQL comment header for catalog scripts with the update timestamp and method.
-export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Date = new Date()): string {
-    let methodStr: string;
-    switch (method) {
-        case CatalogSource.InformationSchema: methodStr = 'SQL information_schema'; break;
-        case CatalogSource.PgClass: methodStr = 'SQL pg_class'; break;
-        case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce Connect /ssot/metadata API'; break;
-        case CatalogSource.Hyper: methodStr = 'Hyper attached databases'; break;
-        default: methodStr = '-'; break;
-    }
-    return generateCatalogScriptHeaderForSource(methodStr, updatedAt);
-}
-
-/// Generates SQL for multiple schemas.
-export function generateCatalogSQL(schemas: SchemaMetadata[]): string {
-    const sqlStatements: string[] = [];
-
-    for (const schema of schemas) {
-        const tablesMap = new Map<string, ColumnMetadata[]>();
-        for (const table of schema.tables) {
-            tablesMap.set(table.tableName, table.columns);
-        }
-
-        const schemaSQL = generateSchemaSQL(
-            schema.databaseName,
-            schema.schemaName,
-            tablesMap
-        );
-
-        if (schemaSQL.length > 0) {
-            sqlStatements.push(schemaSQL);
-        }
-    }
-
-    return sqlStatements.join('\n\n');
-}

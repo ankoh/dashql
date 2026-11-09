@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useDynamicConnectionDispatch } from '../connection_registry.js';
-import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
+import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from './catalog_update_state.js';
 import { useSalesforceAPI } from '../salesforce/salesforce_connector.js';
 import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
 import {
@@ -26,7 +26,8 @@ import { connectorOfDetails } from '../connector_descriptor.js';
 
 const LOG_CTX = 'catalog_loader';
 
-const CATALOG_REFRESH_AFTER = 60 * 1000;
+/// The wait before asking a connection again about the relations of executed statements, per failed attempt
+const TOUCHED_RETRY_DELAY_MS = 2000;
 let NEXT_CATALOG_UPDATE_ID = 1;
 
 /// The catalog update args
@@ -115,8 +116,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
 
         traced.debug("Updating catalog", { connectionId }, LOG_CTX);
 
-        // The Salesforce metadata API describes everything at once
-        const relations = conn.details.type === SALESFORCE_DATA_CLOUD_CONNECTOR ? null : args.relations;
+        const relations = args.relations;
 
         // Accept the query and clear the request
         const abortController = new AbortController();
@@ -130,7 +130,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             error: null,
             startedAt: now,
             finishedAt: null,
-            lastUpdateAt: now,
+            touchedRelations: relations ?? [],
         };
         connDispatch(connectionId, {
             type: UPDATE_CATALOG,
@@ -150,6 +150,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
         }, 5000);
 
         // Update the catalog
+        const versionBefore = conn.catalog.version();
         try {
             const batchOptions = {
                 abortSignal: abortController.signal,
@@ -246,7 +247,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             if (partialError == null) {
                 connDispatch(connectionId, {
                     type: CATALOG_UPDATE_SUCCEEDED,
-                    value: [updateId],
+                    value: [updateId, conn.catalog.version() !== versionBefore],
                 });
             } else {
                 connDispatch(connectionId, {
@@ -289,9 +290,10 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
         return [updateId, execution];
     }, [updateImpl]);
 
-    // The catalog of a connection whose database doesn't outlive the app is not restored from
-    // storage, it is described by a refresh whenever the connection comes online. A connection that
-    // has neither a stored nor a refreshed catalog is described when it first comes online.
+    // A full refresh only runs on user input and for the initial description of a connection: the catalog of a
+    // connection whose database doesn't outlive the app is not restored from storage, it is described whenever the
+    // connection comes online. A connection that has neither a stored nor a refreshed catalog is described when it
+    // first comes online. Everything else asks the connection about single relations.
     const onlineRef = React.useRef(new Set<string>());
     React.useEffect(() => {
         const online = onlineRef.current;
@@ -300,8 +302,9 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                 online.delete(connectionId);
             } else if (!online.has(connectionId)) {
                 online.add(connectionId);
-                const updates = conn.catalogUpdates;
-                if (!connectionCatalogIsDurable(conn.params) || (updates.restoredAt == null && updates.lastFullRefresh == null)) {
+                if (!connectionCatalogIsDurable(conn.params)) {
+                    enqueue(connectionId, true);
+                } else if (!conn.catalogUpdates.described) {
                     enqueue(connectionId, false);
                 }
             }
@@ -310,6 +313,14 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
             if (!connMap.has(connectionId)) online.delete(connectionId);
         }
     }, [connReg, connMap, enqueue]);
+
+    // When the last update of a connection finished and the timer of the next attempt
+    const lastFinishedAt = React.useRef(new Map<string, number>());
+    const retryTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    React.useEffect(() => () => {
+        if (retryTimer.current != null) clearTimeout(retryTimer.current);
+        retryTimer.current = null;
+    }, []);
 
     // Subscribe the queue
     const updatesInProgress = React.useRef<Set<string> | null>(null);
@@ -330,6 +341,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                 logger.warn("Catalog update failed", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
             } finally {
                 inProgress.delete(connectionId);
+                lastFinishedAt.current.set(connectionId, Date.now());
                 // Pending requests must be reconsidered even if the registry does not change.
                 setQueueState(s => ({ ...s }));
             }
@@ -338,9 +350,27 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
         // Ask the connections about the relations of executed statements, when they have room for another query.
         // A refresh that runs may have read the relations too early, this update follows it and corrects them.
         for (const [connectionId, conn] of connReg.connections) {
-            const relations = conn.catalogUpdates.touchedRelations;
-            if (relations.length === 0 || inProgress.has(connectionId) || conn.catalogUpdates.tasksRunning.size > 0) continue;
+            const { touchedRelations: relations, touchedFailures: failures, tasksRunning } = conn.catalogUpdates;
+            if (relations.length === 0 || inProgress.has(connectionId) || tasksRunning.size > 0) continue;
+            // A requested refresh goes first, the lookup follows it
+            if (queueState.queue.has(connectionId)) continue;
+            // Relations that a restored catalog still has to ask about wait for the connection
+            if (conn.connectionHealth !== ConnectionHealth.ONLINE) continue;
             if (conn.queriesActive.size >= connectorOfDetails(conn.details).maxConcurrentQueries(conn.details.value)) continue;
+            // The next statement or a manual refresh tries again
+            if (failures >= MAX_TOUCHED_ATTEMPTS) continue;
+            if (failures > 0) {
+                const wait = (lastFinishedAt.current.get(connectionId) ?? 0) + TOUCHED_RETRY_DELAY_MS * failures - Date.now();
+                if (wait > 0) {
+                    if (retryTimer.current == null) {
+                        retryTimer.current = setTimeout(() => {
+                            retryTimer.current = null;
+                            setQueueState(s => ({ ...s }));
+                        }, wait);
+                    }
+                    continue;
+                }
+            }
             doUpdate(connectionId, relations);
         }
 
@@ -376,36 +406,10 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                 continue;
             }
 
-            // Was the catalog restored from disk on session open?
-            // Skip auto-refreshes so a saved catalog script isn't wiped by
-            // an empty/erroring query right after opening the session.
-            // Only an explicit (forced) refresh can replace a restored catalog.
-            if (!force && connState.catalogUpdates.restoredAt != null) {
-                logger.info("Skipping catalog update, catalog was restored from disk", {
-                    connectionId,
-                    "restoredAt": connState.catalogUpdates.restoredAt.toISOString(),
-                }, LOG_CTX);
+            // A refresh described the connection meanwhile
+            if (!force && connState.catalogUpdates.described) {
                 processed.push(connectionId);
                 continue;
-            }
-
-            // Was there a recent refresh?
-            if (!force && connState.catalogUpdates.lastFullRefresh != null) {
-                const refresh = connState.catalogUpdates.tasksRunning.get(connState.catalogUpdates.lastFullRefresh)
-                    ?? connState.catalogUpdates.tasksFinished.get(connState.catalogUpdates.lastFullRefresh)
-                    ?? null;
-                if (refresh) {
-                    const now = new Date();
-                    const elapsed = now.getTime() - (refresh.finishedAt?.getTime() ?? now.getTime());
-                    if (elapsed < CATALOG_REFRESH_AFTER) {
-                        logger.info("Skipping catalog update", {
-                            "elapsed": elapsed.toString(),
-                            "threshold": CATALOG_REFRESH_AFTER.toString()
-                        }, LOG_CTX);
-                        processed.push(connectionId);
-                        continue;
-                    }
-                }
             }
 
             // Perform the catalog update

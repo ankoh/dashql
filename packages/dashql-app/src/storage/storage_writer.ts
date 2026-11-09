@@ -105,7 +105,8 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof REPLACE_SESSION_SCRIPTS, SessionReplacement>
     | VariantKind<typeof WRITE_CONNECTION_ENTRY, ConnectionEntry>
     | VariantKind<typeof DELETE_CONNECTION_ENTRY, string>
-    | VariantKind<typeof WRITE_CONNECTION_FILE, [string, string, string]>
+    /// The text of a file, or how to read it when the write runs, null if there is nothing to write anymore
+    | VariantKind<typeof WRITE_CONNECTION_FILE, [string, string, string | (() => string | null)]>
     | VariantKind<typeof PATCH_SESSION_CONNECTION, [string, SessionConnection] | [string, SessionConnection, string[]]>
     | VariantKind<typeof WRITE_SCRIPT, [string, string, string]>
     | VariantKind<typeof DELETE_SCRIPT, [string, string]>
@@ -417,6 +418,18 @@ export class StorageWriter {
             clearTimeout(task.timer);
             this.pendingTasks.delete(key);
             task.resolveLatestTask({ status: 'cancelled' });
+        }
+    }
+
+    /// Discard the pending writes of the files of a connection that is deleted, they would recreate its folder
+    public cancelPendingConnectionFileWrites(connectionId: string): void {
+        const prefix = `@${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/`;
+        for (const [key, task] of this.pendingTasks) {
+            if (key.startsWith(prefix)) {
+                clearTimeout(task.timer);
+                this.pendingTasks.delete(key);
+                task.resolveLatestTask({ status: 'cancelled' });
+            }
         }
     }
 
@@ -864,7 +877,9 @@ export class StorageWriter {
                 break;
             }
             case WRITE_CONNECTION_FILE: {
-                const [connectionId, fileName, text] = task.value;
+                const [connectionId, fileName, content] = task.value;
+                const text = typeof content === 'function' ? content() : content;
+                if (text == null) break;
                 const registry = this.requireRegistry();
                 await this.timedWrite(`@${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${fileName}`, text, () => registry.saveConnectionFile(connectionId, fileName, text));
                 break;

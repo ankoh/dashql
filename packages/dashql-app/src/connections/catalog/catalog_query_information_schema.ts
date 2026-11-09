@@ -4,9 +4,9 @@ import * as dashql from '@ankoh/dashql-core';
 import { QueryExecutor } from '../query_executor.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import { DynamicConnectionDispatch } from "../connection_registry.js";
-import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
+import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
 import { QueryType } from "../../query/query_execution_state.js";
-import { catalogTablesOfSchema, packCatalogDescriptor, packCatalogTable, packRelationName, quoteLiteral, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
+import { catalogTablesOfSchema, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, quoteLiteral, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
 import { beginCatalogBatch, type CatalogBatchOptions } from './catalog_batch.js';
 
 export type InformationSchemaColumnsTable = arrow.Table<{
@@ -16,7 +16,6 @@ export type InformationSchemaColumnsTable = arrow.Table<{
     column_name: arrow.Utf8;
     /// Trino types the ordinal position as bigint, its values are then BigInt
     ordinal_position: arrow.Int32 | arrow.Int64;
-    is_nullable: arrow.Utf8;  // 'YES' or 'NO'
     data_type: arrow.Utf8;
 }>;
 
@@ -93,16 +92,11 @@ export interface InformationSchemaScope {
     relations?: RelationName[];
 }
 
-/// Quote an identifier
-function quoteIdentifier(name: string): string {
-    return `"${name.replace(/"/g, '""')}"`;
-}
-
 /// The query of the columns of the scopes.
 /// Every catalog has an information_schema of its own, the query reads the one of every catalog.
 export function informationSchemaColumnsQuery(scopes: InformationSchemaScope[]): string {
     const condition = (scope: InformationSchemaScope) => {
-        if (scope.relations != null) return `\nWHERE ${relationFilter('table_schema', 'table_name', scope.relations)}`;
+        if (scope.relations != null) return `\nWHERE table_schema <> 'information_schema' AND ${relationFilter('table_schema', 'table_name', scope.relations)}`;
         return scope.schemas.length > 0 ? `\nWHERE table_schema IN (${scope.schemas.map(quoteLiteral).join(', ')})` : '';
     };
     const select = (source: string, scope: InformationSchemaScope) => `SELECT
@@ -111,7 +105,6 @@ export function informationSchemaColumnsQuery(scopes: InformationSchemaScope[]):
     table_name,
     column_name,
     ordinal_position,
-    is_nullable,
     data_type
 FROM ${source}${condition(scope)}`;
     return scopes
@@ -165,7 +158,6 @@ export async function updateInformationSchemaRelations(
     const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, relationScopes(relations), executor, options.abortSignal);
     validate();
     const tables = queryResult == null ? [] : catalogTablesFromInformationSchema(queryResult);
-    connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
     catalog.replaceTables(relationEntryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, {
         relations: relations.map(packRelationName),
         tables: tables.map(packCatalogTable),
@@ -199,6 +191,5 @@ export async function updateInformationSchemaCatalog(
     if (tables.length === 0) {
         throw new Error('information_schema returned no usable catalog relations');
     }
-    connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
     catalog.replaceDescriptor(relationEntryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, packCatalogDescriptor(tables));
 }

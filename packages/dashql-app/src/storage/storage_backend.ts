@@ -26,7 +26,8 @@ export function connectionMonitoringDatabasePath(connectionId: string): string {
 export const STORAGE_CATALOG_RELATIONS = 'dashql-catalog-relations.sql';
 /// The functions of the catalog
 export const STORAGE_CATALOG_FUNCTIONS = 'dashql-catalog-functions.sql';
-/// The catalog changes of executed statements since the last catalog refresh
+/// What the relations of a connection don't say: the relations to ask the connection about and those that are gone
+export const STORAGE_CATALOG_STATE = 'dashql-catalog-state.json';
 /// Older versions of the app kept the changes of executed statements here, the file is cleared when it is found
 export const STORAGE_CATALOG_CHANGES = 'dashql-catalog-changes.sql';
 export const STORAGE_SCRIPT_EXTENSION = '.sql';

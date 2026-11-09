@@ -208,7 +208,7 @@ describe('V2 app state loader', () => {
             [connection.catalogRelationEntryId, expect.any(Number), expect.any(Uint8Array)],
             [connection.catalogFunctionScript.catalog_entry_id, expect.any(Number), expect.any(Uint8Array)],
         ]);
-        expect(connection.catalogUpdates.restoredAt).toBeInstanceOf(Date);
+        expect(connection.catalogUpdates.described).toBe(true);
     });
 
     it('leaves restoration pending when batch processing fails', async () => {
@@ -218,7 +218,7 @@ describe('V2 app state loader', () => {
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).not.toHaveBeenCalled();
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledTimes(1);
-        expect(connection.catalogUpdates.restoredAt).toBeNull();
+        expect(connection.catalogUpdates.described).toBe(false);
         expect(result.sessionScripts.has(TEST_SESSION_ID)).toBe(true);
     });
 
@@ -235,7 +235,7 @@ describe('V2 app state loader', () => {
         expect(connection.catalog.replaceDescriptor).toHaveBeenCalledTimes(source === 'relations' ? 1 : 2);
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledTimes(source === 'relations' ? 1 : 3);
         expect(connection.catalogFunctionScript.toString()).not.toContain('CREATE FUNCTION restored_fn');
-        expect(connection.catalogUpdates.restoredAt).toBeNull();
+        expect(connection.catalogUpdates.described).toBe(false);
     });
 
     it('strictly refuses V1 before connection, catalog, scripts, or index mutation', async () => {
@@ -290,7 +290,7 @@ describe('real-core startup catalog restoration', () => {
         dql.resetUnsafe();
     });
 
-    it('clears the catalog changes of older versions and refreshes the connection on connect', async () => {
+    it('clears the catalog changes of older versions and asks about their relations', async () => {
         const backend = new SessionTestBackend();
         backend.sessions.set(TEST_SESSION_ID, testSession({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } } as any }),
@@ -302,8 +302,54 @@ describe('real-core startup catalog restoration', () => {
         const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
         const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
-        expect(main.catalogUpdates.restoredAt).toBeNull();
+        // No refresh: the connection is asked about the relation
+        expect(main.catalogUpdates.described).toBe(true);
+        expect(main.catalogUpdates.touchedRelations).toEqual([{ databaseName: 'hyper', schemaName: 'public', tableName: 'kept' }]);
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`)).toBe('');
+        // A launch without a connection doesn't lose them
+        expect(JSON.parse(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)!).pending)
+            .toEqual([{ databaseName: 'hyper', schemaName: 'public', tableName: 'kept' }]);
+    });
+
+    it('asks a Salesforce connection about nothing, it has no lookup', async () => {
+        const backend = new SessionTestBackend();
+        backend.sessions.set(TEST_SESSION_ID, testSession({
+            ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } } as any }),
+        }));
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "c"."s"."kept"(id integer);');
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, 'CREATE TABLE "c"."s"."kept"(id integer);');
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`, JSON.stringify({ pending: [{ databaseName: 'c', schemaName: 's', tableName: 'kept' }], gone: [] }));
+        const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
+        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.catalogUpdates.touchedRelations).toEqual([]);
+    });
+
+    it('restores the relations it has to ask about and those that are gone', async () => {
+        const backend = new SessionTestBackend();
+        backend.sessions.set(TEST_SESSION_ID, testSession({
+            ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } } as any }),
+        }));
+        const pending = { databaseName: 'hyper', schemaName: '', tableName: 'asked' };
+        const gone = { databaseName: 'hyper', schemaName: 'public', tableName: 'dropped' };
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."kept"(id integer);');
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`, JSON.stringify({ pending: [pending], gone: [gone] }));
+        const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
+        const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
+        expect(main.catalogUpdates.touchedRelations).toEqual([pending]);
+        expect(main.catalog.absentRelations().map(name => name.tableName)).toEqual(['dropped']);
+        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+    });
+
+    it('reads nothing from a catalog state that it can not read', async () => {
+        const backend = new SessionTestBackend();
+        backend.sessions.set(TEST_SESSION_ID, testSession({
+            ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } } as any }),
+        }));
+        backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`, 'not json');
+        const processor = vi.fn(async (request: BatchRequest) => dql.processBatch(request));
+        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {}, processor);
+        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.catalogUpdates.touchedRelations).toEqual([]);
     });
 
     it('drops the persisted relations and changes of an embedded connection that only a session knows', async () => {
@@ -322,7 +368,7 @@ describe('real-core startup catalog restoration', () => {
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         // The catalog is refreshed on connect instead
-        expect(main.catalogUpdates.restoredAt).toBeNull();
+        expect(main.catalogUpdates.described).toBe(false);
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(functions);
@@ -345,7 +391,7 @@ describe('real-core startup catalog restoration', () => {
 
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
         expect(main.catalogFunctionScript.toString()).toBe(functions);
-        expect(main.catalogUpdates.restoredAt).toBeNull();
+        expect(main.catalogUpdates.described).toBe(false);
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(functions);
@@ -380,7 +426,7 @@ describe('real-core startup catalog restoration', () => {
         expect(entries.every(entry => entry.catalogEntryType === dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL)).toBe(true);
         expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
         expect(attached.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
-        expect(main.catalogUpdates.restoredAt).toBeInstanceOf(Date);
+        expect(main.catalogUpdates.described).toBe(true);
         const query = dql.createScript(main.catalog);
         query.replaceText('SELECT id FROM db.public.restored_items;');
         query.analyze();
@@ -447,7 +493,7 @@ describe('global connections', () => {
         expect(connection.params).toEqual(trino('https://unknown'));
         expect(backend.connections).toMatchObject([{ id: TEST_CONNECTION_ID, params: trino('https://unknown') }]);
         expect(connection.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
-        expect(connection.catalogUpdates.restoredAt).toBeInstanceOf(Date);
+        expect(connection.catalogUpdates.described).toBe(true);
         for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
     });
 

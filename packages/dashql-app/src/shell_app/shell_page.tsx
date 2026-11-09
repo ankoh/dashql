@@ -270,7 +270,14 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         database,
                         logger,
                     ),
-                    afterStatement: statement => shellCatalog?.afterStatement(statement) ?? Promise.resolve(),
+                    // The statement succeeded, following the catalog must not fail it
+                    afterStatement: async statement => {
+                        try {
+                            await shellCatalog?.afterStatement(statement);
+                        } catch (error) {
+                            logger.warn('Failed to update the catalog of the shell', { error: stringifyError(error) }, LOG_CTX);
+                        }
+                    },
                 }),
                 autoQualifyNonDefaultDatabaseTables: true,
                 commands,

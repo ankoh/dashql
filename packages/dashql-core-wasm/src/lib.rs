@@ -162,6 +162,20 @@ impl Catalog {
         self.inner.borrow_mut().replace_tables(id, CatalogLayer(layer), update).map_err(js_error)
     }
 
+    /// The relations that the connection reported as gone, as packed `TouchedRelations`
+    #[wasm_bindgen(js_name = absentRelations)]
+    pub fn absent_relations(&self) -> Vec<u8> {
+        let mut out = dashql_buffers::catalog::TouchedRelationsT::default();
+        out.relations = Some(self.inner.borrow().absent_relations().iter().map(|(database, schema, table)| {
+            let mut name = dashql_buffers::analyzer::QualifiedTableNameT::default();
+            name.database_name = Some(database.to_string());
+            name.schema_name = Some(schema.to_string());
+            name.table_name = Some(table.to_string());
+            name
+        }).collect());
+        finish!(out)
+    }
+
     /// The packed `CatalogDescriptor` of a descriptor entry
     #[wasm_bindgen(js_name = descriptorBytes)]
     pub fn descriptor_bytes(&self, id: u32) -> Option<Vec<u8>> {

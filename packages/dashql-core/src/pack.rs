@@ -254,6 +254,8 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
         StatementType::CREATE_VIEW => set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_VIEW_NAME),
         StatementType::DROP_TABLE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_DROP_NAME),
         StatementType::DROP_VIEW => set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_DROP_NAME),
+        StatementType::ALTER_TABLE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_ALTER_TABLE_NAME),
+        StatementType::ALTER_VIEW => set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_ALTER_TABLE_NAME),
         StatementType::SELECT_INTO => {
             if let Some(into) =
                 find_select_attribute(AttributeKey::SQL_SELECT_INTO).filter(|n| n.node_type() != NodeType::NONE)
@@ -281,6 +283,16 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
 }
 
 /// The statement of a parsed script with its target
+/// The parts of a name: a name node, or the array of names of a qualified name
+pub fn read_name_path(parsed: &ParsedScript, node: &Node) -> Vec<String> {
+    let name = |n: &Node| parsed.scanned.names.get(n.children_begin_or_value()).text.clone();
+    match node.node_type() {
+        NodeType::NAME => vec![name(node)],
+        NodeType::ARRAY => parsed.children(node).iter().filter(|n| n.node_type() == NodeType::NAME).map(name).collect(),
+        _ => Vec::new(),
+    }
+}
+
 pub fn pack_parsed_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
     pack_statement(parsed, statement_id)
 }
@@ -1044,7 +1056,8 @@ pub fn pack_catalog_descriptor(entry: &CatalogEntryData) -> crate::error::Result
             table.location = None;
             if let Some(columns) = table.table_columns.take() {
                 let mut columns: Vec<_> = declaration.table_columns.iter().zip(columns).collect();
-                columns.sort_by_key(|(declared, _)| declared.ast_node_id.unwrap_or(u32::MAX));
+                // Derived columns have no node, they come first and an ALTER adds to them
+                columns.sort_by_key(|(declared, _)| declared.ast_node_id.unwrap_or(0));
                 table.table_columns = Some(
                     columns
                         .into_iter()

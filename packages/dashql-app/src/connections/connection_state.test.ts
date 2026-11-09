@@ -2,6 +2,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 import {
     RELATIONS_TOUCHED,
+    CATALOG_UPDATE_FAILED,
+    CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_SUCCEEDED,
     ConnectionStatus,
     createConnectionState,
@@ -19,7 +21,7 @@ import { TestLogger } from '../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from './connector_info.js';
 import { createConnectionStateDetails } from './connection_state_details.js';
 import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog/catalog_batch.js';
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog_update_state.js';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogOutOfDate, MAX_TOUCHED_ATTEMPTS } from './catalog/catalog_update_state.js';
 import { createQueryExecutionState, QueryType } from '../query/query_execution_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -61,7 +63,6 @@ describe('attached database descriptor catalogs', () => {
                 error: null,
                 startedAt: new Date(),
                 finishedAt: null,
-                lastUpdateAt: new Date(),
             });
         }
         const publication = publishCatalogBatch(dql, database.catalog, [{
@@ -116,41 +117,69 @@ function name(schemaName: string | null, tableName: string): dashql.buffers.anal
     return new dashql.buffers.analyzer.QualifiedTableNameT(0, null, schemaName, tableName);
 }
 
-describe('relations touched by executed statements', () => {
+describe('what executed statements touched', () => {
     const logger = new TestLogger();
+    const touch = (database: ConnectionState, relations: dashql.buffers.analyzer.QualifiedTableNameT[]) =>
+        reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: relations }, logger);
+    const start = (database: ConnectionState, id: number, taskVariant: CatalogUpdateVariant) => reduceConnectionState(database, {
+        type: UPDATE_CATALOG,
+        value: [id, {
+            taskId: id,
+            taskVariant,
+            status: CatalogUpdateTaskStatus.STARTED,
+            cancellation: new AbortController(),
+            queries: [],
+            error: null,
+            startedAt: new Date(),
+            finishedAt: null,
+            touchedRelations: database.catalogUpdates.touchedRelations,
+        }],
+    }, logger);
+    const A = { databaseName: 'hyper', schemaName: '', tableName: 'a' };
 
-    it('are qualified with the connection defaults, every relation once', () => {
-        let database = state();
-        database = reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: [name(null, 'a'), name('other', 'b')] }, logger);
-        database = reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: [name(null, 'a')] }, logger);
-        expect(database.catalogUpdates.touchedRelations).toEqual([
-            { databaseName: 'hyper', schemaName: 'public', tableName: 'a' },
-            { databaseName: 'hyper', schemaName: 'other', tableName: 'b' },
-        ]);
+    it('leave the schema to the connection and name every relation once', () => {
+        let database = touch(state(), [name(null, 'a'), name('other', 'b')]);
+        database = touch(database, [name(null, 'a')]);
+        expect(database.catalogUpdates.touchedRelations).toEqual([A, { databaseName: 'hyper', schemaName: 'other', tableName: 'b' }]);
     });
 
-    it('are taken by the next catalog update', () => {
-        let database = state();
-        database = reduceConnectionState(database, { type: RELATIONS_TOUCHED, value: [name(null, 'a')] }, logger);
-        database = reduceConnectionState(database, {
-            type: UPDATE_CATALOG,
-            value: [1, {
-                taskId: 1,
-                taskVariant: CatalogUpdateVariant.RELATION_REFRESH,
-                status: CatalogUpdateTaskStatus.STARTED,
-                cancellation: new AbortController(),
-                queries: [],
-                error: null,
-                startedAt: new Date(),
-                finishedAt: null,
-                lastUpdateAt: new Date(),
-            }],
-        }, logger);
+    it('are taken by a catalog update that succeeds', () => {
+        let database = start(touch(state(), [name(null, 'a')]), 1, CatalogUpdateVariant.RELATION_REFRESH);
         expect(database.catalogUpdates.touchedRelations).toEqual([]);
         // An update of relations is no full refresh
         expect(database.catalogUpdates.currentFullRefresh).toBeNull();
         database = reduceConnectionState(database, { type: CATALOG_UPDATE_SUCCEEDED, value: [1] }, logger);
-        expect(database.catalogUpdates.lastFullRefresh).toBeNull();
+        expect(database.catalogUpdates.touchedRelations).toEqual([]);
+        expect(database.catalogUpdates.described).toBe(false);
+    });
+
+    it('have no database without a default, the statement can not have touched anything', () => {
+        const database = state();
+        const details = { ...database, details: { type: TRINO_CONNECTOR, value: { proto: {} } } } as unknown as ConnectionState;
+        const next = touch(details, [name(null, 'a')]);
+        expect(next.catalogUpdates.touchedRelations).toEqual([]);
+    });
+
+    it('come back when the update fails, until the catalog counts as out of date', () => {
+        let database = touch(state(), [name(null, 'a')]);
+        for (let attempt = 1; attempt <= MAX_TOUCHED_ATTEMPTS; ++attempt) {
+            expect(isCatalogOutOfDate(database)).toBe(false);
+            database = start(database, attempt, CatalogUpdateVariant.RELATION_REFRESH);
+            database = reduceConnectionState(database, { type: CATALOG_UPDATE_FAILED, value: [attempt, new Error('down')] }, logger);
+            expect(database.catalogUpdates.touchedRelations).toEqual([A]);
+            expect(database.catalogUpdates.touchedFailures).toBe(attempt);
+        }
+        expect(isCatalogOutOfDate(database)).toBe(true);
+        // The next statement tries again, as does an update that succeeds
+        database = touch(database, [name(null, 'b')]);
+        expect(isCatalogOutOfDate(database)).toBe(false);
+    });
+
+    it('come back without counting as a failure when the update is cancelled', () => {
+        let database = start(touch(state(), [name(null, 'a')]), 1, CatalogUpdateVariant.RELATION_REFRESH);
+        database = reduceConnectionState(database, { type: CATALOG_UPDATE_CANCELLED, value: [1, new Error('cancelled')] }, logger);
+        expect(database.catalogUpdates.touchedRelations).toEqual([A]);
+        expect(database.catalogUpdates.touchedFailures).toBe(0);
     });
 });
 

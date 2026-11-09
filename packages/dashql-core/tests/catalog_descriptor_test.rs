@@ -532,7 +532,6 @@ fn replace_tables_keeps_the_version_when_nothing_changes() {
     catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "s", "a", &["x"])])).unwrap();
     let version = catalog.version();
     catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "a")], vec![table("db", "s", "a", &["x"])])).unwrap();
-    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "s", "other")], vec![])).unwrap();
     assert_eq!(catalog.version(), version);
 }
 
@@ -589,3 +588,114 @@ fn a_descriptor_of_a_script_has_the_declaration_order_and_no_locations() {
     assert!(table.location.is_none());
     assert!(table.table_columns.iter().all(|c| c.location.is_none()));
 }
+
+/// A catalog with a connection entry and a published script that declares `t`
+fn catalog_with_declaration() -> (Catalog, CatalogEntryId, Script) {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "s", "other", &["x"])])).unwrap();
+    let mut declaring = Script::new(&catalog);
+    declaring.insert_text_at(0, "create table t (declared integer)");
+    declaring.analyze(&catalog, true).unwrap();
+    catalog.load_script(declaring.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    (catalog, id, declaring)
+}
+
+/// Does a script that reads `t` resolve it?
+fn resolves_t(catalog: &Catalog) -> bool {
+    let mut reader = Script::new(catalog);
+    reader.insert_text_at(0, "select * from t");
+    reader.analyze(catalog, true).unwrap();
+    reader.analyzed.as_ref().unwrap().table_references[0].inner.as_ref().unwrap().resolved_table.is_some()
+}
+
+#[test]
+fn a_script_does_not_provide_a_relation_the_connection_reported_as_gone() {
+    let (mut catalog, id, _declaring) = catalog_with_declaration();
+    assert!(resolves_t(&catalog));
+    let version = catalog.version();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "", "t")], vec![])).unwrap();
+    assert!(catalog.version() > version);
+    assert!(!resolves_t(&catalog));
+    assert!(catalog.flatten().tables.iter().flatten().count() == 1);
+
+    // The answer is the same, nothing changes
+    let version = catalog.version();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "", "t")], vec![])).unwrap();
+    assert_eq!(catalog.version(), version);
+
+    // The connection has it again
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "", "t")], vec![table("db", "public", "t", &["reported"])])).unwrap();
+    assert_eq!(resolve(&catalog, "select reported from t"), vec!["reported -> t.reported"]);
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "public", "t")], vec![])).unwrap();
+    assert!(!resolves_t(&catalog));
+
+    // A full description of the connection brings it back as well
+    catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "public", "t", &["again"])])).unwrap();
+    assert_eq!(resolve(&catalog, "select again from t"), vec!["again -> t.again"]);
+}
+
+#[test]
+fn a_full_description_does_not_hide_scripts_that_have_not_run() {
+    let (mut catalog, id, _declaring) = catalog_with_declaration();
+    catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "s", "unrelated", &["x"])])).unwrap();
+    assert!(resolves_t(&catalog));
+}
+
+#[test]
+fn the_declaring_script_still_resolves_its_own_table() {
+    let (mut catalog, id, mut declaring) = catalog_with_declaration();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "", "t")], vec![])).unwrap();
+    declaring.replace_text("create table t (declared integer); select declared from t");
+    declaring.analyze(&catalog, true).unwrap();
+    let analyzed = declaring.analyzed.clone().unwrap();
+    let column_ref = analyzed.expressions.iter().find_map(|e| e.column_ref()).unwrap();
+    assert!(matches!(column_ref.resolved, ColumnResolution::TableColumn(_)));
+}
+
+#[test]
+fn the_declaring_script_still_completes_its_own_columns() {
+    let (mut catalog, id, mut declaring) = catalog_with_declaration();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "", "t")], vec![])).unwrap();
+    let text = "create table t (declared integer); select decl from t";
+    declaring.replace_text(text);
+    declaring.analyze(&catalog, true).unwrap();
+    let cursor = declaring.move_cursor(&catalog, text.find("decl from").unwrap() + "decl".len());
+    let completion = Script::complete_at_cursor(&cursor, 10).unwrap();
+    let candidate = completion.top_candidates.iter().find(|c| &*c.completion_text == "declared").expect("the column is a candidate");
+    assert!(!candidate.catalog_objects.is_empty());
+}
+
+#[test]
+fn an_unqualified_relation_updates_every_schema() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "one", "t", &["a"]), table("db", "two", "t", &["b"]), table("other", "one", "t", &["c"])])).unwrap();
+    // `drop table t` of a statement: the connection only reports the one that stays
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "", "t")], vec![table("db", "two", "t", &["b"])])).unwrap();
+    assert_eq!(tables_of(&catalog, id), ["two.t(b)", "one.t(c)"]);
+}
+
+#[test]
+fn a_schema_that_is_gone_takes_its_tables_along() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[], vec![table("db", "gone", "a", &["x"]), table("db", "gone", "b", &["y"]), table("db", "kept", "c", &["z"])])).unwrap();
+    catalog.replace_tables(id, CatalogLayer::CONNECTION, &table_update(&[], &[("db", "gone", "")], vec![])).unwrap();
+    assert_eq!(tables_of(&catalog, id), ["kept.c(z)"]);
+
+    // It hides the declarations in the schema, not those without a schema
+    let mut in_schema = Script::new(&catalog);
+    in_schema.insert_text_at(0, "create table gone.d (x integer); create table e (y integer)");
+    in_schema.analyze(&catalog, true).unwrap();
+    catalog.load_script(in_schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    let resolves = |catalog: &Catalog, sql: &str| {
+        let mut reader = Script::new(catalog);
+        reader.insert_text_at(0, sql);
+        reader.analyze(catalog, true).unwrap();
+        reader.analyzed.as_ref().unwrap().table_references[0].inner.as_ref().unwrap().resolved_table.is_some()
+    };
+    assert!(!resolves(&catalog, "select * from gone.d"));
+    assert!(resolves(&catalog, "select * from e"));
+}
+

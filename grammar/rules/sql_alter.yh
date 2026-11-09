@@ -1,0 +1,11 @@
+%type<Node> sql_alter_table_stmt;
+%type<NodeList> sql_alter_table_action_list;
+%type<Node> sql_alter_table_action;
+%type<Node> sql_alter_opt_column;
+%type<Node> sql_alter_opt_using;
+%type<Node> sql_alter_view_stmt;
+%type<Node> sql_alter_relation_move;
+%type<Node> sql_create_schema_stmt;
+%type<Node> sql_drop_schema_stmt;
+%type<Node> sql_alter_drop_behavior;
+%type<Node> sql_alter_schema_stmt;

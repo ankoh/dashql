@@ -66,14 +66,51 @@ describe('the catalog of a shell on an embedded database', () => {
         expect(tables()).toEqual([]);
     });
 
-    it('reads again after a statement that does not parse, not after a query', async () => {
+    it('asks only about the tables of a statement, a read asks nothing', async () => {
         setup();
         const query = vi.fn((text: string) => connection.query(text));
         relations.destroy();
         relations = new EmbeddedDatabaseCatalog(dql, catalog, query);
         await relations.afterStatement('select 1');
         expect(query).not.toHaveBeenCalled();
-        await relations.afterStatement('alter table t add column x int');
+        await connection.query('create table shell_one (a int)');
+        await connection.query('create table shell_two (b int)');
+        await relations.afterStatement('create table shell_one (a int)');
         expect(query).toHaveBeenCalledTimes(1);
+        expect(query.mock.calls[0][0]).toContain("c.relname = 'shell_one'");
+        expect(tables()).toEqual(['shell_one(a)']);
+        await connection.query('drop table shell_one');
+        await connection.query('drop table shell_two');
+    });
+
+    it('follows a statement that changes a table, and one that moves it', async () => {
+        setup();
+        await run('create table shell_altered (a int)');
+        await run('alter table shell_altered add column b int');
+        expect(tables()).toEqual(['shell_altered(a, b)']);
+        await run('alter table shell_altered drop column a');
+        expect(tables()).toEqual(['shell_altered(b)']);
+        await run('alter table shell_altered rename to shell_moved');
+        expect(tables()).toEqual(['shell_moved(b)']);
+        await run('drop table shell_moved');
+        expect(tables()).toEqual([]);
+    });
+
+    it('follows a schema that is dropped', async () => {
+        setup();
+        await run('create schema shell_gone');
+        await run('create table shell_gone.t (a int)');
+        expect(tables()).toEqual(['t(a)']);
+        await run('drop schema shell_gone cascade');
+        expect(tables()).toEqual([]);
+    });
+
+    it('asks nothing after a statement that does not parse', async () => {
+        setup();
+        const query = vi.fn((text: string) => connection.query(text));
+        relations.destroy();
+        relations = new EmbeddedDatabaseCatalog(dql, catalog, query);
+        await relations.afterStatement('vacuum everything');
+        expect(query).not.toHaveBeenCalled();
     });
 });

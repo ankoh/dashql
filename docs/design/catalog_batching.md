@@ -2,7 +2,7 @@
 
 A batch turns SQL text into catalog descriptors. Connections need that for the SQL they have: the file with their relations
 when a connection is restored, and their functions, which come as SQL. The relations that a refresh reads are no SQL, they
-become descriptors directly (see `core_analysis_catalog.md`). Scanning, parsing and analyzing a large file on the browser
+become descriptors directly (see `catalog_updates.md`). Scanning, parsing and analyzing a large file on the browser
 event loop blocks the UI, so the batch API separates preparation from publication:
 
 - A request carries complete source texts instead of coordinating live scripts across threads.
@@ -96,8 +96,8 @@ only `catalogDescriptor` outputs.
   attempted, so a refresh is atomic per descriptor but not across descriptors.
 - Cancellation stops waiting and prevents publication; it does not interrupt a job already running in the
   worker.
-- `catalog_loader.tsx` queues forced refreshes behind the running one. Automatic refresh skips connections
-  whose catalog was restored (`catalogUpdates.restoredAt`); only a forced refresh replaces it.
+- `catalog_loader.tsx` queues forced refreshes behind the running one. An automatic refresh only describes a connection
+  that nothing describes yet (`catalogUpdates.described`); only a forced refresh replaces a catalog.
 
 ## Uses
 

@@ -755,31 +755,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             if ty == Type::EXPLAIN {
                 let [body, options] = attrs!(parsed.children(root), [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
-                let option_text = |n: Option<&Node>| -> String {
-                    let Some(n) = n.filter(|n| n.node_type() != NodeType::NONE) else { return String::new() };
-                    let ts = resolve_text_span(&scanned.text, &scanned.symbols, *n.symbol_span());
-                    let mut text = text_at(ts.offset, ts.length).to_ascii_lowercase();
-                    let b = text.as_bytes();
-                    if b.len() >= 2 && (b[0] == b'\'' || b[0] == b'"') && b[b.len() - 1] == b[0] {
-                        text = text[1..text.len() - 1].to_string();
-                    }
-                    text
-                };
-                if let Some(options) = options.filter(|o| o.node_type() == NodeType::ARRAY) {
-                    for option in parsed.children(options) {
-                        if option.node_type() != NodeType::OBJECT_SQL_GENERIC_OPTION {
-                            continue;
-                        }
-                        let [key, value] = attrs!(parsed.children(option), [Key::SQL_GENERIC_OPTION_KEY, Key::SQL_GENERIC_OPTION_VALUE]);
-                        let name = option_text(key);
-                        if name == "analyze" || name == "analyse" {
-                            // Unknown arguments are execution-enabled, not proof of read-only behavior
-                            explain_executes |= value.is_none_or(|v| v.node_type() != NodeType::BOOL || v.children_begin_or_value() != 0);
-                        } else if name == "format" && matches!(option_text(value).as_str(), "analyze" | "analyse") {
-                            explain_executes = true;
-                        }
-                    }
-                }
+                explain_executes = crate::touched_relations::explain_executes(parsed, options);
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
                     barrier!("EXPLAIN requires a statement or expressions body");
                 }

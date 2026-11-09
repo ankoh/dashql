@@ -4,8 +4,11 @@ import {
     ConnectionState,
     ConnectionAction,
     ConnectionStateWithoutId,
+    CATALOG_UPDATE_CANCELLED,
+    CATALOG_UPDATE_FAILED,
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
+    RELATIONS_TOUCHED,
     DELETE_CONNECTION,
     SWITCH_CONNECTOR_TYPE,
     reduceConnectionState,
@@ -34,8 +37,9 @@ import {
     DELETE_CONNECTION_ENTRY,
     type StorageWriter,
 } from '../storage/storage_writer.js';
-import { generateRelationsFile } from './catalog/catalog_sql_generator.js';
-import { STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../storage/storage_backend.js';
+import { generateRelationsFile, readRelationName } from './catalog/catalog_sql_generator.js';
+import { CatalogUpdateVariant, pendingRelations } from './catalog/catalog_update_state.js';
+import { STORAGE_CATALOG_STATE, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../storage/storage_backend.js';
 import { connectionCatalogIsDurable, connectionParamsEqual, type ConnectionParams } from './connection_params.js';
 
 /// Drafts are written to the app manifest only, edits arrive with every keystroke
@@ -313,6 +317,7 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
         reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != connectionId);
         reg.connections.delete(connectionId);
         if (prev.active) {
+            storageWriter.cancelPendingConnectionFileWrites(connectionId);
             void storageWriter.write(groupConnectionEntryWrites(connectionId), { type: DELETE_CONNECTION_ENTRY, value: connectionId });
         }
         return { ...reg };
@@ -348,17 +353,41 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
     // The relations of a connection whose database doesn't outlive the app are never written.
     const durable = connectionCatalogIsDurable(next.params);
     if (action.type === CATALOG_UPDATE_SUCCEEDED || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED) {
-        const functionsSql = next.catalogFunctionScript.toString();
-        if (durable) {
+        const task = next.catalogUpdates.tasksFinished.get(action.value[0]);
+        const refreshed = task?.taskVariant !== CatalogUpdateVariant.RELATION_REFRESH;
+        // A lookup that changed nothing has nothing to save
+        if (durable && next.catalogUpdates.described && (refreshed || action.value[1] !== false)) {
             void storageWriter.write(
                 groupConnectionFileWrites(connectionId, STORAGE_CATALOG_RELATIONS),
-                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_RELATIONS, generateRelationsFile(next.catalog.readDescriptor(next.catalogRelationEntryId))] },
+                // Rendered when the write runs, a run of statements saves the relations once
+                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_RELATIONS, () => {
+                    // A reset cleared the catalog in the meantime, what is on disk is better than nothing
+                    const descriptor = next.catalog.readDescriptor(next.catalogRelationEntryId);
+                    return descriptor == null ? null : generateRelationsFile(descriptor);
+                }] },
                 DEBOUNCE_DURATION_SESSION_WRITE,
             );
         }
+        // Only a full refresh reads the functions
+        if (refreshed) {
+            void storageWriter.write(
+                groupConnectionFileWrites(connectionId, STORAGE_CATALOG_FUNCTIONS),
+                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_FUNCTIONS, next.catalogFunctionScript.toString()] },
+                DEBOUNCE_DURATION_SESSION_WRITE,
+            );
+        }
+    }
+    // Statements and the updates that answer them change what the relations don't say. A relation stays pending until an
+    // update answered, so that a restart in between asks again.
+    if (durable && (action.type === RELATIONS_TOUCHED || action.type === CATALOG_UPDATE_SUCCEEDED
+        || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED || action.type === CATALOG_UPDATE_FAILED || action.type === CATALOG_UPDATE_CANCELLED)) {
+        const state = JSON.stringify({
+            pending: pendingRelations(next),
+            gone: next.catalog.absentRelations().map(name => readRelationName(name)),
+        });
         void storageWriter.write(
-            groupConnectionFileWrites(connectionId, STORAGE_CATALOG_FUNCTIONS),
-            { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_FUNCTIONS, functionsSql] },
+            groupConnectionFileWrites(connectionId, STORAGE_CATALOG_STATE),
+            { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_STATE, state] },
             DEBOUNCE_DURATION_SESSION_WRITE,
         );
     }

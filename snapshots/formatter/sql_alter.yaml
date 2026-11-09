@@ -1,0 +1,293 @@
+formatter-snapshots:
+
+  - name: alter_table_add_and_drop_column
+    input: |-
+      ALTER  TABLE  t  ADD  b  INT; alter table t drop b
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t add column b integer;
+
+              alter table t drop column b;
+          - mode: compact
+            expected: |-
+              alter table t add column b integer;
+
+              alter table t drop column b;
+          - mode: pretty
+            expected: |-
+              alter table t add column b integer;
+
+              alter table t drop column b;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: alter_table_rename_column
+    input: |-
+      alter table t rename a to b; alter table t rename column b to a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t rename column a to b;
+
+              alter table t rename column b to a;
+          - mode: compact
+            expected: |-
+              alter table t rename column a to b;
+
+              alter table t rename column b to a;
+          - mode: pretty
+            expected: |-
+              alter table t rename column a to b;
+
+              alter table t rename column b to a;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: alter_table_rename
+    input: |-
+      alter table s.t rename to u; alter table s.u rename to t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table s.t rename to u;
+
+              alter table s.u rename to t;
+          - mode: compact
+            expected: |-
+              alter table s.t rename to u;
+
+              alter table s.u rename to t;
+          - mode: pretty
+            expected: |-
+              alter table s.t rename to u;
+
+              alter table s.u rename to t;
+        validation:
+          setup: |-
+            create schema s; create table s.t(a int);
+
+  - name: alter_table_if_exists
+    input: |-
+      alter table if exists t add column if not exists b int not null default 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table if exists t add column if not exists b integer not null default 1;
+          - mode: compact
+            expected: |-
+              alter table if exists t add column if not exists b integer not null default 1;
+          - mode: pretty
+            expected: |-
+              alter table if exists t add column if not exists b integer not null default 1;
+
+  - name: alter_table_drop_column_if_exists
+    input: |-
+      alter table t drop if exists a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t drop column if exists a;
+          - mode: compact
+            expected: |-
+              alter table t drop column if exists a;
+          - mode: pretty
+            expected: |-
+              alter table t drop column if exists a;
+
+  - name: alter_table_set_schema
+    input: |-
+      alter table t set schema s
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t set schema s;
+          - mode: compact
+            expected: |-
+              alter table t set schema s;
+          - mode: pretty
+            expected: |-
+              alter table t set schema s;
+
+  - name: alter_table_column_type
+    input: |-
+      alter table t alter a type bigint
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t alter column a set data type bigint;
+          - mode: compact
+            expected: |-
+              alter table t alter column a set data type bigint;
+          - mode: pretty
+            expected: |-
+              alter table t alter column a set data type bigint;
+
+  - name: alter_table_actions
+    input: |-
+      alter table t add column a int, drop column b, rename column c to d
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t add column a integer, drop column b, rename column c to d;
+          - mode: compact
+            expected: |-
+              alter table t add column a integer, drop column b, rename column c to d;
+          - mode: pretty
+            expected: |-
+              alter table t add column a integer, drop column b, rename column c to d;
+
+  - name: alter_table_drop_column_condition_after
+    input: |-
+      alter table t add column b int; alter table t drop b if exists
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t add column b integer;
+
+              alter table t drop column b if exists;
+          - mode: compact
+            expected: |-
+              alter table t add column b integer;
+
+              alter table t drop column b if exists;
+          - mode: pretty
+            expected: |-
+              alter table t add column b integer;
+
+              alter table t drop column b if exists;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: alter_table_drop_column_behavior
+    input: |-
+      alter table t drop column a cascade; alter table t drop column if exists b restrict; alter table t drop c if exists cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t drop column a cascade;
+
+              alter table t drop column if exists b restrict;
+
+              alter table t drop column c if exists cascade;
+          - mode: compact
+            expected: |-
+              alter table t drop column a cascade;
+
+              alter table t drop column if exists b restrict;
+
+              alter table t drop column c if exists cascade;
+          - mode: pretty
+            expected: |-
+              alter table t drop column a cascade;
+
+              alter table t drop column if exists b restrict;
+
+              alter table t drop column c if exists cascade;
+
+  - name: alter_table_column_type_using
+    input: |-
+      alter table t alter column a type bigint using a::bigint; alter table t alter b set data type text
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table t alter column a set data type bigint using a::bigint;
+
+              alter table t alter column b set data type text;
+          - mode: compact
+            expected: |-
+              alter table t alter column a set data type bigint using a::bigint;
+
+              alter table t alter column b set data type text;
+          - mode: pretty
+            expected: |-
+              alter table t alter column a set data type bigint using a::bigint;
+
+              alter table t alter column b set data type text;
+
+  - name: alter_view
+    input: |-
+      alter  view  if exists s.v rename to w; alter view w set schema o
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter view if exists s.v rename to w;
+
+              alter view w set schema o;
+          - mode: compact
+            expected: |-
+              alter view if exists s.v rename to w;
+
+              alter view w set schema o;
+          - mode: pretty
+            expected: |-
+              alter view if exists s.v rename to w;
+
+              alter view w set schema o;
+
+  - name: schema_statements
+    input: |-
+      CREATE  SCHEMA IF NOT EXISTS s; alter schema s rename to o; drop schema o; drop schema if exists d.s cascade; drop schema r restrict
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create schema if not exists s;
+
+              alter schema s rename to o;
+
+              drop schema o;
+
+              drop schema if exists d.s cascade;
+
+              drop schema r restrict;
+          - mode: compact
+            expected: |-
+              create schema if not exists s;
+
+              alter schema s rename to o;
+
+              drop schema o;
+
+              drop schema if exists d.s cascade;
+
+              drop schema r restrict;
+          - mode: pretty
+            expected: |-
+              create schema if not exists s;
+
+              alter schema s rename to o;
+
+              drop schema o;
+
+              drop schema if exists d.s cascade;
+
+              drop schema r restrict;

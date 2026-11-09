@@ -169,6 +169,8 @@ pub(super) struct NameResolutionPass {
     root_scopes: RootScopes,
     /// The table declarations whose columns are derived after resolution
     pending_derived_tables: Vec<PendingDerivedTable>,
+    /// The column actions of `ALTER` statements on tables of `CREATE TABLE AS`: the table and the action
+    pending_alters: Vec<(u32, u32)>,
     /// The joins with USING or NATURAL of the scopes
     using_joins: HashMap<ScopeId, Vec<UsingJoin>>,
     /// The column refs that were reported as ambiguous
@@ -188,6 +190,7 @@ impl NameResolutionPass {
             has_graph_syntax,
             root_scopes: RootScopes::default(),
             pending_derived_tables: Vec::new(),
+            pending_alters: Vec::new(),
             using_joins: HashMap::default(),
             ambiguous_column_refs: HashSet::default(),
         }
@@ -277,6 +280,173 @@ impl NameResolutionPass {
         statement_id
             .and_then(|id| state.parsed.statements.get(id as usize))
             .is_some_and(|s| s.statement_type == StatementType::EXPLAIN)
+    }
+
+    /// Apply an `ALTER` to the declaration of the script, later statements read the table as the statement leaves it. A
+    /// table that the script doesn't declare stays what the catalog says, the connection answers once the statement ran. A
+    /// table of `CREATE TABLE AS` gets its columns later, its actions wait for them.
+    fn visit_alter(&mut self, state: &mut AnalysisState, node: &Node, node_id: u32) {
+        let [name_node, actions] = attrs!(state.children(node), [K::SQL_ALTER_TABLE_NAME, K::SQL_ALTER_TABLE_ACTIONS]);
+        let Some(name) = state.read_qualified_table_name(name_node) else { return };
+        let Some(actions) = actions.filter(|n| n.node_type() == NodeType::ARRAY) else { return };
+        // The parts that a name leaves out match any, as in a reference to the table
+        let part = |named: &Name, declared: &Name| named.text.is_empty() || named.text == declared.text;
+        let declared = state.out.entry.table_declarations.iter().rposition(|t| {
+            t.table_name.table_name.text == name.table_name.text
+                && part(&name.schema_name, &t.table_name.schema_name)
+                && part(&name.database_name, &t.table_name.database_name)
+        });
+        let Some(mut table) = declared.map(|index| index as u32) else { return };
+        for action in state.children(actions) {
+            match action.node_type() {
+                NodeType::OBJECT_SQL_ALTER_RENAME_TABLE | NodeType::OBJECT_SQL_ALTER_SET_SCHEMA => {
+                    let [new_table, new_schema] = attrs!(state.children(action), [K::SQL_ALTER_ACTION_NEW_TABLE, K::SQL_ALTER_ACTION_NEW_NAME]);
+                    let source = state.out.entry.table_declarations[table as usize].table_name.clone();
+                    let moved = match new_table {
+                        Some(new_table) => state.read_qualified_table_name(Some(new_table)),
+                        None => Some(source.clone()),
+                    };
+                    let Some(mut moved) = moved else { continue };
+                    // What a new name leaves out stays as it is
+                    if let Some(new_schema) = new_schema.filter(|n| n.node_type() == NodeType::NAME) {
+                        moved.schema_name = state.node_name(new_schema);
+                    } else if moved.schema_name.text.is_empty() {
+                        moved.schema_name = source.schema_name.clone();
+                    }
+                    if moved.database_name.text.is_empty() {
+                        moved.database_name = source.database_name.clone();
+                    }
+                    table = self.move_declaration(state, table, &moved, node_id);
+                }
+                _ => match self.pending_derived_tables.iter().find(|p| p.table == table) {
+                    Some(_) => self.pending_alters.push((table, state.node_id(action))),
+                    None => Self::apply_column_action(state, table, action),
+                },
+            }
+        }
+    }
+
+    /// The declaration of a relation under its new name, the old one stays for the statements before the `ALTER`
+    fn move_declaration(&mut self, state: &mut AnalysisState, table: u32, name: &QualifiedTableName, node_id: u32) -> u32 {
+        let schema_id = Self::register_schema(state, &name.database_name, &name.schema_name);
+        let table_id = state.reserve_table_id(name);
+        let source = &state.out.entry.table_declarations[table as usize];
+        let (is_view, source_columns) = (source.is_view, source.table_columns.clone());
+        let index = state.out.entry.table_declarations.len() as u32;
+        let mut moved = TableDeclaration::new(schema_id, table_id, name.clone());
+        moved.ast_node_id = Some(node_id);
+        moved.ast_statement_id = state.find_statement_id(node_id);
+        moved.is_view = is_view;
+        let column_ids = state.reserve_column_ids(table_id, source_columns.iter().map(|c| &c.column_name.text));
+        for (column_index, source) in source_columns.iter().enumerate() {
+            moved.table_columns_by_name.entry(source.column_name.text.clone()).or_insert(column_index);
+            moved.table_columns.push(TableColumn {
+                object_id: QualifiedCatalogObjectId::table_column(table_id, column_ids[column_index]),
+                table: Some(table_id),
+                ..source.clone()
+            });
+            state.resolve_name(&source.column_name, CatalogObjectRef::Column(ColumnLoc { table: TableLoc { entry: state.entry_id, index }, column: column_index as u32 }));
+        }
+        state.entry_mut().table_declarations.push(moved);
+        state.resolve_name(&name.table_name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
+        // A table of `CREATE TABLE AS` gets its columns from the same query
+        if let Some(pending) = self.pending_derived_tables.iter().find(|p| p.table == table) {
+            let pending = PendingDerivedTable { table: index, select_node_id: pending.select_node_id, column_aliases: pending.column_aliases.clone() };
+            self.pending_derived_tables.push(pending);
+            let queued: Vec<(u32, u32)> = self.pending_alters.iter().filter(|(t, _)| *t == table).map(|(_, action)| (index, *action)).collect();
+            self.pending_alters.extend(queued);
+        }
+        index
+    }
+
+    /// Apply an action that changes the columns of a declared table
+    fn apply_column_action(state: &mut AnalysisState, table: u32, action: &Node) {
+        let table_id = state.out.entry.table_declarations[table as usize].table_id();
+        let entry_id = state.entry_id;
+        let loc = move |column: u32| ColumnLoc { table: TableLoc { entry: entry_id, index: table }, column };
+        let [column, new_name, column_type] =
+            attrs!(state.children(action), [K::SQL_ALTER_ACTION_COLUMN, K::SQL_ALTER_ACTION_NEW_NAME, K::SQL_ALTER_ACTION_TYPE]);
+        let Some(column) = column else { return };
+        match action.node_type() {
+            NodeType::OBJECT_SQL_ALTER_ADD_COLUMN => {
+                let [name, declared_type] = attrs!(state.children(column), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
+                let Some(name) = name.filter(|n| n.node_type() == NodeType::NAME) else { return };
+                let name = state.node_name(name);
+                state.tag(&name, NameTag::COLUMN_NAME);
+                if state.out.entry.table_declarations[table as usize].table_columns_by_name.contains_key(&name.text) {
+                    return;
+                }
+                let column_id = state.reserve_column_ids(table_id, std::iter::once(&name.text))[0];
+                let column_type = declared_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string()));
+                let ast_node_id = state.node_id(column);
+                let location = state.text_span(*column.symbol_span());
+                let table_declaration = &mut state.entry_mut().table_declarations[table as usize];
+                let column_index = table_declaration.table_columns.len();
+                table_declaration.table_columns_by_name.insert(name.text.clone(), column_index);
+                table_declaration.table_columns.push(TableColumn {
+                    object_id: QualifiedCatalogObjectId::table_column(table_id, column_id),
+                    table: Some(table_id),
+                    ast_node_id: Some(ast_node_id),
+                    column_name: name.clone(),
+                    column_type,
+                    location: Some(location),
+                });
+                let object = CatalogObjectRef::Column(loc(column_index as u32));
+                state.resolve_name(&name, object);
+            }
+            NodeType::OBJECT_SQL_ALTER_DROP_COLUMN | NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN | NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE => {
+                if column.node_type() != NodeType::NAME {
+                    return;
+                }
+                let name = state.node_name(column);
+                let Some(&column_index) = state.out.entry.table_declarations[table as usize].table_columns_by_name.get(&name.text) else { return };
+                match action.node_type() {
+                    NodeType::OBJECT_SQL_ALTER_DROP_COLUMN => {
+                        let table_declaration = &mut state.entry_mut().table_declarations[table as usize];
+                        table_declaration.table_columns.remove(column_index);
+                        table_declaration.table_columns_by_name.clear();
+                        for (i, column) in table_declaration.table_columns.iter().enumerate() {
+                            let text = column.column_name.text.clone();
+                            table_declaration.table_columns_by_name.entry(text).or_insert(i);
+                        }
+                        // The name index holds positions of columns
+                        let entry = state.entry_id;
+                        state.out.name_objects.retain_mut(|(_, _, object)| match object {
+                            CatalogObjectRef::Column(c) if c.table.entry == entry && c.table.index == table => {
+                                if c.column as usize == column_index {
+                                    return false;
+                                }
+                                if c.column as usize > column_index {
+                                    c.column -= 1;
+                                }
+                                true
+                            }
+                            _ => true,
+                        });
+                    }
+                    NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN => {
+                        let Some(new_name) = new_name.filter(|n| n.node_type() == NodeType::NAME) else { return };
+                        let new_name = state.node_name(new_name);
+                        state.tag(&new_name, NameTag::COLUMN_NAME);
+                        let column_id = state.reserve_column_ids(table_id, std::iter::once(&new_name.text))[0];
+                        let table_declaration = &mut state.entry_mut().table_declarations[table as usize];
+                        table_declaration.table_columns_by_name.remove(&name.text);
+                        table_declaration.table_columns_by_name.insert(new_name.text.clone(), column_index);
+                        let declared = &mut table_declaration.table_columns[column_index];
+                        declared.object_id = QualifiedCatalogObjectId::table_column(table_id, column_id);
+                        declared.column_name = new_name.clone();
+                        let (entry, object) = (state.entry_id, CatalogObjectRef::Column(loc(column_index as u32)));
+                        state.out.name_objects.retain(|(_, _, o)| !matches!(o, CatalogObjectRef::Column(c) if c.table.entry == entry && c.table.index == table && c.column as usize == column_index));
+                        state.resolve_name(&new_name, object);
+                    }
+                    _ => {
+                        let declared_type = column_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string()));
+                        state.entry_mut().table_declarations[table as usize].table_columns[column_index].column_type = declared_type;
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 
     /// Register a table-like declaration backed by a SELECT scope
@@ -1503,6 +1673,13 @@ impl NameResolutionPass {
                 self.merge_child_states(node_state, node);
             }
 
+            NodeType::OBJECT_SQL_ALTER_TABLE | NodeType::OBJECT_SQL_ALTER_VIEW => {
+                // The columns of the actions belong to the table, not to a scope
+                self.merge_child_states(node_state, node);
+                node_state.clear();
+                self.visit_alter(state, node, node_id);
+            }
+
             NodeType::OBJECT_SQL_PROPERTY_GRAPH | NodeType::OBJECT_SQL_GRAPH_TABLE => {
                 // Property graph analysis is syntax-only. Keep graph-local references in the
                 // analyzed buffers, but prevent them from entering or affecting an SQL scope.
@@ -1554,6 +1731,10 @@ impl NameResolutionPass {
             if let Some(&scope) = state.out.name_scopes_by_root_node.get(&pending.select_node_id) {
                 Self::populate_derived_table(state, &pending, scope);
             }
+        }
+        for (table, action) in std::mem::take(&mut self.pending_alters) {
+            let action = state.ast[action as usize];
+            Self::apply_column_action(state, table, &action);
         }
 
         // Assign statement ids, the objects are ordered by their AST nodes

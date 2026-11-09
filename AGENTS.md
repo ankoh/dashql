@@ -22,6 +22,10 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/core_quirks.md`
     - `docs/design/trino_plan.md` (Trino plan fragments to one operator tree, tree layout, stage contours)
 
+- Catalog (how the catalog of a connection follows the connection: lookups after statements, relations on disk, when a full refresh runs)
+    - `docs/design/catalog_updates.md`
+    - `docs/design/core_analysis_catalog.md` (catalog types, snapshots, name resolution)
+
 - Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 

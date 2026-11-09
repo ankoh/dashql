@@ -434,7 +434,8 @@ describe('updateHyperCatalog on the embedded Hyper', () => {
         const script = catalog.allocateEntryId();
         const functions = dql.createScript(catalog);
         const executor: QueryExecutor = (_id, args) => [1, connection.query(args.query) as never];
-        const relations = [{ databaseName: 'hyper', schemaName: 'public', tableName: 'live_orders' }];
+        // A statement that names no schema, the connection knows where the table is
+        const relations = [{ databaseName: 'hyper', schemaName: '', tableName: 'live_orders' }];
         const update = () => updateHyperCatalog(
             new TestLogger(), 'database', vi.fn(), 1, [], executor, catalog, dql, script, functions, true, new AbortController().signal,
             { processor: async request => dql.processBatch(request) }, relations,
