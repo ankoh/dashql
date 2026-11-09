@@ -27,6 +27,9 @@ runs:
         chmod 600 "${{ runner.temp }}/bazel-mtls/client.crt"
         chmod 600 "${{ runner.temp }}/bazel-mtls/client.key"
 
+    - name: Setup GitHub credentials
+      uses: ./.github/actions/setup-github-credentials
+
     - name: Setup Bazel
       uses: bazel-contrib/setup-bazel@0.19.1
       with:
@@ -34,6 +37,9 @@ runs:
         repository-cache: true
         disk-cache: false
         bazelrc: |
+          # Authenticated downloads from github.com
+          common --credential_helper=github.com=${{ runner.temp }}/bazel-github-credentials
+
           # Remote caching
           common --remote_cache=grpcs://bazel-cache.dashql.app:9092
           common --remote_timeout=30m

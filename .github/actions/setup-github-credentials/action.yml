@@ -1,0 +1,24 @@
+name: 'Setup GitHub credentials'
+description: 'Write a Bazel credential helper that authenticates downloads from github.com'
+
+# GitHub answers anonymous release downloads with 504 Gateway Time-out when it is under load, and a
+# failed download fails the whole build. The caller passes the helper to Bazel with
+#   common --credential_helper=github.com=${{ runner.temp }}/bazel-github-credentials
+# The scope is github.com only, so the token does not reach the hosts that the downloads redirect to.
+
+runs:
+  using: "composite"
+  steps:
+    - name: Write Bazel credential helper
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        helper="${RUNNER_TEMP}/bazel-github-credentials"
+        umask 077
+        cat > "${helper}" <<EOF
+        #!/bin/sh
+        cat > /dev/null
+        printf '{"headers":{"Authorization":["Bearer %s"]}}\n' '${GITHUB_TOKEN}'
+        EOF
+        chmod 700 "${helper}"

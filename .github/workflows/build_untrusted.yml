@@ -33,12 +33,17 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
+            - name: Setup GitHub credentials
+              uses: ./.github/actions/setup-github-credentials
+
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.19.1
               with:
                   bazelisk-cache: true
                   repository-cache: true
                   disk-cache: false
+                  bazelrc: |
+                      common --credential_helper=github.com=${{ runner.temp }}/bazel-github-credentials
 
             - name: Verify Bazel lockfile
               shell: bash
