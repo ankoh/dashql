@@ -3,6 +3,7 @@
 
 use dashql_core::catalog::Catalog;
 use dashql_core_shell::vt100;
+use dashql_core_shell::{EffectType, ShellSession};
 use dashql_core_shell::{EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput};
 
 #[path = "support/test_shell.rs"]
@@ -404,12 +405,12 @@ fn failed_and_cancelled_effects_render_messages() {
 }
 
 #[test]
-fn invalid_arrow_results_are_reported() {
+fn query_results_are_the_text_of_the_host() {
     let mut shell = new_shell(80);
     let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"not arrow");
-    assert_eq!(result.status, ShellStatus::ArrowError);
-    assert!(!result.data.is_empty());
+    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"Query completed (1 row)\r\n");
+    assert_eq!(result.status, ShellStatus::Ok);
+    assert_eq!(result.data, b"Query completed (1 row)\r\n");
 }
 
 #[test]
@@ -571,4 +572,169 @@ fn keyword_case_applies_to_completions() {
     let upper: Vec<_> = shell.complete_prompt(50).unwrap().into_iter().map(|c| c.completion_text).collect();
     assert!(lower.iter().any(|c| c == "select"), "{lower:?}");
     assert!(upper.iter().any(|c| c == "SELECT"), "{upper:?}");
+}
+
+fn bytes_text(data: &[u8]) -> String {
+    String::from_utf8_lossy(data).into_owned()
+}
+
+#[test]
+fn suspends_dot_command_as_effect() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 100, false);
+    session.set_prompt(b".help");
+
+    let pending = session.submit_prompt(&catalog);
+    assert_eq!(pending.status, ShellStatus::Pending);
+    assert_eq!(effect_type(&pending.data), EffectType::ExecuteCommand as u32);
+    assert_eq!(&pending.data[16..], b".help");
+}
+
+#[test]
+fn completes_dot_command_prefixes() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 100, false);
+    assert_eq!(session.set_commands(b"clear\nhelp\nlogin"), ShellStatus::Ok);
+    session.set_prompt(b".hel");
+
+    let candidates = session.complete_prompt(10, &catalog).unwrap();
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].display_text, ".help");
+    assert_eq!(candidates[0].completion_text, ".help");
+    assert_eq!(candidates[0].target_offset, 0);
+    assert_eq!(candidates[0].target_length, 4);
+}
+
+#[test]
+fn renders_inline_dot_command_hint() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 100, false);
+    assert_eq!(session.set_commands(b"clear\nhelp"), ShellStatus::Ok);
+    session.open_terminal(b"db> ");
+
+    let output = bytes_text(&session.consume_terminal_input(Key::Text, b".hel", &catalog).data);
+    assert!(output.contains(&format!("{}p", vt100::FOREGROUND_BRIGHT_BLACK)), "{output}");
+    assert!(!output.contains('╭'), "{output}");
+}
+
+#[test]
+fn renders_terminal_prompt_in_its_color() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 10, false);
+    session.set_terminal_prompt_color(Some([110, 255, 70]));
+    let output = bytes_text(&session.open_terminal(b"db> ").data);
+    assert!(output.contains("\x1b[1;38;2;110;255;70mdb> \x1b[0m"), "{output}");
+
+    // Continuation lines carry the prompt color as well
+    let output = bytes_text(&session.consume_terminal_input(Key::Text, b"SELECT 1 FROM t", &catalog).data);
+    assert!(output.contains("\x1b[1;38;2;110;255;70m -> \x1b[0m"), "{output}");
+
+    session.set_terminal_prompt_color(None);
+    let output = bytes_text(&session.open_terminal(b"db> ").data);
+    assert!(output.contains(&format!("{}db> {}", vt100::BOLD, vt100::RESET_ATTRIBUTES)), "{output}");
+}
+
+#[test]
+fn renders_registered_dot_command_names_in_bold() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 100, false);
+    assert_eq!(session.set_commands(b"login\nrefresh"), ShellStatus::Ok);
+    session.open_terminal(b"hyperdb> ");
+
+    let output = bytes_text(&session.consume_terminal_input(Key::Text, b".refresh", &catalog).data);
+    assert!(output.contains(&format!("{}.refresh{}", vt100::BOLD, vt100::RESET_ATTRIBUTES)), "{output}");
+}
+
+#[test]
+fn compiles_plain_sql_before_execution() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 80, false);
+    let query = b"  SELECT 42; -- context\n";
+    let pending = session.start_query(query, &catalog);
+    assert_eq!(pending.status, ShellStatus::Pending);
+    assert_eq!(&pending.data[16..], query);
+}
+
+#[test]
+fn runs_vis_tags_as_plain_queries() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 80, false);
+    let query = b"/* @vis vegalite {\"mark\": \"bar\"} */\nSELECT 1 AS value";
+    let pending = session.start_query(query, &catalog);
+    assert_eq!(pending.status, ShellStatus::Pending);
+    assert_eq!(&pending.data[16..], query);
+}
+
+#[test]
+fn rejects_concurrent_queries_and_stale_completions() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 80, false);
+    let pending = session.start_query(b"SELECT 1", &catalog);
+    assert_eq!(pending.status, ShellStatus::Pending);
+    let pending_id = effect_id(&pending.data);
+
+    assert_eq!(session.start_query(b"SELECT 2", &catalog).status, ShellStatus::Busy);
+    assert_eq!(session.cancel_effect(pending_id).data, b"Cancelled");
+    assert_eq!(session.cancel_effect(pending_id).status, ShellStatus::StaleEffect);
+}
+
+#[test]
+fn converts_query_errors_to_output() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 80, false);
+    let pending = session.start_query(b"SELECT * FROM missing_table", &catalog);
+    assert_eq!(pending.status, ShellStatus::Pending);
+    let complete = session.complete_effect(
+        effect_id(&pending.data),
+        EffectCompletionStatus::Error,
+        b"syntax error",
+    );
+    assert_eq!(complete.status, ShellStatus::Ok);
+    assert_eq!(complete.data, b"syntax error");
+}
+
+#[test]
+fn aligns_continuation_marker_with_prompt_marker() {
+    let catalog = Catalog::new();
+
+    let mut short_session = ShellSession::new(&catalog, 80, false);
+    assert_eq!(short_session.open_terminal(b"hyper> ").status, ShellStatus::Ok);
+    let short_output = bytes_text(&short_session.consume_terminal_input(Key::Enter, b"", &catalog).data);
+    assert!(short_output.contains("    -> "));
+
+    let mut long_session = ShellSession::new(&catalog, 80, false);
+    assert_eq!(long_session.open_terminal(b"long-connection> ").status, ShellStatus::Ok);
+    let long_output = bytes_text(&long_session.consume_terminal_input(Key::Enter, b"", &catalog).data);
+    assert!(long_output.contains("              -> "));
+}
+
+#[test]
+fn applies_readline_bindings_to_multiline_prompt() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 80, false);
+
+    session.set_prompt(b"SELECT one\nFROM table");
+    assert_eq!(
+        session.consume_prompt_input(Key::LineStart, b"").cursor_byte_offset as usize,
+        "SELECT one\n".len()
+    );
+    assert_eq!(session.consume_prompt_input(Key::KillWord, b"").text, "SELECT one\n table");
+    assert_eq!(session.consume_prompt_input(Key::Yank, b"").text, "SELECT one\nFROM table");
+    assert_eq!(
+        session.consume_prompt_input(Key::LineEnd, b"").cursor_byte_offset as usize,
+        "SELECT one\nFROM table".len()
+    );
+    assert_eq!(session.consume_prompt_input(Key::BackwardKillWord, b"").text, "SELECT one\nFROM ");
+}
+
+#[test]
+fn renders_shell_prefixes_in_bold() {
+    let catalog = Catalog::new();
+    let mut session = ShellSession::new(&catalog, 80, false);
+    let initial = session.open_terminal(b"dashql> ");
+    assert_eq!(initial.status, ShellStatus::Ok);
+    assert!(bytes_text(&initial.data).contains("\x1b[1mdashql> \x1b[0m"));
+
+    let continuation = session.consume_terminal_input(Key::Enter, b"", &catalog);
+    assert!(bytes_text(&continuation.data).contains("\x1b[1m     -> \x1b[0m"));
 }

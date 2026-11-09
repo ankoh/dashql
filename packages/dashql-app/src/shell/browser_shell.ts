@@ -53,7 +53,6 @@ export interface BrowserShellOptions {
     prompt?: string;
     onExit?: () => void;
     onQueryResult?: (queryId: number) => void;
-    onTerminalResize?: (columns: number) => void;
     inputAriaLabel?: string;
     /// May the terminal take the focus once it opened? A page that went to the background meanwhile must not.
     mayFocus?: () => boolean;
@@ -67,10 +66,6 @@ export interface BrowserShellController {
     /// Offer prompts one after another, each submit fills in the next one
     queuePrompts(prompts: readonly string[]): void;
     dispose(): void;
-}
-
-export function formatQueryCompletion(rowCount: number): string {
-    return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})${VT100.NEW_LINE}`;
 }
 
 export function formatTerminalGreeter(lines: readonly string[]): string {
@@ -281,7 +276,6 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         fitAddon.fit();
         const columns = Math.max(1, terminal.cols);
         shell.resize(columns);
-        options.onTerminalResize?.(columns);
         completionOverlay.place();
     };
     const resizeObserver = new ResizeObserver(syncSize);
@@ -293,7 +287,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         const executingShell = shell;
         const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
         const progress = new TerminalQueryProgress(executingShell, data => terminal.write(data), reducedMotion);
-        const queryResult: { value: { queryId: number; rowCount: number } | null } = { value: null };
+        const queryResult: { queryId: number | null } = { queryId: null };
         activeQuery = abort;
         activeProgress = progress;
         try {
@@ -302,19 +296,16 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
                 message => {
                     if (!disposed && shell === executingShell && activeQuery === abort) progress.update(message);
                 },
-                (queryId, rowCount) => {
+                queryId => {
                     if (!disposed && shell === executingShell && activeQuery === abort) {
-                        queryResult.value = { queryId, rowCount };
+                        queryResult.queryId = queryId;
                     }
                 },
             );
             if (!disposed && shell === executingShell) {
                 progress.stop();
-                const completedResult = queryResult.value;
-                terminal.write(executingShell.finishTerminalQuery(
-                    completedResult == null ? output : formatQueryCompletion(completedResult.rowCount),
-                ).data);
-                if (completedResult != null) options.onQueryResult?.(completedResult.queryId);
+                terminal.write(executingShell.finishTerminalQuery(output).data);
+                if (queryResult.queryId != null) options.onQueryResult?.(queryResult.queryId);
             }
         } catch (error) {
             if (!disposed && shell === executingShell) {

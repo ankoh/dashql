@@ -1,6 +1,5 @@
 //! The shell session.
 
-use super::arrow_renderer::ArrowRenderer;
 use super::prompt_buffer::{find_from, PromptBuffer};
 use super::unicode::{display_width, is_valid, next_grapheme};
 use super::vt100::{self, append_sequence, Command};
@@ -440,8 +439,8 @@ struct PendingEffect {
 pub struct ShellSession {
     /// The prompt
     prompt: PromptBuffer,
-    /// The renderer of query results
-    renderer: ArrowRenderer,
+    /// The width of the terminal
+    terminal_columns: u32,
     /// The submitted queries, oldest first
     history: VecDeque<String>,
     /// The history entry shown in the prompt, the history length when not browsing
@@ -486,7 +485,7 @@ impl ShellSession {
     pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Self {
         Self {
             prompt: PromptBuffer::new(catalog),
-            renderer: ArrowRenderer::new(terminal_columns),
+            terminal_columns: terminal_columns.max(1),
             history: VecDeque::new(),
             history_cursor: 0,
             history_draft: String::new(),
@@ -519,7 +518,7 @@ impl ShellSession {
     }
 
     pub fn resize(&mut self, terminal_columns: u32) {
-        self.renderer.resize(terminal_columns);
+        self.terminal_columns = terminal_columns.max(1);
     }
 
     /// Set the keyword case of completions as a `KeywordCase` value (1 is upper case)
@@ -1176,7 +1175,7 @@ impl ShellSession {
         let mut line = TERMINAL_QUERY_SPINNER_FRAMES[progress.frame].as_bytes().to_vec();
         line.push(b' ');
         line.extend_from_slice(&progress.message);
-        let line = truncate_display_text(&line, (self.renderer.terminal_columns() as usize).max(1));
+        let line = truncate_display_text(&line, (self.terminal_columns as usize).max(1));
         let mut output = Vec::new();
         push(&mut output, vt100::DISABLE_AUTO_WRAP);
         push(&mut output, vt100::CARRIAGE_RETURN);
@@ -1325,18 +1324,6 @@ impl ShellSession {
         ShellStatus::Ok
     }
 
-    fn render_arrow_ipc(&self, data: &[u8]) -> ShellOperation {
-        match self.renderer.render_ipc(data) {
-            Ok(mut output) => {
-                if !output.is_empty() {
-                    push(&mut output, vt100::NEW_LINE);
-                }
-                ShellOperation::ok(output)
-            }
-            Err(message) => ShellOperation::new(ShellStatus::ArrowError, message),
-        }
-    }
-
     /// Start a query: returns the effect envelope of the query
     pub fn start_query(&mut self, query: &[u8], _catalog: &Catalog) -> ShellOperation {
         if !self.pending_effects.is_empty() {
@@ -1377,7 +1364,7 @@ impl ShellSession {
         };
         let effect = self.pending_effects.remove(index);
         match (effect.effect_type, status) {
-            (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => self.render_arrow_ipc(data),
+            (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => ShellOperation::ok(data.to_vec()),
             (EffectType::ExecuteCommand, EffectCompletionStatus::Success) => {
                 if data.is_empty() {
                     return ShellOperation::new(ShellStatus::InternalError, "invalid shell command result");
@@ -1460,7 +1447,7 @@ impl ShellSession {
             highlighted.extend_from_slice(&text[clamp(offset)..]);
         }
 
-        let terminal_columns = self.renderer.terminal_columns() as usize;
+        let terminal_columns = self.terminal_columns as usize;
         let continuation = self.terminal_continuation.clone();
         let desired_layout = layout_prompt(text, &terminal_prompt, &continuation, terminal_columns);
         let previous_rows = self.terminal_prompt_rows;
@@ -1518,7 +1505,7 @@ impl ShellSession {
         let follows_dot = target > 0 && text[target - 1] == b'.';
         overlay.hint_only = !follows_dot && (overlay.candidates.len() == 1 || overlay.candidates[0].target_length == 0);
         let terminal_prompt = self.terminal_prompt_text().to_vec();
-        let terminal_columns = self.renderer.terminal_columns() as usize;
+        let terminal_columns = self.terminal_columns as usize;
         let target_layout =
             layout_prompt(&text[..target], &terminal_prompt, &self.terminal_continuation, terminal_columns);
         let cursor_layout = layout_prompt(

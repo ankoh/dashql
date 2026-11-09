@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { getPlanResultText, shouldShowResultUI } from './shell_result.js';
+import { createShellLastCommand, getPlanResultText } from './shell_result.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 const PLAN = '{"operator":"executiontarget","operatorId":1}';
@@ -14,13 +14,25 @@ describe('shell plan results', () => {
         expect(getPlanResultText(tableFromArrays({ value: [PLAN, PLAN] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: [PLAN], extra: [1] }))).toBeNull();
     });
+});
 
-    it('opens plan candidates automatically while respecting explicit terminal modes', () => {
-        const table = tableFromArrays({ value: [PLAN] });
+describe('the .last command', () => {
+    it('opens the last result again', async () => {
+        const reopen = vi.fn(() => true);
+        const command = createShellLastCommand(reopen);
 
-        expect(shouldShowResultUI('auto', table, 1000)).toBe(true);
-        expect(shouldShowResultUI('ui', table, 1000)).toBe(true);
-        expect(shouldShowResultUI('term', table, 1)).toBe(false);
-        expect(shouldShowResultUI('off', table, 1)).toBe(false);
+        expect(command[0]).toBe('last');
+        expect(await command[2]([], {})).toBeUndefined();
+        expect(reopen).toHaveBeenCalledOnce();
+    });
+
+    it('says when there is no result', async () => {
+        expect(await createShellLastCommand(() => false)[2]([], {})).toBe('No result to show');
+    });
+
+    it('takes no arguments', () => {
+        const reopen = vi.fn(() => true);
+        expect(() => createShellLastCommand(reopen)[2](['2'], {})).toThrow('usage: .last');
+        expect(reopen).not.toHaveBeenCalled();
     });
 });

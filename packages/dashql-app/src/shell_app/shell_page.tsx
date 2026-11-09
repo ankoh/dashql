@@ -11,6 +11,7 @@ import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '..
 import type { BrowserShellController } from '../shell/browser_shell.js';
 import { analyzeTable } from '../compute/analyze_table.js';
 import { useComputationDispatch } from '../compute/computation_registry.js';
+import { DELETE_COMPUTATION } from '../compute/computation_state.js';
 import { ShellQueryResultOverlay } from '../session/shell/shell_query_result_overlay.js';
 import { EmbeddedDatabaseCatalog } from './embedded_database_catalog.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
@@ -18,7 +19,7 @@ import { createLoginCommand, type SalesforceLoginAuthentication } from './comman
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
 import { createExamplesCommand } from '../shell/shell_examples.js';
 import { useShellQueryHistory } from './shell_query_history.js';
-import { createShellOutputCommand, type ShellOutputMode } from '../shell/shell_result.js';
+import { createShellLastCommand } from '../shell/shell_result.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../shell/shell_files.js';
 import { useShellFiles } from '../shell/filesystem_dialog.js';
 import { createFormatCommand } from './commands/format.js';
@@ -88,16 +89,18 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const fileRegistryRef = React.useRef<ShellFileRegistry | null>(null);
     const { command: filesCommand, dialogs: fileDialogs } = useShellFiles(fileRegistryRef);
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const outputModeRef = React.useRef<ShellOutputMode>('auto');
-    const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating hyperdb-wasm');
     const shellRef = React.useRef<DashQLShell | null>(null);
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     React.useEffect(() => {
         shellRef.current?.setKeywordCase(keywordCase);
     }, [keywordCase]);
-    const { resultQuery, showResultQuery, closeResultQuery } = useShellQueryResult(queryExecutions);
+    const releaseResult = React.useCallback((queryId: number) => {
+        dispatchComputation({ type: DELETE_COMPUTATION, value: [queryId] });
+    }, [dispatchComputation]);
+    const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(queryExecutions, releaseResult);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
+        dropResultQuery();
         // The terminal says what happened, an error would also raise a toast
         logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
         controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
@@ -137,7 +140,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
 
             setStatus(INSTANTIATING_SHELL);
             const core = await setupCore(LOG_CTX);
-            const getOutputMode = () => outputModeRef.current;
             const loginCommand = createLoginCommand({
                 requestForm: loginDialog.request,
                 authenticate: async (form, signal, onProgress) => {
@@ -255,14 +257,12 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     },
                 }),
                 loginCommand,
-                createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
+                createShellLastCommand(reopenResultQuery),
                 filesCommand,
             ];
             const nextShell = await createDashQLShell({
                 core,
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
-                    getOutputMode,
-                    getTerminalColumns: () => terminalColumnsRef.current,
                     prepareResult: (queryId, table) => analyzeTable(
                         queryId,
                         table,
@@ -303,7 +303,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 prompt: 'hyperdb> ',
                 inputAriaLabel: 'HyperDB shell input',
                 onQueryResult: showResultQuery,
-                onTerminalResize: columns => { terminalColumnsRef.current = columns; },
             });
             if (cancelled) {
                 nextController.dispose();
@@ -347,7 +346,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             fileRegistryRef.current = null;
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appEvents, dispatchComputation, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, dispatchComputation, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (

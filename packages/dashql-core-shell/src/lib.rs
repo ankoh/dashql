@@ -10,13 +10,11 @@
 //! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error,
 //! and outputs are terminal bytes.
 
-pub mod arrow_renderer;
 pub mod prompt_buffer;
 mod session;
 pub mod unicode;
 pub mod vt100;
 
-pub use arrow_renderer::ArrowRenderer;
 pub use prompt_buffer::PromptBuffer;
 pub use session::ShellSession;
 
@@ -26,11 +24,10 @@ pub use session::ShellSession;
 pub enum ShellStatus {
     Ok = 0,
     InvalidArgument = 1,
-    ArrowError = 2,
-    InternalError = 3,
-    Pending = 4,
-    StaleEffect = 5,
-    Busy = 6,
+    InternalError = 2,
+    Pending = 3,
+    StaleEffect = 4,
+    Busy = 5,
 }
 
 /// The type of an effect

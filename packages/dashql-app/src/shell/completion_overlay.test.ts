@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
@@ -8,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashQLShell, DashQLShellPromptInput } from './api.js';
 import { embedDashQLShell, type BrowserShellController } from './browser_shell.js';
 import { TerminalCompletionOverlay } from './completion_overlay.js';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
 import * as styles from '../views/completion_list/completion_list.module.css';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -17,7 +15,7 @@ const COLUMNS_PROMPT = 'select * from orders o where o.';
 
 async function createShell(): Promise<DashQLShell> {
     const shell = await DashQLShell.create({
-        environment: { executeQuery: async () => arrow.tableToIPC(tableFromArrays({}), 'file') },
+        environment: { executeQuery: async () => {} },
         terminalColumns: 80,
         core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
     });
@@ -47,7 +45,12 @@ describe('the completion list of the browser shell', () => {
         container.style.height = '400px';
         document.body.appendChild(container);
         shell = await createShell();
-        controller = await embedDashQLShell({ container, shell, onTerminalResize: next => { columns = next; } });
+        const resize = shell.resize.bind(shell);
+        shell.resize = next => {
+            columns = next;
+            resize(next);
+        };
+        controller = await embedDashQLShell({ container, shell });
     });
 
     afterEach(() => {

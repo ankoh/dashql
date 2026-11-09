@@ -114,7 +114,7 @@ describe('Share dialog', () => {
 
     it('encodes the script into the URL once typing pauses', async () => {
         const result = open();
-        const script = 'select 1;\n.output table\nselect \'ü\';';
+        const script = 'select 1;\n.timer on\nselect \'ü\';';
         act(() => setEditorText(script));
         expect(copyButton().disabled).toBe(true);
 

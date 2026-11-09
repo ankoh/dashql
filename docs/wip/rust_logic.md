@@ -34,7 +34,7 @@ Paths without a package are under `packages/dashql-app/src/`.
 
 | Candidate | Lines | Trigger |
 |---|---|---|
-| Trino rows to Arrow (`connections/trino/arrow_conversion.ts`) | 489 | A benchmark on a 32 MB page shows real gain. Arrow crates are only in `dashql-core-shell`, so this needs a module decision and hands results to arrow-js as IPC. |
+| Trino rows to Arrow (`connections/trino/arrow_conversion.ts`) | 489 | A benchmark on a 32 MB page shows real gain. No Rust core module links the Arrow crates (the shell dropped them because of their size, about 23% of the core Wasm in brotli), so this needs a module decision and hands results to arrow-js as IPC. |
 | Dataflow edge geometry (`orthogonalPath`, `crossesBox`, `routeBadgeAt`, `routeEdge` in `session/dataflow/dataflow_scene.ts`) | ~160 | Visual tuning settles: 12 commits touched this file, against 5 for `profile_scene.ts`. It runs per drag update, lives in a separate wasm module from the profile code, and every tweak would need a wasm rebuild. |
 | Natural-language identifier matching (`agent/catalog_name_index.ts`, `agent/script_references.ts`) | 255 | A Rust consumer appears, or the JS index becomes slow on large catalogs. It rebuilds an index from a catalog snapshot, but offsets must be UTF-16 and it would cross per keystroke. |
 | Focus span join (`session/editor/dashql_decorations.ts:126,155`) | ~20 | `spans.find` in a loop shows up in a profile. Then have core send resolved spans. |

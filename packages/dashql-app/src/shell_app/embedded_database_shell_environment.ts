@@ -10,11 +10,9 @@ import {
 import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
 import { DashQLShellEnvironment } from '../shell/api.js';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
-import { EMPTY_RESULT_IPC, reportShellTiming, SHELL_QUERY_METADATA, shouldShowResultUI, type ShellOutputMode } from '../shell/shell_result.js';
+import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';
 
 interface EmbeddedDatabaseShellEnvironmentOptions {
-    getOutputMode?: () => ShellOutputMode;
-    getTerminalColumns?: () => number;
     prepareResult?: (queryId: number, table: arrow.Table) => void | Promise<void>;
     /// Called after a statement ran or failed, before its result shows and the prompt returns
     afterStatement?: (query: string) => Promise<void>;
@@ -63,30 +61,20 @@ export function createEmbeddedDatabaseShellEnvironment(
                                 type: QUERY_RECEIVED_ALL_BATCHES,
                                 value: [tracked.queryId, table, new Map(), metrics],
                             });
-                            const outputMode = options.getOutputMode?.() ?? 'auto';
-                            const showUI = shouldShowResultUI(
-                                outputMode,
-                                table,
-                                options.getTerminalColumns?.() ?? 100,
-                            );
-                            if (showUI && table.numCols > 0 && onResult != null) {
-                                if (options.prepareResult != null) {
-                                    tracked.dispatch({
-                                        type: QUERY_PROCESSING_RESULTS,
-                                        value: [tracked.queryId],
-                                    });
-                                    await options.prepareResult(tracked.queryId, table);
-                                    cancellation.signal.throwIfAborted();
-                                    tracked.dispatch({
-                                        type: QUERY_PROCESSED_RESULTS,
-                                        value: [tracked.queryId],
-                                    });
-                                }
-                                onResult(tracked.queryId, table.numRows);
-                                return EMPTY_RESULT_IPC;
+                            if (table.numCols === 0) return;
+                            if (options.prepareResult != null) {
+                                tracked.dispatch({
+                                    type: QUERY_PROCESSING_RESULTS,
+                                    value: [tracked.queryId],
+                                });
+                                await options.prepareResult(tracked.queryId, table);
+                                cancellation.signal.throwIfAborted();
+                                tracked.dispatch({
+                                    type: QUERY_PROCESSED_RESULTS,
+                                    value: [tracked.queryId],
+                                });
                             }
-                            if (outputMode === 'off' || table.numCols === 0) return EMPTY_RESULT_IPC;
-                            return arrow.tableToIPC(table, 'stream');
+                            onResult?.(tracked.queryId, table.numRows);
                         } finally {
                             reportTiming('Postprocess', performance.now() - postprocessingStartedAt);
                         }

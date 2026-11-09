@@ -1,6 +1,4 @@
 // @vitest-environment node
-import * as arrow from 'apache-arrow';
-
 import { QueryExecutionStatus } from '../query/query_execution_state.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
@@ -17,25 +15,23 @@ describe('embedded database shell environment', () => {
         const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
 
-        const result = await environment.executeQuery('SELECT 42');
-        expect(arrow.tableFromIPC(result).getChild('value')?.get(0)).toBe(42);
+        await environment.executeQuery('SELECT 42');
         expect(query).toHaveBeenCalledWith('SELECT 42', expect.any(AbortSignal));
     });
 
     it('executes repeated queries against the database instead of caching results', async () => {
-        const first = tableFromArrays({ value: [1] });
-        const second = tableFromArrays({ value: [2] });
         const query = vi.fn()
-            .mockResolvedValueOnce(first)
-            .mockResolvedValueOnce(second);
+            .mockResolvedValueOnce(tableFromArrays({ value: [1] }))
+            .mockResolvedValueOnce(tableFromArrays({ value: [2, 3] }));
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
+        const onResult = vi.fn();
 
-        const firstResult = await environment.executeQuery('SELECT value');
-        const secondResult = await environment.executeQuery('SELECT value');
+        await environment.executeQuery('SELECT value', undefined, undefined, onResult);
+        await environment.executeQuery('SELECT value', undefined, undefined, onResult);
 
         expect(query).toHaveBeenCalledTimes(2);
-        expect(arrow.tableFromIPC(firstResult).getChild('value')?.get(0)).toBe(1);
-        expect(arrow.tableFromIPC(secondResult).getChild('value')?.get(0)).toBe(2);
+        expect(onResult).toHaveBeenNthCalledWith(1, expect.any(Number), 1);
+        expect(onResult).toHaveBeenNthCalledWith(2, expect.any(Number), 2);
     });
 
     it('reports progress while the database query is running', async () => {
@@ -48,54 +44,26 @@ describe('embedded database shell environment', () => {
         expect(onProgress).toHaveBeenCalledWith('Executing query');
     });
 
-    it('passes results as Arrow IPC streams to the shell renderer', async () => {
-        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
-
-        const result = await environment.executeQuery('SELECT 42');
-
-        expect(arrow.RecordBatchReader.from(result).isStream()).toBe(true);
-        expect(arrow.tableFromIPC(result).getChild('value')?.get(0)).toBe(42);
-    });
-
-    it('normalizes successful queries without result chunks', async () => {
-        const query = vi.fn().mockResolvedValue(tableFromArrays({}));
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
-
-        const result = await environment.executeQuery('CREATE TABLE foo(a INT)');
-
-        expect(arrow.tableFromIPC(result).numCols).toBe(0);
-        expect(query).toHaveBeenCalledWith('CREATE TABLE foo(a INT)', expect.any(AbortSignal));
-    });
-
-    it('prepares and opens results in UI mode', async () => {
+    it('prepares and reports a result', async () => {
         const table = tableFromArrays({ value: [42] });
         const query = vi.fn().mockResolvedValue(table);
         const prepareResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query } as any,
-            undefined,
-            {
-                getOutputMode: () => 'ui',
-                prepareResult,
-            },
-        );
+        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, undefined, { prepareResult });
         const onResult = vi.fn();
 
-        const result = await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
+        await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
 
-        expect(arrow.tableFromIPC(result).numCols).toBe(0);
         expect(prepareResult).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ numRows: 1 }));
         expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
     });
 
-    it('opens the UI result only after aggregate preparation completes', async () => {
+    it('reports a result only after its preparation completes', async () => {
         const table = tableFromArrays({ value: [42] });
         const preparation = deferred<void>();
         const environment = createEmbeddedDatabaseShellEnvironment(
             { query: vi.fn().mockResolvedValue(table) } as any,
             undefined,
-            { getOutputMode: () => 'ui', prepareResult: () => preparation.promise },
+            { prepareResult: () => preparation.promise },
         );
         const onResult = vi.fn();
         const execution = environment.executeQuery('SELECT 42', undefined, undefined, onResult);
@@ -107,17 +75,14 @@ describe('embedded database shell environment', () => {
         expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
     });
 
-    it('reports UI result analysis as postprocessing', async () => {
+    it('reports the preparation of a result as postprocessing', async () => {
         const table = tableFromArrays({ value: [42] });
         const events: string[] = [];
         const query = vi.fn().mockResolvedValue(table);
         const environment = createEmbeddedDatabaseShellEnvironment(
             { query } as any,
             undefined,
-            {
-                getOutputMode: () => 'ui',
-                prepareResult: () => { events.push('prepare'); },
-            },
+            { prepareResult: () => { events.push('prepare'); } },
         );
 
         await environment.executeQuery(
@@ -134,89 +99,16 @@ describe('embedded database shell environment', () => {
         expect(events).toEqual(['Results', 'prepare', 'Postprocess']);
     });
 
-    it('omits postprocessing when results stay in the terminal', async () => {
-        const table = tableFromArrays({ value: [42] });
-        const query = vi.fn().mockResolvedValue(table);
-        const prepareResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query } as any,
-            undefined,
-            {
-                getOutputMode: () => 'term',
-                prepareResult,
-            },
-        );
-        const timings: string[] = [];
-
-        await environment.executeQuery(
-            'SELECT 42',
-            undefined,
-            undefined,
-            undefined,
-            label => { timings.push(label); },
-        );
-
-        expect(prepareResult).not.toHaveBeenCalled();
-        expect(timings).toEqual(['Results', 'Postprocess']);
-    });
-
-    it('prepares and opens a 1x1 plan candidate in auto mode', async () => {
-        const plan = '{"operator":"executiontarget","operatorId":1}';
-        const table = tableFromArrays({ value: [plan] });
-        const query = vi.fn().mockResolvedValue(table);
-        const prepareResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query } as any,
-            undefined,
-            {
-                getOutputMode: () => 'auto',
-                getTerminalColumns: () => 1000,
-                prepareResult,
-            },
-        );
-        const onResult = vi.fn();
-
-        const result = await environment.executeQuery('SELECT plan', undefined, undefined, onResult);
-
-        expect(arrow.tableFromIPC(result).numCols).toBe(0);
-        expect(prepareResult).toHaveBeenCalledOnce();
-        expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
-    });
-
-    it('does not open a result UI for successful statements without columns', async () => {
+    it('reports no result for statements without columns', async () => {
         const query = vi.fn().mockResolvedValue(tableFromArrays({}));
         const prepareResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query } as any,
-            undefined,
-            {
-                getOutputMode: () => 'ui',
-                prepareResult,
-            },
-        );
+        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, undefined, { prepareResult });
         const onResult = vi.fn();
 
-        const result = await environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
+        await environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
 
-        expect(arrow.tableFromIPC(result).numCols).toBe(0);
+        expect(query).toHaveBeenCalledWith('CREATE TABLE foo(a INT)', expect.any(AbortSignal));
         expect(prepareResult).not.toHaveBeenCalled();
-        expect(onResult).not.toHaveBeenCalled();
-    });
-
-    it('suppresses query output in off mode', async () => {
-        const table = tableFromArrays({ value: [42] });
-        const query = vi.fn().mockResolvedValue(table);
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query } as any,
-            undefined,
-            { getOutputMode: () => 'off' },
-        );
-        const onResult = vi.fn();
-
-        const result = await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
-
-        expect(arrow.tableFromIPC(result).numCols).toBe(0);
-        expect(query).toHaveBeenCalledWith('SELECT 42', expect.any(AbortSignal));
         expect(onResult).not.toHaveBeenCalled();
     });
 
@@ -235,8 +127,7 @@ describe('embedded database shell environment', () => {
         const tracker = new ShellQueryExecutionTracker();
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
 
-        const result = await environment.executeQuery('SELECT * FROM values');
-        expect(arrow.tableFromIPC(result).numRows).toBe(3);
+        await environment.executeQuery('SELECT * FROM values');
 
         expect(tracker.getSnapshot()).toMatchObject([{
             queryText: 'SELECT * FROM values',

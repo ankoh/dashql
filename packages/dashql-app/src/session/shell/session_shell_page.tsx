@@ -15,7 +15,7 @@ import {
     resolveClientFunctionCall,
 } from './session_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
-import { createShellOutputCommand, type ShellOutputMode } from '../../shell/shell_result.js';
+import { createShellLastCommand } from '../../shell/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { ConnectorType } from '../../connections/connector_info.js';
@@ -69,12 +69,18 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         shellRef.current?.setKeywordCase(keywordCase);
     }, [keywordCase]);
     const generationRef = React.useRef(0);
-    const outputModeRef = React.useRef<ShellOutputMode>('auto');
-    const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
+    const [resultOpen, setResultOpen] = React.useState(false);
     const resultQuery = useQueryState(sessionId, resultQueryId);
-    // The overlay shows one result, the computation of a result is released once it is no longer shown
+    const resultQueryRef = React.useRef(resultQuery);
+    resultQueryRef.current = resultQuery;
+    const showResult = React.useCallback((queryId: number) => {
+        setResultQueryId(queryId);
+        setResultOpen(true);
+    }, []);
+    // Closing the overlay keeps the result so that it can open again, the computation of a result is released once
+    // another result replaces it
     const computationDispatch = useComputationDispatch();
     const releaseResult = React.useCallback((queryId: number) => {
         computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
@@ -84,6 +90,8 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         return () => releaseResult(resultQueryId);
     }, [resultQueryId, releaseResult]);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
+        // A result that failed to render doesn't open again
+        setResultQueryId(null);
         // The terminal says what happened, an error would also raise a toast
         logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
         controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
@@ -116,19 +124,18 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         if (connection == null || containerRef.current == null) return;
         const generation = ++generationRef.current;
         let cancelled = false;
-        const getOutputMode = () => outputModeRef.current;
         const environment = createSessionShellEnvironment(
             sessionId,
             connection.connectionId,
             executeQuery,
             cancelQuery,
-            getOutputMode,
-            () => terminalColumnsRef.current,
             releaseResult,
             query => resolveClientFunctionCall(connection.catalog, query),
         );
-        const outputCommand = createShellOutputCommand(getOutputMode, mode => {
-            outputModeRef.current = mode;
+        const lastCommand = createShellLastCommand(() => {
+            if (resultQueryRef.current == null) return false;
+            setResultOpen(true);
+            return true;
         });
         const examplesCommand = createExamplesCommand({
             requestSnippet: snippetsDialog.request,
@@ -146,7 +153,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
             core: connection.catalog.ptr.api,
             catalog: connection.catalog,
             environment,
-            commands: mountsFiles ? [examplesCommand, outputCommand, filesCommand] : [examplesCommand, outputCommand],
+            commands: mountsFiles ? [examplesCommand, lastCommand, filesCommand] : [examplesCommand, lastCommand],
         }).then(async nextShell => {
             nextShell.setKeywordCase(keywordCaseRef.current);
             if (cancelled || generation !== generationRef.current) {
@@ -167,8 +174,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                         greeter: sessionName ? [shellName, `Session: ${sessionName}`, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
                         prompt,
                         onExit: () => setMode(SessionViewMode.Session),
-                        onQueryResult: setResultQueryId,
-                        onTerminalResize: columns => { terminalColumnsRef.current = columns; },
+                        onQueryResult: showResult,
                         mayFocus: () => activeRef.current,
                     });
                 } catch (error) {
@@ -200,7 +206,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, connection?.catalog, prompt, sessionName, shellName, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult]);
+    }, [connection?.connectionId, connection?.catalog, prompt, sessionName, shellName, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
@@ -228,8 +234,8 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                     <strong>[ RUN ]</strong> {status}
                 </div>
             )}
-            {resultQuery != null && (
-                <ResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} onError={showResultError} />
+            {resultOpen && resultQuery != null && (
+                <ResultOverlay query={resultQuery} onClose={() => setResultOpen(false)} onError={showResultError} />
             )}
             {snippetsBrowserDialog}
             {fileDialogs}

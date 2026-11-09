@@ -1,5 +1,5 @@
-# The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100 terminal renderer, the
-# rendering of Arrow query results, and the execution protocol of queries and dot commands. Its bindings are part of
+# The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100 terminal renderer, and the
+# execution protocol of queries and dot commands. Its bindings are part of
 # //packages/dashql-core-wasm.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
@@ -18,10 +18,6 @@ rust_library(
         "//packages/dashql-core-session:dashql_core_session",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-cast",
-        "@core_crates//:arrow-ipc",
-        "@core_crates//:arrow-schema",
         "@core_crates//:unicode-segmentation",
         "@core_crates//:unicode-width",
     ],
@@ -36,7 +32,6 @@ rust_test(
 # Tests of the shell, one libtest binary per test file
 DASHQL_CORE_SHELL_TESTS = [
     "shell_terminal_test",
-    "shell_arrow_renderer_test",
     "shell_prompt_buffer_test",
     "shell_session_test",
 ]
@@ -55,9 +50,6 @@ DASHQL_CORE_SHELL_TESTS = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-ipc",
-        "@core_crates//:arrow-schema",
         "@core_crates//:flatbuffers",
     ],
 ) for name in DASHQL_CORE_SHELL_TESTS]

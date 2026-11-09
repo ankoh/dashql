@@ -1,11 +1,9 @@
-import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DashQLShell } from './api.js';
 import { embedDashQLShell, type BrowserShellController } from './browser_shell.js';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -25,7 +23,6 @@ describe('browser shell prompt queue', () => {
             environment: {
                 executeQuery: async query => {
                     queries.push(query);
-                    return arrow.tableToIPC(tableFromArrays({}), 'file');
                 },
             },
             terminalColumns: 80,
@@ -98,7 +95,6 @@ describe('browser shell replacement', () => {
                     if (hang) {
                         await new Promise((_, reject) => signal?.addEventListener('abort', () => reject(new Error('aborted'))));
                     }
-                    return arrow.tableToIPC(tableFromArrays({}), 'file');
                 },
             },
             terminalColumns: 80,

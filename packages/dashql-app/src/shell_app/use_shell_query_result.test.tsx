@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     EXECUTE_QUERY,
@@ -50,7 +50,7 @@ describe('useShellQueryResult', () => {
 
         let result!: ReturnType<typeof useShellQueryResult>;
         const Harness = () => {
-            result = useShellQueryResult(tracker);
+            result = useShellQueryResult(tracker, () => {});
             return null;
         };
         act(() => root.render(<Harness />));
@@ -66,5 +66,64 @@ describe('useShellQueryResult', () => {
 
         act(() => result.closeResultQuery());
         expect(result.resultQuery).toBeNull();
+    });
+
+    describe('with two results', () => {
+        let result: ReturnType<typeof useShellQueryResult>;
+        let release: ReturnType<typeof vi.fn<(queryId: number) => void>>;
+
+        beforeEach(() => {
+            const tracker = new ShellQueryExecutionTracker();
+            for (const queryId of [1, 2]) {
+                tracker.dispatch({ type: EXECUTE_QUERY, value: [queryId, createExecution(queryId)] });
+                tracker.dispatch({ type: QUERY_SUCCEEDED, value: [queryId] });
+            }
+            release = vi.fn<(queryId: number) => void>();
+            const Harness = () => {
+                result = useShellQueryResult(tracker, release);
+                return null;
+            };
+            act(() => root.render(<Harness />));
+        });
+
+        it('has nothing to open again before the first result', () => {
+            let reopened = true;
+            act(() => { reopened = result.reopenResultQuery(); });
+            expect(reopened).toBe(false);
+            expect(result.resultQuery).toBeNull();
+        });
+
+        it('keeps a closed result until the next one replaces it', () => {
+            act(() => result.showResultQuery(1));
+            act(() => result.closeResultQuery());
+            expect(result.resultQuery).toBeNull();
+            expect(release).not.toHaveBeenCalled();
+
+            let reopened = false;
+            act(() => { reopened = result.reopenResultQuery(); });
+            expect(reopened).toBe(true);
+            expect(result.resultQuery?.queryId).toBe(1);
+
+            act(() => result.showResultQuery(2));
+            expect(result.resultQuery?.queryId).toBe(2);
+            expect(release.mock.calls).toEqual([[1]]);
+        });
+
+        it('releases a dropped result and does not open it again', () => {
+            act(() => result.showResultQuery(1));
+            act(() => result.dropResultQuery());
+            expect(result.resultQuery).toBeNull();
+            expect(release.mock.calls).toEqual([[1]]);
+
+            let reopened = true;
+            act(() => { reopened = result.reopenResultQuery(); });
+            expect(reopened).toBe(false);
+        });
+
+        it('releases the result with the page', () => {
+            act(() => result.showResultQuery(2));
+            act(() => root.render(<div />));
+            expect(release.mock.calls).toEqual([[2]]);
+        });
     });
 });

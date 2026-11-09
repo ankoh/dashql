@@ -33,9 +33,9 @@ describe('Shell script splitting', () => {
     });
 
     it('keeps dot commands as their own prompts', () => {
-        expect(splitShellScript(core, catalog, 'select 1;\n  .output table  \nselect 2;\n.timer on')).toEqual([
+        expect(splitShellScript(core, catalog, 'select 1;\n  .timer on  \nselect 2;\n.timer on')).toEqual([
             'select 1;',
-            '.output table',
+            '.timer on',
             'select 2;',
             '.timer on',
         ]);

@@ -5,11 +5,10 @@ import { stringifyError } from '../platform/logger/logger.js';
 export enum DashQLShellStatus {
     OK = 0,
     INVALID_ARGUMENT = 1,
-    ARROW_ERROR = 2,
-    INTERNAL_ERROR = 3,
-    PENDING = 4,
-    STALE_EFFECT = 5,
-    BUSY = 6,
+    INTERNAL_ERROR = 2,
+    PENDING = 3,
+    STALE_EFFECT = 4,
+    BUSY = 5,
 }
 
 export enum DashQLShellEffectType {
@@ -24,13 +23,14 @@ enum DashQLShellEffectCompletionStatus {
 }
 
 export interface DashQLShellEnvironment {
+    /// Execute a query, the environment keeps the result. A result with columns is reported through `onResult`.
     executeQuery(
         query: string,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: (queryId: number, rowCount: number) => void,
         onTiming?: (label: string, elapsedMs: number) => void,
-    ): Promise<Uint8Array>;
+    ): Promise<void>;
 }
 
 export interface DashQLShellCommandContext {
@@ -154,6 +154,13 @@ export interface DashQLShellCompletionList {
 }
 
 const SHELL_COMPLETION_TYPE = Symbol('SHELL_COMPLETION_TYPE');
+/// The status line of a statement without columns
+const NO_RESULTS_MESSAGE = 'No results';
+
+/// The status line of a result, the terminal shows no results themselves
+export function formatQueryCompletion(rowCount: number): string {
+    return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})`;
+}
 
 export class DashQLShellError extends Error {
     constructor(
@@ -514,13 +521,18 @@ export class DashQLShell {
             Promise.resolve()
                 .then(async () => {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
-                        return await this.environment.executeQuery(
+                        let status = NO_RESULTS_MESSAGE;
+                        await this.environment.executeQuery(
                             effectInput,
                             signal,
                             onProgress,
-                            onResult,
+                            (queryId, rowCount) => {
+                                status = formatQueryCompletion(rowCount);
+                                onResult?.(queryId, rowCount);
+                            },
                             onTiming,
                         );
+                        return this.textEncoder.encode(withTrailingNewline(status));
                     }
                     const command = await this.executeCommand(effectInput, signal, onProgress);
                     const output = this.textEncoder.encode(withTrailingNewline(command.output));

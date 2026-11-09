@@ -1,6 +1,5 @@
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as dashql from '@ankoh/dashql-core';
-import * as arrow from 'apache-arrow';
 import { createEmbeddedDatabaseShellEnvironment } from '../shell_app/embedded_database_shell_environment.js';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
@@ -9,7 +8,6 @@ import {
     HyperDBConnection,
 } from '../platform/hyperdb/hyperdb_wasm.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -24,7 +22,7 @@ function loadCatalogScript(shell: DashQLShell, text: string): void {
 
 describe('DashQL shell Wasm', () => {
     let shell: DashQLShell;
-    let executeQuery: (query: string, signal?: AbortSignal) => Promise<Uint8Array>;
+    let executeQuery: (query: string, signal?: AbortSignal, onResult?: (queryId: number, rowCount: number) => void) => Promise<void>;
 
     beforeEach(async () => {
         executeQuery = async () => {
@@ -32,7 +30,7 @@ describe('DashQL shell Wasm', () => {
         };
         shell = await DashQLShell.create({
             environment: {
-                executeQuery: (query, signal) => executeQuery(query, signal),
+                executeQuery: (query, signal, _onProgress, onResult) => executeQuery(query, signal, onResult),
             },
             terminalColumns: 80,
             core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
@@ -175,7 +173,6 @@ describe('DashQL shell Wasm', () => {
             environment: {
                 executeQuery: async (_query, _signal, _onProgress, onResult) => {
                     onResult?.(42, 1);
-                    return arrow.tableToIPC(tableFromArrays({}), 'file');
                 },
             },
             terminalColumns: 80,
@@ -183,7 +180,7 @@ describe('DashQL shell Wasm', () => {
         });
         shell.setPrompt('SELECT 42;');
 
-        await shell.submitPrompt(undefined, undefined, result);
+        await expect(shell.submitPrompt(undefined, undefined, result)).resolves.toBe('Query completed (1 row)\r\n');
         expect(result).toHaveBeenCalledWith(42, 1);
     });
 
@@ -220,7 +217,6 @@ describe('DashQL shell Wasm', () => {
     it('passes query effects to the environment', async () => {
         executeQuery = async query => {
             expect(query).toBe('CREATE TABLE foo(a INT)');
-            return arrow.tableToIPC(tableFromArrays({}), 'file');
         };
         await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
     });
@@ -409,11 +405,11 @@ describe('DashQL shell Wasm', () => {
         shell.destroy();
         shell = await DashQLShell.create({
             environment: {
-                executeQuery: async (_query, _signal, _onProgress, _onResult, onTiming) => {
+                executeQuery: async (_query, _signal, _onProgress, onResult, onTiming) => {
                     onTiming?.('Results', 1234);
                     onTiming?.('Postprocess', 12);
                     onTiming?.('Postprocess', 3);
-                    return arrow.tableToIPC(tableFromArrays({ value: [42] }), 'file');
+                    onResult?.(1, 1);
                 },
             },
             terminalColumns: 80,
@@ -424,7 +420,7 @@ describe('DashQL shell Wasm', () => {
         shell.setPrompt('SELECT 42;');
 
         await expect(shell.submitPrompt()).resolves.toMatch(
-            /Results: 1\.234 s \| Postprocess: 15 ms\r\n$/,
+            /^Query completed \(1 row\)\r\nResults: 1\.234 s \| Postprocess: 15 ms\r\n$/,
         );
     });
 
@@ -734,23 +730,12 @@ describe('DashQL shell Wasm', () => {
             database = await setupWebHyperDB('shell_api_test', new TestLogger());
             connection = await database.connect();
             const environment = createEmbeddedDatabaseShellEnvironment(connection);
-            executeQuery = async (query, signal) => {
-                const stream = await environment.executeQuery(query, signal);
-                return arrow.tableToIPC(arrow.tableFromIPC(stream), 'file');
-            };
+            executeQuery = (query, signal, onResult) => environment.executeQuery(query, signal, undefined, onResult);
 
             await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
             await expect(shell.executeQuery(
                 "SELECT * FROM (VALUES (1, 'alpha'), (20, '界'), (300, NULL)) AS t(value, name)",
-            )).resolves.toBe(
-                '╭───────┬───────╮\n' +
-                '│ value │ name  │\n' +
-                '╞═══════╪═══════╡\n' +
-                '│     1 │ alpha │\n' +
-                '│    20 │ 界    │\n' +
-                '│   300 │       │\n' +
-                '╰───────┴───────╯\r\n',
-            );
+            )).resolves.toBe('Query completed (3 rows)\r\n');
         } finally {
             if (connection) await connection.close();
             await database?.terminate();
@@ -759,15 +744,15 @@ describe('DashQL shell Wasm', () => {
 
     it('cancels a suspended shell effect', async () => {
         const abort = new AbortController();
-        executeQuery = () => new Promise<Uint8Array>(() => {});
+        executeQuery = () => new Promise<void>(() => {});
         const query = shell.executeQuery('SELECT 42', abort.signal);
         abort.abort();
         await expect(query).resolves.toBe('Cancelled');
     });
 
     it('rejects a late completion after destruction', async () => {
-        const pending: { resolve?: (value: Uint8Array) => void } = {};
-        executeQuery = () => new Promise<Uint8Array>(resolve => {
+        const pending: { resolve?: () => void } = {};
+        executeQuery = () => new Promise<void>(resolve => {
             pending.resolve = resolve;
         });
         const query = shell.executeQuery('SELECT 42');
@@ -775,14 +760,14 @@ describe('DashQL shell Wasm', () => {
         query.catch(error => { rejection = error; });
         await Promise.resolve();
         shell.destroy();
-        pending.resolve?.(new Uint8Array());
+        pending.resolve?.();
         await expect(query).rejects.toMatchObject({ status: DashQLShellStatus.STALE_EFFECT });
         expect(rejection).toMatchObject({ status: DashQLShellStatus.STALE_EFFECT });
     });
 });
 
 describe('DashQL shell catalog', () => {
-    const environment = { executeQuery: async () => new Uint8Array() };
+    const environment = { executeQuery: async () => {} };
 
     it('leaves a catalog of its caller to the caller', async () => {
         const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });

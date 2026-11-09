@@ -344,11 +344,10 @@ describe('SessionShellPage', () => {
     });
 
     describe('with queries', () => {
-        it('runs a query on its connection and prints the result', async () => {
+        it('runs a query on its connection and prints a status line', async () => {
             await open();
             run('select 42 as answer;');
-            await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
-            await vi.waitFor(() => expect(screen()).toMatch(/42\s/), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('Query completed (1 row)'), WAIT);
             expect(execute).toHaveBeenCalledTimes(1);
             const [connectionId, args] = execute.mock.calls[0] as [string, { query: string; metadata: { sessionId: string } }];
             expect(connectionId).toBe(MAIN);
@@ -362,7 +361,7 @@ describe('SessionShellPage', () => {
             run('select 1;');
             await vi.waitFor(() => expect(screen()).toContain('table is gone'), WAIT);
             run('select 42 as answer;');
-            await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('Query completed (1 row)'), WAIT);
             expect(execute).toHaveBeenCalledTimes(2);
         });
 
@@ -380,20 +379,29 @@ describe('SessionShellPage', () => {
         const overlay = () => document.querySelector('[role="dialog"]');
         const closeOverlay = () => document.querySelector<HTMLButtonElement>('[aria-label="Close shell query results"]');
 
-        it('opens the overlay with .output ui and releases the result when it closes', async () => {
+        it('opens the result in the overlay and again with .last after it closed', async () => {
             const connection = createConnection(MAIN);
             const table = tableFromArrays({ answer: [42] });
             await open([connection]);
-            run('.output ui');
-            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
 
             const queryId = await showResult(table, [connection]);
             await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
+            expect(screen()).toContain('Query completed (1 row)');
             expect(api.computations()).toContain(queryId);
 
             act(() => closeOverlay()!.click());
             expect(overlay()).toBeNull();
-            await vi.waitFor(() => expect(api.computations()).not.toContain(queryId), WAIT);
+            expect(api.computations()).toContain(queryId);
+
+            run('.last');
+            await vi.waitFor(() => expect(overlay()?.getAttribute('data-query-id')).toBe(String(queryId)), WAIT);
+        });
+
+        it('has no result to show with .last before the first query', async () => {
+            await open();
+            run('.last');
+            await vi.waitFor(() => expect(screen()).toContain('No result to show'), WAIT);
+            expect(overlay()).toBeNull();
         });
 
         it('keeps the terminal when a result fails to render', async () => {
@@ -401,14 +409,14 @@ describe('SessionShellPage', () => {
             const connection = createConnection(MAIN);
             const table = tableFromArrays({ answer: [42] });
             await open([connection]);
-            run('.output ui');
-            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
 
             resultFails = true;
             const failed = await showResult(table, [connection]);
             await vi.waitFor(() => expect(screen()).toContain('Failed to show the result: boom'), WAIT);
             expect(overlay()).toBeNull();
             await vi.waitFor(() => expect(api.computations()).not.toContain(failed), WAIT);
+            run('.last');
+            await vi.waitFor(() => expect(screen()).toContain('No result to show'), WAIT);
 
             // The next result opens again
             resultFails = false;
@@ -420,41 +428,12 @@ describe('SessionShellPage', () => {
             const connection = createConnection(MAIN);
             const table = tableFromArrays({ answer: [42] });
             await open([connection]);
-            run('.output ui');
-            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
 
             const first = await showResult(table, [connection]);
             await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
             const second = await showResult(table, [connection]);
             await vi.waitFor(() => expect(api.computations()).not.toContain(first), WAIT);
             expect(api.computations()).toContain(second);
-        });
-
-        it('opens the overlay when a result does not fit the terminal', async () => {
-            const connection = createConnection(MAIN);
-            const columns = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`long_column_name_${i}`, [i]]));
-            await open([connection]);
-            await showResult(tableFromArrays(columns), [connection]);
-            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
-        });
-
-        it('sizes the results by the width of the terminal', async () => {
-            const connection = createConnection(MAIN);
-            const resize = vi.spyOn(DashQLShell.prototype, 'resize');
-            const table = tableFromArrays(Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`column_${i}`, [i]])));
-
-            await open([connection]);
-            await vi.waitFor(() => expect(resize).toHaveBeenCalled(), WAIT);
-            await showResult(table, [connection]);
-            await vi.waitFor(() => expect(screen()).toContain('column_4'), WAIT);
-            expect(overlay()).toBeNull();
-
-            // The terminal gets too narrow for the same result
-            resize.mockClear();
-            container.style.width = '220px';
-            await vi.waitFor(() => expect(resize).toHaveBeenCalled(), WAIT);
-            await showResult(table, [connection]);
-            await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
         });
     });
 
@@ -469,7 +448,7 @@ describe('SessionShellPage', () => {
         it('offers .fs only for a connection on the embedded database', async () => {
             await open();
             run('.help');
-            await vi.waitFor(() => expect(screen()).toContain('.output'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('.last'), WAIT);
             expect(screen()).toContain('.examples');
             expect(screen()).not.toContain('.fs');
         });
@@ -644,7 +623,7 @@ describe('SessionShellPage', () => {
             await open();
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
-            await vi.waitFor(() => expect(screen()).toContain('answer'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('Query completed (1 row)'), WAIT);
 
             render({ ordinal: 1 });
             await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
@@ -732,8 +711,6 @@ describe('SessionShellPage', () => {
         it('closes the result when the connection changes', async () => {
             const connections = [createConnection(MAIN), createConnection(OTHER)];
             await open(connections);
-            run('.output ui');
-            await vi.waitFor(() => expect(screen()).toContain('Query output: ui'), WAIT);
             const table = tableFromArrays({ answer: [42] });
             const queryId = nextQueryId;
             connections[0].queriesFinished.set(queryId, finishedQuery(queryId, table) as never);

@@ -206,7 +206,7 @@ async function testAppNarrow(page, navigate) {
     await page.getByRole('heading', { name: 'Sessions' }).last().waitFor();
 }
 
-/// Run a query in the shell and find it in the query history, then mount a file
+/// Run a query in the shell, see its result and find it in the query history, then mount a file
 async function testShell(page, navigate) {
     await navigate('/shell.html');
     const input = page.getByRole('textbox', { name: 'HyperDB shell input' });
@@ -214,13 +214,24 @@ async function testShell(page, navigate) {
     await input.focus();
     await page.keyboard.type('select 42 as answer;');
     await page.keyboard.press('Enter');
-    // The screen reader rows of the terminal
-    await page.getByRole('listitem').filter({ hasText: /^\W*42\W*$/ }).waitFor({ state: 'attached' });
+    // The result opens in the overlay, the screen reader rows of the terminal have the status line
+    const result = page.getByRole('dialog', { name: 'Shell query results' });
+    await result.getByRole('gridcell', { name: '42' }).waitFor();
+    await page.getByRole('listitem').filter({ hasText: 'Query completed (1 row)' }).waitFor({ state: 'attached' });
+    // Escape returns to the prompt, and the result opens again
+    await page.keyboard.press('Escape');
+    await result.waitFor({ state: 'detached' });
+    await page.keyboard.type('.last');
+    await page.keyboard.press('Enter');
+    await result.getByRole('gridcell', { name: '42' }).waitFor();
+    await page.keyboard.press('Escape');
+    await result.waitFor({ state: 'detached' });
 
     await page.getByRole('button', { name: 'Client' }).click();
     await page.getByLabel('Query history').click();
     await page.getByText('Shell Query', { exact: true }).waitFor();
-    await page.getByText(/^succeeded$/i).waitFor();
+    // The analysis of the result that the overlay shows is listed as well
+    await page.getByText(/^succeeded$/i).first().waitFor();
     await page.keyboard.press('Escape');
 
     await input.focus();
@@ -237,6 +248,9 @@ async function testShell(page, navigate) {
     await page.keyboard.type(';');
     await page.keyboard.press('Enter');
     await page.getByRole('listitem').filter({ hasText: 'select order_total from page_catalog_orders;' }).first().waitFor({ state: 'attached', timeout: 30_000 });
+    await result.waitFor();
+    await page.keyboard.press('Escape');
+    await result.waitFor({ state: 'detached' });
     await page.keyboard.type('.fs');
     await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Mount filesystem entry' }).click();
