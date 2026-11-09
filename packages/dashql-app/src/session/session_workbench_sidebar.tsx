@@ -465,12 +465,11 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, depth, selected, onOpen, 
     const caret = scriptNames.length > 0
         ? <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
         : <span aria-hidden="true" />;
-    // A click opens the session and lists its scripts, a click on the open session shows or hides them like a folder.
+    // A click opens the session, a click on the open session shows or hides its scripts like a folder.
     // Renaming the session is in the row menu.
     const clickName = (anchor: HTMLButtonElement) => {
         if (!selected) {
             onOpen(anchor);
-            if (!expanded && scriptNames.length > 0) onToggle();
         } else if (scriptNames.length > 0) {
             onToggle();
         }

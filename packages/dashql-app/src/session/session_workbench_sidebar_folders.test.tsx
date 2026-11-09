@@ -188,9 +188,17 @@ describe('SessionWorkbenchSidebar folders', () => {
         const toggle = sessionRow('Client').querySelector<HTMLButtonElement>(':scope > button')!;
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
-        // A click on the name opens the session and lists its scripts
+        // A click on the name only opens the session
         act(() => toggle.click());
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_SESSION }));
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+
+        // A second click, on the name of the open session, lists its scripts
+        render(CLIENT_SESSION, onOpenScript);
+        state.navigate.mockReset();
+        act(() => toggle.click());
+        expect(state.navigate).not.toHaveBeenCalled();
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '2:revenue', '0:Root']);
 
@@ -201,8 +209,7 @@ describe('SessionWorkbenchSidebar folders', () => {
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_SESSION }));
         expect(onOpenScript).toHaveBeenCalledWith(CLIENT_SESSION, 'revenue.sql');
 
-        // A click on the name of the open session hides and shows its scripts again, without a rename
-        render(CLIENT_SESSION, onOpenScript);
+        // Further clicks on the name of the open session hide and show its scripts again, without a rename
         state.navigate.mockReset();
         act(() => toggle.click());
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
@@ -220,11 +227,14 @@ describe('SessionWorkbenchSidebar folders', () => {
         act(() => nameButton('Root').click());
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root', '1:daily']);
 
-        // A click on another session replaces the listed scripts right away and keeps them when the route follows
+        // A click on another session opens it, the listed scripts go away and the new session stays collapsed
+        act(() => nameButton('Client').click());
+        expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_SESSION }));
+        render(CLIENT_SESSION);
+        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']));
+
         act(() => nameButton('Client').click());
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '0:Root']);
-        render(CLIENT_SESSION);
-        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '0:Root']));
 
         // A selection from outside the sidebar collapses the session too
         render(ACME_SESSION);
@@ -233,7 +243,7 @@ describe('SessionWorkbenchSidebar folders', () => {
 
     it('renames a script of an expanded session', async () => {
         addSession(CLIENT_SESSION, 'Client', ['orders.sql', 'revenue.sql']);
-        render();
+        render(CLIENT_SESSION);
         act(() => sessionRow('Client').querySelector<HTMLButtonElement>(':scope > button')!.click());
         const scriptRow = (name: string) => Array.from(container.querySelectorAll<HTMLElement>('[data-testid="session-script-row"]'))
             .find(row => rowLabel(row) === name || row.querySelector('input')?.value === name)!;
