@@ -206,8 +206,21 @@ async function testAppNarrow(page, navigate) {
     await page.getByRole('heading', { name: 'Sessions' }).last().waitFor();
 }
 
+/// Firefox under Playwright fires `cancel` on a file input when the test intercepts its chooser, before the test picks
+/// the files. A page would take that as a cancelled selection, so it does not get to listen for it.
+async function ignoreFileInputCancel(page) {
+    await page.addInitScript(() => {
+        const addEventListener = HTMLInputElement.prototype.addEventListener;
+        HTMLInputElement.prototype.addEventListener = function (type, ...args) {
+            if (type === 'cancel' && this.type === 'file') return;
+            addEventListener.call(this, type, ...args);
+        };
+    });
+}
+
 /// Run a query in the shell, see its result and find it in the query history, then mount a file
 async function testShell(page, navigate) {
+    await ignoreFileInputCancel(page);
     await navigate('/shell.html');
     const input = page.getByRole('textbox', { name: 'HyperDB shell input' });
     await input.waitFor({ state: 'attached' });
