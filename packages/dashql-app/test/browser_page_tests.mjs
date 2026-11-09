@@ -198,10 +198,11 @@ async function testAppSharedSession(page, navigate) {
 
 /// The script of a feed row in the scroll test, the chart makes its card much taller once it has a result.
 /// Its long line wraps, CodeMirror estimates it far above its height until the editor is inside of the window.
+/// The line is long but the result has two columns, 24 more columns made the run 4x slower and the CI run out of time.
 const scrollTestScript = i => `/**
  * @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k", "type": "nominal"}, "y": {"field": "v", "type": "quantitative"}}}
  */
-select k, k * ${i + 1} as v, ${Array.from({ length: 24 }, (_, c) => `k * ${c} as column_${c}`).join(', ')} from generate_series(1, 4) as t(k)`;
+select k, k * ${i + 1}${Array.from({ length: 24 }, (_, c) => ` + k * ${c} - k * ${c}`).join('')} as v from generate_series(1, 4) as t(k)`;
 
 /// The rows above the viewport get taller while the feed scrolls up, the rows in the viewport only follow the scrolling.
 /// The rows at the start of the feed are unmounted while their results arrive, a row that mounts again is measured far
@@ -228,7 +229,7 @@ async function testAppFeedScrollPosition(page, navigate) {
         }, lastKey);
         await rows.last().locator('.cm-content').click();
         await page.keyboard.insertText(scrollTestScript(i));
-        await scriptEditor(page, `k * ${i + 1} as v`).waitFor();
+        await scriptEditor(page, `k * ${i + 1} + k * 0`).waitFor();
     }
 
     // The wheel stops the feed from following the created script
