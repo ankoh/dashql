@@ -1,6 +1,6 @@
 # DashQL App Coverage Report
 
-Date: 2026-11-06
+Date: 2026-11-09
 
 Coverage of the TypeScript sources of `packages/dashql-app/src` in the Chromium browser tests (tests and `src/tests/`
 excluded). The coverage workflow uploads it to Coveralls together with the Rust core and publishes both to
@@ -16,31 +16,30 @@ coverage of the test page, its test frames and the real pages of the page tests,
 `bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/`. The summary lists the gaps: the outermost functions
 and blocks that never ran, with their lines and the enclosing function, largest first. Workers are not covered.
 
-**Overall: 93.7% (61,186 / 65,309 lines) in 578 files**, up from 87.9% (57,365 / 65,243 lines in 578 files) earlier on
-2026-11-06. Nearly all of the difference comes from the page tests (`test/browser_page_tests.mjs`), which boot the real
-`index.html`, `shell.html`, `demos.html` and `oauth.html`:
+**Overall: 93.8% (62,253 / 66,396 lines) in 592 files**, up from 93.7% (61,186 / 65,309 lines in 578 files) in the report of
+2026-11-06. The page tests (`test/browser_page_tests.mjs`) boot the real `index.html`, `shell.html`, `demos.html` and
+`oauth.html`:
 - the app: a query in the composer, the dashboard and its editor overlay, the dataflow canvas and its editor dialog, an edit
   that survives a reload, the session storage, the navbar, the color scheme, a session opened from its link, and the warning
   and the drawer of a narrow screen;
-- the shell: a query, its query history, a file mounted with `.fs`, a reset;
+- the shell: a query and its result in the overlay, `.last`, its query history, a file mounted with `.fs`, a reset;
 - the demos: the index, the stock analysis on the synthetic feed, the UI foundations, Wobble;
 - the redirect page of OAuth without a provider response.
 
-The folders that were low, before and after:
+The folders that moved most since the previous report:
 
-| Folder | Before | After |
+| Folder | 2026-11-06 | Now |
 |---|---|---|
-| `styles` | 0.0% | 100.0% |
-| `demos` | 36.6% | 97.2% |
-| `app` | 63.5% | 92.7% |
-| `shell_app` | 75.9% | 90.2% |
-| `shell` | 82.4% | 93.8% |
-| `session` | 88.5% | 93.7% |
-| `connections` | 90.0% | 93.1% |
+| `demos` | 97.2% | 84.3%, the new landing backdrop demo has no page test |
+| `shell_app` | 90.2% | 90.8% |
+| `shell` | 93.8% | 94.0% |
+| `session` | 93.7% | 94.1% |
+| `connections` | 93.1% | 93.3% |
+| `app` | 92.7% | 92.6% |
 
-These lines ran on the way to the states that the page tests check, and without a console error. Much of the new coverage of
-the demos and the app shell only shows that they render, it does not check their behavior line by line like the tests in the
-test frame.
+Every result of the shell now opens in the overlay, so a page test runs the analysis and the view of a result in the real
+`shell.html`. Much of the coverage of the demos and the app shell only shows that they render, it does not check their
+behavior line by line like the tests in the test frame.
 
 ## Gaps in logic (`.ts`)
 
@@ -50,15 +49,13 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 |---|---|---|
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
 | `src/session/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
-| `src/app/loading/app_setup.ts:189-197` | useAppSetup | 9 |
-| `src/session/inputs/session_inputs.ts:108-116` | collectSessionInputs | 9 |
+| `src/app/loading/app_setup.ts:199-207` | useAppSetup | 9 |
 | `src/session/scripts/focus.ts:160-168` | deriveFocusFromCompletionCandidates | 9 |
 | `src/storage/composite_storage_backend.ts:522-536` | loadNativeSession | 9 |
 | `src/utils/hash_murmur3.ts:54-62` | clone | 9 |
 | `src/platform/process.ts:4-11` | relaunch | 8 |
-| `src/session/inputs/session_inputs.ts:186-193` | sessionInputLiteral | 8 |
-| `src/shell/api.ts:374-381` | applyCompletion | 8 |
-| `src/shell/api.ts:730-737` | formatElapsed | 8 |
+| `src/shell/api.ts:286-293` | applyCompletion | 8 |
+| `src/shell/api.ts:666-673` | formatElapsed | 8 |
 | `src/storage/session_test_backend.ts:140-147` | renameDataFile | 8 |
 | `src/utils/base64.ts:105-112` | decode | 8 |
 | `src/compute/computation_state.ts:702-708` | reduceComputationState | 7 |
@@ -68,6 +65,8 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/session/dataflow/dataflow_scene.ts:532-538` | buildDataflowScene | 7 |
 | `src/session/editor/dashql_completion_listener.ts:66-73` | handleScrollEvent | 7 |
 | `src/session/editor/dashql_completion_listener.ts:75-82` | handleBlurEvent | 7 |
+| `src/session/editor/dashql_completion_patches.ts:205-211` | updateCursorWithCompletion | 7 |
+| `src/session/inputs/use_apply_session_input.ts:34-40` | useApplySessionInput | 7 |
 
 ## Gaps in components (`.tsx`)
 
@@ -76,7 +75,7 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/connections/salesforce_connection_settings.tsx:341-477` | SalesforceConnectorSettings | 117 |
 | `src/connections/salesforce/salesforce_connection_setup_mock.tsx:29-137` | setupSalesforceConnection | 91 |
 | `src/connections/hyper/hyper_log_metrics_provider.tsx:100-156` | useHyperLogRows | 49 |
-| `src/shell_app/shell_page.tsx:130-180` | authenticate | 48 |
+| `src/shell_app/shell_page.tsx:146-196` | authenticate | 48 |
 | `src/ui/json/json_copy_button.tsx:39-92` | click | 43 |
 | `src/session/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
 | `src/connections/connection_overview_page.tsx:28-63` | ConnectionOverviewPage | 32 |
@@ -84,16 +83,17 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/query/query_history_viewer.tsx:55-85` | entryToObject | 31 |
 | `src/connections/hyper/hyper_log_dashboard.tsx:424-453` | HyperLogDashboard | 29 |
 | `src/connections/connection_status.tsx:32-66` | - | 28 |
-| `src/session/inputs/session_input_card.tsx:177-205` | SessionInputCard | 27 |
 | `src/ui/version/version_viewer.tsx:176-205` | VersionInfo | 27 |
 | `src/views/visualization/visualization_panel.tsx:30-58` | VisualizationPanel | 26 |
 | `src/ui/version/release_bundle.tsx:20-45` | ReleaseBundle | 25 |
+| `src/connections/connection_settings_overlay.tsx:249-270` | ConnectionSaveBar | 21 |
 
 ## Files where no line ran
 
-`connections/salesforce/salesforce_connection_setup_mock.tsx` (103) and `platform/process.ts` (8). This list used to be
-called "Files that no test loads", which was not accurate: a loaded module of function declarations has no line that runs on
-import. The gap tables now include these files, too.
+`demos/landing_backdrop/landing_backdrop_page.tsx` (179), `connections/salesforce/salesforce_connection_setup_mock.tsx`
+(103), `demos/landing_backdrop/landing_backdrop.tsx` (18) and `platform/process.ts` (8). A loaded module of function
+declarations has no line that runs on import, so this does not mean that no test loads them. The gap tables include these
+files, too.
 
 ## Bugs found by the new tests
 
@@ -142,12 +142,14 @@ import. The gap tables now include these files, too.
 
 ## Suggested next tests
 
-1. `SalesforceConnectorSettings`, as a render test or with the Salesforce mock in a page test.
-2. The remaining paths of the entry points: a session loaded from a shared URL (`shared_session_import.tsx`), a dropped file
-   (`file_dropzone.tsx`), and the login and the shared scripts of `shell_page.tsx`.
-3. The `release_bundle.tsx` part of `VersionInfo`, with a release manifest that lists bundles.
-4. `computeColumnAggregates` with the compute worker, and `collectSessionInputs` and
-   `deriveFocusFromCompletionCandidates` of a session with core Wasm scripts.
+1. The landing backdrop demo in the page test of the demos: `LandingBackdropPage` is most of the drop of `demos`.
+2. `SalesforceConnectorSettings`, as a render test or with the Salesforce mock in a page test.
+3. The remaining paths of the entry points: a session loaded from a shared URL (`useSharedSessionImport`), a dropped file
+   (`file_dropzone.tsx`), and the login (`authenticate`, `onSuccess`), the shared scripts and `showResultError` of
+   `shell_page.tsx`. The session shell tests a result that fails to render, the standalone shell does not.
+4. `formatElapsed` of `shell/api.ts` past one minute, the cheapest gap of the shell.
+5. `computeColumnAggregates` with the compute worker, and `deriveFocusFromCompletionCandidates` of a session with core Wasm
+   scripts.
 
 ## Other findings
 
