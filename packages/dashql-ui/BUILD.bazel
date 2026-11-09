@@ -4,8 +4,7 @@ load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 
 # Code, tokens and fonts shared by the app (//packages/dashql-app) and the website (//packages/dashql-org).
 # A source package, nothing is compiled: consumers bundle the TypeScript and the stylesheets themselves.
-# Linked as //:node_modules/@ankoh/dashql-ui, their dev servers read packages/dashql-ui directly. The particle flow
-# imports three, consumers resolve it from the root node_modules, so they have to depend on //:node_modules/three.
+# Linked as //:node_modules/@ankoh/dashql-ui, their dev servers read packages/dashql-ui directly.
 
 package(default_visibility = ["//visibility:public"])
 
@@ -23,8 +22,6 @@ typescript_bin.tsc_test(
     chdir = "packages/dashql-ui",
     data = [
         ":typecheck_inputs",
-        "//:node_modules/@types/three",
-        "//:node_modules/three",
     ],
 )
 

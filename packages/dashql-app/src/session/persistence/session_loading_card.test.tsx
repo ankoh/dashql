@@ -34,7 +34,6 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const dependencies: SessionImportCardDependencies = {
     CompactNavBar: () => <></>,
-    ParticleFlowBackground: () => null,
 };
 
 describe('SessionImportCard loading state', () => {

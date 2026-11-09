@@ -5,7 +5,6 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundati
 import { ProgressBar } from '../../ui/foundations/progress_bar.js';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { AlertIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
-import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
 import { formatBytes } from '../../utils/format.js';
 import type { SessionBundle } from '../../storage/session_bundle.js';
 import { CompactNavBar } from '../../app/navbar.js';
@@ -82,12 +81,10 @@ export type SessionImportCardState = LoadingState | ReadyState | ConflictState
 
 export interface SessionImportCardDependencies {
     CompactNavBar: typeof CompactNavBar;
-    ParticleFlowBackground: typeof ParticleFlowBackground;
 }
 
 const DEFAULT_DEPENDENCIES: SessionImportCardDependencies = {
     CompactNavBar,
-    ParticleFlowBackground,
 };
 
 export type SessionImportCardProps = SessionImportCardState & {
@@ -296,12 +293,11 @@ interface ShellProps {
 }
 
 function CardShell(props: ShellProps): React.ReactElement {
-    const { CompactNavBar: NavBar, ParticleFlowBackground: Background } = props.dependencies;
+    const { CompactNavBar: NavBar } = props.dependencies;
     return (
-        <div className={`${baseStyles.page} ${styles.page}`} data-electron-drag-region>
-            <Background />
+        <div className={baseStyles.page} data-electron-drag-region>
             <NavBar />
-            <main className={`${baseStyles.banner_and_content_container} ${styles.foreground}`}>
+            <main className={baseStyles.banner_and_content_container}>
                 <div className={baseStyles.content_container}>
                     <section className={`${baseStyles.card} ${styles.card}`} data-testid="session-import-card" aria-labelledby="session-import-card-title" aria-busy={props.busy || undefined}>
                         <div className={baseStyles.card_header} data-electron-drag-region>

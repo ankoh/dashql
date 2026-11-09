@@ -15,7 +15,6 @@ vi.stubGlobal('ResizeObserver', class {
 
 const dependencies: SessionImportCardDependencies = {
     CompactNavBar: () => <></>,
-    ParticleFlowBackground: () => null,
 };
 
 const DETAILS = {

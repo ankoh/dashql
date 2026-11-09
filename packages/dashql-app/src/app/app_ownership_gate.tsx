@@ -6,7 +6,6 @@ import * as styles from './app_ownership_gate.module.css';
 import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../platform/crosstab/app_ownership.js';
 import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../platform/crosstab/app_hand_over.js';
 import { Button, ButtonVariant } from '../ui/foundations/button.js';
-import { ParticleFlowBackground } from '../ui/particle_flow/particle_flow_background.js';
 import { CompactNavBar } from './navbar.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
@@ -163,11 +162,10 @@ function AppElsewherePage(props: { status: GateStatus; onTakeOver?: () => void }
             break;
     }
     return (
-        <div className={`${baseStyles.page} ${styles.page}`} data-electron-drag-region data-testid="app-elsewhere">
-            <ParticleFlowBackground />
+        <div className={baseStyles.page} data-electron-drag-region data-testid="app-elsewhere">
             {/* The internals need the storage, which another tab owns */}
             <CompactNavBar showInternals={false} />
-            <div className={`${baseStyles.banner_and_content_container} ${styles.foreground}`} data-electron-drag-region>
+            <div className={baseStyles.banner_and_content_container} data-electron-drag-region>
                 <div className={baseStyles.content_container} data-electron-drag-region>
                     <div className={`${baseStyles.card} ${styles.card}`}>
                         <div className={baseStyles.card_header} data-electron-drag-region>

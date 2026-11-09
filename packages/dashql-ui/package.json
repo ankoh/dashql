@@ -1,7 +1,7 @@
 {
   "name": "@ankoh/dashql-ui",
   "version": "0.0.0",
-  "description": "Design tokens, fonts, the editor palette, the particle flow and the landing backdrop shared by the DashQL app and website",
+  "description": "Design tokens, fonts, the editor palette and the landing backdrop shared by the DashQL app and website",
   "private": true,
   "type": "module",
   "license": "MPL-2.0",

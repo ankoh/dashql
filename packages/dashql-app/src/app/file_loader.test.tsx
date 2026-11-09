@@ -18,7 +18,6 @@ import { FileLoader, type FileLoaderDependencies } from './file_loader.js';
 const dependencies = {
     sessionImportCard: {
         CompactNavBar: () => <></>,
-        ParticleFlowBackground: () => <div data-testid="particles" />,
     },
     readSessionBundleFromZip: state.readSessionBundleFromZip,
     useSessionImport: () => ({ importPortableBundle: state.importPortableBundle }),
@@ -77,7 +76,6 @@ describe('FileLoader', () => {
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
-        expect(container.querySelector('[data-testid="particles"]')).not.toBeNull();
         expect(card(container)?.getAttribute('aria-busy')).toBeNull();
         expect(container.textContent).toContain('Explain');
         expect(container.textContent).toContain(BUNDLE.session.sessionId);

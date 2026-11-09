@@ -1,13 +1,3 @@
-.page {
-    position: relative;
-    isolation: isolate;
-}
-
-.foreground {
-    position: relative;
-    z-index: 1;
-}
-
 .card {
     width: min(520px, 90vw);
 }

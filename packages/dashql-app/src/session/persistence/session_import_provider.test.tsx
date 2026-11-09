@@ -129,7 +129,7 @@ describe('SessionImportProvider', () => {
 
     async function renderProvider(backend: StorageBackend = composite) {
         const executor = { execute: vi.fn(), cancel: cancelQuery, watchProfile: () => () => { } };
-        const dependencies = { reload, card: { CompactNavBar: () => <></>, ParticleFlowBackground: () => null } };
+        const dependencies = { reload, card: { CompactNavBar: () => <></> } };
         await act(async () => {
             root.render(
                 <LoggerProvider>
