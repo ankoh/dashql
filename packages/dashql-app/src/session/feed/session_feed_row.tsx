@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { flushSync } from 'react-dom';
 import * as styles from './session_feed.module.css';
 import * as dashql from '@ankoh/dashql-core';
 import { useSessionExecution } from '../scripts/session_execution_provider.js';
@@ -503,17 +504,18 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         setNodeRef(node);
     }, [setNodeRef]);
     // The height cache stores the height of the script at the index of a row.
-    // A row measures again when its index or its script changes, its size may not change and the size observer stays silent.
+    // A row measures again when its index or its script changes: a new size observer reports the size once, even if
+    // it did not change. That report comes before the paint, when the editor of a mounted row exists. A measure in this
+    // effect would see the card without its editor and move all rows below by the height of the editor.
+    // The rows below move in the same frame, a height applied after the paint would show them at the old height.
     const rowScriptId = entry?.scriptId;
     React.useLayoutEffect(() => {
         const row = rowRef.current;
         if (row == null) return;
-        const syncHeight = () => {
+        const observer = new ResizeObserver(() => {
             const height = Math.ceil(row.getBoundingClientRect().height);
-            if (height > 0) props.onRowHeightChange(props.index, height);
-        };
-        syncHeight();
-        const observer = new ResizeObserver(syncHeight);
+            if (height > 0) flushSync(() => props.onRowHeightChange(props.index, height));
+        });
         observer.observe(row);
         return () => observer.disconnect();
     }, [props.index, rowScriptId, props.onRowHeightChange]);

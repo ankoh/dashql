@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 import { ScriptFeedRow, type ScriptFeedRowDependencies } from './session_feed_row.js';
+import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { ConnectionHealth } from '../../connections/connection_state.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
@@ -363,30 +364,55 @@ describe('V2 session feed rows', () => {
         expect(props.onExecute).toHaveBeenCalledWith('01_alpha.sql');
     });
 
-    it('lets the virtual list observe the row content height', () => {
-        const props = baseProps();
-        const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        expect(container.querySelector<HTMLElement>('[data-testid="script-feed-row"]')!.style.height).toBe('');
-        expect(props.onRowHeightChange).toHaveBeenCalledWith(0, 312);
-        rect.mockRestore();
+    /// The size observers report when the test asks them to, a browser reports a new observer once before the paint
+    function withResizeObserverMock(test: () => void) {
+        const resizeObserver = globalThis.ResizeObserver;
+        ResizeObserverMock.reset();
+        globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+        try {
+            test();
+        } finally {
+            globalThis.ResizeObserver = resizeObserver;
+        }
+    }
+
+    it('measures a row when its size observer reports, the editor of a mounted row does not exist before', () => {
+        withResizeObserverMock(() => {
+            const props = baseProps();
+            const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);
+            try {
+                act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+                expect(container.querySelector<HTMLElement>('[data-testid="script-feed-row"]')!.style.height).toBe('');
+                expect(props.onRowHeightChange).not.toHaveBeenCalled();
+                ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
+                expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 312);
+            } finally {
+                rect.mockRestore();
+            }
+        });
     });
 
     it('measures a row again when an inserted script takes its index at the same size', () => {
-        const props = baseProps();
-        const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 120 } as DOMRect);
-        try {
-            act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-            expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
-            props.onRowHeightChange.mockClear();
-            // A script inserted above takes the mounted row of index 0, the size observer sees no change
-            const inserted = { ...props, entries: [{ scriptId: 3, fileName: '03_gamma.sql' }, ...props.entries],
-                scripts: { ...props.scripts, 3: script(3, '03_gamma.sql') } };
-            act(() => root.render(<ScriptFeedRow {...({ ...inserted, index: 0, style: {} } as any)} />));
-            expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
-        } finally {
-            rect.mockRestore();
-        }
+        withResizeObserverMock(() => {
+            const props = baseProps();
+            const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 120 } as DOMRect);
+            try {
+                act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+                ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
+                expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
+                props.onRowHeightChange.mockClear();
+                const observers = ResizeObserverMock.instances.length;
+                // A script inserted above takes the mounted row of index 0, a new size observer reports the same size
+                const inserted = { ...props, entries: [{ scriptId: 3, fileName: '03_gamma.sql' }, ...props.entries],
+                    scripts: { ...props.scripts, 3: script(3, '03_gamma.sql') } };
+                act(() => root.render(<ScriptFeedRow {...({ ...inserted, index: 0, style: {} } as any)} />));
+                expect(ResizeObserverMock.instances.length).toBe(observers + 1);
+                ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
+                expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
+            } finally {
+                rect.mockRestore();
+            }
+        });
     });
 
     it('greys the play button offline and requests attention once per pointer entry without opening settings', () => {
