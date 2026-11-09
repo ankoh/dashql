@@ -25,3 +25,23 @@
     overflow-y: hidden;
     max-height: none;
 }
+
+/* The gutter takes the height that CodeMirror estimates for the text, and CodeMirror only measures inside of the window.
+   The estimate assumes 30 characters per line, the card of a script with a long line would be too tall until the
+   editor enters the window, and then shrink while it is on the screen.
+   The text gives the height of the editor, the gutter stretches to it. */
+.auto_height_editor :global(.cm-gutters) {
+    min-height: 0 !important;
+    height: auto;
+    align-self: stretch;
+}
+
+.auto_height_editor :global(.cm-gutter) {
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+}
+
+.auto_height_editor :global(.cm-gutterElement) {
+    flex-shrink: 0;
+}

@@ -197,15 +197,17 @@ async function testAppSharedSession(page, navigate) {
     await scriptEditor(page, 'select 42 as answer').waitFor();
 }
 
-/// The script of a feed row in the scroll test, the chart makes its card much taller once it has a result
+/// The script of a feed row in the scroll test, the chart makes its card much taller once it has a result.
+/// Its long line wraps, CodeMirror estimates it far above its height until the editor is inside of the window.
 const scrollTestScript = i => `/**
  * @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k", "type": "nominal"}, "y": {"field": "v", "type": "quantitative"}}}
  */
-select k, k * ${i + 1} as v from generate_series(1, 4) as t(k)`;
+select k, k * ${i + 1} as v, ${Array.from({ length: 24 }, (_, c) => `k * ${c} as column_${c}`).join(', ')} from generate_series(1, 4) as t(k)`;
 
-/// The rows above the viewport get taller while the feed scrolls up, the row at the top of the viewport only follows the
-/// scrolling. The rows at the start of the feed are unmounted while their results arrive, a row that mounts again is
-/// measured far above its cached height. The list positions its rows with transforms, so the browser does not anchor it.
+/// The rows above the viewport get taller while the feed scrolls up, the rows in the viewport only follow the scrolling.
+/// The rows at the start of the feed are unmounted while their results arrive, a row that mounts again is measured far
+/// above its cached height. The list positions its rows with transforms, so the browser does not anchor it.
+/// A row that enters the viewport keeps its height, the editor of its script measures itself only inside of the window.
 async function testAppFeedScrollPosition(page, navigate) {
     await navigate('/');
     await page.getByTestId('composer-send').waitFor();
@@ -292,20 +294,20 @@ async function testAppFeedScrollPosition(page, navigate) {
             await afterPaint();
             const next = measure();
             anchored += next.scrollTop - previous.scrollTop + step;
-            const top = [...previous.rows.entries()].find(([, row]) => row.bottom > 0);
-            const followed = top != null ? next.rows.get(top[0]) : undefined;
-            if (followed != null) {
-                const moved = Math.abs(followed.top - top[1].top - step);
+            for (const [key, row] of previous.rows) {
+                const followed = next.rows.get(key);
+                if (followed == null || row.bottom <= 0 || row.top >= list.clientHeight) continue;
+                const moved = Math.abs(followed.top - row.top - step);
                 if (moved > maxMoved) {
                     maxMoved = moved;
-                    movedRow = top[0];
+                    movedRow = key;
                 }
             }
             previous = next;
         }
         return { maxMoved, movedRow, anchored };
     });
-    if (maxMoved > 1) throw new Error(`The top row ${movedRow} of the viewport moved ${maxMoved}px on the screen while the feed scrolled`);
+    if (maxMoved > 1) throw new Error(`The row ${movedRow} in the viewport moved ${maxMoved}px on the screen while the feed scrolled`);
     if (anchored <= 0) throw new Error('No row above the viewport changed its height, the test did not check anything');
 }
 
