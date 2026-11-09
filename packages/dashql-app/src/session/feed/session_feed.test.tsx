@@ -783,6 +783,22 @@ describe('Session feed composer', () => {
         }
     });
 
+    it('keeps the rows in view in place when a row above the viewport changes its height', () => {
+        render(session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
+        for (let i = 0; i < 3; ++i) act(() => feedState.rowProps.onRowHeightChange(i, 200));
+        const list = container.querySelector<HTMLElement>('[data-testid="feed-list"] [role="list"]')!;
+        // Scrolled into the second script
+        Object.defineProperty(list, 'scrollTop', { value: 300, writable: true, configurable: true });
+
+        act(() => feedState.rowProps.onRowHeightChange(0, 285));
+        expect(list.scrollTop).toBe(385);
+
+        // The script at the top of the viewport and the script below it move only the rows below them
+        act(() => feedState.rowProps.onRowHeightChange(1, 300));
+        act(() => feedState.rowProps.onRowHeightChange(2, 300));
+        expect(list.scrollTop).toBe(385);
+    });
+
     it('scrolls to a script that the insert button creates between two scripts', async () => {
         const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
         const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {

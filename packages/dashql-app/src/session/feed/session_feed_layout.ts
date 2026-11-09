@@ -33,7 +33,9 @@ export class FeedRowHeightCache {
 
     constructor(
         private entries: FeedLayoutEntry[],
-        private readonly onChange: (index: number, previousHeight: number, height: number) => void = () => {},
+        /// Called after a height changed, with how far the row at the top of the viewport moved
+        private readonly onChange: (scrollShift: number) => void = () => {},
+        private readonly getScrollOffset: () => number = () => 0,
     ) {}
 
     updateEntries(entries: FeedLayoutEntry[]) {
@@ -99,15 +101,27 @@ export class FeedRowHeightCache {
         return [top, top + (entry != null ? this.getEntryHeight(entry) : 0)];
     }
 
-    /// Store the measured height of the card of a row
+    /// The index of the row at a scroll offset
+    private getRowAtOffset(scrollOffset: number) {
+        let bottom = 0;
+        for (let i = 0; i < this.entries.length; ++i) {
+            bottom += this.getRowHeight(i) ?? 0;
+            if (bottom > scrollOffset) return i;
+        }
+        return Math.max(0, this.entries.length - 1);
+    }
+
+    /// Store the measured height of the card of a row.
+    /// Measuring a row also changes the estimates of the unmeasured rows, the shift covers all rows above the viewport.
     setRowHeight = (index: number, height: number) => {
         const entry = this.entries[index];
         if (entry == null) return;
         if (this.measuredHeights.get(entry.scriptId) === height) return;
-        const previousHeight = this.getEntryHeight(entry);
+        const anchor = this.getRowAtOffset(this.getScrollOffset());
+        const anchorOffset = this.getRowOffset(anchor);
         this.measuredHeights.set(entry.scriptId, height);
         this.updateEstimateCorrection();
-        this.onChange(index, previousHeight, height);
+        this.onChange(this.getRowOffset(anchor) - anchorOffset);
     };
 
     observeRowElements() {
@@ -133,10 +147,12 @@ export function useSessionFeedLayout(entries: FeedLayoutEntry[]) {
     const listRef = useListRef(null);
     const [heightsVersion, setHeightsVersion] = React.useState(0);
     const rowHeightsRef = React.useRef<FeedRowHeightCache | null>(null);
+    const pendingScrollShift = React.useRef(0);
     if (rowHeightsRef.current == null) {
-        rowHeightsRef.current = new FeedRowHeightCache(entries, () => {
+        rowHeightsRef.current = new FeedRowHeightCache(entries, scrollShift => {
+            pendingScrollShift.current += scrollShift;
             setHeightsVersion(version => version + 1);
-        });
+        }, () => listRef.current?.element?.scrollTop ?? 0);
     }
     rowHeightsRef.current.updateEntries(entries);
     const rowHeightCache = rowHeightsRef.current;
@@ -146,6 +162,14 @@ export function useSessionFeedLayout(entries: FeedLayoutEntry[]) {
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
     }), [rowHeightCache, heightsVersion]);
+    // A row above the viewport changed its height: the rows in view stay in place.
+    // The browser can't anchor the scroll position itself, the list positions its rows with transforms.
+    React.useLayoutEffect(() => {
+        const scrollShift = pendingScrollShift.current;
+        pendingScrollShift.current = 0;
+        const element = listRef.current?.element;
+        if (scrollShift !== 0 && element != null) element.scrollTop += scrollShift;
+    }, [heightsVersion, listRef]);
     const getEntrySpan = React.useCallback((index: number) => rowHeightCache.getEntrySpan(index), [rowHeightCache]);
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;

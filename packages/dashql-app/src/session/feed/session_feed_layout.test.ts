@@ -40,7 +40,51 @@ describe('FeedRowHeightCache', () => {
         // Script 1 measures 25px below its new estimate, the unmeasured script 2 follows
         expect(heights.getRowHeight(0)).toBe(32 + 177 + 32);
         expect(heights.getRowHeight(1)).toBe(137 + 32);
-        expect(onChange).toHaveBeenCalledWith(0, 122, 137);
+        expect(onChange).toHaveBeenCalledOnce();
+    });
+
+    /// Four measured scripts of 100px: the rows start at 0, 164, 296 and 428
+    function measuredHeights(scrollOffset: number) {
+        const onChange = vi.fn();
+        const heights = new FeedRowHeightCache(
+            [1, 2, 3, 4].map(scriptId => ({ scriptId, estimatedHeight: 100 })),
+            onChange,
+            () => scrollOffset,
+        );
+        for (let index = 0; index < 4; ++index) heights.setRowHeight(index, 100);
+        onChange.mockClear();
+        return { heights, onChange };
+    }
+
+    it('reports how far a row above the viewport moves the row at the top of the viewport', () => {
+        const { heights, onChange } = measuredHeights(200);
+        heights.setRowHeight(0, 150);
+        expect(onChange).toHaveBeenCalledExactlyOnceWith(50);
+    });
+
+    it('keeps the scroll position when the top row of the viewport or a row below it changes', () => {
+        const { heights, onChange } = measuredHeights(200);
+        heights.setRowHeight(1, 150);
+        heights.setRowHeight(3, 150);
+        expect(onChange.mock.calls).toEqual([[0], [0]]);
+    });
+
+    it('keeps the scroll position at the top of the feed', () => {
+        const { heights, onChange } = measuredHeights(0);
+        heights.setRowHeight(0, 150);
+        expect(onChange).toHaveBeenCalledExactlyOnceWith(0);
+    });
+
+    it('reports the estimates above the viewport that follow a measured row', () => {
+        const onChange = vi.fn();
+        const heights = new FeedRowHeightCache(
+            [1, 2, 3, 4].map(scriptId => ({ scriptId, estimatedHeight: 100 })),
+            onChange,
+            () => 300,
+        );
+        // The script below the viewport measures 80px above its estimate, so do the estimates of the two rows above
+        heights.setRowHeight(3, 180);
+        expect(onChange).toHaveBeenCalledExactlyOnceWith(160);
     });
 
     it('raises the estimates of unmeasured scripts by the excess of the measured ones', () => {
