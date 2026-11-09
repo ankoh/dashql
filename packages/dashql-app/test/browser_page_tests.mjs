@@ -197,6 +197,118 @@ async function testAppSharedSession(page, navigate) {
     await scriptEditor(page, 'select 42 as answer').waitFor();
 }
 
+/// The script of a feed row in the scroll test, the chart makes its card much taller once it has a result
+const scrollTestScript = i => `/**
+ * @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k", "type": "nominal"}, "y": {"field": "v", "type": "quantitative"}}}
+ */
+select k, k * ${i + 1} as v from generate_series(1, 4) as t(k)`;
+
+/// The rows above the viewport get taller while the feed scrolls up, the row at the top of the viewport only follows the
+/// scrolling. The rows at the start of the feed are unmounted while their results arrive, a row that mounts again is
+/// measured far above its cached height. The list positions its rows with transforms, so the browser does not anchor it.
+async function testAppFeedScrollPosition(page, navigate) {
+    await navigate('/');
+    await page.getByTestId('composer-send').waitFor();
+    await page.locator('.cm-content').first().click();
+    await page.keyboard.insertText(scrollTestScript(0));
+    await page.getByTestId('composer-send').click();
+    const rows = page.getByTestId('script-feed-item');
+    await rows.first().waitFor();
+    // The add buttons create scripts that did not run. A created script comes into view, the rows at the start unmount.
+    const scriptCount = 30;
+    for (let i = 1; i < scriptCount; ++i) {
+        const last = rows.last();
+        const lastKey = await last.getAttribute('data-script-key');
+        await last.hover();
+        await last.getByTestId('script-insert-below').click();
+        await page.waitForFunction(key => {
+            const items = document.querySelectorAll('[data-testid="script-feed-item"]');
+            return items[items.length - 1].dataset.scriptKey !== key;
+        }, lastKey);
+        await rows.last().locator('.cm-content').click();
+        await page.keyboard.insertText(scrollTestScript(i));
+        await scriptEditor(page, `k * ${i + 1} as v`).waitFor();
+    }
+
+    // The wheel stops the feed from following the created script
+    const box = await page.getByTestId('feed-list').boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 100);
+
+    // The feed stays at its end during the run, the rows at its start stay unmounted while their results arrive
+    const unpin = await rows.first().evaluateHandle(item => {
+        let list = item.parentElement;
+        while (getComputedStyle(list).overflowY !== 'auto') list = list.parentElement;
+        let pinned = true;
+        const pin = () => {
+            if (!pinned) return;
+            list.scrollTop = list.scrollHeight;
+            requestAnimationFrame(pin);
+        };
+        pin();
+        return () => { pinned = false; };
+    });
+    await page.getByTestId('execute-all').click();
+    await page.locator('[data-testid="execution-status"][data-phase="succeeded"]').waitFor();
+    await unpin.evaluate(stop => stop());
+
+    const { maxMoved, movedRow, anchored } = await rows.first().evaluate(async item => {
+        const STEP = 200;
+        const FRAMES_PER_STEP = 3;
+        let list = item.parentElement;
+        while (getComputedStyle(list).overflowY !== 'auto') list = list.parentElement;
+        const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+        // A task that a frame posts runs after its paint, it sees what the user saw
+        const afterPaint = () => new Promise(resolve => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = resolve;
+            channel.port2.postMessage(0);
+        });
+        const measure = () => {
+            const listTop = list.getBoundingClientRect().top;
+            const measured = new Map();
+            for (const row of list.querySelectorAll('[data-testid="script-feed-item"]')) {
+                const rect = row.getBoundingClientRect();
+                measured.set(row.dataset.scriptKey, { top: rect.top - listTop, bottom: rect.bottom - listTop });
+            }
+            return { scrollTop: list.scrollTop, rows: measured };
+        };
+        // The wheel of the test scrolls a few frames later
+        for (let stable = 0, scrollTop = list.scrollTop; stable < 10; ++stable) {
+            await nextFrame();
+            if (list.scrollTop !== scrollTop) {
+                scrollTop = list.scrollTop;
+                stable = 0;
+            }
+        }
+        let maxMoved = 0;
+        let movedRow = null;
+        let anchored = 0;
+        let previous = measure();
+        for (let frame = 0; list.scrollTop >= STEP; ++frame) {
+            await nextFrame();
+            const step = frame % FRAMES_PER_STEP === 0 ? STEP : 0;
+            list.scrollTop -= step;
+            await afterPaint();
+            const next = measure();
+            anchored += next.scrollTop - previous.scrollTop + step;
+            const top = [...previous.rows.entries()].find(([, row]) => row.bottom > 0);
+            const followed = top != null ? next.rows.get(top[0]) : undefined;
+            if (followed != null) {
+                const moved = Math.abs(followed.top - top[1].top - step);
+                if (moved > maxMoved) {
+                    maxMoved = moved;
+                    movedRow = top[0];
+                }
+            }
+            previous = next;
+        }
+        return { maxMoved, movedRow, anchored };
+    });
+    if (maxMoved > 1) throw new Error(`The top row ${movedRow} of the viewport moved ${maxMoved}px on the screen while the feed scrolled`);
+    if (anchored <= 0) throw new Error('No row above the viewport changed its height, the test did not check anything');
+}
+
 /// The warning on a narrow screen, then the app with the workbench in a drawer
 async function testAppNarrow(page, navigate) {
     await navigate('/');
@@ -318,6 +430,7 @@ const PAGE_TESTS = [
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
     { name: 'app_catalog', options: DESKTOP, test: testAppCatalogFollowsStatements },
     { name: 'app_shared_session', options: DESKTOP, test: testAppSharedSession },
+    { name: 'app_feed_scroll_position', options: DESKTOP, test: testAppFeedScrollPosition },
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },
     { name: 'shell', options: DESKTOP, test: testShell },
     { name: 'demos', options: DESKTOP, test: testDemos },
