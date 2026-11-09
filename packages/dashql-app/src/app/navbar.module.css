@@ -12,6 +12,8 @@
     grid-template-rows: var(--nav_bar_top_height) minmax(0, 1fr);
     grid-template-columns: var(--nav_bar_width) minmax(0, 1fr);
     height: 100%;
+    /* The stripe comes last in the DOM for its drag region, the keyboard and screen readers still start with it */
+    reading-flow: source-order;
 }
 
 /* The wide rail grows with the longest label of its buttons */
@@ -23,6 +25,7 @@
  * It is dark chrome in both color schemes, the tokens inside resolve dark. */
 .top_bar {
     color-scheme: dark;
+    reading-order: -1;
     grid-row: 1;
     grid-column: 1 / -1;
     /* Shares the columns of the container to place the brand relative to the page card, whatever the width of the rail */

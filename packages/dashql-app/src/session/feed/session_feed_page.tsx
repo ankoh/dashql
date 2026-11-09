@@ -177,6 +177,65 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     return (
         <SessionConnectionAttentionContext.Provider value={connectionAttention}>
         <div className={styles.page}>
+            <aside className={styles.navigation_sidebar}>
+                {workbench(false)}
+            </aside>
+            <main className={styles.body_container} id="session-body">
+                <div className={styles.content_container}>
+                    <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
+                        <dependencies.SessionFeed
+                            sessionScripts={props.sessionScripts}
+                            modifySessionScripts={props.modifySessionScripts}
+                            draftRenameRef={draftRenameRef}
+                            active={feedActive}
+                            revealRequest={revealRequest}
+                            conn={props.connection}
+                            scriptConnections={props.scriptConnections}
+                        />
+                    </div>
+                    {overviewConnectionId != null && (
+                        <dependencies.ConnectionOverviewPage
+                            connectionId={overviewConnectionId}
+                            onClose={closeOverview}
+                        />
+                    )}
+                    {dashboardActive && !overviewActive && (
+                        <dependencies.Dashboard
+                            sessionScripts={props.sessionScripts}
+                            modifySessionScripts={props.modifySessionScripts}
+                            scriptConnections={scriptConnections}
+                            draftRenameRef={draftRenameRef}
+                        />
+                    )}
+                    {dataflowActive && !overviewActive && (
+                        <div className={styles.dataflow_layout}>
+                            <div className={styles.dataflow_canvas}>
+                                <dependencies.DataflowCanvas
+                                    key={props.sessionScripts.sessionId}
+                                    sessionScripts={props.sessionScripts}
+                                    modifySessionScripts={props.modifySessionScripts}
+                                    scriptConnections={scriptConnections}
+                                    draftRenameRef={draftRenameRef}
+                                    onInspect={inspectScript}
+                                />
+                            </div>
+                            {showDetails && (
+                                <dependencies.ScriptEditorDialog
+                                    key={details.scriptId}
+                                    sessionScripts={props.sessionScripts}
+                                    modifySessionScripts={props.modifySessionScripts}
+                                    scriptKey={details.scriptId}
+                                    scriptConnections={scriptConnections}
+                                    draftRenameRef={draftRenameRef}
+                                    onNavigateToScript={inspectScript}
+                                    onClose={closeDetails}
+                                />
+                            )}
+                        </div>
+                    )}
+                </div>
+            </main>
+            {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
             <header className={styles.view_bar} data-electron-drag-region>
                 <dependencies.IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open session workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
                     <dependencies.ThreeBarsIcon />
@@ -283,64 +342,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                     </div>
                 </>}
             </header>
-            <aside className={styles.navigation_sidebar}>
-                {workbench(false)}
-            </aside>
-            <main className={styles.body_container} id="session-body">
-                <div className={styles.content_container}>
-                    <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
-                        <dependencies.SessionFeed
-                            sessionScripts={props.sessionScripts}
-                            modifySessionScripts={props.modifySessionScripts}
-                            draftRenameRef={draftRenameRef}
-                            active={feedActive}
-                            revealRequest={revealRequest}
-                            conn={props.connection}
-                            scriptConnections={props.scriptConnections}
-                        />
-                    </div>
-                    {overviewConnectionId != null && (
-                        <dependencies.ConnectionOverviewPage
-                            connectionId={overviewConnectionId}
-                            onClose={closeOverview}
-                        />
-                    )}
-                    {dashboardActive && !overviewActive && (
-                        <dependencies.Dashboard
-                            sessionScripts={props.sessionScripts}
-                            modifySessionScripts={props.modifySessionScripts}
-                            scriptConnections={scriptConnections}
-                            draftRenameRef={draftRenameRef}
-                        />
-                    )}
-                    {dataflowActive && !overviewActive && (
-                        <div className={styles.dataflow_layout}>
-                            <div className={styles.dataflow_canvas}>
-                                <dependencies.DataflowCanvas
-                                    key={props.sessionScripts.sessionId}
-                                    sessionScripts={props.sessionScripts}
-                                    modifySessionScripts={props.modifySessionScripts}
-                                    scriptConnections={scriptConnections}
-                                    draftRenameRef={draftRenameRef}
-                                    onInspect={inspectScript}
-                                />
-                            </div>
-                            {showDetails && (
-                                <dependencies.ScriptEditorDialog
-                                    key={details.scriptId}
-                                    sessionScripts={props.sessionScripts}
-                                    modifySessionScripts={props.modifySessionScripts}
-                                    scriptKey={details.scriptId}
-                                    scriptConnections={scriptConnections}
-                                    draftRenameRef={draftRenameRef}
-                                    onNavigateToScript={inspectScript}
-                                    onClose={closeDetails}
-                                />
-                            )}
-                        </div>
-                    )}
-                </div>
-            </main>
             {navigationDrawerOpen && (
                 <dependencies.SessionNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
                     {workbench(true)}

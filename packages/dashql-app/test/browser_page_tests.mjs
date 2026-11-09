@@ -311,6 +311,84 @@ async function testAppFeedScrollPosition(page, navigate) {
     if (anchored <= 0) throw new Error('No row above the viewport changed its height, the test did not check anything');
 }
 
+/// Find what a window drag gets wrong in the bars at the top of the window, once content scrolled behind them.
+/// Follows the region that Electron hit-tests: the boxes with an app region in tree order, unclipped, later ones win.
+/// `ELECTRON_DEBUG_DRAGGABLE_REGIONS` logs the real one, see docs/design/electron.md.
+const findDragRegionErrors = page => page.evaluate(() => {
+    const regions = [];
+    const collect = element => {
+        const style = getComputedStyle(element);
+        if (style.display === 'none') return;
+        const region = style.getPropertyValue('-webkit-app-region');
+        // Only boxes count, an inline element is none unless it is replaced
+        const isBox = style.display !== 'inline' || ['svg', 'img', 'canvas'].includes(element.localName);
+        if (region !== 'none' && isBox && style.visibility === 'visible') {
+            regions.push({ drag: region === 'drag', rect: element.getBoundingClientRect() });
+        }
+        for (const child of element.children) collect(child);
+    };
+    collect(document.documentElement);
+    const isDraggable = (x, y) => regions.reduce((drag, { drag: next, rect }) =>
+        x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom ? next : drag, false);
+
+    const bars = [...document.querySelectorAll('header[data-electron-drag-region]')];
+    const errors = bars.length === 2 ? [] : [`Expected 2 bars, found ${bars.length}`];
+    for (const bar of bars) {
+        const rect = bar.getBoundingClientRect();
+        const y = rect.top + rect.height / 2;
+        let free = 0;
+        for (let x = rect.left + 1; x < rect.right; x += 4) {
+            if (document.elementFromPoint(x, y) !== bar) continue;
+            ++free;
+            if (!isDraggable(x, y)) errors.push(`The bar at y=${y} does not drag at x=${x}`);
+        }
+        if (free === 0) errors.push(`The bar at y=${y} has no free space`);
+        for (const button of bar.querySelectorAll('button')) {
+            const box = button.getBoundingClientRect();
+            if (box.width > 0 && isDraggable(box.left + box.width / 2, box.top + box.height / 2)) {
+                errors.push(`The button ${button.textContent} of the bar at y=${y} drags the window`);
+            }
+        }
+    }
+    return errors;
+});
+
+/// The bars at the top of the window drag it, also when no-drag content scrolled behind them.
+/// Firefox knows neither app regions nor reading-flow.
+async function testAppDragRegions(page, navigate) {
+    if (page.context().browser().browserType().name() !== 'chromium') return;
+    await navigate('/');
+    await page.getByTestId('composer-send').waitFor();
+    await page.locator('.cm-content').first().click();
+    const columns = Array.from({ length: 200 }, (_, i) => `${i} as column_${i}`);
+    await page.keyboard.insertText(`select\n${columns.join(',\n')};`);
+    await page.getByTestId('composer-send').click();
+    await page.getByText('Statement executed successfully').waitFor();
+
+    // The row reaches behind both bars when the feed follows its end
+    const cell = page.getByTestId('script-cell').first();
+    await cell.evaluate(element => {
+        let list = element.parentElement;
+        while (getComputedStyle(list).overflowY !== 'auto') list = list.parentElement;
+        list.scrollTop = element.getBoundingClientRect().height / 2;
+    });
+    await page.waitForFunction(() => document.querySelector('[data-testid="script-cell"]').getBoundingClientRect().top < 0);
+    const errors = await findDragRegionErrors(page);
+    if (errors.length > 0) throw new Error(`${errors.length} errors, the first ones:\n${errors.slice(0, 5).join('\n')}`);
+
+    // The bars come last in the DOM, the keyboard still goes from the stripe to the rail to the view bar
+    await page.getByTestId('color-scheme-toggle').focus();
+    await page.keyboard.press('Tab');
+    if (!await page.evaluate(() => document.activeElement?.closest('nav[aria-label="Areas"]') != null)) {
+        throw new Error('Tab does not move from the top bar to the rail');
+    }
+    await page.getByRole('navigation', { name: 'Areas' }).getByRole('button').last().focus();
+    await page.keyboard.press('Tab');
+    if (!await page.evaluate(() => document.activeElement?.closest('header[data-electron-drag-region]') != null)) {
+        throw new Error('Tab does not move from the rail to the view bar');
+    }
+}
+
 /// The warning on a narrow screen, then the app with the workbench in a drawer
 async function testAppNarrow(page, navigate) {
     await navigate('/');
@@ -433,6 +511,7 @@ const PAGE_TESTS = [
     { name: 'app_catalog', options: DESKTOP, test: testAppCatalogFollowsStatements },
     { name: 'app_shared_session', options: DESKTOP, test: testAppSharedSession },
     { name: 'app_feed_scroll_position', options: DESKTOP, test: testAppFeedScrollPosition },
+    { name: 'app_drag_regions', options: DESKTOP, test: testAppDragRegions },
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },
     { name: 'shell', options: DESKTOP, test: testShell },
     { name: 'demos', options: DESKTOP, test: testDemos },

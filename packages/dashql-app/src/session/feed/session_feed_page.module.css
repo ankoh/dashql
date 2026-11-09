@@ -5,6 +5,8 @@
     height: 100%;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
+    /* The bar comes after the feed in the DOM for its drag region, the keyboard and screen readers still start with it */
+    reading-flow: source-order;
     /* The card meets the window on the right and the bottom, the corners below the stripe and next to the nav rail round */
     border-radius: var(--border_radius) var(--border_radius) 0 var(--border_radius);
     overflow: hidden;
@@ -61,6 +63,7 @@
 }
 
 .view_bar {
+    reading-order: -1;
     grid-row: 1;
     grid-column: 1;
     display: flex;

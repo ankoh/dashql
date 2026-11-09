@@ -219,6 +219,7 @@ const TrafficLightPlaceholders = () => (
 /// The navbar is a rail of pages left of the page card below a dark stripe that holds the brand on the left and the overlays on the right.
 /// On the desktop app on macOS, the brand follows the traffic lights.
 /// The Mac Window Layout setting shows them in the browser.
+/// The stripe comes after the page in the DOM, so that no-drag content scrolled behind it does not cut holes into its drag region, see docs/design/electron.md.
 export function NavBarContainer(props: { children: React.ReactElement }) {
     const logger = useLogger();
     const location = useLocation();
@@ -233,6 +234,10 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
 
     return (
         <div className={railWide ? `${styles.container} ${styles.container_wide}` : styles.container}>
+            <NavRail key={0} />
+            <div key={1} className={styles.page_container}>
+                {props.children}
+            </div>
             <header key={2} className={isMac ? `${styles.top_bar} ${styles.top_bar_mac}` : styles.top_bar} data-electron-drag-region>
                 <TopBarBrand mac={isMac} showName={railWide} />
                 <div className={styles.top_bar_actions}>
@@ -242,10 +247,6 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
                     <ColorSchemeButton />
                 </div>
             </header>
-            <NavRail key={0} />
-            <div key={1} className={styles.page_container}>
-                {props.children}
-            </div>
             {isMac && !macHost && <TrafficLightPlaceholders />}
         </div>
     );

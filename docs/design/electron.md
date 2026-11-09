@@ -32,6 +32,23 @@ The `BrowserWindow` uses `contextIsolation`, `sandbox` and `webSecurity`, withou
 (`src/main.ts`). New windows are denied and navigation away from the app is blocked. The window uses
 `titleBarStyle: "hiddenInset"`; the app styles its navbar for `PlatformType.DESKTOP`.
 
+### Drag regions
+
+`data-electron-drag-region` marks what drags the window, `globals.css` turns it into `-webkit-app-region` and also
+marks interactive elements and `data-electron-drag-region="false"` subtrees as `no-drag`. Electron hit-tests one
+region: the box of every element with an app region in tree order, where later boxes win, and without the clip of a
+scroll container. Content that scrolled out of view therefore still counts behind whatever covers it. A bar with
+`no-drag` content scrolling behind it has to come after that content in the DOM, or the content cuts holes into the
+bar. This is why the stripe at the top (`navbar.tsx`) and the view bar of a session (`session_feed_page.tsx`) come
+last. Grid placement moves them back up, and `reading-flow: source-order` with `reading-order: -1` puts them first for
+the keyboard and screen readers. Firefox has no `reading-flow` and follows the DOM. `reading-flow: grid-rows` did not
+reorder the focus on the live page, although it does in a minimal grid. Layers that cover a bar stay above it by going through `Portal`, which ends up after
+the app.
+
+To see the region, start an unpackaged app with `ELECTRON_DEBUG_DRAGGABLE_REGIONS=1`. Electron tints it and logs every
+update with `--enable-logging`. `app_drag_regions` in `packages/dashql-app/test/browser_page_tests.mjs` checks the
+bars in Chromium with an approximation of it from the DOM, which sees fewer boxes than Electron on a complex page.
+
 The windows follow the color scheme of the app (`docs/design/app_theme.md`). The app calls
 `dashqlElectron.setColorScheme` with `light`, `dark` or `system` whenever the scheme of its settings changes,
 including on every start. The main process sets `nativeTheme.themeSource`, which Electron does not keep across
