@@ -58,8 +58,8 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                 applyMigrations: migrationStatus,
                 initializeCore: coreStatus,
                 initializeHyperDB: props.embeddedDatabaseStatus,
-                discoverSessions: getStatusFromProgressCounter(props.progress.restoreConnections),
-                loadSessionScripts: getStatusFromProgressCounter(props.progress.restoreSessionScripts),
+                discoverWorkbooks: getStatusFromProgressCounter(props.progress.restoreConnections),
+                loadWorkbookScripts: getStatusFromProgressCounter(props.progress.restoreWorkbookScripts),
             }}
             actions={props.pauseAfterSetup && (
                 <div className={baseStyles.card_actions}>

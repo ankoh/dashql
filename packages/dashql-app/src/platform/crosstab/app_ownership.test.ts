@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
 import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
-import { STORAGE_SESSIONS_FOLDER } from '../../storage/storage_backend.js';
+import { STORAGE_WORKBOOKS_FOLDER } from '../../storage/storage_backend.js';
 import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '../../storage/storage_writer.js';
 import { TestLogger } from '../logger/test_logger.js';
 import { getOPFSRoot } from '../opfs_root.js';
@@ -109,7 +109,7 @@ describe('AppOwnership', () => {
 
     it('writes the pending changes of the owner before the next tab reads them', async () => {
         const [a, b] = [openTab(), openTab()];
-        const sessionId = crypto.randomUUID();
+        const workbookId = crypto.randomUUID();
         const backend = new OPFSStorageBackend();
         await backend.initialize();
         const writer = new StorageWriter(new TestLogger(), backend);
@@ -121,18 +121,18 @@ describe('AppOwnership', () => {
             expect(owner).not.toBeNull();
 
             // The write is debounced far beyond the takeover
-            const write = writer.write(groupScriptWrites(sessionId, 'a.sql'), {
+            const write = writer.write(groupScriptWrites(workbookId, 'a.sql'), {
                 type: WRITE_SCRIPT,
-                value: [sessionId, 'a.sql', 'SELECT 42'],
+                value: [workbookId, 'a.sql', 'SELECT 42'],
             }, 60_000);
 
             await AppOwnership.takeOver(b.environment, stopNothing, 5_000);
-            expect((await backend.loadScript(sessionId, 'a.sql')).sql).toBe('SELECT 42');
+            expect((await backend.loadScript(workbookId, 'a.sql')).sql).toBe('SELECT 42');
             expect(await write).toBe(true);
         } finally {
             const root = await getOPFSRoot();
-            const sessions = await root.getDirectoryHandle(STORAGE_SESSIONS_FOLDER);
-            await sessions.removeEntry(sessionId, { recursive: true });
+            const workbooks = await root.getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER);
+            await workbooks.removeEntry(workbookId, { recursive: true });
         }
     });
 });

@@ -275,7 +275,7 @@ struct SessionInputConsumer {
     statement: uint32;
 }
 
-/// An input of a session: a named scalar parameter of its scripts and its value, see docs/design/session_inputs.md
+/// An input of a session: a named scalar parameter of its scripts and its value, see docs/design/workbook_inputs.md
 table SessionInput {
     /// The name of the parameter
     name: string;

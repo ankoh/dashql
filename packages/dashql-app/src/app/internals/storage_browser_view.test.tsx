@@ -6,7 +6,7 @@ import { StorageBrowserView } from './storage_browser_view.js';
 import * as styles from './storage_browser_view.module.css';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { SessionTestBackend } from '../../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { OPFS_TESTS_FOLDER } from '../../platform/opfs_root.js';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { createTestRoot } from '../../tests/react_root.js';
@@ -42,7 +42,7 @@ describe('StorageBrowserView', () => {
     async function render() {
         await root.render(
             <LoggerProvider>
-                <StorageProvider backend={new SessionTestBackend()}>
+                <StorageProvider backend={new WorkbookTestBackend()}>
                     <StorageBrowserView onClose={onClose} />
                 </StorageProvider>
             </LoggerProvider>,
@@ -65,26 +65,26 @@ describe('StorageBrowserView', () => {
     const textButton = (text: string) => [...root.container.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent?.trim() === text)!;
 
     it('lists the folders on expansion', async () => {
-        putDir('sessions');
-        putDir('sessions/s1');
-        putDir('sessions/empty');
-        putFile('sessions/s1/notes.sql', 'select 1');
+        putDir('workbooks');
+        putDir('workbooks/s1');
+        putDir('workbooks/empty');
+        putFile('workbooks/s1/notes.sql', 'select 1');
         putFile('stray.txt', 'hello');
         await render();
 
         expect(root.container.textContent).toContain('opfs://');
         await vi.waitFor(() => expect(rows()).toEqual([
             '0 -Origin Private File System',
-            '1 +sessions',
+            '1 +workbooks',
             '1 stray.txt (5 bytes)',
         ]));
         // The modification time of a file is shown relative to now
         expect(root.container.querySelector(`.${styles.cell_modified}[title]`)?.getAttribute('title')).toMatch(/^\d{4}-/);
 
-        act(() => row('sessions').click());
+        act(() => row('workbooks').click());
         await vi.waitFor(() => expect(rows()).toEqual([
             '0 -Origin Private File System',
-            '1 -sessions',
+            '1 -workbooks',
             '2 +empty',
             '2 +s1',
             '1 stray.txt (5 bytes)',
@@ -93,7 +93,7 @@ describe('StorageBrowserView', () => {
         act(() => row('empty').click());
         await vi.waitFor(() => expect(rows()).toEqual([
             '0 -Origin Private File System',
-            '1 -sessions',
+            '1 -workbooks',
             '2 -empty',
             '3 Empty',
             '2 -s1',
@@ -102,10 +102,10 @@ describe('StorageBrowserView', () => {
         ]));
 
         // Collapsing keeps the listings
-        act(() => row('sessions').click());
+        act(() => row('workbooks').click());
         expect(rows()).toEqual([
             '0 -Origin Private File System',
-            '1 +sessions',
+            '1 +workbooks',
             '1 stray.txt (5 bytes)',
         ]);
         act(() => row('Origin Private File System').click());

@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn checks_messages() {
         let schema = BridgeSchema::get();
-        let status = json!({ "method": "agent/status", "params": { "session": "s1", "turnId": "t1", "state": "running", "text": "" } });
+        let status = json!({ "method": "agent/status", "params": { "workbook": "s1", "turnId": "t1", "state": "running", "text": "" } });
         assert_eq!(schema.check_from_server(&status, None), Ok(()));
         let done = json!({ "id": 1, "result": { "turnId": "t1", "harness": "codex" } });
         assert_eq!(schema.check_from_server(&done, Some("agent/request")), Ok(()));
@@ -181,9 +181,9 @@ mod tests {
 
         let unknown = json!({ "method": "agent/other", "params": {} });
         assert!(schema.check_from_server(&unknown, None).is_err());
-        let extra = json!({ "method": "agent/done", "params": { "session": "s1", "turnId": "t1", "message": "", "x": 1 } });
+        let extra = json!({ "method": "agent/done", "params": { "workbook": "s1", "turnId": "t1", "message": "", "x": 1 } });
         assert_eq!(schema.check_from_server(&extra, None), Err("agent/done.x is not allowed".into()));
-        let state = json!({ "method": "agent/status", "params": { "session": "s1", "turnId": "t1", "state": "done", "text": "" } });
+        let state = json!({ "method": "agent/status", "params": { "workbook": "s1", "turnId": "t1", "state": "done", "text": "" } });
         assert!(schema.check_from_server(&state, None).unwrap_err().contains("is none of"));
         let missing = json!({ "id": 1, "result": { "turnId": "t1" } });
         assert_eq!(schema.check_from_server(&missing, Some("agent/request")), Err("agent/request: harness is missing".into()));

@@ -16,7 +16,7 @@ Client functions ship in an [extension](extensions.md), the folder of a service 
 1. **Registration.** The binding of a connector loads the spec, and `ensureConnectionClientFunctions` registers it on the catalog of the connection, before any login. See [Connector binding](#connector-binding).
 2. **Analysis.** The analyzer checks every `CALL` in a namespace with a spec, and completion answers from the same signatures. See [Checks](#checks) and [Completion](#completion).
 3. **Description.** `describe_client_function_call` turns a call into plain JSON for the runtime. See [Running calls](#running-calls).
-4. **Planning.** The planner makes the call a barrier, fills in the inputs, and leaves a script that writes out of the runs of the session. See [Running calls](#running-calls) and [Writes](#writes). The shell of a connection has no plan and skips this step.
+4. **Planning.** The planner makes the call a barrier, fills in the inputs, and leaves a script that writes out of the runs of the workbook. See [Running calls](#running-calls) and [Writes](#writes). The shell of a connection has no plan and skips this step.
 5. **Request.** The runtime applies the spec to the description, and sends the request through the app's `HttpClient` with the host and credentials of the binding. See [The runtime](#the-runtime).
 6. **Result.** Pages and polls end in one table, which continues like the result of any query. See [Paging](#paging), [Pending results](#pending-results) and [Results and errors](#results-and-errors).
 
@@ -290,7 +290,7 @@ interface ClientFunctionBinding<Details> {
 
 **A spec shadows its namespace on a connection.** Everything under `cdp.` belongs to the spec, so a function it doesn't know is an error, and nothing under `cdp.` reaches the backend, even if the backend has a schema of that name. Every other `CALL` goes to the backend as written: another namespace, and `CALL cdp.x` on a connection without that spec, since a Trino connection can have its own `cdp` schema.
 
-- **Scope:** every `ConnectionState` owns its catalog, and a session belongs to the catalog it was created with, so registering on the catalog scopes the namespace to the connection.
+- **Scope:** every `ConnectionState` owns its catalog, and a workbook belongs to the catalog it was created with, so registering on the catalog scopes the namespace to the connection.
 - **Catalog version:** registering bumps it, and the app marks the scripts of the connection as outdated, so they are analyzed again.
 - **Clearing the catalog keeps the specs:** they come with the connector and not from the backend, so a reset of the connection doesn't change what a script may call.
 - **Multiple specs:** a catalog can hold several, and two with the same namespace is a registration error. A binding registers one today.
@@ -405,8 +405,8 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 **Consumers that must change:**
 - `parser/context.rs`: panics on an unknown statement root.
 - `dashql-core/src/formatter/`: an unknown node renders as `'<OBJECT_...>'`, which fails the round-trip test.
-- `dashql-core-session/src/planner.rs`: see [Running calls](#running-calls).
-- `dashql-core-session/src/compiler.rs` and `dashql-core/src/pack.rs`, plus the labels in `dashql_story_decorations.ts`.
+- `dashql-core-workbook/src/planner.rs`: see [Running calls](#running-calls).
+- `dashql-core-workbook/src/compiler.rs` and `dashql-core/src/pack.rs`, plus the labels in `dashql_story_decorations.ts`.
 - `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
 
 ## Running calls
@@ -431,14 +431,14 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - **Strings are unescaped,** `$$` strings are verbatim, and a query is the text between its parentheses.
 - **`bindings` holds what core can't resolve:** a parameter is a null in `options` and an entry with its JSON pointer. A marker inside `options` could collide with a real key, such as OData's `$filter`.
 
-**The planner** treats a call in a namespace with a spec as a barrier, so it stays in session order. Its node carries the description in `client_function_call`, with the values of the session's [inputs](session_inputs.md) in place of `bindings`, and `sql` only tells what the statement says. Any other `CALL` is an ordinary barrier that runs as written.
+**The planner** treats a call in a namespace with a spec as a barrier, so it stays in workbook order. Its node carries the description in `client_function_call`, with the values of the workbook's [inputs](workbook_inputs.md) in place of `bindings`, and `sql` only tells what the statement says. Any other `CALL` is an ordinary barrier that runs as written.
 
 - **No backend judges a call,** so an error of its [checks](#checks) fails the plan, where the same error on a backend statement is only a diagnostic. A warning doesn't.
 - **A script with a call isn't cacheable,** `EXPLAIN` included, since it asks a service and not the backend. The result cache never sees it.
 
 **The executor** gets the description as `clientFunctionCall` of its arguments, and `executeConnectionQuery` hands it to the runtime instead of the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
 
-**The shell of a connection** has no plan. `resolveClientFunctionCall` (`session/shell/session_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse, `EXPLAIN (analyze) CALL` included, also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
+**The shell of a connection** has no plan. `resolveClientFunctionCall` (`workbook/shell/workbook_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse, `EXPLAIN (analyze) CALL` included, also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
 
 **An agent** finds the functions of a connection in `dashql agent catalog`, a family per line, and the guide of `dashql agent` says how to call them. It checks a call with `lint` and shows its request with `EXPLAIN CALL`.
 
@@ -471,13 +471,13 @@ A call writes if its function has `effect: write`, if the spec doesn't know the 
 CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake prod', name => 'snowflake_prod', method => 'Ingress');
 ```
 
-**A script with a write runs only on request,** like a script with a [`@manual` tag](script_references.md#scripts-that-run-on-request). A call is never cached, so a run of the whole session would send it again every time.
+**A script with a write runs only on request,** like a script with a [`@manual` tag](script_references.md#scripts-that-run-on-request). A call is never cached, so a run of the whole workbook would send it again every time.
 
 | Run | A script with a write |
 |---|---|
 | The script itself, from its card, the feed, the dashboard, or SQL sent from the composer | Runs |
 | The shell of the connection | Runs, the statement is typed there |
-| Execute All, a run of the session | Left out (`runs_on_request` of the planner) |
+| Execute All, a run of the workbook | Left out (`runs_on_request` of the planner) |
 | A changed input | Left out, the dataflow marks the script `manual` |
 | An agent's `run` command | Runs |
 | A script that an agent wrote and didn't run | Runs when the answer ends, like any script of an agent |
@@ -676,11 +676,11 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Specs | `packages/dashql-core/src/catalog/clfn.rs` | `ClientFunctionSpec` reads the generic part of a document and ignores what only the runtime needs. `Catalog::register_client_functions` and `drop_client_functions` bump the catalog version |
 | Checks | `packages/dashql-core/src/analyzer/clfn_calls.rs` | A pass after the others walks every call against its signature. `AnalyzedScript::client_function_calls` lists the calls in a namespace with a spec |
 | Result columns | `ClientFunctionSpec::result_columns`, `packages/dashql-core/src/table_parameters.rs` | The columns of a function and the standard columns, the table of a script that is a single call that reads |
-| Script references | `packages/dashql-core-session/src/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
+| Script references | `packages/dashql-core-workbook/src/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
 | Description | `AnalyzedScript::describe_client_function_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.client_function_calls` in the packed analysis carries it, so the app needs no second call |
 | Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql-core-js/src/api.ts`. A binding registers the spec on the catalog of its connection |
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
-| Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
+| Planner | `packages/dashql-core-workbook/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
 **Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
 
@@ -733,5 +733,5 @@ Each phase lands separately.
 3. **Tags beside an object.** A `tag` reads an attribute of the object itself. Some APIs select a variant with a sibling instead, such as `type` next to `config` in Data 360, so only the attributes of those objects decide. A `tag` that reads a sibling would close this, once a source says which value selects which variant.
 4. **Spec size.** The Data 360 spec is 1,322 KB, or 166 KB gzipped, for 535 functions and it loads lazily. What completion shows is about 575 KB of that. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
 5. **`_next` on an empty page.** The one-row rule covers it, at the cost of `count(*)`. If that turns out to be wrong in practice, the alternative is carrying the value in result metadata, outside the table.
-6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a session attachment.
+6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a workbook attachment.
 7. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.

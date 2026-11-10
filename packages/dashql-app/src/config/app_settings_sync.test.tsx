@@ -9,13 +9,13 @@ import { DASHQL_FLAVOR, DBCOM_FLAVOR, type AppFlavor } from './flavors.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import type { Logger } from '../platform/logger/logger.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 import { applyFlavorToDocument } from './flavor_resolution.js';
 import { createTestRoot } from '../tests/react_root.js';
 
 describe('AppSettingsSync', () => {
     let root: ReturnType<typeof createTestRoot>;
-    let backend: SessionTestBackend;
+    let backend: WorkbookTestBackend;
     let config: AppConfig | null;
     let ready: boolean;
     let flavor: AppFlavor;
@@ -51,7 +51,7 @@ describe('AppSettingsSync', () => {
 
     beforeEach(() => {
         root = createTestRoot();
-        backend = new SessionTestBackend();
+        backend = new WorkbookTestBackend();
         config = null;
         ready = false;
     });
@@ -67,7 +67,7 @@ describe('AppSettingsSync', () => {
         backend.appSettings = {
             keywordCase: 'upper',
             flavor: DBCOM_FLAVOR.id,
-            lastOpenedSessionId: 'retired',
+            lastOpenedWorkbookId: 'retired',
             aiProvider: { apiKey: 'secret' },
             experimental_dashboards: true,
             experimental_dataflow: false,
@@ -78,7 +78,7 @@ describe('AppSettingsSync', () => {
         expect(config!.settings?.keywordCase).toBe('upper');
         // The settings of config.json stay
         expect(config!.settings?.enableTableColumnPlots).toBe(true);
-        expect(config!.settings).not.toHaveProperty('lastOpenedSessionId');
+        expect(config!.settings).not.toHaveProperty('lastOpenedWorkbookId');
         expect(config!.settings).not.toHaveProperty('aiProvider');
         expect(config!.settings).not.toHaveProperty('experimental_dashboards');
         expect(config!.settings).not.toHaveProperty('experimental_dataflow');

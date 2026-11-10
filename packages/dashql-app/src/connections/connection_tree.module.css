@@ -94,7 +94,7 @@
     width: 12px;
 }
 
-/* The icons take the color of the row, like the icons of the session tree */
+/* The icons take the color of the row, like the icons of the workbook tree */
 .tree_entry_icon {
     display: inline-flex;
     color: inherit;

@@ -1,7 +1,7 @@
 # dashql-datasets — hosted test datasets for `data.dashql.app`
 
 Real test datasets (à la [vega-datasets](https://github.com/vega/vega-datasets)) that
-demo sessions can query over HTTP — e.g. from a local Hyper connector reading remote
+demo workbooks can query over HTTP — e.g. from a local Hyper connector reading remote
 Parquet. This package **builds** the datasets hermetically with Bazel and **mirrors**
 them to the R2 bucket `dashql-data` (served at `https://data.dashql.app`).
 
@@ -67,7 +67,7 @@ network access is only allowed in the fetch phase (repo rules requiring a pinned
    archives are handled there; dataset sources are pinned by hand or via Renovate).
 
 4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old
-   sessions keep working against the old version.
+   workbooks keep working against the old version.
 
 ## TPC-H
 

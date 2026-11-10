@@ -17,7 +17,7 @@ export interface SetupStep {
     testId?: string;
 }
 
-/// The steps of a setup with their status, the setup of the app and the import of a session show them alike
+/// The steps of a setup with their status, the setup of the app and the import of a workbook show them alike
 export function SetupSteps(props: { steps: SetupStep[]; compact?: boolean }): React.ReactElement {
     return (
         <div className={`${pageStyles.detail_entries} ${props.compact ? pageStyles.detail_entries_compact : ''}`}>

@@ -3,8 +3,8 @@ import { StorageWriter } from './storage_writer.js';
 import { type StorageBackend, StorageBackendType } from './storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { type SessionLocation } from './session_locator.js';
-import { type SessionTreeFolder, emptySessionTree } from './session_tree.js';
+import { type WorkbookLocation } from './workbook_locator.js';
+import { type WorkbookTreeFolder, emptyWorkbookTree } from './workbook_tree.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { migrateStorage } from './migration/storage_migration.js';
@@ -18,17 +18,17 @@ const StorageWriterContext = React.createContext<StorageWriter | null>(null);
 // Storage context for reading
 export interface StorageReader {
     backend: StorageBackend;
-    /// The backend that routes sessions between the app storage and native folders.
-    /// Null for a bare backend without per-session routing, e.g. an injected test backend.
-    sessionFolders: CompositeStorageBackend | null;
-    /// The physical location of a session's files (used by the UI for a display path).
-    getSessionLocation(sessionId: string): SessionLocation;
-    /// The user-facing session order (the order of the session tree), as session UUIDs. Empty for a
-    /// bare backend without per-session routing.
-    getSessionOrder(): string[];
-    /// The session tree, the folders and sessions of the sidebar. Empty for a bare backend without
-    /// per-session routing.
-    getSessionTree(): SessionTreeFolder;
+    /// The backend that routes workbooks between the app storage and native folders.
+    /// Null for a bare backend without per-workbook routing, e.g. an injected test backend.
+    workbookFolders: CompositeStorageBackend | null;
+    /// The physical location of a workbook's files (used by the UI for a display path).
+    getWorkbookLocation(workbookId: string): WorkbookLocation;
+    /// The user-facing workbook order (the order of the workbook tree), as workbook UUIDs. Empty for a
+    /// bare backend without per-workbook routing.
+    getWorkbookOrder(): string[];
+    /// The workbook tree, the folders and workbooks of the sidebar. Empty for a bare backend without
+    /// per-workbook routing.
+    getWorkbookTree(): WorkbookTreeFolder;
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
 /// The status of the migration of the storage at startup, skipped for a provided backend
@@ -61,7 +61,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
             setMigrationStatus(IndicatorStatus.Running);
             try {
                 const migrated = await migrateStorage(logger);
-                setMigrationStatus(migrated.steps + migrated.sessions > 0 ? IndicatorStatus.Succeeded : IndicatorStatus.Skip);
+                setMigrationStatus(migrated.steps + migrated.workbooks > 0 ? IndicatorStatus.Succeeded : IndicatorStatus.Skip);
             } catch (error) {
                 logger.error("Failed to migrate the storage", { error: stringifyError(error) }, "storage_provider");
                 setMigrationStatus(IndicatorStatus.Failed);
@@ -69,7 +69,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 return;
             }
 
-            // OPFS is the only copy of browser sessions, ask the browser not to evict it under storage pressure
+            // OPFS is the only copy of browser workbooks, ask the browser not to evict it under storage pressure
             void navigator.storage?.persist?.().then(persisted => {
                 logger.info("Requested persistent storage", { persisted: persisted.toString() }, "storage_provider");
             }, error => {
@@ -137,23 +137,23 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     const reader = React.useMemo<StorageReader | null>(() => {
         if (!backend) return null;
 
-        const sessionFolders = backend instanceof CompositeStorageBackend ? backend : null;
+        const workbookFolders = backend instanceof CompositeStorageBackend ? backend : null;
         return {
             backend,
-            sessionFolders,
-            getSessionLocation(sessionId: string): SessionLocation {
-                if (sessionFolders != null) {
-                    return sessionFolders.getSessionLocation(sessionId);
+            workbookFolders,
+            getWorkbookLocation(workbookId: string): WorkbookLocation {
+                if (workbookFolders != null) {
+                    return workbookFolders.getWorkbookLocation(workbookId);
                 }
-                // A bare backend (e.g. an injected test backend) has no per-session routing.
+                // A bare backend (e.g. an injected test backend) has no per-workbook routing.
                 return { type: backend.getBackendType() === StorageBackendType.Native ? StorageBackendType.Native : StorageBackendType.OPFS };
             },
-            getSessionOrder(): string[] {
-                // A bare backend has no session tree; the caller falls back to its own order.
-                return sessionFolders?.getSessionOrder() ?? [];
+            getWorkbookOrder(): string[] {
+                // A bare backend has no workbook tree; the caller falls back to its own order.
+                return workbookFolders?.getWorkbookOrder() ?? [];
             },
-            getSessionTree(): SessionTreeFolder {
-                return sessionFolders?.getSessionTree() ?? emptySessionTree();
+            getWorkbookTree(): WorkbookTreeFolder {
+                return workbookFolders?.getWorkbookTree() ?? emptyWorkbookTree();
             },
         };
     }, [backend, logger]);

@@ -7,10 +7,10 @@ import type { ConnectionSaveResult } from './connection_persistence.js';
 import { ConnectionHealth } from './connection_state.js';
 import { useCloseOnConnect, type CloseOnConnectProps } from './connection_settings_overlay.js';
 
-const SESSIONS_FAILED: ConnectionSaveResult = {
+const WORKBOOKS_FAILED: ConnectionSaveResult = {
     params: { trino: {} } as ConnectionSaveResult['params'],
     manifest: { status: 'written' },
-    sessions: [{ sessionId: 's1', result: { status: 'failed', error: new Error('disk full') } }] as ConnectionSaveResult['sessions'],
+    workbooks: [{ workbookId: 's1', result: { status: 'failed', error: new Error('disk full') } }] as ConnectionSaveResult['workbooks'],
 };
 
 function Probe(props: CloseOnConnectProps): null {
@@ -78,9 +78,9 @@ describe('useCloseOnConnect', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('stays open while the save bar reports failed session copies', () => {
+    it('stays open while the save bar reports failed workbook copies', () => {
         render({ health: ConnectionHealth.CONNECTING });
-        render({ health: ConnectionHealth.ONLINE, saveResult: SESSIONS_FAILED });
+        render({ health: ConnectionHealth.ONLINE, saveResult: WORKBOOKS_FAILED });
         expect(onClose).not.toHaveBeenCalled();
     });
 

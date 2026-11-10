@@ -18,10 +18,10 @@ import { PlatformEventListenerProvider, usePlatformEventListener } from '../plat
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
-import { SessionScriptsRegistryProvider, useSessionScriptsRegistry, type SessionScriptsRegistry } from '../session/scripts/session_scripts_registry.js';
-import { isEphemeralSession, sessionConnectionIds } from '../session/scripts/session_scripts.js';
+import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
+import { isEphemeralWorkbook, workbookConnectionIds } from '../workbook/scripts/workbook_scripts.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 
 const LOCAL_LINK = { endpoint: 'http://127.0.0.1:7484', token: 'first' };
 const REMOTE_LINK = { endpoint: 'https://hyper.example.com:7484', token: 'remote' };
@@ -31,7 +31,7 @@ describe('following Hyper links', () => {
     let root: Root;
     let listener!: PlatformEventListener;
     let connections!: ConnectionRegistry;
-    let sessions!: SessionScriptsRegistry;
+    let workbooks!: WorkbookScriptsRegistry;
     let pathname = '/';
     let markOpened!: () => void;
     let confirm: ReturnType<typeof vi.fn>;
@@ -40,7 +40,7 @@ describe('following Hyper links', () => {
         useHyperLinks(props.opened);
         listener = usePlatformEventListener();
         [connections] = useConnectionRegistry();
-        [sessions] = useSessionScriptsRegistry();
+        [workbooks] = useWorkbookScriptsRegistry();
         pathname = useLocation().pathname;
         return null;
     }
@@ -53,16 +53,16 @@ describe('following Hyper links', () => {
         root = createRoot(document.createElement('div'));
         await act(async () => root.render(
             <LoggerProvider>
-                <StorageProvider backend={new SessionTestBackend()}>
+                <StorageProvider backend={new WorkbookTestBackend()}>
                     <MemoryRouter initialEntries={['/']}>
                         <PlatformEventListenerProvider>
                             <DashQLCoreProvider>
                                 <ConnectionReferencesProvider value={NO_CONNECTION_REFERENCES}>
                                     <ConnectionRegistryProvider>
                                         <ConnectionPersistenceProvider>
-                                            <SessionScriptsRegistryProvider>
+                                            <WorkbookScriptsRegistryProvider>
                                                 <Harness opened={opened} />
-                                            </SessionScriptsRegistryProvider>
+                                            </WorkbookScriptsRegistryProvider>
                                         </ConnectionPersistenceProvider>
                                     </ConnectionRegistryProvider>
                                 </ConnectionReferencesProvider>
@@ -97,24 +97,24 @@ describe('following Hyper links', () => {
         expect(linkConnections()).toEqual([]);
 
         markOpened();
-        await waitForRender(() => expect(sessions.sessionScriptsMap.size).toBe(1));
+        await waitForRender(() => expect(workbooks.workbookScriptsMap.size).toBe(1));
         const [connection] = linkConnections();
         expect(connection.params).toMatchObject({ hyper: { endpoint: LOCAL_LINK.endpoint } });
         expect(getHyperLinkTabState().current).toBe(connection.connectionId);
         expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('first');
-        const sessionIds = [...sessions.sessionScriptsMap.entries()]
-            .filter(([, scripts]) => sessionConnectionIds(scripts).includes(connection.connectionId))
-            .map(([sessionId]) => sessionId);
-        expect(sessionIds.length).toBe(1);
-        expect(isEphemeralSession(sessions.sessionScriptsMap.get(sessionIds[0])!)).toBe(true);
+        const workbookIds = [...workbooks.workbookScriptsMap.entries()]
+            .filter(([, scripts]) => workbookConnectionIds(scripts).includes(connection.connectionId))
+            .map(([workbookId]) => workbookId);
+        expect(workbookIds.length).toBe(1);
+        expect(isEphemeralWorkbook(workbooks.workbookScriptsMap.get(workbookIds[0])!)).toBe(true);
         expect(pathname).toBe('/');
         // A loopback link needs no confirmation
         expect(confirm).not.toHaveBeenCalled();
 
-        // A second link to the same Hyper reuses the connection and stays in the session
+        // A second link to the same Hyper reuses the connection and stays in the workbook
         await receive({ ...LOCAL_LINK, token: 'second' }, () => expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('second'));
         expect(linkConnections().length).toBe(1);
-        expect(sessions.sessionScriptsMap.size).toBe(1);
+        expect(workbooks.workbookScriptsMap.size).toBe(1);
         expect(pathname).toBe('/');
     });
 
@@ -127,20 +127,20 @@ describe('following Hyper links', () => {
         expect(pathname).toBe('/');
 
         confirm.mockReturnValue(true);
-        await receive(REMOTE_LINK, () => expect(sessions.sessionScriptsMap.size).toBe(1));
+        await receive(REMOTE_LINK, () => expect(workbooks.workbookScriptsMap.size).toBe(1));
         expect(linkConnections().map(connection => connection.params)).toMatchObject([{ hyper: { endpoint: REMOTE_LINK.endpoint } }]);
-        const sessionPathname = pathname;
+        const workbookPathname = pathname;
 
         // A link to another port may reuse the connection of the earlier link, which then moves to the new endpoint
         const [connection] = linkConnections();
         confirm.mockClear();
         await receive(MOVED_LINK, () => expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('moved'));
         expect(confirm.mock.calls.map(call => call[0])).toEqual([
-            expect.stringContaining(`Run new sessions on the Hyper at ${MOVED_LINK.endpoint}`),
+            expect.stringContaining(`Run new workbooks on the Hyper at ${MOVED_LINK.endpoint}`),
             expect.stringContaining(`to ${REMOTE_LINK.endpoint} for the Hyper at ${MOVED_LINK.endpoint}`),
         ]);
         await waitForRender(() => expect(linkConnections().map(c => c.params))
             .toMatchObject([{ hyper: { endpoint: MOVED_LINK.endpoint } }]));
-        expect(pathname).toBe(sessionPathname);
+        expect(pathname).toBe(workbookPathname);
     });
 });

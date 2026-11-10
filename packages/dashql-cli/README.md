@@ -2,7 +2,7 @@
 
 `dashql`, the command line tool of DashQL, one Rust binary built on the native dashql-core:
 
-- **`dashql agent`** reaches the DashQL session that is open in the browser or the desktop app through the local agent
+- **`dashql agent`** reaches the DashQL workbook that is open in the browser or the desktop app through the local agent
   server: `status`, `guide`, `scripts`, `read`, `edit`, `catalog`, `lint`, `run`, `result` and `vis read`,
   `vis edit`, `vis image`. The skill in `skill/dashql/SKILL.md` sends agents to `dashql agent guide`, which prints
   these commands and how DashQL works.
@@ -61,7 +61,7 @@ dashql lint [--schema <file.sql>]... [--debug] <file.sql|dir|->...
 ```
 
 Relative paths are resolved against the directory you invoke Bazel from. Directories are searched recursively for
-`*.sql` files, the generated catalog files of sessions (`dashql-catalog-relations.sql`, `dashql-catalog-functions.sql`, `dashql-catalog-changes.sql`) are skipped.
+`*.sql` files, the generated catalog files of workbooks (`dashql-catalog-relations.sql`, `dashql-catalog-functions.sql`, `dashql-catalog-changes.sql`) are skipped.
 Symlinks are followed, except links back into a directory that is being searched.
 `-` reads a script from stdin:
 

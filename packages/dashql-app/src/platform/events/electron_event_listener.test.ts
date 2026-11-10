@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
+import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
 import { TestLogger } from '../logger/test_logger.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
-import { SETUP_SESSION, SETUP_SESSION_URL, type SetupEventVariant } from './event.js';
+import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, type SetupEventVariant } from './event.js';
 
-type DeepLink = { type: 'event' | 'session'; value: string };
+type DeepLink = { type: 'event' | 'workbook'; value: string };
 
 /// Let the Electron bridge hand out the initial deep links and record the deep link subscription
 function installDeepLinks(initial: DeepLink[]) {
@@ -29,16 +29,16 @@ describe('ElectronPlatformEventListener', () => {
     });
 
     it('dispatches the initial and later deep links and unsubscribes on dispose', async () => {
-        const bridge = installDeepLinks([{ type: 'session', value: 'https://dashql.app/?session=abc' }]);
+        const bridge = installDeepLinks([{ type: 'workbook', value: 'https://dashql.app/?workbook=abc' }]);
         listener = new ElectronPlatformEventListener(new TestLogger());
         const events: SetupEventVariant[] = [];
         listener.subscribeSetupEvents(event => events.push(event));
         await listener.setup();
-        expect(events).toEqual([{ type: SETUP_SESSION_URL, value: 'https://dashql.app/?session=abc' }]);
+        expect(events).toEqual([{ type: SETUP_WORKBOOK_URL, value: 'https://dashql.app/?workbook=abc' }]);
 
         const zip = new Uint8Array([80, 75, 3, 4]);
-        bridge.listener!({ type: 'event', value: encodeSessionAppEvent(zip) });
-        expect(events[1]).toEqual({ type: SETUP_SESSION, value: zip });
+        bridge.listener!({ type: 'event', value: encodeWorkbookAppEvent(zip) });
+        expect(events[1]).toEqual({ type: SETUP_WORKBOOK, value: zip });
 
         listener.dispose();
         expect(bridge.unsubscribe).toHaveBeenCalledOnce();

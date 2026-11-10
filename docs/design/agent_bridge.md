@@ -1,7 +1,7 @@
 # Agent Bridge
 
 DashQL works with agents in both directions through a local **agent server**: agents call `dashql agent` commands
-against the open DashQL session, and questions in the composer run the user's agent harness headless. The agent
+against the open DashQL workbook, and questions in the composer run the user's agent harness headless. The agent
 bridge is the only way DashQL reaches models; there is no built-in LLM client.
 
 The unbuilt parts (the rest of the menu bar mode, inline edit, "Fix with agent", data settings and the query policy)
@@ -14,13 +14,13 @@ and the open checks are in [docs/wip/agent_bridge.md](../wip/agent_bridge.md).
 | Agent side | A skill plus the `dashql agent` commands of the `dashql` command line tool |
 | App → agent | The agent server runs the user's harness headless, once per request |
 | Agent edits | Applied directly, no pending diffs |
-| Agent context | One harness session per DashQL session |
+| Agent context | One harness session per DashQL workbook |
 | Editor UI | No agent panel; the composer shows the agent |
 | Browsers | Chrome and Edge (one-time permission), Firefox; Safari unsupported |
 | Agent server, CLI and skill | One Rust binary, `packages/dashql-cli`, `dashql agent serve` |
 | Real harnesses | Run on macOS: Claude Code 2.1 and opencode 1.18 pass; Codex 0.162 parses the arguments, no model access |
 | `dashql` in DashQL.app | Bundled as `Contents/Resources/bin/dashql`; on macOS the app runs it as a child process |
-| Page client, command registry, per-session toggle | `packages/dashql-app/src/agent/` |
+| Page client, command registry, per-workbook toggle | `packages/dashql-app/src/agent/` |
 | Menu bar mode | Server supervision, tray icon and menu, activation policy, `--menu-bar`, quit and update handling |
 
 ## Motivation
@@ -32,7 +32,7 @@ should work with agents in both directions, without DashQL building its own agen
 
 - **(A) App → agent.** The user asks something in DashQL and a harness they already
   use (Codex, Claude Code, Gemini CLI, ...) does the work.
-- **(B) Agent → app.** An agent reads the session's scripts and catalog, edits
+- **(B) Agent → app.** An agent reads the workbook's scripts and catalog, edits
   scripts, and runs queries in the open DashQL tab.
 
 The web build is the priority. It also has to work on locked-down corporate machines.
@@ -58,11 +58,11 @@ agent shell         │ main: tray menu, supervision                   │
 ```
 
 - **Agent → app:** the agent calls `dashql agent` commands. The agent server forwards
-  them to the connected tab, which executes them against the live session.
+  them to the connected tab, which executes them against the live workbook.
 - **App → agent:** the tab sends a request to the agent server, which runs the
   configured harness headless with the request as the prompt. The agent then works
   through the same commands; its final message is the reply. One request and its reply
-  are a **turn** of the session, as Codex and ACP call it.
+  are a **turn** of the workbook, as Codex and ACP call it.
 - **The tab is the runtime.** Data, connections and the embedded database live in the
   page. The agent server only relays and starts turns, so the agent can act
   only while dashql.app (or a desktop window) is open.
@@ -125,7 +125,7 @@ from web apps, and Ollama's menu bar app with its localhost API.
   (`packages/dashql-native/src/main.ts`). Main also supervises a utility process
   for the native proxy (`packages/dashql-native/src/native_proxy.ts`).
 - **App actions the commands map to** (`packages/dashql-app/src/`):
-  - the `session_scripts` reducer (`session/scripts/session_scripts.ts`):
+  - the `workbook_scripts` reducer (`workbook/scripts/workbook_scripts.ts`):
     `CREATE_SCRIPT`, `SET_SCRIPT_TEXT`, `RENAME_SCRIPT`, `DELETE_SCRIPT`;
   - `useQueryExecutor` and `useCancelQuery` (`connections/query_executor.tsx`);
   - the catalog loader (`connections/catalog/catalog_loader.tsx`) and
@@ -158,9 +158,9 @@ What it does:
 - Listens on `127.0.0.1:47100` (configurable). The WebSocket endpoint takes
   connections from DashQL clients: the owning dashql.app tab of each browser profile,
   and desktop windows. The HTTP endpoint takes CLI calls.
-- Tracks which client holds which DashQL session, and routes each CLI call to the
-  client holding the target session.
-- Queues CLI calls while no client holds the target session (default wait 30 s), then
+- Tracks which client holds which DashQL workbook, and routes each CLI call to the
+  client holding the target workbook.
+- Queues CLI calls while no client holds the target workbook (default wait 30 s), then
   fails with "DashQL is not connected: open https://dashql.app and turn on agent
   access".
 - Starts turns for requests from clients (see [App → agent](#app--agent)).
@@ -168,15 +168,15 @@ What it does:
   after 3 s) and waits until they exited, so no harness outlives the server.
 
 Configuration and state live in `~/.dashql/agent/` (readable by the user only):
-`config.json` (port, CLI token, harness commands) and `sessions/<id>/` (working folder
-and harness session id per DashQL session).
+`config.json` (port, CLI token, harness commands) and `workbooks/<id>/` (working folder
+and harness session id per DashQL workbook).
 
-Deleting a session in the app sends `agent/forget`: the server stops the session's turns and removes its folder,
-once a running harness exited. A session deleted while the app is not connected leaves its folder behind, and no
+Deleting a workbook in the app sends `agent/forget`: the server stops the workbook's turns and removes its folder,
+once a running harness exited. A workbook deleted while the app is not connected leaves its folder behind, and no
 client can tell that a folder is unused: every client (the desktop app, dashql.app in each browser profile)
-announces only its own sessions with agent access. So the server also removes, at the start and then once a day,
-the folders of sessions unused for 30 days. The time of `state.json` is the last use: every turn and every
-announcement of the session marks it, and the folders of sessions with turns or announced by a client stay.
+announces only its own workbooks with agent access. So the server also removes, at the start and then once a day,
+the folders of workbooks unused for 30 days. The time of `state.json` is the last use: every turn and every
+announcement of the workbook marks it, and the folders of workbooks with turns or announced by a client stay.
 
 ### Menu bar app
 
@@ -223,14 +223,14 @@ page stops the agent server first.
   dashql.app (a deploy, a dependency, an XSS) could otherwise tell the agents that the user starts, which may edit
   files and run programs, what to do. The guide describes the commands of the binary and DashQL as of its build, a
   newer DashQL reaches agents with the next `dashql`.
-- **Page features:** the page announces what it supports as identifiers with `client/sessions` (`features`,
+- **Page features:** the page announces what it supports as identifiers with `client/workbooks` (`features`,
   `AGENT_FEATURES` in `agent_protocol.ts`): `connections`, `edit`, `vis`, `table-parameters`, `scalar-parameters`,
   `attachments`, `embedded-hyper`, `manual-scripts`. The server keeps the ones it knows (`PAGE_FEATURES` in
   `instructions.rs`), a page that announced none has the ones of every older page (`BASELINE_FEATURES`), and the
   status shows them. Every note about what the page does names its feature, only the options of the binary hold
   for every page. The guide for a page leaves out the notes of the features it lacks and tells the agent that the user has to reload
-  DashQL or update the app. Harness runs get the guide for the page that holds the session, `dashql agent guide` the one for
-  the page of the session in the status of the server, or the full guide when no page is connected. A page can
+  DashQL or update the app. Harness runs get the guide for the page that holds the workbook, `dashql agent guide` the one for
+  the page of the workbook in the status of the server, or the full guide when no page is connected. A page can
   only hide notes of the binary or ask for an update this way, never add text.
 - **Harness runs** that DashQL starts don't use the skill: the server writes their `AGENTS.md` and `CLAUDE.md`
   before every turn.
@@ -249,14 +249,14 @@ and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native da
 
 - Compact text on stdout, `--json` where useful, real exit codes (0 ok, 1 failed, 2 not
   connected or usage).
-- **Target session:** `--session <id>`, otherwise `DASHQL_SESSION` (set for harness
-  runs the server starts), otherwise the focused session.
-- **One call at a time per session**; a concurrent call gets a clear "busy" error.
+- **Target workbook:** `--workbook <id>` (or the older `--session`), otherwise `DASHQL_WORKBOOK` (set for harness
+  runs the server starts), otherwise the focused workbook.
+- **One call at a time per workbook**; a concurrent call gets a clear "busy" error.
 - **Writes are verifiable:** `edit` prints the new text's hash and the analyzer's
   diagnostics.
-- **Connections:** the commands take the connections of the session and the embedded Hyper, which combines the
+- **Connections:** the commands take the connections of the workbook and the embedded Hyper, which combines the
   results of the other connections and the attachments. `scripts` marks it as `embedded Hyper` and lists it for
-  every session, the page allocates it when the app holds none yet. `scripts` lists the attachments with their
+  every workbook, the page allocates it when the app holds none yet. `scripts` lists the attachments with their
   columns, `catalog` of the embedded Hyper lists the Parquet attachments as table parameters. `scripts` marks the
   remote connections whose query results DashQL caches with `caches results` (`cachesResults` in `--json`): the
   scripts on the embedded Hyper that read their scripts rerun on the cached results, so the guide asks for a cheap
@@ -265,11 +265,11 @@ and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native da
 ### Page side
 
 The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts`), the command registry
-(`agent_commands.ts`), the provider (`agent_bridge.tsx`), the agent view and the agent session menu live in
+(`agent_commands.ts`), the provider (`agent_bridge.tsx`), the agent view and the agent workbook menu live in
 `packages/dashql-app/src/agent/`.
 
-- **Agent access toggle** per session, off by default. Enable Agent in the header of a session turns it on
-  right away. The sessions with access are an app setting (`agentSessions`), so a shared session file never turns
+- **Agent access toggle** per workbook, off by default. Enable Agent in the header of a workbook turns it on
+  right away. The workbooks with access are an app setting (`agentWorkbooks`), so a shared workbook file never turns
   access on. While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff.
   After a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
   in flight when the page goes away fails. The page counts as connected once the server answered its
@@ -281,10 +281,10 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 - **Protocol:** JSON-RPC-style messages (`{id, method, params}` → `{id, result |
   error}`), plus notifications for turns (`agent/status`, `agent/done`,
   `agent/failed`). The JSON Schema `proto/json/dashql/agent_bridge.json` defines the messages, the page
-  generates its types from it. A client announces the sessions it holds when it connects and when
+  generates its types from it. A client announces the workbooks it holds when it connects and when
   they change.
 - **Desktop windows** use the same client over the same WebSocket. They need no
-  special path, and the agent can target a desktop session like a browser one.
+  special path, and the agent can target a desktop workbook like a browser one.
 - **Safari** shows a notice instead of the toggle.
 
 ### Authentication
@@ -300,18 +300,18 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
   can already read the user's files. No pairing flow is needed.
 - **CLI → server:** a token from `~/.dashql/agent/config.json`. This keeps out other
   users on the same machine, who share 127.0.0.1.
-- **Consent:** the per-session toggle in the app, and the global "Agent Access" switch
+- **Consent:** the per-workbook toggle in the app, and the global "Agent Access" switch
   in the menu.
 
 ### App → agent
 
 1. The user asks in the composer.
-2. The client sends `agent/request {session, harness, model, effort, prompt}`. `harness` is a name
+2. The client sends `agent/request {workbook, harness, model, effort, prompt}`. `harness` is a name
    such as `codex`, `model` and `effort` are values of the harness's `models` and `efforts` in `config.json`, the
    harness's own defaults if omitted; the prompt carries the request, the target script and selection,
    and a short summary of what changed since the previous request.
 3. The server runs the command template for that harness from `config.json` in
-   `~/.dashql/agent/sessions/<id>/`, with `DASHQL_SESSION` set and the resolved `PATH`.
+   `~/.dashql/agent/workbooks/<id>/`, with `DASHQL_WORKBOOK` set and the resolved `PATH`.
    The prompt is passed as one argument, never through a shell. The built-in templates
    (`packages/dashql-cli/src/agent/config.rs`); Claude Code is the default:
 
@@ -330,7 +330,7 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 
    Codex sandboxes the shell of a run without network by default, so `dashql agent` could not reach the agent server
    on 127.0.0.1 and reported it as not running. Codex cannot allow only loopback or only `dashql agent`, so Codex
-   runs get the workspace-write sandbox (writes only in the session folder) with network access, which is looser
+   runs get the workspace-write sandbox (writes only in the workbook folder) with network access, which is looser
    than the tool limits of Claude Code.
 
    `--` ends the options: Claude Code's tool lists take every following argument, so without it the prompt
@@ -343,7 +343,7 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 4. The agent works through `dashql agent` commands. A per-harness adapter in the
    server reads the event stream and sends status lines to the client.
 5. The final message comes back as `agent/done`. The server stores the harness session
-   id per harness in `state.json`, so the next request of this DashQL session with the same harness resumes it.
+   id per harness in `state.json`, so the next request of this DashQL workbook with the same harness resumes it.
    `agent/context` describes the conversation of the harness that the page picked.
 
 - The working folder holds an `AGENTS.md` and a `CLAUDE.md` written by
@@ -361,13 +361,13 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
   opencode plugin that allows everything did on the test machine, so opencode runs there could run any
   command. The `--allowedTools` limits of Claude Code held.
 - Harness quirks the adapters handle:
-  - Claude Code reports a `session_id` on hook events before the conversation exists, so only `system/init`
+  - Claude Code reports a `workbook_id` on hook events before the conversation exists, so only `system/init`
     sets the harness session. A run that fails without a result text gets its error from stderr, such as
-    "No conversation found with session ID".
+    "No conversation found with workbook ID".
   - opencode reports the text of a step after its tool calls, so the final message is the text of the last
     step without tool calls.
   - Codex passes the JSON body of a failed API call as the error message, the adapter takes its message.
-- One turn at a time per DashQL session; further requests queue in the server.
+- One turn at a time per DashQL workbook; further requests queue in the server.
 - Stop in the composer sends `agent/cancel`; the server kills the process tree
   of the turn's harness.
 - **Security rule:** clients never send commands, only a harness name, a model, an effort and a prompt.
@@ -386,7 +386,7 @@ absolute paths.
 ### Settings
 
 The Agent button in the top bar configures the bridge. It holds the connection open while
-it is shown, so it also works before any session has agent access. Once a session has agent access, its
+it is shown, so it also works before any workbook has agent access. Once a workbook has agent access, its
 header shows Control Agent: Disable Agent turns the access off, Reset Agent forgets the agent
 context, Continue in terminal copies the command that continues the harness session.
 
@@ -397,7 +397,7 @@ context, Continue in terminal copies the command that continues the harness sess
 - **Model** and **effort:** pick among the `models` and `efforts` of the harness (`agent/info`), or Default for the
   harness's own, app settings (`agentModel`, `agentEffort`). Picking another harness restores both defaults. Turns show
   their model and effort.
-- **Sessions** with agent access, each with "Disconnect".
+- **Workbooks** with agent access, each with "Disconnect".
 - **Turns** of the server, each with "Stop", and the **clients** of the server.
 
 ### Agent edits
@@ -416,7 +416,7 @@ else the agent says is shown by the composer (`packages/dashql-app/src/agent/age
 - **With agent access** the composer takes a frame in the gradient of the agent colors of the flavor (`--agent_*` in
   `packages/dashql-ui/styles/flavors/<flavor>.css`, green in `dbcom.css`) and shows the agent on top of the
   prompt: the harness, whether the agent server is connected, whether the next question continues the harness
-  conversation, and the questions of the session. On the landing view of an empty session it takes the place of
+  conversation, and the questions of the workbook. On the landing view of an empty workbook it takes the place of
   "What do you want to know about your data today?". While a turn is going, the frame of the composer turns.
 - **A question** is a line in that panel. Asking creates no script: the agent writes a new script or edits an
   existing one through `dashql agent edit`, and every script it writes shows up as a chip on the question that
@@ -435,7 +435,7 @@ else the agent says is shown by the composer (`packages/dashql-app/src/agent/age
   the dialect and the catalog objects it mentions.
 - **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
   and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
-- **Control Agent** in the header of a session: its menu offers "Disable Agent", "Reset Agent" (forget the stored
+- **Control Agent** in the header of a workbook: its menu offers "Disable Agent", "Reset Agent" (forget the stored
   harness session id) and "Continue in terminal" (the harness's resume command).
 - **Not connected:** the agent view shows the `dashql agent serve` command.
 
@@ -488,7 +488,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 - `packages/dashql-cli/src/agent/`: the agent server and the commands of the `dashql` binary (Rust,
   tokio and tungstenite), `packages/dashql-cli/skill/`, tests (`bazel test //packages/dashql-cli:tests`)
 - `packages/dashql-app/src/agent/`: WebSocket client, protocol types, command registry, provider, agent view, agent
-  session menu, composer question flow (`use_agent_questions.ts`, `agent_prompt_panel.tsx`)
+  workbook menu, composer question flow (`use_agent_questions.ts`, `agent_prompt_panel.tsx`)
 - `packages/dashql-app/src/app/app.tsx` (`AgentBridgeProvider`), `packages/dashql-app/src/app/navbar.tsx` (Agent button)
 - `proto/json/dashql/agent_bridge.json`: the protocol schema
 - `packages/dashql-native/src/agent_host.ts`: supervision of the `dashql agent serve` child process, status
@@ -502,18 +502,18 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 ## Verification
 
 - **Agent server unit tests** (`bazel test //packages/dashql-cli:tests`): `Origin`, `Host` and token checks;
-  routing calls to the client holding a session; queuing while disconnected; one call at a time; cancel
+  routing calls to the client holding a workbook; queuing while disconnected; one call at a time; cancel
   kills the process tree.
 - **Bridge tests** (`bazel test //packages/dashql-cli:bridge_test`): the `dashql` binary as server, command
   line tool and `dashql` of harness runs, a page on the WebSocket, and a scripted harness that speaks Claude Code's
-  stream-json. Agent → DashQL: every command, `--file` and stdin, `--json`, session targeting, exit codes, wrong token,
-  no server, the page going away during a call. DashQL → agent: a run that calls back into its own session,
+  stream-json. Agent → DashQL: every command, `--file` and stdin, `--json`, workbook targeting, exit codes, wrong token,
+  no server, the page going away during a call. DashQL → agent: a run that calls back into its own workbook,
   status lines, resume and reset, a failed run's stderr, cancel stopping the harness's children, no nested
   server. It also checks that `--exit-with-stdin` stops the server.
 - **Real harnesses** (`bazel test //packages/dashql-cli:bridge_harness_test`, manual, unsandboxed, costs
   model calls; `--test_env=DASHQL_TEST_HARNESSES=opencode` picks harnesses): a composer question that edits,
   runs and answers, a follow-up that needs the conversation, and a cancel.
-- **Page tests:** the commands against a test session (`agent_commands.test.ts`), the client and its reconnect
+- **Page tests:** the commands against a test workbook (`agent_commands.test.ts`), the client and its reconnect
   (`agent_client.test.ts`).
 - **Agent host** (`bazel test //packages/dashql-native:test`, `agent_host.test.ts` against the real `dashql`
   binary): starts the server, sees a page connect with `app://bundle`, restarts after SIGKILL, follows another

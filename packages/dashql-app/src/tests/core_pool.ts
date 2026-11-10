@@ -1,5 +1,7 @@
 import { DashQL, type DashQLModuleOptions } from '@ankoh/dashql-core';
 
+import { resetCatalogBatchLifetime } from '../connections/catalog/catalog_batch.js';
+
 declare global {
     var DASHQL_PRECOMPILED: Promise<Uint8Array> | undefined;
     var __DASHQL_TEST_CORE_WASM_MODULE__: Promise<WebAssembly.Module> | undefined;
@@ -22,7 +24,11 @@ export function installSharedCoreTestPool(): void {
     DashQL.create = async (options?: DashQLModuleOptions) => {
         shared ??= globalThis.__DASHQL_TEST_CORE_FACTORY__?.(options) ?? create(options);
         const instance = await shared;
-        globalThis.__DASHQL_TEST_RESET_CORE_INSTANCE__ = () => instance.resetUnsafe();
+        globalThis.__DASHQL_TEST_RESET_CORE_INSTANCE__ = () => {
+            instance.resetUnsafe();
+            // A provider of a test that unmounted disposed the catalog batches of the shared instance
+            resetCatalogBatchLifetime(instance);
+        };
         return instance;
     };
 }

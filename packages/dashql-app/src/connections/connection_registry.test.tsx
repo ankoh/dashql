@@ -22,7 +22,7 @@ import {
     ConnectionReferencesProvider,
     connectionEntryFromState,
     didPersistedConnectionChange,
-    resolveSessionConnections,
+    resolveWorkbookConnections,
     useConnectionRegistry,
     useDynamicConnectionDispatch,
 } from './connection_registry.js';
@@ -30,7 +30,7 @@ import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from 
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog_update_state.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../storage/workbook_test_backend.js';
 import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '../storage/storage_writer.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
@@ -49,9 +49,9 @@ function registry(): ConnectionRegistry {
     };
 }
 
-describe('session connection routing', () => {
-    it('resolves the connections of a session in the order the scripts use them', () => {
-        const connections = resolveSessionConnections(registry(), fixedConnectionReferences({ session: ['remote', 'local'] }), 'session');
+describe('workbook connection routing', () => {
+    it('resolves the connections of a workbook in the order the scripts use them', () => {
+        const connections = resolveWorkbookConnections(registry(), fixedConnectionReferences({ workbook: ['remote', 'local'] }), 'workbook');
         expect(connections?.map(database => database.connectionId)).toEqual(['remote', 'local']);
         expect(connections?.[0].connectionHealth).toBe(ConnectionHealth.FAILED);
     });
@@ -59,12 +59,12 @@ describe('session connection routing', () => {
     it('does not fall back to local when a configured remote is missing', () => {
         const value = registry();
         value.connections.delete('remote');
-        expect(resolveSessionConnections(value, fixedConnectionReferences({ session: ['remote'] }), 'session')).toBeNull();
-        expect(resolveSessionConnections(value, fixedConnectionReferences({ session: ['local', 'remote'] }), 'session')).toBeNull();
+        expect(resolveWorkbookConnections(value, fixedConnectionReferences({ workbook: ['remote'] }), 'workbook')).toBeNull();
+        expect(resolveWorkbookConnections(value, fixedConnectionReferences({ workbook: ['local', 'remote'] }), 'workbook')).toBeNull();
     });
 });
 
-describe('session manifest persistence', () => {
+describe('workbook manifest persistence', () => {
     const state = (active: boolean, endpoint: string): ConnectionState => ({
         active,
         params: { hyper: { protocol: 'V3_HTTP', endpoint, tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } },
@@ -119,8 +119,8 @@ describe('session manifest persistence', () => {
 
 describe('catalog refresh persistence', () => {
     it.each(['succeeded', 'partially succeeded'] as const)('saves a %s Salesforce catalog without rewriting the manifest', async outcome => {
-        const backend = new SessionTestBackend();
-        backend.sessions.set(TEST_SESSION_ID, testSession({
+        const backend = new WorkbookTestBackend();
+        backend.workbooks.set(TEST_WORKBOOK_ID, testWorkbook({
             connections: [{ connectionId: TEST_CONNECTION_ID, params: { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } } as any }],
         }));
         const descriptor = new dashql.buffers.catalog.CatalogDescriptorT([packCatalogTable({
@@ -157,7 +157,7 @@ describe('catalog refresh persistence', () => {
         try {
             await act(async () => root.render(React.createElement(LoggerProvider, null,
                 React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
+                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
                 ),
             )));
             await act(async () => setRegistry(reg => {
@@ -177,10 +177,10 @@ describe('catalog refresh persistence', () => {
             });
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             expect(currentRegistry.connections.get(TEST_CONNECTION_ID)?.catalogUpdates.tasksFinished.has(1)).toBe(true);
-            // The connection owns the catalog, sessions don't keep a copy
-            expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([]);
+            // The connection owns the catalog, workbooks don't keep a copy
+            expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
             await writer.flush();
-            expect(backend.calls).not.toContain(`manifest:${TEST_SESSION_ID}`);
+            expect(backend.calls).not.toContain(`manifest:${TEST_WORKBOOK_ID}`);
             expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(schemaSQL);
             expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(functionsSQL);
             expect(JSON.parse(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)!)).toEqual({
@@ -193,9 +193,9 @@ describe('catalog refresh persistence', () => {
     });
 
     /// The files that a lookup leaves behind when it finishes
-    async function filesAfterLookup(described: boolean, changed: boolean): Promise<SessionTestBackend> {
-        const backend = new SessionTestBackend();
-        backend.sessions.set(TEST_SESSION_ID, testSession());
+    async function filesAfterLookup(described: boolean, changed: boolean): Promise<WorkbookTestBackend> {
+        const backend = new WorkbookTestBackend();
+        backend.workbooks.set(TEST_WORKBOOK_ID, testWorkbook());
         const task = {
             taskId: 4, taskVariant: CatalogUpdateVariant.RELATION_REFRESH,
             status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
@@ -225,7 +225,7 @@ describe('catalog refresh persistence', () => {
         try {
             await act(async () => root.render(React.createElement(LoggerProvider, null,
                 React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
+                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
                 ),
             )));
             act(() => setRegistry(reg => {
@@ -263,8 +263,8 @@ describe('catalog refresh persistence', () => {
     });
 
     it('saves only the functions when the embedded database refreshes', async () => {
-        const backend = new SessionTestBackend();
-        backend.sessions.set(TEST_SESSION_ID, testSession());
+        const backend = new WorkbookTestBackend();
+        backend.workbooks.set(TEST_WORKBOOK_ID, testWorkbook());
         const functionsSQL = 'CREATE FUNCTION test() AS 1;';
         const task = {
             taskId: 3, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
@@ -296,7 +296,7 @@ describe('catalog refresh persistence', () => {
         try {
             await act(async () => root.render(React.createElement(LoggerProvider, null,
                 React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
+                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
                 ),
             )));
             act(() => setRegistry(reg => {
@@ -314,8 +314,8 @@ describe('catalog refresh persistence', () => {
     });
 
     it('writes the catalog of an attached connection into the files of that connection', async () => {
-        const backend = new SessionTestBackend();
-        backend.sessions.set(TEST_SESSION_ID, testSession());
+        const backend = new WorkbookTestBackend();
+        backend.workbooks.set(TEST_WORKBOOK_ID, testWorkbook());
         const attachedId = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
         const functionScript = { toString: () => 'CREATE FUNCTION attached() AS 1;' };
         const task = {
@@ -347,7 +347,7 @@ describe('catalog refresh persistence', () => {
         try {
             await act(async () => root.render(React.createElement(LoggerProvider, null,
                 React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID, attachedId] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
+                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID, attachedId] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
                 ),
             )));
             act(() => setRegistry(reg => {
@@ -356,7 +356,7 @@ describe('catalog refresh persistence', () => {
             }));
             act(() => dispatch(attachedId, { type: CATALOG_UPDATE_SUCCEEDED, value: [2] }));
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
-            expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([]);
+            expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
             await writer.flush();
             expect([...backend.connectionFiles.keys()].every(key => key.startsWith(`${attachedId}/`))).toBe(true);
             // A catalog that a reset cleared meanwhile doesn't replace what is on disk
@@ -370,8 +370,8 @@ describe('catalog refresh persistence', () => {
 });
 
 describe('shared connection persistence', () => {
-    const OTHER_SESSION_ID = '22222222-3333-4444-8555-666666666666';
-    const MISSING_SESSION_ID = '33333333-4444-4555-8666-777777777777';
+    const OTHER_WORKBOOK_ID = '22222222-3333-4444-8555-666666666666';
+    const MISSING_WORKBOOK_ID = '33333333-4444-4555-8666-777777777777';
     const trino = (endpoint: string) => ({ trino: { endpoint, catalogName: '', auth: { authType: 'AUTH_BASIC' } } }) as any;
 
     /// Dispatch to the connection and let the batched registry update apply
@@ -382,10 +382,10 @@ describe('shared connection persistence', () => {
         });
     }
 
-    async function render(sessionIds: string[], overrides: Partial<ConnectionState> = {}) {
-        const backend = new SessionTestBackend();
-        for (const sessionId of [TEST_SESSION_ID, OTHER_SESSION_ID]) {
-            backend.sessions.set(sessionId, testSession({ sessionId, connections: [{ connectionId: TEST_CONNECTION_ID, params: trino('https://old') }] }));
+    async function render(workbookIds: string[], overrides: Partial<ConnectionState> = {}) {
+        const backend = new WorkbookTestBackend();
+        for (const workbookId of [TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]) {
+            backend.workbooks.set(workbookId, testWorkbook({ workbookId, connections: [{ connectionId: TEST_CONNECTION_ID, params: trino('https://old') }] }));
         }
         const connection = {
             connectionId: TEST_CONNECTION_ID,
@@ -413,7 +413,7 @@ describe('shared connection persistence', () => {
         const root = createRoot(container);
         await act(async () => root.render(React.createElement(LoggerProvider, null,
             React.createElement(StorageProvider, { backend },
-                React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences(Object.fromEntries(sessionIds.map(sessionId => [sessionId, [TEST_CONNECTION_ID]]))) }, React.createElement(ConnectionRegistryProvider, null,
+                React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences(Object.fromEntries(workbookIds.map(workbookId => [workbookId, [TEST_CONNECTION_ID]]))) }, React.createElement(ConnectionRegistryProvider, null,
                     React.createElement(ConnectionPersistenceProvider, null, React.createElement(Harness)),
                 )),
             ),
@@ -425,8 +425,8 @@ describe('shared connection persistence', () => {
         return { backend, harness, unmount: () => { act(() => root.unmount()); container.remove(); } };
     }
 
-    it('keeps drafts in the app manifest and saves them into every session', async () => {
-        const { backend, harness, unmount } = await render([TEST_SESSION_ID, OTHER_SESSION_ID]);
+    it('keeps drafts in the app manifest and saves them into every workbook', async () => {
+        const { backend, harness, unmount } = await render([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
         try {
             await dispatchAndSettle(harness, { type: SET_CONNECTION_DRAFT, value: trino('https://new') });
             await harness.writer.flush();
@@ -439,13 +439,13 @@ describe('shared connection persistence', () => {
                 await new Promise<void>(resolve => setTimeout(resolve, 0));
             });
             expect(result!.manifest).toEqual({ status: 'written' });
-            expect(result!.sessions.map(n => [n.sessionId, n.result.status])).toEqual([
-                [TEST_SESSION_ID, 'written'],
-                [OTHER_SESSION_ID, 'written'],
+            expect(result!.workbooks.map(n => [n.workbookId, n.result.status])).toEqual([
+                [TEST_WORKBOOK_ID, 'written'],
+                [OTHER_WORKBOOK_ID, 'written'],
             ]);
             expect(backend.connections).toEqual([{ id: TEST_CONNECTION_ID, params: trino('https://new') }]);
-            for (const sessionId of [TEST_SESSION_ID, OTHER_SESSION_ID]) {
-                expect(backend.sessions.get(sessionId)!.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: trino('https://new') }]);
+            for (const workbookId of [TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]) {
+                expect(backend.workbooks.get(workbookId)!.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: trino('https://new') }]);
             }
             const saved = harness.registry.connections.get(TEST_CONNECTION_ID)!;
             expect(saved.params).toEqual(trino('https://new'));
@@ -455,8 +455,8 @@ describe('shared connection persistence', () => {
         }
     });
 
-    it('reports sessions whose copies could not be written', async () => {
-        const { backend, harness, unmount } = await render([TEST_SESSION_ID, MISSING_SESSION_ID]);
+    it('reports workbooks whose copies could not be written', async () => {
+        const { backend, harness, unmount } = await render([TEST_WORKBOOK_ID, MISSING_WORKBOOK_ID]);
         try {
             await dispatchAndSettle(harness, { type: SET_CONNECTION_DRAFT, value: trino('https://new') });
             let result!: ConnectionSaveResult | null;
@@ -465,17 +465,17 @@ describe('shared connection persistence', () => {
                 await new Promise<void>(resolve => setTimeout(resolve, 0));
             });
             expect(result!.manifest.status).toBe('written');
-            expect(result!.sessions.map(n => [n.sessionId, n.result.status])).toEqual([
-                [TEST_SESSION_ID, 'written'],
-                [MISSING_SESSION_ID, 'failed'],
+            expect(result!.workbooks.map(n => [n.workbookId, n.result.status])).toEqual([
+                [TEST_WORKBOOK_ID, 'written'],
+                [MISSING_WORKBOOK_ID, 'failed'],
             ]);
-            expect(backend.sessions.has(MISSING_SESSION_ID)).toBe(false);
+            expect(backend.workbooks.has(MISSING_WORKBOOK_ID)).toBe(false);
         } finally {
             unmount();
         }
     });
 
-    it('refuses to delete the embedded Hyper that no session uses', async () => {
+    it('refuses to delete the embedded Hyper that no workbook uses', async () => {
         const { harness, unmount } = await render([], {
             params: { hyper: { protocol: 'WASM' } } as any,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
@@ -490,7 +490,7 @@ describe('shared connection persistence', () => {
     });
 
     it('does not recreate the folder of a connection that was deleted with a write pending', async () => {
-        const backend = new SessionTestBackend();
+        const backend = new WorkbookTestBackend();
         const writer = new StorageWriter(new TestLogger(), backend);
         const written = writer.write(
             groupConnectionFileWrites(TEST_CONNECTION_ID, 'dashql-catalog-state.json'),
@@ -503,8 +503,8 @@ describe('shared connection persistence', () => {
         expect(backend.connectionFiles.has(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`)).toBe(false);
     });
 
-    it('refuses to delete connections that sessions use', async () => {
-        const { harness, unmount } = await render([TEST_SESSION_ID]);
+    it('refuses to delete connections that workbooks use', async () => {
+        const { harness, unmount } = await render([TEST_WORKBOOK_ID]);
         try {
             await dispatchAndSettle(harness, { type: DELETE_CONNECTION, value: null });
             expect(harness.registry.connections.has(TEST_CONNECTION_ID)).toBe(true);

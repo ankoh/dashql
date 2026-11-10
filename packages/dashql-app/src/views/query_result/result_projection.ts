@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { formatSqlText } from '../../session/scripts/script_format.js';
+import { formatSqlText } from '../../workbook/scripts/script_format.js';
 
 /// The name of the common table expression that holds the query of the script
 const PROJECTION_INPUT = 'base';

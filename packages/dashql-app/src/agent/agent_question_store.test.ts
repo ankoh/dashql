@@ -5,7 +5,7 @@ import { AgentQuestionStore } from './agent_question_store.js';
 const question = { question: 'how many rows', status: 'waiting for agent...', error: null, note: null, scripts: [] };
 
 describe('AgentQuestionStore', () => {
-    it('keeps the questions of every session apart', () => {
+    it('keeps the questions of every workbook apart', () => {
         const store = new AgentQuestionStore();
         const first = store.add('a', question);
         const second = store.add('b', { ...question, question: 'how many columns' });
@@ -16,13 +16,13 @@ describe('AgentQuestionStore', () => {
         expect(store.finish('b', second)).toBe(false);
     });
 
-    it('forgets a deleted session', () => {
+    it('forgets a deleted workbook', () => {
         const store = new AgentQuestionStore();
         const listener = vi.fn();
         store.subscribe(listener);
         const questionId = store.add('a', question);
         store.setTurnId('a', questionId, 'turn-1');
-        store.attach('a', { sessionScripts: vi.fn(), runScript: vi.fn(), followScript: vi.fn() });
+        store.attach('a', { workbookScripts: vi.fn(), runScript: vi.fn(), followScript: vi.fn() });
         listener.mockClear();
 
         store.drop('a');
@@ -31,7 +31,7 @@ describe('AgentQuestionStore', () => {
         expect(store.isWorking('a', questionId)).toBe(false);
         expect(store.turnId('a', questionId)).toBeNull();
         expect(store.feed('a')).toBeNull();
-        // The turn of the deleted session finishes without bringing it back
+        // The turn of the deleted workbook finishes without bringing it back
         expect(store.finish('a', questionId)).toBe(false);
         store.update('a', questionId, q => ({ ...q, status: null }));
         store.remove('a', questionId);

@@ -35,24 +35,24 @@ export function connectionReplaceCandidates(
 
 /// What keeps a connection from being replaced, null if it can be replaced.
 ///
-/// A replacement moves the scripts of every session to the other connection and removes the
+/// A replacement moves the scripts of every workbook to the other connection and removes the
 /// connection afterwards. Everything that would leave it half done blocks it up front:
-///  - The embedded Hyper is the connection that sessions fall back to, it is never removed.
+///  - The embedded Hyper is the connection that workbooks fall back to, it is never removed.
 ///  - Running queries would lose the connection they run on.
-///  - A session whose script changed outside the app holds its writes, its file can't follow.
+///  - A workbook whose script changed outside the app holds its writes, its file can't follow.
 export function connectionReplaceBlocker(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
     sourceId: string,
-    isSessionHeld: (sessionId: string) => boolean,
+    isWorkbookHeld: (workbookId: string) => boolean,
 ): string | null {
     const source = registry.connections.get(sourceId);
     if (source == null) return 'Unknown connection';
-    if (isHyperWasmConnection(source)) return 'Sessions fall back to it';
+    if (isHyperWasmConnection(source)) return 'Workbooks fall back to it';
     const running = source.queriesActiveOrdered.length;
     if (running > 0) return `${running} ${running === 1 ? 'query' : 'queries'} running`;
-    const held = references.sessionsOf(sourceId).filter(isSessionHeld).length;
-    if (held > 0) return `${held} ${held === 1 ? 'session' : 'sessions'} changed outside the app`;
+    const held = references.workbooksOf(sourceId).filter(isWorkbookHeld).length;
+    if (held > 0) return `${held} ${held === 1 ? 'workbook' : 'workbooks'} changed outside the app`;
     const candidates = connectionReplaceCandidates(registry, references, sourceId);
     if (candidates.sameConnector.length + candidates.otherConnectors.length === 0) return 'No other connection';
     return null;

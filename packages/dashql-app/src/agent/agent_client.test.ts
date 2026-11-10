@@ -75,49 +75,49 @@ describe('AgentClient', () => {
         vi.useRealTimers();
     });
 
-    it('connects only while a session has agent access', async () => {
-        client.setSessions([], null);
+    it('connects only while a workbook has agent access', async () => {
+        client.setWorkbooks([], null);
         expect(sockets).toHaveLength(0);
-        client.setSessions([{ id: 's1', name: 'Revenue' }], 's1');
+        client.setWorkbooks([{ id: 's1', name: 'Revenue' }], 's1');
         expect(sockets).toHaveLength(1);
         expect(sockets[0].url).toBe('ws://127.0.0.1:47100/v1/ws');
         sockets[0].open();
         expect(sockets[0].sent).toEqual([{
             id: 1,
-            method: 'client/sessions',
-            params: { protocol: AGENT_PROTOCOL_VERSION, client: 'web', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1', features: AGENT_FEATURES },
+            method: 'client/workbooks',
+            params: { protocol: AGENT_PROTOCOL_VERSION, client: 'web', workbooks: [{ id: 's1', name: 'Revenue' }], focused: 's1', features: AGENT_FEATURES },
         }]);
-        // Connected once the server took the sessions
+        // Connected once the server took the workbooks
         expect(client.status).toBe(AgentConnectionStatus.Connecting);
         sockets[0].receive({ id: 1, result: {} });
         await flush();
         expect(client.status).toBe(AgentConnectionStatus.Connected);
 
         // A focus without agent access is not announced
-        client.setSessions([{ id: 's1', name: 'Revenue' }], 'other');
+        client.setWorkbooks([{ id: 's1', name: 'Revenue' }], 'other');
         expect(sockets[0].sent[1].params.focused).toBeNull();
 
-        client.setSessions([], null);
+        client.setWorkbooks([], null);
         expect(sockets[0].closed).toBe(true);
         expect(client.status).toBe(AgentConnectionStatus.Off);
         expect(statuses).toEqual([AgentConnectionStatus.Connecting, AgentConnectionStatus.Connected, AgentConnectionStatus.Off]);
         expect(disconnects).toEqual(['Agent access was turned off']);
     });
 
-    it('stays connected without sessions while held', () => {
+    it('stays connected without workbooks while held', () => {
         client.setHeld(true);
         expect(sockets).toHaveLength(1);
         sockets[0].open();
-        expect(sockets[0].sent[0].params.sessions).toEqual([]);
-        client.setSessions([{ id: 's1', name: '' }], null);
-        client.setSessions([], null);
+        expect(sockets[0].sent[0].params.workbooks).toEqual([]);
+        client.setWorkbooks([{ id: 's1', name: '' }], null);
+        client.setWorkbooks([], null);
         expect(sockets[0].closed).toBe(false);
         client.setHeld(false);
         expect(sockets[0].closed).toBe(true);
     });
 
-    it('reconnects with backoff and announces the sessions again', async () => {
-        client.setSessions([{ id: 's1', name: '' }], null);
+    it('reconnects with backoff and announces the workbooks again', async () => {
+        client.setWorkbooks([{ id: 's1', name: '' }], null);
         sockets[0].drop();
         expect(client.status).toBe(AgentConnectionStatus.Connecting);
         vi.advanceTimersByTime(99);
@@ -130,7 +130,7 @@ describe('AgentClient', () => {
         vi.advanceTimersByTime(1);
         expect(sockets).toHaveLength(3);
         sockets[2].open();
-        expect(sockets[2].sent[0].method).toBe('client/sessions');
+        expect(sockets[2].sent[0].method).toBe('client/workbooks');
         // A connection that the server did not take keeps the backoff
         sockets[2].drop();
         vi.advanceTimersByTime(399);
@@ -148,7 +148,7 @@ describe('AgentClient', () => {
     });
 
     it('retries slowly when the server turns the client away', async () => {
-        client.setSessions([{ id: 's1', name: '' }], null);
+        client.setWorkbooks([{ id: 's1', name: '' }], null);
         sockets[0].open();
         sockets[0].drop(1008, 'protocol version 1 is not supported, expected 2');
         expect(client.status).toBe(AgentConnectionStatus.Incompatible);
@@ -157,7 +157,7 @@ describe('AgentClient', () => {
         expect(sockets).toHaveLength(1);
         vi.advanceTimersByTime(1);
         expect(sockets).toHaveLength(2);
-        // Still incompatible while it connects and until the server takes the sessions
+        // Still incompatible while it connects and until the server takes the workbooks
         expect(client.status).toBe(AgentConnectionStatus.Incompatible);
         sockets[1].open();
         expect(client.status).toBe(AgentConnectionStatus.Incompatible);
@@ -167,22 +167,22 @@ describe('AgentClient', () => {
     });
 
     it('answers commands with results and errors', async () => {
-        client.setSessions([{ id: 's1', name: '' }], 's1');
+        client.setWorkbooks([{ id: 's1', name: '' }], 's1');
         sockets[0].open();
-        sockets[0].receive({ id: 's1', method: 'command', params: { session: 's1', command: 'read', args: { script: 'q' } } });
+        sockets[0].receive({ id: 's1', method: 'command', params: { workbook: 's1', command: 'read', args: { script: 'q' } } });
         await flush();
         expect(sockets[0].sent).toHaveLength(2);
-        expect(handleCommand).toHaveBeenCalledExactlyOnceWith({ session: 's1', command: 'read', args: { script: 'q' } });
+        expect(handleCommand).toHaveBeenCalledExactlyOnceWith({ workbook: 's1', command: 'read', args: { script: 'q' } });
         expect(sockets[0].sent[1]).toEqual({ id: 's1', result: { text: 'ok' } });
 
         handleCommand.mockRejectedValueOnce(new AgentCommandError('usage', 'missing script'));
-        sockets[0].receive({ id: 's2', method: 'command', params: { session: 's1', command: 'read', args: {} } });
+        sockets[0].receive({ id: 's2', method: 'command', params: { workbook: 's1', command: 'read', args: {} } });
         await flush();
         expect(sockets[0].sent).toHaveLength(3);
         expect(sockets[0].sent[2]).toEqual({ id: 's2', error: { code: 'usage', message: 'missing script' } });
 
         handleCommand.mockRejectedValueOnce(new Error('boom'));
-        sockets[0].receive({ id: 's3', method: 'command', params: { session: 's1', command: 'run', args: {} } });
+        sockets[0].receive({ id: 's3', method: 'command', params: { workbook: 's1', command: 'run', args: {} } });
         await flush();
         expect(sockets[0].sent).toHaveLength(4);
         expect(sockets[0].sent[3]).toEqual({ id: 's3', error: { code: 'failed', message: 'boom' } });
@@ -190,14 +190,14 @@ describe('AgentClient', () => {
 
     it('logs commands with their short arguments, the texts at debug level', async () => {
         logger.buffer.setMinLogLevel(LogLevel.Debug);
-        client.setSessions([{ id: 's1', name: '' }], 's1');
+        client.setWorkbooks([{ id: 's1', name: '' }], 's1');
         sockets[0].open();
         handleCommand.mockResolvedValueOnce({ text: 'Updated q: sha256 abc, 0 errors\nq:1:1: warning: w' });
         const text = 'select 1\nfrom t';
-        sockets[0].receive({ id: 's1', method: 'command', params: { session: 's1', command: 'edit', args: { script: 'q', text } } });
+        sockets[0].receive({ id: 's1', method: 'command', params: { workbook: 's1', command: 'edit', args: { script: 'q', text } } });
         await flush();
         expect(records('Running a command of the agent').map(r => r.keyValues)).toEqual([
-            { id: 's1', command: 'edit', session: 's1', script: 'q', text: '15 characters, 2 lines' },
+            { id: 's1', command: 'edit', workbook: 's1', script: 'q', text: '15 characters, 2 lines' },
         ]);
         expect(records('The text of the command').map(r => r.keyValues)).toEqual([{ id: 's1', command: 'edit', text }]);
         expect(records('Finished the command of the agent').map(r => r.keyValues)).toMatchObject([
@@ -207,7 +207,7 @@ describe('AgentClient', () => {
         expect(records('Received from the agent server').every(r => r.level === LogLevel.Debug)).toBe(true);
 
         handleCommand.mockRejectedValueOnce(new AgentCommandError('usage', 'missing script'));
-        sockets[0].receive({ id: 's2', method: 'command', params: { session: 's1', command: 'read', args: {} } });
+        sockets[0].receive({ id: 's2', method: 'command', params: { workbook: 's1', command: 'read', args: {} } });
         await flush();
         expect(records('The command of the agent failed').map(r => r.keyValues)).toMatchObject([
             { id: 's2', command: 'read', code: 'usage', error: 'missing script' },
@@ -215,27 +215,27 @@ describe('AgentClient', () => {
     });
 
     it('resolves requests and passes notifications on', async () => {
-        client.setSessions([{ id: 's1', name: '' }], 's1');
+        client.setWorkbooks([{ id: 's1', name: '' }], 's1');
         sockets[0].open();
-        const request = client.request('agent/request', { session: 's1', prompt: 'hi' });
+        const request = client.request('agent/request', { workbook: 's1', prompt: 'hi' });
         const sent = sockets[0].sent[1];
-        expect(sent).toEqual({ id: 2, method: 'agent/request', params: { session: 's1', prompt: 'hi' } });
+        expect(sent).toEqual({ id: 2, method: 'agent/request', params: { workbook: 's1', prompt: 'hi' } });
         sockets[0].receive({ id: 2, result: { turnId: 't1', harness: 'codex' } });
         await expect(request).resolves.toEqual({ turnId: 't1', harness: 'codex' });
 
-        sockets[0].receive({ method: 'agent/done', params: { session: 's1', turnId: 't1', message: 'done' } });
-        expect(notifications).toEqual([['agent/done', { session: 's1', turnId: 't1', message: 'done' }]]);
+        sockets[0].receive({ method: 'agent/done', params: { workbook: 's1', turnId: 't1', message: 'done' } });
+        expect(notifications).toEqual([['agent/done', { workbook: 's1', turnId: 't1', message: 'done' }]]);
 
-        const failing = client.request('agent/request', { session: 'x', prompt: 'hi' });
-        sockets[0].receive({ id: 3, error: { code: 'usage', message: 'the session has no agent access' } });
-        await expect(failing).rejects.toThrow('the session has no agent access');
+        const failing = client.request('agent/request', { workbook: 'x', prompt: 'hi' });
+        sockets[0].receive({ id: 3, error: { code: 'usage', message: 'the workbook has no agent access' } });
+        await expect(failing).rejects.toThrow('the workbook has no agent access');
 
-        const pending = client.request('agent/cancel', { session: 's1' });
+        const pending = client.request('agent/cancel', { workbook: 's1' });
         sockets[0].drop();
         await expect(pending).rejects.toThrow('The agent server disconnected');
     });
 
     it('rejects requests while disconnected', async () => {
-        await expect(client.request('agent/cancel', { session: 's1' })).rejects.toThrow('The agent server is not connected');
+        await expect(client.request('agent/cancel', { workbook: 's1' })).rejects.toThrow('The agent server is not connected');
     });
 });

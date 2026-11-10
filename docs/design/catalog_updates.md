@@ -7,7 +7,7 @@ described in `core_analysis_catalog.md`, the batch worker in `catalog_batching.m
 
 - **The connection is the source of truth.** The connection layer only holds what the connection reported. A statement
   that ran says nothing about the connection: `create table if not exists t (a int)` on a `t(a, b)` still leaves `t(a, b)`.
-- **Scripts state an intent.** The declarations of session scripts fill in what the connection doesn't have, such as the
+- **Scripts state an intent.** The declarations of workbook scripts fill in what the connection doesn't have, such as the
   tables of scripts that haven't run yet. They never override it.
 - **The parser decides what to ask.** A statement it can name relations of leads to a lookup of these relations. A
   statement it doesn't know leads to nothing, there is no guessing from the text.
@@ -32,7 +32,7 @@ generated or parsed. The columns keep the order of the connection.
 
 ## After a statement
 
-1. **The parser names the relations** (`touched_relations`, `packages/dashql-core-session/src/touched_relations.rs`).
+1. **The parser names the relations** (`touched_relations`, `packages/dashql-core-workbook/src/touched_relations.rs`).
 2. **The query executor records them** for every statement of the user that reached the backend, from a script or a shell,
    also if it failed or was cancelled: a statement of many may have run, and a cancelled one may have run all the same.
    Results from the cache and the queries of the app record nothing, and neither does Salesforce, where nothing that runs
@@ -88,7 +88,7 @@ the next statement or a refresh. A Hyper refresh that fails for an attached data
 
 A full refresh only runs:
 
-- on user input: the refresh buttons of a connection and the refresh command of a session,
+- on user input: the refresh buttons of a connection and the refresh command of a workbook,
 - for the initial description of a connection when it comes online and nothing describes it yet
   (`CatalogUpdates.described`): no file was restored and no refresh succeeded,
 - whenever a connection whose database doesn't outlive the app comes online: its database is new.
@@ -99,7 +99,7 @@ must not take them for one.
 
 ## On disk
 
-Relations are SQL only in `dashql-catalog-relations.sql`: readable, and what session bundles carry. The descriptor is
+Relations are SQL only in `dashql-catalog-relations.sql`: readable, and what workbook bundles carry. The descriptor is
 rendered when the write runs, about 100 ms after an update that changed the catalog, so a run of statements saves it once
 and a lookup that changed nothing writes nothing. Functions are only written by a full refresh, the only update that reads
 them. Temporary relations stay out of the file, they don't outlive their database session. Restoring a connection parses the file once in the batch worker,
@@ -129,7 +129,7 @@ A script has one table of a name. Its last declaration wins, for the script and 
 `ALTER`s of the script. A statement in front of an `ALTER` that drops or renames a column of a table of the same script reads
 the table as it ends up, and reports the old name as unresolved.
 
-The planner doesn't model these statements, they are barriers and run in session order.
+The planner doesn't model these statements, they are barriers and run in workbook order.
 
 ## Copy-on-write
 

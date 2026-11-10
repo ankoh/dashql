@@ -8,7 +8,7 @@ import { ConnectionState, createConnectionState } from './connection_state.js';
 import type { ConnectionParams } from './connection_params.js';
 const LOG_CTX = "connection";
 
-export function decodeConnectionFromProto(conn: connection.Connection, sessionId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
+export function decodeConnectionFromProto(conn: connection.Connection, workbookId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
     if ('salesforce' in conn) {
         const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
         // Storage persists ConnectionParams (flat SalesforceConnectionParams),
@@ -68,7 +68,7 @@ export function decodeConnectionFromProto(conn: connection.Connection, sessionId
         };
         return [info, details];
     } else {
-        throw new LoggableException("unsupported connection details", { sessionId }, LOG_CTX);
+        throw new LoggableException("unsupported connection details", { workbookId }, LOG_CTX);
     }
 }
 

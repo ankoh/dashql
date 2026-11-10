@@ -3,14 +3,14 @@ import {
     STORAGE_CONNECTIONS_FOLDER,
     STORAGE_MANIFEST_FILE,
     STORAGE_SCRIPTS_FOLDER,
-    STORAGE_SESSION_FILE,
-    STORAGE_SESSIONS_FOLDER,
+    STORAGE_WORKBOOK_FILE,
+    STORAGE_WORKBOOKS_FOLDER,
     STORAGE_SHELL_FOLDER,
     StorageBackendType,
 } from './storage_backend.js';
-import { OPFS_MANIFEST_LOCK, OPFS_SESSION_TREE_LOCK } from './opfs_storage_backend.js';
+import { OPFS_MANIFEST_LOCK, OPFS_WORKBOOK_TREE_LOCK } from './opfs_storage_backend.js';
 import { type ManifestJson, readManifestJson } from './migration/storage_root.js';
-import { type SessionEntry, STORAGE_SESSION_TREE_FOLDER, flattenSessionTree, readSessionTree } from './session_tree.js';
+import { type WorkbookEntry, STORAGE_WORKBOOK_TREE_FOLDER, flattenWorkbookTree, readWorkbookTree } from './workbook_tree.js';
 import { SHELL_FILES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs.js';
 import {
     HYPER_INSTANCE_LOCK_PREFIX,
@@ -32,7 +32,7 @@ export interface OPFSCleanupCandidate {
     /// Why the entry can be deleted
     reason: string;
     /// The registration that would make the entry used again, checked again before the entry is deleted
-    guard: { sessionId: string } | { connectionId: string } | null;
+    guard: { workbookId: string } | { connectionId: string } | null;
     /// The Web Lock that marks the entry as in use, the entry is only deleted while the lock is free
     lockName: string | null;
 }
@@ -45,22 +45,22 @@ export interface OPFSCleanupResult {
     skipped: { path: string; reason: string }[];
 }
 
-/// The sessions that the session tree and the connections that the manifest registers, with lower-case ids
+/// The workbooks that the workbook tree and the connections that the manifest registers, with lower-case ids
 interface Registrations {
-    /// The sessions that live in OPFS
-    opfsSessions: Set<string>;
-    /// The sessions that live in a native folder, OPFS keeps a mirror of their attachments
-    nativeSessions: Set<string>;
+    /// The workbooks that live in OPFS
+    opfsWorkbooks: Set<string>;
+    /// The workbooks that live in a native folder, OPFS keeps a mirror of their attachments
+    nativeWorkbooks: Set<string>;
     /// The connections
     connections: Set<string>;
 }
 
-/// Read the registrations of the manifest and the session tree, null without a manifest
-function readRegistrations(manifest: ManifestJson | null, sessions: readonly SessionEntry[]): Registrations | null {
+/// Read the registrations of the manifest and the workbook tree, null without a manifest
+function readRegistrations(manifest: ManifestJson | null, workbooks: readonly WorkbookEntry[]): Registrations | null {
     if (manifest == null) return null;
-    const registrations: Registrations = { opfsSessions: new Set(), nativeSessions: new Set(), connections: new Set() };
-    for (const { path, storageType } of sessions) {
-        (storageType === StorageBackendType.Native ? registrations.nativeSessions : registrations.opfsSessions).add(path.toLowerCase());
+    const registrations: Registrations = { opfsWorkbooks: new Set(), nativeWorkbooks: new Set(), connections: new Set() };
+    for (const { path, storageType } of workbooks) {
+        (storageType === StorageBackendType.Native ? registrations.nativeWorkbooks : registrations.opfsWorkbooks).add(path.toLowerCase());
     }
     for (const entry of Array.isArray(manifest.connections) ? manifest.connections as unknown[] : []) {
         const { id } = (entry ?? {}) as { id?: unknown };
@@ -73,35 +73,35 @@ function readRegistrations(manifest: ManifestJson | null, sessions: readonly Ses
 function isRegistered(guard: OPFSCleanupCandidate['guard'], registrations: Registrations | null): boolean {
     if (guard == null) return false;
     if (registrations == null) return true;
-    if ('sessionId' in guard) {
-        const id = guard.sessionId.toLowerCase();
-        return registrations.opfsSessions.has(id) || registrations.nativeSessions.has(id);
+    if ('workbookId' in guard) {
+        const id = guard.workbookId.toLowerCase();
+        return registrations.opfsWorkbooks.has(id) || registrations.nativeWorkbooks.has(id);
     }
     return registrations.connections.has(guard.connectionId.toLowerCase());
 }
 
-/// The entries of a session folder in OPFS. The folder of a native session only mirrors its attachments.
-const OPFS_SESSION_ENTRIES = new Map<string, boolean>([
-    [STORAGE_SESSION_FILE, false],
+/// The entries of a workbook folder in OPFS. The folder of a native workbook only mirrors its attachments.
+const OPFS_WORKBOOK_ENTRIES = new Map<string, boolean>([
+    [STORAGE_WORKBOOK_FILE, false],
     [STORAGE_SCRIPTS_FOLDER, true],
     [STORAGE_ATTACHMENTS_FOLDER, true],
 ]);
-const NATIVE_SESSION_ENTRIES = new Map<string, boolean>([[STORAGE_ATTACHMENTS_FOLDER, true]]);
+const NATIVE_WORKBOOK_ENTRIES = new Map<string, boolean>([[STORAGE_ATTACHMENTS_FOLDER, true]]);
 
 const UNUSED = 'Not used by this version of DashQL';
 
 /// Find the OPFS entries that the current app version doesn't use.
 ///
-/// The scan compares the OPFS root against the current layout: the manifest, the session tree, the
-/// registered sessions and connections, the shell folders, the instance folders of open app windows and the Parquet
-/// exports. Everything else was left by earlier app versions, by interrupted operations or by sessions
+/// The scan compares the OPFS root against the current layout: the manifest, the workbook tree, the
+/// registered workbooks and connections, the shell folders, the instance folders of open app windows and the Parquet
+/// exports. Everything else was left by earlier app versions, by interrupted operations or by workbooks
 /// and connections that are gone. The scan reads directory listings only, it never reads files besides
-/// the manifest and the folder files of the session tree and only descends into the folders it knows.
+/// the manifest and the folder files of the workbook tree and only descends into the folders it knows.
 export async function findOPFSCleanupCandidates(
     root: FileSystemDirectoryHandle,
     locks: LockManager | null = navigator.locks ?? null,
 ): Promise<OPFSCleanupCandidate[]> {
-    // Without a manifest there is no telling which sessions and connections are registered, they are left alone
+    // Without a manifest there is no telling which workbooks and connections are registered, they are left alone
     const registrations = await readRootRegistrations(root);
     // Without Web Locks there is no telling which instance folders are alive, they are left alone
     const heldLocks = locks == null ? null : new Set(((await locks.query()).held ?? []).map(lock => lock.name));
@@ -119,8 +119,8 @@ export async function findOPFSCleanupCandidates(
         }
         const dir = handle as FileSystemDirectoryHandle;
         switch (name) {
-            case STORAGE_SESSIONS_FOLDER:
-                if (registrations != null) await scanSessions(dir, registrations, add);
+            case STORAGE_WORKBOOKS_FOLDER:
+                if (registrations != null) await scanWorkbooks(dir, registrations, add);
                 break;
             case STORAGE_CONNECTIONS_FOLDER:
                 if (registrations == null) break;
@@ -147,7 +147,7 @@ export async function findOPFSCleanupCandidates(
                 break;
             case STORAGE_SHELL_FOLDER:
             case SHELL_FILES_DIRECTORY:
-            case STORAGE_SESSION_TREE_FOLDER:
+            case STORAGE_WORKBOOK_TREE_FOLDER:
                 break;
             case HYPER_LEGACY_LOGS_DIRECTORY:
                 add([name], true, 'Hyper logs of an earlier version');
@@ -166,29 +166,29 @@ export async function findOPFSCleanupCandidates(
     return candidates.sort((a, b) => a.path.join('/').localeCompare(b.path.join('/'), undefined, { numeric: true }));
 }
 
-/// Scan the session folders against the registered sessions
-async function scanSessions(
-    sessions: FileSystemDirectoryHandle,
+/// Scan the workbook folders against the registered workbooks
+async function scanWorkbooks(
+    workbooks: FileSystemDirectoryHandle,
     registrations: Registrations,
     add: (path: string[], directory: boolean, reason: string, guard?: OPFSCleanupCandidate['guard']) => void,
 ): Promise<void> {
-    for await (const [id, handle] of sessions.entries()) {
-        const path = [STORAGE_SESSIONS_FOLDER, id];
+    for await (const [id, handle] of workbooks.entries()) {
+        const path = [STORAGE_WORKBOOKS_FOLDER, id];
         if (handle.kind !== 'directory') {
             add(path, false, UNUSED);
             continue;
         }
         const key = id.toLowerCase();
-        const native = registrations.nativeSessions.has(key);
-        if (!native && !registrations.opfsSessions.has(key)) {
-            add(path, true, 'Session that is not registered', { sessionId: id });
+        const native = registrations.nativeWorkbooks.has(key);
+        if (!native && !registrations.opfsWorkbooks.has(key)) {
+            add(path, true, 'Workbook that is not registered', { workbookId: id });
             continue;
         }
-        const expected = native ? NATIVE_SESSION_ENTRIES : OPFS_SESSION_ENTRIES;
+        const expected = native ? NATIVE_WORKBOOK_ENTRIES : OPFS_WORKBOOK_ENTRIES;
         for await (const [name, child] of (handle as FileSystemDirectoryHandle).entries()) {
             const directory = child.kind === 'directory';
             if (expected.get(name) !== directory) {
-                add([...path, name], directory, native ? 'Left behind when the session moved to a folder' : 'Not part of the current session layout');
+                add([...path, name], directory, native ? 'Left behind when the workbook moved to a folder' : 'Not part of the current workbook layout');
             } else if (name === STORAGE_SCRIPTS_FOLDER) {
                 // Scripts are flat files, script folders are pages of an earlier version
                 for await (const [script, entry] of (child as FileSystemDirectoryHandle).entries()) {
@@ -201,7 +201,7 @@ async function scanSessions(
 
 /// Delete cleanup candidates.
 ///
-/// The deletion holds the manifest and session tree locks and reads the registrations again, a candidate whose session or
+/// The deletion holds the manifest and workbook tree locks and reads the registrations again, a candidate whose workbook or
 /// connection was registered in the meantime is kept. A candidate with a lock is only deleted while
 /// its lock is free, and files that are still open are kept.
 export async function removeOPFSCleanupCandidates(
@@ -226,15 +226,15 @@ export async function removeOPFSCleanupCandidates(
         }
         return result;
     };
-    // Sessions are registered in the session tree and connections in the manifest, the deletion holds both locks
+    // Workbooks are registered in the workbook tree and connections in the manifest, the deletion holds both locks
     return locks != null
-        ? await locks.request(OPFS_MANIFEST_LOCK, () => locks.request(OPFS_SESSION_TREE_LOCK, run))
+        ? await locks.request(OPFS_MANIFEST_LOCK, () => locks.request(OPFS_WORKBOOK_TREE_LOCK, run))
         : await run();
 }
 
 /// Read the registrations of a storage root
 async function readRootRegistrations(root: FileSystemDirectoryHandle): Promise<Registrations | null> {
-    return readRegistrations(await readManifestJson(root), flattenSessionTree(await readSessionTree(root)));
+    return readRegistrations(await readManifestJson(root), flattenWorkbookTree(await readWorkbookTree(root)));
 }
 
 /// Remove an entry, returns why it was kept or null

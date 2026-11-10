@@ -24,7 +24,7 @@ describe('connector capabilities', () => {
         expect(connectionCatalogIsDurable(trino)).toBe(true);
     });
 
-    it('reads the attachments of a session only in the embedded Hyper', () => {
+    it('reads the attachments of a workbook only in the embedded Hyper', () => {
         expect(connectionReadsAttachments(getConnectionStateDetailsFromParams(embedded))).toBe(true);
         expect(connectionReadsAttachments(getConnectionStateDetailsFromParams(server))).toBe(false);
         expect(connectionReadsAttachments(getConnectionStateDetailsFromParams(trino))).toBe(false);

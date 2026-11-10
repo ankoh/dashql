@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
+import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 
 import { CONNECTOR_INFOS, ConnectorType, ConnectorInfo } from './connector_info.js';
 import { ConnectionStateWithoutId, createConnectionState } from './connection_state.js';
@@ -7,10 +7,10 @@ import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { CONNECTOR_DESCRIPTORS, connectionParamsOf, connectionStateDetailsOf, connectorOfDetails, connectorOfParams, connectorParams } from './connector_descriptor.js';
 
 // Re-export connection param types from JSON Schema
-export type ConnectionParams = app_session.ConnectionParams;
-export type HyperConnectionParams = app_session.HyperConnectionParams;
-export type SalesforceConnectionParams = app_session.SalesforceConnectionParams;
-export type TrinoConnectionParams = app_session.TrinoConnectionParams;
+export type ConnectionParams = app_workbook.ConnectionParams;
+export type HyperConnectionParams = app_workbook.HyperConnectionParams;
+export type SalesforceConnectionParams = app_workbook.SalesforceConnectionParams;
+export type TrinoConnectionParams = app_workbook.TrinoConnectionParams;
 
 /// Raw form rows belong only to the local draft, never to committed/runtime parameters.
 export function connectionParamsWithoutDraftRows(params: ConnectionParams): ConnectionParams {
@@ -40,7 +40,7 @@ export function connectionParamsEqual(left: ConnectionParams | undefined, right:
 
 /// A canonical encoding of the database that connection params describe.
 /// Secrets and login hints are stripped like for sharing, and empty lists and maps count as absent:
-/// default params leave them out, params written by a form or a session file carry them empty.
+/// default params leave them out, params written by a form or a workbook file carry them empty.
 function connectionIdentityKey(params: ConnectionParams): string {
     return JSON.stringify(sanitizeConnectionParamsForSharing(params, false), function (this: unknown, _key, value) {
         return !Array.isArray(this) && isEmptyCollection(value) ? undefined : sortObjectKeys(value);
@@ -48,8 +48,8 @@ function connectionIdentityKey(params: ConnectionParams): string {
 }
 
 /// Do two params describe the same connection, ignoring everything that sharing strips?
-/// Shared sessions carry sanitized params without secrets and login hints, they still describe the
-/// connection a local session uses with the full params.
+/// Shared workbooks carry sanitized params without secrets and login hints, they still describe the
+/// connection a local workbook uses with the full params.
 export function connectionParamsShareEqual(left: ConnectionParams, right: ConnectionParams): boolean {
     return connectionIdentityKey(left) === connectionIdentityKey(right);
 }

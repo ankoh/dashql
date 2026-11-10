@@ -100,7 +100,7 @@ function WobblePage(): React.ReactElement {
             <div className={styles.header}>
                 <h1 className={styles.title}>Wobble</h1>
                 <p className={styles.subtitle}>
-                    The agent on the empty session, it glances around and now and then melts into a brand mark.
+                    The agent on the empty workbook, it glances around and now and then melts into a brand mark.
                 </p>
             </div>
             <div className={styles.layout}>

@@ -1,11 +1,11 @@
 /// The version of the storage of the app (the OPFS root), stored as `storageVersion` in the manifest.
 /// A manifest without a version is at version 1. `STORAGE_MIGRATION_STEPS` ends with this version.
-export const STORAGE_VERSION = 8;
+export const STORAGE_VERSION = 9;
 
-/// The format version of the session metadata, stored as `formatVersion` in `dashql-session.json`.
-/// `SESSION_MIGRATION_STEPS` ends with this version.
-export const SESSION_FORMAT_VERSION = 10;
+/// The format version of the workbook metadata, stored as `formatVersion` in `dashql-workbook.json`.
+/// `WORKBOOK_MIGRATION_STEPS` ends with this version.
+export const WORKBOOK_FORMAT_VERSION = 11;
 
-/// Session folders up to this format version hold a copy of the catalog of their default connection,
+/// Workbook folders up to this format version hold a copy of the catalog of their default connection,
 /// the next format version removes it.
-export const SESSION_CATALOG_COPY_FORMAT_VERSION = 6;
+export const WORKBOOK_CATALOG_COPY_FORMAT_VERSION = 6;

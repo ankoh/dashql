@@ -46,10 +46,10 @@ export function isAppEventPostMessage(msg: any): msg is AppEventPostMessage {
         && typeof msg.data === "string";
 }
 
-export const SETUP_SESSION = Symbol("SETUP_SESSION");
-export const SETUP_SESSION_URL = Symbol("SETUP_SESSION_URL");
+export const SETUP_WORKBOOK = Symbol("SETUP_WORKBOOK");
+export const SETUP_WORKBOOK_URL = Symbol("SETUP_WORKBOOK_URL");
 
 export type SetupEventVariant =
-    | VariantKind<typeof SETUP_SESSION, Uint8Array>  // Session ZIP bytes
-    | VariantKind<typeof SETUP_SESSION_URL, string>  // Public dashql-session.json URL
+    | VariantKind<typeof SETUP_WORKBOOK, Uint8Array>  // Workbook ZIP bytes
+    | VariantKind<typeof SETUP_WORKBOOK_URL, string>  // Public dashql-workbook.json URL
     ;

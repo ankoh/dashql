@@ -636,9 +636,9 @@ if (!hasSingleInstanceLock) {
         return folder;
     });
 
-    ipcMain.handle("dashql:claim-session-folder", async (event, folder: unknown) => {
+    ipcMain.handle("dashql:claim-workbook-folder", async (event, folder: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof folder !== "string") throw new Error("Rejected folder claim");
-        return await (await folderGrants).claimSessionFolder(folder);
+        return await (await folderGrants).claimWorkbookFolder(folder);
     });
 
     // The app pins its color scheme or follows the OS, the windows follow the app.
@@ -668,7 +668,7 @@ if (!hasSingleInstanceLock) {
         const grants = await folderGrants;
         const resolved = await grants.resolve(requirePath(args[0]));
         if (resolved === null) {
-            // Folders that were not granted look missing to the probes, the app shows their sessions as unreadable
+            // Folders that were not granted look missing to the probes, the app shows their workbooks as unreadable
             switch (operation) {
                 case "exists": return false;
                 case "fileStamp": return null;

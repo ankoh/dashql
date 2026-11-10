@@ -14,11 +14,11 @@ import { join } from 'node:path';
 /// A page has to boot the core and Hyper
 const PAGE_TIMEOUT = 60_000;
 
-/// The editor with the script of a session that holds the text
+/// The editor with the script of a workbook that holds the text
 const scriptEditor = (page, text) => page.locator('.cm-content').filter({ hasText: text });
 
-/// Open the app and run a query in the composer of the new session
-async function openSessionWithQuery(page, navigate) {
+/// Open the app and run a query in the composer of the new workbook
+async function openWorkbookWithQuery(page, navigate) {
     await navigate('/');
     await page.getByRole('navigation', { name: 'Areas' }).waitFor();
     await page.getByTestId('composer-send').waitFor();
@@ -57,58 +57,58 @@ async function testAppWrappedScript(page, navigate) {
     if (overflow > 0) throw new Error(`The editor scrolls ${overflow}px sideways`);
 }
 
-/// The greeter at the root: a session only appears with its first script, a reload stays in it, the brand goes back
+/// The greeter at the root: a workbook only appears with its first script, a reload stays in it, the brand goes back
 async function testAppGreeter(page, navigate) {
     const expectGreeter = async () => {
         await page.getByTestId('feed-landing-wobble').waitFor();
-        await page.getByTestId('session-ephemeral-row').waitFor();
+        await page.getByTestId('workbook-ephemeral-row').waitFor();
         if (pathnameOf(page) !== '/') throw new Error(`The greeter is at ${page.url()}`);
-        if (!await page.getByTestId('create-session').isDisabled()) throw new Error('The greeter can jump to itself');
+        if (!await page.getByTestId('create-workbook').isDisabled()) throw new Error('The greeter can jump to itself');
     };
     await navigate('/');
     await expectGreeter();
-    if (await page.getByTestId('session-row-menu').count() !== 0) throw new Error('The greeter created a session');
-    // A reload doesn't create a session either
+    if (await page.getByTestId('workbook-row-menu').count() !== 0) throw new Error('The greeter created a workbook');
+    // A reload doesn't create a workbook either
     await navigate();
     await expectGreeter();
-    if (await page.getByTestId('session-row-menu').count() !== 0) throw new Error('The reload created a session');
+    if (await page.getByTestId('workbook-row-menu').count() !== 0) throw new Error('The reload created a workbook');
 
     await page.getByTestId('composer-send').waitFor();
     await page.locator('.cm-content').first().click();
     await page.keyboard.type('select 42 as answer');
     await page.getByTestId('composer-send').click();
     await page.getByText('Statement executed successfully').waitFor();
-    await page.waitForURL(url => url.pathname.startsWith('/sessions/'));
-    const sessionPathname = pathnameOf(page);
-    await page.getByTestId('session-row-menu').waitFor();
-    await page.getByTestId('session-ephemeral-row').waitFor();
+    await page.waitForURL(url => url.pathname.startsWith('/workbooks/'));
+    const workbookPathname = pathnameOf(page);
+    await page.getByTestId('workbook-row-menu').waitFor();
+    await page.getByTestId('workbook-ephemeral-row').waitFor();
 
     await navigate();
     await scriptEditor(page, 'select 42 as answer').waitFor();
-    if (pathnameOf(page) !== sessionPathname) throw new Error(`The reload left the session for ${page.url()}`);
+    if (pathnameOf(page) !== workbookPathname) throw new Error(`The reload left the workbook for ${page.url()}`);
 
     await page.getByTestId('brand-home').click();
     await expectGreeter();
-    await page.getByTestId('session-row-menu').waitFor();
-    // The session is one step back
+    await page.getByTestId('workbook-row-menu').waitFor();
+    // The workbook is one step back
     await page.goBack();
     await scriptEditor(page, 'select 42 as answer').waitFor();
-    await page.getByTestId('create-session').click();
+    await page.getByTestId('create-workbook').click();
     await expectGreeter();
     await page.goBack();
     await scriptEditor(page, 'select 42 as answer').waitFor();
-    await page.getByTestId('session-ephemeral-row').locator('button').click();
+    await page.getByTestId('workbook-ephemeral-row').locator('button').click();
     await expectGreeter();
-    // Opening the app at the root greets as well, with sessions in the list
+    // Opening the app at the root greets as well, with workbooks in the list
     await navigate('/');
     await expectGreeter();
-    await page.getByTestId('session-row-menu').waitFor();
+    await page.getByTestId('workbook-row-menu').waitFor();
 }
 
-/// The views of a session on the real providers: the dashboard, the dataflow canvas and its editor dialog.
+/// The views of a workbook on the real providers: the dashboard, the dataflow canvas and its editor dialog.
 /// An edit in the dialog is still there after a reload.
-async function testAppSession(page, navigate) {
-    await openSessionWithQuery(page, navigate);
+async function testAppWorkbook(page, navigate) {
+    await openWorkbookWithQuery(page, navigate);
 
     await page.getByRole('button', { name: 'Dashboard' }).click();
     await page.getByTestId('dashboard-card-edit').first().click();
@@ -133,13 +133,13 @@ async function testAppSession(page, navigate) {
     await scriptEditor(page, 'select 43 as answer').waitFor();
 }
 
-/// The storage of the session, the navbar and the color scheme
+/// The storage of the workbook, the navbar and the color scheme
 async function testAppChrome(page, navigate) {
-    await openSessionWithQuery(page, navigate);
+    await openWorkbookWithQuery(page, navigate);
 
-    await page.getByTestId('session-row-menu').first().click();
-    await page.locator('[data-testid="session-menu-item"][data-action="storage"]').click();
-    await page.getByText('Session Storage').waitFor();
+    await page.getByTestId('workbook-row-menu').first().click();
+    await page.locator('[data-testid="workbook-menu-item"][data-action="storage"]').click();
+    await page.getByText('Workbook Storage').waitFor();
     await page.getByRole('button', { name: 'close-overlay' }).click();
     await page.keyboard.press('Escape');
 
@@ -171,28 +171,28 @@ async function testAppCatalogFollowsStatements(page, navigate) {
         await page.getByTestId('composer-send').click();
         await scriptEditor(page, label).waitFor();
     };
-    await send('create table page_catalog_session (page_column int)', 'page_catalog_session');
+    await send('create table page_catalog_workbook (page_column int)', 'page_catalog_workbook');
     const tree = page.getByLabel('Connections and catalogs');
-    const table = tree.getByText('page_catalog_session');
+    const table = tree.getByText('page_catalog_workbook');
     for (const name of ['Expand hyper', 'Expand public']) {
         const row = tree.getByRole('button', { name, exact: true });
         await row.waitFor({ timeout: 30_000 });
         await row.click();
     }
     await table.first().waitFor({ state: 'attached', timeout: 30_000 });
-    await send('drop table page_catalog_session', 'drop table page_catalog_session');
+    await send('drop table page_catalog_workbook', 'drop table page_catalog_workbook');
     await table.first().waitFor({ state: 'detached', timeout: 30_000 });
 }
 
-/// The link of a session opens a second session with its script
-async function testAppSharedSession(page, navigate) {
-    await openSessionWithQuery(page, navigate);
+/// The link of a workbook opens a second workbook with its script
+async function testAppSharedWorkbook(page, navigate) {
+    await openWorkbookWithQuery(page, navigate);
     await page.getByTestId('share-url').click();
     const field = page.locator('input[disabled]').first();
     await page.waitForFunction(element => element.value.length > 0, await field.elementHandle());
     const link = new URL(await field.inputValue());
     await navigate(`/${link.search}`);
-    await page.getByTestId('session-row-menu').nth(1).waitFor();
+    await page.getByTestId('workbook-row-menu').nth(1).waitFor();
     await scriptEditor(page, 'select 42 as answer').waitFor();
 }
 
@@ -395,7 +395,7 @@ async function testAppNarrow(page, navigate) {
     await page.getByRole('heading', { name: 'Narrow Screen' }).waitFor();
     await page.getByRole('button', { name: 'Enable Narrow Screen Layout' }).click();
     await page.getByTestId('open-workbench').click();
-    await page.getByRole('heading', { name: 'Sessions' }).last().waitFor();
+    await page.getByRole('heading', { name: 'Workbooks' }).last().waitFor();
 }
 
 /// Firefox under Playwright fires `cancel` on a file input when the test intercepts its chooser, before the test picks
@@ -504,12 +504,12 @@ const DESKTOP = { viewport: { width: 1280, height: 720 } };
 const NARROW = { viewport: { width: 420, height: 800 } };
 
 const PAGE_TESTS = [
-    { name: 'app_session', options: DESKTOP, test: testAppSession },
+    { name: 'app_workbook', options: DESKTOP, test: testAppWorkbook },
     { name: 'app_greeter', options: DESKTOP, test: testAppGreeter },
     { name: 'app_wrapped_script', options: DESKTOP, test: testAppWrappedScript },
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
     { name: 'app_catalog', options: DESKTOP, test: testAppCatalogFollowsStatements },
-    { name: 'app_shared_session', options: DESKTOP, test: testAppSharedSession },
+    { name: 'app_shared_workbook', options: DESKTOP, test: testAppSharedWorkbook },
     { name: 'app_feed_scroll_position', options: DESKTOP, test: testAppFeedScrollPosition },
     { name: 'app_drag_regions', options: DESKTOP, test: testAppDragRegions },
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },

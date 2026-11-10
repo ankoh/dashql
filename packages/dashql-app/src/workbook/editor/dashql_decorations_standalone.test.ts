@@ -1,0 +1,175 @@
+import * as dashql from '@ankoh/dashql-core';
+
+import { EditorState } from '@codemirror/state';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { EditorView } from '@codemirror/view';
+import { tags } from '@lezer/highlight';
+
+import {
+    buildDecorationsForRanges,
+    commentTag,
+    DashQLScannerDecorationUpdateEffect,
+    DashQLStandaloneScannerDecorationPlugin,
+} from './dashql_decorations_standalone.js';
+import { xcodeTheme } from './themes/xcode.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: dashql.DashQL | null = null;
+beforeAll(async () => {
+    dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+});
+afterEach(() => dql!.resetUnsafe());
+
+describe('scanner decorations', () => {
+    it('highlights comments from the separate comment spans', () => {
+        const text = '-- leading comment\nselect /* middle comment */ 1';
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, text);
+        script.analyze();
+        const workbook = dql!.createScriptSession(catalog);
+        workbook.replaceText(0n, text);
+        const update = workbook.analyze();
+        const state = EditorState.create({
+            doc: text,
+            extensions: syntaxHighlighting(HighlightStyle.define([{ tag: commentTag, class: 'comment' }])),
+        });
+
+        const ranges: Array<{ from: number; to: number }> = [];
+        buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
+            0,
+            text.length,
+            (from, to, value) => {
+                if (value.spec.class.split(' ').includes('comment')) ranges.push({ from, to });
+            },
+        );
+
+        expect(ranges).toEqual([
+            { from: 0, to: '-- leading comment'.length },
+            { from: text.indexOf('/*'), to: text.indexOf('*/') + 2 },
+        ]);
+        workbook.destroy();
+        script.destroy();
+        catalog.destroy();
+    });
+
+    it('highlights the tokens of @vis tags in comments quieter than the SQL', () => {
+        const text = '/* @vis vegalite {"mark": "bar", "size": 3} */select 1;\n-- @board width=2\n-- @end\nselect 2';
+        const catalog = dql!.createCatalog();
+        const workbook = dql!.createScriptSession(catalog);
+        workbook.replaceText(0n, text);
+        const update = workbook.analyze();
+        const state = EditorState.create({ doc: text });
+
+        const quiet: string[] = [];
+        const loud: string[] = [];
+        buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
+            0,
+            text.length,
+            (from, to, value) => {
+                if (value.spec.class.split(' ').includes('dashql-comment')) return;
+                const inComment = value.spec.class.split(' ').includes('dashql-comment-token');
+                (inComment ? quiet : loud).push(text.slice(from, to));
+            },
+        );
+
+        expect(quiet).toEqual(['@vis', 'vegalite', '"mark"', '"bar"', '"size"', '3', '@board', 'width', '2', '@end']);
+        expect(loud).toEqual(['select', '1', 'select', '2']);
+        workbook.destroy();
+        catalog.destroy();
+    });
+
+    it('highlights the tags alike and steps back the comment markers of tagged regions', () => {
+        const text = '-- @vis markdown\n-- Two lines\n-- of text.\n-- @end\nselect 1; -- plain\n/* @board width=6\n   @vis table */ select 2';
+        const catalog = dql!.createCatalog();
+        const workbook = dql!.createScriptSession(catalog);
+        workbook.replaceText(0n, text);
+        const update = workbook.analyze();
+        const state = EditorState.create({
+            doc: text,
+            extensions: syntaxHighlighting(HighlightStyle.define([{ tag: commentTag, class: 'comment' }])),
+        });
+
+        const markers: string[] = [];
+        const tags: string[] = [];
+        const comments: string[] = [];
+        buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
+            0,
+            text.length,
+            (from, to, value) => {
+                const classes = value.spec.class.split(' ');
+                if (classes.includes('dashql-comment-tag')) markers.push(text.slice(from, to));
+                else if (classes.includes('dashql-comment-token')) tags.push(text.slice(from, to));
+                else if (classes.includes('comment')) comments.push(text.slice(from, to));
+            },
+        );
+
+        expect(tags).toEqual(['@vis', 'markdown', '@end', '@board', 'width', '6', '@vis', 'table']);
+        expect(markers).toEqual(['-- ', ' ', '-- ', '-- ', '-- ', '/* ', ' ', '\n   ', ' ', ' */']);
+        // The text of the tags keeps the color of comments
+        expect(comments).toEqual(['Two lines', 'of text.', '-- plain', '=']);
+        workbook.destroy();
+        catalog.destroy();
+    });
+
+    it('highlights relation and function identifiers', () => {
+        const text = 'select util.read_parquet(path) from db.public.items';
+        const catalog = dql!.createCatalog();
+        const workbook = dql!.createScriptSession(catalog);
+        workbook.replaceText(0n, text);
+        const update = workbook.analyze();
+        const state = EditorState.create({
+            doc: text,
+            extensions: syntaxHighlighting(HighlightStyle.define([
+                { tag: tags.name, class: 'identifier' },
+                { tag: tags.keyword, class: 'keyword' },
+                { tag: tags.typeName, class: 'relation' },
+                { tag: tags.function(tags.variableName), class: 'function' },
+            ])),
+        });
+
+        const highlighted = new Map<string, string>();
+        buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
+            0,
+            text.length,
+            (from, to, value) => {
+                highlighted.set(text.slice(from, to), value.spec.class);
+            },
+        );
+
+        expect(highlighted.get('util')).toBe('function');
+        expect(highlighted.get('read_parquet')).toBe('function');
+        expect(highlighted.get('db')).toBe('relation');
+        expect(highlighted.get('public')).toBe('relation');
+        expect(highlighted.get('items')).toBe('relation');
+        workbook.destroy();
+        catalog.destroy();
+    });
+
+    it('renders relation and function colors with the production theme', () => {
+        const text = 'select read_parquet(path) from items';
+        const catalog = dql!.createCatalog();
+        const workbook = dql!.createScriptSession(catalog);
+        workbook.replaceText(0n, text);
+        const update = workbook.analyze();
+        const view = new EditorView({
+            state: EditorState.create({
+                doc: text,
+                extensions: [xcodeTheme, DashQLStandaloneScannerDecorationPlugin],
+            }),
+            parent: document.body,
+        });
+        view.dispatch({ effects: DashQLScannerDecorationUpdateEffect.of(update) });
+
+        const functionNode = Array.from(view.dom.querySelectorAll('span')).find(node => node.textContent === 'read_parquet');
+        const relationNode = Array.from(view.dom.querySelectorAll('span')).find(node => node.textContent === 'items');
+        expect(functionNode?.className).not.toBe('');
+        expect(relationNode?.className).not.toBe('');
+        expect(getComputedStyle(functionNode!).color).not.toBe('rgb(61, 61, 61)');
+        expect(getComputedStyle(relationNode!).color).not.toBe('rgb(61, 61, 61)');
+        view.destroy();
+        workbook.destroy();
+        catalog.destroy();
+    });
+});

@@ -46,9 +46,10 @@ export function manifestSessionEntries(manifest: ManifestJson): unknown[] {
     return Array.isArray(manifest.sessions) ? manifest.sessions as unknown[] : [];
 }
 
-/// The session folders of session entries that can be reached: OPFS sessions live in `sessions/<uuid>`,
-/// native sessions in their own directory, which may be missing or unavailable outside of the native app.
-export async function listSessionFolders(root: FileSystemDirectoryHandle, entries: readonly unknown[]): Promise<RegisteredSessionFolder[]> {
+/// The session folders of session entries that can be reached: OPFS sessions live in `<folder>/<uuid>`, `sessions/<uuid>`
+/// up to storage version 8 and `workbooks/<uuid>` after it, native sessions in their own directory, which may be missing
+/// or unavailable outside of the native app.
+export async function listSessionFolders(root: FileSystemDirectoryHandle, entries: readonly unknown[], opfsFolder: string = 'sessions'): Promise<RegisteredSessionFolder[]> {
     const folders: RegisteredSessionFolder[] = [];
     for (const entry of entries) {
         const { path, storageType, nativePath } = (entry ?? {}) as { path?: unknown; storageType?: unknown; nativePath?: unknown };
@@ -60,7 +61,7 @@ export async function listSessionFolders(root: FileSystemDirectoryHandle, entrie
                 continue;
             }
             // Folders registered before the app granted folders are claimed once, later starts reject the claim
-            await globalThis.dashqlElectron.claimSessionFolder(nativePath);
+            await globalThis.dashqlElectron.claimWorkbookFolder(nativePath);
             if (!(await exists(nativePath))) {
                 continue;
             }
@@ -68,7 +69,7 @@ export async function listSessionFolders(root: FileSystemDirectoryHandle, entrie
             continue;
         }
         try {
-            const dir = await (await root.getDirectoryHandle('sessions', { create: false })).getDirectoryHandle(path, { create: false });
+            const dir = await (await root.getDirectoryHandle(opfsFolder, { create: false })).getDirectoryHandle(path, { create: false });
             folders.push({ sessionId: path, folder: new OPFSFolder(dir) });
         } catch (error) {
             if ((error as DOMException).name !== 'NotFoundError') {

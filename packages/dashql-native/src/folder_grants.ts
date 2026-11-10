@@ -1,8 +1,9 @@
 import {access, lstat, readFile, realpath, rename, writeFile} from "node:fs/promises";
 import path from "node:path";
 
-/// The files that mark a session folder: `STORAGE_SESSION_FILE` of the app and its name before sessions were renamed
-export const SESSION_FILES = ["dashql-session.json", "dashql-notebook.json"];
+/// The files that mark a workbook folder: `STORAGE_WORKBOOK_FILE` of the app and its names before workbooks were
+/// called sessions, and notebooks before that
+export const WORKBOOK_FILES = ["dashql-workbook.json", "dashql-session.json", "dashql-notebook.json"];
 
 /// The folders that the renderer may access through `dashql:fs`.
 ///
@@ -11,7 +12,7 @@ export const SESSION_FILES = ["dashql-session.json", "dashql-notebook.json"];
 ///
 /// Storage written before the grants existed refers to its session folders by path. The renderer claims them
 /// once: a claim is accepted only while the grants file did not exist when the app started, and only for a folder
-/// that holds a session file.
+/// that holds a workbook file.
 export class FolderGrants {
     /// The saves, one after the other
     private saving: Promise<void> = Promise.resolve();
@@ -22,7 +23,7 @@ export class FolderGrants {
         private readonly claimsOpen: boolean,
     ) {}
 
-    /// Load the grants, a missing file opens the claims of existing session folders
+    /// Load the grants, a missing file opens the claims of existing workbook folders
     static async load(file: string): Promise<FolderGrants> {
         let text: string;
         try {
@@ -44,8 +45,8 @@ export class FolderGrants {
         await this.save();
     }
 
-    /// Grant a session folder that the storage registered before the grants existed
-    async claimSessionFolder(folder: string): Promise<boolean> {
+    /// Grant a workbook folder that the storage registered before the grants existed
+    async claimWorkbookFolder(folder: string): Promise<boolean> {
         if (!this.claimsOpen || !path.isAbsolute(folder)) return false;
         let root: string;
         try {
@@ -53,7 +54,7 @@ export class FolderGrants {
         } catch {
             return false;
         }
-        const marked = await Promise.all(SESSION_FILES.map(file => access(path.join(root, file)).then(() => true, () => false)));
+        const marked = await Promise.all(WORKBOOK_FILES.map(file => access(path.join(root, file)).then(() => true, () => false)));
         if (!marked.includes(true)) return false;
         if (!this.roots.has(root)) {
             this.roots.add(root);

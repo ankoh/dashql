@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as styles from './query_result_header.module.css';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
-import { TabHeader } from '../../session/tab_header.js';
+import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';

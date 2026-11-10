@@ -80,7 +80,7 @@ and normalized: coordinates must be non-negative, the width is clamped to 1 thro
 card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `@board`
 tag of the statement it shows (see Rewriting tags).
 
-Every script of the session is a card, placed by the `@board` tag of its last statement. A script whose last
+Every script of the workbook is a card, placed by the `@board` tag of its last statement. A script whose last
 statement has no renderer is a collapsed card: a header of one row, 4 columns wide by default, whose width can change,
 but not its height.
 
@@ -88,7 +88,7 @@ The board has two sections, each a grid of its own: the collapsed cards on top, 
 `column` count from the top left corner of the section of the card, and a card moves and resizes within its section.
 A card that gets its first renderer or loses its last one changes the section: the rewrite of the renderer also removes
 its `@board`, and the card flows into its new section with the default size of the section. The cards with a `row` or
-`column` are placed first, in the order of the session, the cards without one then take the first free space, row by
+`column` are placed first, in the order of the workbook, the cards without one then take the first free space, row by
 row.
 
 The header of a collapsed card offers the renderers of a query as icons:
@@ -197,13 +197,13 @@ with warnings (`INVALID_VIS_TAG`, `INVALID_DASHBOARD_LAYOUT`) whose spans point 
 
 A renderer with an invalid body leaves the query a plain query.
 
-The position of the script is `AnalyzedScript::flow`, the editor session passes it to the app as
+The position of the script is `AnalyzedScript::flow`, the editor workbook passes it to the app as
 `flow_position` of the script annotations. The dashboard placement of the script is `AnalyzedScript::board`, the
 `@board` of the last statement with or without a renderer, passed as `board_position`.
 
 ## Compilation and rendering
 
-The compiler (`dashql-core-session/src/compiler.rs`) describes a terminal query with a visualization as
+The compiler (`dashql-core-workbook/src/compiler.rs`) describes a terminal query with a visualization as
 `VISUALIZE` for the editor, the planner attaches the visualization to the node of any visualized query, and
 runs execute the plan. The executed SQL is the statement as written, the tags are comments. In the shell,
 the tags are plain comments.

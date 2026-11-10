@@ -8,12 +8,12 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import { ConnectionHealth } from '../connections/connection_state.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
-    CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, createEmptyScriptData, reduceSessionScripts, replaceScriptSessionText,
-    type SessionScripts,
-} from '../session/scripts/session_scripts.js';
-import { createScriptRef } from '../session/scripts/script_types.js';
-import { acquireSessionExecution, isSessionExecutionRunning, releaseSessionExecution } from '../session/scripts/session_execution.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
+    CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, createEmptyScriptData, reduceWorkbookScripts, replaceScriptSessionText,
+    type WorkbookScripts,
+} from '../workbook/scripts/workbook_scripts.js';
+import { createScriptRef } from '../workbook/scripts/script_types.js';
+import { acquireWorkbookExecution, isWorkbookExecutionRunning, releaseWorkbookExecution } from '../workbook/scripts/workbook_execution.js';
+import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 import { StorageWriter } from '../storage/storage_writer.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
@@ -32,13 +32,13 @@ function script(scriptKey: number, fileName: string, text: string, diagnostics: 
     } as any;
 }
 
-function session(scripts: any[]): SessionScripts {
+function workbook(scripts: any[]): WorkbookScripts {
     return {
-        sessionId: 's1',
+        workbookId: 's1',
         name: 'Revenue',
         pendingConnection: scripts.length === 0 ? { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any } : null,
         instance: {} as any,
-        sessionMetadata: {} as any,
+        workbookMetadata: {} as any,
         scripts: Object.fromEntries(scripts.map(s => [s.scriptKey, s])),
         scriptRefs: Object.fromEntries(scripts.map(s => [s.fileName, { scriptId: s.scriptKey, fileName: s.fileName }])),
         scriptOrder: scripts.map(s => s.fileName),
@@ -48,14 +48,14 @@ function session(scripts: any[]): SessionScripts {
 }
 
 describe('agent commands', () => {
-    let state: SessionScripts;
+    let state: WorkbookScripts;
     let modify: ReturnType<typeof vi.fn>;
     let connections: Map<string, any>;
     let env: AgentCommandEnvironment;
     let edited: number[];
 
     beforeEach(() => {
-        state = session([script(1, 'orders.sql', 'select 1'), script(2, 'Customers.sql', 'select 2\nfrom c')]);
+        state = workbook([script(1, 'orders.sql', 'select 1'), script(2, 'Customers.sql', 'select 2\nfrom c')]);
         modify = vi.fn(async () => state);
         connections = new Map([['db', {
             connectionId: 'db',
@@ -69,17 +69,17 @@ describe('agent commands', () => {
         }]]);
         edited = [];
         env = {
-            sessionScripts: id => (id === 's1' ? state : null),
-            modifySessionScripts: modify as any,
+            workbookScripts: id => (id === 's1' ? state : null),
+            modifyWorkbookScripts: modify as any,
             connections: () => ({ connections, connectionsByType: [] }),
             executeQuery: vi.fn() as any,
             logger: new TestLogger(),
-            onScriptEdited: (_session, scriptKey) => edited.push(scriptKey),
+            onScriptEdited: (_workbook, scriptKey) => edited.push(scriptKey),
         };
     });
 
-    const run = (command: string, args: Record<string, unknown> = {}, sessionId: string = 's1') =>
-        runAgentCommand(env, { session: sessionId, command, args });
+    const run = (command: string, args: Record<string, unknown> = {}, workbookId: string = 's1') =>
+        runAgentCommand(env, { workbook: workbookId, command, args });
 
     it('finds scripts by name, with or without the extension', () => {
         expect(findScript(state, 'orders')?.scriptKey).toBe(1);
@@ -90,7 +90,7 @@ describe('agent commands', () => {
     it('lists the scripts', async () => {
         const result = await run('scripts');
         expect(result.text).toBe([
-            'Session "Revenue" (s1)',
+            'Workbook "Revenue" (s1)',
             'Connections: db (embedded Hyper, read-write, online)',
             'Scripts:',
             '  orders  1 line  (focused)',
@@ -100,9 +100,9 @@ describe('agent commands', () => {
 
     /// A script on the Trino connection lake
     const onLake = (s: any) => ({ ...s, connection: { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: {} } });
-    /// Add the Trino connection lake with a script on it to the session
+    /// Add the Trino connection lake with a script on it to the workbook
     const useLake = () => {
-        state = session([...Object.values(state.scripts), onLake(script(3, 'events.sql', 'select 3'))]);
+        state = workbook([...Object.values(state.scripts), onLake(script(3, 'events.sql', 'select 3'))]);
         connections.set('lake', {
             connectionId: 'lake',
             connectionHealth: ConnectionHealth.ONLINE,
@@ -133,8 +133,8 @@ describe('agent commands', () => {
         expect((result.data as any).connections[1]).toMatchObject({ id: 'lake', cachesResults: false });
     });
 
-    it('offers the embedded Hyper to a session that does not use it', async () => {
-        state = session([onLake(script(3, 'events.sql', 'select 3'))]);
+    it('offers the embedded Hyper to a workbook that does not use it', async () => {
+        state = workbook([onLake(script(3, 'events.sql', 'select 3'))]);
         connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR, value: { proto: {} } } });
         const result = await run('scripts');
         expect(result.text).toContain('Connections: lake (Trino, read-only, online, caches results), db (embedded Hyper, read-write, online)');
@@ -142,7 +142,7 @@ describe('agent commands', () => {
     });
 
     it('allocates the embedded Hyper for the agent when the app holds none', async () => {
-        state = session([onLake(script(3, 'events.sql', 'select 3'))]);
+        state = workbook([onLake(script(3, 'events.sql', 'select 3'))]);
         const db = connections.get('db');
         connections.delete('db');
         connections.set('lake', { connectionId: 'lake', connectionHealth: ConnectionHealth.ONLINE, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], details: { type: TRINO_CONNECTOR, value: { proto: {} } } });
@@ -155,7 +155,7 @@ describe('agent commands', () => {
         expect(result.text).toContain('Connections: lake (Trino, read-only, online, caches results), db (embedded Hyper, read-write, online)');
     });
 
-    it('lists the attachments of the session', async () => {
+    it('lists the attachments of the workbook', async () => {
         state.attachments = [
             { fileName: 'sales.parquet', name: 'sales', sizeBytes: 2000, mtimeMs: 0, columns: ['region', 'amount'] },
             { fileName: 'events.parquet', name: 'events', sizeBytes: 12, mtimeMs: 0, columns: null },
@@ -168,21 +168,21 @@ describe('agent commands', () => {
         ].join('\n'));
         expect((result.data as any).attachments[0]).toEqual({ fileName: 'sales.parquet', name: 'sales', sizeBytes: 2000, columns: ['region', 'amount'] });
         const catalog = await run('catalog', { connection: 'db' });
-        expect(catalog.text).toContain('-- The attachments of the session, read them as table parameters\n-- :sales (region, amount)');
+        expect(catalog.text).toContain('-- The attachments of the workbook, read them as table parameters\n-- :sales (region, amount)');
     });
 
     it('reads a script', async () => {
         expect((await run('read', { script: 'customers' })).text).toBe('select 2\nfrom c');
     });
 
-    it('fails for unknown scripts and sessions', async () => {
+    it('fails for unknown scripts and workbooks', async () => {
         await expect(run('read', { script: 'nope' })).rejects.toThrow('No script named nope. Scripts: orders, Customers');
         await expect(run('read', {})).rejects.toBeInstanceOf(AgentCommandError);
-        await expect(run('scripts', {}, 'gone')).rejects.toThrow('The session gone is not open in DashQL');
+        await expect(run('scripts', {}, 'gone')).rejects.toThrow('The workbook gone is not open in DashQL');
     });
 
     it('replaces the text of a script and reports its diagnostics', async () => {
-        const after = session([
+        const after = workbook([
             script(1, 'orders.sql', 'select x', [{ severity: core.buffers.editor.EditorDiagnosticSeverity.ERROR, message: 'unknown column', textSpan: { offset: 7, length: 1 } }]),
             script(2, 'Customers.sql', 'select 2\nfrom c'),
         ]);
@@ -194,9 +194,9 @@ describe('agent commands', () => {
     });
 
     it('creates a script with the given name', async () => {
-        const created = session([...Object.values(state.scripts), script(3, 'brave-otter.sql', 'select 3')]);
+        const created = workbook([...Object.values(state.scripts), script(3, 'brave-otter.sql', 'select 3')]);
         created.scriptFocus = { fileName: 'brave-otter.sql' };
-        const renamed = session([...Object.values(state.scripts), script(3, 'top.sql', 'select 3')]);
+        const renamed = workbook([...Object.values(state.scripts), script(3, 'top.sql', 'select 3')]);
         modify.mockResolvedValueOnce(created).mockResolvedValueOnce(renamed);
         const result = await run('edit', { script: 'top.sql', text: 'select 3' });
         expect(modify.mock.calls).toEqual([
@@ -207,11 +207,11 @@ describe('agent commands', () => {
         expect(edited).toEqual([3]);
     });
 
-    it('creates a script on another connection of the session', async () => {
+    it('creates a script on another connection of the workbook', async () => {
         useLake();
-        const created = session([...Object.values(state.scripts), onLake(script(4, 'brave-otter.sql', 'select 4'))]);
+        const created = workbook([...Object.values(state.scripts), onLake(script(4, 'brave-otter.sql', 'select 4'))]);
         created.scriptFocus = { fileName: 'brave-otter.sql' };
-        const renamed = session([...Object.values(state.scripts), onLake(script(4, 'top.sql', 'select 4'))]);
+        const renamed = workbook([...Object.values(state.scripts), onLake(script(4, 'top.sql', 'select 4'))]);
         modify.mockResolvedValueOnce(created).mockResolvedValueOnce(renamed);
         const result = await run('edit', { script: 'top', text: 'select 4', connection: 'lake' });
         expect(modify.mock.calls[0]).toEqual(['s1', { type: CREATE_SCRIPT, value: { index: null, text: 'select 4', connection: lakeConnection } }]);
@@ -219,10 +219,10 @@ describe('agent commands', () => {
         expect((result.data as any).connection).toBe('lake');
     });
 
-    it('moves a script to another connection of the session before it edits it', async () => {
+    it('moves a script to another connection of the workbook before it edits it', async () => {
         useLake();
-        const moved = session(Object.values(state.scripts).map(s => (s.scriptKey === 1 ? onLake(s) : s)));
-        const after = session(Object.values(moved.scripts).map(s => (s.scriptKey === 1 ? onLake(script(1, 'orders.sql', 'select 5')) : s)));
+        const moved = workbook(Object.values(state.scripts).map(s => (s.scriptKey === 1 ? onLake(s) : s)));
+        const after = workbook(Object.values(moved.scripts).map(s => (s.scriptKey === 1 ? onLake(script(1, 'orders.sql', 'select 5')) : s)));
         modify.mockResolvedValueOnce(moved).mockResolvedValueOnce(after);
         const result = await run('edit', { script: 'orders', text: 'select 5', connection: 'lake' });
         expect(modify.mock.calls).toEqual([
@@ -238,8 +238,8 @@ describe('agent commands', () => {
         expect(modify).toHaveBeenCalledExactlyOnceWith('s1', { type: SET_SCRIPT_TEXT, value: { scriptKey: 3, text: 'select 6' } });
     });
 
-    it('refuses connections that the session does not use', async () => {
-        await expect(run('edit', { script: 'top', text: 'select 1', connection: 'lake' })).rejects.toThrow('The session does not use the connection lake. Connections: db');
+    it('refuses connections that the workbook does not use', async () => {
+        await expect(run('edit', { script: 'top', text: 'select 1', connection: 'lake' })).rejects.toThrow('The workbook does not use the connection lake. Connections: db');
         expect(modify).not.toHaveBeenCalled();
     });
 
@@ -283,13 +283,13 @@ describe('agent commands', () => {
         // The script was never analyzed, its annotations say nothing yet
         state.scripts[1].analysisOutdated = true;
         const ran: number[] = [];
-        env.onScriptRun = (_session, scriptKey) => ran.push(scriptKey);
+        env.onScriptRun = (_workbook, scriptKey) => ran.push(scriptKey);
         const analyzed = { ...state.scripts[1], analysisOutdated: false, annotations: { tableDefs: [], visualizeQuery: null, manual: true } };
         modify.mockImplementation(async () => ({ ...state, scripts: { ...state.scripts, 1: analyzed } }));
         await expect(run('run', { script: 'orders' })).rejects.toThrow('orders runs only on request (@manual)');
         expect(env.executeQuery).not.toHaveBeenCalled();
         expect(ran).toEqual([]);
-        expect(isSessionExecutionRunning(state)).toBe(false);
+        expect(isWorkbookExecutionRunning(state)).toBe(false);
     });
 
     it('pages through the last result of a script', async () => {
@@ -355,15 +355,15 @@ describe('agent vis edit command', () => {
         dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     });
 
-    /// A session with one script whose text the agent visualizes
+    /// A workbook with one script whose text the agent visualizes
     const setup = (text: string) => {
         catalog = dql.createCatalog();
         const scriptOf = (t: string) => ({ ...script(1, 'orders.sql', t), connection: { connectionId: 'db', catalog } });
-        const state = { ...session([scriptOf(text)]), instance: dql };
-        modify = vi.fn(async (_session: string, action: any) => ({ ...state, scripts: { 1: scriptOf(action.value.text) } }));
+        const state = { ...workbook([scriptOf(text)]), instance: dql };
+        modify = vi.fn(async (_workbook: string, action: any) => ({ ...state, scripts: { 1: scriptOf(action.value.text) } }));
         env = {
-            sessionScripts: () => state,
-            modifySessionScripts: modify as any,
+            workbookScripts: () => state,
+            modifyWorkbookScripts: modify as any,
             connections: () => ({ connections: new Map(), connectionsByType: [] }),
             executeQuery: vi.fn() as any,
             logger: new TestLogger(),
@@ -373,7 +373,7 @@ describe('agent vis edit command', () => {
     afterEach(() => catalog.destroy());
 
     const visualize = (spec: unknown) =>
-        runAgentCommand(env, { session: 's1', command: 'vis.edit', args: { script: 'orders', spec: typeof spec === 'string' ? spec : JSON.stringify(spec) } });
+        runAgentCommand(env, { workbook: 's1', command: 'vis.edit', args: { script: 'orders', spec: typeof spec === 'string' ? spec : JSON.stringify(spec) } });
 
     it('writes a valid spec as the @vis vegalite tag of the last query', async () => {
         setup('/* @vis table */\nselect 1 as region, 2 as revenue');
@@ -427,51 +427,51 @@ describe('agent run command', () => {
     });
     afterEach(() => dql.resetUnsafe());
 
-    /// A session with one script on an online connection
+    /// A workbook with one script on an online connection
     const setup = (text: string, executeQuery: QueryExecutor) => {
         const connection = { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
         const [scriptKey, scriptData] = createEmptyScriptData(dql, connection, 'orders.sql');
         replaceScriptSessionText(scriptData.scriptSession, text);
-        let state: SessionScripts = {
-            ...session([]), instance: dql, pendingConnection: null,
+        let state: WorkbookScripts = {
+            ...workbook([]), instance: dql, pendingConnection: null,
             scripts: { [scriptKey]: scriptData }, scriptRefs: { 'orders.sql': createScriptRef(scriptKey, 'orders.sql') },
             scriptOrder: ['orders.sql'], scriptFocus: { fileName: 'orders.sql' },
         };
         const logger = new TestLogger();
-        const writer = new StorageWriter(logger, new SessionTestBackend());
+        const writer = new StorageWriter(logger, new WorkbookTestBackend());
         const env: AgentCommandEnvironment = {
-            sessionScripts: () => state,
-            modifySessionScripts: async (_sessionId, action) => (state = reduceSessionScripts(state, action, writer, logger)),
+            workbookScripts: () => state,
+            modifyWorkbookScripts: async (_workbookId, action) => (state = reduceWorkbookScripts(state, action, writer, logger)),
             connections: () => ({ connections: new Map([['db', { connectionId: 'db', connectionHealth: ConnectionHealth.ONLINE } as any]]), connectionsByType: [] }),
             executeQuery,
             logger,
         };
-        const run = (args: Record<string, unknown>) => runAgentCommand(env, { session: 's1', command: 'run', args: { script: 'orders', ...args } });
-        return Object.assign(run, { session: () => state });
+        const run = (args: Record<string, unknown>) => runAgentCommand(env, { workbook: 's1', command: 'run', args: { script: 'orders', ...args } });
+        return Object.assign(run, { workbook: () => state });
     };
 
-    it('waits for the run of another script of the session', async () => {
+    it('waits for the run of another script of the workbook', async () => {
         const executeQuery = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({ n: Int32Array.from([1]) }))]);
         const run = setup('select 1 as n', executeQuery);
-        // Another turn runs a script of the session
-        expect(acquireSessionExecution(run.session())).toBe(true);
+        // Another turn runs a script of the workbook
+        expect(acquireWorkbookExecution(run.workbook())).toBe(true);
         const result = run({});
         await new Promise(resolve => setTimeout(resolve, 10));
         expect(executeQuery).not.toHaveBeenCalled();
-        releaseSessionExecution(run.session());
+        releaseWorkbookExecution(run.workbook());
         expect((await result).data).toMatchObject({ script: 'orders', rowCount: 1 });
-        expect(isSessionExecutionRunning(run.session())).toBe(false);
+        expect(isWorkbookExecutionRunning(run.workbook())).toBe(false);
     });
 
-    it('fails while the whole session runs', async () => {
+    it('fails while the whole workbook runs', async () => {
         const executeQuery = vi.fn<QueryExecutor>(() => [1, Promise.resolve(null)]);
         const run = setup('select 1 as n', executeQuery);
-        expect(acquireSessionExecution(run.session(), 'session')).toBe(true);
+        expect(acquireWorkbookExecution(run.workbook(), 'workbook')).toBe(true);
         try {
-            await expect(run({})).rejects.toThrow('orders failed: The session is running');
+            await expect(run({})).rejects.toThrow('orders failed: The workbook is running');
             expect(executeQuery).not.toHaveBeenCalled();
         } finally {
-            releaseSessionExecution(run.session());
+            releaseWorkbookExecution(run.workbook());
         }
     });
 

@@ -13,24 +13,24 @@ import type { Logger } from '../../platform/logger/logger.js';
 import { APP_RESTART_CTX } from '../../platform/crosstab/app_hand_over.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { SessionTestBackend } from '../../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { applyFlavorToDocument } from '../../config/flavor_resolution.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { type RouteContext } from '../router/router.js';
 import { AppLoadingStatus } from '../loading/app_loading_status.js';
-import { SessionSetupStatus } from '../loading/session_setup_status.js';
+import { WorkbookSetupStatus } from '../loading/workbook_setup_status.js';
 
 const SETUP_DONE: RouteContext = {
     appLoadingStatus: AppLoadingStatus.SETUP_DONE,
     confirmedFinishedSetup: true,
-    sessionId: null,
-    sessionSetupStatus: SessionSetupStatus.NONE,
+    workbookId: null,
+    workbookSetupStatus: WorkbookSetupStatus.NONE,
 };
 
 describe('AppSettings', () => {
     let root: ReturnType<typeof createTestRoot>;
-    let backend: SessionTestBackend;
+    let backend: WorkbookTestBackend;
     let cache: ReturnType<typeof memoryQueryResultCache>;
     let restart: ReturnType<typeof vi.fn<() => Promise<void>>>;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
@@ -84,7 +84,7 @@ describe('AppSettings', () => {
 
     beforeEach(() => {
         root = createTestRoot();
-        backend = new SessionTestBackend();
+        backend = new WorkbookTestBackend();
         cache = memoryQueryResultCache();
         restart = vi.fn<() => Promise<void>>(async () => {});
         onClose = vi.fn<() => void>();
@@ -223,7 +223,7 @@ describe('AppSettings', () => {
 
     it('resets the app state only once confirmed and reports a failure', async () => {
         const clearAllStorage = vi.fn<() => Promise<void>>(async () => { throw new Error('disk busy'); });
-        (backend as SessionTestBackend & { clearAllStorage?: () => Promise<void> }).clearAllStorage = clearAllStorage;
+        (backend as WorkbookTestBackend & { clearAllStorage?: () => Promise<void> }).clearAllStorage = clearAllStorage;
         cache.put('cached');
         await render();
 

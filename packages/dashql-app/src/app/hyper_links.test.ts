@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SessionScripts } from '../session/scripts/session_scripts.js';
-import { sessionOnConnection } from './hyper_links.js';
+import type { WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
+import { workbookOnConnection } from './hyper_links.js';
 import { WebPlatformEventListener } from '../platform/events/web_event_listener.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
@@ -9,23 +9,23 @@ import { BASE64URL_CODEC } from '../utils/base64.js';
 const FIRST_RUN = { endpoint: 'http://127.0.0.1:1111', token: 'first' };
 const SECOND_RUN = { endpoint: 'http://127.0.0.1:2222', token: 'second' };
 
-describe('the session that a link opens', () => {
-    const sessions = new Map(Object.entries({ first: 'embedded', second: 'linked', third: 'linked' })
-        .map(([sessionId, connectionId]) => [sessionId, {
-            sessionId, scripts: {}, scriptRefs: {}, scriptOrder: [], pendingConnection: { connectionId },
-        } as unknown as SessionScripts]));
+describe('the workbook that a link opens', () => {
+    const workbooks = new Map(Object.entries({ first: 'embedded', second: 'linked', third: 'linked' })
+        .map(([workbookId, connectionId]) => [workbookId, {
+            workbookId, scripts: {}, scriptRefs: {}, scriptOrder: [], pendingConnection: { connectionId },
+        } as unknown as WorkbookScripts]));
 
-    it('stays in the open session on the connection of the link', () => {
-        expect(sessionOnConnection(sessions, 'third', 'linked')).toBe('third');
+    it('stays in the open workbook on the connection of the link', () => {
+        expect(workbookOnConnection(workbooks, 'third', 'linked')).toBe('third');
     });
 
-    it('opens the first session on the connection of the link', () => {
-        expect(sessionOnConnection(sessions, 'first', 'linked')).toBe('second');
-        expect(sessionOnConnection(sessions, null, 'linked')).toBe('second');
+    it('opens the first workbook on the connection of the link', () => {
+        expect(workbookOnConnection(workbooks, 'first', 'linked')).toBe('second');
+        expect(workbookOnConnection(workbooks, null, 'linked')).toBe('second');
     });
 
-    it('needs a new session without one on the connection of the link', () => {
-        expect(sessionOnConnection(sessions, 'first', 'other')).toBeNull();
+    it('needs a new workbook without one on the connection of the link', () => {
+        expect(workbookOnConnection(workbooks, 'first', 'other')).toBeNull();
     });
 });
 

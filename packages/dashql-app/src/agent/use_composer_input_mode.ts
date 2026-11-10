@@ -18,7 +18,7 @@ export interface ComposerInputModeState {
     assist: Extension | undefined;
     /// Called with the draft text whenever it changes, a cleared draft starts over in natural language
     onTextChange: (text: string) => void;
-    /// Called with every editor update of the draft session, re-evaluates the mode
+    /// Called with every editor update of the draft workbook, re-evaluates the mode
     onEditorUpdate: (update: core.buffers.editor.EditorUpdateT) => void;
     /// The user picked a mode, it sticks until the draft is cleared
     pick: (mode: ComposerInputMode) => void;
@@ -30,7 +30,7 @@ export interface ComposerInputModeState {
 ///
 /// The draft starts in natural language and switches to SQL as soon as it is convincingly SQL,
 /// until the user picks a mode explicitly. Natural language highlights and completes the names of the catalog,
-/// and highlights the references to the session scripts.
+/// and highlights the references to the workbook scripts.
 export function useComposerInputMode(catalog: core.DashQLCatalog, aiAvailable: boolean, scriptNames: readonly string[]): ComposerInputModeState {
     const logger = useLogger();
 

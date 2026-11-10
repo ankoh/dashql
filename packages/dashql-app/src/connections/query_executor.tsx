@@ -45,17 +45,17 @@ const LOG_CTX = 'query_executor';
 
 /// Query failures are logged as warnings.
 /// The failed run already shows the error inline, error toasts are reserved for failures of the app itself.
-export function logQueryFailure(logger: TracedLogger, error: unknown, queryId: number, sessionId: string): void {
+export function logQueryFailure(logger: TracedLogger, error: unknown, queryId: number, workbookId: string): void {
     if (error instanceof LoggableException) {
         logger.warn(error.message, {
             ...error.keyValues,
             queryId: queryId.toString(),
-            sessionId,
+            workbookId,
         }, error.target);
     } else {
         logger.warn('Query failed with unknown error', {
             queryId: queryId.toString(),
-            sessionId,
+            workbookId,
             raw: stringifyError(error),
         }, LOG_CTX);
     }
@@ -116,12 +116,12 @@ export function useQueryProfileDetail(queryId: number | null, enabled = true) {
     }, [watchProfile, queryId, enabled]);
 }
 /// Use the query state
-export function useQueryState(sessionId: string | null, queryId: number | null) {
+export function useQueryState(workbookId: string | null, queryId: number | null) {
     // Subscribe to the single query instead of the registry.
     // The registry changes with every lifecycle event of every query, including the internal queries of computations.
     const store = useConnectionRegistryStore();
     const getQueryState = React.useCallback(() => {
-        if (queryId == null || sessionId == null) return null;
+        if (queryId == null || workbookId == null) return null;
         // Query ids are unique across connections. A script that moved to another connection keeps
         // the result of its last query on the connection it left.
         for (const database of store.current.connections.values()) {
@@ -129,7 +129,7 @@ export function useQueryState(sessionId: string | null, queryId: number | null) 
             if (query != null) return query;
         }
         return null;
-    }, [store, sessionId, queryId]);
+    }, [store, workbookId, queryId]);
     return React.useSyncExternalStore(store.subscribe, getQueryState);
 }
 
@@ -182,10 +182,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             traced.error("Connection not configured", { connectionId, "query": queryId.toString() }, LOG_CTX);
             throw new Error(`Couldn't find a connection with id ${connectionId}`);
         }
-        // Results are cached per session, queries without a session are never cached
-        const querySessionId = args.metadata.sessionId ?? null;
+        // Results are cached per workbook, queries without a workbook are never cached
+        const queryWorkbookId = args.metadata.workbookId ?? null;
         // Log contexts carry strings
-        const sessionId = querySessionId ?? '';
+        const workbookId = queryWorkbookId ?? '';
         const queryTracker = createConnectionQueryExecutionTracker(connectionId, connDispatch);
         const execution = await executeTrackedQuery({
             query: args.query,
@@ -236,9 +236,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     }
                 };
                 traced.info("Executing query", {
-                    sessionId,
+                    workbookId,
                     "query": queryId.toString(),
-                    // Where a statement of a plan of session scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
+                    // Where a statement of a plan of workbook scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
                     ...(args.metadata.planned != null ? { "planned": args.metadata.title ?? '', "node": args.metadata.planned.node.toString() } : {}),
                     "text": args.query
                 }, LOG_CTX);
@@ -282,7 +282,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                     });
                     traced.info("Served query from cache", {
-                        sessionId,
+                        workbookId,
                         "query": queryId.toString(),
                         "numRows": table.numRows.toString(),
                         "numCols": table.numCols.toString(),
@@ -391,7 +391,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             initialState.cancellation.signal.throwIfAborted();
                         }
                         traced.debug("Received query results", {
-                            sessionId,
+                            workbookId,
                             "query": queryId.toString()
                         }, LOG_CTX);
 
@@ -420,11 +420,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 }),
                                 onResultsReceived: reportQueryExecution,
                                 logger: traced,
-                                logContext: { sessionId, queryId, target: LOG_CTX },
+                                logContext: { workbookId, queryId, target: LOG_CTX },
                             });
 
                             traced.info("Executed query", {
-                                sessionId,
+                                workbookId,
                                 "query": queryId.toString(),
                                 "numRows": table?.numRows.toString(),
                                 "numCols": table?.numCols.toString(),
@@ -440,7 +440,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             });
                         } else {
                             reportQueryExecution();
-                            traced.warn("Query returned no results", { sessionId, "query": queryId.toString() }, LOG_CTX);
+                            traced.warn("Query returned no results", { workbookId, "query": queryId.toString() }, LOG_CTX);
                         }
                     }
                 } catch (e: any) {
@@ -450,11 +450,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             : new LoggableException('Query was cancelled', {}, LOG_CTX);
                         traced.warn("Cancelled query", {
                             query: queryId.toString(),
-                            sessionId
+                            workbookId
                         }, LOG_CTX);
                         tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
                     } else {
-                        logQueryFailure(traced, e, queryId, sessionId);
+                        logQueryFailure(traced, e, queryId, workbookId);
                         tracked.fail(e, resultStream?.getMetrics() ?? null);
                     }
                     followRelations();
@@ -477,7 +477,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 : new LoggableException('Query was cancelled', {}, LOG_CTX);
                             traced.warn("Cancelled query during result processing", {
                                 query: queryId.toString(),
-                                sessionId,
+                                workbookId,
                             }, LOG_CTX);
                             tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
                             if (args.throwOnError) throw e;
@@ -490,7 +490,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             }, LOG_CTX);
                         traced.warn("Query result processing failed", {
                             query: queryId.toString(),
-                            sessionId,
+                            workbookId,
                             error: processingError.message,
                             ...processingError.keyValues,
                         }, LOG_CTX);

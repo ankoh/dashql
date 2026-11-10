@@ -18,10 +18,10 @@ export function cancelInitialMemorySetup(connectionId: string): boolean {
     return true;
 }
 
-/// Set up the embedded database and the Hyper of a link once for the session the app opens with.
-/// Every connection of the session is considered, other connections are connected by the user.
+/// Set up the embedded database and the Hyper of a link once for the workbook the app opens with.
+/// Every connection of the workbook is considered, other connections are connected by the user.
 export function useInitialMemorySetup(
-    sessionId: string | null,
+    workbookId: string | null,
     connections: readonly ConnectionState[] | null,
     setup: HyperSetupApi | null,
     dispatch: DynamicConnectionDispatch,
@@ -39,7 +39,7 @@ export function useInitialMemorySetup(
         const key = linked && 'hyper' in params ? `${database.connectionId} ${params.hyper.endpoint} ${token}` : database.connectionId;
         if (considered.current.has(key)) return;
         // Consume the initial selection even when online, cancelled, or carrying a draft.
-        // Later resets, draft discards, and session switches must not opt back into setup.
+        // Later resets, draft discards, and workbook switches must not opt back into setup.
         considered.current.add(key);
         if (database.paramsDraft != null
             || !('hyper' in params)
@@ -61,7 +61,7 @@ export function useInitialMemorySetup(
             database.connectionId,
         ).catch(error => {
             if (!abort.signal.aborted) logger.warn('Memory database setup failed', {
-                sessionId, error: stringifyError(error),
+                workbookId, error: stringifyError(error),
             }, 'app_loader');
         }).finally(() => {
             unregister();
@@ -70,11 +70,11 @@ export function useInitialMemorySetup(
         });
     };
     React.useEffect(() => {
-        if (sessionId == null || connections == null || setup == null) return;
+        if (workbookId == null || connections == null || setup == null) return;
         for (const database of connections) {
             considerConnection(database, setup);
         }
-    }, [connections, dispatch, hyperLinks, logger, sessionId, setup]);
+    }, [connections, dispatch, hyperLinks, logger, workbookId, setup]);
     React.useEffect(() => () => {
         for (const [connectionId, abort] of attempts.current) {
             abort.abort(new DOMException('App loader unmounted', 'AbortError'));

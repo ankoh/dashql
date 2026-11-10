@@ -8,18 +8,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { isWorkspacePath, NavRailPages } from './nav_rail.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { type AppFlavor, DASHQL_FLAVOR, DBCOM_FLAVOR } from '../config/flavors.js';
-import { SessionViewModeProvider } from '../session/session_view_mode.js';
+import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 
 describe('Nav rail', () => {
-    it('marks the session pages as the workspace', () => {
+    it('marks the workbook pages as the workspace', () => {
         expect(isWorkspacePath('/')).toBe(true);
-        expect(isWorkspacePath('/session')).toBe(true);
-        expect(isWorkspacePath('/sessions/abc')).toBe(true);
+        expect(isWorkspacePath('/workbook')).toBe(true);
+        expect(isWorkspacePath('/workbooks/abc')).toBe(true);
     });
 
     it('leaves other pages outside the workspace', () => {
         expect(isWorkspacePath('/oauth')).toBe(false);
-        expect(isWorkspacePath('/sessionsx')).toBe(false);
+        expect(isWorkspacePath('/workbooksx')).toBe(false);
     });
 });
 
@@ -38,13 +38,13 @@ describe('Nav rail pages', () => {
         container.remove();
     });
 
-    // A session is open, so the rail shows the shell
+    // A workbook is open, so the rail shows the shell
     const render = (flavor: AppFlavor) => act(() => root.render(
-        <MemoryRouter initialEntries={['/sessions/abc']}>
+        <MemoryRouter initialEntries={['/workbooks/abc']}>
             <FlavorProvider requested={flavor}>
-                <SessionViewModeProvider>
+                <WorkbookViewModeProvider>
                     <NavRailPages wide={true} />
-                </SessionViewModeProvider>
+                </WorkbookViewModeProvider>
             </FlavorProvider>
         </MemoryRouter>,
     ));

@@ -14,9 +14,9 @@ export class ElectronPlatformEventListener extends WebPlatformEventListener {
             return;
         }
 
-        const dispatch = (link: { type: "event" | "session"; value: string }, source: string) => {
-            if (link.type === "session") {
-                this.dispatchSessionUrl(link.value);
+        const dispatch = (link: { type: "event" | "workbook"; value: string }, source: string) => {
+            if (link.type === "workbook") {
+                this.dispatchWorkbookUrl(link.value);
                 return;
             }
             const event = this.readAppEvent(link.value, source);

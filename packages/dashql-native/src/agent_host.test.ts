@@ -49,7 +49,7 @@ function waitFor(host: AgentHost, matches: (snapshot: AgentHostSnapshot) => bool
 
 const inState = (state: AgentHostState) => (snapshot: AgentHostSnapshot) => snapshot.state === state;
 
-/// Connect to the WebSocket of the server as DashQL.app does and announce a session
+/// Connect to the WebSocket of the server as DashQL.app does and announce a workbook
 async function connectPage(port: number, origin: string): Promise<net.Socket> {
     const socket = net.connect(port, "127.0.0.1");
     await new Promise<void>((resolve, reject) => socket.once("connect", resolve).once("error", reject));
@@ -70,8 +70,8 @@ async function connectPage(port: number, origin: string): Promise<net.Socket> {
     expect(head.split(" ")[1]).toBe("101");
     const message = {
         id: "p1",
-        method: "client/sessions",
-        params: {protocol: 2, client: "desktop", sessions: [{id: "s1", name: "Orders"}], focused: "s1"},
+        method: "client/workbooks",
+        params: {protocol: 3, client: "desktop", workbooks: [{id: "s1", name: "Orders"}], focused: "s1"},
     };
     socket.write(maskedTextFrame(JSON.stringify(message)));
     return socket;
@@ -114,7 +114,7 @@ describe("AgentHost", () => {
 
         const page = await connectPage(running.status!.port, "app://bundle");
         const connected = await waitFor(agent, (s) => s.status?.clients.length === 1);
-        expect(connected.status?.clients[0]).toMatchObject({kind: "desktop", origin: "app://bundle", sessions: [{id: "s1", name: "Orders"}], focused: "s1"});
+        expect(connected.status?.clients[0]).toMatchObject({kind: "desktop", origin: "app://bundle", workbooks: [{id: "s1", name: "Orders"}], focused: "s1"});
         page.destroy();
         await waitFor(agent, (s) => s.status?.clients.length === 0);
     });

@@ -3,7 +3,7 @@ import { readManifestJson, writeManifestJson } from '../storage_root.js';
 
 /// Copy the files and folders of a directory into another one, existing files are replaced.
 /// OPFS cannot move directories everywhere, the content is copied.
-async function copyDirectory(from: FileSystemDirectoryHandle, to: FileSystemDirectoryHandle): Promise<void> {
+export async function copyDirectory(from: FileSystemDirectoryHandle, to: FileSystemDirectoryHandle): Promise<void> {
     for await (const [name, handle] of from.entries()) {
         if (handle.kind === 'directory') {
             await copyDirectory(handle as FileSystemDirectoryHandle, await to.getDirectoryHandle(name, { create: true }));

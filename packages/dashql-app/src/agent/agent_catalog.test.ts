@@ -15,7 +15,7 @@ beforeAll(async () => {
 afterAll(() => dql.resetUnsafe());
 
 describe('Agent catalog', () => {
-    it('describes the user relations of the connection, its catalog changes and the session tables', () => {
+    it('describes the user relations of the connection, its catalog changes and the workbook tables', () => {
         const catalog = dql.createCatalog();
         try {
             const scriptSession = dql.createScriptSession(catalog);
@@ -33,16 +33,16 @@ describe('Agent catalog', () => {
                 table('sales', 'customers', 'id', 'INTEGER'),
             ].map(packCatalogTable) };
             const conn = { catalog: { readDescriptor: () => descriptor }, catalogRelationEntryId: 1 };
-            const sessionScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { connectionId: 'db', catalog } } } } as any;
+            const workbookScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { connectionId: 'db', catalog } } } } as any;
             const logger = new TestLogger();
-            expect(buildSchemaContext('db', conn as any, sessionScripts, logger)).toBe([
+            expect(buildSchemaContext('db', conn as any, workbookScripts, logger)).toBe([
                 'CREATE TABLE "db"."public"."orders" (\n    "id" "INTEGER"\n);',
                 'CREATE TABLE "db"."sales"."customers" (\n    "id" "INTEGER"\n);',
-                '-- Tables defined by the session, column types are unknown',
+                '-- Tables defined by the workbook, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));
-            expect(buildSchemaContext('db', null, sessionScripts, logger)).toBe([
-                '-- Tables defined by the session, column types are unknown',
+            expect(buildSchemaContext('db', null, workbookScripts, logger)).toBe([
+                '-- Tables defined by the workbook, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));
             scriptSession.destroy();
@@ -51,7 +51,7 @@ describe('Agent catalog', () => {
         }
     });
 
-    it('describes only the session tables of scripts on the connection', () => {
+    it('describes only the workbook tables of scripts on the connection', () => {
         const catalog = dql.createCatalog();
         const lakeCatalog = dql.createCatalog();
         try {
@@ -64,7 +64,7 @@ describe('Agent catalog', () => {
             };
             const onDb = define(catalog, 'create table summary as select 1 as total');
             const onLake = define(lakeCatalog, 'create table staged as select 1 as id');
-            const sessionScripts = {
+            const workbookScripts = {
                 instance: dql,
                 connectionCatalog: catalog,
                 scripts: {
@@ -73,12 +73,12 @@ describe('Agent catalog', () => {
                 },
             } as any;
             const logger = new TestLogger();
-            expect(buildSchemaContext('lake', null, sessionScripts, logger)).toBe([
-                '-- Tables defined by the session, column types are unknown',
+            expect(buildSchemaContext('lake', null, workbookScripts, logger)).toBe([
+                '-- Tables defined by the workbook, column types are unknown',
                 'CREATE TABLE "staged" ("id");',
             ].join('\n'));
-            expect(buildSchemaContext('db', null, sessionScripts, logger)).toBe([
-                '-- Tables defined by the session, column types are unknown',
+            expect(buildSchemaContext('db', null, workbookScripts, logger)).toBe([
+                '-- Tables defined by the workbook, column types are unknown',
                 'CREATE TABLE "summary" ("total");',
             ].join('\n'));
             onDb.destroy();

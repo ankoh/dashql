@@ -4,7 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 import type { ConnectionState, ConnectionStateWithoutId } from './connection_state.js';
 import { createAttachedConnectionParamsForConnector, createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from './connection_params.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
-import { embeddedConnection, findEmbeddedConnection, newSessionConnection } from './embedded_connection.js';
+import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
 import { isHyperWasmConnection } from './connection_label.js';
 
@@ -44,24 +44,24 @@ describe('embedded connection', () => {
     });
 });
 
-describe('new session connection', () => {
+describe('new workbook connection', () => {
     const embedded = () => ({ ...createDefaultHyperWasmConnectionState(dql), connectionId: 'embedded' });
     const linked = () => ({ ...createConnectionStateFromParams(dql, createHyperLinkConnectionParams('http://127.0.0.1:7484')), connectionId: 'linked' });
 
-    it('starts new sessions on the embedded Hyper without a link', () => {
+    it('starts new workbooks on the embedded Hyper without a link', () => {
         const connection = embedded();
-        expect(newSessionConnection(new Map([['embedded', connection], ['linked', linked()]]), allocator(), dql, null)).toBe(connection);
+        expect(newWorkbookConnection(new Map([['embedded', connection], ['linked', linked()]]), allocator(), dql, null)).toBe(connection);
     });
 
-    it('starts new sessions on the connection of the latest link of the tab', () => {
+    it('starts new workbooks on the connection of the latest link of the tab', () => {
         const connection = linked();
         const allocate = allocator();
-        expect(newSessionConnection(new Map([['embedded', embedded()], ['linked', connection]]), allocate, dql, 'linked')).toBe(connection);
+        expect(newWorkbookConnection(new Map([['embedded', embedded()], ['linked', connection]]), allocate, dql, 'linked')).toBe(connection);
         expect(allocate).not.toHaveBeenCalled();
     });
 
     it('falls back to the embedded Hyper when the connection of the link is gone', () => {
         const connection = embedded();
-        expect(newSessionConnection(new Map([['embedded', connection]]), allocator(), dql, 'deleted')).toBe(connection);
+        expect(newWorkbookConnection(new Map([['embedded', connection]]), allocator(), dql, 'deleted')).toBe(connection);
     });
 });

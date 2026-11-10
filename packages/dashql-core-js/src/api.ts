@@ -369,7 +369,7 @@ export class DashQL {
     }
 
     /// Collect the inputs of the scripts of a session, the named scalar parameters and their values, see
-    /// docs/design/session_inputs.md. Takes every analysis that is current with the text of its script. Ignores the
+    /// docs/design/workbook_inputs.md. Takes every analysis that is current with the text of its script. Ignores the
     /// targets, the materialized scripts and the mount prefix.
     public collectSessionInputs(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.SessionInputs> {
         const native = this.buildSessionPlanRequest(request);

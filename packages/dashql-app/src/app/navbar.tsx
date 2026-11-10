@@ -19,7 +19,7 @@ import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
 import { NavRail, useNavRailWide } from './nav_rail.js';
 import { useMacWindowLayout } from './mac_window_layout.js';
 import { useColorSchemeToggle } from '../config/color_scheme.js';
-import { useOpenGreeter } from '../session/session_creation.js';
+import { useOpenGreeter } from '../workbook/workbook_creation.js';
 
 const LOG_CTX = "navbar";
 
@@ -44,13 +44,13 @@ const NavBarItem = ({ label, icon, anchor, ...props }: NavBarItemProps) => (
 /// Overlays open below the bar at the top
 const OVERLAY_POSITION = { side: AnchorSide.OutsideBottom, align: AnchorAlignment.End, anchorOffset: 16 };
 
-const InternalsButton = (props: { sessionId: string | null }) => {
+const InternalsButton = (props: { workbookId: string | null }) => {
     const [showInternalsViewerOverlay, setInternalsViewerOverlay] = React.useState<boolean>(false);
 
     return (
         <div className={styles.tab}>
             <InternalsViewerOverlay
-                sessionId={props.sessionId}
+                workbookId={props.workbookId}
                 isOpen={showInternalsViewerOverlay}
                 onClose={() => setInternalsViewerOverlay(false)}
                 renderAnchor={(p: object) => (
@@ -175,7 +175,7 @@ const TopBarBrand = (props: { mac: boolean, showName: boolean }) => {
         <button
             type="button"
             className={`${styles.brand_identity} ${styles.brand_button}`}
-            aria-label={`${flavor.displayName}, new session`}
+            aria-label={`${flavor.displayName}, new workbook`}
             data-testid="brand-home"
             data-electron-drag-region="false"
             onClick={openGreeter}
@@ -199,7 +199,7 @@ export const CompactNavBar = (props: { showInternals?: boolean }): React.ReactEl
         <header className={`${navbarClass} ${styles.navbar_overlay}`} data-electron-drag-region>
             <BrandIdentity />
             <div className={styles.navbar_actions}>
-                {(props.showInternals ?? true) && <InternalsButton sessionId={route.sessionId} />}
+                {(props.showInternals ?? true) && <InternalsButton workbookId={route.workbookId} />}
                 <VersionButton />
                 <ColorSchemeButton />
             </div>
@@ -242,7 +242,7 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
                 <TopBarBrand mac={isMac} showName={railWide} />
                 <div className={styles.top_bar_actions}>
                     <AgentButton />
-                    <InternalsButton sessionId={route.sessionId} />
+                    <InternalsButton workbookId={route.workbookId} />
                     <VersionButton iconSize={14} />
                     <ColorSchemeButton />
                 </div>

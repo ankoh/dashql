@@ -13,7 +13,7 @@ ipcRenderer.on("dashql:flush", async (_event, requestId) => {
 });
 
 contextBridge.exposeInMainWorld("dashqlElectron", {
-    claimSessionFolder: async (path) => await ipcRenderer.invoke("dashql:claim-session-folder", path),
+    claimWorkbookFolder: async (path) => await ipcRenderer.invoke("dashql:claim-workbook-folder", path),
     confirm: async (options) => await ipcRenderer.invoke("dashql:confirm", options),
     fs: {
         exists: async (path) => await ipcRenderer.invoke("dashql:fs", "exists", path),

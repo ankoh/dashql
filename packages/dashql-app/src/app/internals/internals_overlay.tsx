@@ -4,18 +4,18 @@ import icons from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
-import { StorageWriterView } from '../../session/persistence/storage_writer_view.js';
+import { StorageWriterView } from '../../workbook/persistence/storage_writer_view.js';
 import { LogViewer } from '../../ui/logs/log_viewer.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { QueryViewer } from '../../connections/query_viewer.js';
 import { HttpRequestViewer } from '../../ui/http/http_request_viewer.js';
-import { QueryCacheView } from '../../session/persistence/query_cache_view.js';
+import { QueryCacheView } from '../../workbook/persistence/query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
 import { StorageBrowserView } from './storage_browser_view.js';
 
 interface InternalsViewerProps {
-    /// The active session UUID, used by session-scoped tabs (e.g. the query cache inspector).
-    sessionId: string | null;
+    /// The active workbook UUID, used by workbook-scoped tabs (e.g. the query cache inspector).
+    workbookId: string | null;
     onClose: () => void;
 }
 
@@ -121,7 +121,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     <QueryViewer onClose={props.onClose} />
                 ),
                 [TabKey.StorageWriter]: _props => (
-                    <StorageWriterView sessionId={props.sessionId} onClose={props.onClose} />
+                    <StorageWriterView workbookId={props.workbookId} onClose={props.onClose} />
                 ),
                 [TabKey.StorageBrowser]: _props => (
                     <StorageBrowserView onClose={props.onClose} />
@@ -138,10 +138,10 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
 }
 
 type InternalsViewerOverlayProps = {
-    /// The active session UUID, forwarded to session-scoped tabs (e.g. the query cache inspector).
-    /// Omitted on setup/loading pages that have no active session — the query cache tab then shows
-    /// an empty "no active session" state.
-    sessionId?: string | null;
+    /// The active workbook UUID, forwarded to workbook-scoped tabs (e.g. the query cache inspector).
+    /// Omitted on setup/loading pages that have no active workbook — the query cache tab then shows
+    /// an empty "no active workbook" state.
+    workbookId?: string | null;
     isOpen: boolean;
     onClose: () => void;
     renderAnchor: (p: object) => React.ReactElement;
@@ -163,7 +163,7 @@ export function InternalsViewerOverlay(props: InternalsViewerOverlayProps) {
                 height: OverlaySize.L,
             }}
         >
-            <InternalsViewer sessionId={props.sessionId ?? null} onClose={props.onClose} />
+            <InternalsViewer workbookId={props.workbookId ?? null} onClose={props.onClose} />
         </AnchoredOverlay>
     );
 }

@@ -8,7 +8,7 @@ import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 describe('information_schema batch refresh', () => {
     it('queries nothing when no catalog is configured', async () => {
         const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
-        await expect(updateInformationSchemaCatalog('session', vi.fn(), 7, [], executor,
+        await expect(updateInformationSchemaCatalog('workbook', vi.fn(), 7, [], executor,
             {} as any, 1)).rejects.toThrow('no catalogs to read the information_schema of');
         expect(executor).not.toHaveBeenCalled();
     });
@@ -39,7 +39,7 @@ FROM "my""lake".information_schema.columns`);
 
     it('rejects an empty metadata result instead of reporting a successful refresh', async () => {
         const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(tableFromArrays({}))]);
-        await expect(updateInformationSchemaCatalog('session', vi.fn(), 7, [{ catalog: 'catalog', schemas: [] }], executor,
+        await expect(updateInformationSchemaCatalog('workbook', vi.fn(), 7, [{ catalog: 'catalog', schemas: [] }], executor,
             {} as any, 1)).rejects.toThrow('information_schema returned no catalog relations');
     });
 

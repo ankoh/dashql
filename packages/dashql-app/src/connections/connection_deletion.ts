@@ -10,9 +10,9 @@ export type DeleteConnection = (connectionId: string) => Promise<void>;
 
 /// Delete a connection with its folder.
 ///
-/// The connection is shut down first: its running queries are cancelled, which also stops the session executions
+/// The connection is shut down first: its running queries are cancelled, which also stops the workbook executions
 /// that wait for them, and its log monitor closes the monitoring database in its folder. The registry refuses to
-/// delete a connection that sessions still use.
+/// delete a connection that workbooks still use.
 export function useDeleteConnection(): DeleteConnection {
     const registryStore = useConnectionRegistryStore();
     const connectionDispatch = useConnectionDispatch();

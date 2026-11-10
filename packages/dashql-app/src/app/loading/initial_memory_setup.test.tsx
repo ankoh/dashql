@@ -16,14 +16,14 @@ describe('initial Memory setup', () => {
     const dispatch = vi.fn();
     const logger = { warn: vi.fn() } as unknown as Logger;
 
-    function Consumer(props: { sessionId: string | null; database: ConnectionState | null }) {
-        useInitialMemorySetup(props.sessionId, props.database == null ? null : [props.database], setup, dispatch, logger);
-        return <div>Session visible</div>;
+    function Consumer(props: { workbookId: string | null; database: ConnectionState | null }) {
+        useInitialMemorySetup(props.workbookId, props.database == null ? null : [props.database], setup, dispatch, logger);
+        return <div>Workbook visible</div>;
     }
 
-    async function render(next = database, sessionId: string | null = 'session') {
+    async function render(next = database, workbookId: string | null = 'workbook') {
         await act(async () => {
-            root.render(<Consumer database={next} sessionId={sessionId} />);
+            root.render(<Consumer database={next} workbookId={workbookId} />);
             await Promise.resolve();
         });
     }
@@ -72,11 +72,11 @@ describe('initial Memory setup', () => {
         expect(setup.setup).not.toHaveBeenCalled();
     });
 
-    it('starts each newly selected database once without blocking session visibility', async () => {
+    it('starts each newly selected database once without blocking workbook visibility', async () => {
         setup.setup = vi.fn<HyperSetupApi['setup']>(() => new Promise(() => {}));
         await render();
-        expect(container.textContent).toBe('Session visible');
-        await render({ ...database, connectionId: 'second-memory' }, 'second-session');
+        expect(container.textContent).toBe('Workbook visible');
+        await render({ ...database, connectionId: 'second-memory' }, 'second-workbook');
         await render();
         expect(setup.setup).toHaveBeenCalledTimes(2);
     });

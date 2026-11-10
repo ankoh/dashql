@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 
 import type { Logger } from '../platform/logger/logger.js';
 import type { ConnectionState } from '../connections/connection_state.js';
-import type { SessionScripts } from '../session/scripts/session_scripts.js';
+import type { WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
 import { catalogTablesOfDescriptor, generateCatalogTablesSQL, quoteIdentifier } from '../connections/catalog/catalog_sql_generator.js';
 import { isSystemSchema } from '../connections/catalog/system_schemas.js';
 
@@ -32,11 +32,11 @@ function describeConnectionRelations(descriptor: core.buffers.catalog.CatalogDes
     return relations;
 }
 
-/// Render the tables that the session scripts on a connection define as CREATE TABLE statements without types.
+/// Render the tables that the workbook scripts on a connection define as CREATE TABLE statements without types.
 /// Queries only see the tables of scripts on their own connection.
-function describeSessionTables(sessionScripts: SessionScripts, connectionId: string): string[] {
+function describeWorkbookTables(workbookScripts: WorkbookScripts, connectionId: string): string[] {
     const statements: string[] = [];
-    for (const script of Object.values(sessionScripts.scripts)) {
+    for (const script of Object.values(workbookScripts.scripts)) {
         const catalog = script.connection.catalog;
         if (script.connection.connectionId !== connectionId || catalog == null) continue;
         let entries: core.FlatBufferPtr<core.buffers.catalog.CatalogEntries>;
@@ -66,15 +66,15 @@ function describeSessionTables(sessionScripts: SessionScripts, connectionId: str
 }
 
 /// Build the schema that the model may query on a connection: the user relations of the connection and the tables of
-/// the session scripts on it.
+/// the workbook scripts on it.
 /// The schema is cut off at a statement boundary once it exceeds the budget.
-export function buildSchemaContext(connectionId: string, conn: ConnectionState | null, sessionScripts: SessionScripts, logger: Logger): string {
+export function buildSchemaContext(connectionId: string, conn: ConnectionState | null, workbookScripts: WorkbookScripts, logger: Logger): string {
     const relations = describeConnectionRelations(conn?.catalog.readDescriptor(conn.catalogRelationEntryId) ?? null);
-    const sessionTables = describeSessionTables(sessionScripts, connectionId);
+    const workbookTables = describeWorkbookTables(workbookScripts, connectionId);
 
     const statements = [...relations.statements];
-    if (sessionTables.length > 0) {
-        statements.push('-- Tables defined by the session, column types are unknown', ...sessionTables);
+    if (workbookTables.length > 0) {
+        statements.push('-- Tables defined by the workbook, column types are unknown', ...workbookTables);
     }
     let schema = '';
     let included = 0;
@@ -97,7 +97,7 @@ export function buildSchemaContext(connectionId: string, conn: ConnectionState |
     logger.debug('Built the schema for the agent', {
         connectionRelations: String(relations.statements.length),
         skippedSystemRelations: String(relations.systemRelations),
-        sessionTables: String(sessionTables.length),
+        workbookTables: String(workbookTables.length),
         characters: String(schema.length),
         truncated: String(truncated),
     }, LOG_CTX);

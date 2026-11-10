@@ -13,8 +13,8 @@ export interface AppFlavorLogo {
 /// The features of a flavor.
 /// Unlike the app settings, they are fixed by the flavor and can neither be changed by the user nor persisted.
 export interface AppFlavorFeatures {
-    /// Can sessions be exported as .dashql archives?
-    sessionArchiveExport: boolean;
+    /// Can workbooks be exported as .dashql archives?
+    workbookArchiveExport: boolean;
 }
 
 /// A page that a flavor will have, announced by a disabled button in the rail
@@ -67,7 +67,7 @@ export const DASHQL_FLAVOR: AppFlavor = {
     tagline: null,
     favicon: null,
     features: {
-        sessionArchiveExport: true,
+        workbookArchiveExport: true,
     },
     railPages: [[WORKSPACE, SHELL]],
 };
@@ -80,7 +80,7 @@ export const DBCOM_FLAVOR: AppFlavor = {
     tagline: 'powered by Hyper',
     favicon: new URL('../../static/favicons/dbcom/favicon.svg?no-inline', import.meta.url),
     features: {
-        sessionArchiveExport: false,
+        workbookArchiveExport: false,
     },
     railPages: [
         [WORKSPACE, SHELL, upcoming('Ingestion', 'upload_24'), upcoming('Data Pipelines', 'workflow_24')],

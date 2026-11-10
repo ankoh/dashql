@@ -7,22 +7,22 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL;
 let catalog: core.DashQLCatalog;
-let session: core.DashQLScriptSession;
+let workbook: core.DashQLScriptSession;
 beforeAll(async () => {
     dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     catalog = dql.createCatalog();
-    session = dql.createScriptSession(catalog);
+    workbook = dql.createScriptSession(catalog);
 });
 afterAll(() => {
-    session.destroy();
+    workbook.destroy();
     catalog.destroy();
     dql.resetUnsafe();
 });
 
-/// Analyze a text in the draft session
+/// Analyze a text in the draft workbook
 function analyze(text: string): core.buffers.editor.EditorUpdateT {
-    session.replaceText(session.getTextVersion(), text);
-    return session.analyze();
+    workbook.replaceText(workbook.getTextVersion(), text);
+    return workbook.analyze();
 }
 
 /// Type a text character by character and record the mode after every keystroke

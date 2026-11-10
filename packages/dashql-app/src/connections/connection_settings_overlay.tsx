@@ -8,7 +8,7 @@ import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { ConnectorType } from './connector_info.js';
 import { useConnectionById, useConnectionDraft, useConnectionReferencesSelector } from './connection_registry.js';
-import { connectionSaveSucceeded, failedSessionCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
+import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { ConnectionHealth, connectionCachesQueryResults, SET_CONNECTION_QUERY_RESULT_CACHING, type ConnectionState } from './connection_state.js';
 import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
@@ -27,8 +27,8 @@ interface Props {
     headerTitle?: string;
     onConnected?: (database: ConnectionState) => void;
     side?: AnchorSide;
-    /// Renders the name of a session, the session id if absent
-    renderSessionName?: (sessionId: string) => React.ReactNode;
+    /// Renders the name of a workbook, the workbook id if absent
+    renderWorkbookName?: (workbookId: string) => React.ReactNode;
 }
 
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
@@ -50,7 +50,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         if (!props.isOpen) completedDatabaseId.current = null;
     }, [props.isOpen]);
 
-    // Saving writes every session that references the connection, the overlay stays open until all
+    // Saving writes every workbook that references the connection, the overlay stays open until all
     // writes are done.
     const onClose = props.onClose;
     const close = React.useCallback(() => {
@@ -67,11 +67,11 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     });
 
     const connectionId = props.connectionId;
-    const sessionIds = useConnectionReferencesSelector(React.useCallback(
-        references => connectionId == null ? '' : references.sessionsOf(connectionId).join(','),
+    const workbookIds = useConnectionReferencesSelector(React.useCallback(
+        references => connectionId == null ? '' : references.workbooksOf(connectionId).join(','),
         [connectionId],
     ));
-    const sessionCount = sessionIds === '' ? 0 : sessionIds.split(',').length;
+    const workbookCount = workbookIds === '' ? 0 : workbookIds.split(',').length;
 
     return (
         <AnchoredOverlay
@@ -105,12 +105,12 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
                     saving={saving}
                     connecting={connecting}
                     online={conn?.connectionHealth === ConnectionHealth.ONLINE}
-                    sessionCount={sessionCount}
+                    workbookCount={workbookCount}
                     result={saveResult}
                     save={() => { void save(); }}
                     discard={discard}
                     retry={retry}
-                    renderSessionName={props.renderSessionName}
+                    renderWorkbookName={props.renderWorkbookName}
                 />
             </div>
         </AnchoredOverlay>
@@ -167,9 +167,9 @@ export function useCloseOnConnect(props: CloseOnConnectProps): void {
 /// How long the bar confirms a save
 const SAVED_NOTICE_DURATION = 2500;
 
-/// Phrase a number of sessions
-function sessions(count: number): string {
-    return count === 1 ? 'one session' : `${count} sessions`;
+/// Phrase a number of workbooks
+function workbooks(count: number): string {
+    return count === 1 ? 'one workbook' : `${count} workbooks`;
 }
 
 export interface ConnectionSaveBarProps {
@@ -181,23 +181,23 @@ export interface ConnectionSaveBarProps {
     connecting: boolean;
     /// Is the connection online?
     online: boolean;
-    /// The number of sessions that use the connection
-    sessionCount: number;
+    /// The number of workbooks that use the connection
+    workbookCount: number;
     /// The outcome of the last save
     result: ConnectionSaveResult | null;
     /// Save the edits
     save: () => void;
     /// Discard the edits
     discard: () => void;
-    /// Write the copies of sessions again
-    retry: (sessionIds: string[]) => Promise<ConnectionSaveResult | null>;
-    /// Renders the name of a session
-    renderSessionName?: (sessionId: string) => React.ReactNode;
+    /// Write the copies of workbooks again
+    retry: (workbookIds: string[]) => Promise<ConnectionSaveResult | null>;
+    /// Renders the name of a workbook
+    renderWorkbookName?: (workbookId: string) => React.ReactNode;
 }
 
 /// The unsaved edits of a connection, the actions to save or discard them and the outcome of saving
 export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactElement | null {
-    const label = props.renderSessionName ?? ((sessionId: string) => sessionId);
+    const label = props.renderWorkbookName ?? ((workbookId: string) => workbookId);
     const { saving, result } = props;
 
     // Confirm a save that finished while the bar is shown
@@ -227,7 +227,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
             <Button
                 variant={ButtonVariant.Primary}
                 size={ButtonSize.Small}
-                title="Save the connection settings for every session that uses the connection"
+                title="Save the connection settings for every workbook that uses the connection"
                 data-testid="connection-save"
                 disabled={props.connecting || saving}
                 onClick={props.save}
@@ -244,17 +244,17 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
             </div>
         );
     }
-    const failed = result == null ? [] : failedSessionCopies(result);
+    const failed = result == null ? [] : failedWorkbookCopies(result);
     if (failed.length > 0 && !saving) {
         return (
-            <div className={styles.footer} role="alert" data-testid="connection-save-bar" data-state="sessions-failed">
+            <div className={styles.footer} role="alert" data-testid="connection-save-bar" data-state="workbooks-failed">
                 <div className={styles.footer_error}>
-                    The connection is saved, but {sessions(failed.length)} could not be updated.
+                    The connection is saved, but {workbooks(failed.length)} could not be updated.
                     They are updated when they are loaded next time.
                     <ul className={styles.footer_list}>
                         {failed.map(n => (
-                            <li key={n.sessionId}>
-                                {label(n.sessionId)}: {n.result.status === 'failed' ? stringifyError(n.result.error) : 'storage is busy'}
+                            <li key={n.workbookId}>
+                                {label(n.workbookId)}: {n.result.status === 'failed' ? stringifyError(n.result.error) : 'storage is busy'}
                             </li>
                         ))}
                     </ul>
@@ -263,7 +263,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
                     <Button
                         size={ButtonSize.Small}
                         data-testid="connection-save-retry"
-                        onClick={() => { void props.retry(failed.map(n => n.sessionId)); }}
+                        onClick={() => { void props.retry(failed.map(n => n.workbookId)); }}
                     >Retry</Button>
                     {draftActions}
                 </div>
@@ -274,7 +274,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
         return (
             <div className={styles.footer} role="status" data-testid="connection-save-bar" data-state="saving">
                 <div className={styles.footer_notice}>
-                    {props.sessionCount > 1 ? `Saving the connection for ${sessions(props.sessionCount)}…` : 'Saving the connection…'}
+                    {props.workbookCount > 1 ? `Saving the connection for ${workbooks(props.workbookCount)}…` : 'Saving the connection…'}
                 </div>
                 {draftActions}
             </div>
@@ -294,7 +294,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
                         <span className={styles.footer_dirty_dot} aria-hidden="true" />
                         Unsaved changes
                     </span>
-                    {props.sessionCount > 1 && ` · applies to ${sessions(props.sessionCount)}`}
+                    {props.workbookCount > 1 && ` · applies to ${workbooks(props.workbookCount)}`}
                     {hint != null && <div className={styles.footer_hint} data-testid="connection-save-hint" data-hint={props.online ? 'reconnect' : 'connect'}>{hint}</div>}
                 </div>
                 {draftActions}
@@ -306,7 +306,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
             <div className={styles.footer} role="status" data-testid="connection-save-bar" data-state="saved">
                 <div className={styles.footer_saved}>
                     <CheckIcon />
-                    {props.sessionCount > 1 ? `Saved for ${sessions(props.sessionCount)}` : 'Saved'}
+                    {props.workbookCount > 1 ? `Saved for ${workbooks(props.workbookCount)}` : 'Saved'}
                 </div>
             </div>
         );

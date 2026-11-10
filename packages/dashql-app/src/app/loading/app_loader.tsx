@@ -1,18 +1,18 @@
 import * as React from 'react';
 
-import { SELECT_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useConnectionDispatch, useSessionConnections } from '../../connections/connection_registry.js';
+import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
+import { useConnectionDispatch, useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { AppLoadingPage } from '../app_loading_page.js';
-import { canShowSession } from './app_loading_logic.js';
+import { canShowWorkbook } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { useHyperSetup } from '../../connections/hyper/hyper_connection_setup.js';
 import { useInitialMemorySetup } from './initial_memory_setup.js';
-import { SessionSetupStatus } from './session_setup_status.js';
+import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
-import { useSharedSessionImport } from './shared_session_import.js';
+import { useSharedWorkbookImport } from './shared_workbook_import.js';
 import { useHyperLinks } from '../hyper_links.js';
 
 interface Props { }
@@ -25,25 +25,25 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
-    const sessionConnections = useSessionConnections(routeContext.sessionId ?? null);
+    const workbookConnections = useWorkbookConnections(routeContext.workbookId ?? null);
     const dispatchDatabase = useConnectionDispatch();
     const hyperSetup = useHyperSetup();
 
-    // The import of a session that the app was started with, the setup then doesn't open another one
+    // The import of a workbook that the app was started with, the setup then doesn't open another one
     const initialImport = React.useRef<Promise<boolean> | null>(null);
     const setup = useAppSetup(initialImport);
-    const sharedSessionCard = useSharedSessionImport(setup.done, initialImport);
+    const sharedWorkbookCard = useSharedWorkbookImport(setup.done, initialImport);
     useHyperLinks(setup.opened);
 
     React.useEffect(() => {
-        if (routeContext.sessionSetupStatus === SessionSetupStatus.OPENING && routeContext.sessionId != null) {
-            navigate({ type: SELECT_SESSION, value: routeContext.sessionId });
+        if (routeContext.workbookSetupStatus === WorkbookSetupStatus.OPENING && routeContext.workbookId != null) {
+            navigate({ type: SELECT_WORKBOOK, value: routeContext.workbookId });
         }
-    }, [navigate, routeContext.sessionId, routeContext.sessionSetupStatus]);
+    }, [navigate, routeContext.workbookId, routeContext.workbookSetupStatus]);
 
     useInitialMemorySetup(
-        routeContext.sessionId,
-        sessionConnections,
+        routeContext.workbookId,
+        workbookConnections,
         hyperSetup,
         dispatchDatabase,
         logger,
@@ -55,13 +55,13 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             settings: { ...value.settings, narrowScreenLayout: true },
         })} />;
     }
-    if (sharedSessionCard != null) {
-        return sharedSessionCard;
+    if (sharedWorkbookCard != null) {
+        return sharedWorkbookCard;
     }
 
-    // Setup done and session selected? Show main interface
+    // Setup done and workbook selected? Show main interface
     const pauseAfterSetup = config?.settings?.pauseAfterAppSetup ?? false;
-    if (canShowSession(routeContext, pauseAfterSetup)) {
+    if (canShowWorkbook(routeContext, pauseAfterSetup)) {
         return props.children;
     } else {
         // Otherwise show the app loading page

@@ -1,21 +1,21 @@
 # Storage Layout
 
-DashQL stores its data in the Origin Private File System (OPFS) of the app origin, and native sessions in
+DashQL stores its data in the Origin Private File System (OPFS) of the app origin, and native workbooks in
 directories that the user owns. hyperdb-wasm mounts the OPFS root at `/mnt/fs`, so every OPFS path below is also
-a Hyper path. Scripts don't name these paths: a Parquet attachment `sessions/<id>/attachments/a.parquet` is the table
-parameter `:a`, which the embedded Hyper reads from the mount of the attachments of the session (see Attachments).
+a Hyper path. Scripts don't name these paths: a Parquet attachment `workbooks/<id>/attachments/a.parquet` is the table
+parameter `:a`, which the embedded Hyper reads from the mount of the attachments of the workbook (see Attachments).
 
 ## OPFS root
 
 ```
 <OPFS root>                                    Hyper: /mnt/fs
 ├── dashql-manifest.json                       app manifest
-├── sessiontree/                               folders of the sidebar, registry of the sessions
-│   ├── dashql-folder.json                     sessions of the root folder
-│   ├── My Sessions/dashql-folder.json         the folder that a new storage starts with
-│   └── <folder>/dashql-folder.json            sessions of a folder, folders nest
-├── sessions/<session-id>/                     OPFS sessions
-│   ├── dashql-session.json                    session metadata
+├── workbooktree/                               folders of the sidebar, registry of the workbooks
+│   ├── dashql-folder.json                     workbooks of the root folder
+│   ├── My Workbooks/dashql-folder.json         the folder that a new storage starts with
+│   └── <folder>/dashql-folder.json            workbooks of a folder, folders nest
+├── workbooks/<workbook-id>/                     OPFS workbooks
+│   ├── dashql-workbook.json                    workbook metadata
 │   ├── scripts/<script-name>                  script text
 │   └── attachments/<name>.parquet             attached Parquet files
 ├── cache/<hash>.<uuid>.parquet[.last_access]  query result cache of the app
@@ -34,18 +34,18 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 └── exports/<export-id>/                       transient Parquet exports
 ```
 
-| Path | Written by | Lifetime | Part of session bundles |
+| Path | Written by | Lifetime | Part of workbook bundles |
 |------|------------|----------|-------------------------|
 | `dashql-manifest.json` | `OPFSStorageBackend` | persistent | no |
-| `sessiontree/` | `OPFSStorageBackend` | persistent | no |
-| `sessions/<id>/` | `OPFSStorageBackend` | until the session is deleted | yes |
+| `workbooktree/` | `OPFSStorageBackend` | persistent | no |
+| `workbooks/<id>/` | `OPFSStorageBackend` | until the workbook is deleted | yes |
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
 | `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as `results/<key>.parquet` (`query_cache.md`) |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
-"Clear all data" removes `sessiontree/` first, resets the manifest, removes `sessions/`, `connections/` and `shell/` and clears
+"Clear all data" removes `workbooktree/` first, resets the manifest, removes `workbooks/`, `connections/` and `shell/` and clears
 `cache/`, except the files that other windows read right now. It keeps `instances/`, because the running window owns
 its instance.
 
@@ -61,52 +61,52 @@ its instance.
 
 Writers hold the Web Lock of the manifest, which all tabs of the app share.
 
-### The session tree
+### The workbook tree
 
-`sessiontree/` registers every session and holds the folders of the sidebar. Every directory of the tree is a
+`workbooktree/` registers every workbook and holds the folders of the sidebar. Every directory of the tree is a
 folder, the directory name is the folder name, and holds a `dashql-folder.json` (schema
-`proto/json/dashql/app_folder.json`) with `sessions`, one entry per session of the folder in the order of the sidebar:
-`path` (the session id), `storageType` and, for native sessions, `nativePath`. The sidebar lists the subfolders of a
+`proto/json/dashql/app_folder.json`) with `workbooks`, one entry per workbook of the folder in the order of the sidebar:
+`path` (the workbook id), `storageType` and, for native workbooks, `nativePath`. The sidebar lists the subfolders of a
 folder before its sessions, in the natural order of their names.
 
-A storage without a session tree starts with the folder `My Sessions`, an ordinary folder that the user may rename or
-delete. The tree is only created once, a deleted `My Sessions` folder is not created again. New sessions are
-registered at the end of the root, except for a session created from the menu of a folder.
+A storage without a workbook tree starts with the folder `My Workbooks`, an ordinary folder that the user may rename or
+delete. The tree is only created once, a deleted `My Workbooks` folder is not created again. New workbooks are
+registered at the end of the root, except for a workbook created from the menu of a folder.
 
-- A session is in exactly one folder. Moving a session rewrites the folder files of its old and new folder, the new
-  one first, so an interruption duplicates a session instead of losing it. A session that the tree lists twice
+- A workbook is in exactly one folder. Moving a workbook rewrites the folder files of its old and new folder, the new
+  one first, so an interruption duplicates a workbook instead of losing it. A workbook that the tree lists twice
   counts where it comes first in the order of the sidebar, and the next change drops the duplicate.
 - Renaming or moving a folder copies its directory and then removes the original, the tree holds small folder files
-  only. Deleting a folder moves its sessions and the sessions of its subfolders to its parent, no session is deleted.
+  only. Deleting a folder moves its sessions and the workbooks of its subfolders to its parent, no workbook is deleted.
 - Folder names are not empty, contain no `/` or `\`, are not `.` or `..`, and differ from the names of their
   sibling folders ignoring case.
 
-Writers hold the Web Lock `dashql-session-tree`, which all tabs of the app share. The cleanup holds it together with
+Writers hold the Web Lock `dashql-workbook-tree`, which all tabs of the app share. The cleanup holds it together with
 the lock of the manifest.
 
-### Sessions
+### Workbooks
 
-A session folder holds `dashql-session.json` (schema `proto/json/dashql/app_session.json`: `formatVersion`,
-`sessionId`, `name`, `connections`, `scripts`, `attachments`, `metadata`) and
+A workbook folder holds `dashql-workbook.json` (schema `proto/json/dashql/app_workbook.json`: `formatVersion`,
+`workbookId`, `name`, `connections`, `scripts`, `attachments`, `metadata`) and
 the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format 9 drops it: connections decide
 whether their results are cached.
 
 - `scripts/` holds one file per script, named by the script.
 - `attachments/` holds the attachments, Parquet files that queries read in place: `a.parquet` is the table parameter
-  `:a`. A session attaches Parquet files only (`validateDataFileName`): adding or importing another file fails, a
-  listing of the folder leaves other files out, and a session file that lists one is sanitized.
-  Session bundles rebase these paths when a session is imported under a new id.
+  `:a`. A workbook attaches Parquet files only (`validateDataFileName`): adding or importing another file fails, a
+  listing of the folder leaves other files out, and a workbook file that lists one is sanitized.
+  Workbook bundles rebase these paths when a workbook is imported under a new id.
 
-The greeter at the root of the app shows the ephemeral session, a session without scripts with `metadata.ephemeral: true`.
-It is stored and restored like any other session, since its session file already holds what it can gain before its first script: the connection picked for it and its attachments. The sidebar always lists it as the last session of the root, with the
-italic name "New Session" and no menu, and the create button of the sessions jumps to it. Its first script promotes it, whatever created the script: the marker goes, the session takes a free
-"Untitled" name and the session moves to the end of the root. The next ephemeral session is created right away.
+The greeter at the root of the app shows the ephemeral workbook, a workbook without scripts with `metadata.ephemeral: true`.
+It is stored and restored like any other workbook, since its workbook file already holds what it can gain before its first script: the connection picked for it and its attachments. The sidebar always lists it as the last workbook of the root, with the
+italic name "New Workbook" and no menu, and the create button of the workbooks jumps to it. Its first script promotes it, whatever created the script: the marker goes, the workbook takes a free
+"Untitled" name and the workbook moves to the end of the root. The next ephemeral workbook is created right away.
 Every launch ends with exactly one: it creates a missing one and deletes all but the first in restore order. A marked
-session that holds scripts stopped before its promotion was written, the restore finishes the promotion.
+workbook that holds scripts stopped before its promotion was written, the restore finishes the promotion.
 
 ### The query result cache
 
-`cache/` holds the [query result cache](query_cache.md) of the app, for every session and connection: one Parquet
+`cache/` holds the [query result cache](query_cache.md) of the app, for every workbook and connection: one Parquet
 file per result named `<hash>.<uuid>.parquet`, and an empty `.last_access` marker whose mtime makes the eviction
 least-recently-used. The materialized results of runs are files of their keys too, or transient files
 (`<uuid>.transient.parquet`) if their keys aren't reusable. hyperdb-wasm mounts the folder read-write at
@@ -115,10 +115,10 @@ import adds them to the folder (see Exported Results in `query_cache.md`).
 
 ### Connections
 
-Connections are global and referenced by sessions through `connectionId`. Their folder holds:
+Connections are global and referenced by workbooks through `connectionId`. Their folder holds:
 
 - The catalog files. They are a cache of the last catalog refresh and seed the completion before the
-  connection comes online. Session bundles carry the catalogs of their connections as
+  connection comes online. Workbook bundles carry the catalogs of their connections as
   `connections/<id>/dashql-catalog-*.sql`.
 - `monitoring.hyper`, the monitoring database of the connection (`connectionMonitoringDatabasePath`). The monitor of
   the connection in `HyperLogMetrics` fills its tables `query_ends` and `resource_metrics` every 5 seconds with a
@@ -150,7 +150,7 @@ The databases are scratch space: data frames are computed again when queries run
 drops the three databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,
 and the startup of the next instance removes every instance folder whose lock is free, e.g. after a crash.
 
-Earlier app versions kept these folders in the OPFS root as `dashql-session-<uuid>/` and let Hyper write its logs
+Earlier app versions kept these folders in the OPFS root as `dashql-workbook-<uuid>/` and let Hyper write its logs
 to the default folder `logs/<process-id>/` in the OPFS root, the cleanup removes both. Hyper still creates an
 empty `logs/` folder at startup, before the instance settings apply.
 
@@ -159,25 +159,25 @@ empty `logs/` folder at startup, before the instance settings apply.
 - `exports/<uuid>/` exists while one Arrow table is exported as Parquet. Hyper only writes to registered targets, so
   the export mounts the folder read-write as `/mnt/external/parquet-export-<uuid>` and removes it afterwards.
 
-## Native sessions
+## Native workbooks
 
-The native app keeps a session in a directory that the user chose, the entry of the session tree has `storageType: native`
-and `nativePath`. The directory has the layout of an OPFS session folder (`dashql-session.json`, `scripts/`,
+The native app keeps a workbook in a directory that the user chose, the entry of the workbook tree has `storageType: native`
+and `nativePath`. The directory has the layout of an OPFS workbook folder (`dashql-workbook.json`, `scripts/`,
 `attachments/`), and users may edit its files, see [native file synchronization](native_file_sync.md).
 
-hyperdb-wasm can only read OPFS. When a native session loads, its attachments are mirrored into
-`sessions/<id>/attachments/` in OPFS, so the attachments of the session read the same in both storage types.
+hyperdb-wasm can only read OPFS. When a native workbook loads, its attachments are mirrored into
+`workbooks/<id>/attachments/` in OPFS, so the attachments of the workbook read the same in both storage types.
 The app remembers the stamp (size and modification time) that each attachment was mirrored with and copies a
-file again only when its stamp changed, so the first load of a session in an app run copies every attachment.
-Connections, the manifest, the session tree, the shell files and the instances stay in OPFS.
+file again only when its stamp changed, so the first load of a workbook in an app run copies every attachment.
+Connections, the manifest, the workbook tree, the shell files and the instances stay in OPFS.
 
 ## Attachments
 
-The embedded Hyper reads the attachments of a session from its OPFS folder `sessions/<id>/attachments/` (of a
-native session, the mirror), mounted read-only at `/mnt/external/attachments/<id>`
-(`session/attachments/attachment_mounts.ts`). The app mounts the folder before a plan scans an attachment and before it
+The embedded Hyper reads the attachments of a workbook from its OPFS folder `workbooks/<id>/attachments/` (of a
+native workbook, the mirror), mounted read-only at `/mnt/external/attachments/<id>`
+(`workbook/attachments/attachment_mounts.ts`). The app mounts the folder before a plan scans an attachment and before it
 reads the columns of a Parquet attachment. A change of the attachments, in the app or in a native folder, marks the
-mount stale, its next use refreshes it so Hyper looks up the files again. Closing the session removes the mount.
+mount stale, its next use refreshes it so Hyper looks up the files again. Closing the workbook removes the mount.
 
 ## Hyper paths
 
@@ -206,9 +206,13 @@ Two versions describe the stored data:
 - The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` brings an older
   root to the current version at startup with the steps in `src/storage/migration/storage/`, e.g. version 5 moves `dashql-shell/`
   to `shell/`, version 6 drops the `aliases` of the connections, version 7 moves the `sessions` of the manifest into
-  the folder `My Sessions` of `sessiontree/` and version 8 moves the connection params under `sidb` to `dbcom`.
-- The session format version, `formatVersion` in `dashql-session.json`, describes one session folder. The steps in
-  `src/storage/migration/session/` run for every reachable session folder, and for folders that are registered later.
+  the folder `My Sessions` of `sessiontree/`, version 8 moves the connection params under `sidb` to `dbcom`, and version 9
+  renames sessions as workbooks: `sessions/` becomes `workbooks/`, `sessiontree/` becomes `workbooktree/`, its folder
+  files list `workbooks`, and the setting `agentSessions` becomes `agentWorkbooks`.
+- The workbook format version, `formatVersion` in `dashql-workbook.json`, describes one workbook folder. The steps in
+  `src/storage/migration/workbook/` run for every reachable workbook folder, and for folders that are registered later.
+  Version 11 renames `dashql-session.json` as `dashql-workbook.json`, with `workbookId` and `workbookPath` in place of
+  `sessionId` and `sessionPath`. The steps up to version 10 keep the names of sessions, the layout of their version.
 
 The current versions are in `src/storage/migration/versions.ts`. A migration step spells out every file and folder name it
 touches instead of using the storage constants of the app: the constants describe the current layout, a step the

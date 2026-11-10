@@ -52,15 +52,15 @@ async function readNumber(connection: HyperDBConnection, sql: string): Promise<n
 }
 
 /// Count the user errors in the log scope of the connection, since it was connected.
-async function countScopeUserErrors(connection: HyperDBConnection, currentSession = false): Promise<number> {
+async function countScopeUserErrors(connection: HyperDBConnection, currentWorkbook = false): Promise<number> {
     return await readNumber(connection, `
         SELECT count(*) AS n
-        FROM hyper_log(current_session := ${currentSession}, last_log_scope := true)
+        FROM hyper_log(current_session := ${currentWorkbook}, last_log_scope := true)
         WHERE k = 'query-end-user-error'
     `);
 }
 
-async function readSessionId(connection: HyperDBConnection): Promise<string> {
+async function readWorkbookId(connection: HyperDBConnection): Promise<string> {
     const result = await connection.query("SELECT sess FROM hyper_log(current_session := true) WHERE sess <> '-' LIMIT 1");
     return result.getChild('sess')!.get(0) as string;
 }
@@ -280,7 +280,7 @@ describe('HyperDB Wasm log extract', () => {
         const ignored = await database!.connect();
         const tag = uniqueTag('filter');
         try {
-            const ignoredSession = await readSessionId(ignored);
+            const ignoredSession = await readWorkbookId(ignored);
             await openExtract({
                 sourceQuery: `SELECT * FROM log WHERE sess IS DISTINCT FROM '${ignoredSession}' AND k LIKE 'query-%'`,
             });

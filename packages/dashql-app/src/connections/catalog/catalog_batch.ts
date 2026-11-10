@@ -51,6 +51,13 @@ export async function initializeCatalogBatchWorker(core: DashQL): Promise<void> 
     await worker.initialize();
 }
 
+/// Test-only: forget the disposal of the catalog batches of a core that outlives its provider, the core that the browser
+/// tests share between their files. A provider that a test unmounts disposes the batches of the shared core, the batches of
+/// the next test file would be cancelled.
+export function resetCatalogBatchLifetime(core: DashQL): void {
+    if (lifetimes.get(core)?.signal.aborted) lifetimes.delete(core);
+}
+
 /// The core provider explicitly sets up and owns the worker lifecycle.
 export function disposeCatalogBatchWorker(core: DashQL): void {
     // Keep the aborted signal for response continuations already queued before disposal.

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { Wobble, WobbleMorphEvent } from './wobble.js';
 import * as styles from './agent_greeting.module.css';
 
-/// The questions Wobble asks on an empty session, in the order they rotate.
+/// The questions Wobble asks on an empty workbook, in the order they rotate.
 /// They speak of the user and the agent together, the analysis is not handed off to the agent.
 export const AGENT_GREETINGS: readonly string[] = [
     'What are we exploring?',

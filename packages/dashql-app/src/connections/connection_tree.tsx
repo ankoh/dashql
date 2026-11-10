@@ -369,14 +369,14 @@ interface ConnectionTreeRowProps {
     setRenamingId: (connectionId: string | null) => void;
 }
 
-/// How sessions use a connection
+/// How workbooks use a connection
 export interface ConnectionUsage {
-    /// The number of sessions that use the connection
-    sessionCount: number;
-    /// The number of sessions that keep the connection from being deleted.
-    /// A session whose new scripts merely default to the connection lets go of it.
-    blockingSessionCount: number;
-    /// Does the current session use the connection?
+    /// The number of workbooks that use the connection
+    workbookCount: number;
+    /// The number of workbooks that keep the connection from being deleted.
+    /// A workbook whose new scripts merely default to the connection lets go of it.
+    blockingWorkbookCount: number;
+    /// Does the current workbook use the connection?
     usedHere: boolean;
 }
 
@@ -473,7 +473,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         contextMenu={contextMenu}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onRename={startRename}
-                        // Sessions fall back to the embedded Hyper, it is never deleted
+                        // Workbooks fall back to the embedded Hyper, it is never deleted
                         onDelete={props.onDelete == null || usage == null || isHyperWasmConnection(row.database) ? undefined : () => props.onDelete!(row.database.connectionId)}
                         onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
                         mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
@@ -483,7 +483,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         replaceBlocker={props.replaceBlocker == null ? undefined : () => props.replaceBlocker!(connectionId)}
                         replaceCandidates={props.replaceCandidates == null ? undefined : () => props.replaceCandidates!(connectionId)}
                         labelOf={props.labelOf}
-                        sessionCount={usage?.blockingSessionCount}
+                        workbookCount={usage?.blockingWorkbookCount}
                     />
                 </ConnectionTreeEntry>
             </div>
@@ -549,9 +549,9 @@ interface ConnectionTreeProps {
     databases: ConnectionState[];
     /// Open the settings of a connection
     onOpenSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
-    /// Describe how sessions use a connection
+    /// Describe how workbooks use a connection
     describeUsage?: (connectionId: string) => ConnectionUsage;
-    /// Delete a connection that no session uses
+    /// Delete a connection that no workbook uses
     onDelete?: (connectionId: string) => void;
     /// The number of connections that can be merged into a connection
     mergeCandidateCount?: (connectionId: string) => number;
@@ -561,15 +561,15 @@ interface ConnectionTreeProps {
     replaceBlocker?: (connectionId: string) => string | null;
     /// The connections that can replace a connection
     replaceCandidates?: (connectionId: string) => ConnectionReplaceCandidates;
-    /// Replace a connection with another one in every session
+    /// Replace a connection with another one in every workbook
     onReplace?: (connectionId: string, targetId: string) => void;
     /// Is a connection expanded initially?
     initiallyExpanded?: (database: ConnectionState, databaseCount: number) => boolean;
-    /// The connections of the current session, they are grouped apart from the other connections and the unused ones
-    sessionConnectionIds?: ReadonlySet<string>;
+    /// The connections of the current workbook, they are grouped apart from the other connections and the unused ones
+    workbookConnectionIds?: ReadonlySet<string>;
     /// Label a connection
     labelOf?: (database: ConnectionState) => ConnectionLabelParts;
-    /// Does the current session ask for its connections to execute?
+    /// Does the current workbook ask for its connections to execute?
     attention?: boolean;
     /// Open the overview of a connection, connections offer no overview without it
     onOpenOverview?: (connectionId: string) => void;
@@ -584,14 +584,14 @@ const catalogKey = (connectionId: string) => `${connectionKey(connectionId)}/cat
 const overviewKey = (connectionId: string) => `${connectionKey(connectionId)}/overview`;
 
 /// The groups of the connection tree
-type ConnectionGroupKind = 'session' | 'other' | 'unused';
+type ConnectionGroupKind = 'workbook' | 'other' | 'unused';
 
 /// The order of the groups of the connection tree
-const CONNECTION_GROUP_ORDER: ConnectionGroupKind[] = ['session', 'other', 'unused'];
+const CONNECTION_GROUP_ORDER: ConnectionGroupKind[] = ['workbook', 'other', 'unused'];
 
 /// The headings of the groups of the connection tree
 const CONNECTION_GROUP_LABELS: Record<ConnectionGroupKind, string> = {
-    session: 'This session',
+    workbook: 'This workbook',
     other: 'Other connections',
     unused: 'Unused connections',
 };
@@ -618,7 +618,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     replaceCandidates,
     onReplace,
     initiallyExpanded = isConnectionInitiallyExpanded,
-    sessionConnectionIds,
+    workbookConnectionIds,
     labelOf = defaultConnectionLabelOf,
     attention = false,
     onOpenOverview,
@@ -684,13 +684,13 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             next.push({ type: 'connection-catalog', key: catalogKey(database.connectionId), database });
             next.push(...catalogRows[i]);
         };
-        if (sessionConnectionIds == null) {
+        if (workbookConnectionIds == null) {
             databases.forEach(pushConnection);
             return next;
         }
         const groupOf = (database: ConnectionState): ConnectionGroupKind => {
-            if (sessionConnectionIds.has(database.connectionId)) return 'session';
-            return describeUsage?.(database.connectionId).sessionCount === 0 ? 'unused' : 'other';
+            if (workbookConnectionIds.has(database.connectionId)) return 'workbook';
+            return describeUsage?.(database.connectionId).workbookCount === 0 ? 'unused' : 'other';
         };
         const groups = databases.map(groupOf);
         for (const group of CONNECTION_GROUP_ORDER) {
@@ -701,7 +701,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             });
         }
         return next;
-    }, [databases, catalogRows, describeUsage, expanded, onOpenOverview, sessionConnectionIds]);
+    }, [databases, catalogRows, describeUsage, expanded, onOpenOverview, workbookConnectionIds]);
     // The rows are virtualized, the tree remembers the renamed connection while its row scrolls out of view
     const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -751,15 +751,15 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     );
 };
 
-/// The connections shown next to the sessions.
-/// The connections of the current session come first, followed by the connections of other
-/// sessions and active connections that no session uses.
+/// The connections shown next to the workbooks.
+/// The connections of the current workbook come first, followed by the connections of other
+/// workbooks and active connections that no workbook uses.
 export function listedConnections(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
-    currentSessionConnections: readonly ConnectionState[],
+    currentWorkbookConnections: readonly ConnectionState[],
 ): ConnectionState[] {
-    const listed = [...currentSessionConnections];
+    const listed = [...currentWorkbookConnections];
     const seen = new Set(listed.map(database => database.connectionId));
     for (const [connectionId, database] of registry.connections) {
         if (!seen.has(connectionId) && isListedConnection(registry, references, connectionId)) {
@@ -779,13 +779,13 @@ interface ConnectionRowMenuProps {
     onOpenSettings: (anchor: HTMLButtonElement) => void;
     /// Rename the connection
     onRename?: () => void;
-    /// Delete the connection, only possible if no session keeps it
+    /// Delete the connection, only possible if no workbook keeps it
     onDelete?: () => void;
     /// Merge other connections into the connection
     onMerge?: () => void;
     /// The number of connections that can be merged into the connection
     mergeCandidateCount?: number;
-    /// Replace the connection with another one in every session
+    /// Replace the connection with another one in every workbook
     onReplace?: (targetId: string) => void;
     /// What keeps the connection from being replaced, null if it can be replaced. Read while the menu is open
     replaceBlocker?: () => string | null;
@@ -793,8 +793,8 @@ interface ConnectionRowMenuProps {
     replaceCandidates?: () => ConnectionReplaceCandidates;
     /// Label a connection of the replace picker
     labelOf?: (database: ConnectionState) => ConnectionLabelParts;
-    /// The number of sessions that keep the connection from being deleted
-    sessionCount?: number;
+    /// The number of workbooks that keep the connection from being deleted
+    workbookCount?: number;
     /// The right click of the row that opens the menu
     contextMenu?: RowContextMenu;
     dependencies?: ConnectionRefreshDependencies;
@@ -808,7 +808,7 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, sessionCount = 0, contextMenu, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, workbookCount = 0, contextMenu, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     useRowContextMenuOpener(contextMenu, () => setOpen(true));
     // The menu turns into the picker of the connection that replaces this one
@@ -819,7 +819,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
     }, []);
     const replaceBlocker = open && onReplace != null ? readReplaceBlocker?.() ?? null : null;
     const [shareOpen, setShareOpen] = React.useState(false);
-    // The embedded Hyper is local to the app, a link to it would open an empty session on the embedded Hyper of the recipient
+    // The embedded Hyper is local to the app, a link to it would open an empty workbook on the embedded Hyper of the recipient
     const canShare = !isHyperWasmConnection(database);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
@@ -956,8 +956,8 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                             className={actionMenuStyles.delete_action}
                             data-testid="connection-menu-item"
                             data-action="delete"
-                            disabled={sessionCount > 0}
-                            title={sessionCount > 0 ? `Used by ${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}` : undefined}
+                            disabled={workbookCount > 0}
+                            title={workbookCount > 0 ? `Used by ${workbookCount} ${workbookCount === 1 ? 'workbook' : 'workbooks'}` : undefined}
                             onClick={() => {
                                 setOpen(false);
                                 onDelete();
@@ -966,8 +966,8 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                             <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
                             <ActionList.ItemText>
                                 <ActionList.ItemTextTitle>Delete</ActionList.ItemTextTitle>
-                                {sessionCount > 0
-                                    ? <ActionList.ItemTextDescription>{`Used by ${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}</ActionList.ItemTextDescription>
+                                {workbookCount > 0
+                                    ? <ActionList.ItemTextDescription>{`Used by ${workbookCount} ${workbookCount === 1 ? 'workbook' : 'workbooks'}`}</ActionList.ItemTextDescription>
                                     : <></>}
                             </ActionList.ItemText>
                         </ActionList.ListItem>
@@ -1015,16 +1015,16 @@ interface ConnectionStatusButtonProps {
     database: ConnectionState;
     /// The label of the connection
     label: string;
-    /// Does the current session use the connection?
+    /// Does the current workbook use the connection?
     usedHere: boolean;
-    /// Does the current session ask for its connections to execute?
+    /// Does the current workbook ask for its connections to execute?
     attention?: boolean;
     /// Open the settings of the connection
     onOpenSettings: (anchor: HTMLButtonElement) => void;
 }
 
 /// The health of a connection, opens its settings.
-/// Pulses while the current session asks for a connection to execute and the connection is not online.
+/// Pulses while the current workbook asks for a connection to execute and the connection is not online.
 export const ConnectionStatusButton: React.FC<ConnectionStatusButtonProps> = ({ database, label, usedHere, attention = false, onOpenSettings }) => {
     const health = database.connectionHealth;
     const online = health === ConnectionHealth.ONLINE;

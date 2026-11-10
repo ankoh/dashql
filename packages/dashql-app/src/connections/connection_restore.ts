@@ -7,16 +7,16 @@ import { decodeConnectionFromProto, restoreConnectionState } from './connection_
 import { connectionCatalogIsDurable } from './connection_params.js';
 import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
 import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog/catalog_batch.js';
-import type { SessionConnection, SessionRegistryBackend } from '../storage/storage_backend.js';
+import type { WorkbookConnection, WorkbookRegistryBackend } from '../storage/storage_backend.js';
 import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE } from '../storage/storage_backend.js';
 import { packRelationName, parseCatalogStateFile, readRelationName } from './catalog/catalog_sql_generator.js';
 import { mergeRelationNames } from './catalog/catalog_update_state.js';
 
 const LOG_CTX = "connection_restore";
 
-/// The stored params of a connection, as the app manifest or a session file holds them
-export type StoredConnection = Pick<SessionConnection, 'params' | 'paramsDraft'> & {
-    /// The name of the connection, the app manifest keeps it, an imported session brings it along
+/// The stored params of a connection, as the app manifest or a workbook file holds them
+export type StoredConnection = Pick<WorkbookConnection, 'params' | 'paramsDraft'> & {
+    /// The name of the connection, the app manifest keeps it, an imported workbook brings it along
     name?: string;
     /// Does the connection cache query results? The app manifest keeps it, absent for the default of the connector.
     cacheQueryResults?: boolean;
@@ -72,7 +72,7 @@ export interface ConnectionCatalogRestore {
 /// of that file count as not answered, the file is cleared.
 export async function restoreConnectionCatalog(
     ctx: CatalogRestoreContext,
-    registry: SessionRegistryBackend,
+    registry: WorkbookRegistryBackend,
     connection: ConnectionState,
     logContext: Record<string, string>,
 ): Promise<ConnectionCatalogRestore> {

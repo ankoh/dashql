@@ -54,7 +54,7 @@ describe('SymbolIcon', () => {
         expectSymbol(svg, 'x_24');
     });
 
-    it('uses the 16px library artwork at session-card sizes', () => {
+    it('uses the 16px library artwork at workbook-card sizes', () => {
         const svg = render(<LibraryIcon size={14} />);
 
         expectSymbol(svg, 'library_16');

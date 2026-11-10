@@ -12,8 +12,8 @@ const APP_SETUP_STEPS = {
     applyMigrations: 'Apply Migrations',
     initializeCore: 'Initialize Core',
     initializeHyperDB: 'Initialize HyperDB',
-    discoverSessions: 'Discover Sessions',
-    loadSessionScripts: 'Load Session Scripts',
+    discoverWorkbooks: 'Discover Workbooks',
+    loadWorkbookScripts: 'Load Workbook Scripts',
 };
 
 /// The status of every step of the setup of the app
@@ -24,8 +24,8 @@ export const APP_SETUP_NOT_STARTED: AppSetupStatus = {
     applyMigrations: IndicatorStatus.None,
     initializeCore: IndicatorStatus.None,
     initializeHyperDB: IndicatorStatus.None,
-    discoverSessions: IndicatorStatus.None,
-    loadSessionScripts: IndicatorStatus.None,
+    discoverWorkbooks: IndicatorStatus.None,
+    loadWorkbookScripts: IndicatorStatus.None,
 };
 
 interface AppSetupPageProps {

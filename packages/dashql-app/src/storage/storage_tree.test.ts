@@ -28,16 +28,16 @@ describe('opfsTreeRoot', () => {
         const getFile = vi.spyOn(OPFSFileMock.prototype, 'getFile');
         const root = opfsRoot({
             'dashql-manifest.json': '{}',
-            'sessions/a/scripts/10.sql': 'SELECT 10',
-            'sessions/a/scripts/2.sql': 'SELECT 2',
-        }, ['sessions', 'sessions/a', 'sessions/a/scripts', 'instances']);
+            'workbooks/a/scripts/10.sql': 'SELECT 10',
+            'workbooks/a/scripts/2.sql': 'SELECT 2',
+        }, ['workbooks', 'workbooks/a', 'workbooks/a/scripts', 'instances']);
 
         expect(await root.list([])).toEqual([
             { name: 'instances', kind: D },
-            { name: 'sessions', kind: D },
+            { name: 'workbooks', kind: D },
             { name: 'dashql-manifest.json', kind: F },
         ]);
-        expect(await root.list(['sessions', 'a', 'scripts'])).toEqual([
+        expect(await root.list(['workbooks', 'a', 'scripts'])).toEqual([
             { name: '2.sql', kind: F },
             { name: '10.sql', kind: F },
         ]);
@@ -46,7 +46,7 @@ describe('opfsTreeRoot', () => {
 
     it('rejects listing a missing directory', async () => {
         const root = opfsRoot({}, []);
-        await expect(root.list(['sessions'])).rejects.toThrow();
+        await expect(root.list(['workbooks'])).rejects.toThrow();
     });
 
     it('stats files and marks files held open by HyperDB', async () => {
@@ -61,7 +61,7 @@ describe('opfsTreeRoot', () => {
 });
 
 describe('nativeTreeRoot', () => {
-    const DIR = '/home/me/session';
+    const DIR = '/home/me/workbook';
 
     beforeEach(() => {
         resetFsStore();
@@ -73,7 +73,7 @@ describe('nativeTreeRoot', () => {
     });
 
     it('lists with a single readDir and no stats', async () => {
-        fsStore.files.set(`${DIR}/dashql-session.json`, '{}');
+        fsStore.files.set(`${DIR}/dashql-workbook.json`, '{}');
         fsStore.files.set(`${DIR}/scripts/1.sql`, 'SELECT 1');
         fsStore.dirs.add(DIR);
         fsStore.dirs.add(`${DIR}/scripts`);
@@ -81,10 +81,10 @@ describe('nativeTreeRoot', () => {
         const readDir = vi.spyOn(fs, 'readDir');
         const stat = vi.spyOn(fs, 'stat');
 
-        const root = nativeTreeRoot(DIR, 'session', `fs://${DIR}`);
+        const root = nativeTreeRoot(DIR, 'workbook', `fs://${DIR}`);
         expect(await root.list([])).toEqual([
             { name: 'scripts', kind: D },
-            { name: 'dashql-session.json', kind: F },
+            { name: 'dashql-workbook.json', kind: F },
         ]);
         expect(readDir).toHaveBeenCalledTimes(1);
         expect(readDir).toHaveBeenCalledWith(DIR);
@@ -97,26 +97,26 @@ describe('nativeTreeRoot', () => {
     it('rejects listing a missing folder', async () => {
         const fs = globalThis.dashqlElectron!.fs;
         vi.spyOn(fs, 'readDir').mockRejectedValue(new Error('ENOENT'));
-        await expect(nativeTreeRoot(DIR, 'session', `fs://${DIR}`).list([])).rejects.toThrow('ENOENT');
+        await expect(nativeTreeRoot(DIR, 'workbook', `fs://${DIR}`).list([])).rejects.toThrow('ENOENT');
     });
 });
 
 describe('listStorageTreeRoots', () => {
-    const sessions = {
-        getSessionOrder: () => ['a', 'b', 'c', 'd'],
-        getSessionLocation: (id: string) => id === 'a'
+    const workbooks = {
+        getWorkbookOrder: () => ['a', 'b', 'c', 'd'],
+        getWorkbookLocation: (id: string) => id === 'a'
             ? { type: StorageBackendType.OPFS }
             : { type: StorageBackendType.Native, nativePath: id === 'd' ? '/x/d' : '/x/shared' },
     };
 
-    it('lists the OPFS root and the distinct native session folders on desktop', () => {
-        const roots = listStorageTreeRoots(sessions, true);
+    it('lists the OPFS root and the distinct native workbook folders on desktop', () => {
+        const roots = listStorageTreeRoots(workbooks, true);
         expect(roots.map(root => root.displayPath)).toEqual(['opfs://', 'fs:///x/shared', 'fs:///x/d']);
         expect(roots[1].label).toBe('b');
     });
 
     it('lists only the OPFS root on the web', () => {
-        expect(listStorageTreeRoots(sessions, false).map(root => root.displayPath)).toEqual(['opfs://']);
+        expect(listStorageTreeRoots(workbooks, false).map(root => root.displayPath)).toEqual(['opfs://']);
     });
 });
 

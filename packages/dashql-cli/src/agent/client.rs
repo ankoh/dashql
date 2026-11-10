@@ -1,4 +1,4 @@
-//! The commands that agents call: they reach the open DashQL session through the agent server
+//! The commands that agents call: they reach the open DashQL workbook through the agent server
 
 use crate::agent::commands::{usage_lines, vis_commands};
 use crate::agent::config::AgentConfig;
@@ -22,13 +22,13 @@ pub fn usage() -> String {
     format!(
         "Usage: dashql agent <command> [options]
 
-Commands for the DashQL session that is open in the browser or the desktop app:
+Commands for the DashQL workbook that is open in the browser or the desktop app:
 {}
   serve [--exit-with-stdin]           Run the agent server in the foreground, --exit-with-stdin stops it when
                                       stdin closes, for an app that runs it as a child process
 
 Options:
-  --session <id>   Target session, default: $DASHQL_SESSION, then the focused session
+  --workbook <id> Target workbook, default: $DASHQL_WORKBOOK, then the focused workbook
   --json           Print structured output",
         usage_lines()
     )
@@ -67,7 +67,7 @@ fn with_newline(text: String) -> String {
 /// The options of the commands, they may appear anywhere
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Options {
-    pub session: Option<String>,
+    pub workbook: Option<String>,
     pub json: bool,
     pub file: Option<String>,
     pub connection: Option<String>,
@@ -92,7 +92,8 @@ pub fn parse_args(argv: &[String]) -> Result<Options, String> {
             _ => (arg.as_str(), None),
         };
         let target = match name {
-            "--session" => Some(&mut options.session),
+            // Workbooks were called sessions, scripts of older versions pass --session
+            "--workbook" | "--session" => Some(&mut options.workbook),
             "--file" => Some(&mut options.file),
             "--connection" => Some(&mut options.connection),
             "--max-rows" => Some(&mut options.max_rows),
@@ -127,8 +128,8 @@ fn parse_positive(value: &str, name: &str) -> Result<u64, String> {
 
 /// Where the command line tool finds the agent server and its input
 pub struct CliEnvironment<'a> {
-    /// The value of DASHQL_SESSION
-    pub session: Option<String>,
+    /// The value of DASHQL_WORKBOOK
+    pub workbook: Option<String>,
     /// Read stdin, for edit without --file
     pub read_stdin: &'a dyn Fn() -> std::io::Result<String>,
     /// Read a file, for edit --file
@@ -166,24 +167,24 @@ pub fn format_status(status: &Value) -> String {
     }
     let text = |v: &Value| v.as_str().unwrap_or_default().to_string();
     for client in clients {
-        let sessions = client["sessions"].as_array().map(Vec::as_slice).unwrap_or_default();
-        let plural = if sessions.len() == 1 { "" } else { "s" };
+        let workbooks = client["workbooks"].as_array().map(Vec::as_slice).unwrap_or_default();
+        let plural = if workbooks.len() == 1 { "" } else { "s" };
         lines.push(format!(
-            "Client {} ({}), {} session{plural}",
+            "Client {} ({}), {} workbook{plural}",
             text(&client["kind"]),
             text(&client["origin"]),
-            sessions.len()
+            workbooks.len()
         ));
-        for session in sessions {
-            let focused = if session["id"] == client["focused"] { " (focused)" } else { "" };
-            lines.push(format!("  {}  {}{focused}", text(&session["id"]), Value::from(text(&session["name"]))));
+        for workbook in workbooks {
+            let focused = if workbook["id"] == client["focused"] { " (focused)" } else { "" };
+            lines.push(format!("  {}  {}{focused}", text(&workbook["id"]), Value::from(text(&workbook["name"]))));
         }
     }
     for turn in status["turns"].as_array().into_iter().flatten() {
-        let [harness, session, state, status] = ["harness", "session", "state", "status"].map(|k| text(&turn[k]));
+        let [harness, workbook, state, status] = ["harness", "workbook", "state", "status"].map(|k| text(&turn[k]));
         let picks: Vec<_> = ["model", "effort"].iter().filter_map(|k| turn[*k].as_str()).collect();
         let picks = if picks.is_empty() { String::new() } else { format!(" ({})", picks.join(", ")) };
-        lines.push(format!("Turn of {harness}{picks} in {session}: {state}, {status}"));
+        lines.push(format!("Turn of {harness}{picks} in {workbook}: {state}, {status}"));
     }
     lines.join("\n")
 }
@@ -252,7 +253,7 @@ fn call_args(
     Ok(args)
 }
 
-/// Run a command against the open DashQL session
+/// Run a command against the open DashQL workbook
 pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
     let Some((command, rest)) = options.positionals.split_first() else {
         return CliOutput::usage("Missing command");
@@ -267,14 +268,14 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         }
         _ => (command.clone(), rest),
     };
-    // The guide is the text of this binary, for the features of the page that holds the session
+    // The guide is the text of this binary, for the features of the page that holds the workbook
     if command == "guide" {
         if !rest.is_empty() {
             return CliOutput::usage("guide takes no arguments");
         }
-        let session = options.session.clone().or(cli.session.clone()).filter(|s| !s.is_empty());
+        let workbook = options.workbook.clone().or(cli.workbook.clone()).filter(|s| !s.is_empty());
         let status = (cli.request)("GET", "/v1/status", None).filter(|body| body["ok"] == true);
-        let features = status.and_then(|body| session_page(&body["status"], session.as_deref()));
+        let features = status.and_then(|body| workbook_page(&body["status"], workbook.as_deref()));
         let text = cli_guide(features.as_deref().map_or(Page::Unknown, Page::Features));
         return CliOutput::ok(if options.json { pretty(&json!({ "text": text })) } else { text });
     }
@@ -292,10 +293,10 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         Ok(args) => args,
         Err(e) => return CliOutput::usage(&e),
     };
-    let session = options.session.clone().or(cli.session.clone()).filter(|s| !s.is_empty());
+    let workbook = options.workbook.clone().or(cli.workbook.clone()).filter(|s| !s.is_empty());
     let mut call = json!({ "command": command, "args": args });
-    if let Some(session) = session {
-        call["session"] = session.into();
+    if let Some(workbook) = workbook {
+        call["workbook"] = workbook.into();
     }
     let Some(body) = (cli.request)("POST", "/v1/call", Some(&call.to_string())) else {
         return CliOutput::error(NOT_RUNNING_MESSAGE, EXIT_USAGE);
@@ -314,13 +315,13 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
     CliOutput::ok(result["text"].as_str().unwrap_or_default().to_string())
 }
 
-/// The features of the page that holds the session, or of a page with a focused session, None without one
-fn session_page(status: &Value, session: Option<&str>) -> Option<Vec<String>> {
+/// The features of the page that holds the workbook, or of a page with a focused workbook, None without one
+fn workbook_page(status: &Value, workbook: Option<&str>) -> Option<Vec<String>> {
     let clients = status["clients"].as_array()?;
-    let client = match session {
-        Some(session) => clients
+    let client = match workbook {
+        Some(workbook) => clients
             .iter()
-            .find(|client| client["sessions"].as_array().is_some_and(|s| s.iter().any(|s| s["id"] == session))),
+            .find(|client| client["workbooks"].as_array().is_some_and(|s| s.iter().any(|s| s["id"] == workbook))),
         None => clients.iter().find(|client| !client["focused"].is_null()),
     }?;
     // A server older than the features names none, its pages have the baseline
@@ -373,7 +374,7 @@ mod tests {
             Fake { response, requests: RefCell::new(Vec::new()), written: RefCell::new(Vec::new()) }
         }
 
-        fn run(&self, argv: &[&str], session: Option<&str>, stdin: &str) -> CliOutput {
+        fn run(&self, argv: &[&str], workbook: Option<&str>, stdin: &str) -> CliOutput {
             let argv: Vec<String> = argv.iter().map(|a| a.to_string()).collect();
             let request = |method: &str, path: &str, body: Option<&str>| {
                 let body = body.map(|b| serde_json::from_str(b).unwrap());
@@ -382,7 +383,7 @@ mod tests {
             };
             let stdin = stdin.to_string();
             let cli = CliEnvironment {
-                session: session.map(str::to_string),
+                workbook: workbook.map(str::to_string),
                 read_stdin: &move || Ok(stdin.clone()),
                 read_file: &|file| Err(format!("{file}: not found")),
                 write_file: &|file, bytes| {
@@ -405,7 +406,7 @@ mod tests {
     #[test]
     fn sends_a_call_and_prints_the_text() {
         let fake = Fake::new(Some(
-            json!({ "ok": true, "session": "s", "result": { "text": "select 1", "data": { "text": "select 1" } } }),
+            json!({ "ok": true, "workbook": "s", "result": { "text": "select 1", "data": { "text": "select 1" } } }),
         ));
         let output = fake.run(&["read", "q1"], None, "");
         assert_eq!(output, CliOutput { stdout: "select 1\n".into(), stderr: String::new(), exit_code: EXIT_OK });
@@ -414,9 +415,9 @@ mod tests {
     }
 
     #[test]
-    fn calls_every_command_of_the_session() {
+    fn calls_every_command_of_the_workbook() {
         use crate::agent::commands::AGENT_COMMANDS;
-        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "" } })));
+        let fake = Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "" } })));
         for command in &AGENT_COMMANDS {
             let Some(call) = command.call() else { continue };
             let mut argv: Vec<&str> = command.name.split(' ').collect();
@@ -431,19 +432,19 @@ mod tests {
     }
 
     #[test]
-    fn targets_the_session_of_the_environment_then_the_flag() {
-        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "" } })));
-        fake.run(&["scripts"], Some("env-session"), "");
-        assert_eq!(fake.body(0)["session"], "env-session");
-        fake.run(&["scripts", "--session", "flag-session"], Some("env-session"), "");
-        assert_eq!(fake.body(1)["session"], "flag-session");
-        fake.run(&["--session=x", "scripts"], None, "");
-        assert_eq!(fake.body(2)["session"], "x");
+    fn targets_the_workbook_of_the_environment_then_the_flag() {
+        let fake = Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "" } })));
+        fake.run(&["scripts"], Some("env-workbook"), "");
+        assert_eq!(fake.body(0)["workbook"], "env-workbook");
+        fake.run(&["scripts", "--workbook", "flag-workbook"], Some("env-workbook"), "");
+        assert_eq!(fake.body(1)["workbook"], "flag-workbook");
+        fake.run(&["--workbook=x", "scripts"], None, "");
+        assert_eq!(fake.body(2)["workbook"], "x");
     }
 
     #[test]
     fn reads_the_text_of_an_edit_from_stdin() {
-        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "ok" } })));
+        let fake = Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "ok" } })));
         fake.run(&["edit", "q1"], None, "select 2");
         assert_eq!(fake.body(0)["args"], json!({ "script": "q1", "text": "select 2" }));
         let output = fake.run(&["edit", "q1", "--file", "missing.sql"], None, "");
@@ -453,14 +454,14 @@ mod tests {
 
     #[test]
     fn passes_the_connection_of_an_edit() {
-        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "ok" } })));
+        let fake = Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "ok" } })));
         fake.run(&["edit", "q1", "--connection", "lake"], None, "select 2");
         assert_eq!(fake.body(0)["args"], json!({ "script": "q1", "text": "select 2", "connection": "lake" }));
     }
 
     #[test]
     fn sends_the_vis_commands_as_calls_of_their_own() {
-        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "ok" } })));
+        let fake = Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "ok" } })));
         fake.run(&["vis", "edit", "q1"], None, "{\"mark\": \"bar\"}");
         let args = json!({ "script": "q1", "spec": "{\"mark\": \"bar\"}" });
         assert_eq!(fake.body(0), json!({ "command": "vis.edit", "args": args }));
@@ -472,7 +473,7 @@ mod tests {
     fn writes_the_png_of_an_image() {
         let data = json!({ "script": "q1", "width": 2, "height": 1, "png": "iVBORw==" });
         let fake =
-            Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered", "data": data } })));
+            Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "Rendered", "data": data } })));
         let output = fake.run(&["vis", "image", "q1.sql", "--width", "400", "--scale=1"], None, "");
         let stdout = "Rendered\nWrote q1.png\n".to_string();
         assert_eq!(output, CliOutput { stdout, stderr: String::new(), exit_code: EXIT_OK });
@@ -484,7 +485,7 @@ mod tests {
         assert_eq!(printed, json!({ "script": "q1", "width": 2, "height": 1, "png": "chart.png" }));
         assert_eq!(fake.written.borrow()[1].0, "chart.png");
 
-        let no_png = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered" } })));
+        let no_png = Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "Rendered" } })));
         assert_eq!(no_png.run(&["vis", "image", "q1"], None, "").exit_code, EXIT_FAILED);
         assert_eq!(fake.run(&["vis", "image", "q1", "--height", "0"], None, "").exit_code, EXIT_USAGE);
     }
@@ -492,21 +493,21 @@ mod tests {
     #[test]
     fn prints_the_guide_for_the_features_of_the_page() {
         let status = |features: Value| {
-            let client = json!({ "id": "1", "kind": "web", "origin": "https://dashql.app", "sessions": [{ "id": "s1", "name": "S" }], "focused": "s1", "features": features });
+            let client = json!({ "id": "1", "kind": "web", "origin": "https://dashql.app", "workbooks": [{ "id": "s1", "name": "S" }], "focused": "s1", "features": features });
             Some(json!({ "ok": true, "status": { "port": 1, "clients": [client], "turns": [] } }))
         };
         let current = Fake::new(status(json!(crate::agent::instructions::PAGE_FEATURES)));
         let output = current.run(&["guide"], None, "");
         assert_eq!(output.exit_code, EXIT_OK);
-        assert!(output.stdout.contains("- Attachments are Parquet files of the session"));
+        assert!(output.stdout.contains("- Attachments are Parquet files of the workbook"));
         assert!(!output.stdout.contains("No DashQL is connected"));
         assert!(!output.stdout.contains("The open DashQL is older"));
         assert_eq!(current.requests.borrow()[0].1, "/v1/status");
         // A page without features has the baseline and is older than the guide
-        let old = Fake::new(status(Value::Null)).run(&["guide", "--session", "s1"], None, "");
+        let old = Fake::new(status(Value::Null)).run(&["guide", "--workbook", "s1"], None, "");
         assert!(old.stdout.contains("The open DashQL is older"));
         assert!(!old.stdout.contains("Attachments are Parquet files"));
-        // Another session has no page
+        // Another workbook has no page
         let other = Fake::new(status(Value::Null)).run(&["guide"], Some("s2"), "");
         assert!(other.stdout.contains("No DashQL is connected"));
         assert_eq!(current.run(&["guide", "x"], None, "").exit_code, EXIT_USAGE);
@@ -517,13 +518,13 @@ mod tests {
         let output = Fake::new(None).run(&["guide"], None, "");
         assert_eq!(output, CliOutput::ok(cli_guide(Page::Unknown)));
         assert!(output.stdout.contains("No DashQL is connected"));
-        assert!(output.stdout.contains("- Attachments are Parquet files of the session"));
+        assert!(output.stdout.contains("- Attachments are Parquet files of the workbook"));
     }
 
     #[test]
     fn prints_structured_output_with_json() {
         let fake =
-            Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "x", "data": { "rows": 1 } } })));
+            Fake::new(Some(json!({ "ok": true, "workbook": "s", "result": { "text": "x", "data": { "rows": 1 } } })));
         assert_eq!(fake.run(&["run", "q1", "--json", "--max-rows", "5"], None, "").stdout, "{\n  \"rows\": 1\n}\n");
         assert_eq!(fake.body(0)["args"], json!({ "script": "q1", "maxRows": 5 }));
         fake.run(&["run", "q1", "--force"], None, "");
@@ -554,7 +555,7 @@ mod tests {
             &["frobnicate"],
             &["run", "q1", "--max-rows", "-1"],
             &["run", "q1", "--bogus"],
-            &["read", "--session"],
+            &["read", "--workbook"],
             &["vis"],
             &["vis", "show", "q1"],
             &["vis", "get", "q1"],
@@ -570,15 +571,15 @@ mod tests {
     fn formats_the_status() {
         let status = json!({
             "port": 47100,
-            "clients": [{ "id": "c", "kind": "web", "origin": "https://dashql.app", "sessions": [{ "id": "s1", "name": "Revenue" }], "focused": "s1" }],
+            "clients": [{ "id": "c", "kind": "web", "origin": "https://dashql.app", "workbooks": [{ "id": "s1", "name": "Revenue" }], "focused": "s1" }],
             "turns": [
-                { "turnId": "t", "session": "s1", "harness": "codex", "model": null, "effort": null, "state": "running", "status": "dashql agent catalog" },
-                { "turnId": "u", "session": "s1", "harness": "claude", "model": "opus", "effort": "high", "state": "queued", "status": "waiting for agent..." },
+                { "turnId": "t", "workbook": "s1", "harness": "codex", "model": null, "effort": null, "state": "running", "status": "dashql agent catalog" },
+                { "turnId": "u", "workbook": "s1", "harness": "claude", "model": "opus", "effort": "high", "state": "queued", "status": "waiting for agent..." },
             ],
         });
         assert_eq!(
             format_status(&status),
-            "Agent server on 127.0.0.1:47100\nClient web (https://dashql.app), 1 session\n  s1  \"Revenue\" (focused)\nTurn of codex in s1: running, dashql agent catalog\nTurn of claude (opus, high) in s1: queued, waiting for agent..."
+            "Agent server on 127.0.0.1:47100\nClient web (https://dashql.app), 1 workbook\n  s1  \"Revenue\" (focused)\nTurn of codex in s1: running, dashql agent catalog\nTurn of claude (opus, high) in s1: queued, waiting for agent..."
         );
         assert_eq!(
             format_status(&json!({ "port": 1, "clients": [], "turns": [] })),

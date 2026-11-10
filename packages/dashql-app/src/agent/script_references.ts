@@ -5,7 +5,7 @@ export const SCRIPT_REFERENCE_PREFIX = ':';
 /// A character that continues a script name, a reference must not be followed by one
 const NAME_CHAR = /[\p{L}\p{N}_$-]/u;
 
-/// A reference to a session script in natural language text
+/// A reference to a workbook script in natural language text
 export interface ScriptReference {
     /// The begin of the reference, at the prefix
     from: number;
@@ -20,7 +20,7 @@ export function renderScriptReference(name: string): string {
     return `${SCRIPT_REFERENCE_PREFIX}${name}`;
 }
 
-/// Find the references to session scripts in a text.
+/// Find the references to workbook scripts in a text.
 /// A reference is the prefix followed by the display name of a script, the longest name wins.
 /// Names compare case-insensitively, the prefix must not be part of a word ("12:30", "http://") or a cast ("x::text").
 export function findScriptReferences(names: readonly string[], text: string): ScriptReference[] {

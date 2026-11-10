@@ -1,6 +1,6 @@
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { readManifestJson, writeManifestJson } from '../storage_root.js';
-import { renameSidbConnections } from '../session/v10_dbcom_connector.js';
+import { renameSidbConnections } from '../workbook/v10_dbcom_connector.js';
 
 /// The Database.com connector was called SIDB.
 ///

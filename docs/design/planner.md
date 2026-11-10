@@ -185,7 +185,7 @@ An inlined script may be below its consumer.
 
 ## Inputs
 
-A named scalar parameter `:min` is an input of the session (`session_inputs.md`). Its value is a literal in the Hyper
+A named scalar parameter `:min` is an input of the session (`workbook_inputs.md`). Its value is a literal in the Hyper
 dialect. The planner binds the inputs of every statement it plans and of every query it inlines: the text of the
 parameter becomes the literal printed in the dialect of the connection (`PlannerConnection.dialect`), `INTERVAL '3' DAY`
 on Trino for `interval '3 days'`. A script binds the value of its own `@param` tag and the value of the first tag in

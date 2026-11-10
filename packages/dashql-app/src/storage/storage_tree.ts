@@ -1,5 +1,5 @@
 import { StorageBackendType } from './storage_backend.js';
-import { type SessionLocation, displayPath } from './session_locator.js';
+import { type WorkbookLocation, displayPath } from './workbook_locator.js';
 import { join, readDir, stat } from '../platform/electron_fs.js';
 import { isDesktopHost } from '../platform/native_globals.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
@@ -29,13 +29,13 @@ export interface StorageTreeFileStat {
     note: string | null;
 }
 
-/// A folder the storage browser can list, e.g. the OPFS root or a native session folder
+/// A folder the storage browser can list, e.g. the OPFS root or a native workbook folder
 export interface StorageTreeRoot {
     /// The unique key of the root
     key: string;
     /// The label of the root
     label: string;
-    /// The path of the root for display, e.g. `opfs://` or `fs:///home/me/session`
+    /// The path of the root for display, e.g. `opfs://` or `fs:///home/me/workbook`
     displayPath: string;
     /// List the entries of a directory, given as path segments relative to the root
     list(path: readonly string[]): Promise<StorageTreeEntry[]>;
@@ -109,28 +109,28 @@ export function nativeTreeRoot(dir: string, label: string, shownPath: string): S
     };
 }
 
-/// The session routing the storage browser reads its native roots from
-export interface StorageTreeSessions {
-    /// The user-facing session order, as session UUIDs
-    getSessionOrder(): string[];
-    /// The physical location of a session's files
-    getSessionLocation(sessionId: string): SessionLocation;
+/// The workbook routing the storage browser reads its native roots from
+export interface StorageTreeWorkbooks {
+    /// The user-facing workbook order, as workbook UUIDs
+    getWorkbookOrder(): string[];
+    /// The physical location of a workbook's files
+    getWorkbookLocation(workbookId: string): WorkbookLocation;
 }
 
-/// The roots of the storage browser: the OPFS root, followed by the native session folders on desktop
-export function listStorageTreeRoots(sessions: StorageTreeSessions, desktop: boolean = isDesktopHost()): StorageTreeRoot[] {
+/// The roots of the storage browser: the OPFS root, followed by the native workbook folders on desktop
+export function listStorageTreeRoots(workbooks: StorageTreeWorkbooks, desktop: boolean = isDesktopHost()): StorageTreeRoot[] {
     const roots = [opfsTreeRoot()];
     if (!desktop) {
         return roots;
     }
     const seen = new Set<string>();
-    for (const sessionId of sessions.getSessionOrder()) {
-        const location = sessions.getSessionLocation(sessionId);
+    for (const workbookId of workbooks.getWorkbookOrder()) {
+        const location = workbooks.getWorkbookLocation(workbookId);
         if (location.type !== StorageBackendType.Native || !location.nativePath || seen.has(location.nativePath)) {
             continue;
         }
         seen.add(location.nativePath);
-        roots.push(nativeTreeRoot(location.nativePath, sessionId, displayPath(sessionId, location)));
+        roots.push(nativeTreeRoot(location.nativePath, workbookId, displayPath(workbookId, location)));
     }
     return roots;
 }

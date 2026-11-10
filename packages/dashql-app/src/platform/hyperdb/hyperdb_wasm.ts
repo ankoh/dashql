@@ -73,7 +73,7 @@ function yieldToEventLoop(): Promise<void> {
 // ATTACH is expensive since Hyper loads the statistics of every table in the database, and the compute code
 // opens a connection per statement. Connections are only pooled when the caller opts in.
 // A session keeps the client context it was connected with, the sessions are pooled per client context.
-const MAX_IDLE_SESSIONS = 4;
+const MAX_IDLE_WORKBOOKS = 4;
 
 /// The key of the idle sessions with a default database and a client context
 function poolKey(alias: string, clientContext: string | null): string {
@@ -133,7 +133,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             return new HyperDBConnection(idle, release);
         }
 
-        const opening = this.openSession(this.databasePath(alias), alias, clientContext);
+        const opening = this.openWorkbook(this.databasePath(alias), alias, clientContext);
         this.openingSessions.add(opening);
         try {
             return new HyperDBConnection(await opening, release);
@@ -161,7 +161,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
 
     /// Open an engine connection with the database attached under the alias.
     /// A termination waits for the opening sessions, they close themselves if it started while they were attaching.
-    private async openSession(databasePath: string | null, alias: string, clientContext: string | null): Promise<HyperDBSession> {
+    private async openWorkbook(databasePath: string | null, alias: string, clientContext: string | null): Promise<HyperDBSession> {
         // Hyper logs the client context as ctx.client of the query events of the session
         const connection = await this.engine.connect(clientContext == null
             ? undefined
@@ -195,7 +195,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
 
     private async releaseSession(session: HyperDBSession, pool: HyperDBSession[] | null): Promise<void> {
         if (pool != null && session.reusable && !this.termination && !this.terminated
-            && pool.length < MAX_IDLE_SESSIONS) {
+            && pool.length < MAX_IDLE_WORKBOOKS) {
             pool.push(session);
             return;
         }

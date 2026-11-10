@@ -1,11 +1,11 @@
 import type { ConnectionReferences } from '../../connections/connection_registry.js';
 
-/// The references of sessions that use fixed connections (sessionId -> connectionIds, the default connection first)
-export function fixedConnectionReferences(connectionsBySession: Record<string, string[]> | Map<string, string[]>): ConnectionReferences {
-    const sessions = connectionsBySession instanceof Map ? connectionsBySession : new Map(Object.entries(connectionsBySession));
+/// The references of workbooks that use fixed connections (workbookId -> connectionIds, the default connection first)
+export function fixedConnectionReferences(connectionsByWorkbook: Record<string, string[]> | Map<string, string[]>): ConnectionReferences {
+    const workbooks = connectionsByWorkbook instanceof Map ? connectionsByWorkbook : new Map(Object.entries(connectionsByWorkbook));
     return {
-        sessionsOf: connectionId => [...sessions].filter(([, connectionIds]) => connectionIds.includes(connectionId)).map(([sessionId]) => sessionId),
-        connectionsOf: sessionId => sessions.get(sessionId) ?? [],
+        workbooksOf: connectionId => [...workbooks].filter(([, connectionIds]) => connectionIds.includes(connectionId)).map(([workbookId]) => workbookId),
+        connectionsOf: workbookId => workbooks.get(workbookId) ?? [],
         subscribe: () => () => { },
     };
 }

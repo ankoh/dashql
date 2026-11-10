@@ -39,13 +39,13 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
                 // Drop retired settings, the AI provider settings may hold credentials.
                 // The dashboards and the dataflow were experimental views and are always shown now.
                 const {
-                    lastOpenedSessionId: _lastOpenedSessionId,
+                    lastOpenedWorkbookId: _lastOpenedWorkbookId,
                     aiProvider: _aiProvider,
                     experimental_dashboards: _experimentalDashboards,
                     experimental_dataflow: _experimentalDataflow,
                     ...settings
                 } = stored as typeof stored & {
-                    lastOpenedSessionId?: string;
+                    lastOpenedWorkbookId?: string;
                     aiProvider?: unknown;
                     experimental_dashboards?: boolean;
                     experimental_dataflow?: boolean;

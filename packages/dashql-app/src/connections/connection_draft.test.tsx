@@ -22,13 +22,13 @@ import { cancelConnectionSetup, registerConnectionSetup } from './connection_set
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '../storage/workbook_test_backend.js';
 import type { StorageWriter } from '../storage/storage_writer.js';
 import type { Logger } from '../platform/logger/logger.js';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 
 /// The draft of the test connection in the app manifest
-function globalDraft(backend: SessionTestBackend): ConnectionParams | undefined {
+function globalDraft(backend: WorkbookTestBackend): ConnectionParams | undefined {
     return backend.connections?.find(entry => entry.id === TEST_CONNECTION_ID)?.paramsDraft;
 }
 
@@ -146,7 +146,7 @@ describe('durable connection drafts', () => {
     });
 
     it.each([false, true])('saves invalid edits with active=%s into the app manifest and does not resurrect a discarded draft', async active => {
-        const backend = new SessionTestBackend();
+        const backend = new WorkbookTestBackend();
         let setRegistry!: ReturnType<typeof useConnectionRegistry>[1];
         let edit!: React.Dispatch<React.SetStateAction<string>>;
         let dispatch!: ReturnType<typeof useConnectionById>[1];
@@ -164,7 +164,7 @@ describe('durable connection drafts', () => {
         }
         const root = createRoot(document.createElement('div'));
         try {
-            await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><ConnectionReferencesProvider value={fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID] })}><RegistryProvider><Harness /></RegistryProvider></ConnectionReferencesProvider></StorageProvider></LoggerProvider>));
+            await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><ConnectionReferencesProvider value={fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] })}><RegistryProvider><Harness /></RegistryProvider></ConnectionReferencesProvider></StorageProvider></LoggerProvider>));
             await act(async () => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, { ...database(ConnectorType.TRINO), active });
                 return { ...reg };
@@ -174,8 +174,8 @@ describe('durable connection drafts', () => {
             expect(value).toBe('not a URL');
             await writer.flush();
             expect(globalDraft(backend)).toEqual(edited(current.params, 'not a URL'));
-            // Drafts are never replicated into the session
-            expect(backend.sessions.has(TEST_SESSION_ID)).toBe(false);
+            // Drafts are never replicated into the workbook
+            expect(backend.workbooks.has(TEST_WORKBOOK_ID)).toBe(false);
             await act(async () => edit('newer unfinished value'));
             await act(async () => dispatch({ type: DISCARD_CONNECTION_DRAFT, value: null }));
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
@@ -184,7 +184,7 @@ describe('durable connection drafts', () => {
             expect(globalDraft(backend)).toBeUndefined();
             expect(backend.connections?.map(entry => entry.id)).toEqual([TEST_CONNECTION_ID]);
             await act(async () => { await Promise.resolve(); });
-            expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([]);
+            expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
             expect(writer.pendingTasks.size).toBe(0);
             expect(current.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
         } finally {
@@ -193,7 +193,7 @@ describe('durable connection drafts', () => {
     });
 
     it('persists and rehydrates incomplete duplicate header rows without flattening the form', async () => {
-        const backend = new SessionTestBackend();
+        const backend = new WorkbookTestBackend();
         let setRegistry!: ReturnType<typeof useConnectionRegistry>[1];
         let edit!: React.Dispatch<React.SetStateAction<HyperConnectionPageState>>;
         let dispatch!: ReturnType<typeof useConnectionById>[1];
@@ -210,7 +210,7 @@ describe('durable connection drafts', () => {
         }
         const root = createRoot(document.createElement('div'));
         try {
-            await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><ConnectionReferencesProvider value={fixedConnectionReferences({ [TEST_SESSION_ID]: [TEST_CONNECTION_ID] })}><RegistryProvider><Harness /></RegistryProvider></ConnectionReferencesProvider></StorageProvider></LoggerProvider>));
+            await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><ConnectionReferencesProvider value={fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] })}><RegistryProvider><Harness /></RegistryProvider></ConnectionReferencesProvider></StorageProvider></LoggerProvider>));
             await act(async () => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, database(ConnectorType.HYPER));
                 return { ...reg };

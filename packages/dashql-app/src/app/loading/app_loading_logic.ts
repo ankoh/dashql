@@ -1,54 +1,54 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { TracedLogger } from '../../platform/logger/logger.js';
-import type { AppStateRestorationProgress, RestoredAppState } from '../../session/persistence/app_state_loader.js';
+import type { AppStateRestorationProgress, RestoredAppState } from '../../workbook/persistence/app_state_loader.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { SetConnectionRegistryAction } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { SetSessionScriptsRegistryAction } from '../../session/scripts/session_scripts_registry.js';
+import { SetWorkbookScriptsRegistryAction } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { ProgressCounter } from '../../utils/progress.js';
-import { InvalidSession } from '../../storage/session_validation.js';
+import { InvalidWorkbook } from '../../storage/workbook_validation.js';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';
-import { isEphemeralSession, type SessionScripts } from '../../session/scripts/session_scripts.js';
+import { isEphemeralWorkbook, type WorkbookScripts } from '../../workbook/scripts/workbook_scripts.js';
 
-export function canShowSession(route: RouteContext, pauseAfterSetup: boolean): boolean {
+export function canShowWorkbook(route: RouteContext, pauseAfterSetup: boolean): boolean {
     return route.appLoadingStatus === AppLoadingStatus.SETUP_DONE
-        && route.sessionId != null
+        && route.workbookId != null
         && (!pauseAfterSetup || route.confirmedFinishedSetup);
 }
 
 export interface AppLoadingResult {
-    /// Sessions whose metadata failed validation and were refused a load (keyed by bare UUID).
-    invalidSessions: Map<string, InvalidSession>;
-    /// Valid restored sessions in persisted manifest order.
-    restoredSessions: ReadonlyMap<string, SessionScripts>;
+    /// Workbooks whose metadata failed validation and were refused a load (keyed by bare UUID).
+    invalidWorkbooks: Map<string, InvalidWorkbook>;
+    /// Valid restored workbooks in persisted manifest order.
+    restoredWorkbooks: ReadonlyMap<string, WorkbookScripts>;
     /// The restored connections
     restoredConnections: Map<string, ConnectionState>;
 }
 
-/// The session that the app opens with: the restored session of the path, otherwise the app opens the greeter
-export function selectStartupSession(
-    requestedSessionId: string | null,
-    restoredSessions: ReadonlyMap<string, SessionScripts>,
+/// The workbook that the app opens with: the restored workbook of the path, otherwise the app opens the greeter
+export function selectStartupWorkbook(
+    requestedWorkbookId: string | null,
+    restoredWorkbooks: ReadonlyMap<string, WorkbookScripts>,
 ): string | null {
-    const requested = requestedSessionId == null ? undefined : restoredSessions.get(requestedSessionId);
-    return requested != null && !isEphemeralSession(requested) ? requested.sessionId : null;
+    const requested = requestedWorkbookId == null ? undefined : restoredWorkbooks.get(requestedWorkbookId);
+    return requested != null && !isEphemeralWorkbook(requested) ? requested.workbookId : null;
 }
 
-/// Delete the ephemeral sessions beyond the first one, the app keeps a single one.
-/// A session that cannot be deleted is reported and the next launch deletes it again, it stays hidden until then.
-export async function deleteSurplusEphemeralSessions(
-    sessions: Iterable<SessionScripts>,
-    deleteSession: (sessionId: string) => Promise<void>,
-    onFailure: (sessionId: string, error: unknown) => void,
+/// Delete the ephemeral workbooks beyond the first one, the app keeps a single one.
+/// A workbook that cannot be deleted is reported and the next launch deletes it again, it stays hidden until then.
+export async function deleteSurplusEphemeralWorkbooks(
+    workbooks: Iterable<WorkbookScripts>,
+    deleteWorkbook: (workbookId: string) => Promise<void>,
+    onFailure: (workbookId: string, error: unknown) => void,
 ): Promise<void> {
-    for (const { sessionId } of [...sessions].filter(isEphemeralSession).slice(1)) {
+    for (const { workbookId } of [...workbooks].filter(isEphemeralWorkbook).slice(1)) {
         try {
-            await deleteSession(sessionId);
+            await deleteWorkbook(workbookId);
         } catch (error) {
-            onFailure(sessionId, error);
+            onFailure(workbookId, error);
         }
     }
 }
@@ -59,12 +59,12 @@ export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<
 
 /// Restores the persisted app state
 export interface AppStateRestorer {
-    /// Restore the connections and sessions
+    /// Restore the connections and workbooks
     restoreAppState(core: dashql.DashQL, progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
 }
 
 /// Main logic to setup the application
-export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage: AppStateRestorer, resetConnections: Dispatch<SetConnectionRegistryAction>, resetSessionScripts: Dispatch<SetSessionScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
+export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage: AppStateRestorer, resetConnections: Dispatch<SetConnectionRegistryAction>, resetWorkbookScripts: Dispatch<SetWorkbookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
     const traced = logger.childSpan();
     traced.info("Loading application", {}, "app_loading");
     const appLoadStartTime = performance.now();
@@ -72,7 +72,7 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
     let progress: AppLoadingProgress = {
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
-        restoreSessionScripts: new ProgressCounter(),
+        restoreWorkbookScripts: new ProgressCounter(),
     };
     const partialProgressConsumer = (update: Partial<AppLoadingProgress>) => {
         progress = {
@@ -91,7 +91,7 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
     const restoreDuration = performance.now() - restoreStartTime;
     traced.info("Restored application state", {
         connections: state.connectionStates.size.toString(),
-        sessions: state.sessionScripts.size.toString(),
+        workbooks: state.workbookScripts.size.toString(),
         durationMs: restoreDuration.toFixed(2)
     }, "app_loading");
 
@@ -104,14 +104,14 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
         connectionsByType: state.connectionStatesByType,
     });
 
-    // Reset the session scripts registry
-    traced.info("Updating session scripts registry", {
-        sessionCount: state.sessionScripts.size.toString()
+    // Reset the workbook scripts registry
+    traced.info("Updating workbook scripts registry", {
+        workbookCount: state.workbookScripts.size.toString()
     }, "app_loading");
-    resetSessionScripts({
-        sessionScriptsMap: state.sessionScripts,
-        sessionScriptsByConnection: state.sessionScriptsByConnection,
-        invalidSessions: state.invalidSessions,
+    resetWorkbookScripts({
+        workbookScriptsMap: state.workbookScripts,
+        workbookScriptsByConnection: state.workbookScriptsByConnection,
+        invalidWorkbooks: state.invalidWorkbooks,
     });
 
     const totalAppLoadDuration = performance.now() - appLoadStartTime;
@@ -120,8 +120,8 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
     }, "app_loading");
 
     return {
-        invalidSessions: state.invalidSessions,
-        restoredSessions: state.sessionScripts,
+        invalidWorkbooks: state.invalidWorkbooks,
+        restoredWorkbooks: state.workbookScripts,
         restoredConnections: state.connectionStates,
     };
 }

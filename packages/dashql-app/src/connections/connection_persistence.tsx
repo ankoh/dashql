@@ -3,8 +3,8 @@ import * as React from 'react';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import {
     groupConnectionEntryWrites,
-    groupSessionConnectionCopyWrites,
-    PATCH_SESSION_CONNECTION,
+    groupWorkbookConnectionCopyWrites,
+    PATCH_WORKBOOK_CONNECTION,
     WRITE_CONNECTION_ENTRY,
     type StorageWriteResult,
 } from '../storage/storage_writer.js';
@@ -12,22 +12,22 @@ import { COMMIT_CONNECTION_PARAMS, type ConnectionState } from './connection_sta
 import {
     connectionEntryFromState,
     useConnectionReferences,
-    sessionConnectionFromState,
+    workbookConnectionFromState,
     useConnectionDispatch,
     useConnectionRegistryStore,
 } from './connection_registry.js';
 import { connectionParamsWithoutDraftRows, type ConnectionParams } from './connection_params.js';
-import type { SessionConnection } from '../storage/storage_backend.js';
+import type { WorkbookConnection } from '../storage/storage_backend.js';
 
-/// The copy of a connection with saved params that the sessions store
-function sessionCopy(connection: ConnectionState, params: ConnectionParams): SessionConnection {
-    return { ...sessionConnectionFromState(connection), params };
+/// The copy of a connection with saved params that the workbooks store
+function workbookCopy(connection: ConnectionState, params: ConnectionParams): WorkbookConnection {
+    return { ...workbookConnectionFromState(connection), params };
 }
 
-/// The outcome of writing a session's copy of the connection params
-export interface SessionCopySaveResult {
-    /// The session
-    sessionId: string;
+/// The outcome of writing a workbook's copy of the connection params
+export interface WorkbookCopySaveResult {
+    /// The workbook
+    workbookId: string;
     /// The outcome of the write
     result: StorageWriteResult;
 }
@@ -38,18 +38,18 @@ export interface ConnectionSaveResult {
     params: ConnectionParams;
     /// The outcome of writing the app manifest, the connection is saved if it was written
     manifest: StorageWriteResult;
-    /// The outcomes of writing the copies in the sessions that reference the connection
-    sessions: SessionCopySaveResult[];
+    /// The outcomes of writing the copies in the workbooks that reference the connection
+    workbooks: WorkbookCopySaveResult[];
 }
 
 /// Did saving persist the connection everywhere?
 export function connectionSaveSucceeded(result: ConnectionSaveResult): boolean {
-    return result.manifest.status === 'written' && result.sessions.every(n => n.result.status === 'written');
+    return result.manifest.status === 'written' && result.workbooks.every(n => n.result.status === 'written');
 }
 
-/// The sessions whose copies were not written
-export function failedSessionCopies(result: ConnectionSaveResult): SessionCopySaveResult[] {
-    return result.sessions.filter(n => n.result.status !== 'written');
+/// The workbooks whose copies were not written
+export function failedWorkbookCopies(result: ConnectionSaveResult): WorkbookCopySaveResult[] {
+    return result.workbooks.filter(n => n.result.status !== 'written');
 }
 
 /// The state of saving a connection
@@ -66,8 +66,8 @@ interface ConnectionPersistence {
     states: Map<string, ConnectionSaveState>;
     /// Save the draft of a connection, or the given params
     save: (connectionId: string, params?: ConnectionParams) => Promise<ConnectionSaveResult>;
-    /// Write the copies of sessions again
-    retry: (connectionId: string, sessionIds: string[]) => Promise<ConnectionSaveResult | null>;
+    /// Write the copies of workbooks again
+    retry: (connectionId: string, workbookIds: string[]) => Promise<ConnectionSaveResult | null>;
 }
 
 const CONNECTION_PERSISTENCE_CTX = React.createContext<ConnectionPersistence | null>(null);
@@ -76,7 +76,7 @@ const IDLE_SAVE_STATE: ConnectionSaveState = { saving: false, result: null };
 
 /// Saves connections.
 ///
-/// The app manifest is the source of truth for connections, every session that references a
+/// The app manifest is the source of truth for connections, every workbook that references a
 /// connection keeps a copy of its params. Saving writes the manifest first and the copies after, so a
 /// partial failure heals forward: the next load rewrites stale copies from the manifest.
 export const ConnectionPersistenceProvider: React.FC<{ children: React.ReactElement }> = (props) => {
@@ -90,12 +90,12 @@ export const ConnectionPersistenceProvider: React.FC<{ children: React.ReactElem
         setStates(prev => new Map(prev).set(connectionId, state));
     }, []);
 
-    const writeSessionCopies = React.useCallback(async (copy: SessionConnection, sessionIds: string[]) => {
-        return await Promise.all(sessionIds.map(async sessionId => ({
-            sessionId,
+    const writeWorkbookCopies = React.useCallback(async (copy: WorkbookConnection, workbookIds: string[]) => {
+        return await Promise.all(workbookIds.map(async workbookId => ({
+            workbookId,
             result: await storageWriter.writeDurable(
-                groupSessionConnectionCopyWrites(sessionId, copy.connectionId),
-                { type: PATCH_SESSION_CONNECTION, value: [sessionId, copy] },
+                groupWorkbookConnectionCopyWrites(workbookId, copy.connectionId),
+                { type: PATCH_WORKBOOK_CONNECTION, value: [workbookId, copy] },
             ),
         })));
     }, [storageWriter]);
@@ -114,37 +114,37 @@ export const ConnectionPersistenceProvider: React.FC<{ children: React.ReactElem
                 { type: WRITE_CONNECTION_ENTRY, value: { ...connectionEntryFromState({ ...connection, paramsDraft: undefined }), params } },
             );
             if (manifest.status !== 'written') {
-                const result: ConnectionSaveResult = { params, manifest, sessions: [] };
+                const result: ConnectionSaveResult = { params, manifest, workbooks: [] };
                 setState(connectionId, { saving: false, result });
                 return result;
             }
             dispatch(connectionId, { type: COMMIT_CONNECTION_PARAMS, value: params });
-            const sessionIds = [...references.sessionsOf(connectionId)];
-            const result: ConnectionSaveResult = { params, manifest, sessions: await writeSessionCopies(sessionCopy(connection, params), sessionIds) };
+            const workbookIds = [...references.workbooksOf(connectionId)];
+            const result: ConnectionSaveResult = { params, manifest, workbooks: await writeWorkbookCopies(workbookCopy(connection, params), workbookIds) };
             setState(connectionId, { saving: false, result });
             return result;
         } catch (error) {
-            const result: ConnectionSaveResult = { params, manifest: { status: 'failed', error }, sessions: [] };
+            const result: ConnectionSaveResult = { params, manifest: { status: 'failed', error }, workbooks: [] };
             setState(connectionId, { saving: false, result });
             return result;
         }
-    }, [dispatch, references, registryStore, setState, storageWriter, writeSessionCopies]);
+    }, [dispatch, references, registryStore, setState, storageWriter, writeWorkbookCopies]);
 
-    const retry = React.useCallback(async (connectionId: string, sessionIds: string[]): Promise<ConnectionSaveResult | null> => {
+    const retry = React.useCallback(async (connectionId: string, workbookIds: string[]): Promise<ConnectionSaveResult | null> => {
         const last = states.get(connectionId)?.result;
         if (last == null || last.manifest.status !== 'written') return null;
         setState(connectionId, { saving: true, result: last });
         const connection = registryStore.current.connections.get(connectionId);
         if (connection == null) return null;
-        const retried = await writeSessionCopies(sessionCopy(connection, last.params), sessionIds);
-        const bySession = new Map(retried.map(r => [r.sessionId, r]));
+        const retried = await writeWorkbookCopies(workbookCopy(connection, last.params), workbookIds);
+        const byWorkbook = new Map(retried.map(r => [r.workbookId, r]));
         const result: ConnectionSaveResult = {
             ...last,
-            sessions: last.sessions.map(n => bySession.get(n.sessionId) ?? n),
+            workbooks: last.workbooks.map(n => byWorkbook.get(n.workbookId) ?? n),
         };
         setState(connectionId, { saving: false, result });
         return result;
-    }, [registryStore, setState, states, writeSessionCopies]);
+    }, [registryStore, setState, states, writeWorkbookCopies]);
 
     const value = React.useMemo(() => ({ states, save, retry }), [states, save, retry]);
     return (
@@ -162,9 +162,9 @@ export function useConnectionSave(connectionId: string | null) {
         if (connectionId == null || persistence == null) return null;
         return await persistence.save(connectionId);
     }, [connectionId, persistence]);
-    const retry = React.useCallback(async (sessionIds: string[]): Promise<ConnectionSaveResult | null> => {
+    const retry = React.useCallback(async (workbookIds: string[]): Promise<ConnectionSaveResult | null> => {
         if (connectionId == null || persistence == null) return null;
-        return await persistence.retry(connectionId, sessionIds);
+        return await persistence.retry(connectionId, workbookIds);
     }, [connectionId, persistence]);
     return { ...state, save, retry };
 }

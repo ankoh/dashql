@@ -21,15 +21,15 @@ import {
     newScriptConnection,
     persistedConnectionId,
     scriptConnectionOf,
-    sessionConnectionIds,
+    workbookConnectionIds,
     type ScriptConnection,
     type ScriptData,
-    type SessionScripts,
-    type SessionScriptsAction,
-} from '../session/scripts/session_scripts.js';
-import { ensureSessionScriptAnalyzed, type ModifySessionScripts } from '../session/scripts/session_scripts_registry.js';
-import { scriptDisplayName } from '../session/scripts/script_types.js';
-import { runSessionScriptForResult } from '../session/scripts/rerun_query.js';
+    type WorkbookScripts,
+    type WorkbookScriptsAction,
+} from '../workbook/scripts/workbook_scripts.js';
+import { ensureWorkbookScriptAnalyzed, type ModifyWorkbookScripts } from '../workbook/scripts/workbook_scripts_registry.js';
+import { scriptDisplayName } from '../workbook/scripts/script_types.js';
+import { runWorkbookScriptForResult } from '../workbook/scripts/rerun_query.js';
 import { buildSchemaContext } from './agent_catalog.js';
 import { checkVegaLiteSpec } from '../ui/vegalite/vegalite_check.js';
 import { arrowTableToRows } from '../ui/vegalite/vegalite_rows.js';
@@ -39,10 +39,10 @@ import { formatBytes } from '../utils/format.js';
 
 /// What the commands of the agent work with
 export interface AgentCommandEnvironment {
-    /// The scripts of a session, null if the session is gone
-    sessionScripts: (sessionId: string) => SessionScripts | null;
-    /// Modify the scripts of a session
-    modifySessionScripts: (sessionId: string, action: SessionScriptsAction) => Promise<SessionScripts | null>;
+    /// The scripts of a workbook, null if the workbook is gone
+    workbookScripts: (workbookId: string) => WorkbookScripts | null;
+    /// Modify the scripts of a workbook
+    modifyWorkbookScripts: (workbookId: string, action: WorkbookScriptsAction) => Promise<WorkbookScripts | null>;
     /// The connections of the app
     connections: () => ConnectionRegistry;
     /// The connection to the embedded Hyper, allocated when the app holds none yet
@@ -50,9 +50,9 @@ export interface AgentCommandEnvironment {
     executeQuery: QueryExecutor;
     logger: Logger;
     /// The agent edited a script
-    onScriptEdited?: (sessionId: string, scriptKey: number) => void;
+    onScriptEdited?: (workbookId: string, scriptKey: number) => void;
     /// The agent ran a script
-    onScriptRun?: (sessionId: string, scriptKey: number) => void;
+    onScriptRun?: (workbookId: string, scriptKey: number) => void;
 }
 
 function fail(message: string): never {
@@ -84,7 +84,7 @@ function booleanArg(args: Record<string, unknown>, name: string): boolean {
 }
 
 /// Find a script by its file name or display name, case-insensitive
-export function findScript(state: SessionScripts, name: string): ScriptData | null {
+export function findScript(state: WorkbookScripts, name: string): ScriptData | null {
     const wanted = scriptDisplayName(name.trim()).toLowerCase();
     for (const fileName of state.scriptOrder) {
         if (scriptDisplayName(fileName).toLowerCase() === wanted) {
@@ -94,7 +94,7 @@ export function findScript(state: SessionScripts, name: string): ScriptData | nu
     return null;
 }
 
-function requireScript(state: SessionScripts, name: string): ScriptData {
+function requireScript(state: WorkbookScripts, name: string): ScriptData {
     const script = findScript(state, name);
     if (script == null) {
         const names = state.scriptOrder.map(scriptDisplayName).join(', ');
@@ -103,7 +103,7 @@ function requireScript(state: SessionScripts, name: string): ScriptData {
     return script;
 }
 
-/// A connection of a session as the agent sees it
+/// A connection of a workbook as the agent sees it
 interface AgentConnection {
     id: string;
     connector: string | null;
@@ -130,28 +130,28 @@ function describeConnection(env: AgentCommandEnvironment, connectionId: string):
     };
 }
 
-/// The connections that the agent may use: the connections of the session and the embedded Hyper, which joins the
+/// The connections that the agent may use: the connections of the workbook and the embedded Hyper, which joins the
 /// attachments and the results of the other connections. The app may hold no embedded Hyper yet, e.g. when every
-/// session runs on a remote connection, then it is allocated so the agent can move scripts onto it.
-function agentConnectionIds(env: AgentCommandEnvironment, state: SessionScripts): string[] {
-    const ids = sessionConnectionIds(state);
+/// workbook runs on a remote connection, then it is allocated so the agent can move scripts onto it.
+function agentConnectionIds(env: AgentCommandEnvironment, state: WorkbookScripts): string[] {
+    const ids = workbookConnectionIds(state);
     const embedded = findEmbeddedConnection(env.connections().connections.values()) ?? env.embeddedConnection?.(state.instance) ?? null;
     if (embedded != null && !ids.includes(embedded.connectionId)) ids.push(embedded.connectionId);
     return ids;
 }
 
 /// A connection that the agent may use
-function requireSessionConnection(env: AgentCommandEnvironment, state: SessionScripts, connectionId: string): void {
+function requireWorkbookConnection(env: AgentCommandEnvironment, state: WorkbookScripts, connectionId: string): void {
     const ids = agentConnectionIds(env, state);
-    if (!ids.includes(connectionId)) fail(`The session does not use the connection ${connectionId}. Connections: ${ids.join(', ')}`);
+    if (!ids.includes(connectionId)) fail(`The workbook does not use the connection ${connectionId}. Connections: ${ids.join(', ')}`);
 }
 
 /// The connection that the agent picked for a script, null if it picked none
-function pickedScriptConnection(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): ScriptConnection | null {
+function pickedScriptConnection(env: AgentCommandEnvironment, state: WorkbookScripts, args: Record<string, unknown>): ScriptConnection | null {
     const connectionId = args.connection;
     if (connectionId == null) return null;
     if (typeof connectionId !== 'string' || connectionId.length === 0) usage('invalid connection');
-    requireSessionConnection(env, state, connectionId);
+    requireWorkbookConnection(env, state, connectionId);
     const conn = env.connections().connections.get(connectionId);
     if (conn == null) fail(`The connection ${connectionId} is not set up in DashQL, the user has to connect it`);
     return scriptConnectionOf(conn);
@@ -211,12 +211,12 @@ function formatDiagnostics(name: string, diagnostics: AgentDiagnostic[]): string
 }
 
 /// Analyze a script if its analysis is outdated
-async function analyzed(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, script: ScriptData): Promise<ScriptData> {
-    const modify: ModifySessionScripts = action => env.modifySessionScripts(sessionId, action);
-    return (await ensureSessionScriptAnalyzed(state, script.scriptKey, modify)) ?? script;
+async function analyzed(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, script: ScriptData): Promise<ScriptData> {
+    const modify: ModifyWorkbookScripts = action => env.modifyWorkbookScripts(workbookId, action);
+    return (await ensureWorkbookScriptAnalyzed(state, script.scriptKey, modify)) ?? script;
 }
 
-async function listScripts(env: AgentCommandEnvironment, state: SessionScripts): Promise<AgentCommandResult> {
+async function listScripts(env: AgentCommandEnvironment, state: WorkbookScripts): Promise<AgentCommandResult> {
     const focused = getSelectedScriptRef(state)?.fileName ?? null;
     const scripts = state.scriptOrder.map(fileName => {
         const script = state.scripts[state.scriptRefs[fileName].scriptId];
@@ -237,11 +237,11 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
         columns: attachment.columns,
     }));
     const lines = [
-        `Session ${JSON.stringify(state.name ?? '')} (${state.sessionId})`,
+        `Workbook ${JSON.stringify(state.name ?? '')} (${state.workbookId})`,
         `Connections: ${connections.map(connectionLabel).join(', ')}`,
     ];
     lines.push(scripts.length === 0 ? 'No scripts' : 'Scripts:');
-    // The scripts name their connections when the session uses several
+    // The scripts name their connections when the workbook uses several
     const several = connections.length > 1;
     for (const script of scripts) {
         const connection = several && script.connectionId != null ? `  on ${script.connectionId}` : '';
@@ -253,10 +253,10 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
         const what = attachment.columns == null ? `:${attachment.name}` : `:${attachment.name} (${attachment.columns.join(', ')})`;
         lines.push(`  ${attachment.fileName}  ${formatBytes(attachment.sizeBytes)}  ${what}`);
     }
-    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, connections, scripts, attachments } };
+    return { text: lines.join('\n'), data: { workbook: state.workbookId, name: state.name, connections, scripts, attachments } };
 }
 
-async function editScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function editScript(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const name = stringArg(args, 'script');
     const text = args.text;
     if (typeof text !== 'string') usage('missing text');
@@ -265,48 +265,48 @@ async function editScript(env: AgentCommandEnvironment, sessionId: string, state
 
     const connection = pickedScriptConnection(env, state, args);
     let script = findScript(state, name);
-    let next: SessionScripts | null;
+    let next: WorkbookScripts | null;
     let created = false;
     if (script != null) {
         if (connection != null && connection.connectionId !== script.connection.connectionId) {
             // The script moves first and keeps its key
-            const moved = await env.modifySessionScripts(sessionId, { type: SET_SCRIPT_CONNECTION, value: { fileName: script.fileName, connection } });
+            const moved = await env.modifyWorkbookScripts(workbookId, { type: SET_SCRIPT_CONNECTION, value: { fileName: script.fileName, connection } });
             if (moved?.scripts[script.scriptKey]?.connection.connectionId !== connection.connectionId) {
                 fail(`Cannot move ${scriptDisplayName(script.fileName)} to the connection ${connection.connectionId}`);
             }
         }
-        next = await env.modifySessionScripts(sessionId, { type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
+        next = await env.modifyWorkbookScripts(workbookId, { type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
     } else {
-        next = await env.modifySessionScripts(sessionId, { type: CREATE_SCRIPT, value: { index: null, text, connection: connection ?? undefined } });
+        next = await env.modifyWorkbookScripts(workbookId, { type: CREATE_SCRIPT, value: { index: null, text, connection: connection ?? undefined } });
         const createdRef = next == null ? undefined : getSelectedScriptRef(next);
         if (next == null || createdRef == null) fail('Cannot create the script');
-        next = await env.modifySessionScripts(sessionId, { type: RENAME_SCRIPT, value: { fileName: createdRef.fileName, newFileName: base } });
+        next = await env.modifyWorkbookScripts(workbookId, { type: RENAME_SCRIPT, value: { fileName: createdRef.fileName, newFileName: base } });
         created = true;
         script = next == null ? null : next.scripts[createdRef.scriptId] ?? null;
     }
-    if (next == null || script == null) fail('The session is gone');
+    if (next == null || script == null) fail('The workbook is gone');
     const edited = next.scripts[script.scriptKey];
     if (edited == null) fail('The script is gone');
-    return reportEdit(env, sessionId, next, edited, created ? 'Created' : 'Updated', { created });
+    return reportEdit(env, workbookId, next, edited, created ? 'Created' : 'Updated', { created });
 }
 
 /// Analyze an edited script and report its hash and diagnostics
 async function reportEdit(
     env: AgentCommandEnvironment,
-    sessionId: string,
-    state: SessionScripts,
+    workbookId: string,
+    state: WorkbookScripts,
     edited: ScriptData,
     verb: string,
     data: Record<string, unknown>,
 ): Promise<AgentCommandResult> {
-    env.onScriptEdited?.(sessionId, edited.scriptKey);
-    const checked = await analyzed(env, sessionId, state, edited);
+    env.onScriptEdited?.(workbookId, edited.scriptKey);
+    const checked = await analyzed(env, workbookId, state, edited);
     const diagnostics = collectDiagnostics(checked);
     const hash = await sha256(checked.scriptSession.getText());
     const errors = diagnostics.filter(d => d.severity === 'error').length;
     const fileName = scriptDisplayName(checked.fileName);
     const connectionId = checked.connection.connectionId;
-    const on = sessionConnectionIds(state).length > 1 ? ` on ${connectionId}` : '';
+    const on = workbookConnectionIds(state).length > 1 ? ` on ${connectionId}` : '';
     const lines = [`${verb} ${fileName}${on}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
     if (diagnostics.length > 0) lines.push(formatDiagnostics(fileName, diagnostics));
     return { text: lines.join('\n'), data: { script: fileName, ...data, connection: connectionId, sha256: hash, diagnostics } };
@@ -314,7 +314,7 @@ async function reportEdit(
 
 /// Rewrite the `@vis` tag of the terminal query in a scratch script and analyze the result. Returns the
 /// rewritten text and the analyzer warnings about the new tag, e.g. fields that are no output columns.
-function rewriteVisTag(state: SessionScripts, script: ScriptData, spec: string): [string, string[]] {
+function rewriteVisTag(state: WorkbookScripts, script: ScriptData, spec: string): [string, string[]] {
     const scratch = state.instance.createScript(script.connection.catalog);
     try {
         scratch.replaceText(script.scriptSession.getText());
@@ -337,7 +337,7 @@ function rewriteVisTag(state: SessionScripts, script: ScriptData, spec: string):
 
 /// Visualize the terminal query of a script with a Vega-Lite spec. The spec is checked first: it must be a
 /// JSON object that Vega-Lite compiles without warnings, and its fields must be output columns of the query.
-async function editVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function editVis(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const script = requireScript(state, stringArg(args, 'script'));
     const specText = stringArg(args, 'spec');
     const name = scriptDisplayName(script.fileName);
@@ -361,10 +361,10 @@ async function editVis(env: AgentCommandEnvironment, sessionId: string, state: S
     }
     if (tagProblems.length > 0) invalid(tagProblems);
 
-    const next = await env.modifySessionScripts(sessionId, { type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text: after } });
+    const next = await env.modifyWorkbookScripts(workbookId, { type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text: after } });
     const edited = next?.scripts[script.scriptKey];
     if (next == null || edited == null) fail('The script is gone');
-    return reportEdit(env, sessionId, next, edited, 'Visualized', {});
+    return reportEdit(env, workbookId, next, edited, 'Visualized', {});
 }
 
 /// The client functions of a connection as lines of a schema: a family per line, with what it reads and what it writes
@@ -389,31 +389,31 @@ async function describeClientFunctions(env: AgentCommandEnvironment, conn: Conne
     return [`-- The client functions of the connection, call them with CALL ${spec.namespace}.<function> (<option> => <value>, ...)`, ...lines];
 }
 
-async function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function describeCatalog(env: AgentCommandEnvironment, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const connectionId = typeof args.connection === 'string' ? args.connection : newScriptConnection(state, null)?.connectionId;
-    if (connectionId == null) fail('The session has no connection');
-    requireSessionConnection(env, state, connectionId);
+    if (connectionId == null) fail('The workbook has no connection');
+    requireWorkbookConnection(env, state, connectionId);
     const conn: ConnectionState | null = env.connections().connections.get(connectionId) ?? null;
     let schema = buildSchemaContext(connectionId, conn, state, env.logger);
     // The embedded Hyper reads the Parquet attachments as table parameters
     const attachments = conn != null && isHyperWasmConnection(conn) ? state.attachments ?? [] : [];
     if (attachments.length > 0) {
         const lines = attachments.map(a => `-- :${a.name}${a.columns == null ? '' : ` (${a.columns.join(', ')})`}`);
-        schema = [schema, '-- The attachments of the session, read them as table parameters', ...lines].filter(s => s.length > 0).join('\n');
+        schema = [schema, '-- The attachments of the workbook, read them as table parameters', ...lines].filter(s => s.length > 0).join('\n');
     }
     schema = [schema, ...await describeClientFunctions(env, conn)].filter(s => s.length > 0).join('\n');
     const text = schema.length > 0 ? schema : '-- The catalog is empty';
     return { text, data: { connection: connectionId, schema } };
 }
 
-async function lintScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
-    const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
+async function lintScript(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+    const script = await analyzed(env, workbookId, state, requireScript(state, stringArg(args, 'script')));
     const diagnostics = collectDiagnostics(script);
     const name = scriptDisplayName(script.fileName);
     return { text: formatDiagnostics(name, diagnostics), data: { script: name, diagnostics } };
 }
 
-async function runScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function runScript(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const script = requireScript(state, stringArg(args, 'script'));
     const maxRows = numberArg(args, 'maxRows', DEFAULT_RUN_ROWS);
     const name = scriptDisplayName(script.fileName);
@@ -422,19 +422,19 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {
         fail(`The connection ${script.connection.connectionId} of ${name} is not online, the user has to connect it`);
     }
-    const modify: ModifySessionScripts = action => env.modifySessionScripts(sessionId, action);
+    const modify: ModifyWorkbookScripts = action => env.modifyWorkbookScripts(workbookId, action);
     // What a script may do comes from its analysis, which is only current right before the run
     const beforeRun = (current: ScriptData) => {
         // A script with @manual is too expensive to run unfiltered, its consumers inline it with their filters
         if (current.annotations.manual && !force) {
             fail(`${name} runs only on request (@manual), it is too expensive to run in full. Read :${name} from another script of its connection that filters or aggregates it, or pass --force if the request is to run it in full.`);
         }
-        env.onScriptRun?.(sessionId, current.scriptKey);
+        env.onScriptRun?.(workbookId, current.scriptKey);
     };
     let table: arrow.Table | null;
     try {
-        // Waits for the run of another script of the session, e.g. one of another turn
-        table = await runSessionScriptForResult(() => env.sessionScripts(sessionId), script.scriptKey, env.executeQuery, modify, env.logger as LoggerLike, beforeRun);
+        // Waits for the run of another script of the workbook, e.g. one of another turn
+        table = await runWorkbookScriptForResult(() => env.workbookScripts(workbookId), script.scriptKey, env.executeQuery, modify, env.logger as LoggerLike, beforeRun);
     } catch (e: unknown) {
         if (e instanceof AgentCommandError) throw e;
         fail(`${name} failed: ${stringifyError(e)}`);
@@ -465,7 +465,7 @@ function lastResult(env: AgentCommandEnvironment, script: ScriptData): arrow.Tab
     return table;
 }
 
-function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
+function readResult(env: AgentCommandEnvironment, state: WorkbookScripts, args: Record<string, unknown>): AgentCommandResult {
     const script = requireScript(state, stringArg(args, 'script'));
     const page = numberArg(args, 'page', 1);
     const name = scriptDisplayName(script.fileName);
@@ -478,8 +478,8 @@ function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: R
 
 /// The chart of a script: its renderer and the Vega-Lite spec of its `@vis vegalite` tag, without the `$schema` and
 /// `data` that the compiler adds, so that the spec goes back into `vis edit` as it is
-async function readVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
-    const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
+async function readVis(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+    const script = await analyzed(env, workbookId, state, requireScript(state, stringArg(args, 'script')));
     const name = scriptDisplayName(script.fileName);
     const vis = script.annotations.visualizeQuery;
     if (vis == null) fail(`${name} has no chart, add one with dashql agent vis edit ${name}`);
@@ -506,8 +506,8 @@ const MAX_IMAGE_SIZE = 4000;
 const MAX_IMAGE_SCALE = 4;
 
 /// Render the chart of a script as PNG: the `@vis vegalite` tag of its last query with the last result as data
-async function renderVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
-    const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
+async function renderVis(env: AgentCommandEnvironment, workbookId: string, state: WorkbookScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+    const script = await analyzed(env, workbookId, state, requireScript(state, stringArg(args, 'script')));
     const name = scriptDisplayName(script.fileName);
     const width = numberArg(args, 'width', CHART_IMAGE_WIDTH);
     const height = numberArg(args, 'height', CHART_IMAGE_HEIGHT);
@@ -530,10 +530,10 @@ async function renderVis(env: AgentCommandEnvironment, sessionId: string, state:
     };
 }
 
-/// Run a command of the command line tool against a session
+/// Run a command of the command line tool against a workbook
 export async function runAgentCommand(env: AgentCommandEnvironment, params: AgentCommandParams): Promise<AgentCommandResult> {
-    const state = env.sessionScripts(params.session);
-    if (state == null) throw new AgentCommandError('not_connected', `The session ${params.session} is not open in DashQL`);
+    const state = env.workbookScripts(params.workbook);
+    if (state == null) throw new AgentCommandError('not_connected', `The workbook ${params.workbook} is not open in DashQL`);
     const args = params.args ?? {};
     switch (params.command) {
         case 'scripts':
@@ -544,21 +544,21 @@ export async function runAgentCommand(env: AgentCommandEnvironment, params: Agen
             return { text, data: { script: scriptDisplayName(script.fileName), text } };
         }
         case 'edit':
-            return editScript(env, params.session, state, args);
+            return editScript(env, params.workbook, state, args);
         case 'catalog':
             return describeCatalog(env, state, args);
         case 'lint':
-            return lintScript(env, params.session, state, args);
+            return lintScript(env, params.workbook, state, args);
         case 'run':
-            return runScript(env, params.session, state, args);
+            return runScript(env, params.workbook, state, args);
         case 'result':
             return readResult(env, state, args);
         case 'vis.read':
-            return readVis(env, params.session, state, args);
+            return readVis(env, params.workbook, state, args);
         case 'vis.edit':
-            return editVis(env, params.session, state, args);
+            return editVis(env, params.workbook, state, args);
         case 'vis.image':
-            return renderVis(env, params.session, state, args);
+            return renderVis(env, params.workbook, state, args);
         default:
             usage(`unknown command: ${params.command}`);
     }

@@ -1,73 +1,73 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { canShowSession, deleteSurplusEphemeralSessions, loadApp, selectStartupSession, shouldFinishInitialNavigation } from './app_loading_logic.js';
-import type { SessionScripts } from '../../session/scripts/session_scripts.js';
+import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
+import type { WorkbookScripts } from '../../workbook/scripts/workbook_scripts.js';
 import { AppLoadingStatus } from './app_loading_status.js';
-import { SessionSetupStatus } from './session_setup_status.js';
+import { WorkbookSetupStatus } from './workbook_setup_status.js';
 
-describe('canShowSession', () => {
-    it.each([SessionSetupStatus.OPENING, SessionSetupStatus.CONFIGURING, SessionSetupStatus.NONE])('shows an opened session without waiting for connection setup (%s)', sessionSetupStatus => {
-        expect(canShowSession({
+describe('canShowWorkbook', () => {
+    it.each([WorkbookSetupStatus.OPENING, WorkbookSetupStatus.CONFIGURING, WorkbookSetupStatus.NONE])('shows an opened workbook without waiting for connection setup (%s)', workbookSetupStatus => {
+        expect(canShowWorkbook({
             appLoadingStatus: AppLoadingStatus.SETUP_DONE,
-            sessionId: 'offline-session',
-            sessionSetupStatus,
+            workbookId: 'offline-workbook',
+            workbookSetupStatus,
             confirmedFinishedSetup: false,
         }, false)).toBe(true);
     });
 });
 
-function session(sessionId: string, ephemeral: boolean = false): SessionScripts {
-    return { sessionId, sessionMetadata: ephemeral ? { ephemeral } : {} } as SessionScripts;
+function workbook(workbookId: string, ephemeral: boolean = false): WorkbookScripts {
+    return { workbookId, workbookMetadata: ephemeral ? { ephemeral } : {} } as WorkbookScripts;
 }
 
-describe('selectStartupSession', () => {
-    const restored = new Map([session('first'), session('second'), session('greeter', true)].map(s => [s.sessionId, s]));
+describe('selectStartupWorkbook', () => {
+    const restored = new Map([workbook('first'), workbook('second'), workbook('greeter', true)].map(s => [s.workbookId, s]));
 
-    it('selects the restored session of the path', () => {
-        expect(selectStartupSession('second', restored)).toBe('second');
+    it('selects the restored workbook of the path', () => {
+        expect(selectStartupWorkbook('second', restored)).toBe('second');
     });
 
-    it('does not fall back to a restored session without a path', () => {
-        expect(selectStartupSession(null, restored)).toBeNull();
+    it('does not fall back to a restored workbook without a path', () => {
+        expect(selectStartupWorkbook(null, restored)).toBeNull();
     });
 
-    it('ignores an unknown session and the path of the ephemeral session', () => {
-        expect(selectStartupSession('unknown', restored)).toBeNull();
-        expect(selectStartupSession('greeter', restored)).toBeNull();
+    it('ignores an unknown workbook and the path of the ephemeral workbook', () => {
+        expect(selectStartupWorkbook('unknown', restored)).toBeNull();
+        expect(selectStartupWorkbook('greeter', restored)).toBeNull();
     });
 });
 
-describe('deleteSurplusEphemeralSessions', () => {
-    it('keeps a single ephemeral session and the full sessions', async () => {
-        const deleteSession = vi.fn(async () => { });
-        await deleteSurplusEphemeralSessions([session('first'), session('greeter', true)], deleteSession, vi.fn());
-        expect(deleteSession).not.toHaveBeenCalled();
+describe('deleteSurplusEphemeralWorkbooks', () => {
+    it('keeps a single ephemeral workbook and the full workbooks', async () => {
+        const deleteWorkbook = vi.fn(async () => { });
+        await deleteSurplusEphemeralWorkbooks([workbook('first'), workbook('greeter', true)], deleteWorkbook, vi.fn());
+        expect(deleteWorkbook).not.toHaveBeenCalled();
     });
 
-    it('keeps the first of several ephemeral sessions in restore order', async () => {
-        const deleteSession = vi.fn(async () => { });
-        await deleteSurplusEphemeralSessions([session('a'), session('kept', true), session('b', true), session('c', true)], deleteSession, vi.fn());
-        expect(deleteSession.mock.calls).toEqual([['b'], ['c']]);
+    it('keeps the first of several ephemeral workbooks in restore order', async () => {
+        const deleteWorkbook = vi.fn(async () => { });
+        await deleteSurplusEphemeralWorkbooks([workbook('a'), workbook('kept', true), workbook('b', true), workbook('c', true)], deleteWorkbook, vi.fn());
+        expect(deleteWorkbook.mock.calls).toEqual([['b'], ['c']]);
     });
 
     it('reports a failed deletion and goes on', async () => {
         const failure = new Error('locked');
-        const deleteSession = vi.fn(async (sessionId: string) => {
-            if (sessionId === 'b') throw failure;
+        const deleteWorkbook = vi.fn(async (workbookId: string) => {
+            if (workbookId === 'b') throw failure;
         });
         const onFailure = vi.fn();
-        await deleteSurplusEphemeralSessions([session('kept', true), session('b', true), session('c', true)], deleteSession, onFailure);
+        await deleteSurplusEphemeralWorkbooks([workbook('kept', true), workbook('b', true), workbook('c', true)], deleteWorkbook, onFailure);
         expect(onFailure.mock.calls).toEqual([['b', failure]]);
-        expect(deleteSession).toHaveBeenCalledWith('c');
+        expect(deleteWorkbook).toHaveBeenCalledWith('c');
     });
 });
 
 describe('shouldFinishInitialNavigation', () => {
-    it('does not replace navigation after an initial shared session was opened', async () => {
+    it('does not replace navigation after an initial shared workbook was opened', async () => {
         await expect(shouldFinishInitialNavigation(Promise.resolve(true))).resolves.toBe(false);
     });
 
-    it('finishes fallback navigation when the initial shared session was not opened', async () => {
+    it('finishes fallback navigation when the initial shared workbook was not opened', async () => {
         await expect(shouldFinishInitialNavigation(Promise.resolve(false))).resolves.toBe(true);
     });
 
@@ -77,18 +77,18 @@ describe('shouldFinishInitialNavigation', () => {
 });
 
 describe('loadApp', () => {
-    it('restores empty state without creating a connection or session', async () => {
+    it('restores empty state without creating a connection or workbook', async () => {
         const restored = {
             connectionStates: new Map(),
-            attachedDatabasesBySession: new Map(),
+            attachedDatabasesByWorkbook: new Map(),
             connectionStatesByType: [[], [], [], []],
-            sessionScripts: new Map(),
-            sessionScriptsByConnection: new Map(),
-            invalidSessions: new Map(),
+            workbookScripts: new Map(),
+            workbookScriptsByConnection: new Map(),
+            invalidWorkbooks: new Map(),
         };
         const storage = { restoreAppState: vi.fn().mockResolvedValue(restored) };
         const resetConnections = vi.fn();
-        const resetSessionScripts = vi.fn();
+        const resetWorkbookScripts = vi.fn();
         const logger = {
             childSpan: () => ({
                 info: vi.fn(),
@@ -100,26 +100,26 @@ describe('loadApp', () => {
             {} as any,
             storage as any,
             resetConnections,
-            resetSessionScripts,
+            resetWorkbookScripts,
             vi.fn(),
         );
 
         expect(resetConnections).toHaveBeenCalledOnce();
         expect(resetConnections.mock.calls[0][0].connections.size).toBe(0);
-        expect(resetSessionScripts).toHaveBeenCalledOnce();
-        expect(resetSessionScripts.mock.calls[0][0].sessionScriptsMap.size).toBe(0);
-        expect(result.invalidSessions.size).toBe(0);
-        expect(result.restoredSessions.size).toBe(0);
+        expect(resetWorkbookScripts).toHaveBeenCalledOnce();
+        expect(resetWorkbookScripts.mock.calls[0][0].workbookScriptsMap.size).toBe(0);
+        expect(result.invalidWorkbooks.size).toBe(0);
+        expect(result.restoredWorkbooks.size).toBe(0);
     });
 
-    it('preserves the restored session manifest order', async () => {
+    it('preserves the restored workbook manifest order', async () => {
         const restored = {
             connectionStates: new Map(),
-            attachedDatabasesBySession: new Map(),
+            attachedDatabasesByWorkbook: new Map(),
             connectionStatesByType: [[], [], [], []],
-            sessionScripts: new Map([['second', {}], ['first', {}]]),
-            sessionScriptsByConnection: new Map(),
-            invalidSessions: new Map(),
+            workbookScripts: new Map([['second', {}], ['first', {}]]),
+            workbookScriptsByConnection: new Map(),
+            invalidWorkbooks: new Map(),
         };
         const result = await loadApp(
             { childSpan: () => ({ info: vi.fn() }) } as any,
@@ -129,6 +129,6 @@ describe('loadApp', () => {
             vi.fn(),
             vi.fn(),
         );
-        expect([...result.restoredSessions.keys()]).toEqual(['second', 'first']);
+        expect([...result.restoredWorkbooks.keys()]).toEqual(['second', 'first']);
     });
 });

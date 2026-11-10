@@ -4,43 +4,43 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useLocation } from 'react-router-dom';
 import { Tooltip } from '../ui/foundations/tooltip.js';
-import { SESSION_PATH, SELECT_SESSION, useRouteContext, useRouterNavigate } from './router/router.js';
-import { SessionViewMode, useSessionViewMode } from '../session/session_view_mode.js';
+import { WORKBOOK_PATH, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from './router/router.js';
+import { WorkbookViewMode, useWorkbookViewMode } from '../workbook/workbook_view_mode.js';
 import { classNames } from '../utils/classnames.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import type { AppFlavorRailPage } from '../config/flavors.js';
 
-/// Is the pathname a page of the workspace, the sessions and their connections?
+/// Is the pathname a page of the workspace, the workbooks and their connections?
 export function isWorkspacePath(pathname: string): boolean {
-    return pathname === '/' || pathname === '/session' || pathname.startsWith('/sessions/');
+    return pathname === '/' || pathname === '/workbook' || pathname.startsWith('/workbooks/');
 }
 
-/// Open the workbench of the current session, leaving the shell
+/// Open the workbench of the current workbook, leaving the shell
 export function useOpenWorkbench(): () => void {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
-    const { setMode } = useSessionViewMode();
+    const { setMode } = useWorkbookViewMode();
     return React.useCallback(() => {
-        setMode(SessionViewMode.Session);
-        navigate(route.sessionId == null
-            ? { type: SESSION_PATH, value: null }
-            : { type: SELECT_SESSION, value: route.sessionId });
-    }, [navigate, route.sessionId, setMode]);
+        setMode(WorkbookViewMode.Workbook);
+        navigate(route.workbookId == null
+            ? { type: WORKBOOK_PATH, value: null }
+            : { type: SELECT_WORKBOOK, value: route.workbookId });
+    }, [navigate, route.workbookId, setMode]);
 }
 
-/// Open the shell of the current session
+/// Open the shell of the current workbook
 function useOpenShell(): (() => void) | null {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
-    const { setMode } = useSessionViewMode();
-    const sessionId = route.sessionId;
+    const { setMode } = useWorkbookViewMode();
+    const workbookId = route.workbookId;
     const openShell = React.useCallback(() => {
-        if (sessionId == null) return;
-        setMode(SessionViewMode.Shell);
-        navigate({ type: SELECT_SESSION, value: sessionId });
-    }, [navigate, sessionId, setMode]);
-    return sessionId == null ? null : openShell;
+        if (workbookId == null) return;
+        setMode(WorkbookViewMode.Shell);
+        navigate({ type: SELECT_WORKBOOK, value: workbookId });
+    }, [navigate, workbookId, setMode]);
+    return workbookId == null ? null : openShell;
 }
 
 /// Is the rail wide, showing the labels of its buttons? Persisted in the app settings.
@@ -94,12 +94,12 @@ const NavRailIcon = (props: { icon: string }) => (
 export const NavRailPages = (props: { wide: boolean }): React.ReactElement => {
     const flavor = useAppFlavor();
     const location = useLocation();
-    const { mode } = useSessionViewMode();
+    const { mode } = useWorkbookViewMode();
     const openWorkbench = useOpenWorkbench();
     const openShell = useOpenShell();
-    const onSessionPath = isWorkspacePath(location.pathname);
-    const shellActive = onSessionPath && mode === SessionViewMode.Shell;
-    const workspaceActive = onSessionPath && !shellActive;
+    const onWorkbookPath = isWorkspacePath(location.pathname);
+    const shellActive = onWorkbookPath && mode === WorkbookViewMode.Shell;
+    const workspaceActive = onWorkbookPath && !shellActive;
     const renderPage = (page: AppFlavorRailPage) => {
         switch (page.type) {
             case 'workspace':
@@ -136,7 +136,7 @@ export const NavRailPages = (props: { wide: boolean }): React.ReactElement => {
 };
 
 /// The rail left of the page card that switches between the pages of the app.
-/// The shell is a page of its own although it shows the current session.
+/// The shell is a page of its own although it shows the current workbook.
 /// The button at the bottom widens the rail to show the labels of the buttons.
 export const NavRail = (): React.ReactElement => {
     const [wide, toggleWide] = useNavRailWide();

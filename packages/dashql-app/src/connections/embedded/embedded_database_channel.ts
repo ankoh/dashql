@@ -108,7 +108,7 @@ function waitUnlessAborted(promise: Promise<void>, abort?: AbortSignal): Promise
 
 export class EmbeddedDatabaseChannel {
     /// The connection runs one statement at a time, so queries wait until the result of the previous one is read.
-    /// One connection keeps the session state of the scripts, such as settings and attached databases.
+    /// One connection keeps the workbook state of the scripts, such as settings and attached databases.
     private previousQuery: Promise<void> = Promise.resolve();
 
     constructor(private readonly connection: EmbeddedConnection) {}

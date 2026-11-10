@@ -27,11 +27,11 @@ A folder is named for the API, which needn't equal the namespace of its client f
 | Path | Read by |
 |---|---|
 | `<extension>/clfn/spec/spec.json` | `loadClientFunctionSpec` (`connections/clfn/clfn_specs.ts`), for the binding of a connector. Every spec is a chunk of its own, so a connection only loads it when it needs it |
-| `<extension>/snippets/**/*.sql` | The snippet registry (`session/snippets/snippet_registry.ts`) |
+| `<extension>/snippets/**/*.sql` | The snippet registry (`workbook/snippets/snippet_registry.ts`) |
 
 ## Snippets
 
-An extension is a root of the snippet browser, listed in `SNIPPET_ROOT_CONNECTORS` (`session/snippets/snippet.ts`) with the connectors that run its snippets. A connector with several roots shows them as top-level folders: a Salesforce connection has `d360` with the SQL of `examples/snippets/d360`, and `d360-api`.
+An extension is a root of the snippet browser, listed in `SNIPPET_ROOT_CONNECTORS` (`workbook/snippets/snippet.ts`) with the connectors that run its snippets. A connector with several roots shows them as top-level folders: a Salesforce connection has `d360` with the SQL of `examples/snippets/d360`, and `d360-api`.
 
 The snippets of an extension don't have to be reentrant, because an API has no `if not exists`, see [sql_scripts.md](../agents/sql_scripts.md).
 

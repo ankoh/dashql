@@ -1,6 +1,6 @@
 //! SQL literals in the Hyper dialect, printed for the dialect of a connection.
 //!
-//! The values of parameters (`@param :min = 10`, see docs/design/session_inputs.md) are literals written in the Hyper
+//! The values of parameters (`@param :min = 10`, see docs/design/workbook_inputs.md) are literals written in the Hyper
 //! dialect, whatever the connection of a script speaks: a number, a string, `true`, `false` or `null`, or a typed
 //! literal, e.g. `date '2024-01-01'`, `timestamptz '2024-01-01 10:00+02'` or `interval '3' day`.
 //!

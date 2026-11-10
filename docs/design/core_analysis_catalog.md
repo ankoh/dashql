@@ -255,7 +255,7 @@ built after the scan:
 | 3 | Constant propagation (`constants.rs`) | Constant expression roots |
 | 4 | Parameters (`parameters.rs`) | `parameters`, sorted by their position in the text, a scalar parameter with the structured type of its cast (`sql_types.rs`) |
 | - | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries, `flow` of the first `@flow` tag |
-| - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `session_inputs.md`) |
+| - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `workbook_inputs.md`) |
 
 `analyze_with(parsed, catalog, table_parameters)` also takes the `TableParameters` of the session
 (`table_parameters.rs`): the output columns of its single-SELECT scripts and of its attachments, declared as the tables of the
@@ -449,7 +449,7 @@ the connection, the statements it follows, the files on disk and when a full ref
   An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of
   the editor compare the arrays they read, so a cursor move rebuilds only the focus decorations.
 
-**App flow per keystroke** (`packages/dashql-app/src/session/scripts/session_scripts.ts`)
+**App flow per keystroke** (`packages/dashql-app/src/workbook/scripts/workbook_scripts.ts`)
 1. The CodeMirror processor sends an `EditorEvent` with `analyze = true`; the session applies and
    analyzes.
 2. `UPDATE_FROM_PROCESSOR`: if the text or analysis changed, derive annotations (compile), then
@@ -520,5 +520,5 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Planner | `packages/dashql-core-session/src/planner.rs` |
 | Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
 | JS wrapper | `packages/dashql-core-js/src/api.ts` |
-| App script state | `packages/dashql-app/src/session/scripts/session_scripts.ts` |
+| App script state | `packages/dashql-app/src/workbook/scripts/workbook_scripts.ts` |
 | Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-session/tests/script_session_test.rs` |

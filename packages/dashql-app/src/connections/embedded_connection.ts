@@ -21,18 +21,18 @@ export function embeddedConnection(connections: Iterable<ConnectionState>, alloc
     return findEmbeddedConnection(connections) ?? allocate({ ...createDefaultHyperWasmConnectionState(dql), active: true });
 }
 
-/// The connection that new sessions start on, the connection of the latest Hyper link of the tab or the embedded Hyper
-export function newSessionConnection(connections: Map<string, ConnectionState>, allocate: ConnectionAllocator, dql: dashql.DashQL, linkConnectionId: string | null = getHyperLinkTabState().current): ConnectionState {
+/// The connection that new workbooks start on, the connection of the latest Hyper link of the tab or the embedded Hyper
+export function newWorkbookConnection(connections: Map<string, ConnectionState>, allocate: ConnectionAllocator, dql: dashql.DashQL, linkConnectionId: string | null = getHyperLinkTabState().current): ConnectionState {
     const linked = linkConnectionId == null ? null : connections.get(linkConnectionId);
     return linked ?? embeddedConnection(connections.values(), allocate, dql);
 }
 
-/// Resolve the connection that new sessions start on, see `newSessionConnection`
-export function useNewSessionConnection(): (dql: dashql.DashQL) => ConnectionState {
+/// Resolve the connection that new workbooks start on, see `newWorkbookConnection`
+export function useNewWorkbookConnection(): (dql: dashql.DashQL) => ConnectionState {
     const registryStore = useConnectionRegistryStore();
     const allocate = useConnectionAllocator();
     return React.useCallback(
-        (dql: dashql.DashQL) => newSessionConnection(registryStore.current.connections, allocate, dql),
+        (dql: dashql.DashQL) => newWorkbookConnection(registryStore.current.connections, allocate, dql),
         [allocate, registryStore],
     );
 }

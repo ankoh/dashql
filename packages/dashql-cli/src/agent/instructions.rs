@@ -3,13 +3,13 @@
 //!
 //! This binary writes all of it. It is the part of the bridge that the user installed, so it is the part whose text
 //! the agent may follow: the page answers commands with data, which the agent must not take as instructions, and it
-//! never sends instructions of its own. The page only announces its features as identifiers (`client/sessions`), and
+//! never sends instructions of its own. The page only announces its features as identifiers (`client/workbooks`), and
 //! the guide leaves out the notes of the features that the page lacks and asks for a newer DashQL. The skill names no
 //! command but `dashql agent guide`, so it never goes stale.
 
 use crate::agent::commands::command_table;
 
-/// The page answers `scripts` with the connections of the session, `catalog` for each of them, and moves a script
+/// The page answers `scripts` with the connections of the workbook, `catalog` for each of them, and moves a script
 /// with `edit --connection`
 pub const FEATURE_CONNECTIONS: &str = "connections";
 /// The page applies `edit` directly and answers with the hash of the text and its diagnostics
@@ -19,12 +19,12 @@ pub const FEATURE_EDIT: &str = "edit";
 pub const FEATURE_VIS: &str = "vis";
 /// The page reads the results of scripts as table parameters, `:name` where a table goes
 pub const FEATURE_TABLE_PARAMETERS: &str = "table-parameters";
-/// The page binds scalar parameters, `:name` where a value goes, to the values that the session holds for them, with
+/// The page binds scalar parameters, `:name` where a value goes, to the values that the workbook holds for them, with
 /// values from `@param` tags
 pub const FEATURE_SCALAR_PARAMETERS: &str = "scalar-parameters";
-/// The page lists the attachments of the session and reads them as table parameters
+/// The page lists the attachments of the workbook and reads them as table parameters
 pub const FEATURE_ATTACHMENTS: &str = "attachments";
-/// The page marks the embedded Hyper and offers it to sessions that don't use it
+/// The page marks the embedded Hyper and offers it to workbooks that don't use it
 pub const FEATURE_EMBEDDED_HYPER: &str = "embedded-hyper";
 /// The page refuses to run scripts with a `@manual` tag unless forced
 pub const FEATURE_MANUAL_SCRIPTS: &str = "manual-scripts";
@@ -87,10 +87,10 @@ impl Page<'_> {
 
 /// The options of this binary, after the commands. They hold whatever the page supports.
 const CLI_NOTES: [&str; 4] = [
-    "`--session <id>` targets a session, otherwise `DASHQL_SESSION`, otherwise the focused session.",
+    "`--workbook <id>` targets a workbook, otherwise `DASHQL_WORKBOOK`, otherwise the focused workbook.",
     "`--json` prints structured output.",
     "Exit codes: 0 ok, 1 the command failed, 2 DashQL is not connected or the call is malformed.",
-    "One call at a time per session; wait for a call to finish before starting the next one.",
+    "One call at a time per workbook; wait for a call to finish before starting the next one.",
 ];
 
 /// A note about what the page does, written when the page has its feature
@@ -103,7 +103,7 @@ struct Note {
 const COMMAND_NOTES: [Note; 8] = [
     Note {
         feature: FEATURE_CONNECTIONS,
-        text: "`scripts` lists the connections of the session with their connector, read-only or read-write, online or
+        text: "`scripts` lists the connections of the workbook with their connector, read-only or read-write, online or
   offline. New scripts run on the default connection; `edit --connection <id>` creates a script on another
   connection, or moves an existing one there. `catalog <id>` shows the schema of a connection.",
     },
@@ -147,19 +147,19 @@ const COMMAND_NOTES: [Note; 8] = [
     },
 ];
 
-/// How DashQL works: connections, the parameters of scripts and the attachments of the session
+/// How DashQL works: connections, the parameters of scripts and the attachments of the workbook
 const DASHQL_NOTES: [Note; 8] = [
     Note {
         feature: FEATURE_EMBEDDED_HYPER,
         text: "Every script runs on one connection. The embedded Hyper runs inside DashQL, `scripts` marks it as
-  `embedded Hyper` and lists it for every session, also when no script runs on it. Every other connection is
+  `embedded Hyper` and lists it for every workbook, also when no script runs on it. Every other connection is
   remote, also a Hyper server, and reads only its own tables. `edit --connection <id>` puts a script on the
   embedded Hyper.",
     },
     Note {
         feature: FEATURE_TABLE_PARAMETERS,
         text: "`:name` where a table goes, `select * from :orders_all where region = 'west'`, is a table parameter: it reads
-  the result of the script `orders_all` of the session, which must be a single `SELECT`. On the same connection
+  the result of the script `orders_all` of the workbook, which must be a single `SELECT`. On the same connection
   its query is inlined, so build on existing scripts this way instead of copying their SQL, and filter and
   aggregate in the reading script.",
     },
@@ -192,13 +192,13 @@ const DASHQL_NOTES: [Note; 8] = [
     },
     Note {
         feature: FEATURE_ATTACHMENTS,
-        text: "Attachments are Parquet files of the session, `scripts` lists them with their columns. Only scripts on the
+        text: "Attachments are Parquet files of the workbook, `scripts` lists them with their columns. Only scripts on the
   embedded Hyper read them: an attachment is the table parameter of its name, `:sales` for `sales.parquet`, and
   `catalog` of the embedded Hyper lists them.",
     },
     Note {
         feature: FEATURE_SCALAR_PARAMETERS,
-        text: "`:name` where a value goes, `where amount > :min`, is a scalar parameter. The session holds its value: the
+        text: "`:name` where a value goes, `where amount > :min`, is a scalar parameter. The workbook holds its value: the
   user sets it in DashQL and the scripts that use it rerun. Give a new scalar parameter its value with a
   `@param :min = 10` tag in the comment above the query, a SQL literal such as `'west'`, `date '2024-01-01'` or
   `interval '3' day`. A run fails while a scalar parameter has no value.",
@@ -218,7 +218,7 @@ fn notes(notes: &[Note], page: Page) -> Vec<String> {
 /// The commands with their notes
 pub fn command_reference(page: Page) -> String {
     format!(
-        "`dashql agent` talks to the DashQL session that is open in the browser or the desktop app.\n\n{}\n\n{}",
+        "`dashql agent` talks to the DashQL workbook that is open in the browser or the desktop app.\n\n{}\n\n{}",
         command_table(),
         CLI_NOTES.iter().map(|note| format!("- {note}")).chain(notes(&COMMAND_NOTES, page)).collect::<Vec<_>>().join("\n")
     )
@@ -271,7 +271,7 @@ dashql agent vis edit q1 --file input/q1.json
 ```";
 
 /// The AGENTS.md of the working folder of a harness run, for the page that started it
-pub fn session_instructions(page: Page) -> String {
+pub fn workbook_instructions(page: Page) -> String {
     instructions(HEREDOC_INPUT, page)
 }
 
@@ -282,9 +282,9 @@ pub fn claude_instructions(page: Page) -> String {
 
 fn instructions(input: &str, page: Page) -> String {
     format!(
-        "# DashQL session
+        "# DashQL workbook
 
-You work on a DashQL session through the `dashql agent` commands of the `dashql` command line tool.
+You work on a DashQL workbook through the `dashql agent` commands of the `dashql` command line tool.
 Work only through `dashql agent`; this folder holds no project files.
 
 {}
@@ -293,7 +293,7 @@ Work only through `dashql agent`; this folder holds no project files.
 
 ## How to work
 
-1. Start with `dashql agent scripts` and `dashql agent catalog` to learn the session and the schema.
+1. Start with `dashql agent scripts` and `dashql agent catalog` to learn the workbook and the schema.
 2. Write SQL with `dashql agent edit`, one statement per script: a script that other scripts read must be a
    single `SELECT`, and a `CREATE TABLE` or `INSERT` goes into a script of its own. Change a script only to change
    its statement, and write a new script with a short snake_case name that builds on the existing ones instead of
@@ -314,12 +314,12 @@ Work only through `dashql agent`; this folder holds no project files.
     )
 }
 
-/// What `dashql agent guide` prints, for the page that holds the session, without one if none is connected
+/// What `dashql agent guide` prints, for the page that holds the workbook, without one if none is connected
 pub fn cli_guide(page: Page) -> String {
     let connected = match page {
         Page::Unknown => {
             "No DashQL is connected to the agent server. Say in your answer that the user has to open DashQL and turn on\n\
-             agent access for the session.\n\n"
+             agent access for the workbook.\n\n"
         }
         Page::Features(_) => "",
     };
@@ -335,8 +335,8 @@ pub fn cli_guide(page: Page) -> String {
 ## How to work
 
 1. `dashql agent status` shows whether DashQL is connected. Exit code 2 means it is not: say in your answer
-   that the user has to open DashQL and turn on agent access for the session.
-2. `dashql agent scripts` and `dashql agent catalog` show the session and the schema.
+   that the user has to open DashQL and turn on agent access for the workbook.
+2. `dashql agent scripts` and `dashql agent catalog` show the workbook and the schema.
 3. Write SQL with `dashql agent edit`, one statement per script: a script that other scripts read must be a
    single `SELECT`, and new statements go into new scripts that build on the existing ones. Check a script with
    `dashql agent lint`, run it with `dashql agent run`.
@@ -394,12 +394,12 @@ mod tests {
     fn the_instructions_list_the_commands_and_how_dashql_works() {
         let features = current();
         let page = Page::Features(&features);
-        for text in [session_instructions(page), claude_instructions(page), cli_guide(page), cli_guide(Page::Unknown)] {
+        for text in [workbook_instructions(page), claude_instructions(page), cli_guide(page), cli_guide(Page::Unknown)] {
             assert!(text.contains(&command_table()));
             assert!(text.contains("| `dashql agent vis edit <script> [--file f]` |"));
             assert!(text.contains("- `run --force` runs a script with a `@manual` tag"));
             assert!(text.contains("- Leave the size of a chart to DashQL"));
-            assert!(text.contains("- Attachments are Parquet files of the session"));
+            assert!(text.contains("- Attachments are Parquet files of the workbook"));
             assert!(text.contains("`scripts` marks it as\n  `embedded Hyper`"));
             assert!(text.contains("`@param :min = 10`"));
             assert!(text.contains("- Post-process the data of remote connections on the embedded Hyper"));
@@ -411,7 +411,7 @@ mod tests {
             assert!(text.contains(UNTRUSTED_INPUT));
         }
         assert!(claude_instructions(page).contains("--file input/q1.sql"));
-        assert!(session_instructions(page).contains("<<'EOF'"));
+        assert!(workbook_instructions(page).contains("<<'EOF'"));
         assert!(cli_guide(page).contains("dashql lint <file.sql|dir>"));
         assert!(!cli_guide(page).contains("No DashQL is connected"));
         assert!(cli_guide(Page::Unknown).contains("No DashQL is connected"));
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn the_instructions_leave_out_what_an_older_page_lacks() {
         let features = vec![FEATURE_EMBEDDED_HYPER.to_string(), FEATURE_SCALAR_PARAMETERS.to_string()];
-        let text = session_instructions(Page::Features(&features));
+        let text = workbook_instructions(Page::Features(&features));
         assert!(text.contains("The open DashQL is older than this `dashql`"));
         assert!(text.contains("`embedded Hyper`"));
         assert!(text.contains("`@param :min = 10`"));
@@ -435,7 +435,7 @@ mod tests {
         assert!(text.contains("- `--json` prints structured output."));
         // A page that announced no features has the baseline
         let baseline = page_features(None::<[&str; 0]>);
-        let text = session_instructions(Page::Features(&baseline));
+        let text = workbook_instructions(Page::Features(&baseline));
         assert!(text.contains("The open DashQL is older than this `dashql`"));
         assert!(text.contains("`vis edit` checks the spec"));
         assert!(text.contains("`:name` where a table goes"));

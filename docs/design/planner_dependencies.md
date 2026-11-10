@@ -42,7 +42,7 @@ Every query of a node carries where the statement comes from (`QueryMetadata.pla
 the run, the node, the script and the position of the statement among the statements of the script in the plan, the
 inlined scripts, the materialized results it scans, the file it writes and the edges it runs after. The query history
 shows it as title, e.g. `bar.sql 1/1 · inlines foo.sql · scans base.sql`, and description. The log target
-`session_execution` records the plan before it runs, every statement with its query id, the materialized results
+`workbook_execution` records the plan before it runs, every statement with its query id, the materialized results
 that are written, the cached results that a run reads instead of running a script, and the statements that fail.
 
 ## Scopes

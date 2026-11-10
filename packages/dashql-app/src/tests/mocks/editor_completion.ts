@@ -2,8 +2,8 @@ import type * as dashql from '@ankoh/dashql-core';
 import { EditorState } from '@codemirror/state';
 import { expect } from 'vitest';
 
-import { computePatches } from '../../session/editor/dashql_completion_patches.js';
-import { DashQLCompletionStatus, type DashQLProcessorUpdateIn } from '../../session/editor/dashql_processor.js';
+import { computePatches } from '../../workbook/editor/dashql_completion_patches.js';
+import { DashQLCompletionStatus, type DashQLProcessorUpdateIn } from '../../workbook/editor/dashql_processor.js';
 
 /// The editor text of the completion of the tables `orders` of two databases
 export const ORDERS_COMPLETION_TEXT = 'select * from ord';
@@ -40,13 +40,13 @@ export function ordersCompletion(dql: dashql.DashQL): DashQLProcessorUpdateIn {
 }
 
 /// The processor state of an editor at the end of a text whose completion selects a candidate.
-/// The setup can publish table parameters that the session reads.
+/// The setup can publish table parameters that the workbook reads.
 export function completionAtEnd(
     dql: dashql.DashQL,
     text: string,
     catalog: dashql.DashQLCatalog,
     candidate: string,
-    setup: ((session: dashql.DashQLScriptSession) => void) | null = null,
+    setup: ((workbook: dashql.DashQLScriptSession) => void) | null = null,
 ): DashQLProcessorUpdateIn {
     const state = editorProcessorState(dql, text, catalog);
     if (setup != null) {

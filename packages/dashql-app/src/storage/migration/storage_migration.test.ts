@@ -4,8 +4,8 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '../test_fs_mock.js';
 import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';
-import { SESSION_FORMAT_VERSION, STORAGE_VERSION } from './versions.js';
-import { sessionTree } from './storage/v7_session_tree.js';
+import { WORKBOOK_FORMAT_VERSION, STORAGE_VERSION } from './versions.js';
+import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';
@@ -44,7 +44,7 @@ describe('storage migration', () => {
         claims = [];
         globalThis.dashqlElectron = {
             fs: makeFsMock(),
-            claimSessionFolder: async (path: string) => { claims.push(path); return true; },
+            claimWorkbookFolder: async (path: string) => { claims.push(path); return true; },
         } as unknown as DashQLElectronBridge;
     });
 
@@ -58,7 +58,7 @@ describe('storage migration', () => {
     });
 
     it('leaves a fresh storage untouched', async () => {
-        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 0 });
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, workbooks: 0 });
         expect(files.size).toBe(0);
         expect(dirs.size).toBe(0);
     });
@@ -79,13 +79,13 @@ describe('storage migration', () => {
 
         const summary = await migrateStorage(new TestLogger(), root);
         expect(summary.steps).toBe(STORAGE_MIGRATION_STEPS.length);
-        expect(summary.sessions).toBeGreaterThan(0);
+        expect(summary.workbooks).toBeGreaterThan(0);
         // The native session folder is claimed before it is read
         expect(new Set(claims)).toEqual(new Set([NATIVE_DIR]));
 
         // The session tree lists the sessions and the manifest the consolidated connections
-        expect(json('sessiontree/My Sessions/dashql-folder.json').sessions).toEqual([{ path: SESSION_A }, { path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
-        expect(json('sessiontree/dashql-folder.json').sessions).toEqual([]);
+        expect(json('workbooktree/My Sessions/dashql-folder.json').workbooks).toEqual([{ path: SESSION_A }, { path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
+        expect(json('workbooktree/dashql-folder.json').workbooks).toEqual([]);
         const manifest = json('dashql-manifest.json');
         expect(manifest.sessions).toBeUndefined();
         expect(manifest.notebooks).toBeUndefined();
@@ -97,25 +97,26 @@ describe('storage migration', () => {
         // The OPFS session moved and is at the current format
         expect([...dirs].filter(dir => dir.startsWith('notebooks'))).toEqual([]);
         expect([...files.keys()].filter(file => file.startsWith('notebooks'))).toEqual([]);
-        const sessionA = json(`sessions/${SESSION_A}/dashql-session.json`);
-        expect(sessionA.formatVersion).toBe(SESSION_FORMAT_VERSION);
-        expect(sessionA.sessionId).toBe(SESSION_A);
-        expect(text(`sessions/${SESSION_A}/dashql-catalog-relations.sql`)).toBeUndefined();
-        expect(text(`sessions/${SESSION_A}/scripts/1_a.sql`)).toBe('SELECT 1');
+        const sessionA = json(`workbooks/${SESSION_A}/dashql-workbook.json`);
+        expect(sessionA.formatVersion).toBe(WORKBOOK_FORMAT_VERSION);
+        expect(sessionA.workbookId).toBe(SESSION_A);
+        expect(text(`workbooks/${SESSION_A}/dashql-catalog-relations.sql`)).toBeUndefined();
+        expect(text(`workbooks/${SESSION_A}/scripts/1_a.sql`)).toBe('SELECT 1');
+        expect([...dirs].filter(dir => dir.startsWith('sessions') || dir.startsWith('sessiontree'))).toEqual([]);
 
         // The native session references the consolidated connection
         expect(fsStore.files.has(`${NATIVE_DIR}/dashql-notebook.json`)).toBe(false);
-        const sessionB = JSON.parse(fsStore.files.get(`${NATIVE_DIR}/dashql-session.json`)!);
-        expect(sessionB.formatVersion).toBe(SESSION_FORMAT_VERSION);
-        expect(sessionB.sessionId).toBe(SESSION_B);
+        const sessionB = JSON.parse(fsStore.files.get(`${NATIVE_DIR}/dashql-workbook.json`)!);
+        expect(sessionB.formatVersion).toBe(WORKBOOK_FORMAT_VERSION);
+        expect(sessionB.workbookId).toBe(SESSION_B);
         expect(sessionB.connections.map((connection: { connectionId: string }) => connection.connectionId)).toEqual([DB_A]);
 
         // A migrated storage stays as it is
         const before = text('dashql-manifest.json');
-        const beforeTree = text('sessiontree/My Sessions/dashql-folder.json');
+        const beforeTree = text('workbooktree/My Sessions/dashql-folder.json');
         await migrateStorage(new TestLogger(), root);
         expect(text('dashql-manifest.json')).toBe(before);
-        expect(text('sessiontree/My Sessions/dashql-folder.json')).toBe(beforeTree);
+        expect(text('workbooktree/My Sessions/dashql-folder.json')).toBe(beforeTree);
     });
 
     it('keeps the connections of a storage that has them already', async () => {
@@ -127,22 +128,22 @@ describe('storage migration', () => {
 
         await migrateStorage(new TestLogger(), root);
         expect(json('dashql-manifest.json').connections).toEqual(connections);
-        expect(json(`sessions/${SESSION_A}/dashql-session.json`).sessionId).toBe(SESSION_A);
+        expect(json(`workbooks/${SESSION_A}/dashql-workbook.json`).workbookId).toBe(SESSION_A);
     });
 
-    it('migrates the sessions of a current storage', async () => {
+    it('migrates the workbooks of a current storage', async () => {
         files.set('dashql-manifest.json', JSON.stringify({ connections: [], storageVersion: STORAGE_VERSION }));
-        dirs.add('sessiontree');
-        dirs.add('sessiontree/clients');
-        files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: SESSION_A }] }));
-        dirs.add('sessions');
-        dirs.add(`sessions/${SESSION_A}`);
-        files.set(`sessions/${SESSION_A}/dashql-notebook.json`, notebook(SESSION_A, DB_A));
+        dirs.add('workbooktree');
+        dirs.add('workbooktree/clients');
+        files.set('workbooktree/clients/dashql-folder.json', JSON.stringify({ workbooks: [{ path: SESSION_A }] }));
+        dirs.add('workbooks');
+        dirs.add(`workbooks/${SESSION_A}`);
+        files.set(`workbooks/${SESSION_A}/dashql-notebook.json`, notebook(SESSION_A, DB_A));
 
-        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 1 });
-        expect(json(`sessions/${SESSION_A}/dashql-session.json`).formatVersion).toBe(SESSION_FORMAT_VERSION);
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, workbooks: 1 });
+        expect(json(`workbooks/${SESSION_A}/dashql-workbook.json`).formatVersion).toBe(WORKBOOK_FORMAT_VERSION);
         // A current storage has nothing left to migrate
-        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, sessions: 0 });
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, workbooks: 0 });
     });
 
     it('moves the sessions of the manifest into the folder My Sessions of the session tree', async () => {
@@ -158,14 +159,14 @@ describe('storage migration', () => {
         files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }] }));
 
         expect((await migrateStorage(new TestLogger(), root)).steps).toBe(STORAGE_VERSION - 6);
-        expect(json('sessiontree/My Sessions/dashql-folder.json')).toEqual({ sessions: [{ path: SESSION_A, storageType: 'opfs' }] });
-        expect(json('sessiontree/clients/dashql-folder.json').sessions).toEqual([{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
-        expect(json('sessiontree/dashql-folder.json')).toEqual({ sessions: [] });
+        expect(json('workbooktree/My Sessions/dashql-folder.json')).toEqual({ workbooks: [{ path: SESSION_A, storageType: 'opfs' }] });
+        expect(json('workbooktree/clients/dashql-folder.json').workbooks).toEqual([{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
+        expect(json('workbooktree/dashql-folder.json')).toEqual({ workbooks: [] });
         expect(json('dashql-manifest.json')).toEqual({ connections: [], appSettings: { keywordCase: 'upper' }, storageVersion: STORAGE_VERSION });
 
         // The step is idempotent
-        await sessionTree.migrate({ root, logger: new TestLogger() });
-        expect(json('sessiontree/My Sessions/dashql-folder.json')).toEqual({ sessions: [{ path: SESSION_A, storageType: 'opfs' }] });
+        await sessionsToWorkbooks.migrate({ root, logger: new TestLogger() });
+        expect(json('workbooktree/My Sessions/dashql-folder.json')).toEqual({ workbooks: [{ path: SESSION_A, storageType: 'opfs' }] });
     });
 
     it('seeds connections without a catalog from the catalog copies of the sessions', async () => {
@@ -201,9 +202,9 @@ describe('storage migration', () => {
         expect(text(`connections/${DB_B}/dashql-catalog-relations.sql`)).toBeUndefined();
         expect(text(`connections/${DB_B}/dashql-catalog-functions.sql`)).toBe('CREATE FUNCTION kept() RETURNS int;');
         // The copies are removed from every session
-        expect([...files.keys()].filter(file => file.startsWith('sessions/'))).toEqual([`sessions/${SESSION_A}/dashql-session.json`]);
-        expect([...fsStore.files.keys()].filter(file => file.startsWith(NATIVE_DIR))).toEqual([`${NATIVE_DIR}/dashql-session.json`]);
-        expect(json(`sessions/${SESSION_A}/dashql-session.json`).formatVersion).toBe(SESSION_FORMAT_VERSION);
+        expect([...files.keys()].filter(file => file.startsWith('workbooks/'))).toEqual([`workbooks/${SESSION_A}/dashql-workbook.json`]);
+        expect([...fsStore.files.keys()].filter(file => file.startsWith(NATIVE_DIR))).toEqual([`${NATIVE_DIR}/dashql-workbook.json`]);
+        expect(json(`workbooks/${SESSION_A}/dashql-workbook.json`).formatVersion).toBe(WORKBOOK_FORMAT_VERSION);
     });
 
     it('drops the aliases of the connections', async () => {
@@ -263,5 +264,30 @@ describe('storage migration', () => {
         files.set('dashql-manifest.json', manifest);
         await expect(migrateStorage(new TestLogger(), root)).rejects.toThrow('newer version of DashQL');
         expect(text('dashql-manifest.json')).toBe(manifest);
+    });
+
+    it('renames the sessions as workbooks', async () => {
+        files.set('dashql-manifest.json', JSON.stringify({ connections: [], appSettings: { agentSessions: [SESSION_A], keywordCase: 'upper' }, storageVersion: 8 }));
+        dirs.add('sessiontree');
+        dirs.add('sessiontree/clients');
+        files.set('sessiontree/dashql-folder.json', JSON.stringify({ sessions: [] }));
+        files.set('sessiontree/clients/dashql-folder.json', JSON.stringify({ sessions: [{ path: SESSION_A }] }));
+        dirs.add('sessions');
+        dirs.add(`sessions/${SESSION_A}`);
+        dirs.add(`sessions/${SESSION_A}/scripts`);
+        files.set(`sessions/${SESSION_A}/dashql-session.json`, JSON.stringify({
+            formatVersion: 10, sessionId: SESSION_A, connections: [{ connectionId: DB_A, params: WASM }], scripts: [], attachments: [], metadata: {},
+        }));
+        files.set(`sessions/${SESSION_A}/scripts/1_a.sql`, 'SELECT 1');
+
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 1, workbooks: 1 });
+
+        expect([...dirs].filter(dir => dir.startsWith('sessions') || dir.startsWith('sessiontree'))).toEqual([]);
+        expect(json('workbooktree/dashql-folder.json')).toEqual({ workbooks: [] });
+        expect(json('workbooktree/clients/dashql-folder.json')).toEqual({ workbooks: [{ path: SESSION_A }] });
+        expect(json(`workbooks/${SESSION_A}/dashql-workbook.json`)).toMatchObject({ formatVersion: WORKBOOK_FORMAT_VERSION, workbookId: SESSION_A });
+        expect(text(`workbooks/${SESSION_A}/dashql-session.json`)).toBeUndefined();
+        expect(text(`workbooks/${SESSION_A}/scripts/1_a.sql`)).toBe('SELECT 1');
+        expect(json('dashql-manifest.json').appSettings).toEqual({ keywordCase: 'upper', agentWorkbooks: [SESSION_A] });
     });
 });

@@ -9,7 +9,7 @@
         "session": {
           "type": "string",
           "contentEncoding": "base64",
-          "description": "Session ZIP (contains connection params, session scripts, etc.)"
+          "description": "The .dashql ZIP of a workbook in links of older versions, current links carry it in the zip parameter"
         }
       },
       "required": ["session"],
@@ -19,7 +19,7 @@
       "properties": {
         "hyperLink": {
           "type": "object",
-          "description": "Point new sessions at a Hyper that speaks the HTTP v3 API, e.g. the hyperd of hyperd run --ui",
+          "description": "Point new workbooks at a Hyper that speaks the HTTP v3 API, e.g. the hyperd of hyperd run --ui",
           "properties": {
             "endpoint": {
               "type": "string",

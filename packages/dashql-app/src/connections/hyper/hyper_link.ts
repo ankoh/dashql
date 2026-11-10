@@ -9,20 +9,20 @@ import { isLoopbackHyperLink, type HyperLinkTarget } from '../../platform/events
 export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
 
 /// The session storage key of the tokens of the Hyper links of a tab
-const HYPER_LINK_SESSION_STORAGE_KEY = 'dashql.hyper_links';
+const HYPER_LINK_WORKBOOK_STORAGE_KEY = 'dashql.hyper_links';
 
 /// Confirm a link before the app uses it.
-/// A link to another machine would receive the queries of the new sessions, the user confirms its host first.
+/// A link to another machine would receive the queries of the new workbooks, the user confirms its host first.
 export function confirmHyperLink(target: HyperLinkTarget, confirm: (message: string) => boolean = message => globalThis.confirm(message)): boolean {
     if (isLoopbackHyperLink(target)) return true;
-    return confirm(`Run new sessions on the Hyper at ${target.endpoint}? Only continue if you trust the link that opened DashQL.`);
+    return confirm(`Run new workbooks on the Hyper at ${target.endpoint}? Only continue if you trust the link that opened DashQL.`);
 }
 
 /// The Hyper links of a tab
 export interface HyperLinkTabState {
     /// The tokens of the connections to the Hyper of a link (connectionId -> token), they are never stored durably
     tokens: Record<string, string>;
-    /// The connection of the latest link, new sessions start on it
+    /// The connection of the latest link, new workbooks start on it
     current: string | null;
 }
 
@@ -40,7 +40,7 @@ function tabStorage(): Storage | null {
 /// Read the Hyper links of the tab, a reload keeps them and closing the tab ends them
 export function readHyperLinkTabState(storage: Storage | null = tabStorage()): HyperLinkTabState {
     try {
-        const parsed = JSON.parse(storage?.getItem(HYPER_LINK_SESSION_STORAGE_KEY) ?? 'null');
+        const parsed = JSON.parse(storage?.getItem(HYPER_LINK_WORKBOOK_STORAGE_KEY) ?? 'null');
         if (parsed == null || typeof parsed !== 'object') return NO_HYPER_LINKS;
         const tokens = Object.fromEntries(Object.entries(parsed.tokens ?? {}).filter(([, token]) => typeof token === 'string')) as Record<string, string>;
         return { tokens, current: typeof parsed.current === 'string' ? parsed.current : null };
@@ -58,12 +58,12 @@ export function getHyperLinkTabState(): HyperLinkTabState {
     return HYPER_LINK_TAB_STATE;
 }
 
-/// Remember the token of the connection that a link was bound to, new sessions start on the connection
+/// Remember the token of the connection that a link was bound to, new workbooks start on the connection
 export function setHyperLinkToken(connectionId: string, token: string, storage: Storage | null = tabStorage()): void {
     const prev = getHyperLinkTabState();
     HYPER_LINK_TAB_STATE = { tokens: { ...prev.tokens, [connectionId]: token }, current: connectionId };
     try {
-        storage?.setItem(HYPER_LINK_SESSION_STORAGE_KEY, JSON.stringify(HYPER_LINK_TAB_STATE));
+        storage?.setItem(HYPER_LINK_WORKBOOK_STORAGE_KEY, JSON.stringify(HYPER_LINK_TAB_STATE));
     } catch {
         // Without storage, a reload forgets the links
     }

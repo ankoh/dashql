@@ -8,14 +8,14 @@ import { ButtonSize, IconButton, ButtonVariant } from '../../ui/foundations/butt
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { JsonView } from '../../ui/json/json_view.js';
-import { projectSqlText, ReadonlySqlView } from '../../session/editor/readonly_sql_view.js';
+import { projectSqlText, ReadonlySqlView } from '../../workbook/editor/readonly_sql_view.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { CopyToClipboardButton } from '../../ui/foundations/clipboard.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { getKeywordCase } from '../../session/scripts/script_format.js';
+import { getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { EngineProfileView } from '../query_profile/engine_profile_view.js';
 import { detectPlanEngine } from '../query_profile/plan_engine.js';
 

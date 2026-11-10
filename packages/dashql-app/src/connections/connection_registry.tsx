@@ -27,19 +27,19 @@ import type { Logger } from '../platform/logger/logger.js';
 
 const LOG_CTX = 'connection_registry';
 import {
-    DEBOUNCE_DURATION_SESSION_WRITE,
+    DEBOUNCE_DURATION_WORKBOOK_WRITE,
     groupConnectionEntryWrites,
     groupConnectionFileWrites,
-    groupSessionConnectionCopyWrites,
+    groupWorkbookConnectionCopyWrites,
     WRITE_CONNECTION_ENTRY,
     WRITE_CONNECTION_FILE,
-    PATCH_SESSION_CONNECTION,
+    PATCH_WORKBOOK_CONNECTION,
     DELETE_CONNECTION_ENTRY,
     type StorageWriter,
 } from '../storage/storage_writer.js';
 import { generateRelationsFile, readRelationName } from './catalog/catalog_sql_generator.js';
 import { CatalogUpdateVariant, pendingRelations } from './catalog/catalog_update_state.js';
-import { STORAGE_CATALOG_STATE, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type SessionConnection } from '../storage/storage_backend.js';
+import { STORAGE_CATALOG_STATE, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type WorkbookConnection } from '../storage/storage_backend.js';
 import { connectionCatalogIsDurable, connectionParamsEqual, type ConnectionParams } from './connection_params.js';
 
 /// Drafts are written to the app manifest only, edits arrive with every keystroke
@@ -48,11 +48,11 @@ export const DEBOUNCE_DURATION_CONNECTION_DRAFT_WRITE = 250;
 /// The connection registry
 ///
 /// Connections are entities of their own, keyed by the global connection
-/// id. The scripts of sessions run on them, several sessions
+/// id. The scripts of workbooks run on them, several workbooks
 /// may reference the same connection and then share its channel, catalog and queries.
 ///
 /// Note that we're deliberately not using immutable maps for the connections here.
-/// Following the same reasoning as with the session registry, we don't have code that
+/// Following the same reasoning as with the workbook registry, we don't have code that
 /// explicitly observes modifications of the registry map.
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {
@@ -60,28 +60,28 @@ export interface ConnectionRegistry {
     connectionsByType: string[][];  // arrays of databaseIds by connector type
 }
 
-/// The sessions that use the connections.
+/// The workbooks that use the connections.
 ///
-/// The scripts of a session own the references to their connections, the session scripts registry
-/// provides them to the connection layer. A host without sessions (e.g. the shell) has no references.
+/// The scripts of a workbook own the references to their connections, the workbook scripts registry
+/// provides them to the connection layer. A host without workbooks (e.g. the shell) has no references.
 export interface ConnectionReferences {
-    /// The sessions with scripts on a connection, in registration order
-    sessionsOf(connectionId: string): readonly string[];
-    /// The connections that the scripts of a session use in feed order, then the pending connection
-    connectionsOf(sessionId: string): readonly string[];
+    /// The workbooks with scripts on a connection, in registration order
+    workbooksOf(connectionId: string): readonly string[];
+    /// The connections that the scripts of a workbook use in feed order, then the pending connection
+    connectionsOf(workbookId: string): readonly string[];
     /// Subscribe to changes of the references
     subscribe(listener: () => void): () => void;
 }
 
-/// The references of a host without sessions
+/// The references of a host without workbooks
 export const NO_CONNECTION_REFERENCES: ConnectionReferences = {
-    sessionsOf: () => [],
+    workbooksOf: () => [],
     connectionsOf: () => [],
     subscribe: () => () => { },
 };
 
 const CONNECTION_REFERENCES_CTX = React.createContext<ConnectionReferences>(NO_CONNECTION_REFERENCES);
-/// Provide the sessions that use the connections
+/// Provide the workbooks that use the connections
 export const ConnectionReferencesProvider = CONNECTION_REFERENCES_CTX.Provider;
 
 /// Get the references without subscribing to their changes
@@ -96,21 +96,21 @@ export function useConnectionReferencesSelector<T>(select: (references: Connecti
     return React.useSyncExternalStore(references.subscribe, () => select(references));
 }
 
-/// The connections of a session, null while a connection is not registered
-export function resolveSessionConnections(
+/// The connections of a workbook, null while a connection is not registered
+export function resolveWorkbookConnections(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
-    sessionId: string | null,
+    workbookId: string | null,
 ): ConnectionState[] | null {
-    if (sessionId == null) return null;
-    const connections = references.connectionsOf(sessionId)
+    if (workbookId == null) return null;
+    const connections = references.connectionsOf(workbookId)
         .map(connectionId => registry.connections.get(connectionId));
     if (connections.length === 0 || connections.some(database => database == null)) return null;
     return connections as ConnectionState[];
 }
 
-/// Is a connection listed next to the sessions?
-/// Connections that sessions reference are listed, as are active connections that no session references.
+/// Is a connection listed next to the workbooks?
+/// Connections that workbooks reference are listed, as are active connections that no workbook references.
 export function isListedConnection(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
@@ -118,7 +118,7 @@ export function isListedConnection(
 ): boolean {
     const database = registry.connections.get(connectionId);
     if (database == null) return false;
-    return references.sessionsOf(connectionId).length > 0 || database.active;
+    return references.workbooksOf(connectionId).length > 0 || database.active;
 }
 
 /// Register a connection in the registry indices (mutates the registry)
@@ -128,11 +128,11 @@ export function registerConnection(registry: ConnectionRegistry, database: Conne
     if (!byType.includes(database.connectionId)) byType.push(database.connectionId);
 }
 
-/// The queries a session issued on a connection, active ones first
-export function findSessionQueries(database: ConnectionState, sessionId: string, includeFinished: boolean = true): number[] {
-    const active = database.queriesActiveOrdered.filter(queryId => database.queriesActive.get(queryId)?.queryMetadata.sessionId === sessionId);
+/// The queries a workbook issued on a connection, active ones first
+export function findWorkbookQueries(database: ConnectionState, workbookId: string, includeFinished: boolean = true): number[] {
+    const active = database.queriesActiveOrdered.filter(queryId => database.queriesActive.get(queryId)?.queryMetadata.workbookId === workbookId);
     if (!includeFinished) return active;
-    const finished = database.queriesFinishedOrdered.filter(queryId => database.queriesFinished.get(queryId)?.queryMetadata.sessionId === sessionId);
+    const finished = database.queriesFinishedOrdered.filter(queryId => database.queriesFinished.get(queryId)?.queryMetadata.workbookId === workbookId);
     return [...active, ...finished];
 }
 
@@ -147,8 +147,8 @@ export function connectionEntryFromState(database: ConnectionState): ConnectionE
     };
 }
 
-/// Build the copy of a connection that a session file stores
-export function sessionConnectionFromState(database: ConnectionState): SessionConnection {
+/// Build the copy of a connection that a workbook file stores
+export function workbookConnectionFromState(database: ConnectionState): WorkbookConnection {
     return {
         connectionId: database.connectionId,
         params: database.params,
@@ -167,19 +167,19 @@ export function didPersistedConnectionChange(prev: ConnectionState, next: Connec
     return didConnectionParamsChange(prev, next) || !connectionParamsEqual(prev.paramsDraft, next.paramsDraft) || prev.name !== next.name || prev.cacheQueryResults !== next.cacheQueryResults;
 }
 
-/// Write the saved params of a connection into the app manifest and into every session that
+/// Write the saved params of a connection into the app manifest and into every workbook that
 /// references it. The writes are debounced and not awaited, Save awaits them explicitly.
 export function scheduleConnectionParamsWrites(references: ConnectionReferences, database: ConnectionState, storageWriter: StorageWriter): void {
     void storageWriter.write(
         groupConnectionEntryWrites(database.connectionId),
         { type: WRITE_CONNECTION_ENTRY, value: connectionEntryFromState(database) },
-        DEBOUNCE_DURATION_SESSION_WRITE,
+        DEBOUNCE_DURATION_WORKBOOK_WRITE,
     );
-    for (const sessionId of references.sessionsOf(database.connectionId)) {
+    for (const workbookId of references.workbooksOf(database.connectionId)) {
         void storageWriter.write(
-            groupSessionConnectionCopyWrites(sessionId, database.connectionId),
-            { type: PATCH_SESSION_CONNECTION, value: [sessionId, sessionConnectionFromState(database)] },
-            DEBOUNCE_DURATION_SESSION_WRITE,
+            groupWorkbookConnectionCopyWrites(workbookId, database.connectionId),
+            { type: PATCH_WORKBOOK_CONNECTION, value: [workbookId, workbookConnectionFromState(database)] },
+            DEBOUNCE_DURATION_WORKBOOK_WRITE,
         );
     }
 }
@@ -250,8 +250,8 @@ export function useConnectionRegistrySetter(): Dispatch<SetConnectionRegistryAct
 
 export type ConnectionAllocator = (state: ConnectionStateWithoutId, connectionId?: string) => ConnectionState;
 
-/// Allocate a new connection that no session references yet.
-/// A session references the connection once its scripts use it.
+/// Allocate a new connection that no workbook references yet.
+/// A workbook references the connection once its scripts use it.
 /// Active connections are written into the app manifest right away.
 export function useConnectionAllocator(): ConnectionAllocator {
     const setReg = React.useContext(CONNECTION_REGISTRY_SETTER_CTX)!;
@@ -291,23 +291,23 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
         return reg;
     }
     const connectorType = prev.connectorInfo.connectorType;
-    const sessionIds = references.sessionsOf(connectionId);
+    const workbookIds = references.workbooksOf(connectionId);
 
-    // Connections outlive the sessions that reference them, but a referenced connection
-    // must neither be deleted nor change its type underneath other sessions.
-    if (action.type == DELETE_CONNECTION && sessionIds.length > 0) {
-        logger.warn('refusing to delete a connection that sessions reference', {
+    // Connections outlive the workbooks that reference them, but a referenced connection
+    // must neither be deleted nor change its type underneath other workbooks.
+    if (action.type == DELETE_CONNECTION && workbookIds.length > 0) {
+        logger.warn('refusing to delete a connection that workbooks reference', {
             connectionId,
-            sessions: sessionIds.join(','),
+            workbooks: workbookIds.join(','),
         }, LOG_CTX);
         return reg;
     }
-    // Sessions fall back to the embedded Hyper and the user can't attach one again, it is never deleted
+    // Workbooks fall back to the embedded Hyper and the user can't attach one again, it is never deleted
     if (action.type == DELETE_CONNECTION && isHyperWasmConnection(prev)) {
         logger.warn('refusing to delete the connection to the embedded Hyper', { connectionId }, LOG_CTX);
         return reg;
     }
-    if (action.type == SWITCH_CONNECTOR_TYPE && sessionIds.length > 1) {
+    if (action.type == SWITCH_CONNECTOR_TYPE && workbookIds.length > 1) {
         logger.warn('refusing to switch the type of a shared connection', { connectionId }, LOG_CTX);
         return reg;
     }
@@ -328,14 +328,14 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
         reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != connectionId);
         reg.connectionsByType[next.connectorInfo.connectorType].push(connectionId);
     }
-    // Only connections that sessions reference or that were activated are persisted.
+    // Only connections that workbooks reference or that were activated are persisted.
     // Saving writes the committed params by itself and awaits the writes.
-    if (sessionIds.length === 0 && !next.active) {
+    if (workbookIds.length === 0 && !next.active) {
         return { ...reg };
     }
     if (action.type !== COMMIT_CONNECTION_PARAMS) {
         if (didConnectionParamsChange(prev, next) || (!prev.active && next.active)) {
-            // Saved params are replicated into every session that references the connection
+            // Saved params are replicated into every workbook that references the connection
             scheduleConnectionParamsWrites(references, next, storageWriter);
         } else if (didPersistedConnectionChange(prev, next)) {
             // Drafts, names and the caching choice only live in the app manifest
@@ -349,7 +349,7 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
     if (!next.active) {
         return { ...reg };
     }
-    // The catalog of the connection is written into the app storage, sessions don't keep a copy.
+    // The catalog of the connection is written into the app storage, workbooks don't keep a copy.
     // The relations of a connection whose database doesn't outlive the app are never written.
     const durable = connectionCatalogIsDurable(next.params);
     if (action.type === CATALOG_UPDATE_SUCCEEDED || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED) {
@@ -365,7 +365,7 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
                     const descriptor = next.catalog.readDescriptor(next.catalogRelationEntryId);
                     return descriptor == null ? null : generateRelationsFile(descriptor);
                 }] },
-                DEBOUNCE_DURATION_SESSION_WRITE,
+                DEBOUNCE_DURATION_WORKBOOK_WRITE,
             );
         }
         // Only a full refresh reads the functions
@@ -373,7 +373,7 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
             void storageWriter.write(
                 groupConnectionFileWrites(connectionId, STORAGE_CATALOG_FUNCTIONS),
                 { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_FUNCTIONS, next.catalogFunctionScript.toString()] },
-                DEBOUNCE_DURATION_SESSION_WRITE,
+                DEBOUNCE_DURATION_WORKBOOK_WRITE,
             );
         }
     }
@@ -388,7 +388,7 @@ function applyConnectionAction(reg: ConnectionRegistry, references: ConnectionRe
         void storageWriter.write(
             groupConnectionFileWrites(connectionId, STORAGE_CATALOG_STATE),
             { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_STATE, state] },
-            DEBOUNCE_DURATION_SESSION_WRITE,
+            DEBOUNCE_DURATION_WORKBOOK_WRITE,
         );
     }
     return { ...reg };
@@ -408,7 +408,7 @@ export function useConnectionDispatch(): DynamicConnectionDispatch {
         }
         // Query execution may happen in a worker or remotely, but Arrow batch decoding and these
         // state updates happen on the renderer thread. A fast result stream can therefore enqueue
-        // a microtask cascade that repeatedly rerenders the session before the browser gets a
+        // a microtask cascade that repeatedly rerenders the workbook before the browser gets a
         // frame to paint. Publish only the latest streamed progress once per frame; lifecycle
         // actions stay immediate and flush queued stream updates first to preserve action order.
         const waitForFrame = action.type === QUERY_PROGRESS_UPDATED || action.type === QUERY_RECEIVED_BATCH;
@@ -416,14 +416,14 @@ export function useConnectionDispatch(): DynamicConnectionDispatch {
     }, [queue, references, storageWriter, logger]);
 }
 
-/// The connections that the scripts of a session use
-export function useSessionConnections(sessionId: string | null): ConnectionState[] | null {
+/// The connections that the scripts of a workbook use
+export function useWorkbookConnections(workbookId: string | null): ConnectionState[] | null {
     const [registry] = useConnectionRegistry();
     const references = useConnectionReferences();
-    // Re-render when the session uses other connections
-    useConnectionReferencesSelector(references => sessionId == null ? '' : references.connectionsOf(sessionId).join('\n'));
+    // Re-render when the workbook uses other connections
+    useConnectionReferencesSelector(references => workbookId == null ? '' : references.connectionsOf(workbookId).join('\n'));
     // The list keeps its identity while the connections are unchanged, consumers depend on it in effects
-    const resolved = resolveSessionConnections(registry, references, sessionId);
+    const resolved = resolveWorkbookConnections(registry, references, workbookId);
     const latest = React.useRef(resolved);
     const same = latest.current === resolved || (latest.current != null && resolved != null
         && latest.current.length === resolved.length && latest.current.every((connection, i) => connection === resolved[i]));

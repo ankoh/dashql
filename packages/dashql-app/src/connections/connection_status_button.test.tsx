@@ -57,7 +57,7 @@ describe('Connection status button', () => {
         expect(connecting.querySelector('svg')).not.toBeNull();
     });
 
-    it('pulses only for offline connections of the current session', () => {
+    it('pulses only for offline connections of the current workbook', () => {
         expect(render(ConnectionHealth.NOT_STARTED, { attention: true }).getAttribute('data-connection-attention')).toBe('true');
         expect(render(ConnectionHealth.NOT_STARTED, { attention: false }).getAttribute('data-connection-attention')).toBeNull();
         expect(render(ConnectionHealth.ONLINE, { attention: true }).getAttribute('data-connection-attention')).toBeNull();

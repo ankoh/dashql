@@ -31,7 +31,7 @@ export interface QueryResultCacheEntry {
 
 /// The query result cache of the app (docs/design/query_cache.md).
 ///
-/// The cache holds Parquet files in the origin private file system for every session and connection, keyed by the
+/// The cache holds Parquet files in the origin private file system for every workbook and connection, keyed by the
 /// connection, the script and the scripts it references. The compute database mounts the files at `mountPath` and
 /// writes and reads them there. A file keeps its content: a write of a key creates a new file and removes the older
 /// files of the key, a lookup finds the newest one. A transient file holds a result that can't be reused, e.g. the
@@ -71,9 +71,9 @@ export interface QueryResultCache {
     writeTable(database: ParquetDatabase, table: arrow.Table, name: string): Promise<File>;
     /// Read a file into a table while it is pinned and mounted in the database
     readTable(database: ParquetDatabase, name: string): Promise<arrow.Table>;
-    /// The bytes of a file, the caller pins it while it reads them, e.g. to export them with a session
+    /// The bytes of a file, the caller pins it while it reads them, e.g. to export them with a workbook
     readFile(name: string): Promise<Blob>;
-    /// Add a result of a key as a new file of the key, e.g. a result that an exported session carries. The bytes are
+    /// Add a result of a key as a new file of the key, e.g. a result that an exported workbook carries. The bytes are
     /// streamed into the file, a slice of a dropped archive never sits in memory. A key that is cached already keeps
     /// its files, also one that a run wrote while the bytes were streamed: resolves true if the file was added. Fails
     /// and leaves no file if the bytes don't have the given CRC-32.

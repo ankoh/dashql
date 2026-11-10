@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { SETUP_SESSION, SETUP_SESSION_URL, type SetupEventVariant } from './event.js';
-import { parseClipboardSetup, PlatformEventListener, readSessionUrlParameter } from './event_listener.js';
+import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, type SetupEventVariant } from './event.js';
+import { parseClipboardSetup, PlatformEventListener, readWorkbookUrlParameter } from './event_listener.js';
 import { TestLogger } from '../logger/test_logger.js';
-import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
+import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
 
 class TestPlatformEventListener extends PlatformEventListener {
     public starts = 0;
@@ -28,41 +28,41 @@ describe('PlatformEventListener clipboard events', () => {
     }
 
     it.each([
-        'dashql://localhost?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'https://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'https://stable.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'http://localhost:9002/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-    ])('accepts a session link from %s', link => {
+        'dashql://localhost?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'https://dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'https://stable.dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'http://localhost:9002/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+    ])('accepts a workbook link from %s', link => {
         expect(parseClipboardSetup(link)).toEqual({
-            type: 'session',
-            value: 'https://example.com/dashql-session.json',
+            type: 'workbook',
+            value: 'https://example.com/dashql-workbook.json',
         });
     });
 
     it.each([
-        'https://example.com/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'http://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'http://stable.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'https://other.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
-        'http://localhost:9003/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json',
+        'https://example.com/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'http://dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'http://stable.dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'https://other.dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
+        'http://localhost:9003/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json',
     ])('rejects an app link from an untrusted origin: %s', link => {
         expect(parseClipboardSetup(link)).toBeNull();
     });
 
-    it('dispatches a session setup event from a pasted app URL', async () => {
+    it('dispatches a workbook setup event from a pasted app URL', async () => {
         const listener = new TestPlatformEventListener(new TestLogger());
         const setupEvents: SetupEventVariant[] = [];
         listener.subscribeSetupEvents(event => setupEvents.push(event));
         await listener.setup();
 
         const { preventDefault, stopPropagation } = paste(
-            'http://localhost:9002/?session=http://localhost:9002/static/examples/sessions/explain/dashql-session.json',
+            'http://localhost:9002/?workbook=http://localhost:9002/static/examples/workbooks/explain/dashql-workbook.json',
         );
 
         expect(setupEvents).toEqual([{
-            type: SETUP_SESSION_URL,
-            value: 'http://localhost:9002/static/examples/sessions/explain/dashql-session.json',
+            type: SETUP_WORKBOOK_URL,
+            value: 'http://localhost:9002/static/examples/workbooks/explain/dashql-workbook.json',
         }]);
         expect(preventDefault).toHaveBeenCalledOnce();
         expect(stopPropagation).toHaveBeenCalledOnce();
@@ -101,24 +101,24 @@ describe('PlatformEventListener clipboard events', () => {
 });
 
 describe('PlatformEventListener links of older versions', () => {
-    it('reads the session URL under the current and the legacy parameter', () => {
-        expect(readSessionUrlParameter(new URLSearchParams('session=a'))).toBe('a');
-        expect(readSessionUrlParameter(new URLSearchParams('notebook=b'))).toBe('b');
-        expect(readSessionUrlParameter(new URLSearchParams('session=a&notebook=b'))).toBe('a');
-        expect(readSessionUrlParameter(new URLSearchParams('data=c'))).toBeNull();
+    it('reads the workbook URL under the current and the legacy parameter', () => {
+        expect(readWorkbookUrlParameter(new URLSearchParams('workbook=a'))).toBe('a');
+        expect(readWorkbookUrlParameter(new URLSearchParams('notebook=b'))).toBe('b');
+        expect(readWorkbookUrlParameter(new URLSearchParams('workbook=a&notebook=b'))).toBe('a');
+        expect(readWorkbookUrlParameter(new URLSearchParams('data=c'))).toBeNull();
     });
 
-    it('dispatches the session ZIP of an app event that embeds it as notebook', () => {
+    it('dispatches the workbook ZIP of an app event that embeds it as notebook', () => {
         const listener = new TestPlatformEventListener(new TestLogger());
         const setupEvents: SetupEventVariant[] = [];
         listener.subscribeSetupEvents(event => setupEvents.push(event));
 
         const zip = new Uint8Array([80, 75, 3, 4]);
-        const event = listener.readAppEvent(encodeSessionAppEvent(zip), 'test');
+        const event = listener.readAppEvent(encodeWorkbookAppEvent(zip), 'test');
         expect(event).not.toBeNull();
         listener.dispatchAppEvent(event!);
 
-        expect(setupEvents).toEqual([{ type: SETUP_SESSION, value: zip }]);
+        expect(setupEvents).toEqual([{ type: SETUP_WORKBOOK, value: zip }]);
     });
 });
 

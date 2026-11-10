@@ -10,9 +10,9 @@ const LEGACY = crypto.randomUUID();
 const MANIFEST = JSON.stringify({
     connections: [{ id: 'c1', params: {} }],
 });
-/// The session tree registers s1 in the root and S2 in a folder
-const ROOT_FOLDER = JSON.stringify({ sessions: [{ path: 's1' }] });
-const CLIENTS_FOLDER = JSON.stringify({ sessions: [{ path: 'S2', storageType: 'native', nativePath: '/x/s2' }] });
+/// The workbook tree registers s1 in the root and S2 in a folder
+const ROOT_FOLDER = JSON.stringify({ workbooks: [{ path: 's1' }] });
+const CLIENTS_FOLDER = JSON.stringify({ workbooks: [{ path: 'S2', storageType: 'native', nativePath: '/x/s2' }] });
 
 /// An OPFS root with the files and directories, every directory is listed explicitly
 function opfs(files: Record<string, string>, dirs: string[]) {
@@ -37,23 +37,23 @@ function fakeLocks(held: string[]): LockManager {
 function messyStorage() {
     return opfs({
         'dashql-manifest.json': MANIFEST,
-        'sessiontree/dashql-folder.json': ROOT_FOLDER,
-        'sessiontree/clients/dashql-folder.json': CLIENTS_FOLDER,
+        'workbooktree/dashql-folder.json': ROOT_FOLDER,
+        'workbooktree/clients/dashql-folder.json': CLIENTS_FOLDER,
         'stray.txt': '',
-        'sessions/s1/dashql-session.json': '{}',
-        'sessions/s1/dashql-session-index.json': '{}',
-        'sessions/s1/scripts/1.sql': 'SELECT 1',
-        'sessions/s1/scripts/page/2.sql': 'SELECT 2',
-        'sessions/s2/attachments/a.parquet': '',
-        'sessions/s2/dashql-session.json': '{}',
-        'sessions/gone/dashql-session.json': '{}',
+        'workbooks/s1/dashql-workbook.json': '{}',
+        'workbooks/s1/dashql-session-index.json': '{}',
+        'workbooks/s1/scripts/1.sql': 'SELECT 1',
+        'workbooks/s1/scripts/page/2.sql': 'SELECT 2',
+        'workbooks/s2/attachments/a.parquet': '',
+        'workbooks/s2/dashql-workbook.json': '{}',
+        'workbooks/gone/dashql-workbook.json': '{}',
         'connections/c1/dashql-catalog-relations.sql': '',
         'connections/c2/dashql-catalog-relations.sql': '',
         'exports/e1/result.parquet': '',
     }, [
-        'sessiontree', 'sessiontree/clients',
-        'sessions', 'sessions/s1', 'sessions/s1/scripts', 'sessions/s1/scripts/page', 'sessions/s1/cache',
-        'sessions/s2', 'sessions/s2/attachments', 'sessions/gone',
+        'workbooktree', 'workbooktree/clients',
+        'workbooks', 'workbooks/s1', 'workbooks/s1/scripts', 'workbooks/s1/scripts/page', 'workbooks/s1/cache',
+        'workbooks/s2', 'workbooks/s2/attachments', 'workbooks/gone',
         'connections', 'connections/c1', 'connections/c2',
         'instances', `instances/${LIVE}`, `instances/${CLOSED}`,
         'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests', 'cache',
@@ -72,27 +72,27 @@ describe('findOPFSCleanupCandidates', () => {
             `instances/${CLOSED}`,
             'logs',
             'notebooks',
-            'sessions/gone',
-            'sessions/s1/cache',
-            'sessions/s1/dashql-session-index.json',
-            'sessions/s1/scripts/page',
-            'sessions/s2/dashql-session.json',
+            'workbooks/gone',
+            'workbooks/s1/cache',
+            'workbooks/s1/dashql-session-index.json',
+            'workbooks/s1/scripts/page',
+            'workbooks/s2/dashql-workbook.json',
             'stray.txt',
             'tests',
         ].sort());
 
         const byPath = new Map(candidates.map(c => [c.path.join('/'), c]));
-        expect(byPath.get('sessions/gone')?.guard).toEqual({ sessionId: 'gone' });
+        expect(byPath.get('workbooks/gone')?.guard).toEqual({ workbookId: 'gone' });
         expect(byPath.get('connections/c2')?.guard).toEqual({ connectionId: 'c2' });
         expect(byPath.get(`instances/${CLOSED}`)?.lockName).toBe(`dashql-instance-${CLOSED}`);
         expect(byPath.get('stray.txt')?.directory).toBe(false);
     });
 
-    it('leaves sessions and connections alone without a manifest', async () => {
+    it('leaves workbooks and connections alone without a manifest', async () => {
         const { root, files } = messyStorage();
         files.delete('dashql-manifest.json');
         const paths = (await findOPFSCleanupCandidates(root, fakeLocks([]))).map(c => c.path.join('/'));
-        expect(paths.some(path => path.startsWith('sessions/') || path.startsWith('connections/'))).toBe(false);
+        expect(paths.some(path => path.startsWith('workbooks/') || path.startsWith('connections/'))).toBe(false);
     });
 
     it('leaves instance folders alone without Web Locks', async () => {
@@ -111,8 +111,8 @@ describe('removeOPFSCleanupCandidates', () => {
         const result = await removeOPFSCleanupCandidates(root, candidates, locks);
         expect(result).toEqual({ removed: candidates.length, skipped: [] });
         expect(await findOPFSCleanupCandidates(root, locks)).toEqual([]);
-        expect(files.has('sessions/s1/scripts/1.sql')).toBe(true);
-        expect(files.has('sessions/s1/scripts/page/2.sql')).toBe(false);
+        expect(files.has('workbooks/s1/scripts/1.sql')).toBe(true);
+        expect(files.has('workbooks/s1/scripts/page/2.sql')).toBe(false);
         expect(dirs.has(`instances/${LIVE}`)).toBe(true);
     });
 
@@ -120,16 +120,16 @@ describe('removeOPFSCleanupCandidates', () => {
         const { root, files, dirs } = messyStorage();
         const candidates = await findOPFSCleanupCandidates(root, fakeLocks([]));
 
-        // A session with the same id is registered and an app window opens the closed instance again
-        files.set('sessiontree/dashql-folder.json', JSON.stringify({ sessions: [{ path: 's1' }, { path: 'GONE' }] }));
+        // A workbook with the same id is registered and an app window opens the closed instance again
+        files.set('workbooktree/dashql-folder.json', JSON.stringify({ workbooks: [{ path: 's1' }, { path: 'GONE' }] }));
         const result = await removeOPFSCleanupCandidates(root, candidates, fakeLocks([`dashql-instance-${CLOSED}`]));
 
         expect(result.skipped).toEqual([
             { path: `instances/${CLOSED}`, reason: 'in use' },
-            { path: 'sessions/gone', reason: 'registered again' },
+            { path: 'workbooks/gone', reason: 'registered again' },
         ]);
         expect(result.removed).toBe(candidates.length - 2);
-        expect(dirs.has('sessions/gone')).toBe(true);
+        expect(dirs.has('workbooks/gone')).toBe(true);
         expect(dirs.has(`instances/${CLOSED}`)).toBe(true);
     });
 

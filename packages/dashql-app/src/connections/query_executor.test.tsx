@@ -21,9 +21,9 @@ import {
     type QueryExecutionResponseStream,
     type QueryExecutionState,
 } from '../query/query_execution_state.js';
-import { SessionScriptsRegistryProvider } from '../session/scripts/session_scripts_registry.js';
+import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
 import { vectorFromArray } from '../tests/arrow_fixtures.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { AsyncConsumer } from '../utils/async_consumer.js';
@@ -210,9 +210,9 @@ describe('QueryExecutorProvider', () => {
         await act(async () => {
             root.render(<LoggerProvider>
                 <HttpClientProvider>
-                    <StorageProvider backend={new SessionTestBackend()}>
+                    <StorageProvider backend={new WorkbookTestBackend()}>
                         <ConnectionRegistry>
-                            <SessionScriptsRegistryProvider>
+                            <WorkbookScriptsRegistryProvider>
                                 <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
                                     <HyperLogMetricsProvider>
                                         <ComputeConnectionProvider>
@@ -220,7 +220,7 @@ describe('QueryExecutorProvider', () => {
                                         </ComputeConnectionProvider>
                                     </HyperLogMetricsProvider>
                                 </EmbeddedDatabaseProvider>
-                            </SessionScriptsRegistryProvider>
+                            </WorkbookScriptsRegistryProvider>
                         </ConnectionRegistry>
                     </StorageProvider>
                 </HttpClientProvider>
@@ -792,21 +792,21 @@ describe('QueryExecutorProvider', () => {
     });
 
     describe('useQueryState', () => {
-        function QueryStatus(props: { sessionId: string | null; queryId: number | null }) {
-            const state = useQueryState(props.sessionId, props.queryId);
+        function QueryStatus(props: { workbookId: string | null; queryId: number | null }) {
+            const state = useQueryState(props.workbookId, props.queryId);
             return <div data-testid="status">{state == null ? 'none' : String(state.status)}</div>;
         }
         const statusOf = () => container.querySelector('[data-testid="status"]')?.textContent;
 
-        it('finds a query on any connection, and nothing without a query or a session', async () => {
+        it('finds a query on any connection, and nothing without a query or a workbook', async () => {
             const database = createDatabase(vi.fn(async () => new TestStream()));
-            const render = async (sessionId: string | null, queryId: number | null) => {
+            const render = async (workbookId: string | null, queryId: number | null) => {
                 const setupDatabase = async () => ({ terminate: vi.fn() }) as unknown as EmbeddedComputeDatabase;
                 await act(async () => {
                     root.render(<LoggerProvider>
-                        <StorageProvider backend={new SessionTestBackend()}>
+                        <StorageProvider backend={new WorkbookTestBackend()}>
                             <ConnectionRegistry>
-                                <SessionScriptsRegistryProvider>
+                                <WorkbookScriptsRegistryProvider>
                                     <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
                                         <HyperLogMetricsProvider>
                                             <ComputeConnectionProvider>
@@ -814,28 +814,28 @@ describe('QueryExecutorProvider', () => {
                                                     <QueryExecutorProvider>
                                                         <>
                                                             <Capture database={database} capture={next => { api = next; }} />
-                                                            <QueryStatus sessionId={sessionId} queryId={queryId} />
+                                                            <QueryStatus workbookId={workbookId} queryId={queryId} />
                                                         </>
                                                     </QueryExecutorProvider>
                                                 </ComputationRegistry>
                                             </ComputeConnectionProvider>
                                         </HyperLogMetricsProvider>
                                     </EmbeddedDatabaseProvider>
-                                </SessionScriptsRegistryProvider>
+                                </WorkbookScriptsRegistryProvider>
                             </ConnectionRegistry>
                         </StorageProvider>
                     </LoggerProvider>);
                 });
                 await vi.waitFor(() => expect(api).not.toBeNull());
             };
-            await render('session', null);
+            await render('workbook', null);
             expect(statusOf()).toBe('none');
             const { queryId } = await run(argsOf());
             await render(null, queryId);
             expect(statusOf()).toBe('none');
-            await render('session', queryId);
+            await render('workbook', queryId);
             await vi.waitFor(() => expect(statusOf()).toBe(String(QueryExecutionStatus.SUCCEEDED)));
-            await render('session', queryId + 1000);
+            await render('workbook', queryId + 1000);
             expect(statusOf()).toBe('none');
         });
     });
@@ -888,16 +888,16 @@ describe('logQueryFailure', () => {
 
     it('logs the message and the details of a failure that describes itself', () => {
         const traced = logger();
-        logQueryFailure(traced, new LoggableException('Syntax error', { line: '3' }, 'hyper'), 7, 'session');
-        expect(traced.warn).toHaveBeenCalledWith('Syntax error', { line: '3', queryId: '7', sessionId: 'session' }, 'hyper');
+        logQueryFailure(traced, new LoggableException('Syntax error', { line: '3' }, 'hyper'), 7, 'workbook');
+        expect(traced.warn).toHaveBeenCalledWith('Syntax error', { line: '3', queryId: '7', workbookId: 'workbook' }, 'hyper');
     });
 
     it('logs the raw text of other failures', () => {
         const traced = logger();
-        logQueryFailure(traced, new Error('boom'), 7, 'session');
+        logQueryFailure(traced, new Error('boom'), 7, 'workbook');
         expect(traced.warn).toHaveBeenCalledWith('Query failed with unknown error', {
             queryId: '7',
-            sessionId: 'session',
+            workbookId: 'workbook',
             raw: expect.stringContaining('boom'),
         }, 'query_executor');
     });

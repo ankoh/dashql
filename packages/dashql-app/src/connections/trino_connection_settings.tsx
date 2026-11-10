@@ -307,7 +307,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
-    // Saving writes the settings into every session that uses the connection
+    // Saving writes the settings into every workbook that uses the connection
     let freezeInput = saving;
     switch (connectionState?.connectionHealth) {
         case ConnectionHealth.NOT_STARTED:

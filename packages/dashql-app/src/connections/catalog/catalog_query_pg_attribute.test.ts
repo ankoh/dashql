@@ -12,7 +12,7 @@ describe('queryPgAttribute', () => {
             return [1, Promise.resolve(tableFromArrays({}))];
         });
 
-        await queryPgAttribute('session', vi.fn(), 7, executor, 'db"name');
+        await queryPgAttribute('workbook', vi.fn(), 7, executor, 'db"name');
 
         expect(query).toContain('FROM "db""name"."pg_catalog".pg_class c');
         expect(query).toContain('JOIN "db""name"."pg_catalog".pg_attribute a');

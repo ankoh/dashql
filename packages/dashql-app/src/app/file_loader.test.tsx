@@ -4,13 +4,13 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PlatformFile } from '../platform/file/file.js';
-import type { PreparedPortableImport, SessionImportProgressConsumer } from '../session/persistence/session_import_provider.js';
+import type { PreparedPortableImport, WorkbookImportProgressConsumer } from '../workbook/persistence/workbook_import_provider.js';
 
 const state = {
     preparePortableImport: vi.fn(),
     commitPortableImport: vi.fn(),
     navigate: vi.fn(),
-    readSessionBundleFromZip: vi.fn(),
+    readWorkbookBundleFromZip: vi.fn(),
 };
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -18,18 +18,18 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { FileLoader, type FileLoaderDependencies } from './file_loader.js';
 
 const dependencies = {
-    sessionImportCard: {
+    workbookImportCard: {
         CompactNavBar: () => <></>,
     },
-    readSessionBundleFromZip: state.readSessionBundleFromZip,
-    useSessionImport: () => ({ preparePortableImport: state.preparePortableImport, commitPortableImport: state.commitPortableImport }),
+    readWorkbookBundleFromZip: state.readWorkbookBundleFromZip,
+    useWorkbookImport: () => ({ preparePortableImport: state.preparePortableImport, commitPortableImport: state.commitPortableImport }),
     useRouterNavigate: () => state.navigate,
 } as FileLoaderDependencies;
 
 const BUNDLE = {
-    session: {
+    workbook: {
         formatVersion: 4,
-        sessionId: '11111111-2222-4333-8444-555555555555',
+        workbookId: '11111111-2222-4333-8444-555555555555',
         name: 'Explain',
         mainDatabase: { databaseId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } },
         attachedDatabases: [],
@@ -47,18 +47,18 @@ function file(readAsArrayBuffer: PlatformFile['readAsArrayBuffer'] = vi.fn().moc
     };
 }
 
-function button(container: HTMLElement, testId: 'session-import-confirm' | 'session-import-retry' | 'session-import-replace' | 'session-import-open'): HTMLButtonElement | null {
+function button(container: HTMLElement, testId: 'workbook-import-confirm' | 'workbook-import-retry' | 'workbook-import-replace' | 'workbook-import-open'): HTMLButtonElement | null {
     return container.querySelector(`[data-testid="${testId}"]`);
 }
 
 function card(container: HTMLElement): HTMLElement | null {
-    return container.querySelector('[data-testid="session-import-card"]');
+    return container.querySelector('[data-testid="workbook-import-card"]');
 }
 
 /// The status of every step of the card, by step
 function steps(container: HTMLElement): Record<string, string | null> {
-    return Object.fromEntries([...container.querySelectorAll('[data-testid^="session-import-step-"]')]
-        .map(step => [step.getAttribute('data-testid')!.slice('session-import-step-'.length), step.getAttribute('data-status')]));
+    return Object.fromEntries([...container.querySelectorAll('[data-testid^="workbook-import-step-"]')]
+        .map(step => [step.getAttribute('data-testid')!.slice('workbook-import-step-'.length), step.getAttribute('data-status')]));
 }
 
 const RESULT_BUNDLE = {
@@ -79,9 +79,9 @@ describe('FileLoader', () => {
         root = createRoot(container);
         state.preparePortableImport.mockReset().mockImplementation(async (bundle: typeof BUNDLE): Promise<PreparedPortableImport> =>
             ({ bundle: bundle as unknown as PreparedPortableImport['bundle'], conflict: null }));
-        state.commitPortableImport.mockReset().mockResolvedValue('imported-session');
+        state.commitPortableImport.mockReset().mockResolvedValue('imported-workbook');
         state.navigate.mockReset();
-        state.readSessionBundleFromZip.mockReset().mockResolvedValue(BUNDLE);
+        state.readWorkbookBundleFromZip.mockReset().mockResolvedValue(BUNDLE);
     });
 
     afterEach(() => {
@@ -93,15 +93,15 @@ describe('FileLoader', () => {
         const onDone = vi.fn();
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
 
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
         expect(state.preparePortableImport).toHaveBeenCalledWith(BUNDLE);
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', session: 'None' });
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'None' });
         expect(card(container)?.getAttribute('aria-busy')).toBeNull();
-        expect(container.querySelector('[data-testid="session-import-summary"]')?.textContent).toContain('Explain');
-        expect(container.textContent).toContain(BUNDLE.session.sessionId);
+        expect(container.querySelector('[data-testid="workbook-import-summary"]')?.textContent).toContain('Explain');
+        expect(container.textContent).toContain(BUNDLE.workbook.workbookId);
         expect(state.commitPortableImport).not.toHaveBeenCalled();
 
-        await act(async () => button(container, 'session-import-confirm')!.click());
+        await act(async () => button(container, 'workbook-import-confirm')!.click());
 
         await vi.waitFor(() => expect(state.commitPortableImport).toHaveBeenCalledOnce());
         expect(state.commitPortableImport).toHaveBeenCalledWith({ bundle: BUNDLE, conflict: null }, null, expect.any(Function));
@@ -114,8 +114,8 @@ describe('FileLoader', () => {
         const read = vi.fn();
         await act(async () => root.render(<FileLoader file={{ ...file(read), blob }} onDone={() => {}} dependencies={dependencies} />));
 
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
-        expect(state.readSessionBundleFromZip).toHaveBeenCalledWith(blob);
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
+        expect(state.readWorkbookBundleFromZip).toHaveBeenCalledWith(blob);
         expect(read).not.toHaveBeenCalled();
     });
 
@@ -124,11 +124,11 @@ describe('FileLoader', () => {
         let finishValidation!: (bundle: typeof BUNDLE) => void;
         let finishResolving!: (prepared: PreparedPortableImport) => void;
         const read = new Promise<Uint8Array>(resolve => { finishRead = resolve; });
-        state.readSessionBundleFromZip.mockReturnValue(new Promise<typeof BUNDLE>(resolve => { finishValidation = resolve; }));
+        state.readWorkbookBundleFromZip.mockReturnValue(new Promise<typeof BUNDLE>(resolve => { finishValidation = resolve; }));
         state.preparePortableImport.mockReturnValue(new Promise<PreparedPortableImport>(resolve => { finishResolving = resolve; }));
 
         act(() => root.render(<FileLoader file={file(() => read)} onDone={() => {}} dependencies={dependencies} />));
-        const stage = () => container.querySelector('[data-testid="session-import-file-status"]')?.getAttribute('data-stage');
+        const stage = () => container.querySelector('[data-testid="workbook-import-file-status"]')?.getAttribute('data-stage');
         expect(card(container)?.getAttribute('aria-busy')).toBe('true');
         expect(stage()).toBe('reading');
         expect(steps(container)).toEqual({ read: 'Running', check: 'None' });
@@ -139,12 +139,12 @@ describe('FileLoader', () => {
 
         await act(async () => finishValidation(BUNDLE));
         await vi.waitFor(() => expect(stage()).toBe('resolving'));
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Running', session: 'None' });
-        // The summary shows the session while its connections are resolved
-        expect(container.querySelector('[data-testid="session-import-summary"]')?.textContent).toContain('Explain');
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Running', workbook: 'None' });
+        // The summary shows the workbook while its connections are resolved
+        expect(container.querySelector('[data-testid="workbook-import-summary"]')?.textContent).toContain('Explain');
 
         await act(async () => finishResolving({ bundle: BUNDLE as unknown as PreparedPortableImport['bundle'], conflict: null }));
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
     });
 
     it('ignores a cancelled stale read when callbacks change', async () => {
@@ -159,24 +159,24 @@ describe('FileLoader', () => {
             finishRead(new Uint8Array([1, 2, 3]));
         });
 
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
-        expect(state.readSessionBundleFromZip).toHaveBeenCalledOnce();
+        expect(state.readWorkbookBundleFromZip).toHaveBeenCalledOnce();
         expect(state.commitPortableImport).not.toHaveBeenCalled();
     });
 
     it('shows an accessible validation error and retries', async () => {
-        state.readSessionBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP: missing dashql-session.json'));
+        state.readWorkbookBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP: missing dashql-workbook.json'));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         const alert = container.querySelector('[role="alert"]');
         expect(alert?.getAttribute('data-stage')).toBe('validating');
-        expect(alert?.textContent).toContain('missing dashql-session.json');
+        expect(alert?.textContent).toContain('missing dashql-workbook.json');
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Failed' });
 
-        await act(async () => button(container, 'session-import-retry')!.click());
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        await act(async () => button(container, 'workbook-import-retry')!.click());
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
     });
 
@@ -196,20 +196,20 @@ describe('FileLoader', () => {
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')?.getAttribute('data-stage')).toBe('resolving');
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('[sidb]');
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Failed', session: 'None' });
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Failed', workbook: 'None' });
     });
 
-    it('asks to replace or copy a registered session with the same id', async () => {
+    it('asks to replace or copy a registered workbook with the same id', async () => {
         state.preparePortableImport.mockImplementation(async (bundle: typeof BUNDLE) =>
-            ({ bundle, conflict: { displayLocation: 'opfs://sessions/Explain', isNative: false } }));
+            ({ bundle, conflict: { displayLocation: 'opfs://workbooks/Explain', isNative: false } }));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
 
-        await vi.waitFor(() => expect(button(container, 'session-import-replace')).not.toBeNull());
-        expect(button(container, 'session-import-confirm')).toBeNull();
-        expect(container.querySelector('[data-testid="session-import-conflict"]')).not.toBeNull();
-        expect(container.textContent).toContain('opfs://sessions/Explain');
+        await vi.waitFor(() => expect(button(container, 'workbook-import-replace')).not.toBeNull());
+        expect(button(container, 'workbook-import-confirm')).toBeNull();
+        expect(container.querySelector('[data-testid="workbook-import-conflict"]')).not.toBeNull();
+        expect(container.textContent).toContain('opfs://workbooks/Explain');
 
-        await act(async () => button(container, 'session-import-replace')!.click());
+        await act(async () => button(container, 'workbook-import-replace')!.click());
         await vi.waitFor(() => expect(state.commitPortableImport).toHaveBeenCalledWith(expect.anything(), 'replace', expect.any(Function)));
     });
 
@@ -217,72 +217,72 @@ describe('FileLoader', () => {
         const onDone = vi.fn();
         state.commitPortableImport.mockRejectedValueOnce(new Error('Storage is unavailable'));
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
-        await act(async () => button(container, 'session-import-confirm')!.click());
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
+        await act(async () => button(container, 'workbook-import-confirm')!.click());
 
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')?.getAttribute('data-stage')).toBe('importing');
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('Storage is unavailable');
         // A file without query results has no step for them
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', session: 'Failed' });
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'Failed' });
         expect(onDone).not.toHaveBeenCalled();
         expect(state.navigate).not.toHaveBeenCalled();
     });
 
     it('shows the steps of the import as they run', async () => {
-        state.readSessionBundleFromZip.mockResolvedValue(RESULT_BUNDLE);
-        let report!: SessionImportProgressConsumer;
-        let finish!: (sessionId: string) => void;
-        state.commitPortableImport.mockImplementation((_prepared, _choice, onProgress: SessionImportProgressConsumer) => {
+        state.readWorkbookBundleFromZip.mockResolvedValue(RESULT_BUNDLE);
+        let report!: WorkbookImportProgressConsumer;
+        let finish!: (workbookId: string) => void;
+        state.commitPortableImport.mockImplementation((_prepared, _choice, onProgress: WorkbookImportProgressConsumer) => {
             report = onProgress;
             return new Promise<string>(resolve => { finish = resolve; });
         });
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', results: 'None', session: 'None' });
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', results: 'None', workbook: 'None' });
         expect(container.textContent).toContain('2 results, 8 bytes');
 
-        await act(async () => button(container, 'session-import-confirm')!.click());
-        expect(steps(container)).toMatchObject({ results: 'Running', session: 'None' });
+        await act(async () => button(container, 'workbook-import-confirm')!.click());
+        expect(steps(container)).toMatchObject({ results: 'Running', workbook: 'None' });
         await act(async () => {
             report({ step: 'results', total: 2, outcome: { total: 2, added: 2, kept: 0, failed: 0, dropped: 0, bytes: 8, error: null } });
-            report({ step: 'session' });
+            report({ step: 'workbook' });
         });
-        expect(steps(container)).toMatchObject({ results: 'Succeeded', session: 'Running' });
-        expect(container.querySelector('[data-testid="session-import-step-results"]')?.textContent).toContain('2 of 2');
+        expect(steps(container)).toMatchObject({ results: 'Succeeded', workbook: 'Running' });
+        expect(container.querySelector('[data-testid="workbook-import-step-results"]')?.textContent).toContain('2 of 2');
 
-        await act(async () => finish('imported-session'));
-        // All results are in the cache, the session opens right away
+        await act(async () => finish('imported-workbook'));
+        // All results are in the cache, the workbook opens right away
         expect(state.navigate).toHaveBeenCalledOnce();
     });
 
     it('keeps the card open when query results were not added', async () => {
-        state.readSessionBundleFromZip.mockResolvedValue(RESULT_BUNDLE);
-        state.commitPortableImport.mockImplementation(async (_prepared, _choice, onProgress: SessionImportProgressConsumer) => {
+        state.readWorkbookBundleFromZip.mockResolvedValue(RESULT_BUNDLE);
+        state.commitPortableImport.mockImplementation(async (_prepared, _choice, onProgress: WorkbookImportProgressConsumer) => {
             onProgress({ step: 'results', total: 2, outcome: { total: 2, added: 1, kept: 0, failed: 1, dropped: 0, bytes: 3, error: 'The checksum of b.parquet differs' } });
-            onProgress({ step: 'session' });
-            return 'imported-session';
+            onProgress({ step: 'workbook' });
+            return 'imported-workbook';
         });
         const onDone = vi.fn();
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
-        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
-        await act(async () => button(container, 'session-import-confirm')!.click());
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
+        await act(async () => button(container, 'workbook-import-confirm')!.click());
 
-        await vi.waitFor(() => expect(button(container, 'session-import-open')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', results: 'Failed', session: 'Succeeded' });
-        const warning = container.querySelector('[data-testid="session-import-warning"]')!;
+        await vi.waitFor(() => expect(button(container, 'workbook-import-open')).not.toBeNull());
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', results: 'Failed', workbook: 'Succeeded' });
+        const warning = container.querySelector('[data-testid="workbook-import-warning"]')!;
         expect(warning.textContent).toContain('1 of 2 query results was not added to the cache (1 failed)');
         expect(warning.textContent).toContain('The checksum of b.parquet differs');
         expect(state.navigate).not.toHaveBeenCalled();
         expect(onDone).not.toHaveBeenCalled();
 
-        await act(async () => button(container, 'session-import-open')!.click());
-        expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: 'imported-session' }));
+        await act(async () => button(container, 'workbook-import-open')!.click());
+        expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: 'imported-workbook' }));
         expect(onDone).toHaveBeenCalledOnce();
     });
 
     it('marks the step of the file that failed', async () => {
-        state.readSessionBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP'));
+        state.readWorkbookBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP'));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Failed' });

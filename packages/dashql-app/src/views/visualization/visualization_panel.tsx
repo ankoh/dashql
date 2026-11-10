@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as styles from '../query_result/query_result_header.module.css';
 
 import type { QueryExecutionState } from '../../query/query_execution_state.js';
-import type { ResolvedVisualizeQuery } from '../../session/scripts/script_types.js';
-import { TabHeader, formatRowCountDetail, useResultRowCount } from '../../session/tab_header.js';
+import type { ResolvedVisualizeQuery } from '../../workbook/scripts/script_types.js';
+import { TabHeader, formatRowCountDetail, useResultRowCount } from '../../workbook/tab_header.js';
 import { QueryResultPanel } from '../query_result/query_result_header.js';
 import { ChartDownloadButton } from './chart_download_button.js';
 import { VisualizationDispatch } from './visualization_dispatch.js';

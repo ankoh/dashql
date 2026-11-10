@@ -1,6 +1,6 @@
 /// An in-memory Origin Private File System for tests.
 ///
-/// Files and directories are keyed by their path from the root, e.g. `sessions/<uuid>/dashql-session.json`.
+/// Files and directories are keyed by their path from the root, e.g. `workbooks/<uuid>/dashql-workbook.json`.
 /// A directory exists only if its path is in `dirs`, files do not create their directories.
 export class OPFSFileMock {
     readonly kind = 'file' as const;

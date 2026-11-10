@@ -112,7 +112,7 @@ The site is a separate origin, so its browser storage is separate from `dashql.a
 - Salesforce only redirects to the registered `https://dashql.app/oauth.html`, which forwards the popup to
   `stable.dashql.app/oauth.html` (`isAllowedOAuthCallbackUrl`). A login on the stable site therefore needs a working
   `dashql.app`.
-- Session links use the build-time `DASHQL_APP_URL` and open on `dashql.app`, also when created on the stable site.
+- Workbook links use the build-time `DASHQL_APP_URL` and open on `dashql.app`, also when created on the stable site.
 
 Verify the deployment after the first tag:
 

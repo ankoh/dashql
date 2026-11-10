@@ -1,4 +1,4 @@
-/// The latest analyzed result of every result owner, e.g. a session script.
+/// The latest analyzed result of every result owner, e.g. a workbook script.
 ///
 /// The computation of a result replaces the computation of the owner's previous result once it is
 /// analyzed, the previous result stays until then. A result that is analyzed after a later result of

@@ -12,9 +12,9 @@ interface DashQLFileStamp {
 }
 
 interface DashQLElectronBridge {
-    /// Claim the access to a session folder that the storage registered before the app granted folders.
-    /// Accepted once, on the first start with folder grants, for a folder that holds a session file.
-    claimSessionFolder(path: string): Promise<boolean>;
+    /// Claim the access to a workbook folder that the storage registered before the app granted folders.
+    /// Accepted once, on the first start with folder grants, for a folder that holds a workbook file.
+    claimWorkbookFolder(path: string): Promise<boolean>;
     confirm(options: {message: string; title: string}): Promise<boolean>;
     fs: {
         exists(path: string): Promise<boolean>;
@@ -33,10 +33,10 @@ interface DashQLElectronBridge {
         /// Write a text file, resolves with its new stamp
         writeTextFile(path: string, data: string): Promise<DashQLFileStamp>;
     };
-    getInitialDeepLinks(): Promise<Array<{type: "event" | "session"; value: string}>>;
+    getInitialDeepLinks(): Promise<Array<{type: "event" | "workbook"; value: string}>>;
     getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;
-    onDeepLink(listener: (link: {type: "event" | "session"; value: string}) => void): () => void;
+    onDeepLink(listener: (link: {type: "event" | "workbook"; value: string}) => void): () => void;
     /// Write the pending changes before a window closes, the main process waits until the handler resolves
     onFlush(handler: () => Promise<void>): () => void;
     openExternal(url: string): Promise<void>;

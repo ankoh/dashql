@@ -13,7 +13,7 @@ import { createQueryExecutionState, QueryType, type QueryExecutionState } from '
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { SessionTestBackend } from '../../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { createTestRoot } from '../../tests/react_root.js';
@@ -85,7 +85,7 @@ describe('InternalsViewer', () => {
                 <FlavorProvider requested={null}>
                     <AppConfigProvider>
                         <MemoryRouter>
-                            <StorageProvider backend={new SessionTestBackend()}>
+                            <StorageProvider backend={new WorkbookTestBackend()}>
                                 <ConnectionRegistry>
                                     <QueryResultCacheProvider cache={memoryQueryResultCache()}>
                                         <>
@@ -113,7 +113,7 @@ describe('InternalsViewer', () => {
             return { ...reg };
         }));
         await vi.waitFor(() => expect(config).not.toBeNull());
-        await root.render(tree(<InternalsViewer sessionId={null} onClose={onClose} />));
+        await root.render(tree(<InternalsViewer workbookId={null} onClose={onClose} />));
 
         expect(groups()).toEqual([
             ['Diagnostics', ['Application logs']],
@@ -129,7 +129,7 @@ describe('InternalsViewer', () => {
             ['HTTP requests', 'Requests'],
             ['Query result cache', 'Cache'],
             ['Storage browser', 'Origin Private File System'],
-            ['Storage writer', 'Select a session to see its storage writes'],
+            ['Storage writer', 'Select a workbook to see its storage writes'],
             ['Application settings', 'App Settings'],
         ];
         for (const [label, text] of titles) {

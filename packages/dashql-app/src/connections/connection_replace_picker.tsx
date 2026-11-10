@@ -77,7 +77,7 @@ export const ConnectionReplacePicker: React.FC<Props> = ({ source, candidates, l
                 )}</>
             </ActionList.List>
             <div className={styles.footer}>
-                <span className={styles.note}>The sessions move to the picked connection, then this one is removed.</span>
+                <span className={styles.note}>The workbooks move to the picked connection, then this one is removed.</span>
                 <div className={styles.actions}>
                     <Button size={ButtonSize.Small} onClick={onCancel} data-testid="connection-replace-cancel">Cancel</Button>
                     <Button

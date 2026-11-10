@@ -52,7 +52,7 @@ export function connectionLabelText(parts: ConnectionLabelParts): string {
 
 /// The ordinals of the connections that share their connector with other connections, 1-based in
 /// registration order. Only listed connections are numbered, see `isListedConnection`, so the
-/// numbers don't depend on the current session.
+/// numbers don't depend on the current workbook.
 export function connectionOrdinals(
     registry: Pick<ConnectionRegistry, 'connections' | 'connectionsByType'>,
     references: ConnectionReferences,

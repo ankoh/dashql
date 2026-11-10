@@ -109,7 +109,7 @@ describe('logQueryFailure', () => {
             bodyKeys: 'message,errorCode',
         });
 
-        logQueryFailure(logger.withTrace(trace), failure, 2, 'session-1');
+        logQueryFailure(logger.withTrace(trace), failure, 2, 'workbook-1');
 
         expect(logger.buffer.collectTraceLogs(trace.traceId)).toMatchObject([{
             level: LogLevel.Warn,
@@ -117,7 +117,7 @@ describe('logQueryFailure', () => {
             message: 'HTTP 400',
             keyValues: {
                 queryId: '2',
-                sessionId: 'session-1',
+                workbookId: 'workbook-1',
                 status: '400',
                 hyperdbStatusPresent: 'false',
                 bodyType: 'array',

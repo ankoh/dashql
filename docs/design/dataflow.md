@@ -1,6 +1,6 @@
 # Dataflow
 
-The dataflow view of a session draws every script as a box of its statements on a canvas and the flow of data
+The dataflow view of a workbook draws every script as a box of its statements on a canvas and the flow of data
 between the statements as edges, in the style of data pipeline tools.
 
 ## The dataflow of a session
@@ -25,7 +25,7 @@ in a run, from the analysis of every script:
   also reads or writes the relation itself keeps its edge. The plan tells the reads of a statement from those it
   inherits from inlined queries.
 
-- **Inputs**: a named scalar parameter `:min` is an input of the session (`session_inputs.md`), the inputs follow the
+- **Inputs**: a named scalar parameter `:min` is an input of the session (`workbook_inputs.md`), the inputs follow the
   scripts in the order of their first use. An `INPUT` edge starts at an input, its `from_script` is the index of the
   input, and ends at every statement that uses it.
 - **Attachments**: a table parameter `:sales` that scans the attachment `sales.parquet` (`script_references.md`) flows
@@ -101,10 +101,10 @@ share a channel spread `edge_gap` apart. The canvas uses it while a box is dragg
 
 ## The canvas
 
-The dataflow view is a view of a session (`?view=dataflow` in the URL), next to the feed and the dashboard in the view
-switch. `src/session/dataflow/` holds it:
+The dataflow view is a view of a workbook (`?view=dataflow` in the URL), next to the feed and the dashboard in the view
+switch. `src/workbook/dataflow/` holds it:
 
-- `dataflow_graph.ts` derives the graph of a session with `deriveSessionDataflow`, memoized on the names,
+- `dataflow_graph.ts` derives the graph of a workbook with `deriveSessionDataflow`, memoized on the names,
   connections and analyses of the scripts. A script whose analysis is behind its text keeps its last statements and
   the edges that start or end at it until it is analyzed again, so the canvas does not flicker while a script is
   edited.
@@ -134,13 +134,13 @@ switch. `src/session/dataflow/` holds it:
   only changes its width, the arrow keys change them by 16px. The box follows the pointer, the other boxes make room
   on release. The statement labels are truncated to the width of the box. d3-zoom pans and zooms.
 - The header of a script box is the header of the feed entry of the script (`FeedEntryHeader`, connected to the
-  session by `ScriptEntryHeader`) in a `foreignObject`: run, connection, diagnostics, the `:<script>` tag, chart
+  workbook by `ScriptEntryHeader`) in a `foreignObject`: run, connection, diagnostics, the `:<script>` tag, chart
   builder, edit, the script menu and delete. The feed order controls and the snippets are left out, the editor dialog
   shows the snippets, edit opens it. A narrow box hides the debug statistics and delete first, then the chart builder,
   the script menu offers them too. A drag on the free space of the header moves the box, the controls keep the pointer.
 - The box of an input shows the name and the type in its header and the value in its row, the card of the feed
-  (`SessionInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
-  change affects (`session_inputs.md`). Input edges are solid. An input has no script that could hold its position,
+  (`WorkbookInputCard`) in a `foreignObject`. Enter writes the value into the scripts and runs the scripts that the
+  change affects (`workbook_inputs.md`). Input edges are solid. An input has no script that could hold its position,
   the canvas remembers where the layout or a drag placed it while the canvas is open, Arrange places it again.
 - `dataflow_source.ts` writes the changes into the scripts: the placements of the boxes into their `@flow` tags, the
   `+` of a box creates `select * from :<script>` on its connection, New script creates a
@@ -149,7 +149,7 @@ switch. `src/session/dataflow/` holds it:
 
 The layout always lays out full boxes, the canvas draws every box with its statements. Every layout starts from where
 the boxes were: where the last layout put them while the canvas is open, else their `@flow` tags. So a box keeps its
-column, its order and its y while the session changes, and a new script starts next to the boxes it reads. A drop or
+column, its order and its y while the workbook changes, and a new script starts next to the boxes it reads. A drop or
 a resize lays out from the dropped box and the new size, then writes the position and the size of every script box
 into its `@flow` tag, tags that hold them already stay, so a reload shows the same layout. A script without
 statements is not remembered until it has some. Opening a box (the edit button of its header, a double click on its header or
@@ -157,5 +157,5 @@ a statement, or Enter) selects the script and shows it in the editor dialog (`Sc
 960×600px that shrinks to the window: the same entry header, then expand and close, the editor with accept and reject
 of a staged rewrite, and the status of the last run. Expand fills the window. A narrow dialog hides the debug statistics
 and delete of the header first, then the chart builder and the snippets, expand and close always show. Escape
-closes an open completion first, then the dialog, a click outside keeps it open. Switching the view or the session
+closes an open completion first, then the dialog, a click outside keeps it open. Switching the view or the workbook
 closes it.

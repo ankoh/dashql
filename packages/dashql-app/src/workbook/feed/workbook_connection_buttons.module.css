@@ -1,0 +1,47 @@
+.buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    /* Set apart from the workbook actions to the right */
+    margin-right: 12px;
+}
+
+/* The look and the hover outline are the ones of the other buttons of the bar */
+.button {
+    position: relative;
+}
+
+/* The connector logo carries the health dot */
+.logo {
+    position: relative;
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+}
+
+/* The health dot overlaps the bottom right corner of the connector logo, a white ring sets it apart */
+.health {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+}
+
+.button[data-attention] {
+    animation: connection_attention 450ms ease-in-out 2;
+}
+
+@keyframes connection_attention {
+    35%, 55% {
+        background-color: var(--color_accent_muted);
+        box-shadow: inset 0 0 0 1px var(--color_accent_fg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button[data-attention] {
+        animation: none;
+        background-color: var(--color_accent_muted);
+        box-shadow: inset 0 0 0 1px var(--color_accent_fg);
+    }
+}

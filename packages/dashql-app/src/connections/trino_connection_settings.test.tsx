@@ -17,7 +17,7 @@ import { TRINO_CHANNEL_SETUP_STARTED } from './trino/trino_connection_state.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 
 const CONNECTION_ID = 'trino-settings-test';
 
@@ -71,7 +71,7 @@ describe('TrinoConnectorSettings', () => {
     async function render(database: ConnectionState | null, trinoSetup: TrinoSetupApi | null = { setup, reset }) {
         const tree = (showSettings: boolean) => (
             <LoggerProvider>
-                <StorageProvider backend={new SessionTestBackend()}>
+                <StorageProvider backend={new WorkbookTestBackend()}>
                     <ConnectionRegistry>
                         <EXECUTOR_CTX.Provider value={executor}>
                             <TRINO_SETUP_CTX.Provider value={trinoSetup}>

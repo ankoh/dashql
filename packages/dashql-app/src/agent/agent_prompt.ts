@@ -14,7 +14,7 @@ export function describeSqlDialect(connectorType: ConnectorType): string {
     }
 }
 
-/// A question that the agent answers in the scripts of a session
+/// A question that the agent answers in the scripts of a workbook
 export interface AgentPromptInput {
     /// The question in natural language
     question: string;

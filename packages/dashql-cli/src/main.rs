@@ -1,5 +1,5 @@
 //! dashql: the command line tool of DashQL.
-//! `dashql agent` reaches the DashQL session that is open in the browser or the desktop app through the local agent
+//! `dashql agent` reaches the DashQL workbook that is open in the browser or the desktop app through the local agent
 //! server, which `dashql agent serve` runs. `dashql lint` lints and `dashql format` pretty prints SQL files on disk with
 //! the native dashql-core.
 
@@ -19,7 +19,7 @@ use std::process::ExitCode;
 const USAGE: &str = "Usage: dashql <command> [options]
 
 Commands:
-  agent <command>                     Work with the DashQL session that is open in the browser or the desktop app,
+  agent <command>                     Work with the DashQL workbook that is open in the browser or the desktop app,
                                       through the local agent server, see dashql agent --help
   format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
   lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help";
@@ -139,7 +139,8 @@ fn agent(argv: &[String]) -> ExitCode {
     let output = client::run_cli(
         &options,
         &CliEnvironment {
-            session: env_var("DASHQL_SESSION"),
+            // Harness runs of older agent servers set DASHQL_SESSION
+            workbook: env_var("DASHQL_WORKBOOK").or_else(|| env_var("DASHQL_SESSION")),
             read_stdin: &|| std::io::read_to_string(std::io::stdin()),
             read_file: &read_file,
             write_file: &write_file,

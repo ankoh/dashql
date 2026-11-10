@@ -17,7 +17,7 @@ const WINDOW: MetricsWindow = { key: 'test', durationMs: 60_000, bucketMs: 10_00
 
 function query(endedAt: number, overrides: Partial<HyperQueryEnd> = {}): HyperQueryEnd {
     return {
-        sessionId: 's',
+        workbookId: 's',
         endedAt,
         succeeded: true,
         errorCode: null,

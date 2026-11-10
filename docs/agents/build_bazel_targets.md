@@ -55,7 +55,7 @@ bazel build //...
 | `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `dashql-core-js`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `dashql-core-js`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
-| `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation, planner, batch, the relations that statements touch, visualizations |
+| `//packages/dashql-core-workbook:dashql_core_workbook` | Workflows on the core: editor workbooks, compilation, planner, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, effect protocol |
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
@@ -104,7 +104,7 @@ bazel test //...
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
-| `//packages/dashql-core-session:all` | Session, compiler, batch and touched relation tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
+| `//packages/dashql-core-workbook:all` | Workbook, compiler, batch and touched relation tests, the planner, dataflow and visualize snapshot tests, and the Hyper validation of the planner |
 | `//packages/dashql-core-shell:all` | Shell tests |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
@@ -113,7 +113,7 @@ bazel test //...
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
-| `//packages/dashql-core-session:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
+| `//packages/dashql-core-workbook:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
 | `//extensions/d360-api:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360-api/clfn/docs/overview.md`. `bazel run //extensions/d360-api:update` regenerates the documents |
 | `//packages/dashql-core-js:all` | Core Node unit, assembled-runtime, and tarball consumer tests |
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
@@ -221,14 +221,14 @@ These targets regenerate `snapshots/<category>/<name>.yaml` from the templates `
 ```bash
 bazel run -c opt //packages/dashql-core:bench_pipeline
 bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
-bazel run -c opt //packages/dashql-core-session:bench_session
+bazel run -c opt //packages/dashql-core-workbook:bench_workbook
 bazel run //packages/dashql-app:bench_hyperdb_wasm_backend [-- --rows=100000 --repeat=2 --filter=<case>]
 ```
 
 `bench_pipeline` scans, parses, formats, analyzes and completes TPC-DS q1 against the TPC-DS schema.
 `bench_pipeline_ctes` runs `with cte_0 as (<TPC-H q1>), ... select 1` with a growing number of CTEs and
 catches non-linear scaling.
-`bench_session` applies cursor moves and typed characters to an editor session and packs the updates like
+`bench_workbook` applies cursor moves and typed characters to an editor workbook and packs the updates like
 the wasm module.
 `bench_hyperdb_wasm_backend` runs the same queries on the experimental wasm backend of hyperdb-wasm
 (`experimental_wasm_backend`) and on its default backend, checks that the results are equal and prints the
@@ -387,7 +387,7 @@ bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefo
 bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test //packages/dashql-cli:tests
 
 # The core
-bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-session:all \
+bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-workbook:all \
     //packages/dashql-core-shell:all //packages/dashql-core-profile:all //packages/dashql-dataflow:all \
     //packages/dashql-snapshots:all
 ```
@@ -471,7 +471,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-cli` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-workbook`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-cli` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

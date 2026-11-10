@@ -54,7 +54,7 @@ describe('connectionReplaceCandidates', () => {
             database('source', trino('http://source')),
             database('trino-b', trino('http://b')),
             database('embedded', wasm()),
-            // Inactive connections that no session uses are not listed
+            // Inactive connections that no workbook uses are not listed
             database('unlisted', trino('http://hidden'), { active: false }),
         );
         const candidates = connectionReplaceCandidates(reg, NO_CONNECTION_REFERENCES, 'source');
@@ -65,10 +65,10 @@ describe('connectionReplaceCandidates', () => {
 });
 
 describe('connectionReplaceBlocker', () => {
-    const references: ConnectionReferences = { ...NO_CONNECTION_REFERENCES, sessionsOf: id => id === 'source' ? ['s1', 's2'] : [] };
+    const references: ConnectionReferences = { ...NO_CONNECTION_REFERENCES, workbooksOf: id => id === 'source' ? ['s1', 's2'] : [] };
     const notHeld = () => false;
 
-    it('lets a connection be replaced when another connection can take its sessions', () => {
+    it('lets a connection be replaced when another connection can take its workbooks', () => {
         const reg = registry(database('source', trino('http://source')), database('other', grpc('http://other')));
         expect(connectionReplaceBlocker(reg, references, 'source', notHeld)).toBeNull();
     });
@@ -77,11 +77,11 @@ describe('connectionReplaceBlocker', () => {
         const other = database('other', trino('http://other'));
         expect(connectionReplaceBlocker(registry(other), references, 'source', notHeld)).toBe('Unknown connection');
         expect(connectionReplaceBlocker(registry(database('source', trino('http://source'))), references, 'source', notHeld)).toBe('No other connection');
-        expect(connectionReplaceBlocker(registry(database('source', wasm()), other), references, 'source', notHeld)).toBe('Sessions fall back to it');
+        expect(connectionReplaceBlocker(registry(database('source', wasm()), other), references, 'source', notHeld)).toBe('Workbooks fall back to it');
         expect(connectionReplaceBlocker(registry(database('source', trino('http://source'), { queries: 2 }), other), references, 'source', notHeld))
             .toBe('2 queries running');
         expect(connectionReplaceBlocker(registry(database('source', trino('http://source')), other), references, 'source', id => id === 's2'))
-            .toBe('1 session changed outside the app');
+            .toBe('1 workbook changed outside the app');
     });
 });
 

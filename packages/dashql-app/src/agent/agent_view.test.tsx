@@ -20,8 +20,8 @@ const INFO: AgentServerInfo = {
         { name: 'codex', command: ['codex', 'exec', '{prompt}'], adapter: 'codex', program: '/usr/local/bin/codex', models: [], efforts: ['low', 'medium', 'high'] },
         { name: 'opencode', command: ['opencode', 'run', '{prompt}'], adapter: 'opencode', program: null, models: [], efforts: [] },
     ],
-    clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1', features: null }],
-    turns: [{ turnId: 't', session: 's1', harness: 'claude', model: 'opus', effort: null, state: 'running', status: 'dashql agent catalog' }],
+    clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', workbooks: [{ id: 's1', name: 'Revenue' }], focused: 's1', features: null }],
+    turns: [{ turnId: 't', workbook: 's1', harness: 'claude', model: 'opus', effort: null, state: 'running', status: 'dashql agent catalog' }],
 };
 
 function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
@@ -36,7 +36,7 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         setModel: vi.fn(),
         effort: null,
         setEffort: vi.fn(),
-        accessSessions: [{ id: 's1', name: 'Revenue' }],
+        accessWorkbooks: [{ id: 's1', name: 'Revenue' }],
         hasAccess: () => true,
         setAccess: vi.fn(),
         request: vi.fn(),
@@ -121,7 +121,7 @@ describe('Agent view', () => {
 
     it('offers no choices of an agent server without models and efforts', async () => {
         const harnesses = INFO.harnesses.map(({ models: _m, efforts: _e, ...h }) => h) as AgentServerInfo['harnesses'];
-        const turns = [{ turnId: 't', session: 's1', harness: 'claude', state: 'running', status: 'dashql agent catalog' }] as AgentServerInfo['turns'];
+        const turns = [{ turnId: 't', workbook: 's1', harness: 'claude', state: 'running', status: 'dashql agent catalog' }] as AgentServerInfo['turns'];
         const bridge = fakeBridge({ info: vi.fn(() => Promise.resolve({ ...INFO, harnesses, turns })) });
         await render(bridge);
         expect(container.textContent).toContain('claude · dashql agent catalog');
@@ -129,12 +129,12 @@ describe('Agent view', () => {
         expect(container.querySelector('[data-testid="agent-settings-effort"]')).toBeNull();
     });
 
-    it('turns off agent access of a session', async () => {
+    it('turns off agent access of a workbook', async () => {
         const bridge = fakeBridge();
         await render(bridge);
-        const session = container.querySelector('[data-testid="agent-settings-session"]')!;
-        expect(session.textContent).toContain('Revenue');
-        await act(async () => session.querySelector('button')!.click());
+        const workbook = container.querySelector('[data-testid="agent-settings-workbook"]')!;
+        expect(workbook.textContent).toContain('Revenue');
+        await act(async () => workbook.querySelector('button')!.click());
         expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', false);
     });
 
@@ -149,7 +149,7 @@ describe('Agent view', () => {
     });
 
     it('explains how to start the agent server while it is not connected', async () => {
-        const bridge = fakeBridge({ status: AgentConnectionStatus.Connecting, accessSessions: [] });
+        const bridge = fakeBridge({ status: AgentConnectionStatus.Connecting, accessWorkbooks: [] });
         await render(bridge);
         expect(bridge.info).not.toHaveBeenCalled();
         expect(container.textContent).toContain('dashql agent serve');

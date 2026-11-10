@@ -9,9 +9,9 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { SET_SCRIPT_TEXT, scriptResultOwner, type ScriptData, type SessionScripts } from '../../session/scripts/session_scripts.js';
-import { useSessionScriptsDispatch, useSessionScriptsRegistryReader } from '../../session/scripts/session_scripts_registry.js';
-import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../session/scripts/script_format.js';
+import { SET_SCRIPT_TEXT, scriptResultOwner, type ScriptData, type WorkbookScripts } from '../../workbook/scripts/workbook_scripts.js';
+import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -28,10 +28,10 @@ function isProjectionError(text: string | ResultProjectionError): text is Result
     return Object.prototype.hasOwnProperty.call(PROJECTION_ERRORS, text);
 }
 
-/// The script of a session that owns a query result
-function findResultScript(sessionScripts: SessionScripts, owner: string): ScriptData | null {
-    for (const script of Object.values(sessionScripts.scripts)) {
-        if (scriptResultOwner(sessionScripts.sessionId, script.scriptKey) === owner) return script;
+/// The script of a workbook that owns a query result
+function findResultScript(workbookScripts: WorkbookScripts, owner: string): ScriptData | null {
+    for (const script of Object.values(workbookScripts.scripts)) {
+        if (scriptResultOwner(workbookScripts.workbookId, script.scriptKey) === owner) return script;
     }
     return null;
 }
@@ -44,20 +44,20 @@ interface Props {
 /// shell or the catalog, have no menu. The standalone shell also has no storage or scripts, so the hooks that need
 /// them must not run for its results.
 export function QueryResultActionMenu({ query }: Props): React.ReactElement | null {
-    const sessionId = query.queryMetadata.sessionId;
+    const workbookId = query.queryMetadata.workbookId;
     const owner = query.queryMetadata.resultOwner;
-    if (sessionId == null || owner == null) return null;
-    return <ScriptResultActionMenu query={query} sessionId={sessionId} owner={owner} />;
+    if (workbookId == null || owner == null) return null;
+    return <ScriptResultActionMenu query={query} workbookId={workbookId} owner={owner} />;
 }
 
 interface ScriptResultProps extends Props {
-    sessionId: string;
+    workbookId: string;
     owner: string;
 }
 
-function ScriptResultActionMenu({ query, sessionId, owner }: ScriptResultProps): React.ReactElement {
-    const readRegistry = useSessionScriptsRegistryReader();
-    const dispatchSessionScripts = useSessionScriptsDispatch();
+function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps): React.ReactElement {
+    const readRegistry = useWorkbookScriptsRegistryReader();
+    const dispatchWorkbookScripts = useWorkbookScriptsDispatch();
     const config = useAppConfig();
     const [open, setOpen] = React.useState(false);
     // The rewrite is computed when the menu opens, the item says why a script cannot get it
@@ -69,9 +69,9 @@ function ScriptResultActionMenu({ query, sessionId, owner }: ScriptResultProps):
     const openMenu = () => {
         setProjection(null);
         setOpen(true);
-        const sessionScripts = readRegistry().sessionScriptsMap.get(sessionId);
-        const script = sessionScripts == null ? null : findResultScript(sessionScripts, owner);
-        if (sessionScripts == null || script == null || query.resultTable == null) return;
+        const workbookScripts = readRegistry().workbookScriptsMap.get(workbookId);
+        const script = workbookScripts == null ? null : findResultScript(workbookScripts, owner);
+        if (workbookScripts == null || script == null || query.resultTable == null) return;
         const formatConfig = createScriptFormatConfig(
             dashql.buffers.formatting.FormattingMode.PRETTY,
             false,
@@ -80,7 +80,7 @@ function ScriptResultActionMenu({ query, sessionId, owner }: ScriptResultProps):
             formattingDialectForConnector(script.connection.connectorInfo.connectorType),
         );
         const columnNames = query.resultTable.schema.fields.map(field => field.name);
-        const text = addResultProjection(sessionScripts.instance, script.scriptSession.getText(), columnNames, formatConfig);
+        const text = addResultProjection(workbookScripts.instance, script.scriptSession.getText(), columnNames, formatConfig);
         // The errors are strings as well
         setProjection(isProjectionError(text) ? text : { scriptKey: script.scriptKey, text });
     };
@@ -88,7 +88,7 @@ function ScriptResultActionMenu({ query, sessionId, owner }: ScriptResultProps):
         setOpen(false);
         if (projection == null || typeof projection !== 'object') return;
         // Staged as a diff like the formatting, the user accepts or rejects it in the editor
-        void dispatchSessionScripts(sessionId, {
+        void dispatchWorkbookScripts(workbookId, {
             type: SET_SCRIPT_TEXT,
             value: { scriptKey: projection.scriptKey, text: projection.text, withDiff: true },
         });

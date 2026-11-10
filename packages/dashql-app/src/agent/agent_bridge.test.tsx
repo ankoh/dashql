@@ -12,10 +12,10 @@ import { DASHQL_AGENT_PORT } from '../globals.js';
 import { type Logger } from '../platform/logger/logger.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { restoreAppState, type RestoredAppState } from '../session/persistence/app_state_loader.js';
-import { SessionScriptsRegistryProvider, useSessionScriptsRegistry } from '../session/scripts/session_scripts_registry.js';
-import { SessionTestBackend, testSession } from '../storage/session_test_backend.js';
-import type { ConnectionEntry, SessionData } from '../storage/storage_backend.js';
+import { restoreAppState, type RestoredAppState } from '../workbook/persistence/app_state_loader.js';
+import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
+import { WorkbookTestBackend, testWorkbook } from '../storage/workbook_test_backend.js';
+import type { ConnectionEntry, WorkbookData } from '../storage/storage_backend.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { AgentBridgeProvider, blocksLoopbackWebSockets, useAgentBridge, type AgentBridge, type AgentTurnListener } from './agent_bridge.js';
 import { AgentConnectionStatus } from './agent_client.js';
@@ -25,10 +25,10 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const SESSION_A = '11111111-2222-4333-8444-555555555555';
-const SESSION_B = '22222222-3333-4444-8555-666666666666';
+const WORKBOOK_A = '11111111-2222-4333-8444-555555555555';
+const WORKBOOK_B = '22222222-3333-4444-8555-666666666666';
 const HYPER_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
-const HYPER_PARAMS = { hyper: {} } as SessionData['connections'][number]['params'];
+const HYPER_PARAMS = { hyper: {} } as WorkbookData['connections'][number]['params'];
 const SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 
 interface SentMessage {
@@ -60,8 +60,8 @@ interface Api {
     logger: Logger;
     config: ReturnType<typeof useAppConfig>;
     reconfigure: ReturnType<typeof useAppReconfigure>;
-    sessions: ReturnType<typeof useSessionScriptsRegistry>[0];
-    setSessions: ReturnType<typeof useSessionScriptsRegistry>[1];
+    workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
+    setWorkbooks: ReturnType<typeof useWorkbookScriptsRegistry>[1];
 }
 
 function Capture(props: { restored: RestoredAppState | null; capture: (api: Api) => void }) {
@@ -69,7 +69,7 @@ function Capture(props: { restored: RestoredAppState | null; capture: (api: Api)
     const logger = useLogger();
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
-    const [sessions, setSessions] = useSessionScriptsRegistry();
+    const [workbooks, setWorkbooks] = useWorkbookScriptsRegistry();
     const [, setConnections] = useConnectionRegistry();
     React.useEffect(() => {
         if (props.restored == null) return;
@@ -78,14 +78,14 @@ function Capture(props: { restored: RestoredAppState | null; capture: (api: Api)
             connections: props.restored!.connectionStates,
             connectionsByType: props.restored!.connectionStatesByType,
         }));
-        setSessions(registry => ({
+        setWorkbooks(registry => ({
             ...registry,
-            sessionScriptsMap: props.restored!.sessionScripts,
-            sessionScriptsByConnection: props.restored!.sessionScriptsByConnection,
+            workbookScriptsMap: props.restored!.workbookScripts,
+            workbookScriptsByConnection: props.restored!.workbookScriptsByConnection,
         }));
-    }, [props.restored, setConnections, setSessions]);
+    }, [props.restored, setConnections, setWorkbooks]);
     React.useLayoutEffect(() => {
-        props.capture({ bridge, logger, config, reconfigure, sessions, setSessions });
+        props.capture({ bridge, logger, config, reconfigure, workbooks, setWorkbooks });
     });
     return null;
 }
@@ -147,39 +147,39 @@ describe('AgentBridgeProvider', () => {
         dql.resetUnsafe();
     });
 
-    /// The app after the restoration of two sessions with a script each
-    async function restoreSessions(): Promise<RestoredAppState> {
-        const backend = new SessionTestBackend();
+    /// The app after the restoration of two workbooks with a script each
+    async function restoreWorkbooks(): Promise<RestoredAppState> {
+        const backend = new WorkbookTestBackend();
         backend.connections = [{ id: HYPER_ID, params: HYPER_PARAMS } as ConnectionEntry];
-        for (const [sessionId, name] of [[SESSION_A, 'Alpha'], [SESSION_B, 'Beta']]) {
-            await backend.saveSessionManifest(sessionId, testSession({
-                sessionId,
+        for (const [workbookId, name] of [[WORKBOOK_A, 'Alpha'], [WORKBOOK_B, 'Beta']]) {
+            await backend.saveWorkbookManifest(workbookId, testWorkbook({
+                workbookId,
                 name,
                 connections: [{ connectionId: HYPER_ID, params: HYPER_PARAMS }],
                 scripts: [{ name: 'query.sql', connectionId: HYPER_ID }],
             }));
-            await backend.saveScript(sessionId, 'query.sql', 'select 1');
+            await backend.saveScript(workbookId, 'query.sql', 'select 1');
         }
         return await restoreAppState(dql, backend, new TestLogger(), () => { });
     }
 
     async function renderBridge(options: { path?: string; restored?: RestoredAppState | null } = {}) {
         const executor = { execute, cancel: vi.fn(), watchProfile: () => () => { } };
-        const restored = options.restored === undefined ? await restoreSessions() : options.restored;
+        const restored = options.restored === undefined ? await restoreWorkbooks() : options.restored;
         await act(async () => {
             root!.render(
                 <MemoryRouter initialEntries={[options.path ?? '/']}>
                     <LoggerProvider>
                         <AppConfigProvider>
-                            <StorageProvider backend={new SessionTestBackend()}>
+                            <StorageProvider backend={new WorkbookTestBackend()}>
                                 <ConnectionRegistry>
-                                    <SessionScriptsRegistryProvider>
+                                    <WorkbookScriptsRegistryProvider>
                                         <EXECUTOR_CTX.Provider value={executor as never}>
                                             <AgentBridgeProvider>
                                                 <Capture restored={restored} capture={next => { api = next; }} />
                                             </AgentBridgeProvider>
                                         </EXECUTOR_CTX.Provider>
-                                    </SessionScriptsRegistryProvider>
+                                    </WorkbookScriptsRegistryProvider>
                                 </ConnectionRegistry>
                             </StorageProvider>
                         </AppConfigProvider>
@@ -188,7 +188,7 @@ describe('AgentBridgeProvider', () => {
             );
         });
         await vi.waitFor(() => expect(api.config != null).toBe(true));
-        if (restored != null) await vi.waitFor(() => expect(api.sessions.sessionScriptsMap.size).toBe(2));
+        if (restored != null) await vi.waitFor(() => expect(api.workbooks.workbookScriptsMap.size).toBe(2));
     }
 
     const sockets = () => FakeSocket.created;
@@ -201,27 +201,27 @@ describe('AgentBridgeProvider', () => {
         if (request == null) throw new Error(`No request ${method}`);
         await act(async () => { socket.receive({ id: request.id, result }); });
     }
-    /// Open the socket and take the announced sessions
+    /// Open the socket and take the announced workbooks
     async function connect(socket: FakeSocket = lastSocket()) {
         await act(async () => {
             socket.readyState = 1;
             socket.onopen?.({});
         });
-        await respond(socket, 'client/sessions');
+        await respond(socket, 'client/workbooks');
         await vi.waitFor(() => expect(api.bridge.status).toBe(AgentConnectionStatus.Connected));
     }
-    /// Turn on the access of a session and connect
-    async function connectWithAccess(sessionId: string = SESSION_A) {
-        await act(async () => api.bridge.setAccess(sessionId, true));
+    /// Turn on the access of a workbook and connect
+    async function connectWithAccess(workbookId: string = WORKBOOK_A) {
+        await act(async () => api.bridge.setAccess(workbookId, true));
         await vi.waitFor(() => expect(sockets().length > 0).toBe(true));
         await connect();
     }
     /// Start a turn and answer its request
-    async function startTurn(sessionId: string, turnId: string, listener: AgentTurnListener): Promise<void> {
+    async function startTurn(workbookId: string, turnId: string, listener: AgentTurnListener): Promise<void> {
         let started!: Promise<string>;
         const socket = lastSocket();
         const before = socket.sentWith('agent/request').length;
-        await act(async () => { started = api.bridge.request(sessionId, 'do something', listener); });
+        await act(async () => { started = api.bridge.request(workbookId, 'do something', listener); });
         await vi.waitFor(() => expect(socket.sentWith('agent/request').length).toBe(before + 1));
         await respond(socket, 'agent/request', { turnId, harness: 'claude' });
         expect(await started).toBe(turnId);
@@ -229,7 +229,7 @@ describe('AgentBridgeProvider', () => {
     const notify = (method: string, params: unknown) => act(async () => { lastSocket().receive({ method, params }); });
 
     describe('the connection', () => {
-        it('stays off while no session has agent access', async () => {
+        it('stays off while no workbook has agent access', async () => {
             await renderBridge();
             expect(api.bridge.status).toBe(AgentConnectionStatus.Off);
             expect(sockets().length).toBe(0);
@@ -237,55 +237,55 @@ describe('AgentBridgeProvider', () => {
             expect(api.bridge.port).toBe(DASHQL_AGENT_PORT);
         });
 
-        it('connects once a session has agent access and announces it', async () => {
+        it('connects once a workbook has agent access and announces it', async () => {
             await renderBridge();
             await connectWithAccess();
             expect(lastSocket().url).toBe(`ws://127.0.0.1:${DASHQL_AGENT_PORT}/v1/ws`);
-            const announcement = lastSocket().sentWith('client/sessions')[0].params;
+            const announcement = lastSocket().sentWith('client/workbooks')[0].params;
             expect(announcement.protocol).toBe(AGENT_PROTOCOL_VERSION);
             expect(announcement.client).toBe('web');
-            expect(announcement.sessions).toEqual([{ id: SESSION_A, name: 'Alpha' }]);
+            expect(announcement.workbooks).toEqual([{ id: WORKBOOK_A, name: 'Alpha' }]);
         });
 
         it('announces itself as the desktop app there', async () => {
             globalThis.dashqlElectron = { onFlush: () => () => { } } as unknown as DashQLElectronBridge;
             await renderBridge();
             await connectWithAccess();
-            expect(lastSocket().sentWith('client/sessions')[0].params.client).toBe('desktop');
+            expect(lastSocket().sentWith('client/workbooks')[0].params.client).toBe('desktop');
         });
 
-        it('announces the focused session of the route, if it has agent access', async () => {
-            await renderBridge({ path: `/sessions/${SESSION_A}` });
+        it('announces the focused workbook of the route, if it has agent access', async () => {
+            await renderBridge({ path: `/workbooks/${WORKBOOK_A}` });
             await connectWithAccess();
-            expect(lastSocket().sentWith('client/sessions')[0].params.focused).toBe(SESSION_A);
+            expect(lastSocket().sentWith('client/workbooks')[0].params.focused).toBe(WORKBOOK_A);
         });
 
-        it('does not announce the focused session without agent access', async () => {
-            await renderBridge({ path: `/sessions/${SESSION_B}` });
-            await connectWithAccess(SESSION_A);
-            expect(lastSocket().sentWith('client/sessions')[0].params.focused).toBeNull();
+        it('does not announce the focused workbook without agent access', async () => {
+            await renderBridge({ path: `/workbooks/${WORKBOOK_B}` });
+            await connectWithAccess(WORKBOOK_A);
+            expect(lastSocket().sentWith('client/workbooks')[0].params.focused).toBeNull();
         });
 
-        it('does not announce a session that is not loaded', async () => {
+        it('does not announce a workbook that is not loaded', async () => {
             await renderBridge({ restored: null });
-            await act(async () => api.bridge.setAccess(SESSION_A, true));
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
             expect(sockets().length).toBe(0);
-            expect(api.bridge.accessSessions).toEqual([{ id: SESSION_A, name: null }]);
+            expect(api.bridge.accessWorkbooks).toEqual([{ id: WORKBOOK_A, name: null }]);
         });
 
-        it('announces sessions again when the access changes', async () => {
+        it('announces workbooks again when the access changes', async () => {
             await renderBridge();
-            await connectWithAccess(SESSION_A);
-            await act(async () => api.bridge.setAccess(SESSION_B, true));
-            await vi.waitFor(() => expect(lastSocket().sentWith('client/sessions').length).toBe(2));
-            expect(lastSocket().sentWith('client/sessions')[1].params.sessions.map((session: { name: string }) => session.name)).toEqual(['Alpha', 'Beta']);
+            await connectWithAccess(WORKBOOK_A);
+            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
+            await vi.waitFor(() => expect(lastSocket().sentWith('client/workbooks').length).toBe(2));
+            expect(lastSocket().sentWith('client/workbooks')[1].params.workbooks.map((workbook: { name: string }) => workbook.name)).toEqual(['Alpha', 'Beta']);
             expect(sockets().length).toBe(1);
         });
 
-        it('disconnects when the last session loses its agent access', async () => {
+        it('disconnects when the last workbook loses its agent access', async () => {
             await renderBridge();
             await connectWithAccess();
-            await act(async () => api.bridge.setAccess(SESSION_A, false));
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, false));
             expect(lastSocket().closed).toBe(true);
             await vi.waitFor(() => expect(api.bridge.status).toBe(AgentConnectionStatus.Off));
         });
@@ -322,27 +322,27 @@ describe('AgentBridgeProvider', () => {
     });
 
     describe('agent access', () => {
-        it('lists the sessions with their names', async () => {
+        it('lists the workbooks with their names', async () => {
             await renderBridge();
-            await act(async () => api.bridge.setAccess(SESSION_B, true));
-            expect(api.bridge.hasAccess(SESSION_B)).toBe(true);
-            expect(api.bridge.hasAccess(SESSION_A)).toBe(false);
-            expect(api.bridge.accessSessions).toEqual([{ id: SESSION_B, name: 'Beta' }]);
+            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
+            expect(api.bridge.hasAccess(WORKBOOK_B)).toBe(true);
+            expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(false);
+            expect(api.bridge.accessWorkbooks).toEqual([{ id: WORKBOOK_B, name: 'Beta' }]);
         });
 
-        it('adds a session once', async () => {
+        it('adds a workbook once', async () => {
             await renderBridge();
-            await act(async () => api.bridge.setAccess(SESSION_A, true));
-            await act(async () => api.bridge.setAccess(SESSION_A, true));
-            expect(api.bridge.accessSessions.length).toBe(1);
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
+            expect(api.bridge.accessWorkbooks.length).toBe(1);
         });
 
-        it('keeps the list of sessions while the names are unchanged, the registry changes with every edit', async () => {
+        it('keeps the list of workbooks while the names are unchanged, the registry changes with every edit', async () => {
             await renderBridge();
-            await act(async () => api.bridge.setAccess(SESSION_A, true));
-            const list = api.bridge.accessSessions;
-            await act(async () => api.setSessions(registry => ({ ...registry })));
-            expect(api.bridge.accessSessions).toBe(list);
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
+            const list = api.bridge.accessWorkbooks;
+            await act(async () => api.setWorkbooks(registry => ({ ...registry })));
+            expect(api.bridge.accessWorkbooks).toBe(list);
         });
     });
 
@@ -350,8 +350,8 @@ describe('AgentBridgeProvider', () => {
         it('sends no choices by default, the server has its own', async () => {
             await renderBridge();
             await connectWithAccess();
-            await startTurn(SESSION_A, 'turn-1', createListener());
-            expect(lastSocket().sentWith('agent/request')[0].params).toEqual({ session: SESSION_A, prompt: 'do something' });
+            await startTurn(WORKBOOK_A, 'turn-1', createListener());
+            expect(lastSocket().sentWith('agent/request')[0].params).toEqual({ workbook: WORKBOOK_A, prompt: 'do something' });
         });
 
         it('sends the chosen harness, model and effort', async () => {
@@ -363,9 +363,9 @@ describe('AgentBridgeProvider', () => {
                 api.bridge.setEffort('high');
             });
             expect([api.bridge.harness, api.bridge.model, api.bridge.effort]).toEqual(['claude', 'opus', 'high']);
-            await startTurn(SESSION_A, 'turn-1', createListener());
+            await startTurn(WORKBOOK_A, 'turn-1', createListener());
             expect(lastSocket().sentWith('agent/request')[0].params).toEqual({
-                session: SESSION_A, prompt: 'do something', harness: 'claude', model: 'opus', effort: 'high',
+                workbook: WORKBOOK_A, prompt: 'do something', harness: 'claude', model: 'opus', effort: 'high',
             });
         });
 
@@ -397,10 +397,10 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
-            await startTurn(SESSION_A, 'turn-1', listener);
-            await notify('agent/status', { session: SESSION_A, turnId: 'turn-1', state: 'running', text: 'thinking' });
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
+            await notify('agent/status', { workbook: WORKBOOK_A, turnId: 'turn-1', state: 'running', text: 'thinking' });
             expect(listener.status).toHaveBeenCalledWith('running', 'thinking');
-            await notify('agent/done', { session: SESSION_A, turnId: 'turn-1', message: 'all done' });
+            await notify('agent/done', { workbook: WORKBOOK_A, turnId: 'turn-1', message: 'all done' });
             expect(listener.done).toHaveBeenCalledWith('all done');
             expect(listener.failed).not.toHaveBeenCalled();
         });
@@ -409,8 +409,8 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
-            await startTurn(SESSION_A, 'turn-1', listener);
-            await notify('agent/failed', { session: SESSION_A, turnId: 'turn-1', error: 'stopped', cancelled: true });
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
+            await notify('agent/failed', { workbook: WORKBOOK_A, turnId: 'turn-1', error: 'stopped', cancelled: true });
             expect(listener.failed).toHaveBeenCalledWith('stopped', true);
         });
 
@@ -418,11 +418,11 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
-            await startTurn(SESSION_A, 'turn-1', listener);
-            await notify('agent/done', { session: SESSION_A, turnId: 'turn-1', message: 'all done' });
-            await notify('agent/status', { session: SESSION_A, turnId: 'turn-1', state: 'running', text: 'late' });
-            await notify('agent/done', { session: SESSION_A, turnId: 'turn-1', message: 'twice' });
-            await notify('agent/failed', { session: SESSION_A, turnId: 'turn-1', error: 'late', cancelled: false });
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
+            await notify('agent/done', { workbook: WORKBOOK_A, turnId: 'turn-1', message: 'all done' });
+            await notify('agent/status', { workbook: WORKBOOK_A, turnId: 'turn-1', state: 'running', text: 'late' });
+            await notify('agent/done', { workbook: WORKBOOK_A, turnId: 'turn-1', message: 'twice' });
+            await notify('agent/failed', { workbook: WORKBOOK_A, turnId: 'turn-1', error: 'late', cancelled: false });
             expect(listener.status).not.toHaveBeenCalled();
             expect(listener.done).toHaveBeenCalledOnce();
             expect(listener.failed).not.toHaveBeenCalled();
@@ -432,12 +432,12 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const [first, second] = [createListener(), createListener()];
-            await startTurn(SESSION_A, 'turn-1', first);
-            await startTurn(SESSION_A, 'turn-2', second);
-            await notify('agent/done', { session: SESSION_A, turnId: 'turn-2', message: 'second' });
+            await startTurn(WORKBOOK_A, 'turn-1', first);
+            await startTurn(WORKBOOK_A, 'turn-2', second);
+            await notify('agent/done', { workbook: WORKBOOK_A, turnId: 'turn-2', message: 'second' });
             expect(second.done).toHaveBeenCalledWith('second');
             expect(first.done).not.toHaveBeenCalled();
-            await notify('agent/status', { session: SESSION_A, turnId: 'turn-1', state: 'running', text: 'first' });
+            await notify('agent/status', { workbook: WORKBOOK_A, turnId: 'turn-1', state: 'running', text: 'first' });
             expect(first.status).toHaveBeenCalledOnce();
         });
 
@@ -446,7 +446,7 @@ describe('AgentBridgeProvider', () => {
             await connectWithAccess();
             const warn = vi.spyOn(api.logger, 'warn');
             let started!: Promise<string>;
-            await act(async () => { started = api.bridge.request(SESSION_A, 'do something', createListener()); });
+            await act(async () => { started = api.bridge.request(WORKBOOK_A, 'do something', createListener()); });
             const failed = expect(started).rejects.toThrow('no harness');
             const request = lastSocket().sentWith('agent/request')[0];
             await act(async () => { lastSocket().receive({ id: request.id, error: { code: 'failed', message: 'no harness' } }); });
@@ -456,15 +456,15 @@ describe('AgentBridgeProvider', () => {
 
         it('rejects while the server is not connected', async () => {
             await renderBridge();
-            await expect(api.bridge.request(SESSION_A, 'do something', createListener())).rejects.toThrow('not connected');
+            await expect(api.bridge.request(WORKBOOK_A, 'do something', createListener())).rejects.toThrow('not connected');
         });
 
         it('fails the running turns when the connection is lost', async () => {
             await renderBridge();
             await connectWithAccess();
             const [first, second] = [createListener(), createListener()];
-            await startTurn(SESSION_A, 'turn-1', first);
-            await startTurn(SESSION_A, 'turn-2', second);
+            await startTurn(WORKBOOK_A, 'turn-1', first);
+            await startTurn(WORKBOOK_A, 'turn-2', second);
             await act(async () => { lastSocket().readyState = 3; lastSocket().onclose?.({ code: 1006 }); });
             expect(first.failed).toHaveBeenCalledWith('The agent server disconnected', false);
             expect(second.failed).toHaveBeenCalledWith('The agent server disconnected', false);
@@ -476,7 +476,7 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
-            await startTurn(SESSION_A, 'turn-1', listener);
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
             await act(async () => api.bridge.setPort(48000));
             expect(listener.failed).toHaveBeenCalledOnce();
         });
@@ -485,47 +485,47 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
-            await startTurn(SESSION_A, 'turn-1', listener);
-            await act(async () => api.bridge.setAccess(SESSION_A, false));
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, false));
             expect(listener.failed).toHaveBeenCalledWith('Agent access was turned off', false);
         });
     });
 
     describe('commands of the agent', () => {
-        const command = async (id: number, session: string, name: string, args: unknown) => {
-            await act(async () => { lastSocket().receive({ id, method: 'command', params: { session, command: name, args } }); });
+        const command = async (id: number, workbook: string, name: string, args: unknown) => {
+            await act(async () => { lastSocket().receive({ id, method: 'command', params: { workbook, command: name, args } }); });
             await vi.waitFor(() => expect(lastSocket().sent.some(message => message.id === id)).toBe(true));
             return lastSocket().sent.find(message => message.id === id)!;
         };
 
-        it('reads a session', async () => {
+        it('reads a workbook', async () => {
             await renderBridge();
             await connectWithAccess();
-            const reply = await command(901, SESSION_A, 'read', { script: 'query' });
+            const reply = await command(901, WORKBOOK_A, 'read', { script: 'query' });
             expect(reply.result.text).toBe('select 1');
         });
 
-        it('tells the agent about a session that is not open', async () => {
+        it('tells the agent about a workbook that is not open', async () => {
             await renderBridge();
             await connectWithAccess();
             const warn = vi.spyOn(api.logger, 'warn');
             const reply = await command(902, 'unknown', 'read', { script: 'query' });
             expect(reply.error.code).toBe('not_connected');
-            expect(warn).toHaveBeenCalledWith('An agent command failed', expect.objectContaining({ session: 'unknown', command: 'read' }), 'agent_bridge');
+            expect(warn).toHaveBeenCalledWith('An agent command failed', expect.objectContaining({ workbook: 'unknown', command: 'read' }), 'agent_bridge');
         });
 
-        it('tells the turns of the session about an edit, and only those', async () => {
+        it('tells the turns of the workbook about an edit, and only those', async () => {
             await renderBridge();
-            await connectWithAccess(SESSION_A);
-            await act(async () => api.bridge.setAccess(SESSION_B, true));
+            await connectWithAccess(WORKBOOK_A);
+            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
             const [same, other] = [createListener(), createListener()];
-            await startTurn(SESSION_A, 'turn-1', same);
-            await startTurn(SESSION_B, 'turn-2', other);
+            await startTurn(WORKBOOK_A, 'turn-1', same);
+            await startTurn(WORKBOOK_B, 'turn-2', other);
 
-            const reply = await command(903, SESSION_A, 'edit', { script: 'query', text: 'select 2' });
+            const reply = await command(903, WORKBOOK_A, 'edit', { script: 'query', text: 'select 2' });
             expect(reply.error).toBeUndefined();
-            const session = api.sessions.sessionScriptsMap.get(SESSION_A)!;
-            const script = session.scripts[session.scriptRefs['query.sql'].scriptId];
+            const workbook = api.workbooks.workbookScriptsMap.get(WORKBOOK_A)!;
+            const script = workbook.scripts[workbook.scriptRefs['query.sql'].scriptId];
             expect(same.edited).toHaveBeenCalledWith(script.scriptKey);
             expect(other.edited).not.toHaveBeenCalled();
             await vi.waitFor(() => expect(script.scriptSession.getText()).toBe('select 2'));
@@ -535,34 +535,34 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
-            await startTurn(SESSION_A, 'turn-1', listener);
-            await notify('agent/done', { session: SESSION_A, turnId: 'turn-1', message: 'done' });
-            await command(904, SESSION_A, 'edit', { script: 'query', text: 'select 3' });
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
+            await notify('agent/done', { workbook: WORKBOOK_A, turnId: 'turn-1', message: 'done' });
+            await command(904, WORKBOOK_A, 'edit', { script: 'query', text: 'select 3' });
             expect(listener.edited).not.toHaveBeenCalled();
         });
     });
 
     describe('requests to the server', () => {
-        it('stops a turn or all turns of a session', async () => {
+        it('stops a turn or all turns of a workbook', async () => {
             await renderBridge();
             await connectWithAccess();
             let cancelled!: Promise<unknown>;
-            await act(async () => { cancelled = Promise.all([api.bridge.cancel(SESSION_A, 'turn-1'), api.bridge.cancel(SESSION_A)]); });
+            await act(async () => { cancelled = Promise.all([api.bridge.cancel(WORKBOOK_A, 'turn-1'), api.bridge.cancel(WORKBOOK_A)]); });
             const requests = lastSocket().sentWith('agent/cancel');
             expect(requests.map(message => message.params)).toEqual([
-                { session: SESSION_A, turnId: 'turn-1' },
-                { session: SESSION_A },
+                { workbook: WORKBOOK_A, turnId: 'turn-1' },
+                { workbook: WORKBOOK_A },
             ]);
             await act(async () => { for (const { id } of requests) lastSocket().receive({ id, result: {} }); });
             await cancelled;
         });
 
-        it('resets the context of a session', async () => {
+        it('resets the context of a workbook', async () => {
             await renderBridge();
             await connectWithAccess();
             let reset!: Promise<void>;
-            await act(async () => { reset = api.bridge.reset(SESSION_A); });
-            expect(lastSocket().sentWith('agent/reset')[0].params).toEqual({ session: SESSION_A });
+            await act(async () => { reset = api.bridge.reset(WORKBOOK_A); });
+            expect(lastSocket().sentWith('agent/reset')[0].params).toEqual({ workbook: WORKBOOK_A });
             await respond(lastSocket(), 'agent/reset');
             await reset;
         });
@@ -571,14 +571,14 @@ describe('AgentBridgeProvider', () => {
             await renderBridge();
             await connectWithAccess();
             let first!: Promise<unknown>;
-            await act(async () => { first = api.bridge.context(SESSION_A); });
+            await act(async () => { first = api.bridge.context(WORKBOOK_A); });
             await respond(lastSocket(), 'agent/context', { used: 1 });
             expect(await first).toEqual({ used: 1 });
-            expect(lastSocket().sentWith('agent/context')[0].params).toEqual({ session: SESSION_A });
+            expect(lastSocket().sentWith('agent/context')[0].params).toEqual({ workbook: WORKBOOK_A });
 
             await act(async () => api.bridge.setHarness('claude'));
-            await act(async () => { void api.bridge.context(SESSION_A).catch(() => null); });
-            expect(lastSocket().sentWith('agent/context')[1].params).toEqual({ session: SESSION_A, harness: 'claude' });
+            await act(async () => { void api.bridge.context(WORKBOOK_A).catch(() => null); });
+            expect(lastSocket().sentWith('agent/context')[1].params).toEqual({ workbook: WORKBOOK_A, harness: 'claude' });
         });
 
         it('asks for the info of the server', async () => {
@@ -591,56 +591,56 @@ describe('AgentBridgeProvider', () => {
         });
     });
 
-    describe('a deleted session', () => {
-        const deleteSession = (sessionId: string) => act(async () => {
-            api.setSessions(registry => {
-                const sessionScriptsMap = new Map(registry.sessionScriptsMap);
-                sessionScriptsMap.delete(sessionId);
-                return { ...registry, sessionScriptsMap };
+    describe('a deleted workbook', () => {
+        const deleteWorkbook = (workbookId: string) => act(async () => {
+            api.setWorkbooks(registry => {
+                const workbookScriptsMap = new Map(registry.workbookScriptsMap);
+                workbookScriptsMap.delete(workbookId);
+                return { ...registry, workbookScriptsMap };
             });
         });
 
         it('takes its agent state along', async () => {
             await renderBridge();
-            await connectWithAccess(SESSION_A);
-            await act(async () => api.bridge.setAccess(SESSION_B, true));
+            await connectWithAccess(WORKBOOK_A);
+            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
             const drop = vi.spyOn(api.bridge.questions, 'drop');
-            await deleteSession(SESSION_A);
-            await vi.waitFor(() => expect(lastSocket().sentWith('agent/forget').map(message => message.params)).toEqual([{ session: SESSION_A }]));
-            expect(drop).toHaveBeenCalledWith(SESSION_A);
-            await vi.waitFor(() => expect(api.bridge.hasAccess(SESSION_A)).toBe(false));
-            expect(api.bridge.hasAccess(SESSION_B)).toBe(true);
+            await deleteWorkbook(WORKBOOK_A);
+            await vi.waitFor(() => expect(lastSocket().sentWith('agent/forget').map(message => message.params)).toEqual([{ workbook: WORKBOOK_A }]));
+            expect(drop).toHaveBeenCalledWith(WORKBOOK_A);
+            await vi.waitFor(() => expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(false));
+            expect(api.bridge.hasAccess(WORKBOOK_B)).toBe(true);
         });
 
-        it('leaves the other sessions alone', async () => {
+        it('leaves the other workbooks alone', async () => {
             await renderBridge();
-            await connectWithAccess(SESSION_A);
+            await connectWithAccess(WORKBOOK_A);
             const drop = vi.spyOn(api.bridge.questions, 'drop');
-            await deleteSession(SESSION_B);
-            expect(drop.mock.calls).toEqual([[SESSION_B]]);
-            expect(api.bridge.hasAccess(SESSION_A)).toBe(true);
+            await deleteWorkbook(WORKBOOK_B);
+            expect(drop.mock.calls).toEqual([[WORKBOOK_B]]);
+            expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(true);
             expect(lastSocket().closed).toBe(false);
         });
 
         it('leaves its folder to the server while nothing is connected', async () => {
             await renderBridge();
             const drop = vi.spyOn(api.bridge.questions, 'drop');
-            await deleteSession(SESSION_A);
-            expect(drop).toHaveBeenCalledWith(SESSION_A);
+            await deleteWorkbook(WORKBOOK_A);
+            expect(drop).toHaveBeenCalledWith(WORKBOOK_A);
             expect(sockets().length).toBe(0);
         });
 
         it('logs when the server cannot forget it', async () => {
             await renderBridge();
-            await connectWithAccess(SESSION_B);
+            await connectWithAccess(WORKBOOK_B);
             const warn = vi.spyOn(api.logger, 'warn');
-            await deleteSession(SESSION_A);
+            await deleteWorkbook(WORKBOOK_A);
             await vi.waitFor(() => expect(lastSocket().sentWith('agent/forget').length).toBe(1));
             const request = lastSocket().sentWith('agent/forget')[0];
             await act(async () => { lastSocket().receive({ id: request.id, error: { code: 'failed', message: 'locked' } }); });
             await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(
-                'Forgetting a deleted session in the agent server failed',
-                { sessionId: SESSION_A, error: 'locked' },
+                'Forgetting a deleted workbook in the agent server failed',
+                { workbookId: WORKBOOK_A, error: 'locked' },
                 'agent_bridge',
             ));
         });
@@ -654,17 +654,17 @@ describe('AgentBridgeProvider', () => {
         it('never connects and says why', async () => {
             await renderBridge();
             expect(api.bridge.supported).toBe(false);
-            await act(async () => api.bridge.setAccess(SESSION_A, true));
+            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
             expect(sockets().length).toBe(0);
-            await expect(api.bridge.request(SESSION_A, 'hi', createListener())).rejects.toThrow('This browser cannot reach the agent server');
-            await expect(api.bridge.context(SESSION_A)).rejects.toThrow('This browser cannot reach the agent server');
+            await expect(api.bridge.request(WORKBOOK_A, 'hi', createListener())).rejects.toThrow('This browser cannot reach the agent server');
+            await expect(api.bridge.context(WORKBOOK_A)).rejects.toThrow('This browser cannot reach the agent server');
             await expect(api.bridge.info()).rejects.toThrow('This browser cannot reach the agent server');
         });
 
         it('has nothing to stop or reset', async () => {
             await renderBridge();
-            await expect(api.bridge.cancel(SESSION_A)).resolves.toBeUndefined();
-            await expect(api.bridge.reset(SESSION_A)).resolves.toBeUndefined();
+            await expect(api.bridge.cancel(WORKBOOK_A)).resolves.toBeUndefined();
+            await expect(api.bridge.reset(WORKBOOK_A)).resolves.toBeUndefined();
         });
     });
 });

@@ -1,124 +1,124 @@
-import type { ScriptData, SessionScripts } from '../session/scripts/session_scripts.js';
+import type { ScriptData, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
 import type { AgentFollowTarget, AgentQuestion } from './use_agent_questions.js';
 
-/// The feed that shows a session, it runs and follows the scripts that the agent writes
+/// The feed that shows a workbook, it runs and follows the scripts that the agent writes
 export interface AgentQuestionFeed {
-    /// The current scripts of the session
-    sessionScripts: () => SessionScripts;
+    /// The current scripts of the workbook
+    workbookScripts: () => WorkbookScripts;
     /// Runs a script that the agent wrote
-    runScript: (next: SessionScripts, scriptData: ScriptData) => void;
+    runScript: (next: WorkbookScripts, scriptData: ScriptData) => void;
     /// Follows the agent to a script
     followScript: (scriptKey: number, target: AgentFollowTarget) => void;
 }
 
-/// The questions of a session
-interface SessionAgentQuestions {
+/// The questions of a workbook
+interface WorkbookAgentQuestions {
     /// The running, failed and answered questions by question id, oldest first
     questions: ReadonlyMap<number, AgentQuestion>;
     /// The questions that the agent works on, notifications of other requests are dropped
     working: Set<number>;
     /// The turns of the questions, once the server queued them
     turnIds: Map<number, string>;
-    /// The feed that shows the session, null while no feed shows it
+    /// The feed that shows the workbook, null while no feed shows it
     feed: AgentQuestionFeed | null;
 }
 
 const NO_QUESTIONS: ReadonlyMap<number, AgentQuestion> = new Map();
 
-/// The questions of the sessions that the agent answers.
-/// The bridge keeps them, a question outlives the feed that asked it and shows again when the user returns to the session.
+/// The questions of the workbooks that the agent answers.
+/// The bridge keeps them, a question outlives the feed that asked it and shows again when the user returns to the workbook.
 export class AgentQuestionStore {
-    private sessions = new Map<string, SessionAgentQuestions>();
+    private workbooks = new Map<string, WorkbookAgentQuestions>();
     private listeners = new Set<() => void>();
     private nextQuestionId = 1;
 
-    private session(sessionId: string): SessionAgentQuestions {
-        let session = this.sessions.get(sessionId);
-        if (session == null) {
-            session = { questions: NO_QUESTIONS, working: new Set(), turnIds: new Map(), feed: null };
-            this.sessions.set(sessionId, session);
+    private workbook(workbookId: string): WorkbookAgentQuestions {
+        let workbook = this.workbooks.get(workbookId);
+        if (workbook == null) {
+            workbook = { questions: NO_QUESTIONS, working: new Set(), turnIds: new Map(), feed: null };
+            this.workbooks.set(workbookId, workbook);
         }
-        return session;
+        return workbook;
     }
-    private setQuestions(sessionId: string, questions: ReadonlyMap<number, AgentQuestion>) {
-        this.session(sessionId).questions = questions;
+    private setQuestions(workbookId: string, questions: ReadonlyMap<number, AgentQuestion>) {
+        this.workbook(workbookId).questions = questions;
         for (const listener of this.listeners) listener();
     }
 
-    /// Subscribe to the questions of all sessions, returns the unsubscribe
+    /// Subscribe to the questions of all workbooks, returns the unsubscribe
     subscribe = (listener: () => void): (() => void) => {
         this.listeners.add(listener);
         return () => { this.listeners.delete(listener); };
     };
-    /// The questions of a session, the same map until they change
-    questions(sessionId: string): ReadonlyMap<number, AgentQuestion> {
-        return this.sessions.get(sessionId)?.questions ?? NO_QUESTIONS;
+    /// The questions of a workbook, the same map until they change
+    questions(workbookId: string): ReadonlyMap<number, AgentQuestion> {
+        return this.workbooks.get(workbookId)?.questions ?? NO_QUESTIONS;
     }
 
     /// Add a question that the agent works on, returns its question id
-    add(sessionId: string, question: AgentQuestion): number {
+    add(workbookId: string, question: AgentQuestion): number {
         const questionId = this.nextQuestionId++;
-        const session = this.session(sessionId);
-        session.working.add(questionId);
-        this.setQuestions(sessionId, new Map(session.questions).set(questionId, question));
+        const workbook = this.workbook(workbookId);
+        workbook.working.add(questionId);
+        this.setQuestions(workbookId, new Map(workbook.questions).set(questionId, question));
         return questionId;
     }
     /// Update a question, null drops it
-    update(sessionId: string, questionId: number, update: (prev: AgentQuestion) => AgentQuestion | null) {
-        const session = this.sessions.get(sessionId);
-        const current = session?.questions.get(questionId);
-        if (session == null || current == null) return;
-        const next = new Map(session.questions);
+    update(workbookId: string, questionId: number, update: (prev: AgentQuestion) => AgentQuestion | null) {
+        const workbook = this.workbooks.get(workbookId);
+        const current = workbook?.questions.get(questionId);
+        if (workbook == null || current == null) return;
+        const next = new Map(workbook.questions);
         const updated = update(current);
         if (updated == null) next.delete(questionId);
         else next.set(questionId, updated);
-        this.setQuestions(sessionId, next);
+        this.setQuestions(workbookId, next);
     }
     /// Drop a question
-    remove(sessionId: string, questionId: number) {
-        const session = this.sessions.get(sessionId);
-        if (session == null || !session.questions.has(questionId)) return;
-        const next = new Map(session.questions);
+    remove(workbookId: string, questionId: number) {
+        const workbook = this.workbooks.get(workbookId);
+        if (workbook == null || !workbook.questions.has(questionId)) return;
+        const next = new Map(workbook.questions);
         next.delete(questionId);
-        this.setQuestions(sessionId, next);
+        this.setQuestions(workbookId, next);
     }
 
     /// Does the agent work on a question?
-    isWorking(sessionId: string, questionId: number): boolean {
-        return this.sessions.get(sessionId)?.working.has(questionId) ?? false;
+    isWorking(workbookId: string, questionId: number): boolean {
+        return this.workbooks.get(workbookId)?.working.has(questionId) ?? false;
     }
     /// The server queued the turn of a question
-    setTurnId(sessionId: string, questionId: number, turnId: string) {
-        this.session(sessionId).turnIds.set(questionId, turnId);
+    setTurnId(workbookId: string, questionId: number, turnId: string) {
+        this.workbook(workbookId).turnIds.set(questionId, turnId);
     }
     /// The turn of a question, null before the server queued it
-    turnId(sessionId: string, questionId: number): string | null {
-        return this.sessions.get(sessionId)?.turnIds.get(questionId) ?? null;
+    turnId(workbookId: string, questionId: number): string | null {
+        return this.workbooks.get(workbookId)?.turnIds.get(questionId) ?? null;
     }
     /// The agent stopped working on a question, false if it did not work on it
-    finish(sessionId: string, questionId: number): boolean {
-        const session = this.sessions.get(sessionId);
-        if (session == null) return false;
-        session.turnIds.delete(questionId);
-        return session.working.delete(questionId);
+    finish(workbookId: string, questionId: number): boolean {
+        const workbook = this.workbooks.get(workbookId);
+        if (workbook == null) return false;
+        workbook.turnIds.delete(questionId);
+        return workbook.working.delete(questionId);
     }
 
-    /// Forget the questions of a deleted session
-    drop(sessionId: string) {
-        if (!this.sessions.delete(sessionId)) return;
+    /// Forget the questions of a deleted workbook
+    drop(workbookId: string) {
+        if (!this.workbooks.delete(workbookId)) return;
         for (const listener of this.listeners) listener();
     }
 
-    /// Show a session in a feed, returns the detach
-    attach(sessionId: string, feed: AgentQuestionFeed): () => void {
-        this.session(sessionId).feed = feed;
+    /// Show a workbook in a feed, returns the detach
+    attach(workbookId: string, feed: AgentQuestionFeed): () => void {
+        this.workbook(workbookId).feed = feed;
         return () => {
-            const session = this.sessions.get(sessionId);
-            if (session?.feed === feed) session.feed = null;
+            const workbook = this.workbooks.get(workbookId);
+            if (workbook?.feed === feed) workbook.feed = null;
         };
     }
-    /// The feed that shows a session, null while no feed shows it
-    feed(sessionId: string): AgentQuestionFeed | null {
-        return this.sessions.get(sessionId)?.feed ?? null;
+    /// The feed that shows a workbook, null while no feed shows it
+    feed(workbookId: string): AgentQuestionFeed | null {
+        return this.workbooks.get(workbookId)?.feed ?? null;
     }
 }

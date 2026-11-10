@@ -97,7 +97,7 @@ purpose, like the terminal of the shell.
 ## Dark page
 
 The light page is cut out of the chrome: its panes are white and grey and cover the page. The dark page is not a cut,
-so it follows the gradient of the chrome instead, like the card of the shell. The session page paints
+so it follows the gradient of the chrome instead, like the card of the shell. The workbook page paints
 `--page_background` once, a translucent shade (`--shell_bg`) over the backdrop of the chrome behind it. Its panes, the
 sidebar and the bars above the stage, shade it a little more like the header of the shell (`--color_bg_pane`), the
 stage is only its dot grid. So the gradient runs through the whole page without breaks between its components.
@@ -108,7 +108,7 @@ Cards, tables, editors, dialogs and menus are opaque and sit slightly lighter th
 - SVG presentation attributes do not resolve `var()`. Components set theme colors as style properties instead, e.g.
   `style={{ fill: 'var(--color_border)' }}`.
 - The editors use one CodeMirror theme whose colors are `var(--code_*)` and theme tokens
-  (`src/session/editor/themes/xcode.ts`). They switch with the scheme without being reconfigured.
+  (`src/workbook/editor/themes/xcode.ts`). They switch with the scheme without being reconfigured.
 - Vega draws on a canvas, which cannot resolve tokens. `resolveChartColors()` resolves them with a probe element, and
   the charts embed again when `useColorScheme()` or the flavor changes. Chart images resolve the light scheme on a white
   background in both schemes.

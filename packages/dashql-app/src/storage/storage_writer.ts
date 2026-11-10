@@ -2,15 +2,15 @@ import * as Immutable from 'immutable';
 
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
-import type { StorageBackend, SessionData, SessionMetadata as StorageSessionMetadata, SessionConnection, ConnectionEntry, ConnectionParams, SessionRegistryBackend, SessionScript } from './storage_backend.js';
-import { ExternalScriptChangeError, STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
-import { SESSION_FORMAT_VERSION } from './migration/versions.js';
-import { sessionAttachments, withSessionScripts } from './session_files.js';
+import type { StorageBackend, WorkbookData, WorkbookMetadata as StorageWorkbookMetadata, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
+import { ExternalScriptChangeError, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_CONNECTIONS_FOLDER, isWorkbookRegistryBackend } from './storage_backend.js';
+import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
+import { workbookAttachments, withWorkbookScripts } from './workbook_files.js';
 
 const LOG_CTX = 'storage_writer';
 
 /// Order-independent deep equality for plain JSON values (objects, arrays, primitives).
-/// Session manifests are plain JSON (no Dates/Maps/functions), so this is sufficient.
+/// Workbook manifests are plain JSON (no Dates/Maps/functions), so this is sufficient.
 function jsonDeepEqual(a: any, b: any): boolean {
     if (a === b) {
         return true;
@@ -32,17 +32,17 @@ function jsonDeepEqual(a: any, b: any): boolean {
     return aKeys.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonDeepEqual(a[k], b[k]));
 }
 
-/// Compare the manifest fields the writer owns (formatVersion, sessionId, name, connections, scripts, attachments, metadata).
-/// Other fields (storageType/nativePath/sessionPath) are display- or registry-only and are not
-/// written into the session file, so they're deliberately ignored.
+/// Compare the manifest fields the writer owns (formatVersion, workbookId, name, connections, scripts, attachments, metadata).
+/// Other fields (storageType/nativePath/workbookPath) are display- or registry-only and are not
+/// written into the workbook file, so they're deliberately ignored.
 ///
 /// Both sides are round-tripped through JSON first so this compares exactly what would be
 /// persisted: serialization drops `undefined`-valued keys, so a freshly built params object with
 /// `{ foo: undefined }` must compare equal to the reloaded `{}` it serializes to.
-function sessionManifestEquals(a: SessionData, b: SessionData): boolean {
-    const project = (s: SessionData) => JSON.parse(JSON.stringify({
+function workbookManifestEquals(a: WorkbookData, b: WorkbookData): boolean {
+    const project = (s: WorkbookData) => JSON.parse(JSON.stringify({
         formatVersion: s.formatVersion,
-        sessionId: s.sessionId,
+        workbookId: s.workbookId,
         name: s.name,
         connections: s.connections,
         scripts: s.scripts,
@@ -52,130 +52,130 @@ function sessionManifestEquals(a: SessionData, b: SessionData): boolean {
     return jsonDeepEqual(project(a), project(b));
 }
 
-export const DEBOUNCE_DURATION_SESSION_WRITE = 100;
+export const DEBOUNCE_DURATION_WORKBOOK_WRITE = 100;
 export const DEBOUNCE_DURATION_SCRIPT_WRITE = 100;
 
-export const WRITE_SESSION_MANIFEST = Symbol('WRITE_SESSION_MANIFEST');
-export const WRITE_SESSION_PROPERTIES = Symbol('WRITE_SESSION_PROPERTIES');
+export const WRITE_WORKBOOK_MANIFEST = Symbol('WRITE_WORKBOOK_MANIFEST');
+export const WRITE_WORKBOOK_PROPERTIES = Symbol('WRITE_WORKBOOK_PROPERTIES');
 
-/// The session fields that are owned by the user, not derived from scripts or connections.
+/// The workbook fields that are owned by the user, not derived from scripts or connections.
 /// They are written together since writes of the same manifest replace each other while debounced.
-export interface SessionProperties {
-    /// The session name, null if the user never named the session
+export interface WorkbookProperties {
+    /// The workbook name, null if the user never named the workbook
     name: string | null;
-    /// Does the session stay ephemeral? A write without it promotes the session
+    /// Does the workbook stay ephemeral? A write without it promotes the workbook
     ephemeral?: boolean;
 }
-/// A session that is written as a whole, its scripts first and its manifest last
-export interface SessionReplacement {
-    /// The session id
-    sessionId: string;
-    /// The session name, null keeps the name on disk
+/// A workbook that is written as a whole, its scripts first and its manifest last
+export interface WorkbookReplacement {
+    /// The workbook id
+    workbookId: string;
+    /// The workbook name, null keeps the name on disk
     name: string | null;
-    /// The script files, their text is read when the write runs. The script list of the session file
-    /// is written by `WRITE_SESSION_SCRIPTS` alone, it is the only writer of the list.
+    /// The script files, their text is read when the write runs. The script list of the workbook file
+    /// is written by `WRITE_WORKBOOK_SCRIPTS` alone, it is the only writer of the list.
     scripts: Array<{ fileName: string; readText: () => string }>;
-    /// A connection of a session that is not stored yet, the script list follows with the others
-    connection: SessionConnection | null;
-    /// The file name the session was created from, if any
+    /// A connection of a workbook that is not stored yet, the script list follows with the others
+    connection: WorkbookConnection | null;
+    /// The file name the workbook was created from, if any
     originalFileName: string | undefined;
 }
-export const REPLACE_SESSION_SCRIPTS = Symbol('REPLACE_SESSION_SCRIPTS');
+export const REPLACE_WORKBOOK_SCRIPTS = Symbol('REPLACE_WORKBOOK_SCRIPTS');
 export const WRITE_CONNECTION_ENTRY = Symbol('WRITE_CONNECTION_ENTRY');
 export const DELETE_CONNECTION_ENTRY = Symbol('DELETE_CONNECTION_ENTRY');
 export const WRITE_CONNECTION_FILE = Symbol('WRITE_CONNECTION_FILE');
-export const PATCH_SESSION_CONNECTION = Symbol('PATCH_SESSION_CONNECTION');
+export const PATCH_WORKBOOK_CONNECTION = Symbol('PATCH_WORKBOOK_CONNECTION');
 export const WRITE_SCRIPT = Symbol('WRITE_SCRIPT');
 export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
-export const WRITE_SESSION_SCRIPTS = Symbol('WRITE_SESSION_SCRIPTS');
-export const REFRESH_SESSION_ATTACHMENTS = Symbol('REFRESH_SESSION_ATTACHMENTS');
+export const WRITE_WORKBOOK_SCRIPTS = Symbol('WRITE_WORKBOOK_SCRIPTS');
+export const REFRESH_WORKBOOK_ATTACHMENTS = Symbol('REFRESH_WORKBOOK_ATTACHMENTS');
 
-/// The script list of a session
-export interface SessionScriptList {
+/// The script list of a workbook
+export interface WorkbookScriptList {
     /// The scripts in feed order with their connections
-    scripts: SessionScript[];
-    /// Copies of the connections of the scripts that the session file may not hold yet
-    connections: SessionConnection[];
+    scripts: WorkbookScript[];
+    /// Copies of the connections of the scripts that the workbook file may not hold yet
+    connections: WorkbookConnection[];
 }
 
 export type StorageWriteTaskVariant =
-    | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, SessionConnection[]] | [string, SessionConnection[], { ephemeral: boolean }]>
-    | VariantKind<typeof WRITE_SESSION_PROPERTIES, [string, SessionProperties]>
-    | VariantKind<typeof REPLACE_SESSION_SCRIPTS, SessionReplacement>
+    | VariantKind<typeof WRITE_WORKBOOK_MANIFEST, [string, WorkbookConnection[]] | [string, WorkbookConnection[], { ephemeral: boolean }]>
+    | VariantKind<typeof WRITE_WORKBOOK_PROPERTIES, [string, WorkbookProperties]>
+    | VariantKind<typeof REPLACE_WORKBOOK_SCRIPTS, WorkbookReplacement>
     | VariantKind<typeof WRITE_CONNECTION_ENTRY, ConnectionEntry>
     | VariantKind<typeof DELETE_CONNECTION_ENTRY, string>
     /// The text of a file, or how to read it when the write runs, null if there is nothing to write anymore
     | VariantKind<typeof WRITE_CONNECTION_FILE, [string, string, string | (() => string | null)]>
-    | VariantKind<typeof PATCH_SESSION_CONNECTION, [string, SessionConnection] | [string, SessionConnection, string[]]>
+    | VariantKind<typeof PATCH_WORKBOOK_CONNECTION, [string, WorkbookConnection] | [string, WorkbookConnection, string[]]>
     | VariantKind<typeof WRITE_SCRIPT, [string, string, string]>
     | VariantKind<typeof DELETE_SCRIPT, [string, string]>
     | VariantKind<typeof RENAME_SCRIPT, [string, string, string]>
-    | VariantKind<typeof WRITE_SESSION_SCRIPTS, [string, SessionScriptList]>
-    | VariantKind<typeof REFRESH_SESSION_ATTACHMENTS, string>
+    | VariantKind<typeof WRITE_WORKBOOK_SCRIPTS, [string, WorkbookScriptList]>
+    | VariantKind<typeof REFRESH_WORKBOOK_ATTACHMENTS, string>
     ;
 
 /// The key of a write. Writes with the same key coalesce, the latest task wins.
 ///
 /// Keys are logical paths, they are not the paths of the files:
-///   - Session keys start with the session UUID, e.g. `<sessionId>/scripts/01_query.sql`. The
-///     per-session operations (pause, pending writes, cancellation) select keys by this prefix.
+///   - Workbook keys start with the workbook UUID, e.g. `<workbookId>/scripts/01_query.sql`. The
+///     per-workbook operations (pause, pending writes, cancellation) select keys by this prefix.
 ///   - Keys of the app storage start with `@`, e.g. `@manifest/connections/<id>` for a connection
 ///     entry of the app manifest and `@connections/<id>/<file>` for the files of a connection in
 ///     `connections/<id>/`. A UUID never starts with `@`, so these keys never match the prefix of a
-///     session and are never paused or cancelled with one. `storageWriteChainKey` orders them.
+///     workbook and are never paused or cancelled with one. `storageWriteChainKey` orders them.
 export type StorageWriteKey = string;
-/// The manifest is keyed on its real file path (`<sessionId>/dashql-session.json`) so the key it is
+/// The manifest is keyed on its real file path (`<workbookId>/dashql-workbook.json`) so the key it is
 /// *scheduled* under matches the path its *completed* write is recorded under — otherwise the manifest
-/// shows up as two rows in the stats view (a phantom `<sessionId>/` schedule row plus the real
+/// shows up as two rows in the stats view (a phantom `<workbookId>/` schedule row plus the real
 /// file's write row). Keying both on the file also means a scheduled-but-not-yet-flushed manifest
 /// write coalesces onto the same statistics row as its completion.
-export const groupSessionManifestWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}`;
-export const groupSessionWrites = (sessionId: string) => `${sessionId}/${STORAGE_SCRIPTS_FOLDER}`;
+export const groupWorkbookManifestWrites = (workbookId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}`;
+export const groupWorkbookWrites = (workbookId: string) => `${workbookId}/${STORAGE_SCRIPTS_FOLDER}`;
 /// The connection entries are written into the app manifest, one key per connection.
 export const groupConnectionEntryWrites = (connectionId: string) => `@manifest/${STORAGE_CONNECTIONS_FOLDER}/${connectionId}`;
 /// The files of a connection, e.g. its catalog relations
 export const groupConnectionFileWrites = (connectionId: string, fileName: string) => `@${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${fileName}`;
-/// The copy of a connection's params in a session. Copies of different connections must not
-/// coalesce, but they serialize with every other write of the session.
-export const groupSessionConnectionCopyWrites = (sessionId: string, connectionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:connection/${connectionId}`;
-/// The script list of a session and the connections it uses. It is patched into the session file and
-/// must not coalesce with the other writes of the session file.
-export const groupSessionScriptListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:scripts`;
-/// The attachment list of a session
-export const groupSessionAttachmentListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:attachments`;
-/// A cached query result of a session and the marker of its last access
-export const groupScriptWrites = (sessionId: string, fileName: string) =>
-    `${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`;
-export const groupScriptDeletes = (sessionId: string, scriptName: string) =>
-    `${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${scriptName}:delete`;
+/// The copy of a connection's params in a workbook. Copies of different connections must not
+/// coalesce, but they serialize with every other write of the workbook.
+export const groupWorkbookConnectionCopyWrites = (workbookId: string, connectionId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}:connection/${connectionId}`;
+/// The script list of a workbook and the connections it uses. It is patched into the workbook file and
+/// must not coalesce with the other writes of the workbook file.
+export const groupWorkbookScriptListWrites = (workbookId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}:scripts`;
+/// The attachment list of a workbook
+export const groupWorkbookAttachmentListWrites = (workbookId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}:attachments`;
+/// A cached query result of a workbook and the marker of its last access
+export const groupScriptWrites = (workbookId: string, fileName: string) =>
+    `${workbookId}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`;
+export const groupScriptDeletes = (workbookId: string, scriptName: string) =>
+    `${workbookId}/${STORAGE_SCRIPTS_FOLDER}/${scriptName}:delete`;
 /// A page/script rename lives in its own `:rename` keyspace, keyed by the *source* path. Keeping it
 /// off the write/delete keyspaces means a later content write (or delete) of the destination never
 /// coalesces onto — and so never clobbers — a still-pending rename of the same name. The action lives
-/// in a `:rename` *suffix* rather than a prefix so the key still starts with the session id and
+/// in a `:rename` *suffix* rather than a prefix so the key still starts with the workbook id and
 /// sorts/scopes like every other file key.
-export const groupScriptRenames = (sessionId: string, oldScriptName: string) =>
-    `${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${oldScriptName}:rename`;
+export const groupScriptRenames = (workbookId: string, oldScriptName: string) =>
+    `${workbookId}/${STORAGE_SCRIPTS_FOLDER}/${oldScriptName}:rename`;
 
-/// Whether a statistics key belongs to a given session. Every write key is a path rooted at the
-/// session id (`<sessionId>/…`), with the `:delete`/`:rename` action namespaces living in a suffix
-/// (see the group* helpers above), so the session owns the key when it is the session id itself or a
-/// descendant of it. Used to scope the storage-writer stats view to the active session.
-export function storageWriteKeyBelongsToSession(key: StorageWriteKey, sessionId: string): boolean {
-    return key === sessionId || key.startsWith(`${sessionId}/`);
+/// Whether a statistics key belongs to a given workbook. Every write key is a path rooted at the
+/// workbook id (`<workbookId>/…`), with the `:delete`/`:rename` action namespaces living in a suffix
+/// (see the group* helpers above), so the workbook owns the key when it is the workbook id itself or a
+/// descendant of it. Used to scope the storage-writer stats view to the active workbook.
+export function storageWriteKeyBelongsToWorkbook(key: StorageWriteKey, workbookId: string): boolean {
+    return key === workbookId || key.startsWith(`${workbookId}/`);
 }
 
-/// Strip the session-id prefix from a write key for display, keeping any `:delete`/`:rename` suffix
-/// so the action stays legible. Once the stats view is scoped to a single session the session id is
-/// redundant on every row, so e.g. `<sessionId>/scripts/page-1/01.sql` renders as
-/// `scripts/page-1/01.sql` and `<sessionId>/scripts/page-1:rename` as `scripts/page-1:rename`.
-/// The bare session key collapses to an empty string. Keys that don't belong to the session are
+/// Strip the workbook-id prefix from a write key for display, keeping any `:delete`/`:rename` suffix
+/// so the action stays legible. Once the stats view is scoped to a single workbook the workbook id is
+/// redundant on every row, so e.g. `<workbookId>/scripts/page-1/01.sql` renders as
+/// `scripts/page-1/01.sql` and `<workbookId>/scripts/page-1:rename` as `scripts/page-1:rename`.
+/// The bare workbook key collapses to an empty string. Keys that don't belong to the workbook are
 /// returned unchanged.
-export function storageWriteKeyWithinSession(key: StorageWriteKey, sessionId: string): string {
-    if (!storageWriteKeyBelongsToSession(key, sessionId)) {
+export function storageWriteKeyWithinWorkbook(key: StorageWriteKey, workbookId: string): string {
+    if (!storageWriteKeyBelongsToWorkbook(key, workbookId)) {
         return key;
     }
-    return key === sessionId ? '' : key.slice(sessionId.length + 1);
+    return key === workbookId ? '' : key.slice(workbookId.length + 1);
 }
 
 /// The outcome of a scheduled write
@@ -186,13 +186,13 @@ export type StorageWriteResult =
     | { status: 'superseded' }
     /// The task was discarded before it was executed
     | { status: 'cancelled' }
-    /// The writer or the session is paused, the task stays pending and is executed on resume
+    /// The writer or the workbook is paused, the task stays pending and is executed on resume
     | { status: 'deferred' }
     /// Executing the task failed
     | { status: 'failed'; error: unknown };
 
 /// The chain key of a write key, tasks with the same chain key are executed one after another.
-/// Session keys chain per session (`<sessionId>/…`), so mutations and their index rebuilds cannot
+/// Workbook keys chain per workbook (`<workbookId>/…`), so mutations and their index rebuilds cannot
 /// overlap. Global keys start with `@` and chain per entity
 /// (`@manifest/…`, `@connections/<id>/…`).
 export function storageWriteChainKey(key: StorageWriteKey): string {
@@ -232,35 +232,35 @@ export interface StorageWriterStatistics {
 export type StorageWriteStatisticsMap = Immutable.Map<StorageWriteKey, StorageWriterStatistics>;
 export type StorageWriteStatisticsSubscriber = (stats: StorageWriteStatisticsMap) => void;
 
-/// A session whose files are not available, e.g. a native folder that was moved or deleted
-export class SessionUnavailableError extends Error {
-    /// The session id
-    readonly sessionId: string;
+/// A workbook whose files are not available, e.g. a native folder that was moved or deleted
+export class WorkbookUnavailableError extends Error {
+    /// The workbook id
+    readonly workbookId: string;
 
-    constructor(sessionId: string, cause: unknown) {
-        super(`session ${sessionId} is not available: ${stringifyError(cause)}`);
-        this.name = 'SessionUnavailableError';
-        this.sessionId = sessionId;
+    constructor(workbookId: string, cause: unknown) {
+        super(`workbook ${workbookId} is not available: ${stringifyError(cause)}`);
+        this.name = 'WorkbookUnavailableError';
+        this.workbookId = workbookId;
     }
 }
 
 /// Subscriber for scripts that changed outside the app
-export type ExternalScriptChangeSubscriber = (sessionId: string) => void;
+export type ExternalScriptChangeSubscriber = (workbookId: string) => void;
 
-/// Replace the copies of a connection's params in a session.
+/// Replace the copies of a connection's params in a workbook.
 /// References of the replaced connections (connections that were merged into this one) are rewritten
-/// to the connection id. Returns null when the session doesn't reference the connection or the copies
+/// to the connection id. Returns null when the workbook doesn't reference the connection or the copies
 /// are up to date.
-export function patchSessionConnection(session: SessionData, copy: SessionConnection, replaced: readonly string[] = []): SessionData | null {
+export function patchWorkbookConnection(workbook: WorkbookData, copy: WorkbookConnection, replaced: readonly string[] = []): WorkbookData | null {
     const connectionId = copy.connectionId;
     const references = (id: string) => id === connectionId || replaced.includes(id);
-    const next: SessionData = {
-        ...session,
-        connections: dedupeConnections(session.connections.map(connection =>
+    const next: WorkbookData = {
+        ...workbook,
+        connections: dedupeConnections(workbook.connections.map(connection =>
             references(connection.connectionId) ? copy : connection)),
-        scripts: session.scripts.map(script => replaced.includes(script.connectionId) ? { ...script, connectionId } : script),
+        scripts: workbook.scripts.map(script => replaced.includes(script.connectionId) ? { ...script, connectionId } : script),
     };
-    return sessionManifestEquals(session, next) ? null : next;
+    return workbookManifestEquals(workbook, next) ? null : next;
 }
 
 /// Drop connections that an earlier connection of the list references already.
@@ -302,10 +302,10 @@ export class StorageWriter {
     statisticsSubscribers: Set<StorageWriteStatisticsSubscriber>;
     /// Is the writer paused? While paused, debounced timers don't process tasks.
     paused: boolean;
-    /// Sessions temporarily held by external reload/conflict handling.
-    pausedSessions: Set<string>;
-    /// Deleted sessions, writes for them are discarded until a session with the id is registered again.
-    deletedSessions: Set<string>;
+    /// Workbooks temporarily held by external reload/conflict handling.
+    pausedWorkbooks: Set<string>;
+    /// Deleted workbooks, writes for them are discarded until a workbook with the id is registered again.
+    deletedWorkbooks: Set<string>;
     /// The executions that are currently in flight (used by flush() to await completion).
     inFlight: Set<Promise<void>>;
     /// Latest execution per chain key, so mutations and their index rebuilds cannot overlap.
@@ -323,8 +323,8 @@ export class StorageWriter {
         this.statistics = Immutable.Map();
         this.statisticsSubscribers = new Set();
         this.paused = false;
-        this.pausedSessions = new Set();
-        this.deletedSessions = new Set();
+        this.pausedWorkbooks = new Set();
+        this.deletedWorkbooks = new Set();
         this.inFlight = new Set();
         this.chainExecutions = new Map();
         this.externalChangeSubscribers = new Set();
@@ -349,7 +349,7 @@ export class StorageWriter {
         }
         this.paused = false;
         for (const [key, task] of this.pendingTasks) {
-            if ([...this.pausedSessions].some(sessionId => storageWriteKeyBelongsToSession(key, sessionId))) {
+            if ([...this.pausedWorkbooks].some(workbookId => storageWriteKeyBelongsToWorkbook(key, workbookId))) {
                 continue;
             }
             task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
@@ -381,38 +381,38 @@ export class StorageWriter {
         return this.statistics;
     }
 
-    public pauseSession(sessionId: string): void {
-        this.pausedSessions.add(sessionId);
+    public pauseWorkbook(workbookId: string): void {
+        this.pausedWorkbooks.add(workbookId);
         for (const [key, task] of this.pendingTasks) {
-            if (storageWriteKeyBelongsToSession(key, sessionId)) {
+            if (storageWriteKeyBelongsToWorkbook(key, workbookId)) {
                 clearTimeout(task.timer);
             }
         }
     }
 
-    public resumeSession(sessionId: string): void {
-        if (!this.pausedSessions.delete(sessionId) || this.paused) {
+    public resumeWorkbook(workbookId: string): void {
+        if (!this.pausedWorkbooks.delete(workbookId) || this.paused) {
             return;
         }
         for (const [key, task] of this.pendingTasks) {
-            if (storageWriteKeyBelongsToSession(key, sessionId)) {
+            if (storageWriteKeyBelongsToWorkbook(key, workbookId)) {
                 task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
             }
         }
     }
 
-    /// Pending write keys below a session id. This is intentionally prefix-based: every writer key
-    /// is rooted at the session id, including the delete/rename action namespaces.
-    public getPendingKeysForSession(sessionId: string, include: (key: string) => boolean = () => true): string[] {
-        return [...this.pendingTasks.keys()].filter(key => storageWriteKeyBelongsToSession(key, sessionId) && include(key));
+    /// Pending write keys below a workbook id. This is intentionally prefix-based: every writer key
+    /// is rooted at the workbook id, including the delete/rename action namespaces.
+    public getPendingKeysForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): string[] {
+        return [...this.pendingTasks.keys()].filter(key => storageWriteKeyBelongsToWorkbook(key, workbookId) && include(key));
     }
 
-    /// Discard pending writes for a session, resolving their promises as not executed. Used only
+    /// Discard pending writes for a workbook, resolving their promises as not executed. Used only
     /// after the user explicitly chooses an externally-written disk version over local debounced
     /// edits. Writes already in flight cannot be cancelled and are handled by settle().
-    public cancelPendingWritesForSession(sessionId: string, include: (key: string) => boolean = () => true): void {
+    public cancelPendingWritesForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): void {
         for (const [key, task] of this.pendingTasks) {
-            if (!storageWriteKeyBelongsToSession(key, sessionId) || !include(key)) {
+            if (!storageWriteKeyBelongsToWorkbook(key, workbookId) || !include(key)) {
                 continue;
             }
             clearTimeout(task.timer);
@@ -433,45 +433,45 @@ export class StorageWriter {
         }
     }
 
-    /// Delete a session from the storage.
-    /// The pending writes of the session are discarded and writes that already started finish first,
-    /// no write recreates files of the deleted session afterwards.
-    public async deleteSession(sessionId: string): Promise<void> {
-        this.deletedSessions.add(sessionId);
-        this.cancelPendingWritesForSession(sessionId);
+    /// Delete a workbook from the storage.
+    /// The pending writes of the workbook are discarded and writes that already started finish first,
+    /// no write recreates files of the deleted workbook afterwards.
+    public async deleteWorkbook(workbookId: string): Promise<void> {
+        this.deletedWorkbooks.add(workbookId);
+        this.cancelPendingWritesForWorkbook(workbookId);
         await this.settle();
         try {
-            await this.backend.deleteSession(sessionId);
+            await this.backend.deleteWorkbook(workbookId);
         } catch (error) {
-            // The session stays in the storage, it may be written again
-            this.deletedSessions.delete(sessionId);
+            // The workbook stays in the storage, it may be written again
+            this.deletedWorkbooks.delete(workbookId);
             throw error;
         }
-        this.logger.info("Deleted session", { sessionId }, LOG_CTX);
+        this.logger.info("Deleted workbook", { workbookId }, LOG_CTX);
     }
 
-    /// A session with the id of a deleted session was registered again, e.g. by importing the same bundle.
+    /// A workbook with the id of a deleted workbook was registered again, e.g. by importing the same bundle.
     /// Writes for the id are accepted again, the writes discarded while it was deleted stay discarded.
-    public reviveSession(sessionId: string): void {
-        this.deletedSessions.delete(sessionId);
+    public reviveWorkbook(workbookId: string): void {
+        this.deletedWorkbooks.delete(workbookId);
     }
 
-    /// Is a session held, e.g. after one of its scripts changed outside the app?
-    /// Its writes stay pending until the session resumes.
-    public isSessionPaused(sessionId: string): boolean {
-        return this.paused || this.pausedSessions.has(sessionId);
+    /// Is a workbook held, e.g. after one of its scripts changed outside the app?
+    /// Its writes stay pending until the workbook resumes.
+    public isWorkbookPaused(workbookId: string): boolean {
+        return this.paused || this.pausedWorkbooks.has(workbookId);
     }
 
-    /// Write the pending tasks of a session right away and wait until they are persisted.
+    /// Write the pending tasks of a workbook right away and wait until they are persisted.
     ///
-    /// Resolves true when every pending write of the session reached the storage. A held writer or
-    /// session keeps its writes pending and resolves false. Unlike flush(), a held session is never
+    /// Resolves true when every pending write of the workbook reached the storage. A held writer or
+    /// workbook keeps its writes pending and resolves false. Unlike flush(), a held workbook is never
     /// forced, its writes would overwrite the external change. A failed write stays pending as well,
     /// unless a newer write of its key replaced it, and the next flush writes it again.
-    public async flushSession(sessionId: string): Promise<boolean> {
-        if (this.isSessionPaused(sessionId)) return false;
+    public async flushWorkbook(workbookId: string): Promise<boolean> {
+        if (this.isWorkbookPaused(workbookId)) return false;
         const failed = new Map<StorageWriteKey, AsyncStorageWriteTask>();
-        for (const key of this.getPendingKeysForSession(sessionId)) {
+        for (const key of this.getPendingKeysForWorkbook(workbookId)) {
             const task = this.pendingTasks.get(key);
             if (task == null) continue;
             const resolve = task.resolveLatestTask;
@@ -489,8 +489,8 @@ export class StorageWriter {
             task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
             this.pendingTasks.set(key, task);
         }
-        // A write that would overwrite an external change pauses the session and stays pending
-        return failed.size === 0 && !this.isSessionPaused(sessionId);
+        // A write that would overwrite an external change pauses the workbook and stays pending
+        return failed.size === 0 && !this.isWorkbookPaused(workbookId);
     }
 
     /// Wait for writes that have already started without flushing pending debounced work.
@@ -500,10 +500,10 @@ export class StorageWriter {
         }
     }
 
-    public getSessionWriteGeneration(sessionId: string, include: (key: string) => boolean = () => true): number {
+    public getWorkbookWriteGeneration(workbookId: string, include: (key: string) => boolean = () => true): number {
         let generation = 0;
         for (const [key, value] of this.writeKeyGenerations) {
-            if (storageWriteKeyBelongsToSession(key, sessionId) && include(key)) {
+            if (storageWriteKeyBelongsToWorkbook(key, workbookId) && include(key)) {
                 generation = Math.max(generation, value);
             }
         }
@@ -534,7 +534,7 @@ export class StorageWriter {
     /// Write without debouncing and wait until the content is persisted.
     ///
     /// The task replaces any pending task with the same key and is executed right away, chained after
-    /// running tasks of the same chain key. A paused writer or session resolves with `deferred` and
+    /// running tasks of the same chain key. A paused writer or workbook resolves with `deferred` and
     /// keeps the task pending, it is executed on resume.
     public writeDurable(key: string, task: StorageWriteTaskVariant): Promise<StorageWriteResult> {
         const result = this.schedule(key, task, 0);
@@ -549,14 +549,14 @@ export class StorageWriter {
         return result;
     }
 
-    /// Is a key held by a paused writer or a paused session?
+    /// Is a key held by a paused writer or a paused workbook?
     protected isPausedKey(key: string): boolean {
-        return this.paused || [...this.pausedSessions].some(sessionId => storageWriteKeyBelongsToSession(key, sessionId));
+        return this.paused || [...this.pausedWorkbooks].some(workbookId => storageWriteKeyBelongsToWorkbook(key, workbookId));
     }
 
     protected schedule(key: string, task: StorageWriteTaskVariant, debounceFor: number): Promise<StorageWriteResult> {
-        // Writes that were queued while a session was deleted must not recreate its files
-        if ([...this.deletedSessions].some(sessionId => storageWriteKeyBelongsToSession(key, sessionId))) {
+        // Writes that were queued while a workbook was deleted must not recreate its files
+        if ([...this.deletedWorkbooks].some(workbookId => storageWriteKeyBelongsToWorkbook(key, workbookId))) {
             return Promise.resolve({ status: 'cancelled' });
         }
         this.writeKeyGenerations.set(key, this.nextWriteGeneration++);
@@ -634,11 +634,11 @@ export class StorageWriter {
         }
     }
 
-    /// Keep a write that would overwrite an external change pending and pause its session.
-    /// The subscribers decide between the disk and the app, then resume the session.
+    /// Keep a write that would overwrite an external change pending and pause its workbook.
+    /// The subscribers decide between the disk and the app, then resume the workbook.
     protected holdExternallyChangedWrite(key: string, task: AsyncStorageWriteTask, error: ExternalScriptChangeError) {
-        this.logger.warn("script changed outside the app, holding the write", { key, sessionId: error.sessionId, file: error.fileName }, LOG_CTX);
-        this.pauseSession(error.sessionId);
+        this.logger.warn("script changed outside the app, holding the write", { key, workbookId: error.workbookId, file: error.fileName }, LOG_CTX);
+        this.pauseWorkbook(error.workbookId);
         if (this.pendingTasks.has(key)) {
             // A newer task with the same key was scheduled while this one was executing
             task.resolveLatestTask({ status: 'superseded' });
@@ -646,7 +646,7 @@ export class StorageWriter {
             this.pendingTasks.set(key, task);
         }
         for (const subscriber of this.externalChangeSubscribers) {
-            subscriber(error.sessionId);
+            subscriber(error.workbookId);
         }
     }
 
@@ -687,33 +687,33 @@ export class StorageWriter {
         this.updateStatistics(stats);
     }
 
-    /// The backend as session registry, connection writes need one
-    protected requireRegistry(): SessionRegistryBackend {
-        if (!isSessionRegistryBackend(this.backend)) {
-            throw new Error('the storage backend does not own a session registry');
+    /// The backend as workbook registry, connection writes need one
+    protected requireRegistry(): WorkbookRegistryBackend {
+        if (!isWorkbookRegistryBackend(this.backend)) {
+            throw new Error('the storage backend does not own a workbook registry');
         }
         return this.backend;
     }
 
-    /// Patch an existing session file, the write is skipped when nothing changed.
+    /// Patch an existing workbook file, the write is skipped when nothing changed.
     /// A missing file is not recreated, a moved native folder would otherwise come back as a new one.
-    private async patchSessionFile(key: string, sessionId: string, patch: (session: SessionData) => SessionData): Promise<void> {
-        let existing: SessionData;
+    private async patchWorkbookFile(key: string, workbookId: string, patch: (workbook: WorkbookData) => WorkbookData): Promise<void> {
+        let existing: WorkbookData;
         try {
-            existing = await this.backend.loadSession(sessionId);
+            existing = await this.backend.loadWorkbook(workbookId);
         } catch (e: any) {
-            throw new SessionUnavailableError(sessionId, e);
+            throw new WorkbookUnavailableError(workbookId, e);
         }
         const next = patch(existing);
-        if (sessionManifestEquals(existing, next)) return;
-        this.logger.info("Patching session", { key, sessionId }, LOG_CTX);
-        await this.saveSessionFile(sessionId, next);
+        if (workbookManifestEquals(existing, next)) return;
+        this.logger.info("Patching workbook", { key, workbookId }, LOG_CTX);
+        await this.saveWorkbookFile(workbookId, next);
     }
 
-    /// Save the session file of a session and record the write
-    private async saveSessionFile(sessionId: string, session: SessionData): Promise<void> {
-        const text = JSON.stringify(session, null, 2);
-        await this.timedWrite(`${sessionId}/${STORAGE_SESSION_FILE}`, text, () => this.backend.saveSessionManifest(sessionId, session));
+    /// Save the workbook file of a workbook and record the write
+    private async saveWorkbookFile(workbookId: string, workbook: WorkbookData): Promise<void> {
+        const text = JSON.stringify(workbook, null, 2);
+        await this.timedWrite(`${workbookId}/${STORAGE_WORKBOOK_FILE}`, text, () => this.backend.saveWorkbookManifest(workbookId, workbook));
     }
 
     /// Write a file and record the write with its duration
@@ -725,61 +725,61 @@ export class StorageWriter {
 
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
         switch (task.type) {
-            case WRITE_SESSION_MANIFEST: {
-                const [sessionId, connections, created] = task.value;
-                this.logger.info("Writing session", {
+            case WRITE_WORKBOOK_MANIFEST: {
+                const [workbookId, connections, created] = task.value;
+                this.logger.info("Writing workbook", {
                     key,
-                    sessionId,
+                    workbookId,
                 }, LOG_CTX);
 
                 // Load whatever is already on disk so we can (a) preserve the original createdAt
                 // instead of churning a fresh timestamp on every write, and (b) skip the write
-                // entirely when nothing actually changed. WRITE_SESSION_MANIFEST is scheduled on
+                // entirely when nothing actually changed. WRITE_WORKBOOK_MANIFEST is scheduled on
                 // every connection-state change, so most of these tasks rewrite identical content.
-                let existingSession: SessionData | null = null;
+                let existingWorkbook: WorkbookData | null = null;
                 try {
-                    existingSession = await this.backend.loadSession(sessionId);
+                    existingWorkbook = await this.backend.loadWorkbook(workbookId);
                 } catch {
-                    existingSession = null;
+                    existingWorkbook = null;
                 }
 
-                // For now, create minimal session metadata
-                const sessionMetadata: StorageSessionMetadata = {
-                    ...existingSession?.metadata,
-                    createdAt: existingSession?.metadata?.createdAt ?? new Date().toISOString(),
+                // For now, create minimal workbook metadata
+                const workbookMetadata: StorageWorkbookMetadata = {
+                    ...existingWorkbook?.metadata,
+                    createdAt: existingWorkbook?.metadata?.createdAt ?? new Date().toISOString(),
                     ...(created?.ephemeral ? { ephemeral: true } : {}),
                 };
 
-                // sessionPath is a display-only field, recomputed from the UUID + location for
+                // workbookPath is a display-only field, recomputed from the UUID + location for
                 // the UI; we don't persist it here. storageType/nativePath are stamped by the
-                // composite backend, which knows the session's physical location.
+                // composite backend, which knows the workbook's physical location.
                 // The given connections replace the copies on disk, the scripts keep theirs
-                const connData: SessionData = withSessionScripts({
-                    formatVersion: SESSION_FORMAT_VERSION,
-                    sessionId,
-                    ...(existingSession?.name ? { name: existingSession.name } : {}),
+                const connData: WorkbookData = withWorkbookScripts({
+                    formatVersion: WORKBOOK_FORMAT_VERSION,
+                    workbookId,
+                    ...(existingWorkbook?.name ? { name: existingWorkbook.name } : {}),
                     connections: [],
                     scripts: [],
-                    attachments: existingSession?.attachments ?? [],
-                    metadata: sessionMetadata,
-                }, existingSession?.scripts ?? [], [...connections, ...existingSession?.connections ?? []]);
+                    attachments: existingWorkbook?.attachments ?? [],
+                    metadata: workbookMetadata,
+                }, existingWorkbook?.scripts ?? [], [...connections, ...existingWorkbook?.connections ?? []]);
 
                 // Skip the write if the persisted manifest already matches what we'd write.
-                if (existingSession != null && sessionManifestEquals(existingSession, connData)) {
-                    this.logger.debug("Skipping session write: manifest unchanged", {
-                        sessionId,
+                if (existingWorkbook != null && workbookManifestEquals(existingWorkbook, connData)) {
+                    this.logger.debug("Skipping workbook write: manifest unchanged", {
+                        workbookId,
                         connectionIds: connections.map(connection => connection.connectionId).join(','),
                     }, LOG_CTX);
                     break;
                 }
 
-                await this.saveSessionFile(sessionId, connData);
+                await this.saveWorkbookFile(workbookId, connData);
                 break;
             }
-            case WRITE_SESSION_PROPERTIES: {
-                const [sessionId, { name, ephemeral }] = task.value;
-                await this.patchSessionFile(key, sessionId, existing => {
-                    const next: SessionData = { ...existing };
+            case WRITE_WORKBOOK_PROPERTIES: {
+                const [workbookId, { name, ephemeral }] = task.value;
+                await this.patchWorkbookFile(key, workbookId, existing => {
+                    const next: WorkbookData = { ...existing };
                     if (name) next.name = name;
                     else delete next.name;
                     if (!ephemeral && next.metadata?.ephemeral != null) {
@@ -790,71 +790,71 @@ export class StorageWriter {
                 });
                 break;
             }
-            case REPLACE_SESSION_SCRIPTS: {
-                const session = task.value;
-                const sessionId = session.sessionId;
-                this.logger.info("Creating session", {
+            case REPLACE_WORKBOOK_SCRIPTS: {
+                const workbook = task.value;
+                const workbookId = workbook.workbookId;
+                this.logger.info("Creating workbook", {
                     key,
-                    sessionId,
+                    workbookId,
                 }, LOG_CTX);
 
-                for (const script of session.scripts) {
+                for (const script of workbook.scripts) {
                     const sql = script.readText();
-                    await this.timedWrite(`${sessionId}/scripts/${script.fileName}`, sql, () => this.backend.saveScript(sessionId, script.fileName, sql));
+                    await this.timedWrite(`${workbookId}/scripts/${script.fileName}`, sql, () => this.backend.saveScript(workbookId, script.fileName, sql));
                 }
 
-                // Save session last so it never references content that doesn't exist yet.
+                // Save workbook last so it never references content that doesn't exist yet.
                 // Preserve the original createdAt across rewrites; only stamp it on the first write.
-                let connections: SessionData['connections'];
+                let connections: WorkbookData['connections'];
                 let createdAt: string;
-                // Preserve the user-supplied name across a session rewrite: this path rebuilds the
-                // whole manifest from session scripts, which carry no name, so we must carry over
+                // Preserve the user-supplied name across a workbook rewrite: this path rebuilds the
+                // whole manifest from workbook scripts, which carry no name, so we must carry over
                 // whatever the user already set on disk.
                 let existingName: string | undefined;
-                let existingMetadata: StorageSessionMetadata | undefined;
-                let existingAttachments: SessionData['attachments'] = [];
-                let existingScripts: SessionData['scripts'] = [];
+                let existingMetadata: StorageWorkbookMetadata | undefined;
+                let existingAttachments: WorkbookData['attachments'] = [];
+                let existingScripts: WorkbookData['scripts'] = [];
                 try {
-                    const existingSession = await this.backend.loadSession(sessionId);
-                    existingScripts = existingSession.scripts ?? [];
-                    connections = existingSession.connections;
-                    createdAt = existingSession.metadata?.createdAt ?? new Date().toISOString();
-                    existingName = existingSession.name;
-                    existingMetadata = existingSession.metadata;
-                    existingAttachments = existingSession.attachments ?? [];
+                    const existingWorkbook = await this.backend.loadWorkbook(workbookId);
+                    existingScripts = existingWorkbook.scripts ?? [];
+                    connections = existingWorkbook.connections;
+                    createdAt = existingWorkbook.metadata?.createdAt ?? new Date().toISOString();
+                    existingName = existingWorkbook.name;
+                    existingMetadata = existingWorkbook.metadata;
+                    existingAttachments = existingWorkbook.attachments ?? [];
                 } catch {
-                    connections = session.connection == null ? [] : [session.connection];
+                    connections = workbook.connection == null ? [] : [workbook.connection];
                     createdAt = new Date().toISOString();
                 }
 
-                const sessionMetadata: StorageSessionMetadata = {
+                const workbookMetadata: StorageWorkbookMetadata = {
                     ...existingMetadata,
-                    originalFileName: session.originalFileName,
+                    originalFileName: workbook.originalFileName,
                     createdAt,
                 };
 
-                const connData: SessionData = withSessionScripts({
-                    formatVersion: SESSION_FORMAT_VERSION,
-                    sessionId,
-                    ...(session.name ? { name: session.name } : existingName ? { name: existingName } : {}),
+                const connData: WorkbookData = withWorkbookScripts({
+                    formatVersion: WORKBOOK_FORMAT_VERSION,
+                    workbookId,
+                    ...(workbook.name ? { name: workbook.name } : existingName ? { name: existingName } : {}),
                     connections,
                     scripts: [],
                     attachments: existingAttachments,
-                    metadata: sessionMetadata,
+                    metadata: workbookMetadata,
                 }, existingScripts);
 
-                await this.saveSessionFile(sessionId, connData);
+                await this.saveWorkbookFile(workbookId, connData);
                 break;
             }
-            case WRITE_SESSION_SCRIPTS: {
-                const [sessionId, list] = task.value;
-                await this.patchSessionFile(key, sessionId, session => withSessionScripts(session, list.scripts, list.connections));
+            case WRITE_WORKBOOK_SCRIPTS: {
+                const [workbookId, list] = task.value;
+                await this.patchWorkbookFile(key, workbookId, workbook => withWorkbookScripts(workbook, list.scripts, list.connections));
                 break;
             }
-            case REFRESH_SESSION_ATTACHMENTS: {
-                const sessionId = task.value;
-                const attachments = sessionAttachments((await this.backend.listDataFiles(sessionId)).map(file => file.name));
-                await this.patchSessionFile(key, sessionId, session => ({ ...session, attachments }));
+            case REFRESH_WORKBOOK_ATTACHMENTS: {
+                const workbookId = task.value;
+                const attachments = workbookAttachments((await this.backend.listDataFiles(workbookId)).map(file => file.name));
+                await this.patchWorkbookFile(key, workbookId, workbook => ({ ...workbook, attachments }));
                 break;
             }
             case WRITE_CONNECTION_ENTRY: {
@@ -884,44 +884,44 @@ export class StorageWriter {
                 await this.timedWrite(`@${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${fileName}`, text, () => registry.saveConnectionFile(connectionId, fileName, text));
                 break;
             }
-            case PATCH_SESSION_CONNECTION: {
-                const [sessionId, copy, replaced] = task.value;
-                // The copy is only patched into an existing session file. A missing file must not be
+            case PATCH_WORKBOOK_CONNECTION: {
+                const [workbookId, copy, replaced] = task.value;
+                // The copy is only patched into an existing workbook file. A missing file must not be
                 // recreated, a moved native folder would otherwise silently come back as a new one.
-                await this.patchSessionFile(key, sessionId, existing => patchSessionConnection(existing, copy, replaced) ?? existing);
+                await this.patchWorkbookFile(key, workbookId, existing => patchWorkbookConnection(existing, copy, replaced) ?? existing);
                 break;
             }
             case WRITE_SCRIPT: {
-                const [sessionId, fileName, sql] = task.value;
+                const [workbookId, fileName, sql] = task.value;
 
-                this.logger.info("Writing session script", {
+                this.logger.info("Writing workbook script", {
                     key,
-                    sessionId,
+                    workbookId,
                     file: fileName,
                 }, LOG_CTX);
 
-                await this.timedWrite(`${sessionId}/scripts/${fileName}`, sql, () => this.backend.saveScript(sessionId, fileName, sql));
+                await this.timedWrite(`${workbookId}/scripts/${fileName}`, sql, () => this.backend.saveScript(workbookId, fileName, sql));
                 break;
             }
             case DELETE_SCRIPT: {
-                const [sessionId, scriptName] = task.value;
-                this.logger.info("Deleting session script", {
+                const [workbookId, scriptName] = task.value;
+                this.logger.info("Deleting workbook script", {
                     task: key,
-                    sessionId,
+                    workbookId,
                     scriptName,
                 }, LOG_CTX);
-                await this.backend.deleteScript(sessionId, scriptName);
+                await this.backend.deleteScript(workbookId, scriptName);
                 break;
             }
             case RENAME_SCRIPT: {
-                const [sessionId, oldScriptName, newScriptName] = task.value;
-                this.logger.info("Renaming session script", {
+                const [workbookId, oldScriptName, newScriptName] = task.value;
+                this.logger.info("Renaming workbook script", {
                     task: key,
-                    sessionId,
+                    workbookId,
                     oldScriptName,
                     newScriptName,
                 }, LOG_CTX);
-                await this.backend.renameScript(sessionId, oldScriptName, newScriptName);
+                await this.backend.renameScript(workbookId, oldScriptName, newScriptName);
                 break;
             }
         }

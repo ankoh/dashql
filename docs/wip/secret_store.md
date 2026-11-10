@@ -20,12 +20,12 @@ CALL cdp.connection_create (
 
 ## Scalar parameters today
 
-See [Session Inputs](../design/session_inputs.md).
+See [Workbook Inputs](../design/workbook_inputs.md).
 
 - `:name` uses a parameter, in a query or in a `CALL`.
 - `@param :name = <literal>` in a comment holds its value. `@param :name` leaves it unset.
-- The named parameters of a session's scripts are its inputs, shown as cards. A changed card writes the value into the `@param` tag of every script that uses it, also when a script is exported.
-- A script binds the value of its own tag, and the value of the session otherwise.
+- The named parameters of a workbook's scripts are its inputs, shown as cards. A changed card writes the value into the `@param` tag of every script that uses it, also when a script is exported.
+- A script binds the value of its own tag, and the value of the workbook otherwise.
 - The planner inlines the value as a literal, so it's in the SQL text sent to a backend and in the query history. The signature of a script holds it as well (`:min=10`), and so do its result keys.
 - A client function `CALL` gets a null plus a binding from the core, and the runtime fills in the value from `env.params`.
 
@@ -34,10 +34,10 @@ See [Session Inputs](../design/session_inputs.md).
 A script's value still comes first. The store is the last place to look:
 
 1. The script's own `@param` tag.
-2. The value of the session.
+2. The value of the workbook.
 3. The secret store.
 
-A value from the script or the session shadows a key of the same name, and that shows a warning.
+A value from the script or the workbook shadows a key of the same name, and that shows a warning.
 
 **The UI** is a dedicated tab in the internals overlay, with the `shield_lock_24` icon. It's a list of keys and values.
 

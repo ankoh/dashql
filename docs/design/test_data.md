@@ -4,7 +4,7 @@ dashql needs real data to demo against. Example schemas and queries are static S
 CSV/Parquet is committed anywhere.
 
 `data.dashql.app` hosts real test datasets (à la
-[vega-datasets](https://github.com/vega/vega-datasets)) that sessions can query over HTTP.
+[vega-datasets](https://github.com/vega/vega-datasets)) that workbooks can query over HTTP.
 
 ## Design constraints
 
@@ -19,7 +19,7 @@ CSV/Parquet is committed anywhere.
   subcommand of `dashql-pack` (which owns get.dashql.app: git/semver/minisign/channels). They
   share only ~10 lines of S3-client setup, intentionally duplicated rather than coupled, so the
   release pipeline stays untouched and de-risked.
-- **Immutable versioned paths** on R2, so old sessions keep working and CDN caching is safe.
+- **Immutable versioned paths** on R2, so old workbooks keep working and CDN caching is safe.
 
 ### Why it's hermetic
 
@@ -196,7 +196,7 @@ generator.
 2. Add the generated `http_file` repo of each source to `use_repo(dashql_datasets, …)` in
    `MODULE.bazel`. The repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`.
 3. Pin the source hash (`shasum -a 256`, or `scripts/update_bazel_hashes.py`).
-4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old sessions
+4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old workbooks
    keep working against the old version.
 5. `bazel run //packages/dashql-datasets:sync` (or trigger the workflow).
 

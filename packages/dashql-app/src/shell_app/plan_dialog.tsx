@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
-import * as themes from '../session/editor/themes/index.js';
+import * as themes from '../workbook/editor/themes/index.js';
 
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { type Extension } from '@codemirror/state';
@@ -9,7 +9,7 @@ import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view
 import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
 import { rotateProfileLayoutOrientation } from '../views/query_profile/profile_layout_config.js';
 import { ProfileExecutionState } from '../query/profile_execution_state.js';
-import { CodeMirror } from '../session/editor/codemirror.js';
+import { CodeMirror } from '../workbook/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { useFocusTrap } from '../ui/foundations/focus.js';

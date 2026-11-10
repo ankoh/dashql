@@ -39,7 +39,7 @@ marks interactive elements and `data-electron-drag-region="false"` subtrees as `
 region: the box of every element with an app region in tree order, where later boxes win, and without the clip of a
 scroll container. Content that scrolled out of view therefore still counts behind whatever covers it. A bar with
 `no-drag` content scrolling behind it has to come after that content in the DOM, or the content cuts holes into the
-bar. This is why the stripe at the top (`navbar.tsx`) and the view bar of a session (`session_feed_page.tsx`) come
+bar. This is why the stripe at the top (`navbar.tsx`) and the view bar of a workbook (`workbook_feed_page.tsx`) come
 last. Grid placement moves them back up, and `reading-flow: source-order` with `reading-order: -1` puts them first for
 the keyboard and screen readers. Firefox has no `reading-flow` and follows the DOM. `reading-flow: grid-rows` did not
 reorder the focus on the live page, although it does in a minimal grid. Layers that cover a bar stay above it by going through `Portal`, which ends up after
@@ -109,11 +109,11 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | Capability | Implementation |
 |---|---|
 | Single instance | `app.requestSingleInstanceLock()` |
-| Deep links | `dashql://` registered as protocol client and in `CFBundleURLTypes`; `open-url`, `second-instance` and cold-start argv go through `src/deep_link.ts`. It accepts `dashql://localhost`, `https://dashql.app` and `http://localhost:9002` links with exactly one `data` or `session` parameter (legacy `notebook`), up to 64 KiB. `DeepLinkQueue` buffers links until the renderer asks for them. |
+| Deep links | `dashql://` registered as protocol client and in `CFBundleURLTypes`; `open-url`, `second-instance` and cold-start argv go through `src/deep_link.ts`. It accepts `dashql://localhost`, `https://dashql.app` and `http://localhost:9002` links with exactly one `data`, `zip` or `workbook` parameter (legacy `session` and `notebook`), up to 64 KiB. `DeepLinkQueue` buffers links until the renderer asks for them. |
 | Dialogs | `dashql:open-directory` and a two-button `dashql:confirm` |
 | Filesystem | `dashql:fs` (exists, fileStamp, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile) for absolute paths without NUL; `fileStamp`, `listFiles` and `writeTextFile` return sizes and modification times; app wrapper `platform/electron_fs.ts` |
-| Folder grants | `dashql:fs` reaches only folders the user picked in `dashql:open-directory` (`src/folder_grants.ts`), stored as a JSON list of real paths in `userData/folder-grants.json`. Paths resolve through symbolic links and must stay inside a granted folder; the probes `exists`, `fileStamp` and `listFiles` report other paths as missing, the other operations reject them. A granted folder itself is never removed or renamed. On the first start with grants, `dashql:claim-session-folder` grants the session folders that the manifest already registers, if they hold `dashql-session.json` or `dashql-notebook.json`. |
-| Session folder changes | No file watching; the renderer checks session folders on window focus and before script writes, see `native_file_sync.md` |
+| Folder grants | `dashql:fs` reaches only folders the user picked in `dashql:open-directory` (`src/folder_grants.ts`), stored as a JSON list of real paths in `userData/folder-grants.json`. Paths resolve through symbolic links and must stay inside a granted folder; the probes `exists`, `fileStamp` and `listFiles` report other paths as missing, the other operations reject them. A granted folder itself is never removed or renamed. On the first start with grants, `dashql:claim-workbook-folder` grants the workbook folders that the manifest already registers, if they hold `dashql-workbook.json`, `dashql-session.json` or `dashql-notebook.json`. |
+| Workbook folder changes | No file watching; the renderer checks workbook folders on window focus and before script writes, see `native_file_sync.md` |
 | Open external | `shell.openExternal` for `https:` URLs only |
 | OAuth loopback | Node HTTP server in main (`src/oauth_loopback.ts`), used by Trino; Salesforce uses the deep-link relay (`oauth_salesforce.md`) |
 | Drag and drop | Renderer DOM drop events, as on the web |
@@ -181,6 +181,6 @@ when they are gone, and without the third rule they stop receiving updates witho
 - Signed update manifests, staged rollout cohorts, a kill switch, and update failure tests.
 - Proxy request cancellation, backpressure, a startup timeout, response size bounds, and restart after a
   utility-process crash.
-- Open-file and save-file dialogs, revoking folder grants of removed sessions, and a renderer-to-main logger.
+- Open-file and save-file dialogs, revoking folder grants of removed workbooks, and a renderer-to-main logger.
 - Size, cold-start and memory measurements of release artifacts.
 - Windows and Linux packages.

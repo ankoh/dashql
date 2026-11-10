@@ -2,7 +2,7 @@ import type { Logger } from '../../platform/logger/logger.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { OPFS_MANIFEST_LOCK } from '../opfs_storage_backend.js';
 import { listSessionFolders, readManifestJson, writeManifestJson } from './storage_root.js';
-import { migrateSessionFolder, SessionMigrationResult } from './session_migration.js';
+import { migrateWorkbookFolder, WorkbookMigrationResult } from './workbook_migration.js';
 import { notebooksToSessions } from './storage/v2_notebooks_to_sessions.js';
 import { globalConnections } from './storage/v3_global_connections.js';
 import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_connections.js';
@@ -10,7 +10,8 @@ import { shellFolder } from './storage/v5_shell_folder.js';
 import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
 import { sessionTree } from './storage/v7_session_tree.js';
 import { dbcomConnector } from './storage/v8_dbcom_connector.js';
-import { flattenSessionTree, readSessionTree } from '../session_tree.js';
+import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';
+import { flattenWorkbookTree, readWorkbookTree } from '../workbook_tree.js';
 import { getOPFSRoot } from '../../platform/opfs_root.js';
 
 const LOG_CTX = 'storage_migration';
@@ -47,6 +48,7 @@ export const STORAGE_MIGRATION_STEPS: readonly StorageMigrationStep[] = [
     dropConnectionAliases,
     sessionTree,
     dbcomConnector,
+    sessionsToWorkbooks,
 ];
 
 /// What a storage migration changed
@@ -54,7 +56,7 @@ export interface StorageMigrationSummary {
     /// The storage steps that ran
     steps: number;
     /// The session folders that were brought to the current session format
-    sessions: number;
+    workbooks: number;
 }
 
 /// Run an operation while holding the manifest lock, which the tabs of the app share
@@ -75,7 +77,7 @@ export async function migrateStorage(
     steps: readonly StorageMigrationStep[] = STORAGE_MIGRATION_STEPS,
 ): Promise<StorageMigrationSummary> {
     const storageRoot = root ?? await getOPFSRoot();
-    const summary: StorageMigrationSummary = { steps: 0, sessions: 0 };
+    const summary: StorageMigrationSummary = { steps: 0, workbooks: 0 };
     await withManifestLock(async () => {
         let manifest = await readManifestJson(storageRoot);
         if (manifest == null) {
@@ -102,20 +104,20 @@ export async function migrateStorage(
             ++summary.steps;
         }
 
-        // The storage is current, the session tree registers the sessions
-        const sessionEntries = flattenSessionTree(await readSessionTree(storageRoot));
-        for (const { sessionId, folder } of await listSessionFolders(storageRoot, sessionEntries)) {
+        // The storage is current, the workbook tree registers the workbooks
+        const workbookEntries = flattenWorkbookTree(await readWorkbookTree(storageRoot));
+        for (const { sessionId: workbookId, folder } of await listSessionFolders(storageRoot, workbookEntries, 'workbooks')) {
             try {
-                const result = await migrateSessionFolder(folder);
-                if (result === SessionMigrationResult.Migrated) {
-                    logger.info('Migrated a session', { sessionId }, LOG_CTX);
-                    ++summary.sessions;
-                } else if (result !== SessionMigrationResult.Current) {
-                    logger.warn('Session cannot be migrated', { sessionId, result }, LOG_CTX);
+                const result = await migrateWorkbookFolder(folder);
+                if (result === WorkbookMigrationResult.Migrated) {
+                    logger.info('Migrated a session', { workbookId }, LOG_CTX);
+                    ++summary.workbooks;
+                } else if (result !== WorkbookMigrationResult.Current) {
+                    logger.warn('Session cannot be migrated', { workbookId, result }, LOG_CTX);
                 }
             } catch (error) {
                 // The session is surfaced as invalid when it is loaded
-                logger.warn('Failed to migrate a session', { sessionId, error: stringifyError(error) }, LOG_CTX);
+                logger.warn('Failed to migrate a session', { workbookId, error: stringifyError(error) }, LOG_CTX);
             }
         }
     });

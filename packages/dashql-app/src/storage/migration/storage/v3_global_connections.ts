@@ -1,9 +1,9 @@
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { connectionParamsEqual, connectionParamsKey, connectionParamsWithoutDraftRows } from '../../../connections/connection_params.js';
 import type { ConnectionEntry, ConnectionParams } from '../../storage_backend.js';
-import { isValidUuid } from '../../session_validation.js';
+import { isValidUuid } from '../../workbook_validation.js';
 import type { MigrationFolder } from '../migration_folder.js';
-import { migrateSessionFolder } from '../session_migration.js';
+import { migrateWorkbookFolder } from '../workbook_migration.js';
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { listSessionFolders, manifestSessionEntries, readManifestJson, writeManifestJson } from '../storage_root.js';
 
@@ -41,7 +41,7 @@ function dedupeAttachedDatabases(mainDatabaseId: string, attached: SessionDataba
 const LOG_CTX = 'storage_migration';
 
 /// The session format version the step reads and writes
-const SESSION_FORMAT_VERSION = 4;
+const WORKBOOK_FORMAT_VERSION = 4;
 /// The catalog files that a session copies into the folder of a connection
 const CATALOG_FILES = ['dashql-catalog-relations.sql', 'dashql-catalog-functions.sql', 'dashql-catalog-changes.sql'];
 
@@ -186,7 +186,7 @@ function hasDatabases(data: Record<string, unknown>): boolean {
     const isDatabase = (value: unknown) => value != null && typeof value === 'object'
         && typeof (value as { databaseId?: unknown }).databaseId === 'string'
         && (value as { params?: unknown }).params != null && typeof (value as { params?: unknown }).params === 'object';
-    return data.formatVersion === SESSION_FORMAT_VERSION
+    return data.formatVersion === WORKBOOK_FORMAT_VERSION
         && isDatabase(data.mainDatabase)
         && Array.isArray(data.attachedDatabases) && data.attachedDatabases.every(isDatabase);
 }
@@ -211,7 +211,7 @@ export const globalConnections: StorageMigrationStep = {
         for (const { sessionId, folder } of await listSessionFolders(root, manifestSessionEntries(manifest))) {
             if (!isValidUuid(sessionId)) continue;
             try {
-                await migrateSessionFolder(folder, SESSION_FORMAT_VERSION);
+                await migrateWorkbookFolder(folder, WORKBOOK_FORMAT_VERSION);
                 const text = await folder.readText('dashql-session.json');
                 const data = text == null ? null : JSON.parse(text) as Record<string, unknown>;
                 if (data != null && hasDatabases(data)) {

@@ -30,7 +30,7 @@ interface ConsumeQueryResponseStreamArgs {
     onResultsReceived?: () => void;
     logger?: TracedLogger;
     logContext?: {
-        sessionId: string;
+        workbookId: string;
         queryId: number;
         target: string;
     };
@@ -47,7 +47,7 @@ export async function consumeQueryResponseStream(args: ConsumeQueryResponseStrea
             batches.push(batch);
             if (args.logger && args.logContext) {
                 args.logger.debug("Received result batch", {
-                    sessionId: args.logContext.sessionId,
+                    workbookId: args.logContext.workbookId,
                     query: args.logContext.queryId.toString(),
                     batchColumns: batch.numCols.toString(),
                     batchRows: batch.numRows.toString(),

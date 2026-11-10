@@ -1,13 +1,13 @@
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { OPFSFolder } from '../migration_folder.js';
-import { migrateSessionFolder } from '../session_migration.js';
+import { migrateWorkbookFolder } from '../workbook_migration.js';
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { listSessionFolders, manifestSessionEntries, readManifestJson } from '../storage_root.js';
 
 const LOG_CTX = 'storage_migration';
 
 /// The session format version the step reads, the next session step removes the catalog copies
-const SESSION_FORMAT_VERSION = 6;
+const WORKBOOK_FORMAT_VERSION = 6;
 /// The catalog files that a session copies from its default connection
 const CATALOG_FILES = ['dashql-catalog-relations.sql', 'dashql-catalog-functions.sql', 'dashql-catalog-changes.sql'];
 
@@ -28,10 +28,10 @@ export const sessionCatalogsToConnections: StorageMigrationStep = {
         let seeded = 0;
         for (const { sessionId, folder } of await listSessionFolders(root, manifestSessionEntries(manifest))) {
             try {
-                await migrateSessionFolder(folder, SESSION_FORMAT_VERSION);
+                await migrateWorkbookFolder(folder, WORKBOOK_FORMAT_VERSION);
                 const text = await folder.readText('dashql-session.json');
                 const data = text == null ? null : JSON.parse(text) as Record<string, unknown>;
-                const defaultConnectionId = data?.formatVersion === SESSION_FORMAT_VERSION ? data.defaultConnectionId : null;
+                const defaultConnectionId = data?.formatVersion === WORKBOOK_FORMAT_VERSION ? data.defaultConnectionId : null;
                 if (typeof defaultConnectionId !== 'string') continue;
 
                 const copies: Array<[string, string]> = [];

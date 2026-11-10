@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../logger/test_logger.js';
-import { APP_EVENT_POST_MESSAGE_KIND, DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, SETUP_SESSION, type PlatformDragDropEventVariant, type SetupEventVariant } from './event.js';
-import { encodeSessionAppEvent } from '../../tests/mocks/app_events.js';
+import { APP_EVENT_POST_MESSAGE_KIND, DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, SETUP_WORKBOOK, type PlatformDragDropEventVariant, type SetupEventVariant } from './event.js';
+import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 
 describe('WebPlatformEventListener drag and drop', () => {
@@ -13,7 +13,7 @@ describe('WebPlatformEventListener drag and drop', () => {
         listeners.length = 0;
     });
 
-    it('dispatches only the first dropped session and blocks duplicate global handlers', async () => {
+    it('dispatches only the first dropped workbook and blocks duplicate global handlers', async () => {
         const listener = new WebPlatformEventListener(new TestLogger());
         listeners.push(listener);
         const events: PlatformDragDropEventVariant[] = [];
@@ -45,7 +45,7 @@ describe('WebPlatformEventListener drag and drop', () => {
 
         const event = new Event('drop', { bubbles: true, cancelable: true }) as DragEvent;
         Object.defineProperty(event, 'dataTransfer', {
-            value: { files: { length: 1, item: () => new File(['data'], 'session.dashql') } },
+            value: { files: { length: 1, item: () => new File(['data'], 'workbook.dashql') } },
         });
         window.dispatchEvent(event);
         expect(handler).not.toHaveBeenCalled();
@@ -139,10 +139,10 @@ describe('WebPlatformEventListener messages', () => {
         const message = (data: unknown, origin = window.location.origin) => window.dispatchEvent(new MessageEvent('message', { data, origin }));
 
         message({ kind: 'devtools', data: 'x' });
-        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeSessionAppEvent(zip) }, 'https://evil.example');
+        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeWorkbookAppEvent(zip) }, 'https://evil.example');
         expect(events).toEqual([]);
-        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeSessionAppEvent(zip) });
-        expect(events).toEqual([{ type: SETUP_SESSION, value: zip }]);
+        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeWorkbookAppEvent(zip) });
+        expect(events).toEqual([{ type: SETUP_WORKBOOK, value: zip }]);
     });
 });
 

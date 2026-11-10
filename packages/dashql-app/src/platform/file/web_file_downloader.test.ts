@@ -19,13 +19,13 @@ describe('WebFileDownloader', () => {
             clicked.push({ href: this.href, download: this.download, attached: this.isConnected });
         });
 
-        await new WebFileDownloader().downloadBufferAsFile(new Uint8Array([1, 2, 3]), 'session.dashql');
+        await new WebFileDownloader().downloadBufferAsFile(new Uint8Array([1, 2, 3]), 'workbook.dashql');
 
-        expect(clicked).toEqual([{ href: 'blob:download', download: 'session.dashql', attached: true }]);
+        expect(clicked).toEqual([{ href: 'blob:download', download: 'workbook.dashql', attached: true }]);
         expect(blobs.length).toBe(1);
         expect(blobs[0].type).toBe('application/octet-stream');
         expect(new Uint8Array(await blobs[0].arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
         expect(revoke).toHaveBeenCalledWith('blob:download');
-        expect(document.querySelector('a[download="session.dashql"]')).toBeNull();
+        expect(document.querySelector('a[download="workbook.dashql"]')).toBeNull();
     });
 });

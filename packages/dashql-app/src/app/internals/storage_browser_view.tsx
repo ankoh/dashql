@@ -259,7 +259,7 @@ function describeCleanupResult(result: OPFSCleanupResult): string {
 }
 
 /// A read-only browser of the folders the storage backend knows about: the OPFS root and, on desktop,
-/// the native session folders. Directories are listed when expanded, file stats are fetched for the
+/// the native workbook folders. Directories are listed when expanded, file stats are fetched for the
 /// visible rows only.
 export function StorageBrowserView(props: { onClose: () => void }) {
     const storageReader = useStorageReader();
@@ -326,7 +326,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
     const startCleanup = React.useCallback(async () => {
         setCleanup({ status: 'scanning' });
         try {
-            // Pending writes may register new sessions and connections
+            // Pending writes may register new workbooks and connections
             await storageWriter.flush();
             const candidates = await findOPFSCleanupCandidates(await getOPFSRoot());
             setCleanup(candidates.length === 0
@@ -355,7 +355,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
     const reviewing = cleanup?.status === 'review' || cleanup?.status === 'deleting' ? cleanup.candidates : null;
     const cleanupBusy = cleanup?.status === 'scanning' || cleanup?.status === 'deleting';
 
-    const sessionFolders = roots.length - 1;
+    const workbookFolders = roots.length - 1;
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -373,9 +373,9 @@ export function StorageBrowserView(props: { onClose: () => void }) {
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
                     <div className={styles.title}>Storage</div>
-                    {sessionFolders > 0 && (
+                    {workbookFolders > 0 && (
                         <div className={styles.summary}>
-                            {sessionFolders} {sessionFolders === 1 ? 'session folder' : 'session folders'}
+                            {workbookFolders} {workbookFolders === 1 ? 'workbook folder' : 'workbook folders'}
                         </div>
                     )}
                 </div>

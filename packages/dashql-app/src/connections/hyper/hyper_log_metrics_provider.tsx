@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { connectionMonitoringDatabasePath, isSessionRegistryBackend } from '../../storage/storage_backend.js';
+import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '../../storage/storage_backend.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useConnectionRegistryStore } from '../connection_registry.js';
@@ -44,7 +44,7 @@ export const HyperLogMetricsProvider: React.FC<Props> = (props: Props) => {
         sink: () => setupEmbeddedDatabase('hyper_log_metrics'),
         prepareDatabase: async connectionId => {
             const backend = storage.backend;
-            if (!isSessionRegistryBackend(backend)) throw new Error('the storage keeps no connection folders');
+            if (!isWorkbookRegistryBackend(backend)) throw new Error('the storage keeps no connection folders');
             await backend.createConnectionFolder(connectionId);
             return connectionMonitoringDatabasePath(connectionId);
         },

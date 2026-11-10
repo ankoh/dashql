@@ -47,7 +47,7 @@ Paths without a package are under `packages/dashql-app/src/`.
   `query/query_execution_state.ts`, `connections/connection_state.ts`): they hold wasm handles, free them while
   reducing, and rely on object identity. A port needs handle tables and a crossing per state read.
 - **Graph scheduler** (`session/scripts/session_execution.ts`): already decided in
-  [session_graph_execution.md](../design/session_graph_execution.md).
+  [workbook_graph_execution.md](../design/workbook_graph_execution.md).
 - **Cell formatting** (`compute/arrow_formatter.ts`): depends on `Intl` and would cross per visible cell.
 - **Catalog DDL generation** (`connections/catalog/catalog_sql_generator.ts`): structured input gains nothing, because
   scan, parse and analyze already run in the worker and the catalog must still persist as script text. Fix the type
@@ -59,7 +59,7 @@ Paths without a package are under `packages/dashql-app/src/`.
 
 **Should the CLI ever run sessions headlessly?** This is the one answer that changes the ranking. If yes, the session
 format, session inputs, the scheduler and eventually connectors flip to "port", which also meets the revisit trigger in
-[session_graph_execution.md](../design/session_graph_execution.md). It would be a separate, much larger project. This
+[workbook_graph_execution.md](../design/workbook_graph_execution.md). It would be a separate, much larger project. This
 document assumes no.
 
 ## Boundary rules for any port

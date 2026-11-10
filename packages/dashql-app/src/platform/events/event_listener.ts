@@ -2,24 +2,28 @@ import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { LEGACY_SESSION_QUERY_PARAMETER, migrateAppEventData } from './legacy_links.js';
+import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
 import { Logger } from '../logger/logger.js';
-import { PlatformDragDropEventVariant, SETUP_SESSION, SETUP_SESSION_URL, SetupEventVariant } from './event.js';
+import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
 import { parseHyperLinkTarget, type HyperLinkTarget } from './hyper_link_target.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
-export const SESSION_QUERY_PARAMETER = "session";
+export const WORKBOOK_QUERY_PARAMETER = "workbook";
 
-/// Read the URL of a hosted session from the query parameters of a link, links of older versions
+/// Read the URL of a hosted workbook from the query parameters of a link, links of older versions
 /// use the legacy parameter
-export function readSessionUrlParameter(params: URLSearchParams): string | null {
-    return params.get(SESSION_QUERY_PARAMETER) || params.get(LEGACY_SESSION_QUERY_PARAMETER) || null;
+export function readWorkbookUrlParameter(params: URLSearchParams): string | null {
+    for (const name of [WORKBOOK_QUERY_PARAMETER, ...LEGACY_WORKBOOK_QUERY_PARAMETERS]) {
+        const value = params.get(name);
+        if (value) return value;
+    }
+    return null;
 }
 
 type ClipboardSetup =
     | { type: "event", value: string }
-    | { type: "session", value: string };
+    | { type: "workbook", value: string };
 
 export function parseClipboardSetup(text: string): ClipboardSetup | null {
     let url: URL;
@@ -39,8 +43,8 @@ export function parseClipboardSetup(text: string): ClipboardSetup | null {
 
     const eventData = url.searchParams.get(EVENT_QUERY_PARAMETER);
     if (eventData) return { type: "event", value: eventData };
-    const sessionUrl = readSessionUrlParameter(url.searchParams);
-    return sessionUrl ? { type: "session", value: sessionUrl } : null;
+    const workbookUrl = readWorkbookUrlParameter(url.searchParams);
+    return workbookUrl ? { type: "workbook", value: workbookUrl } : null;
 }
 
 // An oauth subscriber
@@ -66,7 +70,7 @@ export abstract class PlatformEventListener {
     /// The setup subscriber.
     /// There can only be a single navigation subscribe at a single point in time
     private setupSubscriber: ((data: SetupEventVariant) => void) | null = null;
-    /// The queued session setup (if any)
+    /// The queued workbook setup (if any)
     private queuedSetupEvent: SetupEventVariant | null;
     /// The clipboard subscriber
     private clipboardEventHandler: (e: ClipboardEvent) => void;
@@ -126,19 +130,19 @@ export abstract class PlatformEventListener {
             if (target == null) this.logger.warn("Ignoring an invalid Hyper link", {}, LOG_CTX);
             else this.dispatchHyperLink(target);
         } else if ('session' in event) {
-            // Decode base64url session data to Uint8Array
-            const sessionBuffer = BASE64URL_CODEC.decode(event.session);
-            const sessionBytes = new Uint8Array(sessionBuffer);
+            // Decode the base64url workbook ZIP to Uint8Array, the app event keeps its arm `session`
+            const workbookBuffer = BASE64URL_CODEC.decode(event.session);
+            const workbookBytes = new Uint8Array(workbookBuffer);
             const setupEvent: SetupEventVariant = {
-                type: SETUP_SESSION,
-                value: sessionBytes
+                type: SETUP_WORKBOOK,
+                value: workbookBytes
             };
             this.dispatchSetup(setupEvent);
         }
     }
 
-    public dispatchSessionUrl(url: string): void {
-        this.dispatchSetup({ type: SETUP_SESSION_URL, value: url });
+    public dispatchWorkbookUrl(url: string): void {
+        this.dispatchSetup({ type: SETUP_WORKBOOK_URL, value: url });
     }
 
     /// Received a Hyper link, e.g. of `hyperd run --ui`
@@ -233,24 +237,24 @@ export abstract class PlatformEventListener {
     /// Subscribe navigation events
     public subscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber) {
-            this.logger.warn("Tried to register more than one session setup subscriber", {}, LOG_CTX);
+            this.logger.warn("Tried to register more than one workbook setup subscriber", {}, LOG_CTX);
             return;
         }
-        this.logger.info("Subscribing to session setup events", {}, LOG_CTX);
+        this.logger.info("Subscribing to workbook setup events", {}, LOG_CTX);
         this.setupSubscriber = handler;
 
-        // Is there a pending session setup?
+        // Is there a pending workbook setup?
         if (this.queuedSetupEvent != null) {
             const setup = this.queuedSetupEvent;
             this.queuedSetupEvent = null;
-            this.logger.info("Dispatching buffered session setup event", {}, LOG_CTX);
+            this.logger.info("Dispatching buffered workbook setup event", {}, LOG_CTX);
             this.setupSubscriber(setup);
         }
     }
-    /// Unsubscribe from session setup events
+    /// Unsubscribe from workbook setup events
     public unsubscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber != handler) {
-            this.logger.warn("Tried to unregister a session setup subscriber that is not registered", {}, LOG_CTX);
+            this.logger.warn("Tried to unregister a workbook setup subscriber that is not registered", {}, LOG_CTX);
         } else {
             this.setupSubscriber = null;
         }
@@ -327,10 +331,10 @@ export abstract class PlatformEventListener {
         let eventData: string | null = null;
         if (setup?.type === "event") {
             eventData = setup.value;
-        } else if (setup?.type === "session") {
+        } else if (setup?.type === "workbook") {
             event.preventDefault();
             event.stopPropagation();
-            this.dispatchSessionUrl(setup.value);
+            this.dispatchWorkbookUrl(setup.value);
             return;
         } else if (BASE64URL_CODEC.isValidBase64(pastedText)) {
             // Raw base64 event data pasted directly (web opener flow fallback)

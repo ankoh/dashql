@@ -8,6 +8,6 @@ export interface AppLoadingProgress {
     restoreConnections: ProgressCounter;
     /// Restore the catalogs
     restoreCatalogs: ProgressCounter;
-    /// Restore the session scripts
-    restoreSessionScripts: ProgressCounter;
+    /// Restore the workbook scripts
+    restoreWorkbookScripts: ProgressCounter;
 }

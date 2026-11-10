@@ -154,21 +154,21 @@ export interface QueryMetadata {
     issuer: string | null;
     /// Authored by the user or the app?
     userProvided: boolean;
-    /// The session that issued the query, if any.
-    /// Several sessions may share a connection, the session scopes the query result cache and the
-    /// cleanup of the session's queries.
-    sessionId?: string;
-    /// The owner of the result, e.g. a script of a session. A succeeded query releases the result table of the
+    /// The workbook that issued the query, if any.
+    /// Several workbooks may share a connection, the workbook scopes the query result cache and the
+    /// cleanup of the workbook's queries.
+    workbookId?: string;
+    /// The owner of the result, e.g. a script of a workbook. A succeeded query releases the result table of the
     /// earlier queries of its owner, the owner shows only its latest result.
     resultOwner?: string;
-    /// Where a statement of a plan of session scripts comes from
+    /// Where a statement of a plan of workbook scripts comes from
     planned?: PlannedStatement;
 }
 
-/// A statement of a plan of session scripts (docs/design/planner_dependencies.md)
+/// A statement of a plan of workbook scripts (docs/design/planner_dependencies.md)
 export interface PlannedStatement {
-    /// A run of the whole session or of a script
-    run: 'session' | 'script';
+    /// A run of the whole workbook or of a script
+    run: 'workbook' | 'script';
     /// The script that a run of a script runs
     target: string | null;
     /// The node of the plan

@@ -49,6 +49,6 @@ export const HYPER_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'hyper'> = {
     // The embedded HyperDB-WASM database is created anew with every page load. Its functions are the builtins of
     // Hyper and stay persisted.
     catalogIsDurable: params => params.protocol !== 'WASM',
-    // The embedded HyperDB-WASM database reads the attachments of a session from OPFS
+    // The embedded HyperDB-WASM database reads the attachments of a workbook from OPFS
     readsAttachments: details => details.proto.setupParams?.protocol === 'WASM',
 };

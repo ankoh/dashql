@@ -5,7 +5,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
 import { ChevronRightIcon, SquareFillIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { AgentConnectionStatus } from './agent_client.js';
-import type { AgentSessionContext } from './agent_protocol.js';
+import type { AgentWorkbookContext } from './agent_protocol.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import type { AgentBridge } from './agent_bridge.js';
@@ -23,24 +23,24 @@ export interface ComposerAgentScript {
     scriptName: string;
 }
 
-/// A question of the session that the agent answers or answered
+/// A question of the workbook that the agent answers or answered
 export interface ComposerAgentTurn {
     questionId: number;
     /// The question with the status, the final message or the error of the agent
     question: AgentQuestion;
-    /// The scripts of the session that the agent wrote
+    /// The scripts of the workbook that the agent wrote
     scripts: ComposerAgentScript[];
 }
 
-/// The agent of a session with agent access, as the composer shows it
+/// The agent of a workbook with agent access, as the composer shows it
 export interface ComposerAgent {
     /// Is the agent server connected?
     connected: boolean;
     /// The port the page looks for the agent server on
     port: number;
-    /// The harness context of the session, null while unknown
-    context: AgentSessionContext | null;
-    /// The questions of the session, oldest first
+    /// The harness context of the workbook, null while unknown
+    context: AgentWorkbookContext | null;
+    /// The questions of the workbook, oldest first
     turns: ComposerAgentTurn[];
     /// Stop the agent working on a question
     onStop: (questionId: number) => void;
@@ -50,7 +50,7 @@ export interface ComposerAgent {
     onShowScript: (scriptKey: number) => void;
 }
 
-/// Is the agent working on a question of the session?
+/// Is the agent working on a question of the workbook?
 export function isAgentWorking(agent: ComposerAgent): boolean {
     return agent.turns.some(turn => isAgentAnswering(turn.question));
 }
@@ -65,12 +65,12 @@ export function harnessLabel(harness: string): string {
     }
 }
 
-/// Follow the harness context of a session while the agent server is connected.
+/// Follow the harness context of a workbook while the agent server is connected.
 /// Fetched again when the refresh key changes, e.g. once a turn finished and the harness session is known.
-export function useAgentSessionContext(bridge: AgentBridge | null, sessionId: string, refreshKey: number): AgentSessionContext | null {
+export function useAgentWorkbookContext(bridge: AgentBridge | null, workbookId: string, refreshKey: number): AgentWorkbookContext | null {
     const logger = useLogger();
-    const [context, setContext] = React.useState<AgentSessionContext | null>(null);
-    const connected = bridge != null && bridge.hasAccess(sessionId) && bridge.status === AgentConnectionStatus.Connected;
+    const [context, setContext] = React.useState<AgentWorkbookContext | null>(null);
+    const connected = bridge != null && bridge.hasAccess(workbookId) && bridge.status === AgentConnectionStatus.Connected;
     const fetchContext = bridge?.context;
     React.useEffect(() => {
         if (!connected || fetchContext == null) {
@@ -78,12 +78,12 @@ export function useAgentSessionContext(bridge: AgentBridge | null, sessionId: st
             return;
         }
         let current = true;
-        fetchContext(sessionId).then(
+        fetchContext(workbookId).then(
             next => { if (current) setContext(next); },
             e => logger.warn('Reading the agent context failed', { error: stringifyError(e) }, LOG_CTX),
         );
         return () => { current = false; };
-    }, [connected, fetchContext, sessionId, refreshKey, logger]);
+    }, [connected, fetchContext, workbookId, refreshKey, logger]);
     return context;
 }
 
@@ -98,7 +98,7 @@ export function plainAgentNote(note: string): string {
         .trim();
 }
 
-/// A question of the session with the answer of the agent.
+/// A question of the workbook with the answer of the agent.
 /// A collapsed turn shows the question in one line, an expanded turn shows the question, the status line, the final
 /// message and the error in full.
 const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent; expanded: boolean; onToggle: () => void }> = ({ turn, agent, expanded, onToggle }) => {
@@ -187,7 +187,7 @@ function isTurnExpandedByDefault(turn: ComposerAgentTurn, index: number, turns: 
 }
 
 /// The agent on top of the composer: the harness, the connection to the agent server and the questions of the
-/// session with their status lines, final messages, errors and the scripts the agent wrote.
+/// workbook with their status lines, final messages, errors and the scripts the agent wrote.
 /// The questions scroll within a fixed height, each one expands and collapses.
 /// The scripts only show the edits of the agent.
 export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) => {

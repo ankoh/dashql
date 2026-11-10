@@ -81,12 +81,12 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     catalogNameDefaults(details: ConnectorDetailsMap[K]): CatalogNameDefaults;
     /// Execute a query on the channel of a connection, a channel override of the connector wins
     executeQuery(details: ConnectorDetailsMap[K], args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream>;
-    /// The number of statements of a session run that a connection executes at once
+    /// The number of statements of a workbook run that a connection executes at once
     maxConcurrentQueries(details: ConnectorDetailsMap[K]): number;
     /// Does the catalog of a connection outlive the page? The relations of a database that is created anew with
     /// every page load and the catalog changes of its statements are neither persisted nor restored.
     catalogIsDurable(params: ConnectorParamsMap[K]): boolean;
-    /// Can the queries of a connection read the data files that are attached to a session?
+    /// Can the queries of a connection read the data files that are attached to a workbook?
     readsAttachments(details: ConnectorDetailsMap[K]): boolean;
     /// The client functions of the connections, undefined if they have none
     clientFunctions?: ClientFunctionBinding<ConnectorDetailsMap[K]>;
@@ -135,7 +135,7 @@ export function catalogNameDefaults(details: ConnectionStateDetailsVariant): Cat
     return connectorOfDetails(details).catalogNameDefaults(details.value);
 }
 
-/// Can the queries of a connection read the data files that are attached to a session?
+/// Can the queries of a connection read the data files that are attached to a workbook?
 export function connectionReadsAttachments(details: ConnectionStateDetailsVariant | null | undefined): boolean {
     return details != null && connectorOfDetails(details).readsAttachments(details.value);
 }

@@ -60,7 +60,7 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         };
 
         tabRenderers[connectorType] = () => {
-            // Pass the session connection to the matching tab, or to all tabs when unconfigured
+            // Pass the workbook connection to the matching tab, or to all tabs when unconfigured
             // (since SWITCH_CONNECTOR_TYPE ensures the type matches the selected tab)
             const connectionId = (isCurrentConnection || isUnconfigured) ? props.connectionId : null;
 

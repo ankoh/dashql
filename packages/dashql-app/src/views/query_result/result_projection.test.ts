@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { createScriptFormatConfig } from '../../session/scripts/script_format.js';
+import { createScriptFormatConfig } from '../../workbook/scripts/script_format.js';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

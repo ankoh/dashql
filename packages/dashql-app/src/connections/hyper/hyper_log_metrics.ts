@@ -43,7 +43,7 @@ const MAX_RESOURCE_SAMPLES = 7_200;
 /// A query that a Hyper session finished, from a row of the query ends of the extract.
 export interface HyperQueryEnd {
     /// The Hyper session that ran the query
-    sessionId: string;
+    workbookId: string;
     /// The end of the query in milliseconds since the epoch
     endedAt: number;
     /// Did the query succeed?
@@ -226,7 +226,7 @@ export function readQueryEnds(table: arrow.Table): HyperQueryEnd[] {
     const queries: { query: HyperQueryEnd, request: number }[] = [];
     for (const row of table) {
         queries.push({ request: Number(row.req ?? 0), query: {
-            sessionId: String(row.sess),
+            workbookId: String(row.sess),
             endedAt: Number(row.epoch_ms),
             succeeded: Boolean(row.succeeded),
             errorCode: nullableString(row.error_code),

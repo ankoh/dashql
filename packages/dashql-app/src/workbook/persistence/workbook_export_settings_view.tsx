@@ -1,0 +1,108 @@
+import * as React from 'react';
+
+import * as styles from './workbook_export_settings_view.module.css';
+import { ToggleSwitch } from '../../ui/foundations/toggle_switch.js';
+
+export interface WorkbookExportSettings {
+    withCatalog: boolean;
+    withLoginHint: boolean;
+    preserveUUIDs: boolean;
+    /// Carry the cached query results of the scripts, only a file of the workbook does
+    withQueryResults?: boolean;
+}
+
+interface Props {
+    withCatalog: boolean;
+    // Whether the connection actually has a login hint to share. When false the login-hint toggle
+    // is disabled and forced off — there is nothing to include.
+    withLoginHint: boolean;
+    settings: WorkbookExportSettings;
+    setSettings: (s: WorkbookExportSettings) => void;
+    /// Show the toggles of the UUIDs and the catalog, an export of a single connection has neither
+    withWorkbookParts?: boolean;
+    /// Offer the toggle of the query results, with a line below it, e.g. how many scripts have a cached result
+    queryResults?: { hint: string | null };
+}
+
+export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
+
+    const toggleCatalog = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, withCatalog: !props.settings.withCatalog });
+    }, [props.settings, props.setSettings]);
+
+    const toggleLoginHint = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, withLoginHint: !props.settings.withLoginHint });
+    }, [props.settings, props.setSettings]);
+
+    const toggleQueryResults = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, withQueryResults: !props.settings.withQueryResults });
+    }, [props.settings, props.setSettings]);
+
+    const togglePreserveUUIDs = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, preserveUUIDs: !props.settings.preserveUUIDs });
+    }, [props.settings, props.setSettings]);
+
+    return (
+        <div className={styles.root}>
+            <div className={styles.part_list}>
+                <div id="export-toggle-login-hint-label" className={styles.part_name}>
+                    Login Hint
+                </div>
+                <div className={styles.part_toggle}>
+                    <ToggleSwitch
+                        size="medium"
+                        checked={props.withLoginHint && props.settings.withLoginHint}
+                        disabled={!props.withLoginHint}
+                        onClick={toggleLoginHint}
+                        aria-labelledby="export-toggle-login-hint-label"
+                    />
+                </div>
+                {props.withWorkbookParts !== false && <>
+                    <div id="export-toggle-preserve-uuids-label" className={styles.part_name}>
+                        Preserve UUIDs
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={props.settings.preserveUUIDs}
+                            onClick={togglePreserveUUIDs}
+                            aria-labelledby="export-toggle-preserve-uuids-label"
+                        />
+                    </div>
+                    <div id="export-toggle-catalog-label" className={styles.part_name}>
+                        Catalog Data
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={props.settings.withCatalog}
+                            disabled={!props.withCatalog}
+                            onClick={toggleCatalog}
+                            aria-labelledby="export-toggle-catalog-label"
+                        />
+                    </div>
+                </>}
+                {props.queryResults != null && <>
+                    <div id="export-toggle-query-results-label" className={styles.part_name}>
+                        Query Results
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={props.settings.withQueryResults ?? false}
+                            onClick={toggleQueryResults}
+                            aria-labelledby="export-toggle-query-results-label"
+                        />
+                    </div>
+                    {props.queryResults.hint != null && <div className={styles.part_hint} data-testid="export-query-results-hint">
+                        {props.queryResults.hint}
+                    </div>}
+                </>}
+            </div>
+        </div>
+    );
+};

@@ -21,7 +21,7 @@ export const CONNECTOR_TYPES: ConnectorType[] = [
 export interface ConnectorInfo {
     /// The connector type
     connectorType: ConnectorType;
-    /// The query shown in the first script of a new session.
+    /// The query shown in the first script of a new workbook.
     helloWorldScript: string;
     /// The connector name
     names: {
@@ -49,7 +49,7 @@ export interface ConnectorPlatforms {
 }
 
 export interface ConnectorFeatures {
-    /// Do new sessions cache query results?
+    /// Do new workbooks cache query results?
     queryResultCaching: boolean;
     /// Do connections only run queries, no DDL or DML?
     readOnly: boolean;

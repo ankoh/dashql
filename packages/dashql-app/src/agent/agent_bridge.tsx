@@ -3,9 +3,9 @@ import * as React from 'react';
 import { AgentClient, AgentConnectionStatus } from './agent_client.js';
 import {
     AGENT_WEBSOCKET_PATH,
-    type AgentClientSession,
+    type AgentClientWorkbook,
     type AgentServerInfo,
-    type AgentSessionContext,
+    type AgentWorkbookContext,
     type AgentTurnState,
 } from './agent_protocol.js';
 import { isDesktopHost } from '../platform/native_globals.js';
@@ -17,7 +17,7 @@ import { useEmbeddedConnection } from '../connections/embedded_connection.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useRouteContext } from '../app/router/router.js';
 import { AgentQuestionStore } from './agent_question_store.js';
-import { useSessionScriptsDispatch, useSessionScriptsRegistry, useSessionScriptsRegistryReader } from '../session/scripts/session_scripts_registry.js';
+import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistry, useWorkbookScriptsRegistryReader } from '../workbook/scripts/workbook_scripts_registry.js';
 import { runAgentCommand, type AgentCommandEnvironment } from './agent_commands.js';
 
 const LOG_CTX = 'agent_bridge';
@@ -58,25 +58,25 @@ export interface AgentBridge {
     effort: string | null;
     /// Pick among the efforts of the harness, null restores the harness's default
     setEffort: (effort: string | null) => void;
-    /// The sessions with agent access, the name is null while a session is not loaded
-    accessSessions: { id: string; name: string | null }[];
-    /// Does a session have agent access?
-    hasAccess: (sessionId: string) => boolean;
-    /// Turn agent access of a session on or off
-    setAccess: (sessionId: string, enabled: boolean) => void;
-    /// Run the harness with a prompt in a session, resolves with the turn id
-    request: (sessionId: string, prompt: string, listener: AgentTurnListener) => Promise<string>;
-    /// Stop a turn of a session, or all turns of the session without a turn id
-    cancel: (sessionId: string, turnId?: string) => Promise<void>;
-    /// Forget the harness context of a session, the next request starts a new harness session
-    reset: (sessionId: string) => Promise<void>;
-    /// The harness context of a session
-    context: (sessionId: string) => Promise<AgentSessionContext>;
+    /// The workbooks with agent access, the name is null while a workbook is not loaded
+    accessWorkbooks: { id: string; name: string | null }[];
+    /// Does a workbook have agent access?
+    hasAccess: (workbookId: string) => boolean;
+    /// Turn agent access of a workbook on or off
+    setAccess: (workbookId: string, enabled: boolean) => void;
+    /// Run the harness with a prompt in a workbook, resolves with the turn id
+    request: (workbookId: string, prompt: string, listener: AgentTurnListener) => Promise<string>;
+    /// Stop a turn of a workbook, or all turns of the workbook without a turn id
+    cancel: (workbookId: string, turnId?: string) => Promise<void>;
+    /// Forget the harness context of a workbook, the next request starts a new harness session
+    reset: (workbookId: string) => Promise<void>;
+    /// The harness context of a workbook
+    context: (workbookId: string) => Promise<AgentWorkbookContext>;
     /// The configuration and the state of the agent server
     info: () => Promise<AgentServerInfo>;
-    /// Stay connected while no session has agent access, returns the release
+    /// Stay connected while no workbook has agent access, returns the release
     hold: () => () => void;
-    /// The questions that the agent answers in the sessions
+    /// The questions that the agent answers in the workbooks
     questions: AgentQuestionStore;
 }
 
@@ -94,58 +94,58 @@ export function blocksLoopbackWebSockets(userAgent: string, desktop: boolean): b
     return /Safari\//.test(userAgent) && !/Chrome\/|Chromium\/|CriOS\/|Edg\/|Firefox\/|FxiOS\//.test(userAgent);
 }
 
-const NO_SESSIONS: string[] = [];
+const NO_WORKBOOKS: string[] = [];
 
 export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const logger = useLogger();
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
     const route = useRouteContext();
-    const [registry] = useSessionScriptsRegistry();
-    const readRegistry = useSessionScriptsRegistryReader();
-    const modifySessionScripts = useSessionScriptsDispatch();
+    const [registry] = useWorkbookScriptsRegistry();
+    const readRegistry = useWorkbookScriptsRegistryReader();
+    const modifyWorkbookScripts = useWorkbookScriptsDispatch();
     const connectionStore = useConnectionRegistryStore();
     const embeddedConnection = useEmbeddedConnection();
     const executeQuery = useQueryExecutor();
     const [status, setStatus] = React.useState(AgentConnectionStatus.Off);
     const supported = !blocksLoopbackWebSockets(globalThis.navigator?.userAgent ?? '', isDesktopHost());
 
-    const accessSessions = config?.settings?.agentSessions ?? NO_SESSIONS;
+    const accessWorkbooks = config?.settings?.agentWorkbooks ?? NO_WORKBOOKS;
     const port = config?.settings?.agentPort ?? DASHQL_AGENT_PORT;
     const harness = config?.settings?.agentHarness ?? null;
     const model = config?.settings?.agentModel ?? null;
     const effort = config?.settings?.agentEffort ?? null;
 
-    // The listeners of the turns by turn id, and the turn ids of the requests of a session
+    // The listeners of the turns by turn id, and the turn ids of the requests of a workbook
     const turns = React.useRef(new Map<string, AgentTurnListener>());
-    const turnsBySession = React.useRef(new Map<string, Set<string>>());
+    const turnsByWorkbook = React.useRef(new Map<string, Set<string>>());
     const [questions] = React.useState(() => new AgentQuestionStore());
 
     const commandEnv = React.useRef<AgentCommandEnvironment | null>(null);
     commandEnv.current = {
-        sessionScripts: sessionId => readRegistry().sessionScriptsMap.get(sessionId) ?? null,
-        modifySessionScripts,
+        workbookScripts: workbookId => readRegistry().workbookScriptsMap.get(workbookId) ?? null,
+        modifyWorkbookScripts,
         connections: () => connectionStore.current,
         embeddedConnection,
         executeQuery,
         logger,
-        onScriptEdited: (sessionId, scriptKey) => {
-            for (const turnId of turnsBySession.current.get(sessionId) ?? []) {
+        onScriptEdited: (workbookId, scriptKey) => {
+            for (const turnId of turnsByWorkbook.current.get(workbookId) ?? []) {
                 turns.current.get(turnId)?.edited(scriptKey);
             }
         },
-        onScriptRun: (sessionId, scriptKey) => {
-            for (const turnId of turnsBySession.current.get(sessionId) ?? []) {
+        onScriptRun: (workbookId, scriptKey) => {
+            for (const turnId of turnsByWorkbook.current.get(workbookId) ?? []) {
                 turns.current.get(turnId)?.ran(scriptKey);
             }
         },
     };
 
-    const forgetTurn = React.useCallback((sessionId: string, turnId: string) => {
+    const forgetTurn = React.useCallback((workbookId: string, turnId: string) => {
         turns.current.delete(turnId);
-        const sessionTurns = turnsBySession.current.get(sessionId);
-        sessionTurns?.delete(turnId);
-        if (sessionTurns?.size === 0) turnsBySession.current.delete(sessionId);
+        const workbookTurns = turnsByWorkbook.current.get(workbookId);
+        workbookTurns?.delete(turnId);
+        if (workbookTurns?.size === 0) turnsByWorkbook.current.delete(workbookId);
     }, []);
 
     const client = React.useMemo(() => {
@@ -155,14 +155,14 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
             clientKind: isDesktopHost() ? 'desktop' : 'web',
             logger,
             handleCommand: async params => {
-                logger.info('Running an agent command', { session: params.session, command: params.command }, LOG_CTX);
+                logger.info('Running an agent command', { workbook: params.workbook, command: params.command }, LOG_CTX);
                 const started = performance.now();
                 try {
                     const result = await runAgentCommand(commandEnv.current!, params);
-                    logger.info('Ran an agent command', { session: params.session, command: params.command, durationMs: String(Math.round(performance.now() - started)) }, LOG_CTX);
+                    logger.info('Ran an agent command', { workbook: params.workbook, command: params.command, durationMs: String(Math.round(performance.now() - started)) }, LOG_CTX);
                     return result;
                 } catch (e: unknown) {
-                    logger.warn('An agent command failed', { session: params.session, command: params.command, durationMs: String(Math.round(performance.now() - started)), error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+                    logger.warn('An agent command failed', { workbook: params.workbook, command: params.command, durationMs: String(Math.round(performance.now() - started)), error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
                     throw e;
                 }
             },
@@ -172,7 +172,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) {
-                            logger.info('Ignored the status of an unknown agent turn', { session: p.session, turnId: p.turnId }, LOG_CTX);
+                            logger.info('Ignored the status of an unknown agent turn', { workbook: p.workbook, turnId: p.turnId }, LOG_CTX);
                             break;
                         }
                         turn.status(p.state, p.text);
@@ -182,11 +182,11 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) {
-                            logger.info('Ignored the answer of an unknown agent turn', { session: p.session, turnId: p.turnId }, LOG_CTX);
+                            logger.info('Ignored the answer of an unknown agent turn', { workbook: p.workbook, turnId: p.turnId }, LOG_CTX);
                             break;
                         }
-                        forgetTurn(p.session, p.turnId);
-                        logger.info('The agent finished a request', { session: p.session, turnId: p.turnId }, LOG_CTX);
+                        forgetTurn(p.workbook, p.turnId);
+                        logger.info('The agent finished a request', { workbook: p.workbook, turnId: p.turnId }, LOG_CTX);
                         turn.done(p.message);
                         break;
                     }
@@ -194,11 +194,11 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) {
-                            logger.info('Ignored the failure of an unknown agent turn', { session: p.session, turnId: p.turnId, error: p.error }, LOG_CTX);
+                            logger.info('Ignored the failure of an unknown agent turn', { workbook: p.workbook, turnId: p.turnId, error: p.error }, LOG_CTX);
                             break;
                         }
-                        forgetTurn(p.session, p.turnId);
-                        logger.warn('The agent failed a request', { session: p.session, turnId: p.turnId, error: p.error, cancelled: String(p.cancelled) }, LOG_CTX);
+                        forgetTurn(p.workbook, p.turnId);
+                        logger.warn('The agent failed a request', { workbook: p.workbook, turnId: p.turnId, error: p.error, cancelled: String(p.cancelled) }, LOG_CTX);
                         turn.failed(p.error, p.cancelled);
                         break;
                     }
@@ -212,25 +212,25 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                     turn.failed(reason, false);
                 }
                 turns.current.clear();
-                turnsBySession.current.clear();
+                turnsByWorkbook.current.clear();
             },
         });
     }, [supported, port, logger, forgetTurn]);
     React.useEffect(() => () => client?.dispose(), [client]);
 
-    // Announce the sessions with agent access and the focused session
-    const announced = React.useMemo<AgentClientSession[]>(() => {
-        const sessions: AgentClientSession[] = [];
-        for (const sessionId of accessSessions) {
-            const scripts = registry.sessionScriptsMap.get(sessionId);
-            if (scripts != null) sessions.push({ id: sessionId, name: scripts.name ?? '' });
+    // Announce the workbooks with agent access and the focused workbook
+    const announced = React.useMemo<AgentClientWorkbook[]>(() => {
+        const workbooks: AgentClientWorkbook[] = [];
+        for (const workbookId of accessWorkbooks) {
+            const scripts = registry.workbookScriptsMap.get(workbookId);
+            if (scripts != null) workbooks.push({ id: workbookId, name: scripts.name ?? '' });
         }
-        return sessions;
-    }, [accessSessions, registry]);
+        return workbooks;
+    }, [accessWorkbooks, registry]);
     const announcedKey = JSON.stringify(announced);
-    const focused = route.sessionId ?? null;
+    const focused = route.workbookId ?? null;
     React.useEffect(() => {
-        client?.setSessions(announced, focused);
+        client?.setWorkbooks(announced, focused);
     }, [client, announcedKey, focused]);
 
     const [holds, setHolds] = React.useState(0);
@@ -268,81 +268,81 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentEffort: next ?? undefined } });
     }, [reconfigure, logger]);
 
-    const accessSessionList = React.useMemo(
-        () => accessSessions.map(id => ({ id, name: registry.sessionScriptsMap.get(id)?.name ?? null })),
-        [accessSessions, registry],
+    const accessWorkbookList = React.useMemo(
+        () => accessWorkbooks.map(id => ({ id, name: registry.workbookScriptsMap.get(id)?.name ?? null })),
+        [accessWorkbooks, registry],
     );
-    const accessSessionListKey = JSON.stringify(accessSessionList);
+    const accessWorkbookListKey = JSON.stringify(accessWorkbookList);
     // Keep the identity while the names are unchanged, the registry changes with every edit
-    const stableAccessSessions = React.useMemo(() => accessSessionList, [accessSessionListKey]);
+    const stableAccessWorkbooks = React.useMemo(() => accessWorkbookList, [accessWorkbookListKey]);
 
-    const hasAccess = React.useCallback((sessionId: string) => accessSessions.includes(sessionId), [accessSessions]);
-    const setAccess = React.useCallback((sessionId: string, enabled: boolean) => {
-        logger.info(enabled ? 'Turned on agent access' : 'Turned off agent access', { sessionId }, LOG_CTX);
+    const hasAccess = React.useCallback((workbookId: string) => accessWorkbooks.includes(workbookId), [accessWorkbooks]);
+    const setAccess = React.useCallback((workbookId: string, enabled: boolean) => {
+        logger.info(enabled ? 'Turned on agent access' : 'Turned off agent access', { workbookId }, LOG_CTX);
         reconfigure(c => {
             if (c == null) return c;
-            const current = c.settings?.agentSessions ?? [];
-            const agentSessions = enabled
-                ? (current.includes(sessionId) ? current : [...current, sessionId])
-                : current.filter(id => id !== sessionId);
-            return { ...c, settings: { ...(c.settings ?? {}), agentSessions } };
+            const current = c.settings?.agentWorkbooks ?? [];
+            const agentWorkbooks = enabled
+                ? (current.includes(workbookId) ? current : [...current, workbookId])
+                : current.filter(id => id !== workbookId);
+            return { ...c, settings: { ...(c.settings ?? {}), agentWorkbooks } };
         });
     }, [reconfigure, logger]);
 
-    // A deleted session takes its agent state along: the server stops its turns and removes its folder, its questions
-    // and its agent access go. Only a deletion drops a session from the registry. A session deleted while the agent
-    // server is not connected leaves its folder, the server removes the folders of unused sessions after a while.
-    const knownSessions = React.useRef<ReadonlySet<string>>(new Set());
-    const latestAccessSessions = React.useRef(accessSessions);
-    latestAccessSessions.current = accessSessions;
+    // A deleted workbook takes its agent state along: the server stops its turns and removes its folder, its questions
+    // and its agent access go. Only a deletion drops a workbook from the registry. A workbook deleted while the agent
+    // server is not connected leaves its folder, the server removes the folders of unused workbooks after a while.
+    const knownWorkbooks = React.useRef<ReadonlySet<string>>(new Set());
+    const latestAccessWorkbooks = React.useRef(accessWorkbooks);
+    latestAccessWorkbooks.current = accessWorkbooks;
     React.useEffect(() => {
-        const sessions = new Set(registry.sessionScriptsMap.keys());
-        for (const sessionId of knownSessions.current) {
-            if (sessions.has(sessionId)) continue;
-            logger.info('Forgetting the agent state of a deleted session', { sessionId }, LOG_CTX);
+        const workbooks = new Set(registry.workbookScriptsMap.keys());
+        for (const workbookId of knownWorkbooks.current) {
+            if (workbooks.has(workbookId)) continue;
+            logger.info('Forgetting the agent state of a deleted workbook', { workbookId }, LOG_CTX);
             if (client?.status === AgentConnectionStatus.Connected) {
-                client.request('agent/forget', { session: sessionId }).catch((e: unknown) => {
-                    logger.warn('Forgetting a deleted session in the agent server failed', { sessionId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+                client.request('agent/forget', { workbook: workbookId }).catch((e: unknown) => {
+                    logger.warn('Forgetting a deleted workbook in the agent server failed', { workbookId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
                 });
             }
-            questions.drop(sessionId);
-            if (latestAccessSessions.current.includes(sessionId)) setAccess(sessionId, false);
+            questions.drop(workbookId);
+            if (latestAccessWorkbooks.current.includes(workbookId)) setAccess(workbookId, false);
         }
-        knownSessions.current = sessions;
-    }, [registry.sessionScriptsMap, client, questions, setAccess, logger]);
+        knownWorkbooks.current = workbooks;
+    }, [registry.workbookScriptsMap, client, questions, setAccess, logger]);
 
-    const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
+    const request = React.useCallback(async (workbookId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        logger.info('Sending a request to the agent', { session: sessionId, harness: harness ?? 'default', model: model ?? 'default', effort: effort ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
+        logger.info('Sending a request to the agent', { workbook: workbookId, harness: harness ?? 'default', model: model ?? 'default', effort: effort ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
         const params = {
-            session: sessionId,
+            workbook: workbookId,
             prompt,
             ...(harness != null ? { harness } : {}),
             ...(model != null ? { model } : {}),
             ...(effort != null ? { effort } : {}),
         };
         const result = await client.request('agent/request', params).catch((e: unknown) => {
-            logger.warn('The agent server refused a request', { session: sessionId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+            logger.warn('The agent server refused a request', { workbook: workbookId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
             throw e;
         });
         turns.current.set(result.turnId, listener);
-        const sessionTurns = turnsBySession.current.get(sessionId) ?? new Set();
-        sessionTurns.add(result.turnId);
-        turnsBySession.current.set(sessionId, sessionTurns);
-        logger.info('Sent a request to the agent', { session: sessionId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
+        const workbookTurns = turnsByWorkbook.current.get(workbookId) ?? new Set();
+        workbookTurns.add(result.turnId);
+        turnsByWorkbook.current.set(workbookId, workbookTurns);
+        logger.info('Sent a request to the agent', { workbook: workbookId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
         return result.turnId;
     }, [client, harness, model, effort, logger]);
-    const cancel = React.useCallback(async (sessionId: string, turnId?: string) => {
-        logger.info('Stopping agent turns', { session: sessionId, turnId: turnId ?? 'all' }, LOG_CTX);
-        await client?.request('agent/cancel', turnId == null ? { session: sessionId } : { session: sessionId, turnId });
+    const cancel = React.useCallback(async (workbookId: string, turnId?: string) => {
+        logger.info('Stopping agent turns', { workbook: workbookId, turnId: turnId ?? 'all' }, LOG_CTX);
+        await client?.request('agent/cancel', turnId == null ? { workbook: workbookId } : { workbook: workbookId, turnId });
     }, [client, logger]);
-    const reset = React.useCallback(async (sessionId: string) => {
-        logger.info('Resetting the agent context', { session: sessionId }, LOG_CTX);
-        await client?.request('agent/reset', { session: sessionId });
+    const reset = React.useCallback(async (workbookId: string) => {
+        logger.info('Resetting the agent context', { workbook: workbookId }, LOG_CTX);
+        await client?.request('agent/reset', { workbook: workbookId });
     }, [client, logger]);
-    const context = React.useCallback(async (sessionId: string) => {
+    const context = React.useCallback(async (workbookId: string) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        return client.request('agent/context', { session: sessionId, ...(harness != null ? { harness } : {}) });
+        return client.request('agent/context', { workbook: workbookId, ...(harness != null ? { harness } : {}) });
     }, [client, harness]);
 
     const info = React.useCallback(async () => {
@@ -361,7 +361,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         setModel,
         effort,
         setEffort,
-        accessSessions: stableAccessSessions,
+        accessWorkbooks: stableAccessWorkbooks,
         hasAccess,
         setAccess,
         request,
@@ -371,7 +371,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         info,
         hold,
         questions,
-    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, hold, questions]);
+    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, stableAccessWorkbooks, hasAccess, setAccess, request, cancel, reset, context, info, hold, questions]);
 
     return <AGENT_BRIDGE_CTX.Provider value={bridge}>{props.children}</AGENT_BRIDGE_CTX.Provider>;
 };

@@ -104,16 +104,16 @@ describe('connections of the same connector', () => {
     });
 
     it('does not number connections that are not listed', () => {
-        // Inactive connections that no session uses are not listed
+        // Inactive connections that no workbook uses are not listed
         const registry = registryOf([hyper('a', { active: false }), hyper('b', { active: false })]);
-        const references = fixedConnectionReferences({ session: ['a'] });
+        const references = fixedConnectionReferences({ workbook: ['a'] });
         expect(connectionOrdinals(registry, references).size).toBe(0);
         expect(listedConnections(registry, references, []).map(database => database.connectionId)).toEqual(['a']);
     });
 
     it('sizes the group headings of the connection tree', () => {
         const rows = [
-            { type: 'connection-group', key: 'g', label: 'This session' },
+            { type: 'connection-group', key: 'g', label: 'This workbook' },
             { type: 'connection', key: 'a', database: hyper('a') },
             { type: 'connection-group', key: 'h', label: 'Other connections' },
         ] as any;

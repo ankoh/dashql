@@ -18,7 +18,7 @@ import { HYPERDB_WASM_ENGINE_SETTING_ELEMENTS, HyperConnectorSettings } from './
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { SessionTestBackend } from '../storage/session_test_backend.js';
+import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 
 const CONNECTION_ID = 'hyper-settings-test';
 
@@ -100,7 +100,7 @@ describe('HyperConnectorSettings', () => {
             );
             return (
                 <LoggerProvider>
-                    <StorageProvider backend={new SessionTestBackend()}>
+                    <StorageProvider backend={new WorkbookTestBackend()}>
                         <ConnectionRegistry>
                             <EXECUTOR_CTX.Provider value={executor}>
                                 {options.clients

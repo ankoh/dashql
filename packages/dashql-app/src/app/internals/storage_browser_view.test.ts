@@ -34,22 +34,22 @@ describe('flattenStorageTree', () => {
 
     it('only descends into expanded directories', () => {
         const listings = new Map<string, StorageTreeListing>([
-            [storageTreeNodeKey(opfs, ''), { status: 'ready', entries: [{ name: 'sessions', kind: D }, { name: 'm.json', kind: F }] }],
-            [storageTreeNodeKey(opfs, 'sessions'), { status: 'ready', entries: [{ name: 'a', kind: D }] }],
+            [storageTreeNodeKey(opfs, ''), { status: 'ready', entries: [{ name: 'workbooks', kind: D }, { name: 'm.json', kind: F }] }],
+            [storageTreeNodeKey(opfs, 'workbooks'), { status: 'ready', entries: [{ name: 'a', kind: D }] }],
         ]);
         const collapsed = new Set([storageTreeNodeKey(opfs, '')]);
         expect(describeRows(flattenStorageTree([opfs, native], collapsed, listings))).toEqual([
             '0 root opfs',
-            '1 dir sessions',
+            '1 dir workbooks',
             '1 file m.json',
             '0 root native:/x',
         ]);
 
-        const expanded = new Set([...collapsed, storageTreeNodeKey(opfs, 'sessions'), storageTreeNodeKey(opfs, 'sessions/a')]);
+        const expanded = new Set([...collapsed, storageTreeNodeKey(opfs, 'workbooks'), storageTreeNodeKey(opfs, 'workbooks/a')]);
         expect(describeRows(flattenStorageTree([opfs, native], expanded, listings))).toEqual([
             '0 root opfs',
-            '1 dir sessions',
-            '2 dir sessions/a',
+            '1 dir workbooks',
+            '2 dir workbooks/a',
             '3 status (load)',
             '1 file m.json',
             '0 root native:/x',

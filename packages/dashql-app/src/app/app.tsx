@@ -6,7 +6,7 @@ import { AppConfigProvider, useAppConfig } from '../config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';
-import { SessionCatalogLoaderProvider } from '../session/scripts/session_catalog_loader.js';
+import { WorkbookCatalogLoaderProvider } from '../workbook/scripts/workbook_catalog_loader.js';
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import { ConnectionRegistry } from '../connections/connection_registry.js';
@@ -30,18 +30,18 @@ import { SalesforceConnector } from '../connections/salesforce/salesforce_connec
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TrinoConnector } from '../connections/trino/trino_connector.js';
 import { VersionCheck } from '../platform/version/version_check.js';
-import { SessionCommands } from '../session/scripts/session_commands.js';
-import { SessionViewModeProvider } from '../session/session_view_mode.js';
-import { SessionPage } from '../session/session_page.js';
-import { SessionScriptsRegistryProvider } from '../session/scripts/session_scripts_registry.js';
+import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
+import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
+import { WorkbookPage } from '../workbook/workbook_page.js';
+import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
-import { NativeSessionSync } from '../session/persistence/native_session_sync_react.js';
-import { SessionComputeQueryExecutionProvider } from './session_compute_query_execution.js';
-import { SessionImportProvider } from '../session/persistence/session_import_provider.js';
-import { SessionExecutionProvider } from '../session/scripts/session_execution_provider.js';
+import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
+import { WorkbookComputeQueryExecutionProvider } from './workbook_compute_query_execution.js';
+import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
+import { WorkbookExecutionProvider } from '../workbook/scripts/workbook_execution_provider.js';
 import { AgentBridgeProvider } from '../agent/agent_bridge.js';
 
 import '@ankoh/dashql-ui/fonts/fonts.css';
@@ -54,10 +54,10 @@ const LOG_CTX = 'app';
 
 // Note that the order among connection providers is important and non-obvious.
 // For example:
-// - SessionScriptsRegistryProvider comes first, the connection layer reads from it which sessions use a connection.
-// - SessionCatalogLoaderProvider requires SessionScriptsRegistryProvider to mark connection scripts as outdated.
-const SessionProviders = (props: { children: React.ReactElement }) => (
-    <SessionScriptsRegistryProvider>
+// - WorkbookScriptsRegistryProvider comes first, the connection layer reads from it which workbooks use a connection.
+// - WorkbookCatalogLoaderProvider requires WorkbookScriptsRegistryProvider to mark connection scripts as outdated.
+const WorkbookProviders = (props: { children: React.ReactElement }) => (
+    <WorkbookScriptsRegistryProvider>
         <ConnectionRegistry>
             <ConnectionPersistenceProvider>
                 <SalesforceConnector>
@@ -65,27 +65,27 @@ const SessionProviders = (props: { children: React.ReactElement }) => (
                         <HyperSetupProvider>
                             <TrinoConnector>
                                 <ComputationRegistry>
-                                    <SessionComputeQueryExecutionProvider>
+                                    <WorkbookComputeQueryExecutionProvider>
                                         <ComputationScheduler />
                                         <QueryExecutorProvider>
-                                            <SessionExecutionProvider>
-                                                <NativeSessionSync />
+                                            <WorkbookExecutionProvider>
+                                                <NativeWorkbookSync />
                                                 <AgentBridgeProvider>
-                                                    <SessionCatalogLoaderProvider>
-                                                        <SessionImportProvider>
-                                                            <SessionViewModeProvider>
-                                                                <SessionCommands>
+                                                    <WorkbookCatalogLoaderProvider>
+                                                        <WorkbookImportProvider>
+                                                            <WorkbookViewModeProvider>
+                                                                <WorkbookCommands>
                                                                     <AppLoader>
                                                                         {props.children}
                                                                     </AppLoader>
-                                                                </SessionCommands>
-                                                            </SessionViewModeProvider>
-                                                        </SessionImportProvider>
-                                                    </SessionCatalogLoaderProvider>
+                                                                </WorkbookCommands>
+                                                            </WorkbookViewModeProvider>
+                                                        </WorkbookImportProvider>
+                                                    </WorkbookCatalogLoaderProvider>
                                                 </AgentBridgeProvider>
-                                            </SessionExecutionProvider>
+                                            </WorkbookExecutionProvider>
                                         </QueryExecutorProvider>
-                                    </SessionComputeQueryExecutionProvider>
+                                    </WorkbookComputeQueryExecutionProvider>
                                 </ComputationRegistry>
                             </TrinoConnector>
                         </HyperSetupProvider>
@@ -93,7 +93,7 @@ const SessionProviders = (props: { children: React.ReactElement }) => (
                 </SalesforceConnector>
             </ConnectionPersistenceProvider>
         </ConnectionRegistry>
-    </SessionScriptsRegistryProvider>
+    </WorkbookScriptsRegistryProvider>
 );
 
 /// The embedded database with the startup options of the app settings.
@@ -125,9 +125,9 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                 <AppEmbeddedDatabaseProvider>
                                                     <ComputeConnectionProvider>
                                                         <QueryResultCacheProvider>
-                                                            <SessionProviders>
+                                                            <WorkbookProviders>
                                                                 {props.children}
-                                                            </SessionProviders>
+                                                            </WorkbookProviders>
                                                         </QueryResultCacheProvider>
                                                     </ComputeConnectionProvider>
                                                 </AppEmbeddedDatabaseProvider>
@@ -181,9 +181,9 @@ root.render(
                 <FileDropzone>
                     <NavBarContainer>
                         <Routes>
-                            <Route index Component={SessionPage} />
-                            <Route path="/session" Component={SessionPage} />
-                            <Route path="/sessions/:sessionId" Component={SessionPage} />
+                            <Route index Component={WorkbookPage} />
+                            <Route path="/workbook" Component={WorkbookPage} />
+                            <Route path="/workbooks/:workbookId" Component={WorkbookPage} />
                             <Route path="*" element={<NavigateWithState to="/" />} />
                         </Routes>
                     </NavBarContainer>

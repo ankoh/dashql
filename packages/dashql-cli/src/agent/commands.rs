@@ -1,7 +1,7 @@
 //! The commands of `dashql agent` that agents call. The table makes the usage of the command line tool and the
 //! command table of the guide and of the instructions of harness runs.
 
-/// A command of `dashql agent` for the open DashQL session
+/// A command of `dashql agent` for the open DashQL workbook
 pub struct AgentCommand {
     /// The words of the command, e.g. `vis edit`
     pub name: &'static str,
@@ -12,7 +12,7 @@ pub struct AgentCommand {
 }
 
 impl AgentCommand {
-    /// The command of a call to the session, e.g. `vis.edit`. None for `status`, which the server answers, and for
+    /// The command of a call to the workbook, e.g. `vis.edit`. None for `status`, which the server answers, and for
     /// `guide`, which the command line tool answers.
     pub fn call(&self) -> Option<String> {
         (self.name != "status" && self.name != "guide").then(|| self.name.replace(' ', "."))
@@ -24,9 +24,9 @@ impl AgentCommand {
 }
 
 pub const AGENT_COMMANDS: [AgentCommand; 12] = [
-    AgentCommand { name: "status", args: "", does: "Connected clients, sessions, the focused session" },
+    AgentCommand { name: "status", args: "", does: "Connected clients, workbooks, the focused workbook" },
     AgentCommand { name: "guide", args: "", does: "The commands and how DashQL works, read it first" },
-    AgentCommand { name: "scripts", args: "", does: "Scripts of the session with their connections and attachments" },
+    AgentCommand { name: "scripts", args: "", does: "Scripts of the workbook with their connections and attachments" },
     AgentCommand { name: "read", args: "<script>", does: "Script text" },
     AgentCommand {
         name: "edit",
@@ -63,7 +63,7 @@ pub const AGENT_COMMANDS: [AgentCommand; 12] = [
 ];
 
 /// Is this a command that a client runs in its session?
-pub fn is_session_command(call: &str) -> bool {
+pub fn is_workbook_command(call: &str) -> bool {
     AGENT_COMMANDS.iter().any(|command| command.call().as_deref() == Some(call))
 }
 
@@ -104,11 +104,11 @@ mod tests {
 
     #[test]
     fn names_the_calls_of_the_commands() {
-        assert!(is_session_command("vis.edit"));
-        assert!(is_session_command("catalog"));
-        assert!(!is_session_command("guide"));
-        assert!(!is_session_command("status"));
-        assert!(!is_session_command("vis edit"));
+        assert!(is_workbook_command("vis.edit"));
+        assert!(is_workbook_command("catalog"));
+        assert!(!is_workbook_command("guide"));
+        assert!(!is_workbook_command("status"));
+        assert!(!is_workbook_command("vis edit"));
         assert_eq!(vis_commands().collect::<Vec<_>>(), ["read", "edit", "image"]);
     }
 

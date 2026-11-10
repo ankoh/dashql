@@ -50,7 +50,7 @@ describe('HyperDB stale OPFS instance cleanup', () => {
 
     it('removes the instance folders of earlier app versions in the OPFS root', async () => {
         const legacy = `dashql-session-${crypto.randomUUID()}`;
-        const { root, rootFolder } = mockRoot([], [legacy, 'sessions', 'dashql-session-not-a-uuid'], async () => {});
+        const { root, rootFolder } = mockRoot([], [legacy, 'workbooks', 'dashql-session-not-a-uuid'], async () => {});
 
         await cleanupStaleHyperDBOPFSInstances(async () => root);
 

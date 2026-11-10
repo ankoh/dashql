@@ -12,7 +12,7 @@
 use serde_json::{json, Value};
 
 /// The version of the protocol, a client with another version is turned away
-pub const PROTOCOL_VERSION: u64 = 2;
+pub const PROTOCOL_VERSION: u64 = 3;
 
 /// The path of the WebSocket endpoint
 pub const WEBSOCKET_PATH: &str = "/v1/ws";
@@ -22,9 +22,9 @@ pub const WEBSOCKET_PATH: &str = "/v1/ws";
 pub enum ErrorCode {
     /// The command failed
     Failed,
-    /// No client holds the target session
+    /// No client holds the target workbook
     NotConnected,
-    /// Another call of the session is running
+    /// Another call of the workbook is running
     Busy,
     /// The call is malformed
     Usage,
@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn names_the_protocol_version_of_the_schema() {
-        let params = BridgeSchema::get().definition("ClientSessionsParams").unwrap();
+        let params = BridgeSchema::get().definition("ClientWorkbooksParams").unwrap();
         assert_eq!(params["properties"]["protocol"]["const"], json!(PROTOCOL_VERSION));
     }
 }

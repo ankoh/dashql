@@ -188,9 +188,9 @@ function UIPage(): React.ReactElement {
                     </div>
                     <div className={styles.component_variants}>
                         <div className={styles.actionlist_component}>
-                            <ActionList.List aria-label="Sessions" leading trailing>
+                            <ActionList.List aria-label="Workbooks" leading trailing>
                                 <ActionList.GroupHeading>
-                                    Sessions
+                                    Workbooks
                                 </ActionList.GroupHeading>
                                 <ActionList.ListItem>
                                     <ActionList.Leading>

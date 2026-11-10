@@ -10,10 +10,10 @@ import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hype
 import { TestLogger } from '../logger/test_logger.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_parquet_export.js';
-import { createExecutionMounts } from '../../session/scripts/session_execution.js';
+import { createExecutionMounts } from '../../workbook/scripts/workbook_execution.js';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
 import { getOPFSRoot } from '../opfs_root.js';
-import { markSessionAttachmentsChanged, readAttachmentColumns, unmountSessionAttachments } from '../../session/attachments/attachment_mounts.js';
+import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '../../workbook/attachments/attachment_mounts.js';
 import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -330,27 +330,27 @@ describe('HyperDB embedded database integration', () => {
         }
     }, 60_000);
 
-    it('reads the columns of a session attachment through the mount of the session', async () => {
+    it('reads the columns of a workbook attachment through the mount of the workbook', async () => {
         const root = await getOPFSRoot();
-        const sessions = await root.getDirectoryHandle('sessions', { create: true });
-        const sessionId = crypto.randomUUID();
+        const workbooks = await root.getDirectoryHandle('workbooks', { create: true });
+        const workbookId = crypto.randomUUID();
         const write = async (table: arrow.Table) => {
             const bytes = await exportArrowTableAsParquet(database!, table);
-            const folder = await (await sessions.getDirectoryHandle(sessionId, { create: true })).getDirectoryHandle('attachments', { create: true });
+            const folder = await (await workbooks.getDirectoryHandle(workbookId, { create: true })).getDirectoryHandle('attachments', { create: true });
             const writer = await (await folder.getFileHandle('sales.parquet', { create: true })).createWritable();
             await writer.write(bytes as BlobPart);
             await writer.close();
         };
         try {
             await write(tableFromArrays({ region: ['eu'], amount: Int32Array.from([1]) }));
-            expect(await readAttachmentColumns(database!, sessionId, 'sales.parquet')).toEqual(['region', 'amount']);
+            expect(await readAttachmentColumns(database!, workbookId, 'sales.parquet')).toEqual(['region', 'amount']);
             // A changed attachment is read again once the mount is marked stale
             await write(tableFromArrays({ id: Int32Array.from([1]) }));
-            markSessionAttachmentsChanged(sessionId);
-            expect(await readAttachmentColumns(database!, sessionId, 'sales.parquet')).toEqual(['id']);
+            markWorkbookAttachmentsChanged(workbookId);
+            expect(await readAttachmentColumns(database!, workbookId, 'sales.parquet')).toEqual(['id']);
         } finally {
-            await unmountSessionAttachments(sessionId);
-            await ignoreCleanupFailure(() => sessions.removeEntry(sessionId, { recursive: true }));
+            await unmountWorkbookAttachments(workbookId);
+            await ignoreCleanupFailure(() => workbooks.removeEntry(workbookId, { recursive: true }));
         }
     }, 60_000);
 

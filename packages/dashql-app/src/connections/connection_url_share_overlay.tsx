@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import * as styles from '../session/persistence/session_url_share_overlay.module.css';
+import * as styles from '../workbook/persistence/workbook_url_share_overlay.module.css';
 
 import { AnchorAlignment } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { SessionExportSettings, SessionExportSettingsView } from '../session/persistence/session_export_settings_view.js';
-import { ShareURLField } from '../session/persistence/share_url_field.js';
-import { exportConnectionAsUrl, SessionLinkTarget } from '../session/persistence/session_export.js';
+import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/persistence/workbook_export_settings_view.js';
+import { ShareURLField } from '../workbook/persistence/share_url_field.js';
+import { exportConnectionAsUrl, WorkbookLinkTarget } from '../workbook/persistence/workbook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from './connection_params.js';
 import type { ConnectionState } from './connection_state.js';
 
@@ -17,12 +17,12 @@ interface Props {
     setIsOpen: (v: boolean) => void;
 }
 
-/// Share a connection as a link. The link opens an empty session on the connection.
+/// Share a connection as a link. The link opens an empty workbook on the connection.
 export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, setIsOpen }) => {
     const anchorRef = React.useRef<HTMLDivElement>(null);
     const buttonRef = React.useRef<HTMLButtonElement>(null);
     const [url, setURL] = React.useState<string | null>(null);
-    const [settings, setSettings] = React.useState<SessionExportSettings>({
+    const [settings, setSettings] = React.useState<WorkbookExportSettings>({
         withCatalog: false,
         withLoginHint: true,
         preserveUUIDs: false,
@@ -34,7 +34,7 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
         if (!isOpen) return;
         let cancelled = false;
         setURL(null);
-        exportConnectionAsUrl(params, name, SessionLinkTarget.WEB, { withLoginHint: settings.withLoginHint })
+        exportConnectionAsUrl(params, name, WorkbookLinkTarget.WEB, { withLoginHint: settings.withLoginHint })
             .then(link => { if (!cancelled) setURL(link.toString()); })
             .catch(() => { if (!cancelled) setURL(null); });
         return () => {
@@ -60,10 +60,10 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
         >
             <div className={styles.sharing_overlay} data-testid="connection-share-overlay">
                 <ShareURLField url={url} ariaLabel="Connection share URL" buttonRef={buttonRef} />
-                <SessionExportSettingsView
+                <WorkbookExportSettingsView
                     withCatalog={false}
                     withLoginHint={hasLoginHint}
-                    withSessionParts={false}
+                    withWorkbookParts={false}
                     settings={settings}
                     setSettings={setSettings}
                 />

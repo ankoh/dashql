@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
-import { TEST_SESSION_ID, testSession } from './session_test_backend.js';
+import { TEST_WORKBOOK_ID, testWorkbook } from './workbook_test_backend.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
 
-const DIR = '/tmp/v2-session';
+const DIR = '/tmp/v2-workbook';
 
 describe('NativeStorageBackend V2 flat storage', () => {
     let backend: NativeStorageBackend;
@@ -22,38 +22,38 @@ describe('NativeStorageBackend V2 flat storage', () => {
     });
 
     it('round-trips manifest and naturally ordered flat scripts', async () => {
-        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
-        await backend.saveScript(TEST_SESSION_ID, '10_last.sql', 'SELECT 10');
-        await backend.saveScript(TEST_SESSION_ID, '2_first.sql', 'SELECT 2');
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await backend.saveScript(TEST_WORKBOOK_ID, '10_last.sql', 'SELECT 10');
+        await backend.saveScript(TEST_WORKBOOK_ID, '2_first.sql', 'SELECT 2');
 
-        expect(await backend.loadSession(TEST_SESSION_ID)).toEqual(testSession());
-        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([
+        expect(await backend.loadWorkbook(TEST_WORKBOOK_ID)).toEqual(testWorkbook());
+        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([
             { name: '2_first.sql', sql: 'SELECT 2' },
             { name: '10_last.sql', sql: 'SELECT 10' },
         ]);
-        // The order lives in the session file, the backend writes no index
+        // The order lives in the workbook file, the backend writes no index
         expect(fsStore.files.has(`${DIR}/dashql-session-index.json`)).toBe(false);
         expect(fsStore.files.has(`${DIR}/scripts/2_first.sql`)).toBe(true);
         expect([...fsStore.files.keys()].some(path => path.includes('/scripts/page/'))).toBe(false);
     });
 
-    it('writes a .gitignore with the session file', async () => {
-        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+    it('writes a .gitignore with the workbook file', async () => {
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('cache/\n*.hyper\n');
     });
 
     it('appends missing entries to an existing .gitignore', async () => {
         fsStore.files.set(`${DIR}/.gitignore`, 'notes.txt\ncache/');
-        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('notes.txt\ncache/\n*.hyper\n');
     });
 
     it('persists rename and delete', async () => {
-        await backend.saveScript(TEST_SESSION_ID, '01_old.sql', 'SELECT 1');
-        await backend.renameScript(TEST_SESSION_ID, '01_old.sql', '01_new.sql');
-        expect(await backend.loadScript(TEST_SESSION_ID, '01_new.sql')).toEqual({ name: '01_new.sql', sql: 'SELECT 1' });
-        await backend.deleteScript(TEST_SESSION_ID, '01_new.sql');
-        expect(await backend.loadScripts(TEST_SESSION_ID)).toEqual([]);
+        await backend.saveScript(TEST_WORKBOOK_ID, '01_old.sql', 'SELECT 1');
+        await backend.renameScript(TEST_WORKBOOK_ID, '01_old.sql', '01_new.sql');
+        expect(await backend.loadScript(TEST_WORKBOOK_ID, '01_new.sql')).toEqual({ name: '01_new.sql', sql: 'SELECT 1' });
+        await backend.deleteScript(TEST_WORKBOOK_ID, '01_new.sql');
+        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([]);
     });
 
     it.each([
@@ -61,34 +61,34 @@ describe('NativeStorageBackend V2 flat storage', () => {
         ['draft file', () => fsStore.files.set(`${DIR}/scripts/dashql-draft.sql`, 'SELECT 1'), 'dashql-draft.sql is not supported'],
     ])('rejects an obsolete %s', async (_label, seed, message) => {
         seed();
-        await expect(backend.loadScripts(TEST_SESSION_ID)).rejects.toThrow(message);
+        await expect(backend.loadScripts(TEST_WORKBOOK_ID)).rejects.toThrow(message);
     });
 
     it('leaves the user-owned directory intact on delete', async () => {
-        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
-        await backend.saveScript(TEST_SESSION_ID, '01_query.sql', 'SELECT 1');
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await backend.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
         const before = new Map(fsStore.files);
-        await backend.deleteSession(TEST_SESSION_ID);
+        await backend.deleteWorkbook(TEST_WORKBOOK_ID);
         expect(fsStore.files).toEqual(before);
     });
     it('preserves binary data through CRUD and lists naturally sorted names', async () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40]);
-        await backend.saveDataFile(TEST_SESSION_ID, '10_payload.parquet', bytes);
-        await backend.saveDataFile(TEST_SESSION_ID, '2_payload.parquet', new Uint8Array());
-        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([
+        await backend.saveDataFile(TEST_WORKBOOK_ID, '10_payload.parquet', bytes);
+        await backend.saveDataFile(TEST_WORKBOOK_ID, '2_payload.parquet', new Uint8Array());
+        expect((await backend.listDataFiles(TEST_WORKBOOK_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([
             { name: '2_payload.parquet', sizeBytes: 0 }, { name: '10_payload.parquet', sizeBytes: 5 },
         ]);
-        await backend.renameDataFile(TEST_SESSION_ID, '10_payload.parquet', '1_renamed.parquet');
-        expect(await backend.loadDataFile(TEST_SESSION_ID, '1_renamed.parquet')).toEqual(bytes);
-        await backend.deleteDataFile(TEST_SESSION_ID, '1_renamed.parquet');
-        expect(await backend.listDataFiles(TEST_SESSION_ID)).toHaveLength(1);
-        await expect(backend.saveDataFile(TEST_SESSION_ID, '../escape', bytes)).rejects.toThrow('basename');
-        // A session attaches Parquet files only, the listing leaves other files of the folder out
-        await expect(backend.saveDataFile(TEST_SESSION_ID, 'notes.csv', bytes)).rejects.toThrow('Only Parquet files can be attached');
+        await backend.renameDataFile(TEST_WORKBOOK_ID, '10_payload.parquet', '1_renamed.parquet');
+        expect(await backend.loadDataFile(TEST_WORKBOOK_ID, '1_renamed.parquet')).toEqual(bytes);
+        await backend.deleteDataFile(TEST_WORKBOOK_ID, '1_renamed.parquet');
+        expect(await backend.listDataFiles(TEST_WORKBOOK_ID)).toHaveLength(1);
+        await expect(backend.saveDataFile(TEST_WORKBOOK_ID, '../escape', bytes)).rejects.toThrow('basename');
+        // A workbook attaches Parquet files only, the listing leaves other files of the folder out
+        await expect(backend.saveDataFile(TEST_WORKBOOK_ID, 'notes.csv', bytes)).rejects.toThrow('Only Parquet files can be attached');
         fsStore.files.set(`${DIR}/attachments/notes.csv`, 'a,b');
-        expect((await backend.listDataFiles(TEST_SESSION_ID)).map(file => file.name)).toEqual(['2_payload.parquet']);
+        expect((await backend.listDataFiles(TEST_WORKBOOK_ID)).map(file => file.name)).toEqual(['2_payload.parquet']);
         fsStore.dirs.add(`${DIR}/attachments/nested`);
-        await expect(backend.listDataFiles(TEST_SESSION_ID)).rejects.toThrow('nested data');
+        await expect(backend.listDataFiles(TEST_WORKBOOK_ID)).rejects.toThrow('nested data');
     });
 });
 
@@ -105,8 +105,8 @@ describe('NativeStorageBackend external script changes', () => {
         globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
         backend = new NativeStorageBackend(DIR);
         await backend.initialize();
-        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 1');
-        await backend.saveScript(TEST_SESSION_ID, 'b.sql', 'select 2');
+        await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 1');
+        await backend.saveScript(TEST_WORKBOOK_ID, 'b.sql', 'select 2');
     });
 
     afterEach(() => {
@@ -115,8 +115,8 @@ describe('NativeStorageBackend external script changes', () => {
 
     it('finds scripts changed outside the app by their stamps but not its own writes', async () => {
         backend.acknowledgeScripts((await backend.stampFolder()).scripts);
-        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 10');
-        await backend.renameScript(TEST_SESSION_ID, 'b.sql', 'c.sql');
+        await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 10');
+        await backend.renameScript(TEST_WORKBOOK_ID, 'b.sql', 'c.sql');
         expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual([]);
 
         // Edited, deleted and added outside the app, a touch without a content change counts too
@@ -132,24 +132,24 @@ describe('NativeStorageBackend external script changes', () => {
         backend.acknowledgeScripts((await backend.stampFolder()).scripts);
         editOutside('a.sql', 'select 10');
         editOutside('c.sql', 'select 3');
-        await expect(backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 11')).rejects.toBeInstanceOf(ExternalScriptChangeError);
-        await expect(backend.deleteScript(TEST_SESSION_ID, 'a.sql')).rejects.toBeInstanceOf(ExternalScriptChangeError);
-        await expect(backend.renameScript(TEST_SESSION_ID, 'b.sql', 'c.sql')).rejects.toBeInstanceOf(ExternalScriptChangeError);
-        await expect(backend.saveScript(TEST_SESSION_ID, 'c.sql', 'select 4')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 11')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.deleteScript(TEST_WORKBOOK_ID, 'a.sql')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.renameScript(TEST_WORKBOOK_ID, 'b.sql', 'c.sql')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.saveScript(TEST_WORKBOOK_ID, 'c.sql', 'select 4')).rejects.toBeInstanceOf(ExternalScriptChangeError);
         expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 10');
         expect(fsStore.files.get(scriptPath('b.sql'))).toBe('select 2');
         expect(fsStore.files.get(scriptPath('c.sql'))).toBe('select 3');
 
         // Acknowledging the disk lets the app version win
         backend.acknowledgeScripts((await backend.stampFolder()).scripts);
-        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 11');
+        await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 11');
         expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 11');
     });
 
     it('does not check scripts before they are acknowledged', async () => {
         editOutside('a.sql', 'select 10');
         expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual(['a.sql', 'b.sql']);
-        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 11');
+        await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 11');
         expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 11');
     });
 });

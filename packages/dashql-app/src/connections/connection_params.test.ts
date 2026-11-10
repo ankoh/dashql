@@ -45,7 +45,7 @@ describe('sanitizeConnectionParamsForSharing', () => {
             protocol: 'V3_HTTP', endpoint: 'https://hyper.example.com',
             tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
             attachedDatabases: [{ path: 'database.hyper', alias: 'db' }],
-            metadata: { authorization: 'bearer-secret', Cookie: 'session-secret', 'x-api-key': 'key-secret', arbitrary: 'unknown-secret' },
+            metadata: { authorization: 'bearer-secret', Cookie: 'workbook-secret', 'x-api-key': 'key-secret', arbitrary: 'unknown-secret' },
             queryParameters: { password: 'query-secret', harmless: 'value' },
             draftRows: { metadata: [{ key: '', value: 'draft-secret' }] },
         } };
@@ -63,7 +63,7 @@ describe('sanitizeConnectionParamsForSharing', () => {
         const params: ConnectionParams = { trino: {
             endpoint: 'https://trino.example.com', catalogName: 'catalog', schemaNames: ['public'],
             auth: { authType: 'AUTH_BASIC', basic: { username: 'alice', secret: 'password' } },
-            metadata: { Authorization: 'bearer-secret', cookie: 'session-secret', api_key: 'key-secret', arbitrary: 'unknown-secret' },
+            metadata: { Authorization: 'bearer-secret', cookie: 'workbook-secret', api_key: 'key-secret', arbitrary: 'unknown-secret' },
         } };
         expect(sanitizeConnectionParamsForSharing(params)).toEqual({ trino: {
             endpoint: 'https://trino.example.com', catalogName: 'catalog', schemaNames: ['public'],
@@ -199,7 +199,7 @@ describe('createConnectionParamsSignature', () => {
         expect(signature).toMatchObject({ case: 'hyper', attachedDatabases: [{ path: '/a' }, { path: '/b' }], queryParameters: [['a', '1'], ['b', '2']] });
     });
 
-    // The results that an exported session carries are found under the keys of the shared params
+    // The results that an exported workbook carries are found under the keys of the shared params
     it.each([
         ['salesforce', { salesforce: { instanceUrl: 'https://org', appConsumerKey: 'key', appConsumerSecret: 'secret', login: 'alice@org' } }],
         ['dbcom', { dbcom: { instanceUrl: 'https://org', appConsumerKey: 'key', appConsumerSecret: 'secret', login: 'alice@org', databaseName: 'db' } }],

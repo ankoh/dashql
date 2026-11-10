@@ -48,25 +48,25 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | Location | Function | Uncovered lines |
 |---|---|---|
 | `src/compute/tasks/column_aggregation.ts:86-96` | computeColumnAggregates | 11 |
-| `src/session/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
+| `src/workbook/scripts/focus.ts:169-178` | deriveFocusFromCompletionCandidates | 10 |
 | `src/app/loading/app_setup.ts:199-207` | useAppSetup | 9 |
-| `src/session/scripts/focus.ts:160-168` | deriveFocusFromCompletionCandidates | 9 |
+| `src/workbook/scripts/focus.ts:160-168` | deriveFocusFromCompletionCandidates | 9 |
 | `src/storage/composite_storage_backend.ts:522-536` | loadNativeSession | 9 |
 | `src/utils/hash_murmur3.ts:54-62` | clone | 9 |
 | `src/platform/process.ts:4-11` | relaunch | 8 |
 | `src/shell/api.ts:286-293` | applyCompletion | 8 |
 | `src/shell/api.ts:666-673` | formatElapsed | 8 |
-| `src/storage/session_test_backend.ts:140-147` | renameDataFile | 8 |
+| `src/storage/workbook_test_backend.ts:140-147` | renameDataFile | 8 |
 | `src/utils/base64.ts:105-112` | decode | 8 |
 | `src/compute/computation_state.ts:702-708` | reduceComputationState | 7 |
 | `src/compute/tasks/table_aggregation.ts:60-68` | computeTableAggregates | 7 |
 | `src/connections/hyper/hyper_error_info.ts:116-123` | decodeGrpcStatusDetails | 7 |
 | `src/connections/trino/trino_connection_setup.ts:251-257` | setupTrinoConnectionOAuth | 7 |
-| `src/session/dataflow/dataflow_scene.ts:532-538` | buildDataflowScene | 7 |
-| `src/session/editor/dashql_completion_listener.ts:66-73` | handleScrollEvent | 7 |
-| `src/session/editor/dashql_completion_listener.ts:75-82` | handleBlurEvent | 7 |
-| `src/session/editor/dashql_completion_patches.ts:205-211` | updateCursorWithCompletion | 7 |
-| `src/session/inputs/use_apply_session_input.ts:34-40` | useApplySessionInput | 7 |
+| `src/workbook/dataflow/dataflow_scene.ts:532-538` | buildDataflowScene | 7 |
+| `src/workbook/editor/dashql_completion_listener.ts:66-73` | handleScrollEvent | 7 |
+| `src/workbook/editor/dashql_completion_listener.ts:75-82` | handleBlurEvent | 7 |
+| `src/workbook/editor/dashql_completion_patches.ts:205-211` | updateCursorWithCompletion | 7 |
+| `src/workbook/inputs/use_apply_workbook_input.ts:34-40` | useApplySessionInput | 7 |
 
 ## Gaps in components (`.tsx`)
 
@@ -77,7 +77,7 @@ The cheapest next tests: functions of `.ts` files that tests load but never call
 | `src/connections/hyper/hyper_log_metrics_provider.tsx:100-156` | useHyperLogRows | 49 |
 | `src/shell_app/shell_page.tsx:146-196` | authenticate | 48 |
 | `src/ui/json/json_copy_button.tsx:39-92` | click | 43 |
-| `src/session/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
+| `src/workbook/dataflow/dataflow_canvas.tsx:961-1003` | DataflowInputBox | 39 |
 | `src/connections/connection_overview_page.tsx:28-63` | ConnectionOverviewPage | 32 |
 | `src/ui/logger/logger_toast.tsx:31-66` | Toast | 32 |
 | `src/query/query_history_viewer.tsx:55-85` | entryToObject | 31 |

@@ -55,7 +55,7 @@ const View: React.FC<ViewTestProps> = props => (
 
 function query(endedAt: number, succeeded = true, sentByApp = false): HyperQueryEnd {
     return {
-        sessionId: 's',
+        workbookId: 's',
         endedAt,
         succeeded,
         errorCode: succeeded ? null : '22012',

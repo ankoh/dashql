@@ -63,7 +63,7 @@
     aspect-ratio: 1;
 }
 
-/* Wobble next to its question, like on the empty session */
+/* Wobble next to its question, like on the empty workbook */
 .greeting {
     display: flex;
     flex-wrap: wrap;

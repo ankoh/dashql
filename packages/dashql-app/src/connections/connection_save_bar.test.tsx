@@ -9,7 +9,7 @@ import { ConnectionSaveBar, type ConnectionSaveBarProps } from './connection_set
 const SAVED: ConnectionSaveResult = {
     params: { trino: {} } as ConnectionSaveResult['params'],
     manifest: { status: 'written' },
-    sessions: [],
+    workbooks: [],
 };
 
 describe('ConnectionSaveBar', () => {
@@ -34,7 +34,7 @@ describe('ConnectionSaveBar', () => {
             saving: false,
             connecting: false,
             online: false,
-            sessionCount: 1,
+            workbookCount: 1,
             result: null,
             save: () => {},
             discard: () => {},
@@ -64,7 +64,7 @@ describe('ConnectionSaveBar', () => {
     it('offers to save or discard unsaved changes', () => {
         const save = vi.fn();
         const discard = vi.fn();
-        render({ dirty: true, sessionCount: 3, save, discard });
+        render({ dirty: true, workbookCount: 3, save, discard });
         expect(barState()).toBe('unsaved');
         expect(hint()).toBe('connect');
         act(() => button('connection-save')!.click());
@@ -87,10 +87,10 @@ describe('ConnectionSaveBar', () => {
 
     it('confirms a finished save briefly', () => {
         vi.useFakeTimers();
-        render({ dirty: true, saving: true, sessionCount: 2 });
+        render({ dirty: true, saving: true, workbookCount: 2 });
         expect(barState()).toBe('saving');
         expect(button('connection-save')!.disabled).toBe(true);
-        render({ dirty: false, saving: false, sessionCount: 2, result: SAVED });
+        render({ dirty: false, saving: false, workbookCount: 2, result: SAVED });
         expect(barState()).toBe('saved');
         act(() => { vi.advanceTimersByTime(3000); });
         expect(container.childElementCount).toBe(0);

@@ -7,9 +7,9 @@
       "type": "object",
       "description": "The requests of a client to the server on the WebSocket, with their params and results",
       "properties": {
-        "client/sessions": {
+        "client/workbooks": {
           "type": "object",
-          "properties": { "params": { "$ref": "#/definitions/ClientSessionsParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "properties": { "params": { "$ref": "#/definitions/ClientWorkbooksParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
           "required": ["params", "result"],
           "additionalProperties": false
         },
@@ -27,19 +27,19 @@
         },
         "agent/forget": {
           "type": "object",
-          "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "properties": { "params": { "$ref": "#/definitions/AgentWorkbookParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
           "required": ["params", "result"],
           "additionalProperties": false
         },
         "agent/reset": {
           "type": "object",
-          "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "properties": { "params": { "$ref": "#/definitions/AgentWorkbookParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
           "required": ["params", "result"],
           "additionalProperties": false
         },
         "agent/context": {
           "type": "object",
-          "properties": { "params": { "$ref": "#/definitions/AgentContextParams" }, "result": { "$ref": "#/definitions/AgentSessionContext" } },
+          "properties": { "params": { "$ref": "#/definitions/AgentContextParams" }, "result": { "$ref": "#/definitions/AgentWorkbookContext" } },
           "required": ["params", "result"],
           "additionalProperties": false
         },
@@ -50,7 +50,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["client/sessions", "agent/request", "agent/cancel", "agent/forget", "agent/reset", "agent/context", "agent/info"],
+      "required": ["client/workbooks", "agent/request", "agent/cancel", "agent/forget", "agent/reset", "agent/context", "agent/info"],
       "additionalProperties": false
     },
     "AgentClientMethods": {
@@ -112,26 +112,26 @@
       },
       "additionalProperties": false
     },
-    "AgentClientSession": {
+    "AgentClientWorkbook": {
       "type": "object",
-      "description": "A session that a client holds",
+      "description": "A workbook that a client holds",
       "properties": {
-        "id": { "type": "string", "description": "The DashQL session id" },
-        "name": { "type": "string", "description": "The display name of the session" }
+        "id": { "type": "string", "description": "The DashQL workbook id" },
+        "name": { "type": "string", "description": "The display name of the workbook" }
       },
       "required": ["id", "name"],
       "additionalProperties": false
     },
-    "ClientSessionsParams": {
+    "ClientWorkbooksParams": {
       "type": "object",
-      "description": "client/sessions, client → server: the sessions with agent access, sent after connecting and on every change. A server with another protocol version closes the WebSocket with 1008.",
+      "description": "client/workbooks, client → server: the workbooks with agent access, sent after connecting and on every change. A server with another protocol version closes the WebSocket with 1008.",
       "properties": {
-        "protocol": { "const": 2, "description": "The version of the protocol, the server turns away other versions" },
+        "protocol": { "const": 3, "description": "The version of the protocol, the server turns away other versions" },
         "client": { "type": "string", "description": "The kind of client, \"web\" or \"desktop\"" },
-        "sessions": { "type": "array", "items": { "$ref": "#/definitions/AgentClientSession" } },
+        "workbooks": { "type": "array", "items": { "$ref": "#/definitions/AgentClientWorkbook" } },
         "focused": {
           "type": ["string", "null"],
-          "description": "The session that the user looks at, null if it has no agent access"
+          "description": "The workbook that the user looks at, null if it has no agent access"
         },
         "features": {
           "type": "array",
@@ -139,18 +139,18 @@
           "description": "The features of the client, identifiers like \"attachments\". The agent server picks the notes of its guide for the ones it knows and ignores the others; a client without them is older than the guide"
         }
       },
-      "required": ["protocol", "client", "sessions", "focused"],
+      "required": ["protocol", "client", "workbooks", "focused"],
       "additionalProperties": false
     },
     "AgentCommandParams": {
       "type": "object",
-      "description": "command, server → client: run a command of the command line tool against a session",
+      "description": "command, server → client: run a command of the command line tool against a workbook",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "command": { "type": "string" },
         "args": { "type": "object", "additionalProperties": { "tsType": "unknown" } }
       },
-      "required": ["session", "command", "args"],
+      "required": ["workbook", "command", "args"],
       "additionalProperties": false
     },
     "AgentCommandResult": {
@@ -167,13 +167,13 @@
       "type": "object",
       "description": "agent/request, client → server: run the harness with a prompt",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "harness": { "type": "string", "description": "The name of the harness, the server's default if omitted" },
         "model": { "type": "string", "description": "One of the models of the harness, the harness's own default if omitted" },
         "effort": { "type": "string", "description": "One of the efforts of the harness, the harness's own default if omitted" },
         "prompt": { "type": "string" }
       },
-      "required": ["session", "prompt"],
+      "required": ["workbook", "prompt"],
       "additionalProperties": false
     },
     "AgentRequestResult": {
@@ -188,38 +188,38 @@
     },
     "AgentCancelParams": {
       "type": "object",
-      "description": "agent/cancel, client → server: stop a turn of a session, or all turns of the session without a turn id",
+      "description": "agent/cancel, client → server: stop a turn of a workbook, or all turns of the workbook without a turn id",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "turnId": { "type": "string" }
       },
-      "required": ["session"],
+      "required": ["workbook"],
       "additionalProperties": false
     },
-    "AgentSessionParams": {
+    "AgentWorkbookParams": {
       "type": "object",
-      "description": "agent/reset and agent/forget, client → server: the session whose harness sessions or whose folder go",
+      "description": "agent/reset and agent/forget, client → server: the workbook whose harness sessions or whose folder go",
       "properties": {
-        "session": { "type": "string" }
+        "workbook": { "type": "string" }
       },
-      "required": ["session"],
+      "required": ["workbook"],
       "additionalProperties": false
     },
     "AgentContextParams": {
       "type": "object",
-      "description": "agent/context, client → server: the session to describe",
+      "description": "agent/context, client → server: the workbook to describe",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "harness": { "type": "string", "description": "The harness of the next request, the server's default if omitted" }
       },
-      "required": ["session"],
+      "required": ["workbook"],
       "additionalProperties": false
     },
-    "AgentSessionContext": {
+    "AgentWorkbookContext": {
       "type": "object",
       "description": "The result of agent/context",
       "properties": {
-        "folder": { "type": "string", "description": "The working folder of harness runs of the session" },
+        "folder": { "type": "string", "description": "The working folder of harness runs of the workbook" },
         "harness": { "type": "string", "description": "The harness of the next request" },
         "harnessSession": {
           "type": ["string", "null"],
@@ -275,7 +275,7 @@
         "id": { "type": "string" },
         "kind": { "type": "string" },
         "origin": { "type": "string" },
-        "sessions": { "type": "array", "items": { "$ref": "#/definitions/AgentClientSession" } },
+        "workbooks": { "type": "array", "items": { "$ref": "#/definitions/AgentClientWorkbook" } },
         "focused": { "type": ["string", "null"] },
         "features": {
           "type": ["array", "null"],
@@ -283,7 +283,7 @@
           "description": "The features of the client that the server knows, the ones of every older client if it announced none. Null until the client announced its sessions"
         }
       },
-      "required": ["id", "kind", "origin", "sessions", "focused", "features"],
+      "required": ["id", "kind", "origin", "workbooks", "focused", "features"],
       "additionalProperties": false
     },
     "AgentTurnState": {
@@ -296,14 +296,14 @@
       "description": "A turn of the agent server: a prompt that a harness works on until it answers",
       "properties": {
         "turnId": { "type": "string" },
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "harness": { "type": "string" },
         "model": { "type": ["string", "null"], "description": "The model of the request, null for the harness's default" },
         "effort": { "type": ["string", "null"], "description": "The effort of the request, null for the harness's default" },
         "state": { "$ref": "#/definitions/AgentTurnState" },
         "status": { "type": "string", "description": "The latest status line" }
       },
-      "required": ["turnId", "session", "harness", "model", "effort", "state", "status"],
+      "required": ["turnId", "workbook", "harness", "model", "effort", "state", "status"],
       "additionalProperties": false
     },
     "AgentServerStatus": {
@@ -336,42 +336,42 @@
       "type": "object",
       "description": "agent/status, server → client notification: the state of a turn",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "turnId": { "type": "string" },
         "state": { "$ref": "#/definitions/AgentTurnState" },
         "text": { "type": "string", "description": "The latest status line" }
       },
-      "required": ["session", "turnId", "state", "text"],
+      "required": ["workbook", "turnId", "state", "text"],
       "additionalProperties": false
     },
     "AgentDoneParams": {
       "type": "object",
       "description": "agent/done, server → client notification: a turn finished",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "turnId": { "type": "string" },
         "message": { "type": "string", "description": "The final message of the agent" }
       },
-      "required": ["session", "turnId", "message"],
+      "required": ["workbook", "turnId", "message"],
       "additionalProperties": false
     },
     "AgentFailedParams": {
       "type": "object",
       "description": "agent/failed, server → client notification: a turn failed or was stopped",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "turnId": { "type": "string" },
         "error": { "type": "string" },
         "cancelled": { "type": "boolean" }
       },
-      "required": ["session", "turnId", "error", "cancelled"],
+      "required": ["workbook", "turnId", "error", "cancelled"],
       "additionalProperties": false
     },
     "AgentCallRequest": {
       "type": "object",
-      "description": "The body of POST /v1/call: a command of the command line tool, for the given or the focused session",
+      "description": "The body of POST /v1/call: a command of the command line tool, for the given or the focused workbook",
       "properties": {
-        "session": { "type": "string" },
+        "workbook": { "type": "string" },
         "command": { "type": "string" },
         "args": { "type": "object", "additionalProperties": { "tsType": "unknown" } }
       },
@@ -385,10 +385,10 @@
           "type": "object",
           "properties": {
             "ok": { "const": true },
-            "session": { "type": "string" },
+            "workbook": { "type": "string" },
             "result": { "$ref": "#/definitions/AgentCommandResult" }
           },
-          "required": ["ok", "session", "result"],
+          "required": ["ok", "workbook", "result"],
           "additionalProperties": false
         },
         { "$ref": "#/definitions/AgentFailedResponse" }

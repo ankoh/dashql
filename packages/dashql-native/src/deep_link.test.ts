@@ -16,16 +16,17 @@ describe("parseDeepLink", () => {
     });
 
     it.each([
-        "dashql://localhost?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
-        "https://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
-        "https://stable.dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
-        "http://localhost:9002/?session=https%3A%2F%2Fexample.com%2Fdashql-session.json",
-        "dashql://localhost?notebook=https%3A%2F%2Fexample.com%2Fdashql-session.json",
-        "https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-session.json",
-    ])("extracts session payloads from supported links: %s", (link) => {
+        "dashql://localhost?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+        "https://dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+        "https://stable.dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+        "http://localhost:9002/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+        "dashql://localhost?notebook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+        "https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+        "https://dashql.app/?session=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
+    ])("extracts workbook payloads from supported links: %s", (link) => {
         expect(parseDeepLink(link)).toEqual({
-            type: "session",
-            value: "https://example.com/dashql-session.json",
+            type: "workbook",
+            value: "https://example.com/dashql-workbook.json",
         });
     });
 
@@ -69,7 +70,7 @@ describe("DeepLinkQueue", () => {
     it("buffers cold-start links and delivers later links immediately", () => {
         const queue = new DeepLinkQueue();
         const initial = {type: "event", value: "initial"} as const;
-        const running = {type: "session", value: "https://example.com/dashql-session.json"} as const;
+        const running = {type: "workbook", value: "https://example.com/dashql-workbook.json"} as const;
         queue.push(initial);
         const receiver = vi.fn();
 

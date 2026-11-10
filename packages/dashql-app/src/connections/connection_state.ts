@@ -75,7 +75,7 @@ export interface ConnectionState {
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
     instance: core.DashQL;
-    /// Whether the database belongs to a committed session or has connected at least once.
+    /// Whether the database belongs to a committed workbook or has connected at least once.
     /// Draft manifest writes are independent of activation; catalog writes require activation.
     active: boolean;
 
@@ -357,7 +357,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
 
         /// DELETE_CONNECTION stops the connection and destroys its catalog.
-        /// The registry refuses to delete connections that sessions reference.
+        /// The registry refuses to delete connections that workbooks reference.
         case DELETE_CONNECTION: {
             const newState = stopConnection(state, action, 'deleted');
 
@@ -536,7 +536,7 @@ export function createConnectionMetrics(): connection.ConnectionMetrics {
 
 /// The optional properties of a new connection state
 export interface ConnectionStateOptions {
-    /// Does the connection belong to a committed session or was it connected once?
+    /// Does the connection belong to a committed workbook or was it connected once?
     active?: boolean;
     /// The params, derived from the details by default
     params?: ConnectionParams;

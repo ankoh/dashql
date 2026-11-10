@@ -1,6 +1,6 @@
 # Hyper links
 
-A Hyper link points DashQL at a Hyper that speaks the HTTP v3 API: new sessions, and with them their scripts and
+A Hyper link points DashQL at a Hyper that speaks the HTTP v3 API: new workbooks, and with them their scripts and
 composer prompts, run on it. Compute (data frames, visualizations) and the monitoring databases stay in the embedded
 HyperDB WASM. The main producer is `hyperd run --ui`, which opens DashQL against the hyperd on the machine, but a link
 may also name a remote HTTP v3 server.
@@ -26,7 +26,7 @@ dashql://localhost?data=<base64url>
 
 - `endpoint` is the base url of the HTTP v3 API. An endpoint on this machine (`127.0.0.1`, `localhost`, `[::1]`) may
   use `http:` and applies right away. Any other endpoint must use `https:`, and the user confirms its host first: the
-  server receives the queries of the new sessions.
+  server receives the queries of the new workbooks.
 - `token` is sent as bearer token. The app never stores it durably.
 - Pasting a link into the app works like opening it.
 
@@ -91,42 +91,42 @@ local network. Safari blocks the request as mixed content, local hyperd links do
 ## App
 
 The connection to the Hyper of a link is an ordinary Hyper connection with the protocol `V3_HTTP_LINK`: it is stored in
-the app manifest and in the sessions like every connection, with its endpoint, and its catalog and monitoring database
+the app manifest and in the workbooks like every connection, with its endpoint, and its catalog and monitoring database
 live in its connection folder. Only the token is not stored. There can be several such connections, e.g. to two
 hyperd.
 
 - **Receiving**: the app event of a link arrives like every app event, from the address of the page, from the native
   app, or pasted (`PlatformEventListener.dispatchAppEvent`). The listener keeps the latest link until `useHyperLinks`
   (`app/hyper_links.ts`) subscribes.
-- **Following**: once the app opened the session it starts with, `useHyperLinks` (with the helpers of
+- **Following**: once the app opened the workbook it starts with, `useHyperLinks` (with the helpers of
   `connections/hyper/hyper_link.ts`)
   1. confirms the host of a link to another machine, unless a connection to it exists (`confirmHyperLink`),
   2. binds the link to a connection (`bindHyperLink`): the connection to the endpoint of the link, otherwise the user
      may reuse the connection of the latest link, which is saved with the new endpoint, otherwise a new connection,
-  3. remembers the token of the connection in the session storage of the tab and makes it the connection of new
-     sessions (`setHyperLinkToken`), a reload keeps both and closing the tab ends them,
-  4. opens the open session if it runs on the connection, otherwise the first session on it, otherwise the greeter on
-     the connection. The first script of the greeter creates the session.
+  3. remembers the token of the connection in the workbook storage of the tab and makes it the connection of new
+     workbooks (`setHyperLinkToken`), a reload keeps both and closing the tab ends them,
+  4. opens the open workbook if it runs on the connection, otherwise the first workbook on it, otherwise the greeter on
+     the connection. The first script of the greeter creates the workbook.
 - **Connecting**: `V3_HTTP_LINK` connects like `V3_HTTP` (`setupHyperConnection`) with the token of the tab as
   `authorization` header (`hyperLinkChannelParams`). Without a token the setup asks to open the link again. The
-  connection of an open session connects right away, as the embedded Hyper does, and again for every new link
+  connection of an open workbook connects right away, as the embedded Hyper does, and again for every new link
   (`useInitialMemorySetup`).
-- **New sessions**: `newSessionConnection` (`connections/embedded_connection.ts`) starts new sessions on the
-  connection of the latest link of the tab, otherwise on the embedded Hyper. A session has a single default
+- **New workbooks**: `newWorkbookConnection` (`connections/embedded_connection.ts`) starts new workbooks on the
+  connection of the latest link of the tab, otherwise on the embedded Hyper. A workbook has a single default
   connection, so the composer prompt and new scripts run on it. Detaching the connection falls back to the embedded
-  Hyper. Sessions that existed before keep their default connection.
+  Hyper. Workbooks that existed before keep their default connection.
 - **Compute and monitoring**: query results arrive as Arrow and are computed on in the embedded Hyper. The monitoring
   database of the connection lives in the embedded Hyper as for every remote Hyper, see `HyperLogMetrics`.
 
 ## Manual test
 
 1. Build a hyperd that implements the contract, start it with `hyperd run --ui --ui-app-url <dev server> ...`.
-2. Open the printed browser link: a session on hyperd opens and its queries run. Open the printed app link with the
-   native app closed and while it runs: the app opens a session on hyperd. Paste the link into the app: the same.
+2. Open the printed browser link: a workbook on hyperd opens and its queries run. Open the printed app link with the
+   native app closed and while it runs: the app opens a workbook on hyperd. Paste the link into the app: the same.
 3. The connection overview shows the queries of hyperd.
-4. Reload: new sessions still start on hyperd.
-5. Open the app in a new tab without the link: new sessions start on the embedded Hyper, the hyperd connection is
+4. Reload: new workbooks still start on hyperd.
+5. Open the app in a new tab without the link: new workbooks start on the embedded Hyper, the hyperd connection is
    listed and does not connect.
-6. Restart hyperd on the same port and open its new link: the sessions run on it without a question. Start it on
+6. Restart hyperd on the same port and open its new link: the workbooks run on it without a question. Start it on
    another port: the app asks whether to reuse the connection, declining creates a second one.
 7. Open a link to an https endpoint of another machine: the app asks before using it.

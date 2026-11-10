@@ -1,0 +1,605 @@
+/* Collection styles */
+
+
+.feed_body_container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    /* Stays in place while the scripts scroll over it */
+    background: var(--stage_background);
+    overflow: hidden;
+    display: grid;
+    /* The bar of the inputs, the feed, the docked composer */
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+    /* The scripts, the inputs and the composer keep the gutter of the page left and right */
+    --workbook_input_strip_inline_padding: var(--page_gutter);
+}
+
+/* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above center */
+.feed_body_container[data-landing] {
+    grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1.3fr);
+}
+
+/* The rows are explicit, the strip of the inputs is absent without inputs and attachments.
+   The inputs and the composer sit on the stage like the scripts, borders and the scroll shadows of the feed mark its
+   edges. The inputs line up with the scripts and keep the room of the composer below the feed. */
+.feed_top_strip {
+    grid-row: 1;
+}
+
+/* The greeting and the inputs of the draft stand on the prompt, the inputs lift the greeting */
+.feed_landing_top {
+    grid-row: 2;
+    align-self: end;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Lines the cards up with the frame of the composer below */
+.feed_landing_inputs {
+    width: min(720px, 100%);
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    padding: 0 16px;
+}
+
+.feed_landing_inputs:empty {
+    display: none;
+}
+
+.feed_landing_header {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 32px 16px 24px 16px;
+    transition: opacity 120ms ease-out;
+}
+
+/* Faded out while the composer shows agent turns, they grow the composer and would otherwise push the greeting up */
+.feed_landing_header[data-hidden] {
+    visibility: hidden;
+    opacity: 0;
+}
+
+.feed_landing_wobble {
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    color: var(--agent_fg);
+}
+
+/* The question of the agent, right of Wobble */
+.feed_landing_question {
+    margin: 0;
+    color: var(--agent_fg);
+    font-size: 20px;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+/* The docked composer sits on the stage below the feed, a card like the scripts */
+.feed_composer_section {
+    grid-row: 3;
+    border-top: 1px solid var(--color_border);
+}
+
+/* Lines the composer up with the scripts of the feed, which stop before the scrollbar */
+.feed_composer_body {
+    padding: 12px calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 12px var(--page_gutter);
+}
+
+.feed_body_container[data-landing] .feed_composer_section {
+    justify-self: center;
+    width: min(720px, 100%);
+    box-sizing: border-box;
+    border-top: none;
+}
+
+.feed_body_container[data-landing] .feed_composer_body {
+    padding: 0 16px;
+}
+
+/* The attachments are a chip of the strip, their cards open in a drawer within it */
+.feed_data_chip {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    color: var(--color_fg);
+    background-color: var(--color_bg_card);
+    font-family: var(--font_family);
+    font-size: var(--font_size_caption);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.feed_data_chip:hover {
+    background-color: var(--color_bg_hover);
+}
+
+.feed_data_count {
+    padding: 0 6px;
+    border-radius: 999px;
+    background-color: var(--color_neutral_muted);
+    color: var(--color_fg_muted);
+    font-weight: 500;
+    line-height: 16px;
+}
+
+.feed_data_section {
+    align-self: flex-start;
+    max-width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_card);
+}
+
+.feed_data_drawer {
+    height: 84px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+}
+
+.feed_data_cards {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px;
+}
+
+.feed_data_card {
+    width: 320px;
+    min-width: 320px;
+    height: 56px;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_card);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    box-sizing: border-box;
+}
+
+.feed_data_card_topline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feed_data_file_icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    position: relative;
+    color: var(--color_fg_muted);
+}
+
+.feed_data_file_icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.feed_data_file_icon span {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    max-width: 25px;
+    overflow: hidden;
+    padding: 1px 3px;
+    border-radius: 2px;
+    color: var(--color_fg_on_emphasis);
+    background: var(--color_neutral_emphasis);
+    font-size: 7px;
+    font-weight: 700;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+}
+
+.feed_data_title {
+    min-width: 0;
+    flex: 1;
+    display: grid;
+    gap: 2px;
+}
+
+.feed_data_name {
+    overflow: hidden;
+    font-weight: 600;
+    font-size: var(--font_size_compact);
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.feed_data_size {
+    color: var(--color_fg_muted);
+    font-size: 11px;
+}
+
+.feed_data_actions {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 0 0 auto;
+}
+
+.feed_list_container {
+    grid-row: 2;
+    /* Holds the scroll shadows at the edges of the feed */
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.feed_list_container[hidden] {
+    display: none;
+}
+
+.feed_data_input {
+    display: none;
+}
+
+.feed_data_empty,
+.feed_data_error {
+    padding: 8px 10px;
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_compact);
+}
+
+.feed_data_error {
+    color: var(--color_danger_fg);
+}
+
+/* A row of the feed, the card of a script and the space below it */
+.feed_row {
+    box-sizing: border-box;
+}
+
+.feed_list_item {
+    position: relative;
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
+}
+
+/* The spaces above and below the card keep it hovered, the add buttons in them stay visible.
+   Between two scripts the spaces overlap, the later script shows its button above, in the same place. */
+.feed_list_item::before,
+.feed_list_item::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--feed-gap, 32px);
+}
+
+.feed_list_item::before {
+    bottom: 100%;
+}
+
+.feed_list_item::after {
+    top: 100%;
+}
+
+/* The add buttons of a script, at the right edge of the card in the spaces above and below it.
+   The button below a script and the one above the next script share their place, the hovered row shows its own. */
+.feed_entry_insert {
+    appearance: none;
+    position: absolute;
+    /* Lines up with the right border of the card, the card ends before the scrollbar inset */
+    right: calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px));
+    z-index: 3;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    color: var(--color_fg_muted);
+    background: transparent;
+    cursor: pointer;
+    /* Hidden but clickable, a pointer on the button hovers its card and shows it */
+    opacity: 0;
+    transition: opacity 80ms ease-out;
+}
+
+.feed_entry_insert[data-edge="above"] {
+    top: calc(var(--feed-gap, 32px) / -2);
+    transform: translateY(-50%);
+}
+
+.feed_entry_insert[data-edge="below"] {
+    top: calc(100% + var(--feed-gap, 32px) / 2);
+    transform: translateY(-50%);
+}
+
+.feed_list_item:hover > .feed_entry_insert,
+.feed_entry_insert:focus-visible {
+    opacity: 1;
+}
+
+.feed_entry_insert:hover {
+    color: var(--color_fg);
+}
+
+.feed_entry_insert:active {
+    color: var(--color_fg);
+}
+
+.feed_entry_insert:focus-visible {
+    outline: 2px solid var(--color_focus);
+    outline-offset: 2px;
+}
+
+.feed_entry_pair {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.feed_entry_drag_handle {
+    appearance: none;
+    position: absolute;
+    top: 12px;
+    /* Inside the card, in the space left of its title */
+    left: calc(var(--page_gutter) + 6px);
+    z-index: 2;
+    width: 16px;
+    height: 16px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    color: var(--color_fg_subtle);
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+}
+
+.feed_entry_drag_handle:hover,
+.feed_entry_drag_handle:focus-visible {
+    color: var(--color_fg);
+}
+
+.feed_entry_drag_handle:active {
+    cursor: grabbing;
+}
+
+.feed_entry_drag_handle:focus-visible {
+    outline: 2px solid var(--color_focus);
+    outline-offset: 2px;
+}
+
+.feed_entry_cell {
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_card);
+    width: 100%;
+    overflow: hidden;
+    display: grid;
+    /* SQL previews can contain unbreakable tokens. Keep their intrinsic width from enlarging the
+       grid column (and therefore every row, including the action bar) beyond the card. */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 40px;
+    grid-auto-rows: auto;
+    position: relative;
+}
+
+.feed_entry_action_bar {
+    /* border-bottom: 1px solid var(--color_border); */
+    border-radius: var(--border_radius) var(--border_radius) 0 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 0 28px;
+    gap: 6px;
+    color: var(--color_fg_muted);
+}
+
+.feed_entry_footer {
+    border-top: 1px solid var(--color_border);
+}
+
+/* A wrapper of a header control that a narrow header may hide, see `data-entry-optional` */
+.feed_entry_optional {
+    display: contents;
+}
+
+.feed_entry_action_separator {
+    flex-shrink: 0;
+    width: 1px;
+    height: 16px;
+    /* The separators keep apart the groups of buttons */
+    margin: 0 2px;
+    background-color: var(--color_border);
+}
+
+.feed_entry_file_name {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+/* The ":<script>" tag that mentions the script in the prompt, colored like the muted protocol tags of the connections */
+.feed_entry_mention {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 1;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 180px;
+    height: 22px;
+    /* Keep the tag clear of the icon buttons that follow it */
+    margin-right: 6px;
+    padding: 0 8px;
+    border: 1px solid var(--color_border);
+    border-radius: 6px;
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg_muted);
+    font-family: var(--font_family);
+    font-size: var(--font_size_caption);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* A button does not ellipsize as a flex container, its text is a plain inline run */
+button.feed_entry_mention {
+    display: inline-block;
+}
+
+/* A script with @manual runs only on request, Execute All and input changes skip it */
+.feed_entry_manual {
+    flex-shrink: 0;
+    margin-right: 6px;
+    color: var(--color_fg_subtle);
+    font-family: var(--font_family);
+    font-size: var(--font_size_caption);
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+.feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
+    background-color: var(--color_bg_hover);
+}
+
+.feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
+    background-color: var(--color_bg_selected);
+    border-color: var(--color_fg_subtle);
+}
+
+.feed_entry_mention:focus-visible {
+    outline: 2px solid var(--color_focus);
+    outline-offset: 1px;
+}
+
+/* Without an agent the tag can not mention the script, a double click still renames it */
+.feed_entry_mention[aria-disabled="true"] {
+    background-color: var(--color_bg_subtle);
+    color: var(--color_fg_subtle);
+    cursor: default;
+}
+
+/* While editing, the tag keeps its single border, only a darker one */
+.feed_entry_mention[data-editing] {
+    border-color: var(--color_fg_subtle);
+    cursor: text;
+}
+
+.feed_entry_mention_input {
+    min-width: 2ch;
+    max-width: 100%;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+}
+
+/* The run button of the focused card keeps the full text color, the one strong action in the muted header */
+.feed_entry_execute_focused {
+    color: var(--color_fg);
+}
+
+.feed_entry_execute_unfocused {
+    color: var(--color_fg_subtle);
+}
+
+/* The play button of a script whose connection is not connected, greyed like a disabled button */
+.feed_entry_execute_offline {
+    color: var(--color_fg_subtle);
+}
+
+.feed_entry_stats_bar {
+    height: 24px;
+    flex-shrink: 0;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    overflow: hidden;
+}
+
+/* The status bar that sits between the action bar and the body now lives in its own component
+   (entry_status_bar.tsx / .module.css) so the Details view can reuse it too. */
+
+.feed_body {
+    width: 100%;
+    min-width: 0;
+    cursor: text;
+    background-color: transparent;
+}
+
+.feed_editor_container {
+    position: relative;
+}
+
+/* Staged-rewrite actions stay over the editor body; script diagnostics live in the card header. */
+.feed_body_overlays {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feed_script_editor {
+    padding: 0;
+    width: 100%;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.feed_script_editor :global(.cm-editor) {
+    min-height: 0;
+    font-size: var(--font_size_compact);
+    line-height: 1.45;
+}
+
+.feed_script_editor :global(.dashql-comment) {
+    border-radius: 2px;
+}
+
+.feed_script_editor :global(.cm-scroller) {
+    padding: 0;
+}
+
+.feed_script_editor :global(.cm-gutters) {
+    box-sizing: border-box;
+    min-width: 49px;
+    padding: 0 4px;
+}

@@ -11,7 +11,7 @@ import {
     lookupPrefix,
 } from './catalog_name_index.js';
 import { findScriptReferences, SCRIPT_REFERENCE_PREFIX } from './script_references.js';
-import { DashQLCompletionDisabled } from '../session/editor/dashql_processor.js';
+import { DashQLCompletionDisabled } from '../workbook/editor/dashql_processor.js';
 
 import * as styles from './nl_identifier_plugin.module.css';
 
@@ -30,7 +30,7 @@ export const NLIdentifierIndex = Facet.define<CatalogNameIndex, CatalogNameIndex
     combine: values => values[0] ?? EMPTY_CATALOG_NAME_INDEX,
 });
 
-/// The display names of the session scripts that the text can reference, replaced by reconfiguring the editor
+/// The display names of the workbook scripts that the text can reference, replaced by reconfiguring the editor
 export const NLScriptNames = Facet.define<readonly string[], readonly string[]>({
     combine: values => values[0] ?? [],
 });
@@ -200,7 +200,7 @@ const TableDecoration = Decoration.mark({ class: styles.identifier_table });
 const ColumnDecoration = Decoration.mark({ class: styles.identifier_column });
 const ScriptDecoration = Decoration.mark({ class: styles.identifier_script });
 
-/// Mark the finished words that name catalog objects and the finished references to session scripts
+/// Mark the finished words that name catalog objects and the finished references to workbook scripts
 function buildHighlights(state: EditorState): DecorationSet {
     const text = state.doc.toString();
     const selection = state.selection.main;
@@ -280,7 +280,7 @@ export const NLIdentifierExtensions = [
 ];
 
 /// The assistance for natural language: no SQL completion, the names of the index are highlighted and completed,
-/// the references to the session scripts are highlighted
+/// the references to the workbook scripts are highlighted
 export function naturalLanguageAssist(index: CatalogNameIndex, scriptNames: readonly string[]): Extension {
     return [DashQLCompletionDisabled.of(true), NLIdentifierIndex.of(index), NLScriptNames.of(scriptNames), ...NLIdentifierExtensions];
 }

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "dashql/app_manifest.json",
   "title": "StorageManifest",
-  "description": "The manifest of the storage root (dashql-manifest.json) with the app settings and the connections. The sessions are registered in the session tree, see app_folder.json.",
+  "description": "The manifest of the storage root (dashql-manifest.json) with the app settings and the connections. The workbooks are registered in the workbook tree, see app_folder.json.",
   "type": "object",
   "properties": {
     "appSettings": {
@@ -18,26 +18,26 @@
       "items": {
         "$ref": "#/definitions/ConnectionEntry"
       },
-      "description": "The connections, the source of truth for the connection settings that sessions replicate. Absent in manifests written before connections were global, an empty array means there are no connections."
+      "description": "The connections, the source of truth for the connection settings that workbooks replicate. Absent in manifests written before connections were global, an empty array means there are no connections."
     }
   },
   "additionalProperties": false,
   "definitions": {
     "ConnectionEntry": {
       "type": "object",
-      "description": "A connection that sessions reference by its id",
+      "description": "A connection that workbooks reference by its id",
       "properties": {
         "id": {
           "type": "string",
-          "description": "The connection identifier (UUID), sessions reference the connection with it"
+          "description": "The connection identifier (UUID), workbooks reference the connection with it"
         },
         "params": {
           "$ref": "connection.json#/definitions/ConnectionParams",
-          "description": "The saved connection parameters, every session referencing the connection stores a copy"
+          "description": "The saved connection parameters, every workbook referencing the connection stores a copy"
         },
         "paramsDraft": {
           "$ref": "connection.json#/definitions/ConnectionParams",
-          "description": "Unsaved edits of the connection parameters, including incomplete or invalid settings. Never replicated into sessions."
+          "description": "Unsaved edits of the connection parameters, including incomplete or invalid settings. Never replicated into workbooks."
         },
         "name": {
           "type": "string",
@@ -95,12 +95,12 @@
           "type": "string",
           "description": "The id of the app flavor, the flavor query parameter of the url wins"
         },
-        "agentSessions": {
+        "agentWorkbooks": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "The sessions whose scripts agents may read, edit and run through the local agent server"
+          "description": "The workbooks whose scripts agents may read, edit and run through the local agent server"
         },
         "agentPort": {
           "type": "integer",

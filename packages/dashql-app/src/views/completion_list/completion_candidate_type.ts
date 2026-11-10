@@ -7,9 +7,9 @@ export enum CompletionCandidateType {
     COLUMN = 4,
     FUNCTION = 5,
     IDENTITY = 6,
-    /// The result of a script of the session, a table parameter `:foo`
+    /// The result of a script of the workbook, a table parameter `:foo`
     SCRIPT = 7,
-    /// An attachment of the session, a table parameter `:foo`
+    /// An attachment of the workbook, a table parameter `:foo`
     ATTACHMENT = 8,
     /// An option or an attribute of a client function
     OPTION = 9,

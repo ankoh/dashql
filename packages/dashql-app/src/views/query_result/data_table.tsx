@@ -381,7 +381,7 @@ export const DataTable = React.memo((props: Props) => {
     const totalDataHeight = dataRowCount * ROW_HEIGHT;
 
     return (
-        // The grid can be rendered within the session feed's Electron drag region. Opt out so
+        // The grid can be rendered within the workbook feed's Electron drag region. Opt out so
         // native scrollbar thumbs receive pointer drags instead of moving the application window.
         <div
             className={classNames(styles.root, props.className, {

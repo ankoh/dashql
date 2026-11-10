@@ -60,7 +60,7 @@ function HarnessChoice(props: { label: string; values: string[]; picked: string 
     );
 }
 
-/// The agent bridge: the agent server with its port and harness, the sessions with agent access, the turns and
+/// The agent bridge: the agent server with its port and harness, the workbooks with agent access, the turns and
 /// the clients of the server.
 /// The harness commands live in the config.json of the agent server, a page only picks among them and must
 /// not be able to choose the programs that run on the machine. The same holds for the models and efforts of a harness.
@@ -72,7 +72,7 @@ export function AgentView(props: { onClose: () => void }) {
     const [portDraft, setPortDraft] = React.useState<string>(String(bridge?.port ?? DASHQL_AGENT_PORT));
     React.useEffect(() => setPortDraft(String(bridge?.port ?? DASHQL_AGENT_PORT)), [bridge?.port]);
 
-    // The view shows the agent server even while no session has agent access
+    // The view shows the agent server even while no workbook has agent access
     React.useEffect(() => bridge?.hold(), [bridge?.hold]);
 
     const connected = bridge?.status === AgentConnectionStatus.Connected;
@@ -188,20 +188,20 @@ export function AgentView(props: { onClose: () => void }) {
                     )}
                 </section>
 
-                <section className={styles.section} aria-labelledby="agent-section-sessions">
-                    <h3 id="agent-section-sessions" className={styles.section_title}>Sessions</h3>
-                    {bridge.accessSessions.map(session => (
-                        <div key={session.id} className={styles.row} data-testid="agent-settings-session">
+                <section className={styles.section} aria-labelledby="agent-section-workbooks">
+                    <h3 id="agent-section-workbooks" className={styles.section_title}>Workbooks</h3>
+                    {bridge.accessWorkbooks.map(workbook => (
+                        <div key={workbook.id} className={styles.row} data-testid="agent-settings-workbook">
                             <div className={styles.row_label}>
-                                {session.name != null && session.name.length > 0 ? session.name : 'Unnamed session'}
-                                <span className={styles.row_detail}>{session.id}</span>
+                                {workbook.name != null && workbook.name.length > 0 ? workbook.name : 'Unnamed workbook'}
+                                <span className={styles.row_detail}>{workbook.id}</span>
                             </div>
                             <div className={styles.row_value}>
-                                <Button size={ButtonSize.Small} onClick={() => bridge.setAccess(session.id, false)}>Disconnect</Button>
+                                <Button size={ButtonSize.Small} onClick={() => bridge.setAccess(workbook.id, false)}>Disconnect</Button>
                             </div>
                         </div>
                     ))}
-                    {bridge.accessSessions.length === 0 && <div className={styles.hint}>No session has agent access.</div>}
+                    {bridge.accessWorkbooks.length === 0 && <div className={styles.hint}>No workbook has agent access.</div>}
                 </section>
 
                 {info != null && (
@@ -214,7 +214,7 @@ export function AgentView(props: { onClose: () => void }) {
                                     <span className={styles.row_detail}>{turn.state}</span>
                                 </div>
                                 <div className={styles.row_value}>
-                                    <Button size={ButtonSize.Small} onClick={() => { void bridge.cancel(turn.session).then(refresh); }}>Stop</Button>
+                                    <Button size={ButtonSize.Small} onClick={() => { void bridge.cancel(turn.workbook).then(refresh); }}>Stop</Button>
                                 </div>
                             </div>
                         ))}
@@ -232,7 +232,7 @@ export function AgentView(props: { onClose: () => void }) {
                                     <span className={styles.row_detail}>{client.origin}</span>
                                 </div>
                                 <div className={styles.row_value}>
-                                    <span className={styles.row_detail}>{client.sessions.length} session{client.sessions.length === 1 ? '' : 's'}</span>
+                                    <span className={styles.row_detail}>{client.workbooks.length} workbook{client.workbooks.length === 1 ? '' : 's'}</span>
                                 </div>
                             </div>
                         ))}

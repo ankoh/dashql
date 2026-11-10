@@ -2,7 +2,7 @@ import type { LoggerLike } from '../platform/logger/logger.js';
 import {
     AGENT_FEATURES,
     AGENT_PROTOCOL_VERSION,
-    type AgentClientSession,
+    type AgentClientWorkbook,
     type AgentCommandParams,
     type AgentCommandResult,
     type AgentErrorCode,
@@ -10,18 +10,18 @@ import {
     type AgentRpcError,
     type AgentRpcMessage,
     type AgentServerMethods,
-    type ClientSessionsParams,
+    type ClientWorkbooksParams,
 } from './agent_protocol.js';
 
 const LOG_CTX = 'agent_client';
 
 /// The connection to the local agent server
 export enum AgentConnectionStatus {
-    /// No session has agent access and nothing holds the connection, the client does not connect
+    /// No workbook has agent access and nothing holds the connection, the client does not connect
     Off = 'off',
     /// Connecting, or waiting to reconnect
     Connecting = 'connecting',
-    /// Connected, the server took the sessions
+    /// Connected, the server took the workbooks
     Connected = 'connected',
     /// The server turned the client away, it speaks another protocol version. The client retries slowly.
     Incompatible = 'incompatible',
@@ -117,14 +117,14 @@ interface PendingRequest {
 
 /// The WebSocket client of the agent bridge.
 ///
-/// Connects while at least one session has agent access and reconnects with backoff.
+/// Connects while at least one workbook has agent access and reconnects with backoff.
 /// The server queues calls while the page is gone, so a reload loses nothing.
 export class AgentClient {
     readonly #options: AgentClientOptions;
     #socket: AgentSocket | null = null;
-    #sessions: AgentClientSession[] = [];
+    #workbooks: AgentClientWorkbook[] = [];
     #focused: string | null = null;
-    /// Stay connected without sessions, e.g. while the settings show the agent server
+    /// Stay connected without workbooks, e.g. while the settings show the agent server
     #held = false;
     #status = AgentConnectionStatus.Off;
     #backoffMs: number;
@@ -141,21 +141,21 @@ export class AgentClient {
         return this.#status;
     }
 
-    /// Announce the sessions with agent access, connects or disconnects as needed
-    setSessions(sessions: AgentClientSession[], focused: string | null): void {
-        this.#sessions = sessions;
-        this.#focused = focused != null && sessions.some(s => s.id === focused) ? focused : null;
+    /// Announce the workbooks with agent access, connects or disconnects as needed
+    setWorkbooks(workbooks: AgentClientWorkbook[], focused: string | null): void {
+        this.#workbooks = workbooks;
+        this.#focused = focused != null && workbooks.some(s => s.id === focused) ? focused : null;
         this.#update();
     }
 
-    /// Stay connected while no session has agent access
+    /// Stay connected while no workbook has agent access
     setHeld(held: boolean): void {
         this.#held = held;
         this.#update();
     }
 
     #wanted(): boolean {
-        return this.#sessions.length > 0 || this.#held;
+        return this.#workbooks.length > 0 || this.#held;
     }
 
     #update(): void {
@@ -187,7 +187,7 @@ export class AgentClient {
 
     /// Disconnect for good
     dispose(): void {
-        this.#sessions = [];
+        this.#workbooks = [];
         this.#held = false;
         this.#disconnect();
     }
@@ -205,24 +205,24 @@ export class AgentClient {
         this.#options.onStatus(status);
     }
 
-    /// Announce the sessions, resolves once the server took them
+    /// Announce the workbooks, resolves once the server took them
     async #announce(): Promise<boolean> {
         const socket = this.#socket;
         if (socket == null || socket.readyState !== SOCKET_OPEN) return false;
-        const params: ClientSessionsParams = {
+        const params: ClientWorkbooksParams = {
             protocol: AGENT_PROTOCOL_VERSION,
             client: this.#options.clientKind,
-            sessions: this.#sessions,
+            workbooks: this.#workbooks,
             focused: this.#focused,
             features: AGENT_FEATURES,
         };
         // A server that turns the client away closes the socket instead of answering
-        return this.request('client/sessions', params).then(() => true, () => false);
+        return this.request('client/workbooks', params).then(() => true, () => false);
     }
 
     #connect(): void {
         this.#reconnectTimer = null;
-        // An incompatible server stays incompatible until it takes the sessions
+        // An incompatible server stays incompatible until it takes the workbooks
         if (this.#status !== AgentConnectionStatus.Incompatible) this.#setStatus(AgentConnectionStatus.Connecting);
         this.#options.logger.info('Connecting to the agent server', { url: this.#options.url }, LOG_CTX);
         let socket: AgentSocket;
@@ -235,7 +235,7 @@ export class AgentClient {
         }
         this.#socket = socket;
         socket.onopen = () => {
-            this.#options.logger.info('Opened the socket to the agent server, announcing the sessions', { url: this.#options.url }, LOG_CTX);
+            this.#options.logger.info('Opened the socket to the agent server, announcing the workbooks', { url: this.#options.url }, LOG_CTX);
             void this.#announce().then(accepted => {
                 if (!accepted || this.#socket !== socket) return;
                 this.#options.logger.info('Connected to the agent server', { url: this.#options.url }, LOG_CTX);
@@ -359,7 +359,7 @@ export class AgentClient {
         const params = message.params as AgentCommandParams;
         const command = { id: String(id), command: String(params.command) };
         const logger = this.#options.logger;
-        logger.info('Running a command of the agent', { ...logFields(params.args), ...command, session: String(params.session) }, LOG_CTX);
+        logger.info('Running a command of the agent', { ...logFields(params.args), ...command, workbook: String(params.workbook) }, LOG_CTX);
         // The texts that the agent passes, e.g. the script of edit or the spec of vis edit
         for (const [name, value] of Object.entries(params.args ?? {})) {
             if (typeof value === 'string' && isLongText(value)) logger.debug(`The ${name} of the command`, { ...command, [name]: value }, LOG_CTX);

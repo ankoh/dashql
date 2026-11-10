@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { VariantKind } from "../../utils/variant.js";
 import { AppLoadingStatus } from '../loading/app_loading_status.js';
-import { SessionSetupStatus } from '../loading/session_setup_status.js';
+import { WorkbookSetupStatus } from '../loading/workbook_setup_status.js';
 import { LoggableException } from '../../platform/logger/logger.js';
 
 export interface RouteContext {
@@ -10,32 +10,32 @@ export interface RouteContext {
     appLoadingStatus: AppLoadingStatus;
     /// Confirmed the finished setup?
     confirmedFinishedSetup: boolean;
-    /// The focused session id
-    sessionId: string | null;
-    /// The session setup status
-    sessionSetupStatus: SessionSetupStatus;
+    /// The focused workbook id
+    workbookId: string | null;
+    /// The workbook setup status
+    workbookSetupStatus: WorkbookSetupStatus;
 }
 
-export const SESSION_PATH = Symbol("NAVIGATE_SESSION");
+export const WORKBOOK_PATH = Symbol("NAVIGATE_WORKBOOK");
 export const FINISH_SETUP = Symbol("FINISH_SETUP");
 export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
-export const SELECT_SESSION = Symbol("SELECT_SESSION");
-export const CHANGE_SESSION = Symbol("CHANGE_SESSION");
-export const BEGIN_SESSION_SETUP = Symbol("BEGIN_SESSION_SETUP");
-export const CANCEL_SESSION_SETUP = Symbol("CANCEL_SESSION_SETUP");
-export const SKIP_SESSION_SETUP = Symbol("SKIP_SESSION_SETUP");
-export const OPEN_LINK_SESSION = Symbol("OPEN_LINK_SESSION");
-export const OPEN_SESSION = Symbol("OPEN_SESSION");
-export const OPEN_EPHEMERAL_SESSION = Symbol("OPEN_EPHEMERAL_SESSION");
-export const PROMOTE_SESSION = Symbol("PROMOTE_SESSION");
+export const SELECT_WORKBOOK = Symbol("SELECT_WORKBOOK");
+export const CHANGE_WORKBOOK = Symbol("CHANGE_WORKBOOK");
+export const BEGIN_WORKBOOK_SETUP = Symbol("BEGIN_WORKBOOK_SETUP");
+export const CANCEL_WORKBOOK_SETUP = Symbol("CANCEL_WORKBOOK_SETUP");
+export const SKIP_WORKBOOK_SETUP = Symbol("SKIP_WORKBOOK_SETUP");
+export const OPEN_LINK_WORKBOOK = Symbol("OPEN_LINK_WORKBOOK");
+export const OPEN_WORKBOOK = Symbol("OPEN_WORKBOOK");
+export const OPEN_EPHEMERAL_WORKBOOK = Symbol("OPEN_EPHEMERAL_WORKBOOK");
+export const PROMOTE_WORKBOOK = Symbol("PROMOTE_WORKBOOK");
 
-export function sessionPath(sessionId: string): string {
-    return `/sessions/${encodeURIComponent(sessionId)}`;
+export function workbookPath(workbookId: string): string {
+    return `/workbooks/${encodeURIComponent(workbookId)}`;
 }
 
-export function sessionIdFromPathname(pathname: string): string | null {
-    const match = /^\/sessions\/([^/]+)\/?$/.exec(pathname);
+export function workbookIdFromPathname(pathname: string): string | null {
+    const match = /^\/workbooks\/([^/]+)\/?$/.exec(pathname);
     if (match == null) return null;
     try {
         return decodeURIComponent(match[1]);
@@ -45,19 +45,19 @@ export function sessionIdFromPathname(pathname: string): string | null {
 }
 
 export type RouteTarget =
-    VariantKind<typeof SESSION_PATH, string | null>
+    VariantKind<typeof WORKBOOK_PATH, string | null>
     | VariantKind<typeof FINISH_SETUP, null>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
     | VariantKind<typeof SKIP_SETUP, null>
-    | VariantKind<typeof SELECT_SESSION, string>
-    | VariantKind<typeof CHANGE_SESSION, null>
-    | VariantKind<typeof BEGIN_SESSION_SETUP, string>
-    | VariantKind<typeof CANCEL_SESSION_SETUP, null>
-    | VariantKind<typeof SKIP_SESSION_SETUP, null>
-    | VariantKind<typeof OPEN_LINK_SESSION, string>
-    | VariantKind<typeof OPEN_SESSION, string>
-    | VariantKind<typeof OPEN_EPHEMERAL_SESSION, string>
-    | VariantKind<typeof PROMOTE_SESSION, string>
+    | VariantKind<typeof SELECT_WORKBOOK, string>
+    | VariantKind<typeof CHANGE_WORKBOOK, null>
+    | VariantKind<typeof BEGIN_WORKBOOK_SETUP, string>
+    | VariantKind<typeof CANCEL_WORKBOOK_SETUP, null>
+    | VariantKind<typeof SKIP_WORKBOOK_SETUP, null>
+    | VariantKind<typeof OPEN_LINK_WORKBOOK, string>
+    | VariantKind<typeof OPEN_WORKBOOK, string>
+    | VariantKind<typeof OPEN_EPHEMERAL_WORKBOOK, string>
+    | VariantKind<typeof PROMOTE_WORKBOOK, string>
     ;
 
 export function useRouteContext() {
@@ -70,13 +70,13 @@ export function useRouteContext() {
             return {
                 appLoadingStatus: AppLoadingStatus.NOT_STARTED,
                 confirmedFinishedSetup: false,
-                sessionId: sessionIdFromPathname(pathname),
-                sessionSetupStatus: SessionSetupStatus.NONE,
+                workbookId: workbookIdFromPathname(pathname),
+                workbookSetupStatus: WorkbookSetupStatus.NONE,
             };
         } else {
             return {
                 ...route,
-                sessionSetupStatus: route.sessionSetupStatus ?? SessionSetupStatus.NONE,
+                workbookSetupStatus: route.workbookSetupStatus ?? WorkbookSetupStatus.NONE,
             };
         }
     }, [route, pathname]);
@@ -88,11 +88,11 @@ export function useRouterNavigate() {
     const context = useRouteContext();
     return React.useCallback((route: RouteTarget) => {
         switch (route.type) {
-            case SESSION_PATH:
-                navigate(route.value == null ? "/" : sessionPath(route.value), {
+            case WORKBOOK_PATH:
+                navigate(route.value == null ? "/" : workbookPath(route.value), {
                     state: {
                         ...context,
-                        sessionId: route.value ?? null,
+                        workbookId: route.value ?? null,
                     }
                 });
                 break;
@@ -109,99 +109,99 @@ export function useRouterNavigate() {
                     state: {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: false,
-                        sessionId: null,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookId: null,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;
-            case SELECT_SESSION:
-                navigate(sessionPath(route.value), {
+            case SELECT_WORKBOOK:
+                navigate(workbookPath(route.value), {
                     state: {
                         ...context,
-                        sessionId: route.value,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookId: route.value,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;
-            case OPEN_SESSION:
-                navigate(sessionPath(route.value), {
+            case OPEN_WORKBOOK:
+                navigate(workbookPath(route.value), {
                     state: {
                         ...context,
-                        sessionId: route.value,
-                        sessionSetupStatus: SessionSetupStatus.OPENING,
+                        workbookId: route.value,
+                        workbookSetupStatus: WorkbookSetupStatus.OPENING,
                     }
                 });
                 break;
-            case CHANGE_SESSION:
+            case CHANGE_WORKBOOK:
                 navigate("/", {
                     state: {
                         ...context,
-                        sessionId: null,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookId: null,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;
-            case BEGIN_SESSION_SETUP:
-                navigate(sessionPath(route.value), {
+            case BEGIN_WORKBOOK_SETUP:
+                navigate(workbookPath(route.value), {
                     state: {
                         ...context,
-                        sessionId: route.value,
-                        sessionSetupStatus: SessionSetupStatus.CONFIGURING,
+                        workbookId: route.value,
+                        workbookSetupStatus: WorkbookSetupStatus.CONFIGURING,
                     }
                 });
                 break;
-            case CANCEL_SESSION_SETUP:
+            case CANCEL_WORKBOOK_SETUP:
                 navigate("/", {
                     state: {
                         ...context,
-                        sessionId: null,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookId: null,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;
-            case SKIP_SESSION_SETUP:
+            case SKIP_WORKBOOK_SETUP:
                 navigate(location.pathname, {
                     state: {
                         ...context,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;
-            case OPEN_LINK_SESSION:
-                // A session arrived via a shared link and has been restored into the registries.
+            case OPEN_LINK_WORKBOOK:
+                // A workbook arrived via a shared link and has been restored into the registries.
                 // Start the common opening flow atomically so embedded connections can initialize
                 // without briefly showing the connection setup screen.
-                navigate(sessionPath(route.value), {
+                navigate(workbookPath(route.value), {
                     state: {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: false,
-                        sessionId: route.value,
-                        sessionSetupStatus: SessionSetupStatus.OPENING,
+                        workbookId: route.value,
+                        workbookSetupStatus: WorkbookSetupStatus.OPENING,
                     }
                 });
                 break;
-            case OPEN_EPHEMERAL_SESSION:
-                // The greeter stays at the root until a script promotes the session. The startup replaces its entry:
+            case OPEN_EPHEMERAL_WORKBOOK:
+                // The greeter stays at the root until a script promotes the workbook. The startup replaces its entry:
                 // going back to it would find a root without a route context and show the loading page.
-                // The status is not OPENING, the loader would open the path of the session.
+                // The status is not OPENING, the loader would open the path of the workbook.
                 navigate("/", {
                     replace: location.pathname === "/",
                     state: {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: context.confirmedFinishedSetup,
-                        sessionId: route.value,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookId: route.value,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;
-            case PROMOTE_SESSION:
-                // Replaces the root, going back would promote the session again
-                navigate(sessionPath(route.value), {
+            case PROMOTE_WORKBOOK:
+                // Replaces the root, going back would promote the workbook again
+                navigate(workbookPath(route.value), {
                     replace: true,
                     state: {
                         ...context,
-                        sessionId: route.value,
-                        sessionSetupStatus: SessionSetupStatus.NONE,
+                        workbookId: route.value,
+                        workbookSetupStatus: WorkbookSetupStatus.NONE,
                     }
                 });
                 break;

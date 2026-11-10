@@ -59,10 +59,10 @@ describe('Catalog name index', () => {
         try {
             // A flat catalog taken before is cached by the catalog, the index must not depend on it
             live.flatten();
-            const session = dql.createScriptSession(live);
-            session.replaceText(session.getTextVersion(), 'create table attachments (file_name text)');
-            session.analyze();
-            session.loadIntoCatalog();
+            const workbook = dql.createScriptSession(live);
+            workbook.replaceText(workbook.getTextVersion(), 'create table attachments (file_name text)');
+            workbook.analyze();
+            workbook.loadIntoCatalog();
             const system = dql.createScript(live);
             // Relation scripts of connections qualify every table with database and schema
             system.replaceText('create table db.pg_catalog.pg_class (relname text); create table db.information_schema.columns (data_type text);');
@@ -75,7 +75,7 @@ describe('Catalog name index', () => {
             expect(lookupIdentifier(liveIndex, 'relname')).toBeNull();
             expect(lookupIdentifier(liveIndex, 'data_type')).toBeNull();
             system.destroy();
-            session.destroy();
+            workbook.destroy();
         } finally {
             live.destroy();
         }

@@ -59,16 +59,16 @@ export function statusLine(snapshot: AgentHostSnapshot, agentAccess: boolean): s
             if (status === null) return "Agent server does not answer";
             if (status.clients.length === 0) return "Waiting for DashQL";
             const names = [...new Set(status.clients.map(clientName))].join(", ");
-            const sessions = status.clients.reduce((count, client) => count + client.sessions.length, 0);
-            return `Connected: ${names} · ${plural(sessions, "session")}`;
+            const workbooks = status.clients.reduce((count, client) => count + client.workbooks.length, 0);
+            return `Connected: ${names} · ${plural(workbooks, "workbook")}`;
         }
     }
 }
 
 /// A line per turn
 export function turnLine(turn: AgentTurn, clients: AgentServerClient[]): string {
-    const session = clients.flatMap((client) => client.sessions).find((s) => s.id === turn.session);
-    const where = `"${session?.name ?? turn.session}"`;
+    const workbook = clients.flatMap((client) => client.workbooks).find((s) => s.id === turn.workbook);
+    const where = `"${workbook?.name ?? turn.workbook}"`;
     const what = turn.state === "queued" ? "queued" : turn.status || "running";
     return `${harnessName(turn.harness)} · ${what} in ${where}`;
 }

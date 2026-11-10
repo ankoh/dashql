@@ -14,7 +14,7 @@ describe('decodeConnectionFromProto', () => {
 
     for (const [key, connectorType, detailsType, params] of cases) {
         it(`wraps flat ${key} params into the setup params`, () => {
-            const [info, details] = decodeConnectionFromProto({ [key]: params } as never, 'session');
+            const [info, details] = decodeConnectionFromProto({ [key]: params } as never, 'workbook');
             expect(info.connectorType).toBe(connectorType);
             expect(details.type).toBe(detailsType);
             expect(details.value).toEqual({ proto: { setupTimings: {}, setupParams: params }, channel: null });
@@ -22,19 +22,19 @@ describe('decodeConnectionFromProto', () => {
 
         it(`keeps ${key} details that carry their setup params`, () => {
             const proto = { setupTimings: { startedAt: 1 }, setupParams: params };
-            const [, details] = decodeConnectionFromProto({ [key]: proto } as never, 'session');
+            const [, details] = decodeConnectionFromProto({ [key]: proto } as never, 'workbook');
             expect(details.type).toBe(detailsType);
             expect((details.value as { proto: unknown }).proto).toBe(proto);
         });
 
         it(`reads empty ${key} params`, () => {
-            const [, details] = decodeConnectionFromProto({ [key]: null } as never, 'session');
+            const [, details] = decodeConnectionFromProto({ [key]: null } as never, 'workbook');
             expect((details.value as { proto: unknown }).proto).toEqual({ setupTimings: {}, setupParams: {} });
         });
     }
 
     it('rejects unknown connectors', () => {
-        expect(() => decodeConnectionFromProto({ demo: {} } as never, 'session')).toThrow(LoggableException);
-        expect(() => decodeConnectionFromProto({} as never, 'session')).toThrow('unsupported connection details');
+        expect(() => decodeConnectionFromProto({ demo: {} } as never, 'workbook')).toThrow(LoggableException);
+        expect(() => decodeConnectionFromProto({} as never, 'workbook')).toThrow('unsupported connection details');
     });
 });
