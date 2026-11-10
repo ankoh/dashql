@@ -45,6 +45,38 @@
     display: inline-flex;
 }
 
+.wideCard {
+    width: min(760px, 92vw);
+}
+
+/* The summary of a file on the left, the steps of its import on the right */
+.split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.splitPane {
+    min-width: 0;
+    padding: 16px;
+}
+
+.splitPane + .splitPane {
+    border-left: 1px solid var(--color_border);
+}
+
+.belowSplit {
+    border-top: 1px solid var(--color_border);
+}
+
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .warning {
     display: flex;
     align-items: flex-start;
@@ -88,6 +120,17 @@
 .errorDetail {
     margin-top: 2px;
     overflow-wrap: anywhere;
+}
+
+@media only screen and (max-width: 640px) {
+    .split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .splitPane + .splitPane {
+        border-left: none;
+        border-top: 1px solid var(--color_border);
+    }
 }
 
 @media only screen and (max-width: 520px) {

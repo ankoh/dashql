@@ -104,7 +104,7 @@ describe('SessionImportCard loading state', () => {
         const onRetry = vi.fn();
         act(() => render(
             <SessionImportCard phase="file-ready" sourcePath="/tmp/local.dashql" fileByteCount={1200}
-                bundle={FILE_BUNDLE} busy={false} onImport={onImport} onClose={() => {}} dependencies={dependencies} />,
+                bundle={FILE_BUNDLE} steps={[]} conflict={null} busy={false} onImport={onImport} onReplace={() => {}} onCreateNew={() => {}} onClose={() => {}} dependencies={dependencies} />,
         ));
         expect(container.textContent).toContain('Local session');
         const importButton = container.querySelector('[data-testid="session-import-confirm"]') as HTMLButtonElement;
@@ -112,7 +112,7 @@ describe('SessionImportCard loading state', () => {
         expect(onImport).toHaveBeenCalledOnce();
 
         act(() => render(
-            <SessionImportCard phase="file-error" sourcePath="/tmp/local.dashql" fileByteCount={1200}
+            <SessionImportCard phase="file-error" sourcePath="/tmp/local.dashql" fileByteCount={1200} steps={[]} bundle={null}
                 failedStage="validating" errorMessage="Invalid ZIP" onRetry={onRetry} onClose={() => {}} dependencies={dependencies} />,
         ));
         const alert = container.querySelector('[role="alert"]');

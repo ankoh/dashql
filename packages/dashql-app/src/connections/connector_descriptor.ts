@@ -103,7 +103,11 @@ const DESCRIPTORS = Object.values(CONNECTOR_DESCRIPTORS);
 
 /// The connector of connection params
 export function connectorOfParams(params: ConnectionParams): ConnectorDescriptor {
-    return DESCRIPTORS.find(connector => connector.paramsKey in params)!;
+    const connector = DESCRIPTORS.find(connector => connector.paramsKey in params);
+    if (connector == null) {
+        throw new Error(`Unknown connector of the connection params with the keys [${Object.keys(params).join(', ')}]`);
+    }
+    return connector;
 }
 
 /// The connector of the details of a connection state

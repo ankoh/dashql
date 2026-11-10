@@ -19,6 +19,7 @@ import { mergeRestoredSessionIntoConnections, mergeRestoredSessionIntoScripts } 
 import { connectionEntryFromState, findSessionQueries, useConnectionReferences, useConnectionRegistrySetter, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { isHyperWasmConnection } from '../../connections/connection_label.js';
+import { getConnectorInfoForParams } from '../../connections/connector_info.js';
 import { useSessionScriptsRegistrySetter } from '../scripts/session_scripts_registry.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -37,7 +38,7 @@ import {
 } from './session_connection_import.js';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { importSessionQueryResults } from './session_query_results.js';
+import { failedSessionQueryResults, importSessionQueryResults, type ImportedSessionQueryResults } from './session_query_results.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 
 type ImportPresentation =
@@ -48,19 +49,48 @@ type ImportPresentation =
         returnFocusRef: React.RefObject<HTMLElement | null>;
     };
 
+/// A step of an import, in order: the connections are resolved, the query results go to the cache, the session is saved
+export type SessionImportProgress =
+    | { step: 'connections' }
+    /// The query results of the session, with the outcome once they are added. Only reported if the session has some.
+    | { step: 'results'; total: number; outcome: ImportedSessionQueryResults | null }
+    | { step: 'session' };
+
+export type SessionImportProgressConsumer = (progress: SessionImportProgress) => void;
+
 export interface PortableSessionImportOptions {
     presentation: ImportPresentation;
     reloadAfterSuccess?: boolean;
+    /// Follow the steps of the import, e.g. to show the query results that weren't added
+    onProgress?: SessionImportProgressConsumer;
+}
+
+/// A registered session with the id of an imported one
+export interface PortableImportConflict {
+    displayLocation: string;
+    isNative: boolean;
+}
+
+/// An import whose decisions are made, nothing is written yet
+export interface PreparedPortableImport {
+    /// The validated bundle with the resolved connections, still with its query results
+    bundle: SessionBundle;
+    /// The registered session with the same id, the import replaces it or creates a new session
+    conflict: PortableImportConflict | null;
 }
 
 interface SessionImportContextValue {
-    findPortableBundleConflict(bundle: SessionBundle): Promise<{ displayLocation: string; isNative: boolean } | null>;
+    findPortableBundleConflict(bundle: SessionBundle): Promise<PortableImportConflict | null>;
+    /// Validate a bundle and resolve its connections, null if the user cancelled. Writes nothing.
+    preparePortableImport(bundle: SessionBundle, onProgress?: SessionImportProgressConsumer): Promise<PreparedPortableImport | null>;
+    /// Add the query results of a prepared import to the cache and save its session. The choice decides a conflict.
+    commitPortableImport(prepared: PreparedPortableImport, choice: ConflictChoice | null, onProgress?: SessionImportProgressConsumer): Promise<string>;
     importPortableBundleWithChoice(bundle: SessionBundle, choice: ConflictChoice): Promise<string | null>;
     importPortableBundle(bundle: SessionBundle, options: PortableSessionImportOptions): Promise<string | null>;
     importNativeFolder(dir: string, presentation: ImportPresentation): Promise<string | null>;
 }
 
-type ConflictChoice = 'replace' | 'create-new';
+export type ConflictChoice = 'replace' | 'create-new';
 
 interface ConflictDialogState {
     bundle: SessionBundle;
@@ -133,15 +163,17 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
 
     /// Add the cached query results of an imported session to the cache of the app, the results of the app win. The
     /// results are no part of the session, a failure leaves the import alone.
-    const importQueryResults = React.useCallback(async (bundle: SessionBundle): Promise<SessionBundle> => {
+    const importQueryResults = React.useCallback(async (bundle: SessionBundle, report?: SessionImportProgressConsumer): Promise<SessionBundle> => {
         const results = bundle.results ?? [];
         if (results.length === 0) return bundle;
         const sessionId = bundle.session.sessionId;
         const bytes = results.reduce((sum, result) => sum + result.bytes.size, 0);
+        report?.({ step: 'results', total: results.length, outcome: null });
         if (queryResultCache == null) {
             logger.warn('ignored the query results of an imported session, results are not cached', {
                 sessionId, results: results.length.toString(), bytes: bytes.toString(),
             }, 'session_import');
+            report?.({ step: 'results', total: results.length, outcome: failedSessionQueryResults(results.length, 'This app does not cache query results') });
         } else {
             logger.info('importing the query results of a session', { sessionId, results: results.length.toString(), bytes: bytes.toString() }, 'session_import');
             const started = performance.now();
@@ -153,8 +185,10 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
                 };
                 if (outcome.failed > 0 || outcome.dropped > 0) logger.warn('imported the query results of a session, some were left out', fields, 'session_import');
                 else logger.info('imported the query results of a session', fields, 'session_import');
+                report?.({ step: 'results', total: results.length, outcome });
             } catch (error) {
                 logger.warn('importing the query results of a session failed', { sessionId, error: stringifyError(error) }, 'session_import');
+                report?.({ step: 'results', total: results.length, outcome: failedSessionQueryResults(results.length, error) });
             }
         }
         const { results: _results, ...rest } = bundle;
@@ -163,13 +197,23 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
 
     /// Map the connections of an imported session to the connections of the app.
     /// Connections that may consolidate with existing ones are decided by the user, null if the
-    /// user cancelled the import. The last decision of an import, the cached query results go to the cache then.
-    const resolveConnections = React.useCallback(async (bundle: SessionBundle): Promise<SessionBundle | null> => {
-        if (backend == null) return await importQueryResults(bundle);
+    /// user cancelled the import.
+    const resolveConnections = React.useCallback(async (bundle: SessionBundle, report?: SessionImportProgressConsumer): Promise<SessionBundle | null> => {
+        report?.({ step: 'connections' });
+        if (backend == null) return bundle;
         // The live connections may be ahead of the manifest while writes are debounced
         const live = connectionStore.current;
         const entries: ConnectionEntry[] = ((await backend.loadManifest()).connections ?? [])
-            .map(entry => ({ ...entry, params: live.connections.get(entry.id)?.params ?? entry.params }));
+            .map(entry => ({ ...entry, params: live.connections.get(entry.id)?.params ?? entry.params }))
+            // The restoration skips a connection of an unknown connector, e.g. one that a tab of an older version wrote
+            // after the migration, the import leaves it out as well
+            .filter(entry => {
+                if (entry.params != null && getConnectorInfoForParams(entry.params) != null) return true;
+                logger.warn('ignored a stored connection of an unknown connector', {
+                    connectionId: entry.id, keys: Object.keys(entry.params ?? {}).join(','),
+                }, 'session_import');
+                return false;
+            });
         // The embedded database always takes the embedded databases of the imported session
         for (const [connectionId, connection] of live.connections) {
             if (!entries.some(entry => entry.id === connectionId)
@@ -194,8 +238,14 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
             sessionId: bundle.session.sessionId,
             connections: plan.map(item => item.decision.kind).join(','),
         }, 'session_import');
-        return await importQueryResults({ ...bundle, session, catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds) });
-    }, [backend, connectionStore, importQueryResults, logger, references]);
+        return { ...bundle, session, catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds) };
+    }, [backend, connectionStore, logger, references]);
+
+    /// Resolve the connections, then add the query results to the cache: the last decision of an import is made then
+    const resolveAndImportResults = React.useCallback(async (bundle: SessionBundle, report?: SessionImportProgressConsumer): Promise<SessionBundle | null> => {
+        const resolved = await resolveConnections(bundle, report);
+        return resolved == null ? null : await importQueryResults(resolved, report);
+    }, [importQueryResults, resolveConnections]);
 
     const stopSessionWork = React.useCallback(async (sessionId: string) => {
         const databases = references.connectionsOf(sessionId)
@@ -275,11 +325,13 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
         // Whether the session is already registered is asked before the connections, resolving them
         // keeps the session id
         const conflict = await findSessionImportConflict(backend, validated.session.sessionId);
+        const report = options.onProgress;
         if (conflict == null) {
-            const resolved = await resolveConnections(validated);
+            const resolved = await resolveAndImportResults(validated, report);
             if (resolved == null) return null;
             bundle = resolved;
             const sessionId = bundle.session.sessionId;
+            report?.({ step: 'session' });
             if (options.reloadAfterSuccess) {
                 await reloadThen(() => writePortableSessionFresh(backend, bundle, sessionId), writer, reload);
             } else {
@@ -293,8 +345,9 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
             displayPath(conflict.sessionId, conflict.location),
             options.presentation,
             async choice => {
-                const bundle = await resolveConnections(validated);
+                const bundle = await resolveAndImportResults(validated, report);
                 if (bundle == null) return null;
+                report?.({ step: 'session' });
                 if (choice === 'create-new') {
                     const sessionId = crypto.randomUUID();
                     const importedBundle = withFreshIdentity(bundle, sessionId);
@@ -316,7 +369,7 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
                 }
             },
         );
-    }, [backend, reload, requestConflictChoice, resolveConnections, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
+    }, [backend, reload, requestConflictChoice, resolveAndImportResults, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
 
     const findPortableBundleConflict = React.useCallback(async (bundle: SessionBundle): Promise<{ displayLocation: string; isNative: boolean } | null> => {
         if (backend == null) throw new Error('Session imports require composite storage');
@@ -327,17 +380,29 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
         };
     }, [backend]);
 
-    const importPortableBundleWithChoice = React.useCallback(async (
+    const preparePortableImport = React.useCallback(async (
         bundle: SessionBundle,
-        choice: ConflictChoice,
-    ): Promise<string | null> => {
+        report?: SessionImportProgressConsumer,
+    ): Promise<PreparedPortableImport | null> => {
         if (backend == null) throw new Error('Session imports require composite storage');
-        bundle = await validatePortableBundle(bundle);
-        const resolved = await resolveConnections(bundle);
-        if (resolved == null) return null;
-        bundle = resolved;
+        const validated = await validatePortableBundle(bundle);
+        const conflict = await findPortableBundleConflict(validated);
+        const resolved = await resolveConnections(validated, report);
+        return resolved == null ? null : { bundle: resolved, conflict };
+    }, [backend, findPortableBundleConflict, resolveConnections, validatePortableBundle]);
+
+    const commitPortableImport = React.useCallback(async (
+        prepared: PreparedPortableImport,
+        choice: ConflictChoice | null,
+        report?: SessionImportProgressConsumer,
+    ): Promise<string> => {
+        if (backend == null) throw new Error('Session imports require composite storage');
+        const bundle = await importQueryResults(prepared.bundle, report);
+        report?.({ step: 'session' });
+        // The registered sessions may have changed since the import was prepared
         const conflict = await findSessionImportConflict(backend, bundle.session.sessionId);
         if (conflict == null) return await restoreFreshPortable(bundle, bundle.session.sessionId, false);
+        if (choice == null) throw new Error(`A session with the id ${bundle.session.sessionId} was added meanwhile`);
         if (choice === 'create-new') {
             const sessionId = crypto.randomUUID();
             return await restoreFreshPortable(bundle, sessionId, true);
@@ -351,7 +416,15 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
             writer.resume();
             throw error;
         }
-    }, [backend, reload, resolveConnections, restoreFreshPortable, stopSessionWork, validatePortableBundle, writer]);
+    }, [backend, importQueryResults, reload, restoreFreshPortable, stopSessionWork, writer]);
+
+    const importPortableBundleWithChoice = React.useCallback(async (
+        bundle: SessionBundle,
+        choice: ConflictChoice,
+    ): Promise<string | null> => {
+        const prepared = await preparePortableImport(bundle);
+        return prepared == null ? null : await commitPortableImport(prepared, choice);
+    }, [commitPortableImport, preparePortableImport]);
 
     const importNativeFolder = React.useCallback(async (
         dir: string,
@@ -412,10 +485,12 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
 
     const value = React.useMemo<SessionImportContextValue>(() => ({
         findPortableBundleConflict,
+        preparePortableImport,
+        commitPortableImport,
         importPortableBundleWithChoice,
         importPortableBundle,
         importNativeFolder,
-    }), [findPortableBundleConflict, importNativeFolder, importPortableBundle, importPortableBundleWithChoice]);
+    }), [commitPortableImport, findPortableBundleConflict, importNativeFolder, importPortableBundle, importPortableBundleWithChoice, preparePortableImport]);
 
     return (
         <SESSION_IMPORT_CTX.Provider value={value}>

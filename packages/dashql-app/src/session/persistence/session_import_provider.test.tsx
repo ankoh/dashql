@@ -319,6 +319,42 @@ describe('SessionImportProvider', () => {
             expect(reload).not.toHaveBeenCalled();
         });
 
+        it('skips a stored connection of an unknown connector like the restoration does', async () => {
+            // A tab of an older version may write the former key after the migration
+            registry.connections = [
+                { id: OTHER_HYPER_ID, params: { sidb: { instanceUrl: 'https://old.example' } }, name: 'Stale' } as never,
+                { id: KNOWN_TRINO_ID, params: TRINO_PARAMS, name: 'Production' } as never,
+            ];
+            await renderProvider();
+            const warn = vi.spyOn(api.logger, 'warn');
+            let result!: Promise<string | null>;
+            await act(async () => { result = api.importer.importPortableBundle(trinoSession(), { ...CENTERED, reloadAfterSuccess: true }); });
+            await vi.waitFor(() => expect(document.body.textContent).toContain('Use Production'));
+            await click(buttonWithText('Import'));
+            expect(await result).toBe(SESSION_ID);
+            expect(warn).toHaveBeenCalledWith('ignored a stored connection of an unknown connector',
+                { connectionId: OTHER_HYPER_ID, keys: 'sidb' }, 'session_import');
+        });
+
+        it('prepares an import without writing and commits it later', async () => {
+            await renderProvider();
+            let prepared: Awaited<ReturnType<Api['importer']['preparePortableImport']>> = null;
+            await act(async () => { prepared = await api.importer.preparePortableImport(bundleOf()); });
+            expect(prepared!.conflict).toBeNull();
+            expect(registry.manifest).toEqual([]);
+            const steps: string[] = [];
+            let id: string | null = null;
+            await act(async () => { id = await api.importer.commitPortableImport(prepared!, null, progress => steps.push(progress.step)); });
+            expect(id).toBe(SESSION_ID);
+            expect(steps).toEqual(['session']);
+            expect(registry.scripts.get(SESSION_ID)?.get('query.sql')).toBe('select 1');
+            // A second import of the same id knows the conflict before the user decides
+            let again: Awaited<ReturnType<Api['importer']['preparePortableImport']>> = null;
+            await act(async () => { again = await api.importer.preparePortableImport(bundleOf()); });
+            expect(again!.conflict).not.toBeNull();
+            await expect(api.importer.commitPortableImport(again!, null)).rejects.toThrow('was added meanwhile');
+        });
+
         it('prefers the live params of a connection over the manifest, writes are debounced', async () => {
             // The manifest still has the old endpoint, only the live connection matches the session
             registry.connections = [{ id: KNOWN_TRINO_ID, params: { trino: { endpoint: 'https://old.example' } }, name: 'Production' } as never];

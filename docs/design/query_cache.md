@@ -175,6 +175,16 @@ results beyond the capacity of the cache are left out, they would evict each oth
 recently read results of the app. Each result succeeds or fails on its own, a failure leaves the others and the
 import alone, the log names each one.
 
+The card of a dropped file shows the summary of the file on the left and the steps of the import on the right, drawn
+like the steps of the setup of the app (`SetupSteps`): Read File, Check Archive, Resolve Connections, Add Query Results
+(only for a file with results, with how many are in the cache) and Save Session. The first three run on their own
+(`preparePortableImport`, which writes nothing and may ask which existing connections to use); the card then asks to
+Import, or to Replace or Create New if a session with the same id is registered. The import adds the results and saves
+the session (`commitPortableImport`, its `onProgress` reports the steps). A failed step is marked. If some results
+weren't added, the card stays open as Session Imported with how many and why, and the first error, until the user opens
+the session: their scripts need a connection. An import that replaces a registered session reloads the app, its card is
+gone then and only the log tells.
+
 A key covers the connection signature and the script, not the ids of the session or its connections, so a result of
 the archive is found by the same script on a connection with the same signature, also on a connection of the app that
 the import reused. The signatures of Salesforce, Database.com and Trino connections don't change when the params are

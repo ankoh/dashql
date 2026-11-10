@@ -90,6 +90,8 @@ export async function countSessionQueryResults(
 
 /// The outcome of an import of the query results of a session
 export interface ImportedSessionQueryResults {
+    /// The results of the session
+    total: number;
     /// The results that became files of the cache
     added: number;
     /// The results whose keys were cached already, the results of the app win
@@ -100,6 +102,17 @@ export interface ImportedSessionQueryResults {
     dropped: number;
     /// The bytes of the results that were added
     bytes: number;
+    /// Why the first result that failed couldn't be added, or why none was
+    error: string | null;
+}
+
+/// The outcome of an import whose results all failed at once, e.g. without a cache
+export function failedSessionQueryResults(total: number, error: unknown): ImportedSessionQueryResults {
+    return { total, added: 0, kept: 0, failed: total, dropped: 0, bytes: 0, error: errorMessage(error) };
+}
+
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
 }
 
 /// Add the query results of an imported session to the cache, the results of the app win. A result that fails leaves
@@ -109,7 +122,7 @@ export async function importSessionQueryResults(
     results: readonly SessionBundleResult[],
     logger?: LoggerLike,
 ): Promise<ImportedSessionQueryResults> {
-    const outcome: ImportedSessionQueryResults = { added: 0, kept: 0, failed: 0, dropped: 0, bytes: 0 };
+    const outcome: ImportedSessionQueryResults = { total: results.length, added: 0, kept: 0, failed: 0, dropped: 0, bytes: 0, error: null };
     // The results beyond the limits of the cache are left out, the ones before them would be evicted again. The import
     // may evict the least recently read results of the app.
     let budgetBytes = cache.capacity.maxBytes;
@@ -134,6 +147,7 @@ export async function importSessionQueryResults(
             }
         } catch (error) {
             ++outcome.failed;
+            outcome.error ??= errorMessage(error);
             logger?.warn('Adding an imported query result to the cache failed', { ...fields, error: stringifyError(error) }, LOG_CTX);
         }
     }

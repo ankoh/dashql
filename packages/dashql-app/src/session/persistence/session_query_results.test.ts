@@ -35,7 +35,7 @@ describe('session query results', () => {
             result(failing, [9]), result(added, [1, 2, 3]), result(kept, [4]),
         ], logger);
 
-        expect(outcome).toEqual({ added: 1, kept: 1, failed: 1, dropped: 0, bytes: 3 });
+        expect(outcome).toEqual({ total: 3, added: 1, kept: 1, failed: 1, dropped: 0, bytes: 3, error: 'NotReadableError' });
         expect(await cache.has(added)).toBe(true);
         expect(logger.warn).toHaveBeenCalledWith('Adding an imported query result to the cache failed',
             expect.objectContaining({ key: failing, error: expect.stringContaining('NotReadableError') }), expect.any(String));
@@ -49,7 +49,7 @@ describe('session query results', () => {
         const logger = testLogger();
         const [first, second] = ['a', 'b'].map(c => c.repeat(64));
         expect(await importSessionQueryResults(cache, [result(first, [1, 2, 3]), result(second, [4, 5, 6])], logger))
-            .toEqual({ added: 1, kept: 0, failed: 0, dropped: 1, bytes: 3 });
+            .toEqual({ total: 2, added: 1, kept: 0, failed: 0, dropped: 1, bytes: 3, error: null });
         expect(await cache.has(second)).toBe(false);
         expect(logger.warn).toHaveBeenCalledWith('Left out an imported query result, the cache is full', { key: second, bytes: '3' }, expect.any(String));
         // The checksum of the archive goes to the cache, which checks it while it streams the bytes

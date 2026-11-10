@@ -38,6 +38,18 @@
     width: 240px;
 }
 
+.detail_entry_detail {
+    color: var(--color_fg_muted);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Steps next to other content, the names take only their width */
+.detail_entries_compact .detail_entry_key {
+    width: auto;
+}
+
 .detail_error {
     margin-top: 12px;
     font-size: 0.85rem;

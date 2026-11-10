@@ -3,7 +3,8 @@ import * as React from 'react';
 import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { SetupSteps } from './setup_steps.js';
 import { CompactNavBar } from './navbar.js';
 
 /// The steps of the setup of the app, in the order they are shown
@@ -55,24 +56,12 @@ export const AppSetupPage: React.FC<AppSetupPageProps> = (props: AppSetupPagePro
                     </div>
                     <div className={baseStyles.card_section}>
                         <div className={baseStyles.section_entries}>
-                            <div className={pageStyles.detail_entries}>
-                                {(Object.keys(APP_SETUP_STEPS) as (keyof typeof APP_SETUP_STEPS)[]).map(step => (
-                                    <React.Fragment key={step}>
-                                        <div className={pageStyles.detail_entry_key}>
-                                            {APP_SETUP_STEPS[step]}
-                                        </div>
-                                        <div className={pageStyles.detail_entry_value} data-testid={`app-setup-${step}`} data-status={IndicatorStatus[props.status[step]]}>
-                                            <StatusIndicator
-                                                className={pageStyles.loading_status_indicator}
-                                                fill="var(--color_fg)"
-                                                width={"14px"}
-                                                height={"14px"}
-                                                status={props.status[step]}
-                                            />
-                                        </div>
-                                    </React.Fragment>
-                                ))}
-                            </div>
+                            <SetupSteps steps={(Object.keys(APP_SETUP_STEPS) as (keyof typeof APP_SETUP_STEPS)[]).map(step => ({
+                                key: step,
+                                label: APP_SETUP_STEPS[step],
+                                status: props.status[step],
+                                testId: `app-setup-${step}`,
+                            }))} />
                             {props.error != null && (
                                 <div className={pageStyles.detail_error} data-testid="app-setup-error">{props.error}</div>
                             )}

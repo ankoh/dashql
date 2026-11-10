@@ -8,6 +8,7 @@ import { AlertIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { formatBytes } from '../../utils/format.js';
 import type { SessionBundle } from '../../storage/session_bundle.js';
 import { CompactNavBar } from '../../app/navbar.js';
+import { SetupSteps } from '../../app/setup_steps.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { HttpSessionLoadProgress, HttpSessionLoadResult } from './http_session_bundle.js';
 import * as styles from './session_import_card.module.css';
@@ -45,14 +46,36 @@ interface ConflictState {
     onClose(): void;
 }
 
-export type SessionFileLoadStage = 'reading' | 'validating';
+/// The stages of a file before the user decides: reading it, checking the archive and resolving the connections
+export type SessionFileLoadStage = 'reading' | 'validating' | 'resolving';
 export type SessionFileFailureStage = SessionFileLoadStage | 'importing';
+
+/// The steps of the import of a session file, in order. The query results are a step only if the file has some.
+export type SessionFileStep = 'read' | 'check' | 'connections' | 'results' | 'session';
+
+const SESSION_FILE_STEP_LABELS: Record<SessionFileStep, string> = {
+    read: 'Read File',
+    check: 'Check Archive',
+    connections: 'Resolve Connections',
+    results: 'Add Query Results',
+    session: 'Save Session',
+};
+
+/// A step of the import of a session file, with a short detail such as a count
+export interface SessionFileStepStatus {
+    step: SessionFileStep;
+    status: IndicatorStatus;
+    detail?: string | null;
+}
 
 interface FileLoadingState {
     phase: 'file-loading';
     sourcePath: string;
     stage: SessionFileLoadStage;
+    steps: SessionFileStepStatus[];
     fileByteCount: number | null;
+    /// The session of the file, once the archive is checked
+    bundle: SessionBundle | null;
     onClose(): void;
 }
 
@@ -61,8 +84,13 @@ interface FileReadyState {
     sourcePath: string;
     fileByteCount: number;
     bundle: SessionBundle;
+    steps: SessionFileStepStatus[];
+    /// The registered session with the same id, the user replaces it or creates a new session
+    conflict: { displayLocation: string; isNative: boolean } | null;
     busy: boolean;
     onImport(): void;
+    onReplace(): void;
+    onCreateNew(): void;
     onClose(): void;
 }
 
@@ -70,14 +98,31 @@ interface FileErrorState {
     phase: 'file-error';
     sourcePath: string;
     fileByteCount: number | null;
+    bundle: SessionBundle | null;
     failedStage: SessionFileFailureStage;
+    steps: SessionFileStepStatus[];
     errorMessage: string;
     onRetry(): void;
     onClose(): void;
 }
 
+/// A session file that was imported with problems the user should see before opening it
+interface FileImportedState {
+    phase: 'file-imported';
+    sourcePath: string;
+    fileByteCount: number;
+    bundle: SessionBundle;
+    steps: SessionFileStepStatus[];
+    /// What went wrong, e.g. the query results that weren't added
+    warning: string;
+    /// The first error behind the warning
+    warningDetail: string | null;
+    onOpen(): void;
+    onClose(): void;
+}
+
 export type SessionImportCardState = LoadingState | ReadyState | ConflictState
-    | FileLoadingState | FileReadyState | FileErrorState;
+    | FileLoadingState | FileReadyState | FileErrorState | FileImportedState;
 
 export interface SessionImportCardDependencies {
     CompactNavBar: typeof CompactNavBar;
@@ -98,6 +143,7 @@ export function SessionImportCard(props: SessionImportCardProps): React.ReactEle
     if (props.phase === 'file-loading') return <FileLoadingCard state={props} dependencies={dependencies} />;
     if (props.phase === 'file-ready') return <FileReadyCard state={props} dependencies={dependencies} />;
     if (props.phase === 'file-error') return <FileErrorCard state={props} dependencies={dependencies} />;
+    if (props.phase === 'file-imported') return <FileImportedCard state={props} dependencies={dependencies} />;
     return <ReadyCard state={props} dependencies={dependencies} />;
 }
 
@@ -169,50 +215,70 @@ function ReadyCard({ state, dependencies }: { state: ReadyState; dependencies: S
     );
 }
 
+const FILE_STAGE_STATUS: Record<SessionFileLoadStage, string> = {
+    reading: 'Reading session file...',
+    validating: 'Checking the session archive...',
+    resolving: 'Resolving the connections...',
+};
+
 function FileLoadingCard({ state, dependencies }: { state: FileLoadingState; dependencies: SessionImportCardDependencies }): React.ReactElement {
-    const status = state.stage === 'reading' ? 'Reading session file...' : 'Checking the session archive...';
     return (
-        <CardShell title="Loading Session" busy onClose={state.onClose} dependencies={dependencies}>
-            <div className={styles.status} role="status" aria-live="polite" data-testid="session-import-file-status" data-stage={state.stage}>
-                <span aria-hidden="true">
-                    <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" />
-                </span>
-                <span>{status}</span>
+        <CardShell title="Loading Session" wide busy onClose={state.onClose} dependencies={dependencies}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps} />}
+        >
+            <div className={styles.visuallyHidden} role="status" aria-live="polite" data-testid="session-import-file-status" data-stage={state.stage}>
+                {FILE_STAGE_STATUS[state.stage]}
             </div>
-            <SessionImportDetails>
-                <SessionImportDetail label="File" mono>{state.sourcePath}</SessionImportDetail>
-                {state.fileByteCount != null && <SessionImportDetail label="Size">{formatBytes(state.fileByteCount)}</SessionImportDetail>}
-            </SessionImportDetails>
         </CardShell>
     );
 }
 
 function FileReadyCard({ state, dependencies }: { state: FileReadyState; dependencies: SessionImportCardDependencies }): React.ReactElement {
-    const sessionName = state.bundle.session.name?.trim()
-        || state.bundle.session.metadata.originalFileName
-        || 'Unnamed session';
+    const actions = state.conflict != null ? (
+        <>
+            <Button data-testid="session-import-replace" disabled={state.busy} onClick={state.onReplace}>Replace</Button>
+            <Button data-testid="session-import-create-new" disabled={state.busy} onClick={state.onCreateNew}>Create New</Button>
+        </>
+    ) : (
+        <Button data-testid="session-import-confirm" autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>
+    );
     return (
         <CardShell
             title="Import Session"
+            wide
             busy={state.busy}
             closeDisabled={state.busy}
             onClose={state.onClose}
-            actions={<Button data-testid="session-import-confirm" autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>}
+            actions={actions}
             dependencies={dependencies}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps}
+                existingLocation={state.conflict?.displayLocation ?? null} />}
         >
+            {state.conflict != null && <ConflictWarning native={state.conflict.isNative} />}
             {state.busy ? (
-                <div className={styles.status} role="status" aria-live="polite">
-                    <span aria-hidden="true"><StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" /></span>
-                    <span>Adding the session to DashQL...</span>
-                </div>
+                <div className={styles.visuallyHidden} role="status" aria-live="polite">Adding the session to DashQL...</div>
             ) : null}
-            <SessionImportDetails>
-                <SessionImportDetail label="File" mono>{state.sourcePath}</SessionImportDetail>
-                <SessionImportDetail label="Size">{formatBytes(state.fileByteCount)}</SessionImportDetail>
-                <SessionImportDetail label="Session">{sessionName}</SessionImportDetail>
-                <SessionImportDetail label="UUID" mono>{state.bundle.session.sessionId}</SessionImportDetail>
-                <SessionImportDetail label="Scripts">{formatCount(state.bundle.scripts.length, 'script')}</SessionImportDetail>
-            </SessionImportDetails>
+        </CardShell>
+    );
+}
+
+function FileImportedCard({ state, dependencies }: { state: FileImportedState; dependencies: SessionImportCardDependencies }): React.ReactElement {
+    return (
+        <CardShell
+            title="Session Imported"
+            wide
+            onClose={state.onClose}
+            actions={<Button data-testid="session-import-open" autoFocus variant={ButtonVariant.Primary} onClick={state.onOpen}>Open Session</Button>}
+            dependencies={dependencies}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps} />}
+        >
+            <div className={styles.warning} role="alert" data-testid="session-import-warning">
+                <AlertIcon size={16} aria-hidden="true" />
+                <div>
+                    <div>{state.warning}</div>
+                    {state.warningDetail != null && <div className={styles.errorDetail}>{state.warningDetail}</div>}
+                </div>
+            </div>
         </CardShell>
     );
 }
@@ -223,13 +289,17 @@ function FileErrorCard({ state, dependencies }: { state: FileErrorState; depende
         ? `${flavor.displayName} could not read this file.`
         : state.failedStage === 'validating'
             ? `This file is not a valid ${flavor.displayName} session archive.`
-            : `${flavor.displayName} could not import this session.`;
+            : state.failedStage === 'resolving'
+                ? `${flavor.displayName} could not resolve the connections of this session.`
+                : `${flavor.displayName} could not import this session.`;
     return (
         <CardShell
             title="Session Import Failed"
+            wide
             onClose={state.onClose}
             actions={<Button data-testid="session-import-retry" autoFocus variant={ButtonVariant.Primary} onClick={state.onRetry}>Try Again</Button>}
             dependencies={dependencies}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps} />}
         >
             <div className={styles.error} role="alert" data-stage={state.failedStage}>
                 <AlertIcon size={16} aria-hidden="true" />
@@ -238,11 +308,53 @@ function FileErrorCard({ state, dependencies }: { state: FileErrorState; depende
                     <div className={styles.errorDetail}>{state.errorMessage}</div>
                 </div>
             </div>
-            <SessionImportDetails>
-                <SessionImportDetail label="File" mono>{state.sourcePath}</SessionImportDetail>
-                {state.fileByteCount != null && <SessionImportDetail label="Size">{formatBytes(state.fileByteCount)}</SessionImportDetail>}
-            </SessionImportDetails>
         </CardShell>
+    );
+}
+
+/// The summary of a session file on the left, the steps of its import on the right
+function FileImportSplit(props: {
+    sourcePath: string;
+    fileByteCount: number | null;
+    bundle: SessionBundle | null;
+    steps: SessionFileStepStatus[];
+    existingLocation?: string | null;
+}): React.ReactElement {
+    const bundle = props.bundle;
+    const sessionName = bundle == null ? null
+        : bundle.session.name?.trim() || bundle.session.metadata.originalFileName || 'Unnamed session';
+    const results = bundle?.results ?? [];
+    return (
+        <>
+            <div className={styles.splitPane} data-testid="session-import-summary">
+                <SessionImportDetails>
+                    <SessionImportDetail label="File" mono>{props.sourcePath}</SessionImportDetail>
+                    {props.fileByteCount != null && <SessionImportDetail label="Size">{formatBytes(props.fileByteCount)}</SessionImportDetail>}
+                    {props.existingLocation != null && <SessionImportDetail label="Existing" mono>{props.existingLocation}</SessionImportDetail>}
+                    {bundle != null && (
+                        <>
+                            <SessionImportDetail label="Session">{sessionName}</SessionImportDetail>
+                            <SessionImportDetail label="UUID" mono>{bundle.session.sessionId}</SessionImportDetail>
+                            <SessionImportDetail label="Scripts">{formatCount(bundle.scripts.length, 'script')}</SessionImportDetail>
+                        </>
+                    )}
+                    {results.length > 0 && (
+                        <SessionImportDetail label="Query Results">
+                            {`${formatCount(results.length, 'result')}, ${formatBytes(results.reduce((sum, result) => sum + result.bytes.size, 0))}`}
+                        </SessionImportDetail>
+                    )}
+                </SessionImportDetails>
+            </div>
+            <div className={styles.splitPane} data-testid="session-import-steps">
+                <SetupSteps compact steps={props.steps.map(step => ({
+                    key: step.step,
+                    label: SESSION_FILE_STEP_LABELS[step.step],
+                    status: step.status,
+                    detail: step.detail,
+                    testId: `session-import-step-${step.step}`,
+                }))} />
+            </div>
+        </>
     );
 }
 
@@ -284,7 +396,11 @@ function ConflictWarning({ native }: { native: boolean }): React.ReactElement {
 
 interface ShellProps {
     title: string;
-    children: React.ReactNode;
+    children?: React.ReactNode;
+    /// The two panes of a split body above the children, with a border between them
+    split?: React.ReactNode;
+    /// Wider, for a split body
+    wide?: boolean;
     actions?: React.ReactNode;
     busy?: boolean;
     closeDisabled?: boolean;
@@ -299,7 +415,7 @@ function CardShell(props: ShellProps): React.ReactElement {
             <NavBar />
             <main className={baseStyles.banner_and_content_container}>
                 <div className={baseStyles.content_container}>
-                    <section className={`${baseStyles.card} ${styles.card}`} data-testid="session-import-card" aria-labelledby="session-import-card-title" aria-busy={props.busy || undefined}>
+                    <section className={`${baseStyles.card} ${props.wide ? styles.wideCard : styles.card}`} data-testid="session-import-card" aria-labelledby="session-import-card-title" aria-busy={props.busy || undefined}>
                         <div className={baseStyles.card_header} data-electron-drag-region>
                             <div className={baseStyles.card_header_left_container}>
                                 <h1 id="session-import-card-title" className={`${baseStyles.card_header_left_title} ${styles.title}`}>{props.title}</h1>
@@ -313,7 +429,10 @@ function CardShell(props: ShellProps): React.ReactElement {
                             )}
                         </div>
                         <div className={baseStyles.card_section}>
-                            <div className={baseStyles.section_entries}>{props.children}</div>
+                            {props.split != null && <div className={styles.split}>{props.split}</div>}
+                            {hasContent(props.children) && (
+                                <div className={`${baseStyles.section_entries} ${props.split != null ? styles.belowSplit : ''}`}>{props.children}</div>
+                            )}
                             {props.actions != null && <div className={baseStyles.card_actions}><div className={baseStyles.card_actions_right}>{props.actions}</div></div>}
                         </div>
                     </section>
@@ -321,6 +440,11 @@ function CardShell(props: ShellProps): React.ReactElement {
             </main>
         </div>
     );
+}
+
+/// Does a node render anything? Lists of conditional children may hold only false and null.
+function hasContent(node: React.ReactNode): boolean {
+    return React.Children.toArray(node).some(child => !(typeof child === 'string' && child.trim() === ''));
 }
 
 function SessionImportDetails(props: React.PropsWithChildren): React.ReactElement {
