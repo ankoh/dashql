@@ -145,7 +145,7 @@ describe('LogViewer', () => {
         expect(download).toHaveBeenCalledOnce();
         const [buffer, filename] = download.mock.calls[0];
         expect(filename).toMatch(/^dashql-logs-\d{4}-.*\.json$/);
-        expect(JSON.parse(new TextDecoder().decode(buffer)).map((record: { message: string }) => record.message)).toEqual(['first', 'second']);
+        expect(JSON.parse(new TextDecoder().decode(buffer as Uint8Array)).map((record: { message: string }) => record.message)).toEqual(['first', 'second']);
     });
 
     it('reports a failed download', async () => {
@@ -184,7 +184,7 @@ describe('LogViewer', () => {
         await act(async () => button('Download Logs as JSON')!.click());
         const [buffer, filename] = download.mock.calls[0];
         expect(filename).toMatch(/^dashql-logs-trace-7-.*\.json$/);
-        expect(JSON.parse(new TextDecoder().decode(buffer)).map((record: { message: string }) => record.message)).toEqual(['before', 'after']);
+        expect(JSON.parse(new TextDecoder().decode(buffer as Uint8Array)).map((record: { message: string }) => record.message)).toEqual(['before', 'after']);
     });
 
     it('shows an empty buffer and a trace without records', () => {

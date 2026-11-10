@@ -6,6 +6,8 @@ import { readSessionBundleFromZip } from '../session/persistence/session_import.
 import { useSessionImport } from '../session/persistence/session_import_provider.js';
 import { SessionImportCard, type SessionImportCardDependencies } from '../session/persistence/session_import_card.js';
 import { OPEN_LINK_SESSION, useRouterNavigate } from './router/router.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
+import { stringifyError, type LoggerLike } from '../platform/logger/logger.js';
 
 type PreparationPhase = 'reading' | 'validating';
 
@@ -21,13 +23,17 @@ export interface FileLoaderDependencies {
     readSessionBundleFromZip: typeof readSessionBundleFromZip;
     useSessionImport(): Pick<ReturnType<typeof useSessionImport>, 'importPortableBundle'>;
     useRouterNavigate: typeof useRouterNavigate;
+    useLogger?: () => LoggerLike | null;
 }
 
 const DEFAULT_DEPENDENCIES: FileLoaderDependencies = {
     readSessionBundleFromZip,
     useSessionImport,
     useRouterNavigate,
+    useLogger,
 };
+
+const LOG_CTX = 'file_loader';
 
 interface Props {
     file: PlatformFile;
@@ -37,24 +43,31 @@ interface Props {
 
 export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }: Props): React.ReactElement {
     const navigate = dependencies.useRouterNavigate();
+    const logger = (dependencies.useLogger ?? (() => null))();
     const { importPortableBundle } = dependencies.useSessionImport();
     const [attempt, setAttempt] = React.useState(0);
     const [state, setState] = React.useState<FileLoadState>({ phase: 'reading' });
     const prepareFile = React.useEffectEvent(async (input: PlatformFile, signal: AbortSignal) => {
         try {
             setState({ phase: 'reading' });
-            const bytes = await input.readAsArrayBuffer();
+            // A dropped file is read in place, the query results it carries stay on disk until the import streams them
+            const zipBlob = input.blob ?? new Blob([await input.readAsArrayBuffer() as Uint8Array<ArrayBuffer>], { type: 'application/zip' });
             signal.throwIfAborted();
 
-            setState({ phase: 'validating', fileByteCount: bytes.byteLength });
-            const zipBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-            const zipBlob = new Blob([zipBuffer], { type: 'application/zip' });
+            setState({ phase: 'validating', fileByteCount: zipBlob.size });
             const bundle = await dependencies.readSessionBundleFromZip(zipBlob);
             signal.throwIfAborted();
+            const results = bundle.results ?? [];
+            logger?.info('Read a session file', {
+                file: input.path, bytes: zipBlob.size.toString(), inPlace: (input.blob != null).toString(),
+                scripts: bundle.scripts.length.toString(), connections: bundle.session.connections.length.toString(),
+                results: results.length.toString(), resultBytes: results.reduce((sum, result) => sum + result.bytes.size, 0).toString(),
+            }, LOG_CTX);
 
-            setState({ phase: 'ready', bundle, fileByteCount: bytes.byteLength });
+            setState({ phase: 'ready', bundle, fileByteCount: zipBlob.size });
         } catch (error) {
             if (signal.aborted) return;
+            logger?.warn('Reading a session file failed', { file: input.path, error: stringifyError(error) }, LOG_CTX);
             setState(current => ({
                 phase: 'failed',
                 failedPhase: current.phase === 'validating' ? 'validating' : 'reading',

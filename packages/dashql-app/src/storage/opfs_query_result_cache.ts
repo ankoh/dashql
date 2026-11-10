@@ -3,6 +3,7 @@ import type * as arrow from 'apache-arrow';
 import type { QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
 import { copyArrowTableAsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
+import { crc32CheckStream } from '../utils/crc32.js';
 import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES, evictToFit, type CacheFileStat, type QueryResultCacheStore } from './query_result_cache_eviction.js';
 
 /// The folder of the query result cache in the origin private file system
@@ -149,6 +150,40 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
         }
     });
 
+    /// Write a file of a key under a transient name and move it in place once it is complete, readers of other
+    /// windows never see a partial file. Then record the write as a read, remove the older files of the key and
+    /// keep the files below the limits.
+    const writeKeyFile = async (name: string, key: string, write: (temporary: string) => Promise<void>, keep: () => Promise<boolean> = async () => true) => {
+        const dir = await directory();
+        const temporary = `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`;
+        const releaseTemporary = await pin(temporary);
+        let written = false;
+        try {
+            await write(temporary);
+            // The caller may drop the file once it is written, e.g. an import once a run wrote the key meanwhile
+            if (!await keep()) return null;
+            const handle = await dir.getFileHandle(temporary);
+            if ('move' in handle && typeof (handle as { move?: unknown }).move === 'function') {
+                await (handle as FileSystemFileHandle & { move(name: string): Promise<void> }).move(name);
+            } else {
+                await (await handle.getFile()).stream().pipeTo(await (await dir.getFileHandle(name, { create: true })).createWritable());
+                await dir.removeEntry(temporary);
+            }
+            written = true;
+        } finally {
+            await releaseTemporary();
+            // A failed or dropped write leaves no transient file behind
+            if (!written) await tryRemove(temporary).catch(() => false);
+        }
+        await touch(name);
+        // The older files of the key are removed once nobody reads them, eviction keeps the files below the limits
+        for (const entry of await entries()) {
+            if (entry.key === key && entry.name !== name) await tryRemove(entry.name);
+        }
+        await evictToFit(store, maxBytes, maxFiles);
+        return await (await dir.getFileHandle(name)).getFile();
+    };
+
     const lookup = async (key: string) => {
         const files = (await entries()).filter(entry => entry.key === key);
         files.sort((a, b) => b.cachedAtMs - a.cachedAtMs || b.name.localeCompare(a.name));
@@ -208,29 +243,26 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
                 await copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${name}`);
                 return await (await dir.getFileHandle(name)).getFile();
             }
-            // Readers of other windows find the file of a key once it is complete
-            const temporary = `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`;
-            const releaseTemporary = await pin(temporary);
-            try {
-                await copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${temporary}`);
-                const handle = await dir.getFileHandle(temporary);
-                if ('move' in handle && typeof (handle as { move?: unknown }).move === 'function') {
-                    await (handle as FileSystemFileHandle & { move(name: string): Promise<void> }).move(name);
-                } else {
-                    await (await handle.getFile()).stream().pipeTo(await (await dir.getFileHandle(name, { create: true })).createWritable());
-                    await dir.removeEntry(temporary);
-                }
-            } finally {
-                await releaseTemporary();
-            }
-            await touch(name);
-            // The older files of the key are removed once nobody reads them, eviction keeps the files below the limits
-            for (const entry of await entries()) {
-                if (entry.key === key && entry.name !== name) await tryRemove(entry.name);
-            }
-            await evictToFit(store, maxBytes, maxFiles);
-            return await (await dir.getFileHandle(name)).getFile();
+            // A run always keeps its file, the write returns it
+            return (await writeKeyFile(name, key, temporary => copyArrowTableAsParquet(database, table, `${QUERY_RESULT_CACHE_MOUNT}/${temporary}`)))!;
         },
+        readFile: async name => await (await (await directory()).getFileHandle(name)).getFile(),
+        importFile: async (key, data, options = {}) => {
+            const name = `${key}.${crypto.randomUUID()}.parquet`;
+            if (cacheFileKey(name) == null) throw new Error(`Invalid cache key: ${key}`);
+            // The results of this app win, an imported result may be older or come from someone else
+            if (data.size === 0 || await lookup(key) != null) return false;
+            const dir = await directory();
+            // The pipe closes the file once the stream ends, and aborts it if the stream fails, e.g. on a checksum that
+            // differs. A run may write the key while the bytes are streamed, its file wins.
+            const file = await writeKeyFile(name, key, async temporary => {
+                const source = options.crc32 == null ? data.stream()
+                    : data.stream().pipeThrough(crc32CheckStream(options.crc32, () => `the imported result of ${key}`));
+                await source.pipeTo(await (await dir.getFileHandle(temporary, { create: true })).createWritable());
+            }, async () => await lookup(key) == null);
+            return file != null;
+        },
+        capacity: { maxBytes, maxFiles },
         readTable: async (database: ParquetDatabase, name: string) => {
             const release = await pin(name);
             try {

@@ -71,6 +71,15 @@ export interface QueryResultCache {
     writeTable(database: ParquetDatabase, table: arrow.Table, name: string): Promise<File>;
     /// Read a file into a table while it is pinned and mounted in the database
     readTable(database: ParquetDatabase, name: string): Promise<arrow.Table>;
+    /// The bytes of a file, the caller pins it while it reads them, e.g. to export them with a session
+    readFile(name: string): Promise<Blob>;
+    /// Add a result of a key as a new file of the key, e.g. a result that an exported session carries. The bytes are
+    /// streamed into the file, a slice of a dropped archive never sits in memory. A key that is cached already keeps
+    /// its files, also one that a run wrote while the bytes were streamed: resolves true if the file was added. Fails
+    /// and leaves no file if the bytes don't have the given CRC-32.
+    importFile(key: string, data: Blob, options?: { crc32?: number }): Promise<boolean>;
+    /// The limits of the files, eviction removes the least recently read files beyond them
+    readonly capacity: { maxBytes: number; maxFiles: number };
     /// Remove a file that nobody reads, e.g. a transient file of a run once the run ended
     remove(name: string): Promise<void>;
 }

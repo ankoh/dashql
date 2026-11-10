@@ -10,6 +10,8 @@ Every connection decides whether its query results are cached: the toggle **Cach
 
 Single-script session executions opt in when the connection of the script caches results: explicit execution, execute-on-send, reruns, and refreshes, all through `runSessionScript`, and the runs of the agent through `runSessionScriptForResult` (`packages/dashql-app/src/session/scripts/rerun_query.ts`). A run of a script executes a plan of the script like a run of the session executes the plan of every script (`runSessionPlan`, `packages/dashql-app/src/session/scripts/session_execution.ts`): it derives the result keys from the plan and, for a script whose key is reusable and cached and that follows no script that runs, runs only the terminal query of the script with `cacheOnly`: the executor serves it from the cache and never runs it on the backend, since the query holds only after the statements before it. If the file is gone meanwhile, the executor fails with a `QueryCacheMissError` and the script runs. A script that runs has read the cache already: the terminal query of a script with a reusable key runs with `cacheable`, `refreshCache` and the signature of its key, the executor runs it on the backend and writes its result as the newest file of the key, and the other statements run without. A refresh (`ScriptRunOptions.refresh`) reads no cache entries (see Script References below). Shell queries never opt in: the session shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a session does not execute queries or read cached results; a user-triggered execution is required.
 
+**Execute All** also runs while connections of the session aren't connected (`canRun` of `runSessionPlan`, the connections that are online when the run starts). A script whose connection can't run doesn't run, so it doesn't keep the scripts after it from serving their cached results: the script can't change what they read during the run. The scripts of such a connection serve their cached results, the others are skipped with every statement that follows them, also a scan of the embedded Hyper that reads one of them. A script runs completely or not at all. The run counts the skipped scripts (`SessionExecutionState.skippedScripts`, `skippedFiles`), the status shows `3/5 completed · 2 need a connection`, its tooltip names the scripts, and the connections of the session pulse in the bar once a run of the open page settles. A run stops if a connection drops that it runs statements on. A connection that is connecting holds the run, it would join a moment later. A change of inputs runs the same way, a script whose input changed usually has a new key and needs its connection. The run of a single script and the agent still wait for the connections. A run starts once the compute database is set up (`ready` of `useSessionExecution`, Execute All stays disabled until then): it reads the cached files, before its setup every script would miss. The log of a run that skipped scripts names each one with the reason and the key it looked for, a key that differs from the names in an imported file, e.g. one of another version of the app, shows there.
+
 The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose statements are all `SELECT` or `EXPLAIN` are cacheable: a hit skips the complete script, so a script with commands before its terminal query, such as `CREATE TABLE t AS ...; SELECT * FROM t`, always executes. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute too.
 
 ## Cache Key
@@ -86,7 +88,8 @@ Native session folders keep the entries `cache/` and `*.hyper` in a top-level `.
 earlier versions stay out of version control. It is written with the session file, and missing entries are appended
 to an existing `.gitignore`, so the user's own lines stay.
 
-Session bundles, duplication, transfer, and storage migration do not copy cache files. Deleting a session leaves the
+Session bundles, duplication, transfer, and storage migration do not copy cache files, only an exported `.dashql` file
+carries them on request (Exported Results below). Deleting a session leaves the
 cached results of its scripts, eviction removes them. The cache folders that OPFS sessions of earlier versions kept
 (`sessions/<session-uuid>/cache/`) are no part of the layout: the storage cleanup of the internals lists them
 (`findOPFSCleanupCandidates`), and deleting a session removes its folder.
@@ -140,6 +143,52 @@ reusable, a transient file otherwise:
 The run pins every file it writes or reads until it ends, then it removes its transient files. Transient files that a
 closed window left behind are nobody's pins any more, the next listing in any window removes them.
 
+## Exported Results
+
+The **Query Results** toggle of the export of a `.dashql` file, off by default, adds the cached results of the scripts
+to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections:
+
+```
+results/<key>.parquet
+```
+
+The name of a file is its cache key, there is no other metadata, and the session file and its format version stay as
+they are: older versions skip the folder. The export plans the session without analyzing it, like the cache indicators
+of the cards, and takes the newest file of every reusable key (`computeSessionResultCacheKeys`,
+`retainSessionQueryResults`), pinned until the archive holds it. The overlay packs the archive without results whenever
+the session or the settings change and shows its size plus the sizes of the results (`countSessionQueryResults`). The
+results go in when the file is saved, a pack that is no longer needed stops (`signal` of the export). The archive
+stores the files without compressing them again. Links never carry results, an import of a link drops them.
+
+Neither side holds the results in memory. The export streams each file of the cache into the archive, and the archive
+into a Blob that the browser keeps and pages out. The import reads the central directory of the dropped file, a stored
+result is a byte range of it, and streams each range into a file of the cache. A result that another tool compressed
+when it repacked the archive is inflated into memory. The archives are read and written with zip.js on the main
+thread: its inline worker is a `blob:` script that the pages don't allow (`app_csp.md`), and its wasm codec isn't
+needed, the browser deflates and inflates with `CompressionStream`.
+
+An import adds the files to the cache of the app once the connections of the session are resolved
+(`QueryResultCache.importFile`), as new files of their keys. A key that is cached already keeps its files, the results
+of the app win, also a result that a run writes while the import streams the bytes of its key. The import checks the
+CRC-32 that the archive stores for each stored result while it streams it, a result that differs leaves no file. The
+results beyond the capacity of the cache are left out, they would evict each other; the import may evict the least
+recently read results of the app. Each result succeeds or fails on its own, a failure leaves the others and the
+import alone, the log names each one.
+
+A key covers the connection signature and the script, not the ids of the session or its connections, so a result of
+the archive is found by the same script on a connection with the same signature, also on a connection of the app that
+the import reused. The signatures of Salesforce, Database.com and Trino connections don't change when the params are
+shared. Those of Hyper servers do: the shared params leave out the TLS files and the query parameters, and Hyper
+connections cache no results unless the user asks for it, so their results don't travel.
+
+- An imported file is a new file, its cached-at time is the time of the import.
+- The results hold query data, the toggle says so. The credentials of the connections stay out of the file, the data
+  doesn't.
+- A file can name the key of any connection with the same signature: an archive from someone else can put results
+  in front of the backend of a connection of the app until Refresh replaces them. Import files only from people you
+  trust.
+- A failed export shows its error in the export overlay.
+
 ## Capacity and Eviction
 
 The cache of the app has these defaults:
@@ -161,7 +210,7 @@ For a succeeded result, the query result header shows its execution age. When th
 
 The **Refresh** action runs the script again without reading cached results (`runSessionScript` with `{ refresh: true }`): the script and every script of its plan run on their backends, also a materialized script whose result is cached. Their results with reusable keys become the newest files of their keys, which replace the older files once nobody reads them. A refresh that fails leaves the cached results as they were.
 
-The internals overlay includes a **Query Cache** tab. It lists the cached results of the app with key, size, cached-at time, and last-access time; provides manual refresh of the listing; and allows deleting individual entries or clearing the cache, which leaves the files that are being read. The list omits `.last_access` markers and transient files. Feed rows show whether a cached result exists (`hasCachedResult`, `QueryResultCache.has`) under the reusable key of a run of the script (`computeScriptResultCacheKey`), which plans the current analysis without analyzing outdated scripts.
+The internals overlay includes a **Query Cache** tab. It lists the cached results of the app with key, size, cached-at time, and last-access time; provides manual refresh of the listing; and allows deleting individual entries or clearing the cache, which leaves the files that are being read. The list omits `.last_access` markers and transient files. Feed rows show whether a cached result exists (`lookupCachedResult`, `QueryResultCache.lookup`) under the reusable key of a run of the script (`computeScriptResultCacheKey`), which plans the current analysis without analyzing outdated scripts.
 
 ## Limits and Correctness
 
@@ -181,3 +230,5 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - Eviction policy: `packages/dashql-app/src/storage/query_result_cache_eviction.ts`
 - Files of runs: `createExecutionMounts` in `packages/dashql-app/src/session/scripts/session_execution.ts`
 - Cache inspection UI: `packages/dashql-app/src/session/persistence/query_cache_view.tsx`
+- Exported results: `packages/dashql-app/src/session/persistence/session_query_results.ts`
+- Archives: `packages/dashql-app/src/session/persistence/session_zip.ts`

@@ -42,7 +42,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
-| `cache/` | `createOPFSQueryResultCache` | until evicted | no |
+| `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as `results/<key>.parquet` (`query_cache.md`) |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
 "Clear all data" removes `sessiontree/` first, resets the manifest, removes `sessions/`, `connections/` and `shell/` and clears
@@ -110,7 +110,8 @@ session that holds scripts stopped before its promotion was written, the restore
 file per result named `<hash>.<uuid>.parquet`, and an empty `.last_access` marker whose mtime makes the eviction
 least-recently-used. The materialized results of runs are files of their keys too, or transient files
 (`<uuid>.transient.parquet`) if their keys aren't reusable. hyperdb-wasm mounts the folder read-write at
-`/mnt/external/cache`.
+`/mnt/external/cache`. A `.dashql` file carries the cached results of its scripts when the export asks for them, an
+import adds them to the folder (see Exported Results in `query_cache.md`).
 
 ### Connections
 

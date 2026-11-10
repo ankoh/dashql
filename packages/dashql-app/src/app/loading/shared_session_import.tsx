@@ -99,7 +99,11 @@ export function useSharedSessionImport(
         remoteAbort?.signal.throwIfAborted();
         if (data.type === SETUP_SESSION) {
             const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
-            const bundle = await readSessionBundleFromZip(zipBlob);
+            // A link imports without the user handing over a file, it never adds query results to the cache
+            const { results, ...bundle } = await readSessionBundleFromZip(zipBlob);
+            if ((results?.length ?? 0) > 0) {
+                traced.warn("Ignored the query results of a link", { results: results!.length.toString() }, LOG_CTX);
+            }
             const sessionId = await sessionImport.importPortableBundle(bundle, {
                 presentation: { mode: 'centered' },
             });

@@ -20,8 +20,8 @@ import {
 } from './session_validation.js';
 import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments, sessionConnectionIdsOf } from './session_files.js';
 
-/// The durable, portable subset of a session. Derived cache files and storage-location metadata
-/// are intentionally not represented here.
+/// The durable, portable subset of a session. Storage-location metadata is intentionally not represented here, and
+/// cached query results only when an exported session carries them.
 export interface SessionBundle {
     /// The session file. Its script list names every script of `scripts` in feed order and its
     /// attachment list names every file of `data`.
@@ -33,6 +33,20 @@ export interface SessionBundle {
     scripts: ScriptData[];
     /// The attachments
     data?: DataFileData[];
+    /// The cached query results that an exported session carries, an import adds them to the query result cache of
+    /// the app. Never written to the session folder.
+    results?: SessionBundleResult[];
+}
+
+/// A cached query result that an exported session carries (docs/design/query_cache.md)
+export interface SessionBundleResult {
+    /// The cache key, it covers the connection signature and the script, no ids
+    key: string;
+    /// The Parquet file: a file of the cache on export, a slice of the archive on import. Both stay on disk until they
+    /// are streamed.
+    bytes: Blob;
+    /// The CRC-32 that the archive stores for the file, checked while an import streams it into the cache
+    crc32?: number;
 }
 
 /// The catalog of a connection that a bundle carries

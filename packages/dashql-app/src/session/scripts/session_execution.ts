@@ -88,6 +88,11 @@ export interface SessionExecutionState {
     activeStatementIndex: number | null;
     activeStatementCount: number | null;
     error: string | null;
+    /// The scripts that the run left out because they need a connection that isn't connected, they have no cached
+    /// result or follow a script that runs on such a connection
+    skippedScripts: number;
+    /// The file names of the skipped scripts
+    skippedFiles: string[];
 }
 
 /// The Parquet files of the materialized script results of a run.
@@ -411,6 +416,8 @@ export async function runExecutionGraph(args: {
     maxConcurrentQueries?: (connectionId: string) => number;
     /// Adjust the execution of the result node of a script, e.g. to cache it
     resultQueryArgs?: (scriptIndex: number) => Partial<QueryExecutionArgs>;
+    /// The nodes that don't run, e.g. those of a connection that isn't connected, with every node that follows them
+    skip?: ReadonlySet<number>;
 
     /// The run of the plan, the logs and the query history show where the statements come from
     run: PlanRun;
@@ -418,16 +425,17 @@ export async function runExecutionGraph(args: {
 }): Promise<Array<number | null>> {
     const { plan: { graph, connectionIds }, scripts, files, sessionId, signal, queries, logger } = args;
     const plannedStatements = describePlannedStatements(graph, files, args.run);
-    args.emit({ phase: 'running', totalStatements: graph.nodes.length });
+    const skip = args.skip ?? new Set<number>();
+    args.emit({ phase: 'running', totalStatements: graph.nodes.length - skip.size });
     const visualizations = await checkExecutionGraph(args.plan, args.cooperate);
     // Validate after notifications, but before the first backend call. Later edits belong to the next run.
     args.validate(true);
     const materializations = graph.materializations ?? [];
-    if (materializations.length > 0 && args.mounts == null) {
+    if (materializations.some(m => m.node === NONE || !skip.has(m.node)) && args.mounts == null) {
         throw new Error('Scripts of other connections need the compute database to scan their results');
     }
     // The statements that scan attachments read them from the mount of the session
-    if (graph.nodes.some(node => (node.attachments?.length ?? 0) > 0)) {
+    if (graph.nodes.some((node, index) => !skip.has(index) && (node.attachments?.length ?? 0) > 0)) {
         if (args.mountAttachments == null) throw new Error('Scripts that read attachments need the compute database');
         await args.mountAttachments(sessionId);
     }
@@ -440,6 +448,7 @@ export async function runExecutionGraph(args: {
     const successors = graph.nodes.map(() => [] as number[]);
     const uniqueEdges = new Set<string>();
     for (const edge of graph.edges) {
+        if (skip.has(edge.from) || skip.has(edge.to)) continue;
         const key = `${edge.from}:${edge.to}`;
         if (uniqueEdges.has(key)) continue;
         uniqueEdges.add(key);
@@ -454,7 +463,7 @@ export async function runExecutionGraph(args: {
         statementIndexes[node.script].push(nodeIndex);
         if (node.producesOutput) outputNodeIndexes[node.script] = nodeIndex;
     }
-    const ready = graph.nodes.map((_node, index) => index).filter(index => predecessorCount[index] === 0);
+    const ready = graph.nodes.map((_node, index) => index).filter(index => !skip.has(index) && predecessorCount[index] === 0);
     const running = connectionIds.map(() => 0);
     const maxConcurrent = connectionIds.map(connectionId => Math.max(1, args.maxConcurrentQueries?.(connectionId) ?? DEFAULT_MAX_CONCURRENT_QUERIES));
     const completions: Promise<void>[] = [];
@@ -668,6 +677,28 @@ export class ScriptPlanError extends Error {
     }
 }
 
+/// The nodes of a plan that don't run: the nodes of the connections that can't run and the nodes that follow them. A
+/// script runs completely or not at all, so a skipped node skips the other nodes of its script too.
+function skippedNodes(graph: core.buffers.execution.ExecutionGraphT, connectionIds: readonly string[], canRun: (connectionId: string) => boolean): Set<number> {
+    const skip = new Set<number>();
+    const successors = graph.nodes.map(() => [] as number[]);
+    for (const edge of graph.edges) successors[edge.from].push(edge.to);
+    const nodesOfScript = new Map<number, number[]>();
+    for (const [index, node] of graph.nodes.entries()) {
+        const nodes = nodesOfScript.get(node.script) ?? [];
+        nodes.push(index);
+        nodesOfScript.set(node.script, nodes);
+    }
+    const pending = graph.nodes.flatMap((node, index) => canRun(connectionIds[node.connection]) ? [] : [index]);
+    while (pending.length > 0) {
+        const index = pending.pop()!;
+        if (skip.has(index)) continue;
+        skip.add(index);
+        pending.push(...successors[index], ...(nodesOfScript.get(graph.nodes[index].script) ?? []));
+    }
+    return skip;
+}
+
 /// Run a plan of the scripts of a session: analyze the scripts, plan the targets with what they need, every script
 /// without targets, serve the cached results and run the rest.
 ///
@@ -705,10 +736,14 @@ export async function runSessionPlan(args: {
     cache: QueryResultCache | null;
     /// Read no cached results: the scripts run, the results with reusable keys become the newest files of their keys
     refresh: boolean;
+    /// Can the statements of a connection run? The scripts of a connection that can't, e.g. one that isn't connected,
+    /// serve their cached results, the others are skipped with the scripts that follow them. All run if absent.
+    canRun?: (connectionId: string) => boolean;
     maxConcurrentQueries?: (connectionId: string) => number;
     logger?: LoggerLike;
 }): Promise<Array<number | null>> {
     const { session, signal, queries, cooperate, emit, mounts, cache, run } = args;
+    const canRun = args.canRun ?? (() => true);
     const { sessionId, instance } = session;
     // The cached files that the run serves or scans, pinned from the lookup on
     const retained: Array<() => Promise<void>> = [];
@@ -723,6 +758,13 @@ export async function runSessionPlan(args: {
             if (!script) throw new Error(`Missing script: ${file}`);
             return script;
         });
+        // The connections that the run executes no statements on, their scripts serve their cached results
+        const offline = [...new Set(scripts.map(script => script.connection.connectionId))].filter(connectionId => !canRun(connectionId));
+        if (offline.length > 0) {
+            const fields = { sessionId, connections: offline.join(', '), refresh: String(args.refresh), cache: String(cache != null) };
+            if (args.refresh || cache == null) args.logger?.warn('Running without connections that can serve no cached result', fields, LOG_CTX);
+            else args.logger?.info('Running without connections, their scripts serve their cached results', fields, LOG_CTX);
+        }
         const updates = await prepareSessionScripts(scripts, cooperate);
         await cooperate();
         // A change of inputs runs the scripts that it affects, with what they read
@@ -770,7 +812,9 @@ export async function runSessionPlan(args: {
                 const from = plan.graph.nodes[edge.from].script, to = plan.graph.nodes[edge.to].script;
                 if (from !== to) follows[to].add(from);
             }
-            const runs = scripts.map(() => true);
+            // A script of a connection that can't run doesn't run, the results of the scripts that follow it are
+            // served if they are cached: the script can't change what they read during the run
+            const runs = scripts.map(script => canRun(script.connection.connectionId));
             for (const [index, script] of scripts.entries()) {
                 const key = keys[index];
                 const resultNodeIndex = plan.graph.nodes.findIndex(node => node.script === index && node.scriptResult);
@@ -801,7 +845,9 @@ export async function runSessionPlan(args: {
                         await args.modifySessionScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
                         throw error;
                     }
-                    args.logger?.info('The cached result of a script is gone, running it', { sessionId, query: queryId.toString(), script: files[index], key: key.key }, LOG_CTX);
+                    args.logger?.info(runs[index] ? 'The cached result of a script is gone, running it' : 'The cached result of a script is gone, it needs its connection', {
+                        sessionId, query: queryId.toString(), script: files[index], key: key.key,
+                    }, LOG_CTX);
                     return null;
                 }).finally(() => queries.active.delete(queryId));
                 if (served == null) continue;
@@ -835,6 +881,23 @@ export async function runSessionPlan(args: {
         const graph = plan.graph;
         const done = counted.filter(index => !graph.nodes.some(node => node.script === index)).length;
         if (done > 0) emit({}, { scripts: done });
+        const skip = skippedNodes(graph, plan.connectionIds, canRun);
+        if (skip.size > 0) {
+            const skipped = [...new Set([...skip].map(node => graph.nodes[node].script))];
+            emit({ skippedScripts: skipped.length, skippedFiles: skipped.map(index => files[index]) });
+            // Why a script didn't serve a result, with the key it looked for: a key of an imported file that differs,
+            // e.g. from another version of the app or another connection, shows here
+            const reason = (index: number) => {
+                if (canRun(scripts[index].connection.connectionId)) return 'follows a skipped script';
+                const key = keys[index];
+                if (key == null) return 'no result key';
+                if (!key.reusable) return `result not reusable, key ${key.key}`;
+                return `not served from the cache, key ${key.key}`;
+            };
+            args.logger?.info('Skipping the scripts that need a connection', {
+                sessionId, scripts: skipped.map(index => `${files[index]} (${reason(index)})`).join(', '),
+            }, LOG_CTX);
+        }
         const outputs = await runExecutionGraph({
             plan, scripts, files, sessionId,
             executeQuery: args.executeQuery, modifySessionScripts: args.modifySessionScripts,
@@ -842,7 +905,7 @@ export async function runSessionPlan(args: {
             validate: sessionPlanValidator({ graph, session, getSession: args.getSession, scripts, files }),
             mounts, mountAttachments: args.mountAttachments, cooperate, emit,
             maxConcurrentQueries: args.maxConcurrentQueries,
-            run, logger: args.logger,
+            run, logger: args.logger, skip,
             // The cached results were read already, a script that runs replaces the result of its key
             resultQueryArgs: index => keys[index]?.reusable && !materialized.has(index)
                 ? { cacheable: true, refreshCache: true, cacheSignature: keys[index]!.signature }
@@ -878,6 +941,8 @@ export async function runSessionExecution(args: {
     refresh?: boolean;
     /// Run only the scripts that the change of these inputs affects
     inputs?: readonly string[];
+    /// Can the statements of a connection run? See `runSessionPlan`.
+    canRun?: (connectionId: string) => boolean;
     /// Allows tests to control cooperative scheduling without relying on timer timing.
     yieldToBrowser?: () => Promise<void>;
     /// Maximum concurrently running backend queries on a connection.
@@ -890,7 +955,7 @@ export async function runSessionExecution(args: {
     let state: SessionExecutionState = {
         phase: 'planning', totalScripts: 0, completedScripts: 0,
         totalStatements: 0, completedStatements: 0, activeFileName: null,
-        activeStatementIndex: null, activeStatementCount: null, error: null,
+        activeStatementIndex: null, activeStatementCount: null, error: null, skippedScripts: 0, skippedFiles: [],
     };
     const emit = (update: Partial<SessionExecutionState>, increment: { statements?: number; scripts?: number } = {}) => {
         state = {
@@ -929,7 +994,7 @@ export async function runSessionExecution(args: {
             signal, queries, cancelActive, cooperate, emit,
             mounts: args.mounts ?? null, mountAttachments: args.mountAttachments,
             resultKey: args.resultKey ?? (async () => null), cachesResults: args.cachesResults ?? (() => false),
-            cache: args.cache ?? null, refresh: args.refresh ?? false,
+            cache: args.cache ?? null, refresh: args.refresh ?? false, canRun: args.canRun,
             maxConcurrentQueries: args.maxConcurrentQueries, logger: args.logger,
         });
         signal.throwIfAborted();

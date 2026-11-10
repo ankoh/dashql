@@ -7,6 +7,8 @@ export interface SessionExportSettings {
     withCatalog: boolean;
     withLoginHint: boolean;
     preserveUUIDs: boolean;
+    /// Carry the cached query results of the scripts, only a file of the session does
+    withQueryResults?: boolean;
 }
 
 interface Props {
@@ -18,6 +20,8 @@ interface Props {
     setSettings: (s: SessionExportSettings) => void;
     /// Show the toggles of the UUIDs and the catalog, an export of a single connection has neither
     withSessionParts?: boolean;
+    /// Offer the toggle of the query results, with a line below it, e.g. how many scripts have a cached result
+    queryResults?: { hint: string | null };
 }
 
 export const SessionExportSettingsView: React.FC<Props> = (props: Props) => {
@@ -30,6 +34,11 @@ export const SessionExportSettingsView: React.FC<Props> = (props: Props) => {
     const toggleLoginHint = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         props.setSettings({ ...props.settings, withLoginHint: !props.settings.withLoginHint });
+    }, [props.settings, props.setSettings]);
+
+    const toggleQueryResults = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, withQueryResults: !props.settings.withQueryResults });
     }, [props.settings, props.setSettings]);
 
     const togglePreserveUUIDs = React.useCallback((e: React.MouseEvent) => {
@@ -76,6 +85,22 @@ export const SessionExportSettingsView: React.FC<Props> = (props: Props) => {
                             aria-labelledby="export-toggle-catalog-label"
                         />
                     </div>
+                </>}
+                {props.queryResults != null && <>
+                    <div id="export-toggle-query-results-label" className={styles.part_name}>
+                        Query Results
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={props.settings.withQueryResults ?? false}
+                            onClick={toggleQueryResults}
+                            aria-labelledby="export-toggle-query-results-label"
+                        />
+                    </div>
+                    {props.queryResults.hint != null && <div className={styles.part_hint} data-testid="export-query-results-hint">
+                        {props.queryResults.hint}
+                    </div>}
                 </>}
             </div>
         </div>

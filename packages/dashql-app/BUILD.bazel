@@ -260,6 +260,7 @@ _vite_web_deps = [
     "//:node_modules/@xterm/addon-fit",
     "//:node_modules/@xterm/addon-webgl",
     "//:node_modules/@xterm/xterm",
+    "//:node_modules/@zip.js/zip.js",
     "//:node_modules/apache-arrow",
     "//:node_modules/d3",
     "//:node_modules/flatbuffers",

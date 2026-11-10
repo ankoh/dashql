@@ -36,6 +36,9 @@ import {
     type ConnectionImportPlanItem,
 } from './session_connection_import.js';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
+import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
+import { importSessionQueryResults } from './session_query_results.js';
+import { stringifyError } from '../../platform/logger/logger.js';
 
 type ImportPresentation =
     | { mode: 'centered' }
@@ -110,6 +113,7 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
     const setConnections = useConnectionRegistrySetter();
     const setScripts = useSessionScriptsRegistrySetter();
     const cancelQuery = useCancelQuery();
+    const queryResultCache = useQueryResultCache();
     const [dialog, setDialog] = React.useState<ConflictDialogState | null>(null);
     const [connectionDialog, setConnectionDialog] = React.useState<ConnectionDialogState | null>(null);
 
@@ -127,11 +131,41 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
         return validation.bundle;
     }, [logger, setupCore]);
 
+    /// Add the cached query results of an imported session to the cache of the app, the results of the app win. The
+    /// results are no part of the session, a failure leaves the import alone.
+    const importQueryResults = React.useCallback(async (bundle: SessionBundle): Promise<SessionBundle> => {
+        const results = bundle.results ?? [];
+        if (results.length === 0) return bundle;
+        const sessionId = bundle.session.sessionId;
+        const bytes = results.reduce((sum, result) => sum + result.bytes.size, 0);
+        if (queryResultCache == null) {
+            logger.warn('ignored the query results of an imported session, results are not cached', {
+                sessionId, results: results.length.toString(), bytes: bytes.toString(),
+            }, 'session_import');
+        } else {
+            logger.info('importing the query results of a session', { sessionId, results: results.length.toString(), bytes: bytes.toString() }, 'session_import');
+            const started = performance.now();
+            try {
+                const outcome = await importSessionQueryResults(queryResultCache, results, logger);
+                const fields = {
+                    sessionId, results: results.length.toString(), added: outcome.added.toString(), kept: outcome.kept.toString(),
+                    failed: outcome.failed.toString(), dropped: outcome.dropped.toString(), bytes: outcome.bytes.toString(), durationMs: Math.round(performance.now() - started).toString(),
+                };
+                if (outcome.failed > 0 || outcome.dropped > 0) logger.warn('imported the query results of a session, some were left out', fields, 'session_import');
+                else logger.info('imported the query results of a session', fields, 'session_import');
+            } catch (error) {
+                logger.warn('importing the query results of a session failed', { sessionId, error: stringifyError(error) }, 'session_import');
+            }
+        }
+        const { results: _results, ...rest } = bundle;
+        return rest;
+    }, [logger, queryResultCache]);
+
     /// Map the connections of an imported session to the connections of the app.
     /// Connections that may consolidate with existing ones are decided by the user, null if the
-    /// user cancelled the import.
+    /// user cancelled the import. The last decision of an import, the cached query results go to the cache then.
     const resolveConnections = React.useCallback(async (bundle: SessionBundle): Promise<SessionBundle | null> => {
-        if (backend == null) return bundle;
+        if (backend == null) return await importQueryResults(bundle);
         // The live connections may be ahead of the manifest while writes are debounced
         const live = connectionStore.current;
         const entries: ConnectionEntry[] = ((await backend.loadManifest()).connections ?? [])
@@ -160,8 +194,8 @@ export function SessionImportProvider(props: React.PropsWithChildren<{ dependenc
             sessionId: bundle.session.sessionId,
             connections: plan.map(item => item.decision.kind).join(','),
         }, 'session_import');
-        return { ...bundle, session, catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds) };
-    }, [backend, connectionStore, logger, references]);
+        return await importQueryResults({ ...bundle, session, catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds) });
+    }, [backend, connectionStore, importQueryResults, logger, references]);
 
     const stopSessionWork = React.useCallback(async (sessionId: string) => {
         const databases = references.connectionsOf(sessionId)

@@ -1,5 +1,5 @@
 
 export interface FileDownloader {
-    /// Download a buffer as file
-    downloadBufferAsFile(uint8Array: Uint8Array, filename: string): Promise<void>;
+    /// Download bytes as file. A Blob is handed to the browser as it is, a large one is never copied into memory.
+    downloadBufferAsFile(data: Uint8Array | Blob, filename: string): Promise<void>;
 }

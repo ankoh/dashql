@@ -88,6 +88,16 @@ describe('FileLoader', () => {
         expect(onDone).toHaveBeenCalledOnce();
     });
 
+    it('reads a dropped file in place', async () => {
+        const blob = new Blob([new Uint8Array([1, 2, 3])]);
+        const read = vi.fn();
+        await act(async () => root.render(<FileLoader file={{ ...file(read), blob }} onDone={() => {}} dependencies={dependencies} />));
+
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        expect(state.readSessionBundleFromZip).toHaveBeenCalledWith(blob);
+        expect(read).not.toHaveBeenCalled();
+    });
+
     it('shows loading phases while reading and validating', async () => {
         let finishRead!: (bytes: Uint8Array) => void;
         let finishValidation!: (bundle: typeof BUNDLE) => void;

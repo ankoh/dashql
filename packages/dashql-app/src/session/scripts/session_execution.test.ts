@@ -110,7 +110,7 @@ describe('runSessionExecution', () => {
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
             totalStatements: 4, completedStatements: 4,
             activeFileName: null,
-            activeStatementIndex: null, activeStatementCount: null, error: null,
+            activeStatementIndex: null, activeStatementCount: null, error: null, skippedScripts: 0, skippedFiles: [],
         });
         expect(f.states.some(state => state.completedScripts === 1 && state.completedStatements === 0)).toBe(true);
         expect(f.states.filter(state => state.activeFileName === '2_commands.sql').map(state => state.activeStatementIndex))

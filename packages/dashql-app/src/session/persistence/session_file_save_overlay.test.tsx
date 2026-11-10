@@ -12,6 +12,10 @@ import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testSession } 
 import { createTestRoot } from '../../tests/react_root.js';
 import type { SessionScripts } from '../scripts/session_scripts.js';
 import { SessionFileSaveOverlay } from './session_file_save_overlay.js';
+import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
+import type { QueryResultCache } from '../../query/query_result_cache.js';
+import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
+import { registerScriptRunServices } from '../scripts/script_run.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -43,8 +47,9 @@ describe('SessionFileSaveOverlay', () => {
         return null;
     }
 
-    async function render(props: Partial<React.ComponentProps<typeof SessionFileSaveOverlay>>, references = REFERENCES) {
-        const tree = (overlay: boolean) => (
+    async function render(props: Partial<React.ComponentProps<typeof SessionFileSaveOverlay>>, references = REFERENCES, cache?: QueryResultCache) {
+        const withCache = (children: React.ReactElement) => cache != null ? <QueryResultCacheProvider cache={cache}>{children}</QueryResultCacheProvider> : children;
+        const tree = (overlay: boolean) => withCache(
             <LoggerProvider>
                 <StorageProvider backend={backend}>
                     <ConnectionRegistry>
@@ -54,7 +59,7 @@ describe('SessionFileSaveOverlay', () => {
                         </ConnectionReferencesProvider>
                     </ConnectionRegistry>
                 </StorageProvider>
-            </LoggerProvider>
+            </LoggerProvider>,
         );
         await root.render(tree(false));
         await act(async () => registry![1](reg => {
@@ -82,8 +87,13 @@ describe('SessionFileSaveOverlay', () => {
         await vi.waitFor(() => expect(saveButton()!.disabled).toBe(false));
     });
     async function savedSession() {
-        await act(async () => saveButton()!.click());
-        const [bytes, fileName] = download.mock.calls.at(-1)! as [Uint8Array, string];
+        const saves = download.mock.calls.length;
+        await act(async () => {
+            saveButton()!.click();
+            // A save with the results packs them first
+            await vi.waitFor(() => expect(download.mock.calls.length).toBe(saves + 1));
+        });
+        const [bytes, fileName] = download.mock.calls.at(-1)! as [Blob, string];
         const archive = await JSZip.loadAsync(bytes);
         return { fileName, bytes, session: JSON.parse(await archive.file('dashql-session.json')!.async('text')) };
     }
@@ -114,6 +124,54 @@ describe('SessionFileSaveOverlay', () => {
         expect(toggle('preserve-uuids').getAttribute('aria-checked')).toBe('true');
         await waitForFile();
         expect((await savedSession()).session.sessionId).toBe(TEST_SESSION_ID);
+    });
+
+    it('carries the cached query results of the scripts only when asked to', async () => {
+        const key = 'a'.repeat(64);
+        // A result of 200 kB, the size of the file shows it
+        const bytes = new Uint8Array(200_000);
+        bytes.set([80, 65, 82, 49]);
+        const cache = memoryQueryResultCache();
+        cache.put(key, null, bytes);
+        // Two scripts, one with a cached result
+        const instance = { planSession: () => ({ unpack: () => ({
+            valid: true, nodes: [], edges: [], diagnostics: [], materializations: [],
+            scripts: ['cached', 'missing'].map(signature => ({ planned: true, cacheable: true, signature, referencedScripts: [] })),
+        }) }) };
+        registerScriptRunServices(instance as never, {
+            createMounts: () => null, cachesResults: () => true, cache, maxConcurrentQueries: () => 1,
+            cacheKey: async (_connectionId, signature) => signature === 'cached' ? key : 'b'.repeat(64),
+        });
+        const script = (fileName: string) => ({ fileName, connection: { connectionId: TEST_CONNECTION_ID }, scriptSession: {} });
+        const session = {
+            ...SESSION, instance, scriptOrder: ['1.sql', '2.sql'],
+            scriptRefs: { '1.sql': { scriptId: 1 }, '2.sql': { scriptId: 2 } }, scripts: { 1: script('1.sql'), 2: script('2.sql') },
+        } as unknown as SessionScripts;
+        try {
+            await render({ sessionScripts: session }, REFERENCES, cache);
+            await waitForFile();
+            expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
+            await act(async () => {
+                await vi.waitFor(() => expect(document.querySelector('[data-testid="export-query-results-hint"]')?.textContent)
+                    .toBe('1 of 2 scripts have a cached result. Results contain query data.'));
+            });
+            let archive = await JSZip.loadAsync((await savedSession()).bytes);
+            expect(archive.file(/^results\//)).toEqual([]);
+
+            act(() => toggle('query-results').click());
+            await waitForFile();
+            // The results are read when the file is saved, not before. The size counts them already.
+            expect(cache.retain).not.toHaveBeenCalled();
+            expect(document.body.textContent).toMatch(/~\s20\d(\.\d+)? kB/);
+            const saved = await savedSession();
+            expect(cache.retain).toHaveBeenCalledWith(key);
+            expect(saved.bytes.size).toBeGreaterThan(bytes.length);
+            archive = await JSZip.loadAsync(saved.bytes);
+            expect(archive.file(/^results\//).map(file => file.name)).toEqual([`results/${key}.parquet`]);
+            expect(await archive.file(`results/${key}.parquet`)!.async('uint8array')).toEqual(bytes);
+        } finally {
+            registerScriptRunServices(instance as never, null);
+        }
     });
 
     it('packs nothing while the connections of the session are unknown or the overlay is closed', async () => {

@@ -25,7 +25,7 @@ const state = {
     sidebarProps: null as any,
     attention: null as any,
     connectionButtonsProps: null as any,
-    execution: { state: null, busy: false, start: vi.fn(), stop: vi.fn() } as any,
+    execution: { state: null, busy: false, ready: true, start: vi.fn(), stop: vi.fn() } as any,
 };
 const dependencies = {
     SessionFeed: (props: any) => {
@@ -102,7 +102,7 @@ describe('SessionFeedPage', () => {
         state.shareProps = null;
         state.exportProps = null;
         state.connectionButtonsProps = null;
-        state.execution = { state: null, busy: false, start: vi.fn(), stop: vi.fn() };
+        state.execution = { state: null, busy: false, ready: true, start: vi.fn(), stop: vi.fn() };
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -126,7 +126,7 @@ describe('SessionFeedPage', () => {
         expect(state.feedProps).not.toHaveProperty('scrollTarget');
     });
 
-    it('starts all scripts only when online and idle', () => {
+    it('starts all scripts when idle', () => {
         const modify = vi.fn();
         const render = (connection: any) => act(() => root.render(<SessionFeedPage
             sessionScripts={scripts()} modifySessionScripts={modify} connection={connection} active dependencies={dependencies} />));
@@ -137,9 +137,12 @@ describe('SessionFeedPage', () => {
         expect(state.execution.start).toHaveBeenCalledWith(modify);
         render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map([[1, {}]]) });
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
+        // A connection that is connecting would join a moment later, the run waits for it
+        render({ connectionId: 'main', connectionHealth: ConnectionHealth.CONNECTING, queriesActive: new Map() });
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
     });
 
-    it('asks to connect the connections of the scripts instead of running', () => {
+    it('runs while the connections of the scripts are not connected, they serve their cached results', () => {
         const modify = vi.fn();
         const main = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map() } as any;
         const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
@@ -153,27 +156,52 @@ describe('SessionFeedPage', () => {
         render([main, lake, unused]);
         const button = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
         expect(button.disabled).toBe(false);
-        expect(button.getAttribute('aria-label')).toBe('Connect to run');
+        expect(button.getAttribute('aria-label')).toBe('Execute All');
         // The top bar shows the connections of the session only
         expect(state.connectionButtonsProps.connections).toEqual([lake]);
-        // A click draws attention to the connections that are not connected, it opens nothing
-        const request = vi.spyOn(state.attention, 'request');
-        act(() => button.click());
-        expect(state.execution.start).not.toHaveBeenCalled();
-        expect(request).toHaveBeenCalledWith('session');
-        // Once connected the session runs
-        const online = { ...lake, connectionHealth: ConnectionHealth.ONLINE };
-        render([main, online, unused]);
-        expect(state.connectionButtonsProps.connections).toEqual([online]);
-        expect(button.getAttribute('aria-label')).toBe('Execute All');
-        // While a script of the session runs, the session doesn't run
-        state.execution = { ...state.execution, runActive: true };
-        render([main, online, unused]);
-        expect(button.disabled).toBe(true);
-        state.execution = { ...state.execution, runActive: false };
-        render([main, online, unused]);
         act(() => button.click());
         expect(state.execution.start).toHaveBeenCalledWith(modify);
+        // While a script of the session runs, the session doesn't run
+        state.execution = { ...state.execution, start: vi.fn(), runActive: true };
+        render([main, lake, unused]);
+        expect(button.disabled).toBe(true);
+        // Nor before the compute database that reads the cached results is set up
+        state.execution = { ...state.execution, runActive: false, ready: false };
+        render([main, lake, unused]);
+        expect(button.disabled).toBe(true);
+    });
+
+    it('points at the connections once a run skipped the scripts that need them', async () => {
+        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        const session = scripts();
+        session.scripts[1].connection = { connectionId: 'lake' };
+        const render = (phase: string, skippedScripts: number, connection = lake) => {
+            state.execution = { ...state.execution, busy: phase === 'running', state: {
+                phase, completedScripts: 3, totalScripts: 5, completedStatements: 3, totalStatements: 3,
+                activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null, skippedScripts,
+                skippedFiles: ['2.sql', '3.sql'].slice(0, skippedScripts),
+            } };
+            act(() => root.render(<SessionFeedPage sessionScripts={session} modifySessionScripts={vi.fn()} connection={connection}
+                scriptConnections={new Map([['lake', connection]])} active dependencies={dependencies} />));
+        };
+        const status = () => container.querySelector('[data-testid="execution-status"]')!;
+        // A run that settled before the page mounted points at nothing
+        render('succeeded', 2);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(state.attention.active).toBe(false);
+        render('running', 2);
+        expect(state.attention.active).toBe(false);
+        render('succeeded', 2);
+        expect(status().textContent).toContain('3/5 completed · 2 need a connection');
+        expect(status().getAttribute('title')).toBe('Need a connection: 2.sql, 3.sql');
+        // The request lands with the commit of the settled run, the attention lasts a while
+        await vi.waitFor(() => expect(state.attention.active).toBe(true));
+        // The attention clears once the connection changes its health
+        render('succeeded', 2, { ...lake, connectionHealth: ConnectionHealth.CONNECTING });
+        expect(state.attention.active).toBe(false);
+        // A run that skipped nothing succeeded
+        render('succeeded', 0);
+        expect(status().textContent).toContain('3/5 succeeded');
     });
 
     it('shows the connection picked for the next script in the top bar without running it', () => {
@@ -187,25 +215,6 @@ describe('SessionFeedPage', () => {
         const button = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
         expect(button.disabled).toBe(true);
         expect(button.getAttribute('aria-label')).toBe('Execute All');
-    });
-
-    it('requests connection attention on blocked execution hover and clears on main health or session changes', async () => {
-        const render = (sessionId: string, health: ConnectionHealth) => act(() => root.render(<SessionFeedPage
-            sessionScripts={{ ...scripts(), sessionId }} modifySessionScripts={vi.fn()}
-            connection={{ connectionId: 'main', connectionHealth: health } as any} active dependencies={dependencies} />));
-        render('session', ConnectionHealth.NOT_STARTED);
-        const wrapper = container.querySelector('[data-execution-connection-blocked="true"]')!;
-        expect(wrapper.contains(container.querySelector('[data-testid="execute-all"]'))).toBe(true);
-        const request = vi.spyOn(state.attention, 'request');
-        act(() => wrapper.dispatchEvent(new PointerEvent('pointerover', { bubbles: true })));
-        expect(request).toHaveBeenCalledWith('session');
-        await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
-        expect(state.attention.active).toBe(true);
-        render('session', ConnectionHealth.CONNECTING);
-        expect(state.attention.active).toBe(false);
-        act(() => state.attention.request('session'));
-        render('other', ConnectionHealth.CONNECTING);
-        expect(state.attention.active).toBe(false);
     });
 
     it('keeps the view switch and execution controls inside mobile and desktop headers', async () => {
@@ -226,9 +235,9 @@ describe('SessionFeedPage', () => {
             for (const width of [320, 375, 800, 1024, 1440]) {
                 frame.style.width = `${width}px`;
                 for (const busy of [false, true]) {
-                    state.execution = { busy, start: vi.fn(), stop: vi.fn(), state: busy ? {
+                    state.execution = { busy, ready: true, start: vi.fn(), stop: vi.fn(), state: busy ? {
                         phase: 'running', completedScripts: 123, totalScripts: 456,
-                        completedStatements: 123, totalStatements: 456, error: null,
+                        completedStatements: 123, totalStatements: 456, error: null, skippedScripts: 0, skippedFiles: [],
                     } : null };
                     await act(async () => {
                         frameRoot.render(<SessionFeedPage sessionScripts={scripts()} modifySessionScripts={vi.fn()}
@@ -259,6 +268,7 @@ describe('SessionFeedPage', () => {
         state.execution = { busy: true, start: vi.fn(), stop: vi.fn(), state: {
             phase: 'running', completedScripts: 2, totalScripts: 5, completedStatements: 4, totalStatements: 9,
             activeFileName: '3_customers.sql', activeStatementIndex: 2, activeStatementCount: 3, error: null,
+            skippedScripts: 0, skippedFiles: [],
         } };
         const render = () => act(() => root.render(<SessionFeedPage sessionScripts={scripts()}
             modifySessionScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
@@ -310,7 +320,7 @@ describe('SessionFeedPage', () => {
     it('keeps the running status indicator mounted as execution progress changes', () => {
         state.execution = { busy: true, start: vi.fn(), stop: vi.fn(), state: {
             phase: 'running', completedScripts: 1, totalScripts: 5,
-            completedStatements: 1, totalStatements: 9, error: null,
+            completedStatements: 1, totalStatements: 9, error: null, skippedScripts: 0, skippedFiles: [],
         } };
         const render = () => act(() => root.render(<SessionFeedPage sessionScripts={scripts()}
             modifySessionScripts={vi.fn()} connection={null} active dependencies={dependencies} />));

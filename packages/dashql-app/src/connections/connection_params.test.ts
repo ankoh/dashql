@@ -198,5 +198,19 @@ describe('createConnectionParamsSignature', () => {
         expect(signature).toEqual(createConnectionParamsSignature(hyper(['/a', '/b'], { x: '2', y: '1' })));
         expect(signature).toMatchObject({ case: 'hyper', attachedDatabases: [{ path: '/a' }, { path: '/b' }], queryParameters: [['a', '1'], ['b', '2']] });
     });
+
+    // The results that an exported session carries are found under the keys of the shared params
+    it.each([
+        ['salesforce', { salesforce: { instanceUrl: 'https://org', appConsumerKey: 'key', appConsumerSecret: 'secret', login: 'alice@org' } }],
+        ['dbcom', { dbcom: { instanceUrl: 'https://org', appConsumerKey: 'key', appConsumerSecret: 'secret', login: 'alice@org', databaseName: 'db' } }],
+        ['trino', { trino: { endpoint: 'https://trino', defaultCatalog: 'hive', defaultSchema: 'sales', catalogs: ['hive.sales'],
+            metadata: { authorization: 'Bearer a' },
+            auth: { authType: 'AUTH_OAUTH', basic: { username: 'alice', secret: 'a' }, oauth: { clientId: 'client', scopes: ['openid'] } } } }],
+    ])('keeps the signature of shared %s params', (_connector, params) => {
+        const signature = createConnectionParamsSignature(params as unknown as ConnectionParams);
+        for (const withLoginHint of [true, false]) {
+            expect(createConnectionParamsSignature(sanitizeConnectionParamsForSharing(params as unknown as ConnectionParams, withLoginHint))).toEqual(signature);
+        }
+    });
 });
 

@@ -102,6 +102,13 @@ function Consumer(props: { sessionId: string; capture: (execution: Execution) =>
     return null;
 }
 
+/// Captures the run of a session also before the compute database is set up
+function EarlyConsumer(props: { capture: (execution: Execution) => void }) {
+    const execution = useSessionExecution('first');
+    React.useLayoutEffect(() => props.capture(execution));
+    return null;
+}
+
 /// Reads the run services in a passive effect whenever its session changes, like the cache indicator of a card
 function RunServicesProbe(props: { sessionId: string; capture: (registered: boolean) => void; expose: (bump: () => void) => void }) {
     const [registry, setSessions] = useSessionScriptsRegistry();
@@ -121,22 +128,26 @@ function RunServicesProbe(props: { sessionId: string; capture: (registered: bool
     return null;
 }
 
+/// Changes the connections of the registry, e.g. a connection that drops
+let setConnections: ReturnType<typeof useConnectionRegistry>[1] = () => {};
+
 function SeedRegistries(props: { fixtures: Fixture[]; children: React.ReactNode }) {
     const [, setSessions] = useSessionScriptsRegistry();
-    const [, setConnections] = useConnectionRegistry();
+    const [, setRegistryConnections] = useConnectionRegistry();
+    setConnections = setRegistryConnections;
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
         setSessions(registry => ({ ...registry,
             sessionScriptsMap: new Map(props.fixtures.map(f => [f.session.sessionId, f.session])),
         }));
-        setConnections(registry => ({ ...registry,
+        setRegistryConnections(registry => ({ ...registry,
             connections: new Map(props.fixtures.map(f => [f.database.connectionId, f.database])),
             attachedDatabasesBySession: new Map(props.fixtures.map(f => [f.session.sessionId, {
                 mainDatabaseId: f.database.connectionId, attachedDatabaseIds: [],
             }])),
         }));
         setReady(true);
-    }, [props.fixtures, setSessions, setConnections]);
+    }, [props.fixtures, setSessions, setRegistryConnections]);
     return ready ? props.children : null;
 }
 
@@ -146,6 +157,7 @@ describe('SessionExecutionProvider', () => {
     let fixtures: Fixture[];
     let current: Execution;
     let observer: Execution;
+    let early: Execution | null = null;
     let observerCommits = 0;
     let backend: SessionTestBackend;
     let setupDatabase: () => Promise<EmbeddedComputeDatabase>;
@@ -158,6 +170,7 @@ describe('SessionExecutionProvider', () => {
     beforeEach(() => {
         fixtures = [fixture('first'), fixture('second')];
         servicesRegistered = [];
+        early = null;
         backend = new SessionTestBackend();
         setupDatabase = async () => ({ terminate: vi.fn() }) as unknown as EmbeddedComputeDatabase;
         container = document.createElement('div');
@@ -192,6 +205,7 @@ describe('SessionExecutionProvider', () => {
                                                 {showProvider ? <SessionExecutionProvider>
                                                     {showConsumer ? <Consumer key={sessionId} sessionId={sessionId} capture={capture} /> : null}
                                                     <Consumer sessionId="first" capture={captureObserver} />
+                                                    <EarlyConsumer capture={execution => { early = execution; }} />
                                                     <RunServicesProbe sessionId="first" capture={captureServices} expose={bump => { bumpSession = bump; }} />
                                                 </SessionExecutionProvider> : <></>}
                                             </QueryExecutorProvider>
@@ -250,6 +264,28 @@ describe('SessionExecutionProvider', () => {
         setup.resolve();
         await rendering;
         await start();
+    });
+
+    it('starts no run before the compute database that reads the cached results is set up', async () => {
+        const setup = deferred();
+        setupDatabase = vi.fn(async () => {
+            await setup.promise;
+            return { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase;
+        });
+        // A run without a connection would find no cached result, it doesn't start
+        fixtures[0].database.connectionHealth = ConnectionHealth.NOT_STARTED;
+        const rendering = render();
+        await vi.waitFor(() => expect(early).not.toBeNull());
+        expect(early!.ready).toBe(false);
+        act(() => early!.start(fixtures[0].modify));
+        expect(fixtures[0].plan).not.toHaveBeenCalled();
+        expect(early!.state).toBeNull();
+        setup.resolve();
+        await rendering;
+        expect(current.ready).toBe(true);
+        act(() => current.start(fixtures[0].modify));
+        await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
+        expect(fixtures[0].plan).toHaveBeenCalled();
     });
 
     it.each(['execution', 'cancellation'] as const)('keeps stopping busy until both promises drain, with %s settling first', async first => {
@@ -380,10 +416,9 @@ describe('SessionExecutionProvider', () => {
         expect(fixtures[1].signal?.aborted).toBe(false);
     });
 
-    it.each(['offline', 'active query'] as const)('does not start with an %s connection', async reason => {
+    it('does not start with an active query', async () => {
         const f = fixtures[0];
-        if (reason === 'offline') f.database.connectionHealth = ConnectionHealth.FAILED;
-        else f.database.queriesActive.set(99, { queryMetadata: { queryType: QueryType.USER_PROVIDED } } as never);
+        f.database.queriesActive.set(99, { queryMetadata: { queryType: QueryType.USER_PROVIDED } } as never);
         await render();
         act(() => current.start(f.modify));
         expect(f.plan).not.toHaveBeenCalled();
@@ -391,6 +426,54 @@ describe('SessionExecutionProvider', () => {
         expect(f.modify).not.toHaveBeenCalled();
         expect(current.state).toBeNull();
         expect(current.busy).toBe(false);
+    });
+
+    it('runs every script while the connection is not connected and skips the statements that need it', async () => {
+        const f = fixtures[0];
+        f.database.connectionHealth = ConnectionHealth.FAILED;
+        await render();
+        act(() => current.start(f.modify));
+        await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
+        expect(f.plan).toHaveBeenCalled();
+        expect(f.executeQuery).not.toHaveBeenCalled();
+        expect(current.state).toMatchObject({ totalScripts: 1, completedScripts: 0, skippedScripts: 1, totalStatements: 0 });
+    });
+
+    it('runs a change of inputs while the connection is not connected', async () => {
+        const f = fixtures[0];
+        f.database.connectionHealth = ConnectionHealth.NOT_STARTED;
+        await render();
+        act(() => current.start(f.modify, { inputs: ['min'] }));
+        // The fixture core derives no dataflow, the run starts and settles
+        await vi.waitFor(() => expect(current.state?.phase).toMatch(/succeeded|failed/));
+    });
+
+    it('waits for a connection that is connecting, a change of inputs starts once it is online', async () => {
+        const f = fixtures[0];
+        f.database.connectionHealth = ConnectionHealth.CONNECTING;
+        await render();
+        act(() => current.start(f.modify));
+        expect(current.state).toBeNull();
+        act(() => current.start(f.modify, { inputs: ['min'] }));
+        expect(current.state).toBeNull();
+        await act(async () => setConnections(registry => {
+            const connections = new Map(registry.connections);
+            connections.set(f.database.connectionId, { ...f.database, connectionHealth: ConnectionHealth.ONLINE });
+            return { ...registry, connections };
+        }));
+        await vi.waitFor(() => expect(current.state).not.toBeNull());
+    });
+
+    it('stops a run once a connection that it runs statements on drops', async () => {
+        await render();
+        await start();
+        const f = fixtures[0];
+        await act(async () => setConnections(registry => {
+            const connections = new Map(registry.connections);
+            connections.set(f.database.connectionId, { ...f.database, connectionHealth: ConnectionHealth.FAILED });
+            return { ...registry, connections };
+        }));
+        expect(f.signal?.aborted).toBe(true);
     });
 
     it('starts while computations of the session query the compute database', async () => {

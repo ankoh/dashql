@@ -1,5 +1,3 @@
-import JSZip from 'jszip';
-
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import type { StorageBackend, SessionData, ScriptData, DataFileData, ConnectionParams } from '../../storage/storage_backend.js';
@@ -21,7 +19,10 @@ import {
     regenerateBundleConnectionIds,
     type SessionBundle,
     type SessionBundleCatalog,
+    type SessionBundleResult,
 } from '../../storage/session_bundle.js';
+import { sessionResultPath } from './session_query_results.js';
+import { archiveError, BlobReader, BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from './session_zip.js';
 
 /// The target platform a shared session link points at.
 export enum SessionLinkTarget {
@@ -38,6 +39,10 @@ export interface SessionExportOptions {
     /// path uses this to sanitize connection secrets, strip the login hint, or give the session and
     /// its connections fresh ids, the catalogs follow their connections.
     transformBundle?: (bundle: Pick<SessionBundle, 'session' | 'catalogs'>) => Pick<SessionBundle, 'session' | 'catalogs'>;
+    /// The cached query results of the scripts, written to `results/<key>.parquet`
+    queryResults?: readonly SessionBundleResult[];
+    /// Stops the export, e.g. once its settings changed
+    signal?: AbortSignal;
 }
 
 /// Options applied after sanitizing session connection parameters for sharing.
@@ -50,55 +55,61 @@ export interface SharedSessionExportOptions {
     preserveUUIDs?: boolean;
     /// The names the user gave the connections (connectionId -> name), an import names new connections after them.
     connectionNames?: ReadonlyMap<string, string>;
+    /// The cached query results of the scripts, only a file carries them, never a link
+    queryResults?: readonly SessionBundleResult[];
+    /// Stops the export, e.g. once its settings changed
+    signal?: AbortSignal;
 }
 
 type SharedSessionExportOptionsInput = SharedSessionExportOptions | boolean;
 
-/// Creates a ZIP file from session data and script folders
+/// Creates a ZIP file from session data and script folders. The archive is streamed into a Blob that the browser
+/// keeps, the query results are streamed from their files.
 export async function createSessionZip(
     sessionData: SessionData,
     scripts: ScriptData[],
     catalogs: readonly SessionBundleCatalog[] = [],
     data: readonly DataFileData[] = [],
+    results: readonly SessionBundleResult[] = [],
+    signal?: AbortSignal,
 ): Promise<Blob> {
-    const zip = new JSZip();
-
-    // Add session metadata
-    zip.file(STORAGE_SESSION_FILE, JSON.stringify({
-        ...sessionData,
-        connections: sessionData.connections.map(connection => ({
-            connectionId: connection.connectionId,
-            params: sanitizeConnectionParamsForSharing(connection.params),
-            ...(connection.name == null ? {} : { name: connection.name }),
-        })),
-    }, null, 2));
-    // The catalogs of the connections, an import seeds the connections that are new to the app
-    for (const catalog of catalogs) {
-        if (catalog.relations != null) zip.file(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_RELATIONS), catalog.relations);
-        if (catalog.functions != null) zip.file(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_FUNCTIONS), catalog.functions);
+    // The signal also stops an entry that is being streamed
+    const zip = new ZipWriter(new BlobWriter('application/zip'), { level: 6, signal });
+    // The entries are added one after the other, concurrent entries would wait in memory
+    const text = async (path: string, value: string) => { await zip.add(path, new TextReader(value)); };
+    try {
+        // Add session metadata
+        await text(STORAGE_SESSION_FILE, JSON.stringify({
+            ...sessionData,
+            connections: sessionData.connections.map(connection => ({
+                connectionId: connection.connectionId,
+                params: sanitizeConnectionParamsForSharing(connection.params),
+                ...(connection.name == null ? {} : { name: connection.name }),
+            })),
+        }, null, 2));
+        // The catalogs of the connections, an import seeds the connections that are new to the app
+        for (const catalog of catalogs) {
+            if (catalog.relations != null) await text(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_RELATIONS), catalog.relations);
+            if (catalog.functions != null) await text(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_FUNCTIONS), catalog.functions);
+        }
+        // Add the flat ordered scripts
+        for (const script of scripts) {
+            if (script.name.toLowerCase() === 'dashql-draft.sql') continue;
+            await text(`${STORAGE_SCRIPTS_FOLDER}/${script.name}`, script.sql);
+        }
+        for (const file of data) {
+            validateDataFileName(file.name);
+            await zip.add(`${STORAGE_ATTACHMENTS_FOLDER}/${file.name}`, new Uint8ArrayReader(file.bytes));
+        }
+        // Parquet is compressed already, a stored entry is a plain slice of the archive that an import reads in place
+        for (const result of results) {
+            await zip.add(sessionResultPath(result.key), new BlobReader(result.bytes), { level: 0 });
+        }
+        return await zip.close();
+    } catch (error) {
+        await zip.close().catch(() => {});
+        throw signal?.aborted ? error : archiveError(error);
     }
-
-    // Add the flat ordered scripts.
-    const scriptsFolder = zip.folder(STORAGE_SCRIPTS_FOLDER);
-    if (!scriptsFolder) {
-        throw new Error('Failed to create scripts folder in ZIP');
-    }
-
-    for (const script of scripts) {
-        if (script.name.toLowerCase() === 'dashql-draft.sql') continue;
-        scriptsFolder.file(script.name, script.sql);
-    }
-    for (const file of data) {
-        validateDataFileName(file.name);
-        zip.file(`${STORAGE_ATTACHMENTS_FOLDER}/${file.name}`, file.bytes);
-    }
-
-    // Generate ZIP blob with compression
-    return await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 6 }
-    });
 }
 
 /// Exports a session as a ZIP file by loading from storage backend.
@@ -112,11 +123,12 @@ export async function exportSessionAsZip(
     options: SessionExportOptions = {}
 ): Promise<Blob> {
     const bundle = pruneBundleConnections(await readSessionBundle(sessionId, backend, options.withCatalog ?? false));
+    options.signal?.throwIfAborted();
 
     // Apply the caller's transform (sharing sanitization, name override, ...)
     const out = options.transformBundle ? options.transformBundle(bundle) : bundle;
     // Create ZIP from loaded data
-    return await createSessionZip(out.session, bundle.scripts, out.catalogs, bundle.data);
+    return await createSessionZip(out.session, bundle.scripts, out.catalogs, bundle.data, options.queryResults, options.signal);
 }
 
 /// Export a session as a shareable ZIP.
@@ -134,6 +146,8 @@ export async function exportSessionAsSharedZip(
     const withLoginHint = options.withLoginHint ?? true;
     return await exportSessionAsZip(sessionId, backend, {
         withCatalog: options.withCatalog ?? true,
+        queryResults: options.queryResults,
+        signal: options.signal,
         transformBundle: bundle => {
             const { session } = bundle;
             const sanitized: SessionData = {
@@ -170,7 +184,8 @@ export async function exportSessionAsUrl(
         backend,
         sessionId,
         connectionParams,
-        { ...options, withCatalog: options.withCatalog ?? false },
+        // A link never carries query results, an import of a link adds nothing to the cache
+        { ...options, withCatalog: options.withCatalog ?? false, queryResults: undefined },
     );
     return await encodeSessionZipAsUrl(zipBlob, target);
 }

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
+import { Crc32 } from '../utils/crc32.js';
+import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES } from './query_result_cache_eviction.js';
 import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
 
 const KEY_A = 'a'.repeat(64);
@@ -111,6 +113,57 @@ describe('OPFS query result cache', () => {
         await retained.release();
         expect(await other.clear()).toEqual([KEY_A]);
         expect(await reader.retain(KEY_A)).toBeNull();
+    });
+
+    it('imports the bytes of a result as a new file of its key, the cached results win', async () => {
+        const c = createOPFSQueryResultCache({ getRoot: async () => root, maxFiles: 2 });
+        const raw = new Uint8Array([80, 65, 82, 49, 1, 2, 3]);
+        // A slice of a larger file, as an import of an archive passes it
+        const bytes = new Blob([new Uint8Array([7, 7]), raw, new Uint8Array([7])]).slice(2, 2 + raw.length);
+        expect(await c.importFile(KEY_A, bytes)).toBe(true);
+        const entry = (await c.lookup(KEY_A))!;
+        expect(entry).toMatchObject({ key: KEY_A, size: raw.length });
+        expect(new Uint8Array(await (await c.readFile(entry.name)).arrayBuffer())).toEqual(raw);
+        // A key that is cached keeps its file
+        expect(await c.importFile(KEY_A, new Blob([new Uint8Array([9])]))).toBe(false);
+        expect((await c.list()).map(e => e.name)).toEqual([entry.name]);
+        // An import evicts like a write, the transient file is gone
+        await tick();
+        expect(await c.importFile(KEY_B, bytes)).toBe(true);
+        await tick();
+        expect(await c.importFile('c'.repeat(64), bytes)).toBe(true);
+        expect((await c.list()).map(e => e.key).sort()).toEqual([KEY_B, 'c'.repeat(64)]);
+        expect((await files()).filter(name => isTransientCacheFile(name))).toEqual([]);
+        await expect(c.importFile('not-a-key', bytes)).rejects.toThrow('Invalid cache key');
+    });
+
+    it('checks the CRC-32 of an imported result and leaves no file if it differs', async () => {
+        const c = cache();
+        const raw = new Uint8Array([80, 65, 82, 49, 1, 2, 3]);
+        const crc = new Crc32();
+        crc.update(raw);
+        await expect(c.importFile(KEY_A, new Blob([raw]), { crc32: crc.value ^ 1 })).rejects.toThrow('checksum');
+        expect(await c.lookup(KEY_A)).toBeNull();
+        expect(await files()).toEqual([]);
+        expect(await c.importFile(KEY_A, new Blob([raw]), { crc32: crc.value })).toBe(true);
+        expect(await c.lookup(KEY_A)).toMatchObject({ size: raw.length });
+        expect(c.capacity).toEqual({ maxBytes: DEFAULT_CACHE_MAX_BYTES, maxFiles: DEFAULT_CACHE_MAX_FILES });
+    });
+
+    it('drops an imported result once a run wrote its key while the bytes were streamed', async () => {
+        const c = cache();
+        let written = '';
+        // The bytes arrive after a run wrote the key
+        const data = { size: 4, stream: () => new ReadableStream<Uint8Array>({
+            async start(controller) {
+                written = await put(c.newFileName(KEY_A), 8);
+                controller.enqueue(new Uint8Array([80, 65, 82, 49]));
+                controller.close();
+            },
+        }) } as unknown as Blob;
+        expect(await c.importFile(KEY_A, data)).toBe(false);
+        expect(await c.lookup(KEY_A)).toMatchObject({ name: written, size: 8 });
+        expect(await files()).toEqual([written]);
     });
 
     it('finds no result in an empty file of a key and removes it once nobody writes it', async () => {

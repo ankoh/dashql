@@ -60,3 +60,10 @@
     grid-row: 1;
     grid-column: 3;
 }
+
+.error {
+    border-top: 1px solid var(--color_border);
+    padding: 8px 18px;
+    font-size: 0.75rem;
+    color: var(--color_danger_fg);
+}

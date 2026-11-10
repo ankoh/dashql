@@ -647,6 +647,18 @@ describe('QueryExecutorProvider', () => {
             expect(api!.connection.queriesFinished.get(queryId)?.cachedAt?.getTime()).toBe(CACHE_HIT.cachedAtMs);
         });
 
+        it('serves a hit of a connection that is not connected and has no channel', async () => {
+            const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
+            const database = createDatabase(null);
+            const offline = {
+                ...database, connectionHealth: ConnectionHealth.NOT_STARTED,
+                details: { ...database.details, value: { ...database.details.value, channel: null } },
+            } as unknown as ConnectionState;
+            await renderExecutor(null, { cache, compute, database: offline });
+            const { table } = await run(cacheableArgs({ cacheOnly: true }));
+            expect(table!.numRows).toBe(1);
+        });
+
         it('touches no relations with a cached result', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
             await renderExecutor(vi.fn(), { cache, compute });

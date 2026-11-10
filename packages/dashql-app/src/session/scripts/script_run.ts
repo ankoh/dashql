@@ -169,6 +169,24 @@ export async function computeScriptResultCacheKey(
     return key?.reusable ? key.key : null;
 }
 
+/// The cache keys of the results of the scripts of a session in session order, the keys that a run of the session
+/// reads. Null for a script whose result is not reusable, all null if the current analysis can't be planned. Plans
+/// without analyzing, like the cache indicators of the cards.
+export async function computeSessionResultCacheKeys(
+    services: ScriptRunServices,
+    session: SessionScripts,
+): Promise<Array<string | null>> {
+    const files = [...session.scriptOrder];
+    const scripts = files.map(file => session.scripts[session.scriptRefs[file].scriptId]);
+    const { graph } = planSessionScripts({
+        instance: session.instance, scripts, files, mountPrefix: createMountPrefix(), session,
+    });
+    if (!graph.valid) return scripts.map(() => null);
+    const connectionOf = (index: number) => scripts[index].connection.connectionId;
+    const keys = await computeScriptResultKeys(graph, (index, signature) => services.cacheKey(connectionOf(index), signature), index => services.cachesResults(connectionOf(index)));
+    return keys.map(key => key?.reusable ? key.key : null);
+}
+
 /// The services of script runs, one per core instance, registered by the session execution provider
 const runners = new WeakMap<core.DashQL, ScriptRunServices>();
 

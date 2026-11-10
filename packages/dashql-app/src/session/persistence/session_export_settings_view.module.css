@@ -20,3 +20,11 @@
 .part_toggle {
     grid-column: 3;
 }
+
+.part_hint {
+    /* The toggles sit in the implicit third column */
+    grid-column: 1 / span 3;
+    padding-left: 6px;
+    font-size: 0.75rem;
+    color: var(--color_fg_muted);
+}

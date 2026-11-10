@@ -8,6 +8,8 @@ interface MemoryCacheFile {
     key: string;
     cachedAtMs: number;
     table: arrow.Table | null;
+    /// The bytes of the file, those of an imported file or the ones a test gives
+    bytes?: Uint8Array;
 }
 
 /// A query result cache of the tests in memory. Files are named like the files of the OPFS cache, writes and reads
@@ -17,7 +19,7 @@ export function memoryQueryResultCache(mountPath: string = '/mnt/external/cache'
     const keysOfNames = new Map<string, string>();
     let clock = 0;
     const entries = (): QueryResultCacheEntry[] => [...files].filter(([, file]) => file.key !== '').map(([name, file]) => ({
-        name, key: file.key, size: 1, cachedAtMs: file.cachedAtMs, lastAccessMs: file.cachedAtMs,
+        name, key: file.key, size: file.bytes?.length ?? 1, cachedAtMs: file.cachedAtMs, lastAccessMs: file.cachedAtMs,
     }));
     const newFileName = (key: string) => {
         const name = `${key}.${crypto.randomUUID()}.parquet`;
@@ -28,9 +30,9 @@ export function memoryQueryResultCache(mountPath: string = '/mnt/external/cache'
         mountPath,
         files,
         /// Add a cached file of a key
-        put: (key: string, table: arrow.Table | null = null) => {
+        put: (key: string, table: arrow.Table | null = null, bytes?: Uint8Array) => {
             const name = newFileName(key);
-            files.set(name, { key, cachedAtMs: ++clock, table });
+            files.set(name, { key, cachedAtMs: ++clock, table, bytes });
             return name;
         },
         lookup: vi.fn(async (key: string) => entries().filter(e => e.key === key).sort((a, b) => b.cachedAtMs - a.cachedAtMs)[0] ?? null),
@@ -64,6 +66,17 @@ export function memoryQueryResultCache(mountPath: string = '/mnt/external/cache'
             const file = files.get(name);
             if (file?.table == null) throw new Error(`The file ${name} is not cached`);
             return file.table;
+        }),
+        readFile: vi.fn(async (name: string) => {
+            const file = files.get(name);
+            if (file == null) throw new Error(`The file ${name} is not cached`);
+            return new Blob([(file.bytes ?? new Uint8Array()) as Uint8Array<ArrayBuffer>]);
+        }),
+        capacity: { maxBytes: Number.POSITIVE_INFINITY, maxFiles: Number.POSITIVE_INFINITY },
+        importFile: vi.fn(async (key: string, data: Blob, _options?: { crc32?: number }) => {
+            if (data.size === 0 || entries().some(e => e.key === key)) return false;
+            files.set(newFileName(key), { key, cachedAtMs: ++clock, table: null, bytes: new Uint8Array(await data.arrayBuffer()) });
+            return true;
         }),
         remove: vi.fn(async (name: string) => { files.delete(name); }),
     } satisfies QueryResultCache & Record<string, unknown>;

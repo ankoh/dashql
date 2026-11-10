@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { type ConnectionState } from '../connections/connection_state.js';
 import { Tooltip } from '../ui/foundations/tooltip.js';
 
 export const CONNECTION_ATTENTION_DURATION_MS = 900;
@@ -15,11 +15,6 @@ export const SessionConnectionAttentionContext = React.createContext<ConnectionA
 /// The connections whose health resets the attention, as a key that changes with them
 export function connectionHealthKey(connections: readonly ConnectionState[] | null): string {
     return (connections ?? []).map(connection => `${connection.connectionId}:${connection.connectionHealth}`).join(',');
-}
-
-/// The connections of a session that are not online, a session runs once they are
-export function connectionsToConnect(connections: Iterable<ConnectionState>): ConnectionState[] {
-    return [...connections].filter(connection => connection.connectionHealth !== ConnectionHealth.ONLINE);
 }
 
 export function useSessionConnectionAttention(sessionId: string | null, healthKey: string): ConnectionAttention {

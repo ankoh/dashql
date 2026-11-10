@@ -29,6 +29,9 @@ export interface SessionExecutionOptions {
 
 interface ExecutionContext {
     states: Map<string, SessionExecutionState>;
+    /// Can a run start? A run reads the cached results and the results of the queries with the compute database, a
+    /// run starts once it is set up
+    ready: boolean;
     start: (sessionId: string, modify: ModifySessionScripts, options?: SessionExecutionOptions) => void;
     stop: (sessionId: string) => void;
 }
@@ -88,11 +91,12 @@ export function useSessionExecution(sessionId: string) {
         return {
             state,
             busy,
+            ready: context?.ready ?? false,
             runActive: busy || held,
             start: (modify: ModifySessionScripts, options?: SessionExecutionOptions) => start?.(sessionId, modify, options),
             stop: () => stop?.(sessionId),
         };
-    }, [state, held, start, stop, sessionId]);
+    }, [state, held, start, stop, sessionId, context?.ready]);
 }
 
 export function SessionExecutionProvider(props: React.PropsWithChildren) {
@@ -106,13 +110,15 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
     const queryResultCache = useQueryResultCache();
     const logger = useLogger();
     const [states, setStates] = React.useState(new Map<string, SessionExecutionState>());
-    const runs = React.useRef(new Map<string, AbortController>());
+    // The runs by session, with the connections that were online when the run started: the run executes statements
+    // only on them
+    const runs = React.useRef(new Map<string, { controller: AbortController; online: ReadonlySet<string> }>());
     const runningDatabases = React.useRef(new Set<string>());
     // The input changes that wait for the session, by session id
     const pendingInputs = React.useRef(new Map<string, { modify: ModifySessionScripts; inputs: Set<string> }>());
 
     React.useEffect(() => () => {
-        for (const controller of runs.current.values()) controller.abort();
+        for (const { controller } of runs.current.values()) controller.abort();
     }, []);
 
     // The columns of the Parquet attachments, read once per file and stamp with the compute database
@@ -136,14 +142,23 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         }
     }, [registry, computeDb, dispatchSessionScripts, logger]);
     React.useEffect(() => {
-        for (const [id, controller] of runs.current) {
+        // A run stops if a connection that it executes statements on drops, the others only serve cached results
+        for (const [id, { controller, online }] of runs.current) {
+            if (controller.signal.aborted) continue;
             const session = registry.sessionScriptsMap.get(id);
-            if (!session || scriptConnectionIds(session).some(connectionId =>
-                connections.connections.get(connectionId)?.connectionHealth !== ConnectionHealth.ONLINE)) {
+            const dropped = [...online].find(connectionId =>
+                connections.connections.get(connectionId)?.connectionHealth !== ConnectionHealth.ONLINE);
+            if (!session) {
+                logger.info('Stopping the run of a session that is gone', { sessionId: id }, LOG_CTX);
+                controller.abort();
+            } else if (dropped != null) {
+                logger.info('Stopping the run of a session, a connection it runs statements on dropped', {
+                    sessionId: id, connectionId: dropped, health: String(connections.connections.get(dropped)?.connectionHealth ?? 'gone'),
+                }, LOG_CTX);
                 controller.abort();
             }
         }
-    }, [registry, connections]);
+    }, [registry, connections, logger]);
 
     // The provider re-renders with every registry change.
     // Keep the context value stable and read the latest registries when an execution starts.
@@ -192,38 +207,64 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         const registry = readRegistry?.() ?? latest.current.registry;
         const session = registry.sessionScriptsMap.get(sessionId);
         if (!session || session.scriptOrder.length === 0) return;
-        // A run takes every connection of the session, all of them must be idle
+        // A run takes every connection of the session, all of them must be idle. A run also starts while connections
+        // aren't connected: their scripts serve their cached results, the others are skipped. A connection that is
+        // connecting holds the run, it would join a moment later.
         const connectionIds = scriptConnectionIds(session);
-        const isFree = () => {
+        // Why the session can't run now, null if it can
+        const blocker = (): string | null => {
             const connections = latest.current.connections;
-            return !runs.current.has(sessionId) && !isSessionExecutionRunning(sessionId) && connectionIds.every(connectionId => {
+            // The compute database reads the cached results, a run before its setup would fail or skip them
+            if (latest.current.computeDb == null) return 'the compute database is not set up';
+            if (runs.current.has(sessionId) || isSessionExecutionRunning(sessionId)) return 'a run holds the session';
+            for (const connectionId of connectionIds) {
                 const connection = connections.connections.get(connectionId);
-                return !runningDatabases.current.has(connectionId)
-                    && connection?.connectionHealth === ConnectionHealth.ONLINE
-                    && !runsQueries(connection);
-            });
+                if (connection == null) return `the connection ${connectionId} is unknown`;
+                if (runningDatabases.current.has(connectionId)) return `a run holds the connection ${connectionId}`;
+                if (connection.connectionHealth === ConnectionHealth.CONNECTING) return `the connection ${connectionId} is connecting`;
+                if (runsQueries(connection)) return `the connection ${connectionId} runs a query`;
+            }
+            return null;
         };
+        const isFree = () => blocker() == null;
         if (options?.inputs != null) {
             const pending = pendingInputs.current.get(sessionId);
             const inputs = new Set([...(pending?.inputs ?? []), ...options.inputs]);
             if (pending != null || !isFree()) {
                 // The latest values win: stop the run that holds the session and start once the session is free
                 pendingInputs.current.set(sessionId, { modify: modifySessionScripts, inputs });
-                runs.current.get(sessionId)?.abort();
+                runs.current.get(sessionId)?.controller.abort();
                 if (pending == null) {
+                    logger.info('A change of inputs waits for the session', { sessionId, inputs: [...inputs].join(', '), reason: blocker() }, LOG_CTX);
                     void whenSessionFree(isFree).then(free => {
                         const next = pendingInputs.current.get(sessionId);
                         pendingInputs.current.delete(sessionId);
                         if (next != null && free) startRef.current(sessionId, next.modify, { inputs: [...next.inputs] });
+                        else if (next != null) logger.warn('Dropped a change of inputs, the session stayed busy', {
+                            sessionId, inputs: [...next.inputs].join(', '), reason: blocker(),
+                        }, LOG_CTX);
                     });
                 }
                 return;
             }
             options = { inputs: [...inputs] };
         }
-        if (!isFree()) return;
+        const blocked = blocker();
+        if (blocked != null) {
+            logger.info('Not starting the run of a session', { sessionId, reason: blocked }, LOG_CTX);
+            return;
+        }
         const controller = new AbortController();
-        runs.current.set(sessionId, controller);
+        // A connection that comes online during the run doesn't join it
+        const online = new Set(connectionIds.filter(connectionId =>
+            latest.current.connections.connections.get(connectionId)?.connectionHealth === ConnectionHealth.ONLINE));
+        logger.info('Starting the run of a session', {
+            sessionId, inputs: options?.inputs?.join(', ') ?? null,
+            online: connectionIds.filter(id => online.has(id)).join(', '),
+            offline: connectionIds.filter(id => !online.has(id)).join(', '),
+            cache: (queryResultCache != null && supportsParquet(computeDb)).toString(),
+        }, LOG_CTX);
+        runs.current.set(sessionId, { controller, online });
         for (const connectionId of connectionIds) runningDatabases.current.add(connectionId);
         void runSessionExecution({
             session,
@@ -237,6 +278,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
             resultKey: runServices.cacheKey,
             cachesResults: runServices.cachesResults,
             cache: queryResultCache,
+            canRun: connectionId => online.has(connectionId),
             signal: controller.signal,
             logger,
             onState: state => setStates(previous => new Map(previous).set(sessionId, state)),
@@ -246,8 +288,9 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         });
     }, [runServices, readRegistry]);
     startRef.current = start;
-    const stop = React.useCallback((id: string) => runs.current.get(id)?.abort(), []);
-    const value = React.useMemo<ExecutionContext>(() => ({ states, start, stop }), [states, start, stop]);
+    const stop = React.useCallback((id: string) => runs.current.get(id)?.controller.abort(), []);
+    const ready = computeDb != null;
+    const value = React.useMemo<ExecutionContext>(() => ({ states, ready, start, stop }), [states, ready, start, stop]);
 
     return <CONTEXT.Provider value={value}>
         {props.children}

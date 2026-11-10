@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './session_feed_page.module.css';
 
-import { LinkIcon, PaperAirplaneIcon, PlugIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../ui/foundations/symbol_icon.js';
+import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import {
@@ -27,7 +27,7 @@ import { useSessionExecution } from '../scripts/session_execution_provider.js';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { connectionHealthKey, connectionsToConnect, ExecuteConnectionGuard, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../session_connection_attention.js';
+import { connectionHealthKey, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../session_connection_attention.js';
 import { SessionConnectionButtons } from './session_connection_buttons.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
@@ -123,16 +123,16 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
     const archiveExport = useAppFlavor().features.sessionArchiveExport;
-    // A session run takes every connection that a script runs on, they have to be connected first
+    // A session run takes every connection that a script runs on. Connections that aren't connected serve the cached
+    // results of their scripts, the others are skipped.
     const scriptConnections = props.scriptConnections ?? new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
     const runConnections = scriptConnectionIds(props.sessionScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
     // The bar also shows the connection that the composer drafts the next script on, e.g. the one picked in an empty session
     const barConnections = sessionConnectionIds(props.sessionScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
-    const toConnect = connectionsToConnect(runConnections);
-    const disconnected = toConnect.length > 0;
     const connectionAttention = useSessionConnectionAttention(props.sessionScripts.sessionId, connectionHealthKey(barConnections));
+    // A connection that is connecting holds the run, it would join a moment later
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
-        connection.connectionHealth === ConnectionHealth.ONLINE && (connection.queriesActive?.size ?? 0) === 0);
+        connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActive?.size ?? 0) === 0);
     const execution = dependencies.useSessionExecution(props.sessionScripts.sessionId);
     const run = execution.state;
     const [executionDetailsOpen, setExecutionDetailsOpen] = React.useState(false);
@@ -140,11 +140,26 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     React.useEffect(() => setOverviewConnectionId(null), [props.sessionScripts.sessionId]);
     const executeRef = React.useRef<HTMLButtonElement>(null);
     const progress = run ? `${run.completedScripts}/${run.totalScripts}` : '';
+    const skipped = run != null && run.skippedScripts > 0 ? ` · ${run.skippedScripts} need a connection` : '';
     const statusText = !run ? '' : run.phase === 'planning' ? 'Planning...'
         : run.phase === 'stopping' ? `Stopping · ${progress} completed`
-        : run.phase === 'failed' ? `${progress} completed`
+        : run.phase === 'failed' ? `${progress} completed${skipped}`
         : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
-        : run.phase === 'succeeded' ? `${progress} succeeded` : `${progress} completed`;
+        : run.phase === 'succeeded' ? (skipped ? `${progress} completed${skipped}` : `${progress} succeeded`) : `${progress} completed${skipped}`;
+    // A run that skipped scripts points at the connections that they need once it settles, nothing opens by itself. A
+    // run that settled before the page mounted doesn't, e.g. when the session is opened again.
+    const settledWithSkips = (run?.phase === 'succeeded' || run?.phase === 'failed') && run.skippedScripts > 0;
+    const sawRun = React.useRef(false);
+    React.useEffect(() => { sawRun.current = false; }, [props.sessionScripts.sessionId]);
+    React.useEffect(() => { if (execution.busy) sawRun.current = true; }, [execution.busy]);
+    const requestAttention = connectionAttention.request;
+    React.useEffect(() => {
+        if (settledWithSkips && sawRun.current) {
+            sawRun.current = false;
+            requestAttention(props.sessionScripts.sessionId);
+        }
+    }, [settledWithSkips, requestAttention, props.sessionScripts.sessionId]);
+    const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
     const { mode, setMode } = dependencies.useSessionViewMode();
     // The greeter shows the feed, its session has nothing to run, show or share until a script promotes it
     const ephemeral = isEphemeralSession(props.sessionScripts);
@@ -264,23 +279,18 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         ))}
                     </dependencies.SegmentedControl>}
                     {!ephemeral && <div className={styles.execution_controls}>
-                        <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
                         <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                            leadingVisual={execution.busy ? SquareFillIcon : disconnected ? PlugIcon : PaperAirplaneIcon}
-                            aria-label={execution.busy ? 'Stop session execution' : disconnected ? 'Connect to run' : 'Execute All'}
+                            leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
+                            aria-label={execution.busy ? 'Stop session execution' : 'Execute All'}
                             data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
-                            data-connect={!execution.busy && disconnected ? '' : undefined}
-                            disabled={execution.busy ? run?.phase === 'stopping' : !disconnected && (!scriptConnectionsIdle
-                                || execution.runActive || props.sessionScripts.scriptOrder.length === 0)}
-                            onClick={() => execution.busy ? execution.stop()
-                                // The connections that are not connected yet pulse in the bar, nothing opens by itself
-                                : disconnected ? connectionAttention.request(props.sessionScripts.sessionId)
-                                : execution.start(props.modifySessionScripts)}>
-                            <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : disconnected ? 'Connect to run' : 'Execute All'}</span>
+                            // A run waits for the compute database, it reads the cached results
+                            disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
+                                || execution.runActive || props.sessionScripts.scriptOrder.length === 0}
+                            onClick={() => execution.busy ? execution.stop() : execution.start(props.modifySessionScripts)}>
+                            <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
                         </dependencies.Button>
-                        </ExecuteConnectionGuard>
                         <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
-                            title={run?.error ?? undefined} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
+                            title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
                             {run && <>
                                 <AnchoredOverlay
                                     open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}

@@ -1,9 +1,9 @@
 import { FileDownloader } from './file_downloader.js';
 
 export class WebFileDownloader implements FileDownloader {
-    async downloadBufferAsFile(uint8Array: Uint8Array, filename: string): Promise<void> {
-        // Create a Blob from the Uint8Array
-        const blob = new Blob([uint8Array as BlobPart], { type: 'application/octet-stream' });
+    async downloadBufferAsFile(data: Uint8Array | Blob, filename: string): Promise<void> {
+        // A Blob of a Blob refers to the same bytes, nothing is copied
+        const blob = new Blob([data as BlobPart], { type: 'application/octet-stream' });
         // Create a temporary URL for the Blob
         const url = URL.createObjectURL(blob);
         // Create an anchor element and trigger the download

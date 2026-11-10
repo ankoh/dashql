@@ -27,13 +27,25 @@ import {
 import type { ModifySessionScripts } from './session_scripts_registry.js';
 import { createEmptyMetadata, createScriptRef } from './script_types.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { createSessionZip, exportSessionAsSharedZip } from '../persistence/session_export.js';
+import { readSessionBundleFromZip } from '../persistence/session_import.js';
+import { importSessionQueryResults, retainSessionQueryResults } from '../persistence/session_query_results.js';
+import { TEST_SESSION_ID, testConnections, testSession } from '../../storage/session_test_backend.js';
+import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
+import { decodeConnectionFromProto } from '../../connections/connection_import.js';
+import type { ConnectionParams } from '../../connections/connection_params.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL;
+/// The planner of the core, a fixture spies on it, a second fixture of a test must not plan with the spy of the first
+let nativePlan: core.DashQL['planSession'];
 const logger = new TestLogger();
 
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    nativePlan = dql.planSession.bind(dql);
+});
 afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 
 function fixture(entries: Array<[string, string]>) {
@@ -70,7 +82,6 @@ function fixture(entries: Array<[string, string]>) {
     const states: SessionExecutionState[] = [];
     const controller = new AbortController();
     const graphs: core.buffers.execution.ExecutionGraphT[] = [];
-    const nativePlan = dql.planSession.bind(dql);
     const plan = vi.spyOn(dql, 'planSession').mockImplementation(input => {
         const buffer = nativePlan(input);
         const unpack = buffer.unpack.bind(buffer);
@@ -309,6 +320,211 @@ call clfn.item_get (id => :id, size => 2);`]]);
             ]);
         });
 
+        it('serves the cached results while the connection is not connected and skips the other scripts', async () => {
+            const f = cachedFixture();
+            await f.run(f.options);
+            // qux reads what setup writes, setup can't run, so qux is served
+            f.cache.put(f.keyOf(1));
+            f.cache.put(f.keyOf(3));
+            f.queries.length = 0;
+            await f.run({ ...f.options, canRun: () => false });
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalScripts: 4, completedScripts: 2, skippedScripts: 2, totalStatements: 0, error: null });
+            // Only cached results are read, nothing reaches the backend
+            expect(f.queries.map(q => [q.sql, q.cacheOnly])).toEqual([
+                ['select 1 as id', true],
+                ['select id from items', true],
+            ]);
+            expect(f.script('3_qux.sql').latestQueryId).not.toBeNull();
+        });
+
+        it('skips nothing while the connections are connected', async () => {
+            const f = cachedFixture();
+            await f.run({ ...f.options, canRun: () => true });
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 4, skippedScripts: 0 });
+            expect(f.queries).toHaveLength(4);
+        });
+
+        it('scans the cached result of a script of a connection that is not connected, and skips the scan without it', async () => {
+            const f = fixture([
+                ['1_foo.sql', 'select 1 as a;'],
+                ['2_bar.sql', 'select count(*) from :"1_foo";'],
+                ['3_local.sql', 'select 2;'],
+            ]);
+            const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '1_foo.sql', connection: remote } });
+            const main = f.script('2_bar.sql').connection.connectionId;
+            const cache = memoryQueryResultCache();
+            const queries: Array<{ connection: string; sql: string; cacheOnly: boolean }> = [];
+            f.executeQuery.mockImplementation((connectionId, args) => {
+                queries.push({ connection: connectionId === main ? 'local' : 'remote', sql: args.query, cacheOnly: args.cacheOnly ?? false });
+                return [queries.length, Promise.resolve(tableFromArrays({ a: [1] }))];
+            });
+            const mounts: ExecutionMounts = {
+                prefix: '/mnt/external/cache',
+                fileName: (key: string | null) => `${key ?? 'transient'}.run.parquet`,
+                writeTable: vi.fn(async () => new Blob()),
+                use: vi.fn(async () => {}),
+                release: vi.fn(async () => {}),
+            };
+            const options = {
+                mounts, cache,
+                resultKey: async (connectionId: string, signature: string) => `${connectionId === main ? 'local' : 'remote'}:${signature}`,
+                cachesResults: (connectionId: string) => connectionId !== main,
+                canRun: (connectionId: string) => connectionId === main,
+            };
+            // Without a cached result of foo, bar is skipped with foo, the other scripts of the embedded database run
+            await f.run(options);
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 1, skippedScripts: 2, error: null });
+            expect(queries).toEqual([{ connection: 'local', sql: 'select 2', cacheOnly: false }]);
+            expect(mounts.writeTable).not.toHaveBeenCalled();
+
+            const fooKey = `remote:${f.graphs[0].scripts[0].signature}`;
+            const file = cache.put(fooKey);
+            queries.length = 0;
+            await f.run(options);
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3, skippedScripts: 0, error: null });
+            expect(queries).toEqual([
+                { connection: 'remote', sql: 'select 1 as a', cacheOnly: true },
+                { connection: 'local', sql: `with "1_foo" as (select * from external('/mnt/external/cache/${file}', format => 'parquet'))\nselect count(*) from "1_foo"`, cacheOnly: false },
+                { connection: 'local', sql: 'select 2', cacheOnly: false },
+            ]);
+        });
+
+        it('serves every script of an exported session with its results after an import, without a connection', async () => {
+            const f = fixture([
+                ['1_foo.sql', 'select 1 as id;'],
+                ['2_bar.sql', 'select count(*) from :"1_foo";'],
+                ['3_qux.sql', '/* @vis bar x=id y=id */\nselect 2 as id;'],
+            ]);
+            const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            for (const fileName of ['1_foo.sql', '2_bar.sql', '3_qux.sql']) {
+                f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: remote } });
+            }
+            const keyOf = async (_connectionId: string, signature: string) => {
+                const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signature));
+                return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+            };
+            // An online run writes the results under the keys of the run
+            const source = memoryQueryResultCache();
+            f.executeQuery.mockImplementation((_connectionId, args) => {
+                const id = f.calls.push({ databaseId: _connectionId, queryId: f.calls.length + 1, sql: args.query });
+                if (args.refreshCache && args.cacheSignature != null) {
+                    void keyOf('', args.cacheSignature).then(key => source.put(key, null, new TextEncoder().encode(args.query)));
+                }
+                if (args.cacheOnly) return [id, Promise.reject(new QueryCacheMissError())];
+                return [id, Promise.resolve(tableFromArrays({ id: [1] }))];
+            });
+            const services = { createMounts: () => null, cacheKey: keyOf, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
+            await f.run({ cache: source, resultKey: keyOf, cachesResults: () => true });
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
+            await vi.waitFor(() => expect(source.files.size).toBe(3));
+
+            // The export carries the files under the keys that a run reads
+            const retained = await retainSessionQueryResults(services, f.getSession(), source);
+            expect(retained).toMatchObject({ cachedScripts: 3, totalScripts: 3 });
+            const zip = await createSessionZip(testSession(), [], [], [], retained.results);
+            await retained.release();
+            const bundle = await readSessionBundleFromZip(zip);
+            expect(bundle.results).toHaveLength(3);
+
+            // Another app imports them and runs without a connection
+            const target = memoryQueryResultCache();
+            expect(await importSessionQueryResults(target, bundle.results!)).toMatchObject({ added: 3, kept: 0, failed: 0 });
+            const served: string[] = [];
+            f.executeQuery.mockImplementation((_connectionId, args) => {
+                if (!args.cacheOnly) throw new Error(`${args.query} reached the backend`);
+                served.push(args.query);
+                return [served.length, Promise.resolve(tableFromArrays({ id: [1] }))];
+            });
+            await f.run({ cache: target, resultKey: keyOf, cachesResults: () => true, canRun: () => false });
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3, skippedScripts: 0, error: null });
+            expect(served).toHaveLength(3);
+            expect(f.script('3_qux.sql').latestResultQueryId).not.toBeNull();
+        });
+
+        it('serves a shared file on the connection that its import creates, under the keys of the app', async () => {
+            // The connection of the sharer carries secrets and a login, the file carries neither
+            const live = { trino: {
+                endpoint: 'https://trino.example', defaultCatalog: 'hive', defaultSchema: 'sales', catalogs: ['hive.sales'],
+                metadata: { authorization: 'Bearer secret-token' },
+                auth: { authType: 'AUTH_BASIC', basic: { username: 'alice', secret: 'secret-password' } },
+            } } as unknown as ConnectionParams;
+            // The keys of the app: the connection as storage restores it, the signature that the executor gets
+            const keysOf = (params: ConnectionParams) => {
+                const [, details] = decodeConnectionFromProto(params as never, '');
+                return async (_connectionId: string, signature: string) => await computeQueryCacheKeyForConnection(details, signature);
+            };
+            const files: Array<[string, string]> = [
+                ['1_foo.sql', 'select 1 as id;'],
+                ['2_bar.sql', 'select count(*) from :"1_foo";'],
+                ['3_qux.sql', '/* @vis bar x=id y=id */\nselect 2 as id;'],
+            ];
+
+            // The sharer runs the session online, the results land under the keys of its connection
+            const f = fixture(files);
+            const sharer = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            const sharerConnectionId = sharer.connectionId;
+            const sharerKey = keysOf(live);
+            for (const [fileName] of files) f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: sharer } });
+            const source = memoryQueryResultCache();
+            const writes: Promise<unknown>[] = [];
+            f.executeQuery.mockImplementation((connectionId, args) => {
+                const id = f.calls.push({ databaseId: connectionId, queryId: f.calls.length + 1, sql: args.query });
+                if (args.cacheOnly) return [id, Promise.reject(new QueryCacheMissError())];
+                if (args.refreshCache && args.cacheSignature != null) {
+                    writes.push(sharerKey(connectionId, args.cacheSignature).then(key => source.put(key!, null, new TextEncoder().encode(args.query))));
+                }
+                return [id, Promise.resolve(tableFromArrays({ id: [1] }))];
+            });
+            await f.run({ cache: source, resultKey: sharerKey, cachesResults: () => true });
+            expect(f.lastState().error).toBeNull();
+            expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
+            await Promise.all(writes);
+            expect(source.files.size).toBe(3);
+
+            // The file of the session, from storage like the save overlay writes it
+            const backend = new SessionTestBackend();
+            await backend.saveSessionManifest(TEST_SESSION_ID, testSession({
+                ...testConnections({ connectionId: sharerConnectionId, params: live }),
+                scripts: files.map(([name]) => ({ name, connectionId: sharerConnectionId })),
+            }));
+            for (const [name, sql] of files) await backend.saveScript(TEST_SESSION_ID, name, sql);
+            const services = { createMounts: () => null, cacheKey: sharerKey, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
+            const retained = await retainSessionQueryResults(services, f.getSession(), source);
+            expect(retained).toMatchObject({ cachedScripts: 3, totalScripts: 3 });
+            const zip = await exportSessionAsSharedZip(backend, TEST_SESSION_ID, new Map([[sharerConnectionId, live]]), {
+                withLoginHint: false, queryResults: retained.results,
+            });
+            await retained.release();
+
+            // The recipient imports it: a new connection from the shared params, new ids, its own core session
+            const bundle = await readSessionBundleFromZip(zip);
+            const [shared] = bundle.session.connections;
+            expect(JSON.stringify(shared.params)).not.toMatch(/secret-password|secret-token|alice/);
+            expect(shared.connectionId).not.toBe(sharerConnectionId);
+            const recipientKey = keysOf(shared.params);
+            // The key follows the endpoint, a session of another backend finds nothing
+            expect(await keysOf({ trino: { ...(shared.params as any).trino, endpoint: 'https://other.example' } } as ConnectionParams)('', 'select 1'))
+                .not.toBe(await recipientKey('', 'select 1'));
+            const target = memoryQueryResultCache();
+            expect(await importSessionQueryResults(target, bundle.results!)).toMatchObject({ added: 3, kept: 0, failed: 0 });
+            const g = fixture(bundle.scripts.map(script => [script.name, script.sql]));
+            const recipient = { connectionId: shared.connectionId, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            for (const script of bundle.scripts) g.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: script.name, connection: recipient } });
+            // The executor serves a query from the file of the key of its connection and signature, or misses
+            g.executeQuery.mockImplementation((connectionId, args) => {
+                if (!args.cacheOnly) throw new Error(`${args.query} reached the backend`);
+                const served = recipientKey(connectionId, args.cacheSignature!)
+                    .then(key => target.lookup(key!))
+                    .then(entry => entry != null ? tableFromArrays({ id: [1] }) : Promise.reject(new QueryCacheMissError()));
+                return [g.calls.push({ databaseId: connectionId, queryId: g.calls.length + 1, sql: args.query }), served];
+            });
+            await g.run({ cache: target, resultKey: recipientKey, cachesResults: () => true, canRun: () => false });
+            expect(g.lastState().error).toBeNull();
+            expect(g.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3, skippedScripts: 0 });
+            expect(g.calls).toHaveLength(3);
+        });
+
         it('scans the cached result of a script of another connection instead of running it', async () => {
             const f = fixture([
                 ['1_foo.sql', 'select 1 as a;'],
@@ -397,7 +613,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         expect(f.lastState()).toEqual({
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
             totalStatements: 3, completedStatements: 3,
-            activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null,
+            activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null, skippedScripts: 0, skippedFiles: [],
         });
         expect(f.cancelQuery).not.toHaveBeenCalled();
     });

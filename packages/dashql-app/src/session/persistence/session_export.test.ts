@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { Crc32 } from '../../utils/crc32.js';
 import {
     createSessionZip,
     exportSessionAsSharedZip,
@@ -10,10 +11,15 @@ import {
     exportSessionAsZip,
     SessionLinkTarget,
 } from './session_export.js';
-import { importSessionFromZip } from './session_import.js';
-import { sessionBundlesEqual } from '../../storage/session_bundle.js';
+import { importSessionFromZip, readSessionBundleFromZip } from './session_import.js';
+import { sessionBundlesEqual, type SessionBundle } from '../../storage/session_bundle.js';
 import { SessionTestBackend, TEST_CONNECTION_ID, TEST_SESSION_ID, testConnections, testSession } from '../../storage/session_test_backend.js';
 import type { SessionData } from '../../storage/storage_backend.js';
+
+/// The query results of a bundle with their bytes
+async function resultBytes(bundle: SessionBundle): Promise<Array<{ key: string; bytes: Uint8Array }>> {
+    return await Promise.all((bundle.results ?? []).map(async ({ key, bytes }) => ({ key, bytes: new Uint8Array(await bytes.arrayBuffer()) })));
+}
 
 describe('V2 session export', () => {
     it('compares data bytes independently of typed-array JSON serialization', () => {
@@ -131,6 +137,59 @@ describe('V2 session export', () => {
         const blob = await exportSessionAsZip(TEST_SESSION_ID, source);
         await expect(importSessionFromZip(blob, target)).resolves.toBe(TEST_SESSION_ID);
         expect(await target.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
+    });
+
+    it('carries the query results that a file export asks for, named after their keys', async () => {
+        const source = new SessionTestBackend();
+        await source.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await source.saveScript(TEST_SESSION_ID, '01_query.sql', 'SELECT 42');
+        const key = 'a'.repeat(64);
+        const bytes = new Uint8Array([80, 65, 82, 49, 0, 1, 2]);
+
+        // Off by default
+        const plain = await JSZip.loadAsync(await exportSessionAsSharedZip(source, TEST_SESSION_ID, new Map()));
+        expect(plain.file(/^results\//)).toEqual([]);
+
+        const zip = await exportSessionAsSharedZip(source, TEST_SESSION_ID, new Map(), { preserveUUIDs: true, queryResults: [{ key, bytes: new Blob([bytes]) }] });
+        const archive = await JSZip.loadAsync(zip);
+        expect(archive.file(/^results\//).map(file => file.name)).toEqual([`results/${key}.parquet`]);
+        expect(await archive.file(`results/${key}.parquet`)!.async('uint8array')).toEqual(bytes);
+        // Parquet is compressed already, the archive stores it as it is
+        const zeros = new Uint8Array(64 * 1024);
+        const stored = await exportSessionAsSharedZip(source, TEST_SESSION_ID, new Map(), { queryResults: [{ key, bytes: new Blob([zeros]) }] });
+        expect(stored.size).toBeGreaterThan(zeros.length);
+        // An import reads a stored result as a slice of the archive, with the CRC-32 that the archive stores for it
+        const imported = await readSessionBundleFromZip(zip);
+        expect(await resultBytes(imported)).toEqual([{ key, bytes }]);
+        const crc = new Crc32();
+        crc.update(bytes);
+        expect(imported.results![0].crc32).toBe(crc.value);
+        // Other files of the folder and files with other names are left out of an import
+        archive.file('results/notes.txt', 'x');
+        archive.file(`results/${'B'.repeat(64)}.parquet`, bytes);
+        archive.file(`results/nested/${'c'.repeat(64)}.parquet`, bytes);
+        const bundle = await readSessionBundleFromZip(await archive.generateAsync({ type: 'blob' }));
+        expect(await resultBytes(bundle)).toEqual([{ key, bytes }]);
+        expect(bundle.scripts).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
+        // A result that another tool compressed is inflated
+        const deflated = await readSessionBundleFromZip(await archive.generateAsync({ type: 'blob', compression: 'DEFLATE' }));
+        expect(await resultBytes(deflated)).toEqual([{ key, bytes }]);
+        // The session folder doesn't keep them
+        const target = new SessionTestBackend();
+        await importSessionFromZip(zip, target);
+        expect(await target.loadScripts(TEST_SESSION_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
+        expect(await target.listDataFiles(TEST_SESSION_ID)).toEqual([]);
+    });
+
+    it('never carries query results in a link', async () => {
+        const backend = new SessionTestBackend();
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        const url = await exportSessionAsUrl(backend, TEST_SESSION_ID, new Map(), SessionLinkTarget.WEB, {
+            queryResults: [{ key: 'a'.repeat(64), bytes: new Blob([new Uint8Array([1])]) }],
+        });
+        const event = JSON.parse(new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!))) as { session: string };
+        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.session));
+        expect(archive.file(/^results\//)).toEqual([]);
     });
 
     it('seeds the connections of an import with the exported catalogs', async () => {
