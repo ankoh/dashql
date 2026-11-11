@@ -6,12 +6,12 @@ import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js
 
 const LOG_CTX = 'workbook_query_results';
 
-/// The folder of the query results in an exported workbook, `results/<key>.parquet`
+/// The folder of the query results in an exported workbook of older versions, `results/<key>.parquet`
 export const WORKBOOK_RESULTS_FOLDER = 'results';
 /// The file of a query result in an exported workbook, named after its cache key
 const RESULT_FILE = /^([0-9a-f]{64})\.parquet$/;
 
-/// The path of a query result in an exported workbook
+/// The path of a query result in an exported workbook of older versions
 export function workbookResultPath(key: string): string {
     return `${WORKBOOK_RESULTS_FOLDER}/${key}.parquet`;
 }

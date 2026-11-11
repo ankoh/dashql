@@ -3,6 +3,7 @@ import * as React from 'react';
 import { PlatformFile } from '../platform/file/file.js';
 import type { WorkbookBundle } from '../storage/workbook_bundle.js';
 import { readWorkbookBundleFromZip } from '../workbook/persistence/workbook_import.js';
+import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import { useWorkbookImport, type ConflictChoice, type PreparedPortableImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';
 import type { ImportedWorkbookQueryResults } from '../workbook/persistence/workbook_query_results.js';
@@ -44,6 +45,7 @@ type FileLoadState =
 export interface FileLoaderDependencies {
     workbookImportCard?: WorkbookImportCardDependencies;
     readWorkbookBundleFromZip: typeof readWorkbookBundleFromZip;
+    useWorkbookArchiveDatabase: typeof useWorkbookArchiveDatabase;
     useWorkbookImport(): Pick<ReturnType<typeof useWorkbookImport>, 'preparePortableImport' | 'commitPortableImport'>;
     useRouterNavigate: typeof useRouterNavigate;
     useLogger?: () => LoggerLike | null;
@@ -51,6 +53,7 @@ export interface FileLoaderDependencies {
 
 const DEFAULT_DEPENDENCIES: FileLoaderDependencies = {
     readWorkbookBundleFromZip,
+    useWorkbookArchiveDatabase,
     useWorkbookImport,
     useRouterNavigate,
     useLogger,
@@ -67,6 +70,7 @@ interface Props {
 export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }: Props): React.ReactElement {
     const navigate = dependencies.useRouterNavigate();
     const logger = (dependencies.useLogger ?? (() => null))();
+    const archiveDatabase = dependencies.useWorkbookArchiveDatabase();
     const { preparePortableImport, commitPortableImport } = dependencies.useWorkbookImport();
     const [attempt, setAttempt] = React.useState(0);
     const [state, setState] = React.useState<FileLoadState>({ phase: 'reading' });
@@ -78,7 +82,9 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
             signal.throwIfAborted();
 
             setState({ phase: 'validating', fileByteCount: zipBlob.size });
-            const bundle = await dependencies.readWorkbookBundleFromZip(zipBlob);
+            const database = await archiveDatabase('file_loader');
+            signal.throwIfAborted();
+            const bundle = await dependencies.readWorkbookBundleFromZip(zipBlob, database);
             signal.throwIfAborted();
             const results = bundle.results ?? [];
             logger?.info('Read a workbook file', {

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useLocation } from 'react-router-dom';
 
-import { PlatformEventListener, EVENT_QUERY_PARAMETER, WORKBOOK_QUERY_PARAMETER, readWorkbookUrlParameter } from './event_listener.js';
+import { PlatformEventListener, EVENT_QUERY_PARAMETER, WORKBOOK_QUERY_PARAMETER, ZIP_QUERY_PARAMETER, readWorkbookUrlParameter } from './event_listener.js';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS } from './legacy_links.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
@@ -43,9 +43,10 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
     React.useEffect(() => {
         const searchParams = new URLSearchParams(documentSearch);
         const data = searchParams.get(EVENT_QUERY_PARAMETER);
+        const zip = searchParams.get(ZIP_QUERY_PARAMETER);
         const workbookUrl = readWorkbookUrlParameter(searchParams);
 
-        if ((!data && !workbookUrl) || location.state == SKIP_EVENT_LISTENER) {
+        if ((!data && !zip && !workbookUrl) || location.state == SKIP_EVENT_LISTENER) {
             return;
         }
 
@@ -56,6 +57,8 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
                 listener.dispatchAppEvent(event);
                 consumed = true;
             }
+        } else if (zip) {
+            consumed = listener.dispatchWorkbookZip(zip);
         } else if (workbookUrl) {
             listener.dispatchWorkbookUrl(workbookUrl);
             consumed = true;
@@ -64,6 +67,7 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
             // Consume the event before an import can trigger a reload. Leaving `data` in the address
             // would dispatch the same workbook again and immediately reopen the conflict dialog.
             searchParams.delete(EVENT_QUERY_PARAMETER);
+            searchParams.delete(ZIP_QUERY_PARAMETER);
             searchParams.delete(WORKBOOK_QUERY_PARAMETER);
             for (const name of LEGACY_WORKBOOK_QUERY_PARAMETERS) searchParams.delete(name);
             const search = searchParams.toString();

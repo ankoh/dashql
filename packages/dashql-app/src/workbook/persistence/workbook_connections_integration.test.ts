@@ -1,5 +1,5 @@
 import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import type { ConnectionReferences, ConnectionRegistry } from '../../connections/connection_registry.js';
@@ -17,6 +17,8 @@ import { restoreAppState, type RestoredAppState } from './app_state_loader.js';
 import { applyConnectionImportPlan, planConnectionImport, type ConnectionImportChoice } from './workbook_connection_import.js';
 import { exportWorkbookAsSharedZip } from './workbook_export.js';
 import { readWorkbookBundleFromZip } from './workbook_import.js';
+import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
 import { workbookScriptsResolutionChanged } from './workbook_script_connections.js';
 
@@ -328,7 +330,15 @@ describe('Workbook connections', () => {
         });
 
         /// Export the seeded workbook the way the share dialog does and read it back like an import
-        const exportAndRead = async () => readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(backend, WORKBOOK_ID, new Map()));
+        let database: HyperDB;
+        let disposeDatabase: (() => Promise<void>) | null = null;
+        beforeAll(async () => {
+            ({ database, dispose: disposeDatabase } = await createTestHyperDB('dashql-workbook-connections'));
+        }, 60_000);
+        afterAll(async () => {
+            await disposeDatabase?.();
+        });
+        const exportAndRead = async () => readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(backend, { database, core: dql }, WORKBOOK_ID, new Map()), database);
 
         it('gives the connections fresh ids and keeps every script on its connection', async () => {
             const bundle = await exportAndRead();

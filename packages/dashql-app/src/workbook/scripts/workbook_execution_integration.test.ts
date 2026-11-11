@@ -1,5 +1,5 @@
 import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
@@ -29,6 +29,8 @@ import { createEmptyMetadata, createScriptRef } from './script_types.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/workbook_export.js';
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
+import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { importWorkbookQueryResults, retainWorkbookQueryResults } from '../persistence/workbook_query_results.js';
 import { TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../storage/workbook_test_backend.js';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
@@ -42,9 +44,17 @@ let dql: core.DashQL;
 let nativePlan: core.DashQL['planSession'];
 const logger = new TestLogger();
 
+/// The embedded database that writes and reads the workbook archives
+let archiveDatabase: HyperDB;
+let disposeArchiveDatabase: (() => Promise<void>) | null = null;
+
 beforeAll(async () => {
     dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     nativePlan = dql.planSession.bind(dql);
+    ({ database: archiveDatabase, dispose: disposeArchiveDatabase } = await createTestHyperDB('dashql-workbook-execution'));
+}, 60_000);
+afterAll(async () => {
+    await disposeArchiveDatabase?.();
 });
 afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 
@@ -422,9 +432,9 @@ call clfn.item_get (id => :id, size => 2);`]]);
             // The export carries the files under the keys that a run reads
             const retained = await retainWorkbookQueryResults(services, f.getWorkbook(), source);
             expect(retained).toMatchObject({ cachedScripts: 3, totalScripts: 3 });
-            const zip = await createWorkbookZip(testWorkbook(), [], [], [], retained.results);
+            const zip = await createWorkbookZip({ database: archiveDatabase, core: dql }, { workbook: testWorkbook(), catalogs: [], scripts: [], results: retained.results });
             await retained.release();
-            const bundle = await readWorkbookBundleFromZip(zip);
+            const bundle = await readWorkbookBundleFromZip(zip, archiveDatabase);
             expect(bundle.results).toHaveLength(3);
 
             // Another app imports them and runs without a connection
@@ -492,13 +502,13 @@ call clfn.item_get (id => :id, size => 2);`]]);
             const services = { createMounts: () => null, cacheKey: sharerKey, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
             const retained = await retainWorkbookQueryResults(services, f.getWorkbook(), source);
             expect(retained).toMatchObject({ cachedScripts: 3, totalScripts: 3 });
-            const zip = await exportWorkbookAsSharedZip(backend, TEST_WORKBOOK_ID, new Map([[sharerConnectionId, live]]), {
+            const zip = await exportWorkbookAsSharedZip(backend, { database: archiveDatabase, core: dql }, TEST_WORKBOOK_ID, new Map([[sharerConnectionId, live]]), {
                 withLoginHint: false, queryResults: retained.results,
             });
             await retained.release();
 
             // The recipient imports it: a new connection from the shared params, new ids, its own core workbook
-            const bundle = await readWorkbookBundleFromZip(zip);
+            const bundle = await readWorkbookBundleFromZip(zip, archiveDatabase);
             const [shared] = bundle.workbook.connections;
             expect(JSON.stringify(shared.params)).not.toMatch(/secret-password|secret-token|alice/);
             expect(shared.connectionId).not.toBe(sharerConnectionId);

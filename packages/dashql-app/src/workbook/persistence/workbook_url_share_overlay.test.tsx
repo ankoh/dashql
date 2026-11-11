@@ -1,8 +1,7 @@
 import * as React from 'react';
-import JSZip from 'jszip';
 import { act } from '@dashql/browser-test-act';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFERENCES, useConnectionRegistry, type ConnectionReferences } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
@@ -14,8 +13,22 @@ import { BASE64URL_CODEC } from '../../utils/base64.js';
 import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
+import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
+import { DashQLCoreProvider } from '../../runtime/core_provider.js';
+import { readWorkbookBundleFromZip } from './workbook_import.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+let database: HyperDB;
+let disposeDatabase: (() => Promise<void>) | null = null;
+beforeAll(async () => {
+    ({ database, dispose: disposeDatabase } = await createTestHyperDB('dashql-export-overlay'));
+}, 60_000);
+afterAll(async () => {
+    await disposeDatabase?.();
+});
 
 const CONNECTION = {
     connectionId: TEST_CONNECTION_ID,
@@ -47,16 +60,20 @@ describe('WorkbookURLShareOverlay', () => {
         const tree = (overlay: boolean) => (
             <LoggerProvider>
                 <MemoryRouter>
-                    <StorageProvider backend={backend}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <ConnectionReferencesProvider value={REFERENCES}>
-                                    <Capture />
-                                    {overlay && <WorkbookURLShareOverlay isOpen setIsOpen={vi.fn()} workbookId={TEST_WORKBOOK_ID} {...props} />}
-                                </ConnectionReferencesProvider>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
-                    </StorageProvider>
+                    <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
+<DashQLCoreProvider>
+                        <StorageProvider backend={backend}>
+                            <ConnectionRegistry>
+                                <WorkbookScriptsRegistryProvider>
+                                    <ConnectionReferencesProvider value={REFERENCES}>
+                                        <Capture />
+                                        {overlay && <WorkbookURLShareOverlay isOpen setIsOpen={vi.fn()} workbookId={TEST_WORKBOOK_ID} {...props} />}
+                                    </ConnectionReferencesProvider>
+                                </WorkbookScriptsRegistryProvider>
+                            </ConnectionRegistry>
+                        </StorageProvider>
+                    </DashQLCoreProvider>
+</EmbeddedDatabaseProvider>
                 </MemoryRouter>
             </LoggerProvider>
         );
@@ -94,9 +111,8 @@ describe('WorkbookURLShareOverlay', () => {
     });
     async function sharedWorkbook() {
         const url = new URL(urlInput()!.value);
-        const event = JSON.parse(new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!)));
-        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.session));
-        return JSON.parse(await archive.file('dashql-workbook.json')!.async('text'));
+        const archive = new Blob([BASE64URL_CODEC.decode(url.searchParams.get('zip')!)]);
+        return (await readWorkbookBundleFromZip(archive, database)).workbook;
     }
 
     it('shares the workbook as a link and copies it', async () => {

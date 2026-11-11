@@ -146,15 +146,11 @@ closed window left behind are nobody's pins any more, the next listing in any wi
 ## Exported Results
 
 The **Query Results** toggle of the export of a `.dashql` file, off by default, adds the cached results of the scripts
-to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections:
-
-```
-results/<key>.parquet
-```
-
-The name of a file is its cache key, there is no other metadata, and the workbook file and its format version stay as
-they are: older versions skip the folder. The export plans the workbook without analyzing it, like the cache indicators
-of the cards, and takes the newest file of every reusable key (`computeWorkbookResultCacheKeys`,
+to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections. Every result
+is a table of its own, `workbook_result_<id>.parquet`, and a row of `workbook_results` names its cache key
+(`workbook_tables.md`).
+Archives of older versions carry `results/<key>.parquet`, an import still reads them. The export plans the workbook
+without analyzing it, like the cache indicators of the cards, and takes the newest file of every reusable key (`computeWorkbookResultCacheKeys`,
 `retainWorkbookQueryResults`), pinned until the archive holds it. The overlay packs the archive without results whenever
 the workbook or the settings change and shows its size plus the sizes of the results (`countWorkbookQueryResults`). The
 results go in when the file is saved, a pack that is no longer needed stops (`signal` of the export). The archive

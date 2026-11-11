@@ -69,6 +69,20 @@ describe('PlatformEventListener clipboard events', () => {
         listener.dispose();
     });
 
+    it('dispatches the workbook ZIP of a pasted link that carries it in the zip parameter', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        const setupEvents: SetupEventVariant[] = [];
+        listener.subscribeSetupEvents(event => setupEvents.push(event));
+        await listener.setup();
+
+        expect(parseClipboardSetup('dashql://localhost?zip=UEsDBA')).toEqual({ type: 'zip', value: 'UEsDBA' });
+        const { preventDefault } = paste('https://dashql.app/?zip=UEsDBA');
+
+        expect(setupEvents).toEqual([{ type: SETUP_WORKBOOK, value: new Uint8Array([80, 75, 3, 4]) }]);
+        expect(preventDefault).toHaveBeenCalledOnce();
+        listener.dispose();
+    });
+
     it('dispatches unhandled pasted text to fallback subscribers without trimming it', async () => {
         const listener = new TestPlatformEventListener(new TestLogger());
         const fallbackPastes: string[] = [];

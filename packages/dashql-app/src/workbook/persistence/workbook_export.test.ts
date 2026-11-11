@@ -1,5 +1,6 @@
+import * as dashql from '@ankoh/dashql-core';
 import JSZip from 'jszip';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { Crc32 } from '../../utils/crc32.js';
@@ -14,14 +15,55 @@ import {
 import { importWorkbookFromZip, readWorkbookBundleFromZip } from './workbook_import.js';
 import { workbookBundlesEqual, type WorkbookBundle } from '../../storage/workbook_bundle.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../storage/workbook_test_backend.js';
-import type { WorkbookData } from '../../storage/storage_backend.js';
+import type { ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
+import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
+import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
+import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '../../connections/catalog/catalog_structure.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let database: ParquetReadDatabase;
+let writer: WorkbookArchiveWriter;
+let disposeDatabase: () => Promise<void>;
+beforeAll(async () => {
+    const test = await createTestHyperDB('dashql-workbook-export');
+    database = test.database;
+    disposeDatabase = test.dispose;
+    writer = { database, core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }) };
+}, 60_000);
+afterAll(async () => {
+    await disposeDatabase?.();
+});
+
+/// A catalog file of relations with one table, as the app renders it
+const relationsOf = (tableName: string) => generateCatalogRelationsSQL([
+    { databaseName: 'hyper', schemaName: 'public', tableName, columns: [{ name: 'id', ordinalPosition: 0, dataType: 'integer' }] },
+]);
+const SCHEMA = relationsOf('items');
+const OTHER_SCHEMA = relationsOf('other_items');
+const EMBEDDED_SCHEMA = relationsOf('embedded_items');
+const REMOTE_SCHEMA = relationsOf('remote_items');
+const FUNCTIONS = generateCatalogFunctionsSQL([
+    { databaseName: 'hyper', schemaName: 'public', functionName: 'scale', isAggregate: false, returnType: 'bigint', params: [{ name: 'value', type: 'integer' }] },
+]);
 
 /// The query results of a bundle with their bytes
 async function resultBytes(bundle: WorkbookBundle): Promise<Array<{ key: string; bytes: Uint8Array }>> {
     return await Promise.all((bundle.results ?? []).map(async ({ key, bytes }) => ({ key, bytes: new Uint8Array(await bytes.arrayBuffer()) })));
 }
 
-describe('V2 workbook export', () => {
+/// The file names of an archive
+async function archiveNames(blob: Blob | ArrayBuffer): Promise<string[]> {
+    return Object.keys((await JSZip.loadAsync(blob)).files).sort();
+}
+
+/// The archive of a link
+function linkArchive(url: URL): Blob {
+    expect(url.searchParams.get('data')).toBeNull();
+    return new Blob([BASE64URL_CODEC.decode(url.searchParams.get('zip')!)]);
+}
+
+describe('workbook export', () => {
     it('compares data bytes independently of typed-array JSON serialization', () => {
         const bundle = { workbook: testWorkbook(), catalogs: [], scripts: [] };
         const bytes = new Uint8Array([0, 255]);
@@ -32,23 +74,54 @@ describe('V2 workbook export', () => {
             { ...bundle, data: [{ name: 'payload.parquet', bytes: new Uint8Array([0, 254]) }] })).toBe(false);
         expect(workbookBundlesEqual(bundle, { ...bundle, data: [] })).toBe(true);
     });
-    it('persists arbitrary binary data and round-trips it through a ZIP', async () => {
+
+    it('writes the workbook tables as Parquet files and the attachments as tables of their own', async () => {
+        const bytes = new Uint8Array([0, 255, 128, 195, 40, 13, 10, 0]);
+        const backend = new WorkbookTestBackend();
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await backend.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
+        await backend.saveDataFile(TEST_WORKBOOK_ID, '2_payload.parquet', bytes);
+
+        const blob = await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer);
+        const names = await archiveNames(blob);
+        const attachmentTable = names.find(name => name.startsWith('workbook_attachment_'))!;
+        expect(names).toEqual([
+            attachmentTable,
+            'workbook.parquet',
+            'workbook_attachments.parquet',
+            'workbook_connections.parquet',
+            'workbook_scripts.parquet',
+        ].sort());
+        expect(attachmentTable).toMatch(/^workbook_attachment_[0-9a-f]{32}\.parquet$/);
+        expect(await (await JSZip.loadAsync(blob)).file(attachmentTable)!.async('uint8array')).toEqual(bytes);
+
+        const target = new WorkbookTestBackend();
+        await importWorkbookFromZip(blob, target, database);
+        expect(await target.loadDataFile(TEST_WORKBOOK_ID, '2_payload.parquet')).toEqual(bytes);
+        expect(await target.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
+    });
+
+    it('imports the archives of older versions, the files of a workbook folder', async () => {
         const bytes = new Uint8Array([0, 255, 128, 195, 40, 13, 10, 0]);
         const input = new JSZip();
         input.file('dashql-workbook.json', JSON.stringify(testWorkbook()));
+        input.file('scripts/01_query.sql', 'SELECT 1');
         input.file('attachments/2_payload.parquet', bytes);
         const backend = new WorkbookTestBackend();
-        await importWorkbookFromZip(await input.generateAsync({ type: 'blob' }), backend);
+        // An archive of an older version is read without the database
+        await importWorkbookFromZip(await input.generateAsync({ type: 'blob' }), backend, null);
         expect((await backend.listDataFiles(TEST_WORKBOOK_ID)).map(({ name, sizeBytes }) => ({ name, sizeBytes }))).toEqual([{ name: '2_payload.parquet', sizeBytes: bytes.length }]);
         expect(await backend.loadDataFile(TEST_WORKBOOK_ID, '2_payload.parquet')).toEqual(bytes);
-
-        const archive = await JSZip.loadAsync(await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend));
-        expect(archive.file('attachments/2_payload.parquet')).not.toBeNull();
-        expect(await archive.file('attachments/2_payload.parquet')!.async('uint8array')).toEqual(bytes);
-        const target = new WorkbookTestBackend();
-        await importWorkbookFromZip(await archive.generateAsync({ type: 'blob' }), target);
-        expect(await target.loadDataFile(TEST_WORKBOOK_ID, '2_payload.parquet')).toEqual(bytes);
+        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
     });
+
+    it('needs the database to read the workbook tables', async () => {
+        const backend = new WorkbookTestBackend();
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await expect(readWorkbookBundleFromZip(await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer), null))
+            .rejects.toThrow('needs the embedded database');
+    });
+
     it.each(['hyper', 'trino'])('omits %s header credentials from main and attached databases in ZIP and URL exports', async connector => {
         const backend = new WorkbookTestBackend();
         const metadata = { authorization: 'bearer-secret', cookie: 'cookie-secret', 'x-api-key': 'api-secret', arbitrary: 'custom-secret' };
@@ -62,25 +135,25 @@ describe('V2 workbook export', () => {
         });
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, manifest);
         const liveParams = new Map(manifest.connections.map(connection => [connection.connectionId, connection.params]));
-        const url = await exportWorkbookAsUrl(backend, TEST_WORKBOOK_ID, liveParams, WorkbookLinkTarget.WEB);
-        const event = JSON.parse(new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!)));
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, liveParams, WorkbookLinkTarget.WEB);
         const archives = [
-            await JSZip.loadAsync(await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend)),
-            await JSZip.loadAsync(await exportWorkbookAsSharedZip(backend, TEST_WORKBOOK_ID, liveParams)),
-            await JSZip.loadAsync(BASE64URL_CODEC.decode(event.session)),
+            await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer),
+            await exportWorkbookAsSharedZip(backend, writer, TEST_WORKBOOK_ID, liveParams),
+            linkArchive(url),
         ];
         for (const archive of archives) {
-            const text = await archive.file('dashql-workbook.json')!.async('text');
+            const exported = (await readWorkbookBundleFromZip(archive, database)).workbook;
+            const text = JSON.stringify(exported);
             for (const secret of [...Object.values(metadata), 'query-secret']) expect(text).not.toContain(secret);
-            const exported = JSON.parse(text);
-            for (const database of exported.connections) {
-                expect(database.params[connector].metadata).toBeUndefined();
-                expect(database.params[connector].queryParameters).toBeUndefined();
-                expect(database.params[connector].endpoint).toBe('https://identity.example');
+            for (const connection of exported.connections) {
+                expect((connection.params as any)[connector].metadata).toBeUndefined();
+                expect((connection.params as any)[connector].queryParameters).toBeUndefined();
+                expect((connection.params as any)[connector].endpoint).toBe('https://identity.example');
             }
         }
         expect((await backend.loadWorkbook(TEST_WORKBOOK_ID)).connections[0].params).toEqual(params);
     });
+
     it('omits main and attached drafts and secrets from plain and shared ZIP exports', async () => {
         const backend = new WorkbookTestBackend();
         const connection = (connectionId: string) => ({
@@ -91,55 +164,55 @@ describe('V2 workbook export', () => {
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({
             ...testConnections(connection(TEST_CONNECTION_ID), connection('bbbbbbbb-cccc-4ddd-8eee-ffffffffffff')),
         }));
-        for (const blob of [await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend), await exportWorkbookAsSharedZip(backend, TEST_WORKBOOK_ID, new Map())]) {
-            const archive = await JSZip.loadAsync(blob);
-            const text = await archive.file('dashql-workbook.json')!.async('text');
+        for (const blob of [await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer), await exportWorkbookAsSharedZip(backend, writer, TEST_WORKBOOK_ID, new Map())]) {
+            const exported = (await readWorkbookBundleFromZip(blob, database)).workbook;
+            const text = JSON.stringify(exported);
             expect(text).not.toContain('paramsDraft');
             expect(text).not.toContain('committed-secret');
             expect(text).not.toContain('draft-secret');
-            expect(JSON.parse(text).connections[0].params.trino.endpoint).toBe('https://committed.example');
+            expect((exported.connections[0].params as any).trino.endpoint).toBe('https://committed.example');
         }
         expect((await backend.loadWorkbook(TEST_WORKBOOK_ID)).connections[0].paramsDraft).toBeDefined();
     });
-    it('does not encode the reserved draft script', async () => {
-        const archive = await JSZip.loadAsync(await createWorkbookZip(testWorkbook(), [
-            { name: 'dashql-draft.sql', sql: 'SELECT draft' },
-            { name: '01_query.sql', sql: 'SELECT 1' },
-        ]));
 
-        expect(archive.file('scripts/dashql-draft.sql')).toBeNull();
-        expect(await archive.file('scripts/01_query.sql')!.async('text')).toBe('SELECT 1');
+    it('does not encode the reserved draft script', async () => {
+        const workbook = testWorkbook({ scripts: [{ name: '01_query.sql', connectionId: TEST_CONNECTION_ID }] });
+        const blob = await createWorkbookZip(writer, {
+            workbook,
+            catalogs: [],
+            scripts: [{ name: 'dashql-draft.sql', sql: 'SELECT draft' }, { name: '01_query.sql', sql: 'SELECT 1' }],
+        });
+        expect((await readWorkbookBundleFromZip(blob, database)).scripts).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
     });
 
-    it('exports only flat scripts and includes catalogs on request', async () => {
+    it('exports the scripts and includes catalogs on request', async () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'schema');
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', 'functions');
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', SCHEMA);
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', FUNCTIONS);
         await backend.saveScript(TEST_WORKBOOK_ID, '01_first.sql', 'SELECT 1');
         await backend.saveScript(TEST_WORKBOOK_ID, '02_second.sql', 'SELECT 2');
 
-        const archive = await JSZip.loadAsync(await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, { withCatalog: true }));
-        expect(await archive.file('scripts/01_first.sql')!.async('text')).toBe('SELECT 1');
-        expect(await archive.file('scripts/02_second.sql')!.async('text')).toBe('SELECT 2');
-        expect(await archive.file(`connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)!.async('text')).toBe('schema');
-        expect(await archive.file(`connections/${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)!.async('text')).toBe('functions');
-        expect(archive.file(/scripts\/[^/]+\/[^/]+/)).toEqual([]);
-        expect(archive.file('scripts/dashql-draft.sql')).toBeNull();
+        const bundle = await readWorkbookBundleFromZip(await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer, { withCatalog: true }), database);
+        expect(bundle.scripts).toEqual([{ name: '01_first.sql', sql: 'SELECT 1' }, { name: '02_second.sql', sql: 'SELECT 2' }]);
+        expect(bundle.catalogs).toEqual([{ connectionId: TEST_CONNECTION_ID, relations: SCHEMA, functions: FUNCTIONS }]);
+
+        const plain = await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer);
+        expect(await archiveNames(plain)).not.toContain('connection_catalog_tables.parquet');
     });
 
-    it('round-trips a flat V2 archive through import', async () => {
+    it('round-trips an archive through import', async () => {
         const source = new WorkbookTestBackend();
         await source.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await source.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 42');
         const target = new WorkbookTestBackend();
 
-        const blob = await exportWorkbookAsZip(TEST_WORKBOOK_ID, source);
-        await expect(importWorkbookFromZip(blob, target)).resolves.toBe(TEST_WORKBOOK_ID);
+        const blob = await exportWorkbookAsZip(TEST_WORKBOOK_ID, source, writer);
+        await expect(importWorkbookFromZip(blob, target, database)).resolves.toBe(TEST_WORKBOOK_ID);
         expect(await target.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
     });
 
-    it('carries the query results that a file export asks for, named after their keys', async () => {
+    it('carries the query results that a file export asks for, as tables of their own', async () => {
         const source = new WorkbookTestBackend();
         await source.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await source.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 42');
@@ -147,36 +220,32 @@ describe('V2 workbook export', () => {
         const bytes = new Uint8Array([80, 65, 82, 49, 0, 1, 2]);
 
         // Off by default
-        const plain = await JSZip.loadAsync(await exportWorkbookAsSharedZip(source, TEST_WORKBOOK_ID, new Map()));
-        expect(plain.file(/^results\//)).toEqual([]);
+        const plain = await exportWorkbookAsSharedZip(source, writer, TEST_WORKBOOK_ID, new Map());
+        expect((await archiveNames(plain)).filter(name => name.includes('result'))).toEqual([]);
 
-        const zip = await exportWorkbookAsSharedZip(source, TEST_WORKBOOK_ID, new Map(), { preserveUUIDs: true, queryResults: [{ key, bytes: new Blob([bytes]) }] });
-        const archive = await JSZip.loadAsync(zip);
-        expect(archive.file(/^results\//).map(file => file.name)).toEqual([`results/${key}.parquet`]);
-        expect(await archive.file(`results/${key}.parquet`)!.async('uint8array')).toEqual(bytes);
+        const zip = await exportWorkbookAsSharedZip(source, writer, TEST_WORKBOOK_ID, new Map(), { preserveUUIDs: true, queryResults: [{ key, bytes: new Blob([bytes]) }] });
+        const names = (await archiveNames(zip)).filter(name => name.includes('result'));
+        expect(names).toHaveLength(2);
+        expect(names[0]).toMatch(/^workbook_result_[0-9a-f]{32}\.parquet$/);
+        expect(names[1]).toBe('workbook_results.parquet');
         // Parquet is compressed already, the archive stores it as it is
         const zeros = new Uint8Array(64 * 1024);
-        const stored = await exportWorkbookAsSharedZip(source, TEST_WORKBOOK_ID, new Map(), { queryResults: [{ key, bytes: new Blob([zeros]) }] });
+        const stored = await exportWorkbookAsSharedZip(source, writer, TEST_WORKBOOK_ID, new Map(), { queryResults: [{ key, bytes: new Blob([zeros]) }] });
         expect(stored.size).toBeGreaterThan(zeros.length);
         // An import reads a stored result as a slice of the archive, with the CRC-32 that the archive stores for it
-        const imported = await readWorkbookBundleFromZip(zip);
+        const imported = await readWorkbookBundleFromZip(zip, database);
         expect(await resultBytes(imported)).toEqual([{ key, bytes }]);
         const crc = new Crc32();
         crc.update(bytes);
         expect(imported.results![0].crc32).toBe(crc.value);
-        // Other files of the folder and files with other names are left out of an import
-        archive.file('results/notes.txt', 'x');
-        archive.file(`results/${'B'.repeat(64)}.parquet`, bytes);
-        archive.file(`results/nested/${'c'.repeat(64)}.parquet`, bytes);
-        const bundle = await readWorkbookBundleFromZip(await archive.generateAsync({ type: 'blob' }));
-        expect(await resultBytes(bundle)).toEqual([{ key, bytes }]);
-        expect(bundle.scripts).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
+        expect(imported.scripts).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
         // A result that another tool compressed is inflated
-        const deflated = await readWorkbookBundleFromZip(await archive.generateAsync({ type: 'blob', compression: 'DEFLATE' }));
+        const archive = await JSZip.loadAsync(zip);
+        const deflated = await readWorkbookBundleFromZip(await archive.generateAsync({ type: 'blob', compression: 'DEFLATE' }), database);
         expect(await resultBytes(deflated)).toEqual([{ key, bytes }]);
         // The workbook folder doesn't keep them
         const target = new WorkbookTestBackend();
-        await importWorkbookFromZip(zip, target);
+        await importWorkbookFromZip(zip, target, database);
         expect(await target.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
         expect(await target.listDataFiles(TEST_WORKBOOK_ID)).toEqual([]);
     });
@@ -184,36 +253,42 @@ describe('V2 workbook export', () => {
     it('never carries query results in a link', async () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        const url = await exportWorkbookAsUrl(backend, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB, {
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB, {
             queryResults: [{ key: 'a'.repeat(64), bytes: new Blob([new Uint8Array([1])]) }],
         });
-        const event = JSON.parse(new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!))) as { session: string };
-        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.session));
-        expect(archive.file(/^results\//)).toEqual([]);
+        expect((await archiveNames(linkArchive(url))).filter(name => name.includes('result'))).toEqual([]);
+    });
+
+    it('carries the archive of a link in the zip parameter, base64url-encoded once', async () => {
+        const backend = new WorkbookTestBackend();
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        for (const [target, protocol] of [[WorkbookLinkTarget.WEB, new URL(process.env.DASHQL_APP_URL!).protocol], [WorkbookLinkTarget.NATIVE, 'dashql:']] as const) {
+            const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), target);
+            expect(url.protocol).toBe(protocol);
+            expect([...url.searchParams.keys()]).toEqual(['zip']);
+            const bundle = await readWorkbookBundleFromZip(linkArchive(url), database);
+            expect(bundle.workbook.connections).toHaveLength(1);
+        }
     });
 
     it('seeds the connections of an import with the exported catalogs', async () => {
         const source = new WorkbookTestBackend();
         await source.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        await source.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'schema');
+        await source.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', SCHEMA);
         const target = new WorkbookTestBackend();
 
-        await importWorkbookFromZip(await exportWorkbookAsZip(TEST_WORKBOOK_ID, source, { withCatalog: true }), target);
-        expect([...target.connectionFiles]).toEqual([[`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'schema']]);
+        await importWorkbookFromZip(await exportWorkbookAsZip(TEST_WORKBOOK_ID, source, writer, { withCatalog: true }), target, database);
+        expect([...target.connectionFiles]).toEqual([[`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, SCHEMA]]);
     });
 
     it('omits catalogs from URL exports by default', async () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'schema');
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', 'functions');
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', SCHEMA);
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', FUNCTIONS);
 
-        const url = await exportWorkbookAsUrl(backend, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB);
-        const eventJson = new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!));
-        const event = JSON.parse(eventJson) as { session: string };
-        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.session));
-
-        expect(archive.file(/^connections\//)).toEqual([]);
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB);
+        expect(await archiveNames(linkArchive(url))).not.toContain('connection_catalog_tables.parquet');
     });
 
     it('includes the catalogs of all connections in shared ZIP exports by default', async () => {
@@ -228,24 +303,19 @@ describe('V2 workbook export', () => {
         }));
         await backend.saveScript(TEST_WORKBOOK_ID, '01_main.sql', 'SELECT 1');
         await backend.saveScript(TEST_WORKBOOK_ID, '02_other.sql', 'SELECT 2');
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'schema');
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', 'functions');
-        await backend.saveConnectionFile(otherConnectionId, 'dashql-catalog-relations.sql', 'other');
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', SCHEMA);
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', FUNCTIONS);
+        await backend.saveConnectionFile(otherConnectionId, 'dashql-catalog-relations.sql', OTHER_SCHEMA);
 
-        const archive = await JSZip.loadAsync(await exportWorkbookAsSharedZip(
-            backend,
-            TEST_WORKBOOK_ID,
-            new Map(),
-        ));
+        const bundle = await readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(backend, writer, TEST_WORKBOOK_ID, new Map()), database);
 
         // The catalogs follow the fresh ids of their connections
-        const workbook = JSON.parse(await archive.file('dashql-workbook.json')!.async('text')) as WorkbookData;
-        const [main, other] = workbook.connections.map(connection => connection.connectionId);
+        const [main, other] = bundle.workbook.connections.map(connection => connection.connectionId);
         expect(main).not.toBe(TEST_CONNECTION_ID);
-        expect(await archive.file(`connections/${main}/dashql-catalog-relations.sql`)!.async('text')).toBe('schema');
-        expect(await archive.file(`connections/${main}/dashql-catalog-functions.sql`)!.async('text')).toBe('functions');
-        expect(await archive.file(`connections/${other}/dashql-catalog-relations.sql`)!.async('text')).toBe('other');
-        expect(archive.file(/^connections\//)).toHaveLength(3);
+        expect(bundle.catalogs).toEqual([
+            { connectionId: main, relations: SCHEMA, functions: FUNCTIONS },
+            { connectionId: other, relations: OTHER_SCHEMA, functions: null },
+        ]);
     });
 
     it('carries only the connections that the scripts use', async () => {
@@ -256,14 +326,13 @@ describe('V2 workbook export', () => {
             scripts: [{ name: '01_remote.sql', connectionId: otherConnectionId }],
         }));
         await backend.saveScript(TEST_WORKBOOK_ID, '01_remote.sql', 'SELECT 1');
-        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'embedded');
-        await backend.saveConnectionFile(otherConnectionId, 'dashql-catalog-relations.sql', 'remote');
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', EMBEDDED_SCHEMA);
+        await backend.saveConnectionFile(otherConnectionId, 'dashql-catalog-relations.sql', REMOTE_SCHEMA);
 
-        const archive = await JSZip.loadAsync(await exportWorkbookAsSharedZip(backend, TEST_WORKBOOK_ID, new Map(), { preserveUUIDs: true }));
-        const exported = JSON.parse(await archive.file('dashql-workbook.json')!.async('text')) as WorkbookData;
+        const bundle = await readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(backend, writer, TEST_WORKBOOK_ID, new Map(), { preserveUUIDs: true }), database);
         // The embedded database that no script uses stays behind with its catalog
-        expect(exported.connections.map(connection => connection.connectionId)).toEqual([otherConnectionId]);
-        expect(archive.file(/^connections\//).map(file => file.name)).toEqual([`connections/${otherConnectionId}/dashql-catalog-relations.sql`]);
+        expect(bundle.workbook.connections.map(connection => connection.connectionId)).toEqual([otherConnectionId]);
+        expect(bundle.catalogs.map(catalog => catalog.connectionId)).toEqual([otherConnectionId]);
     });
 
     it('generates new workbook and connection UUIDs for shared exports by default', async () => {
@@ -279,20 +348,16 @@ describe('V2 workbook export', () => {
         await backend.saveScript(TEST_WORKBOOK_ID, '01_attachment.sql', 'SELECT * FROM :payload');
         await backend.saveScript(TEST_WORKBOOK_ID, '02_attached.sql', 'SELECT 2');
 
-        const archive = await JSZip.loadAsync(await exportWorkbookAsSharedZip(
-            backend,
-            TEST_WORKBOOK_ID,
-            new Map(),
-        ));
-        const exported = JSON.parse(await archive.file('dashql-workbook.json')!.async('text'));
+        const bundle = await readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(backend, writer, TEST_WORKBOOK_ID, new Map()), database);
+        const exported = bundle.workbook;
         // A script names an attachment by its table parameter, whatever the id of the workbook
-        expect(await archive.file('scripts/01_attachment.sql')!.async('text')).toBe('SELECT * FROM :payload');
+        expect(bundle.scripts.find(script => script.name === '01_attachment.sql')!.sql).toBe('SELECT * FROM :payload');
 
         expect(exported.workbookId).not.toBe(TEST_WORKBOOK_ID);
         expect(exported).not.toHaveProperty('defaultConnectionId');
         // The connections follow the scripts in the order the scripts use them
-        expect(exported.connections.map((connection: { connectionId: string }) => connection.connectionId))
-            .toEqual(exported.scripts.map((script: { connectionId: string }) => script.connectionId));
+        expect(exported.connections.map(connection => connection.connectionId))
+            .toEqual(exported.scripts.map(script => script.connectionId));
         expect(exported.connections[0].connectionId).not.toBe(otherConnectionId);
         expect(exported.connections[1].connectionId).not.toBe(TEST_CONNECTION_ID);
         // The scripts keep their order and follow their connections to the new ids
@@ -315,13 +380,13 @@ describe('V2 workbook export', () => {
         await backend.saveScript(TEST_WORKBOOK_ID, '01_main.sql', 'SELECT 1');
         await backend.saveScript(TEST_WORKBOOK_ID, '02_other.sql', 'SELECT 2');
 
-        const archive = await JSZip.loadAsync(await exportWorkbookAsSharedZip(
+        const exported = (await readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(
             backend,
+            writer,
             TEST_WORKBOOK_ID,
             new Map(),
             { connectionNames: new Map([[TEST_CONNECTION_ID, 'Production']]) },
-        ));
-        const exported = JSON.parse(await archive.file('dashql-workbook.json')!.async('text')) as WorkbookData;
+        ), database)).workbook;
 
         // The names follow their connections to the fresh ids, unnamed connections carry none
         expect(exported.connections[0].connectionId).not.toBe(TEST_CONNECTION_ID);
@@ -333,13 +398,13 @@ describe('V2 workbook export', () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
 
-        const archive = await JSZip.loadAsync(await exportWorkbookAsSharedZip(
+        const exported = (await readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(
             backend,
+            writer,
             TEST_WORKBOOK_ID,
             new Map(),
             { preserveUUIDs: true },
-        ));
-        const exported = JSON.parse(await archive.file('dashql-workbook.json')!.async('text'));
+        ), database)).workbook;
 
         expect(exported.workbookId).toBe(TEST_WORKBOOK_ID);
         expect(exported.connections[0].connectionId).toBe(TEST_CONNECTION_ID);
@@ -349,36 +414,29 @@ describe('V2 workbook export', () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
 
-        const url = await exportWorkbookAsUrl(backend, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB);
-        const eventJson = new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!));
-        const event = JSON.parse(eventJson) as { session: string };
-        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.session));
-        const exported = JSON.parse(await archive.file('dashql-workbook.json')!.async('text'));
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB);
+        const exported = (await readWorkbookBundleFromZip(linkArchive(url), database)).workbook;
 
         expect(exported.workbookId).not.toBe(TEST_WORKBOOK_ID);
-        expect(exported.defaultConnectionId).not.toBe(TEST_CONNECTION_ID);
+        expect(exported.connections[0].connectionId).not.toBe(TEST_CONNECTION_ID);
     });
 
     it('shares a connection as an empty workbook that holds only the connection', async () => {
         const metadata = { authorization: 'bearer-secret' };
         const params = { trino: { endpoint: 'https://trino.example', catalogName: 'catalog', metadata } } as any;
 
-        const url = await exportConnectionAsUrl(params, 'Warehouse', WorkbookLinkTarget.WEB);
-        const eventJson = new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!));
-        const event = JSON.parse(eventJson) as { session: string };
-        const zip = BASE64URL_CODEC.decode(event.session);
-        const archive = await JSZip.loadAsync(zip);
-        const text = await archive.file('dashql-workbook.json')!.async('text');
-        const exported = JSON.parse(text) as WorkbookData;
+        const url = await exportConnectionAsUrl(writer, params, 'Warehouse', WorkbookLinkTarget.WEB);
+        const zip = linkArchive(url);
+        const exported = (await readWorkbookBundleFromZip(zip, database)).workbook;
 
-        expect(text).not.toContain('bearer-secret');
+        expect(JSON.stringify(exported)).not.toContain('bearer-secret');
         expect(exported.scripts).toEqual([]);
         expect(exported.connections).toHaveLength(1);
         expect(exported.connections[0].name).toBe('Warehouse');
         expect((exported.connections[0].params as any).trino.endpoint).toBe('https://trino.example');
 
         const target = new WorkbookTestBackend();
-        const workbookId = await importWorkbookFromZip(new Blob([zip]), target);
+        const workbookId = await importWorkbookFromZip(zip, target, database);
         expect(workbookId).toBe(exported.workbookId);
         expect(await target.loadScripts(workbookId)).toEqual([]);
         expect((await target.loadWorkbook(workbookId)).connections.map(connection => connection.connectionId))

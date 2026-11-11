@@ -11,6 +11,7 @@ import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from '../../pla
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { readWorkbookBundleFromZip } from '../../workbook/persistence/workbook_import.js';
+import { useWorkbookArchiveDatabase } from '../../workbook/persistence/workbook_archive_database.js';
 import { useWorkbookImport } from '../../workbook/persistence/workbook_import_provider.js';
 import {
     readWorkbookBundleFromHttp,
@@ -54,6 +55,7 @@ export function useSharedWorkbookImport(
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
     const setupCore = useDashQLCoreSetup();
+    const archiveDatabase = useWorkbookArchiveDatabase();
     const appEvents = usePlatformEventListener();
     const workbookImport = useWorkbookImport();
     const httpClient = useHttpClient();
@@ -100,7 +102,7 @@ export function useSharedWorkbookImport(
         if (data.type === SETUP_WORKBOOK) {
             const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
             // A link imports without the user handing over a file, it never adds query results to the cache
-            const { results, ...bundle } = await readWorkbookBundleFromZip(zipBlob);
+            const { results, ...bundle } = await readWorkbookBundleFromZip(zipBlob, await archiveDatabase('workbook_import'));
             if ((results?.length ?? 0) > 0) {
                 traced.warn("Ignored the query results of a link", { results: results!.length.toString() }, LOG_CTX);
             }

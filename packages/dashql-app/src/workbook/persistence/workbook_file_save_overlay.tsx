@@ -25,11 +25,14 @@ import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQue
 import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
+import { useWorkbookArchiveWriter, type WorkbookArchiveWriter } from './workbook_archive_database.js';
+
 const LOG_CTX = 'workbook_export';
 
 /// Pack the workbook into an archive. The cached results go in only if the settings ask for them and a cache is given.
 async function packAndCompressFile(
     backend: StorageBackend,
+    archiveWriter: WorkbookArchiveWriter,
     databases: ConnectionState[],
     workbookScripts: WorkbookScripts,
     settings: WorkbookExportSettings,
@@ -58,7 +61,7 @@ async function packAndCompressFile(
     const started = performance.now();
     try {
         // The archive stays a Blob that the browser keeps, a large one is paged out of memory
-        const archive = await exportWorkbookAsSharedZip(backend, workbookId, connectionParams, {
+        const archive = await exportWorkbookAsSharedZip(backend, archiveWriter, workbookId, connectionParams, {
             ...settings, connectionNames, queryResults: retained?.results, signal,
         });
         const fields = {
@@ -94,6 +97,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const buttonRef = React.createRef<HTMLButtonElement>();
     const fileDownloader = useFileDownloader();
     const storage = useStorageReader();
+    const archiveWriter = useWorkbookArchiveWriter();
     const [databaseRegistry] = useConnectionRegistry();
     const references = useConnectionReferences();
     const fileName = `${props.fileName ?? props.workbookScripts?.workbookMetadata.originalFileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
@@ -139,7 +143,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         const pack = async () => {
             const attached = resolveWorkbookConnections(databaseRegistry, references, workbookScripts.workbookId);
             if (attached == null) return;
-            const file = await packAndCompressFile(storage.backend, attached, workbookScripts,
+            const file = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts,
                 { withCatalog, withLoginHint, preserveUUIDs }, null, cancellation.signal, logger);
             if (!cancellation.signal.aborted) {
                 setFile(file);
@@ -152,7 +156,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             setPackError(`The export failed: ${stringifyError(error)}`);
         });
         return () => cancellation.abort();
-    }, [databaseRegistry, references, withCatalog, withLoginHint, preserveUUIDs, props.workbookScripts, props.isOpen, storage.backend, logger]);
+    }, [databaseRegistry, references, withCatalog, withLoginHint, preserveUUIDs, props.workbookScripts, props.isOpen, storage.backend, archiveWriter, logger]);
 
     const connections = useWorkbookConnections(props.workbookScripts?.workbookId ?? null);
     const hasLoginHint = React.useMemo(
@@ -182,7 +186,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         setSaving(true);
         setPackError(null);
         try {
-            const packed = await packAndCompressFile(storage.backend, attached, workbookScripts, settings, cache, run.signal, logger);
+            const packed = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts, settings, cache, run.signal, logger);
             run.signal.throwIfAborted();
             await fileDownloader.downloadBufferAsFile(packed, fileName);
         } catch (error) {
@@ -196,7 +200,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             saveRun.current = null;
             setSaving(false);
         }
-    }, [file, fileName, withQueryResults, cache, settings, databaseRegistry, references, props.workbookScripts, storage.backend, logger]);
+    }, [file, fileName, withQueryResults, cache, settings, databaseRegistry, references, props.workbookScripts, storage.backend, archiveWriter, logger]);
     // The results are stored as they are, the archive grows by about their size
     const fileSize = file == null ? 0 : file.size + (withQueryResults ? resultCounts?.bytes ?? 0 : 0);
 

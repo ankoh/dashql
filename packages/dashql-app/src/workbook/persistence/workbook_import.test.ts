@@ -1,9 +1,13 @@
 import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 
-import { importWorkbookFromZip, readWorkbookBundleFromZip } from './workbook_import.js';
+import { importWorkbookFromZip as importZip, readWorkbookBundleFromZip as readZip } from './workbook_import.js';
 import { STORAGE_WORKBOOK_FILE } from '../../storage/storage_backend.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
+
+// The archives of older versions hold the files of a workbook folder, they are read without the database
+const readWorkbookBundleFromZip = (blob: Blob) => readZip(blob, null);
+const importWorkbookFromZip = (blob: Blob, backend: WorkbookTestBackend, options?: Parameters<typeof importZip>[3]) => importZip(blob, backend, null, options);
 
 async function zip(files: Record<string, string>): Promise<Blob> {
     const archive = new JSZip();
@@ -11,7 +15,7 @@ async function zip(files: Record<string, string>): Promise<Blob> {
     return archive.generateAsync({ type: 'blob' });
 }
 
-describe('V2 workbook ZIP import', () => {
+describe('workbook ZIP import of older versions', () => {
     it('appends unlisted scripts in natural order and ignores derived files', async () => {
         const bundle = await readWorkbookBundleFromZip(await zip({
             [STORAGE_WORKBOOK_FILE]: JSON.stringify(testWorkbook()),

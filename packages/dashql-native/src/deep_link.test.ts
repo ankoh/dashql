@@ -15,6 +15,10 @@ describe("parseDeepLink", () => {
         });
     });
 
+    it("extracts the workbook archive of a link", () => {
+        expect(parseDeepLink("dashql://localhost?zip=UEsDBA")).toEqual({ type: "zip", value: "UEsDBA" });
+    });
+
     it.each([
         "dashql://localhost?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",
         "https://dashql.app/?workbook=https%3A%2F%2Fexample.com%2Fdashql-workbook.json",

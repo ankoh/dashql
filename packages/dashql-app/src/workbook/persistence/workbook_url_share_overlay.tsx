@@ -13,6 +13,7 @@ import { useRouteContext } from '../../app/router/router.js';
 import { useWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { ShareURLField } from './share_url_field.js';
+import { useWorkbookArchiveWriter } from './workbook_archive_database.js';
 
 interface Props {
     className?: string;
@@ -35,6 +36,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const [databaseRegistry] = useConnectionRegistry();
     const references = useConnectionReferences();
     const storage = useStorageReader();
+    const archiveWriter = useWorkbookArchiveWriter();
     const [publicURLText, setPublicURLText] = React.useState<string | null>(null);
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
         withCatalog: false,
@@ -64,6 +66,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
                     }
                     setupUrl = await exportWorkbookAsUrl(
                         storage.backend,
+                        await archiveWriter('workbook_link'),
                         workbookScripts.workbookId,
                         params,
                         WorkbookLinkTarget.WEB,
@@ -82,7 +85,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         return () => {
             cancelled = true;
         };
-    }, [databaseRegistry, references, settings, workbookScripts, connectionIds, props.isOpen]);
+    }, [databaseRegistry, references, settings, workbookScripts, connectionIds, props.isOpen, archiveWriter]);
 
     const hasLoginHint = React.useMemo(
         () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details))),

@@ -33,10 +33,10 @@ interface DashQLElectronBridge {
         /// Write a text file, resolves with its new stamp
         writeTextFile(path: string, data: string): Promise<DashQLFileStamp>;
     };
-    getInitialDeepLinks(): Promise<Array<{type: "event" | "workbook"; value: string}>>;
+    getInitialDeepLinks(): Promise<Array<{type: "event" | "workbook" | "zip"; value: string}>>;
     getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;
-    onDeepLink(listener: (link: {type: "event" | "workbook"; value: string}) => void): () => void;
+    onDeepLink(listener: (link: {type: "event" | "workbook" | "zip"; value: string}) => void): () => void;
     /// Write the pending changes before a window closes, the main process waits until the handler resolves
     onFlush(handler: () => Promise<void>): () => void;
     openExternal(url: string): Promise<void>;

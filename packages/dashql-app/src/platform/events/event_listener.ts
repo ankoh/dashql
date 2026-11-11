@@ -10,6 +10,8 @@ import { parseHyperLinkTarget, type HyperLinkTarget } from './hyper_link_target.
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
 export const WORKBOOK_QUERY_PARAMETER = "workbook";
+/// The parameter of a link that carries a `.dashql` ZIP inline, base64url-encoded
+export const ZIP_QUERY_PARAMETER = "zip";
 
 /// Read the URL of a hosted workbook from the query parameters of a link, links of older versions
 /// use the legacy parameter
@@ -23,7 +25,8 @@ export function readWorkbookUrlParameter(params: URLSearchParams): string | null
 
 type ClipboardSetup =
     | { type: "event", value: string }
-    | { type: "workbook", value: string };
+    | { type: "workbook", value: string }
+    | { type: "zip", value: string };
 
 export function parseClipboardSetup(text: string): ClipboardSetup | null {
     let url: URL;
@@ -43,6 +46,8 @@ export function parseClipboardSetup(text: string): ClipboardSetup | null {
 
     const eventData = url.searchParams.get(EVENT_QUERY_PARAMETER);
     if (eventData) return { type: "event", value: eventData };
+    const zip = url.searchParams.get(ZIP_QUERY_PARAMETER);
+    if (zip) return { type: "zip", value: zip };
     const workbookUrl = readWorkbookUrlParameter(url.searchParams);
     return workbookUrl ? { type: "workbook", value: workbookUrl } : null;
 }
@@ -130,15 +135,23 @@ export abstract class PlatformEventListener {
             if (target == null) this.logger.warn("Ignoring an invalid Hyper link", {}, LOG_CTX);
             else this.dispatchHyperLink(target);
         } else if ('session' in event) {
-            // Decode the base64url workbook ZIP to Uint8Array, the app event keeps its arm `session`
-            const workbookBuffer = BASE64URL_CODEC.decode(event.session);
-            const workbookBytes = new Uint8Array(workbookBuffer);
-            const setupEvent: SetupEventVariant = {
-                type: SETUP_WORKBOOK,
-                value: workbookBytes
-            };
-            this.dispatchSetup(setupEvent);
+            // Links of older versions carry the workbook ZIP in the app event, see dispatchWorkbookZip
+            this.dispatchWorkbookZip(event.session);
         }
+    }
+
+    /// Received the base64url-encoded `.dashql` ZIP of a link, returns false when the text is no base64url
+    public dispatchWorkbookZip(zipBase64: string): boolean {
+        if (!BASE64URL_CODEC.isValidBase64(zipBase64)) {
+            this.logger.warn("Ignoring a workbook link with invalid base64 data", {}, LOG_CTX);
+            return false;
+        }
+        const setupEvent: SetupEventVariant = {
+            type: SETUP_WORKBOOK,
+            value: new Uint8Array(BASE64URL_CODEC.decode(zipBase64)),
+        };
+        this.dispatchSetup(setupEvent);
+        return true;
     }
 
     public dispatchWorkbookUrl(url: string): void {
@@ -335,6 +348,14 @@ export abstract class PlatformEventListener {
             event.preventDefault();
             event.stopPropagation();
             this.dispatchWorkbookUrl(setup.value);
+            return;
+        } else if (setup?.type === "zip") {
+            if (this.dispatchWorkbookZip(setup.value)) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                this.dispatchFallbackPaste(event, clipboardText);
+            }
             return;
         } else if (BASE64URL_CODEC.isValidBase64(pastedText)) {
             // Raw base64 event data pasted directly (web opener flow fallback)

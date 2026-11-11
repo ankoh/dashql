@@ -38,6 +38,9 @@ Please consult relevant docs in that directory before making changes.
     - `extensions/d360-api/clfn/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `extensions/d360-api/clfn/spec/*.yaml`, the source of the spec as well)
     - `extensions/d360-api/clfn/docs/api_notes.md` (API quirks, usage order, source conflicts, checks to run on an org)
 
+- Workbook tables (`.dashql` files and links: the tables of one workbook, Parquet entries of a ZIP, `?zip=` links, archives of older versions)
+    - `docs/design/workbook_tables.md`
+
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)
     - `docs/design/app_csp.md`
 

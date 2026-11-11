@@ -1,28 +1,21 @@
-import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
-
-import type { StorageBackend, WorkbookData, ScriptData, DataFileData, ConnectionParams } from '../../storage/storage_backend.js';
-import {
-    STORAGE_WORKBOOK_FILE,
-    STORAGE_ATTACHMENTS_FOLDER,
-    validateDataFileName,
-    STORAGE_SCRIPTS_FOLDER,
-    STORAGE_CATALOG_FUNCTIONS,
-    STORAGE_CATALOG_RELATIONS,
-} from '../../storage/storage_backend.js';
+import type { StorageBackend, WorkbookData, ConnectionParams } from '../../storage/storage_backend.js';
+import { validateDataFileName } from '../../storage/storage_backend.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { WORKBOOK_FORMAT_VERSION } from '../../storage/migration/versions.js';
 import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
 import {
-    bundleCatalogPath,
     pruneBundleConnections,
     readWorkbookBundle,
     regenerateBundleConnectionIds,
     type WorkbookBundle,
-    type WorkbookBundleCatalog,
     type WorkbookBundleResult,
 } from '../../storage/workbook_bundle.js';
-import { workbookResultPath } from './workbook_query_results.js';
-import { archiveError, BlobReader, BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from './workbook_zip.js';
+import { WORKBOOK_TABLE_NAMES, workbookBundleToTables } from '../../storage/workbook_tables.js';
+import { workbookTableFileName, writeWorkbookTableParquet } from '../../storage/workbook_tables_parquet.js';
+import { parseCatalogSql } from '../../connections/catalog/catalog_structure.js';
+import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
+import { ZIP_QUERY_PARAMETER } from '../../platform/events/event_listener.js';
+import { archiveError, BlobReader, BlobWriter, Uint8ArrayReader, ZipWriter } from './workbook_zip.js';
 
 /// The target platform a shared workbook link points at.
 export enum WorkbookLinkTarget {
@@ -39,7 +32,7 @@ export interface WorkbookExportOptions {
     /// path uses this to sanitize connection secrets, strip the login hint, or give the workbook and
     /// its connections fresh ids, the catalogs follow their connections.
     transformBundle?: (bundle: Pick<WorkbookBundle, 'workbook' | 'catalogs'>) => Pick<WorkbookBundle, 'workbook' | 'catalogs'>;
-    /// The cached query results of the scripts, written to `results/<key>.parquet`
+    /// The cached query results of the scripts, written as result tables
     queryResults?: readonly WorkbookBundleResult[];
     /// Stops the export, e.g. once its settings changed
     signal?: AbortSignal;
@@ -63,47 +56,44 @@ export interface SharedWorkbookExportOptions {
 
 type SharedWorkbookExportOptionsInput = SharedWorkbookExportOptions | boolean;
 
-/// Creates a ZIP file from workbook data and script folders. The archive is streamed into a Blob that the browser
-/// keeps, the query results are streamed from their files.
+/// Creates a `.dashql` ZIP from a workbook bundle: the workbook tables as `<table>.parquet`, written with the embedded
+/// Hyper, and the Parquet files of the attachment and result tables as they are (docs/design/workbook_tables.md).
+/// The archive is streamed into a Blob that the browser keeps, the query results are streamed from their files.
+/// The connection params are sanitized for sharing.
 export async function createWorkbookZip(
-    workbookData: WorkbookData,
-    scripts: ScriptData[],
-    catalogs: readonly WorkbookBundleCatalog[] = [],
-    data: readonly DataFileData[] = [],
-    results: readonly WorkbookBundleResult[] = [],
+    writer: WorkbookArchiveWriter,
+    bundle: WorkbookBundle,
     signal?: AbortSignal,
 ): Promise<Blob> {
-    // The signal also stops an entry that is being streamed
-    const zip = new ZipWriter(new BlobWriter('application/zip'), { level: 6, signal });
-    // The entries are added one after the other, concurrent entries would wait in memory
-    const text = async (path: string, value: string) => { await zip.add(path, new TextReader(value)); };
-    try {
-        // Add workbook metadata
-        await text(STORAGE_WORKBOOK_FILE, JSON.stringify({
-            ...workbookData,
-            connections: workbookData.connections.map(connection => ({
+    const sanitized: WorkbookBundle = {
+        ...bundle,
+        workbook: {
+            ...bundle.workbook,
+            connections: bundle.workbook.connections.map(connection => ({
                 connectionId: connection.connectionId,
                 params: sanitizeConnectionParamsForSharing(connection.params),
                 ...(connection.name == null ? {} : { name: connection.name }),
             })),
-        }, null, 2));
-        // The catalogs of the connections, an import seeds the connections that are new to the app
-        for (const catalog of catalogs) {
-            if (catalog.relations != null) await text(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_RELATIONS), catalog.relations);
-            if (catalog.functions != null) await text(bundleCatalogPath(catalog.connectionId, STORAGE_CATALOG_FUNCTIONS), catalog.functions);
+        },
+        scripts: bundle.scripts.filter(script => script.name.toLowerCase() !== 'dashql-draft.sql'),
+    };
+    for (const file of sanitized.data ?? []) validateDataFileName(file.name);
+    const tables = workbookBundleToTables(sanitized, sql => parseCatalogSql(writer.core, sql));
+    // The signal also stops an entry that is being streamed
+    const zip = new ZipWriter(new BlobWriter('application/zip'), { level: 6, signal });
+    try {
+        // Parquet is compressed already, a stored entry is a plain slice of the archive that an import reads in place.
+        // The entries are added one after the other, concurrent entries would wait in memory.
+        // Empty tables are left out, an import reads a missing table as one without rows. The workbook comes first.
+        for (const name of WORKBOOK_TABLE_NAMES) {
+            const rows = tables[name];
+            if (rows.length === 0) continue;
+            const bytes = await writeWorkbookTableParquet(writer.database, name, rows as never);
+            signal?.throwIfAborted();
+            await zip.add(workbookTableFileName(name), new Uint8ArrayReader(bytes), { level: 0 });
         }
-        // Add the flat ordered scripts
-        for (const script of scripts) {
-            if (script.name.toLowerCase() === 'dashql-draft.sql') continue;
-            await text(`${STORAGE_SCRIPTS_FOLDER}/${script.name}`, script.sql);
-        }
-        for (const file of data) {
-            validateDataFileName(file.name);
-            await zip.add(`${STORAGE_ATTACHMENTS_FOLDER}/${file.name}`, new Uint8ArrayReader(file.bytes));
-        }
-        // Parquet is compressed already, a stored entry is a plain slice of the archive that an import reads in place
-        for (const result of results) {
-            await zip.add(workbookResultPath(result.key), new BlobReader(result.bytes), { level: 0 });
+        for (const [tableName, file] of tables.data) {
+            await zip.add(workbookTableFileName(tableName), new BlobReader(file.bytes), { level: 0 });
         }
         return await zip.close();
     } catch (error) {
@@ -120,6 +110,7 @@ export async function createWorkbookZip(
 export async function exportWorkbookAsZip(
     workbookId: string,
     backend: StorageBackend,
+    writer: WorkbookArchiveWriter,
     options: WorkbookExportOptions = {}
 ): Promise<Blob> {
     const bundle = pruneBundleConnections(await readWorkbookBundle(workbookId, backend, options.withCatalog ?? false));
@@ -128,7 +119,13 @@ export async function exportWorkbookAsZip(
     // Apply the caller's transform (sharing sanitization, name override, ...)
     const out = options.transformBundle ? options.transformBundle(bundle) : bundle;
     // Create ZIP from loaded data
-    return await createWorkbookZip(out.workbook, bundle.scripts, out.catalogs, bundle.data, options.queryResults, options.signal);
+    const results = options.queryResults ?? [];
+    return await createWorkbookZip(writer, {
+        ...bundle,
+        workbook: out.workbook,
+        catalogs: out.catalogs,
+        ...(results.length > 0 ? { results: [...results] } : {}),
+    }, options.signal);
 }
 
 /// Export a workbook as a shareable ZIP.
@@ -138,13 +135,14 @@ export async function exportWorkbookAsZip(
 /// connections receive fresh UUIDs so importing a copy cannot collide with existing runtime state.
 export async function exportWorkbookAsSharedZip(
     backend: StorageBackend,
+    writer: WorkbookArchiveWriter,
     workbookId: string,
     connectionParams: ReadonlyMap<string, ConnectionParams>,
     optionsInput: SharedWorkbookExportOptionsInput = {},
 ): Promise<Blob> {
     const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
     const withLoginHint = options.withLoginHint ?? true;
-    return await exportWorkbookAsZip(workbookId, backend, {
+    return await exportWorkbookAsZip(workbookId, backend, writer, {
         withCatalog: options.withCatalog ?? true,
         queryResults: options.queryResults,
         signal: options.signal,
@@ -174,6 +172,7 @@ export async function exportWorkbookAsSharedZip(
 /// Export a workbook as a shareable link that carries the workbook ZIP inline.
 export async function exportWorkbookAsUrl(
     backend: StorageBackend,
+    writer: WorkbookArchiveWriter,
     workbookId: string,
     connectionParams: any,
     target: WorkbookLinkTarget,
@@ -182,6 +181,7 @@ export async function exportWorkbookAsUrl(
     const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
     const zipBlob = await exportWorkbookAsSharedZip(
         backend,
+        writer,
         workbookId,
         connectionParams,
         // A link never carries query results, an import of a link adds nothing to the cache
@@ -193,6 +193,7 @@ export async function exportWorkbookAsUrl(
 /// Export a connection as a shareable link: the link carries an empty workbook that holds only the connection.
 /// The params are sanitized, the workbook and the connection receive fresh ids.
 export async function exportConnectionAsUrl(
+    writer: WorkbookArchiveWriter,
     params: ConnectionParams,
     name: string | null,
     target: WorkbookLinkTarget,
@@ -210,27 +211,16 @@ export async function exportConnectionAsUrl(
         attachments: [],
         metadata: { createdAt: new Date().toISOString() },
     };
-    return await encodeWorkbookZipAsUrl(await createWorkbookZip(workbook, []), target);
+    return await encodeWorkbookZipAsUrl(await createWorkbookZip(writer, { workbook, catalogs: [], scripts: [] }), target);
 }
 
-/// Encode a workbook ZIP as a link that carries it inline.
-async function encodeWorkbookZipAsUrl(zipBlob: Blob, target: WorkbookLinkTarget): Promise<URL> {
-    const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
-
-    // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema. The arm keeps its name.
-    const eventData: app_event.AppEventData = {
-        session: BASE64URL_CODEC.encode(zipBytes.buffer)
-    };
-
-    // Encode the JSON to base64
-    const eventDataJson = JSON.stringify(eventData);
-    const eventDataBytes = new TextEncoder().encode(eventDataJson);
-    const eventDataBase64 = BASE64URL_CODEC.encode(eventDataBytes.buffer);
-
+/// Encode a workbook ZIP as a link that carries it inline, base64url-encoded once in the `zip` parameter
+export async function encodeWorkbookZipAsUrl(zipBlob: Blob, target: WorkbookLinkTarget): Promise<URL> {
+    const zip = BASE64URL_CODEC.encode(await zipBlob.arrayBuffer());
     switch (target) {
         case WorkbookLinkTarget.WEB:
-            return new URL(`${process.env.DASHQL_APP_URL!}?data=${eventDataBase64}`);
+            return new URL(`${process.env.DASHQL_APP_URL!}?${ZIP_QUERY_PARAMETER}=${zip}`);
         case WorkbookLinkTarget.NATIVE:
-            return new URL(`dashql://localhost?data=${eventDataBase64}`);
+            return new URL(`dashql://localhost?${ZIP_QUERY_PARAMETER}=${zip}`);
     }
 }

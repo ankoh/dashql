@@ -2,7 +2,8 @@ export const MAX_DEEP_LINK_DATA_LENGTH = 64 * 1024;
 
 export type DeepLink =
     | {type: "event", value: string}
-    | {type: "workbook", value: string};
+    | {type: "workbook", value: string}
+    | {type: "zip", value: string};
 
 export function parseDeepLink(link: string): DeepLink | null {
     if (link.length > MAX_DEEP_LINK_DATA_LENGTH * 3) return null;
@@ -27,10 +28,10 @@ export function parseDeepLink(link: string): DeepLink | null {
     const [name, value] = parameters[0];
     // Links of older versions pass hosted workbooks as "session" or "notebook", see legacy_links.ts of the app
     const isWorkbook = name === "workbook" || name === "session" || name === "notebook";
-    if ((name !== "data" && !isWorkbook) || value.length === 0 || value.length > MAX_DEEP_LINK_DATA_LENGTH) {
+    if ((name !== "data" && name !== "zip" && !isWorkbook) || value.length === 0 || value.length > MAX_DEEP_LINK_DATA_LENGTH) {
         return null;
     }
-    return {type: isWorkbook ? "workbook" : "event", value};
+    return {type: isWorkbook ? "workbook" : name === "zip" ? "zip" : "event", value};
 }
 
 export function parseDeepLinksFromCommandLine(commandLine: readonly string[]): DeepLink[] {

@@ -4,7 +4,7 @@ import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '../
 import { OPFS_TESTS_FOLDER } from '../platform/opfs_root.js';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
-import type { HyperDBClient, HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
 import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
 
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.
@@ -66,4 +66,37 @@ export async function testDatabasePath(name: string): Promise<string> {
         return (await createHyperDBOPFSInstance()).directoryPath;
     })();
     return `${await testDatabaseFolder}/${name}`;
+}
+
+/// The number of databases that createTestHyperDB() created in this frame, it names their files
+let nextTestDatabase = 0;
+
+/// A HyperDB on the engine client of the tests, with databases of its own.
+/// `dispose` terminates the database and, when the client is not shared, the client.
+export async function createTestHyperDB(name: string): Promise<{ database: HyperDB; dispose(): Promise<void> }> {
+    const { client, shared } = await getTestHyperDBClient();
+    const database = await HyperDB.create(new HyperDBEngine(client), {
+        computeDatabasePath: await testDatabasePath(`${name}-${nextTestDatabase++}.hyper`),
+        defaultDatabasePath: await testDatabasePath(`${name}-${nextTestDatabase++}.hyper`),
+        terminateEngine: false,
+    });
+    return {
+        database,
+        async dispose() {
+            await database.terminate();
+            if (!shared) await client.terminate();
+        },
+    };
+}
+
+/// A view of a database that ignores `terminate`, for providers that terminate their database when they unmount while
+/// the database of a test file serves several renders
+export function withoutTermination<T extends { terminate(): unknown }>(database: T): T {
+    return new Proxy(database, {
+        get(target, property) {
+            if (property === 'terminate') return async () => {};
+            const value = Reflect.get(target, property, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        },
+    });
 }

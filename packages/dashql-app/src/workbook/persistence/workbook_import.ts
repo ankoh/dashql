@@ -14,6 +14,18 @@ import {
     writeWorkbookBundle,
 } from '../../storage/workbook_bundle.js';
 import { MemoryFolder } from '../../storage/migration/migration_folder.js';
+import {
+    emptyWorkbookTables,
+    isDataTableName,
+    isWorkbookTableName,
+    RESULT_TABLE_PREFIX,
+    WORKBOOK_TABLE,
+    workbookTablesToBundle,
+    TABLE_FILE_EXTENSION,
+    type WorkbookTableName,
+    type WorkbookTables,
+} from '../../storage/workbook_tables.js';
+import { readWorkbookTableParquet, workbookTableFileName, type ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 import { WORKBOOK_RESULTS_FOLDER, workbookResultKey } from './workbook_query_results.js';
 import {
     BlobReader,
@@ -43,16 +55,57 @@ const NATURAL_SORT = new Intl.Collator(undefined, { numeric: true, sensitivity: 
 
 /// Parse and validate a portable workbook ZIP without modifying storage. Only the central directory and the small
 /// files are read, the query results stay slices of the archive until the import streams them into the cache.
-export async function readWorkbookBundleFromZip(zipBlob: Blob): Promise<WorkbookBundle> {
+///
+/// An archive holds the workbook tables as `<table>.parquet` (docs/design/workbook_tables.md), which the embedded Hyper
+/// reads.
+/// Archives of older versions hold the files of a workbook folder and are read without it.
+export async function readWorkbookBundleFromZip(zipBlob: Blob, database: ParquetReadDatabase | null): Promise<WorkbookBundle> {
     // The names are checked below, with the errors of the workbook format
     const zip = new ZipReader(new BlobReader(zipBlob), { filenameValidation: 'tolerant' });
     try {
-        return await readWorkbookBundleEntries(zipBlob, await zip.getEntries());
+        const entries = await zip.getEntries();
+        // The paths are checked by the readers, the workbook table is a file at the top level
+        if (!entries.some(entry => !entry.directory && destinationKey(entry.filename) === WORKBOOK_TABLE_FILE)) {
+            return await readWorkbookBundleEntries(zipBlob, entries);
+        }
+        if (database == null) {
+            throw new Error('Invalid ZIP: reading the workbook tables needs the embedded database');
+        }
+        return await workbookTablesToBundle(await readWorkbookTableEntries(zipBlob, entries, database), 'Invalid ZIP');
     } catch (error) {
         throw archiveError(error);
     } finally {
         await zip.close();
     }
+}
+
+/// The file name of the workbook table in an archive, it marks an archive of workbook tables
+const WORKBOOK_TABLE_FILE = workbookTableFileName(WORKBOOK_TABLE);
+
+/// Read the workbook tables of an archive. The data of the result tables stays slices of the archive, the other
+/// files are read with their CRC-32 checked.
+async function readWorkbookTableEntries(zipBlob: Blob, entries: Entry[], database: ParquetReadDatabase): Promise<WorkbookTables> {
+    const tables = emptyWorkbookTables();
+    const seen = new Set<string>();
+    for (const file of entries) {
+        const path = normalizeBundlePath(file.filename);
+        if (file.directory || path.includes('/') || !destinationKey(path).endsWith(TABLE_FILE_EXTENSION)) continue;
+        const tableName = path.slice(0, -TABLE_FILE_EXTENSION.length);
+        if (seen.has(destinationKey(tableName))) {
+            throw new Error(`Invalid ZIP: duplicate table ${path}`);
+        }
+        seen.add(destinationKey(tableName));
+        if (isWorkbookTableName(tableName)) {
+            const bytes = await file.getData(new BlobWriter(), { checkCrc32: true });
+            (tables as unknown as Record<WorkbookTableName, object[]>)[tableName] = await readWorkbookTableParquet(database, tableName, bytes);
+        } else if (isDataTableName(tableName)) {
+            const stored = tableName.startsWith(RESULT_TABLE_PREFIX) ? await storedEntryBlob(zipBlob, file) : null;
+            tables.data.set(tableName, stored != null
+                ? { bytes: stored, crc32: file.crc32 }
+                : { bytes: await file.getData(new BlobWriter(), { checkCrc32: true }) });
+        }
+    }
+    return tables;
 }
 
 async function readWorkbookBundleEntries(zipBlob: Blob, entries: Entry[]): Promise<WorkbookBundle> {
@@ -139,9 +192,10 @@ function validateDataPath(path: string): void {
 export async function importWorkbookFromZip(
     zipBlob: Blob,
     backend: StorageBackend,
+    database: ParquetReadDatabase | null,
     optionsInput: WorkbookZipImportOptionsInput = {},
 ): Promise<string> {
-    let bundle = await readWorkbookBundleFromZip(zipBlob);
+    let bundle = await readWorkbookBundleFromZip(zipBlob, database);
     const { regenerateConnectionIds, ...options }: WorkbookZipImportOptions = typeof optionsInput === 'function'
         ? { targetWorkbookId: optionsInput(), targetIsFresh: true, regenerateConnectionIds: true }
         : optionsInput;

@@ -9,6 +9,7 @@ import { ShareURLField } from '../workbook/persistence/share_url_field.js';
 import { exportConnectionAsUrl, WorkbookLinkTarget } from '../workbook/persistence/workbook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from './connection_params.js';
 import type { ConnectionState } from './connection_state.js';
+import { useWorkbookArchiveWriter } from '../workbook/persistence/workbook_archive_database.js';
 
 interface Props {
     /// The connection to share
@@ -29,18 +30,20 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
     });
     const params = database.params;
     const name = database.name ?? null;
+    const archiveWriter = useWorkbookArchiveWriter();
 
     React.useEffect(() => {
         if (!isOpen) return;
         let cancelled = false;
         setURL(null);
-        exportConnectionAsUrl(params, name, WorkbookLinkTarget.WEB, { withLoginHint: settings.withLoginHint })
+        archiveWriter('connection_link')
+            .then(writer => exportConnectionAsUrl(writer, params, name, WorkbookLinkTarget.WEB, { withLoginHint: settings.withLoginHint }))
             .then(link => { if (!cancelled) setURL(link.toString()); })
             .catch(() => { if (!cancelled) setURL(null); });
         return () => {
             cancelled = true;
         };
-    }, [params, name, settings.withLoginHint, isOpen]);
+    }, [params, name, settings.withLoginHint, isOpen, archiveWriter]);
 
     const hasLoginHint = React.useMemo(
         () => isOpen && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(database.details)),

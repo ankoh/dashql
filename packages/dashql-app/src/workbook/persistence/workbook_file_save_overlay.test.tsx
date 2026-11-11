@@ -1,7 +1,7 @@
 import * as React from 'react';
 import JSZip from 'jszip';
 import { act } from '@dashql/browser-test-act';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFERENCES, useConnectionRegistry, type ConnectionReferences } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
@@ -16,8 +16,22 @@ import { QueryResultCacheProvider } from '../../storage/query_result_cache_provi
 import type { QueryResultCache } from '../../query/query_result_cache.js';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { registerScriptRunServices } from '../scripts/script_run.js';
+import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
+import { DashQLCoreProvider } from '../../runtime/core_provider.js';
+import { readWorkbookBundleFromZip } from './workbook_import.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+let database: HyperDB;
+let disposeDatabase: (() => Promise<void>) | null = null;
+beforeAll(async () => {
+    ({ database, dispose: disposeDatabase } = await createTestHyperDB('dashql-export-overlay'));
+}, 60_000);
+afterAll(async () => {
+    await disposeDatabase?.();
+});
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
 
@@ -51,14 +65,18 @@ describe('WorkbookFileSaveOverlay', () => {
         const withCache = (children: React.ReactElement) => cache != null ? <QueryResultCacheProvider cache={cache}>{children}</QueryResultCacheProvider> : children;
         const tree = (overlay: boolean) => withCache(
             <LoggerProvider>
-                <StorageProvider backend={backend}>
-                    <ConnectionRegistry>
-                        <ConnectionReferencesProvider value={references}>
-                            <Capture />
-                            {overlay && <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={WORKBOOK} {...props} />}
-                        </ConnectionReferencesProvider>
-                    </ConnectionRegistry>
-                </StorageProvider>
+                <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
+<DashQLCoreProvider>
+                    <StorageProvider backend={backend}>
+                        <ConnectionRegistry>
+                            <ConnectionReferencesProvider value={references}>
+                                <Capture />
+                                {overlay && <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={WORKBOOK} {...props} />}
+                            </ConnectionReferencesProvider>
+                        </ConnectionRegistry>
+                    </StorageProvider>
+                </DashQLCoreProvider>
+</EmbeddedDatabaseProvider>
             </LoggerProvider>,
         );
         await root.render(tree(false));
@@ -94,8 +112,7 @@ describe('WorkbookFileSaveOverlay', () => {
             await vi.waitFor(() => expect(download.mock.calls.length).toBe(saves + 1));
         });
         const [bytes, fileName] = download.mock.calls.at(-1)! as [Blob, string];
-        const archive = await JSZip.loadAsync(bytes);
-        return { fileName, bytes, workbook: JSON.parse(await archive.file('dashql-workbook.json')!.async('text')) };
+        return { fileName, bytes, workbook: (await readWorkbookBundleFromZip(bytes, database)).workbook };
     }
 
     it('packs the workbook into a file of the original name and saves it', async () => {
@@ -156,7 +173,7 @@ describe('WorkbookFileSaveOverlay', () => {
                     .toBe('1 of 2 scripts have a cached result. Results contain query data.'));
             });
             let archive = await JSZip.loadAsync((await savedWorkbook()).bytes);
-            expect(archive.file(/^results\//)).toEqual([]);
+            expect(archive.file(/^workbook_result/)).toEqual([]);
 
             act(() => toggle('query-results').click());
             await waitForFile();
@@ -167,8 +184,11 @@ describe('WorkbookFileSaveOverlay', () => {
             expect(cache.retain).toHaveBeenCalledWith(key);
             expect(saved.bytes.size).toBeGreaterThan(bytes.length);
             archive = await JSZip.loadAsync(saved.bytes);
-            expect(archive.file(/^results\//).map(file => file.name)).toEqual([`results/${key}.parquet`]);
-            expect(await archive.file(`results/${key}.parquet`)!.async('uint8array')).toEqual(bytes);
+            const resultTables = archive.file(/^workbook_result_/);
+            expect(resultTables).toHaveLength(1);
+            expect(await resultTables[0].async('uint8array')).toEqual(bytes);
+            const imported = await readWorkbookBundleFromZip(saved.bytes, database);
+            expect(imported.results!.map(result => result.key)).toEqual([key]);
         } finally {
             registerScriptRunServices(instance as never, null);
         }

@@ -42,7 +42,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
-| `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as `results/<key>.parquet` (`query_cache.md`) |
+| `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as result tables (`query_cache.md`, `workbook_tables.md`) |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
 "Clear all data" removes `workbooktree/` first, resets the manifest, removes `workbooks/`, `connections/` and `shell/` and clears
@@ -119,7 +119,7 @@ Connections are global and referenced by workbooks through `connectionId`. Their
 
 - The catalog files. They are a cache of the last catalog refresh and seed the completion before the
   connection comes online. Workbook bundles carry the catalogs of their connections as
-  `connections/<id>/dashql-catalog-*.sql`.
+  `connections/<id>/dashql-catalog-*.sql`, a `.dashql` file as the rows of its catalog tables (`workbook_tables.md`).
 - `monitoring.hyper`, the monitoring database of the connection (`connectionMonitoringDatabasePath`). The monitor of
   the connection in `HyperLogMetrics` fills its tables `query_ends` and `resource_metrics` every 5 seconds with a
   `HyperDBIncrementalExtract` of the Hyper log: the queries whose client context names the connection, its own reads

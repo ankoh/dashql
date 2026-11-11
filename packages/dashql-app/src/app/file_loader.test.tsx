@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PlatformFile } from '../platform/file/file.js';
+import type { ParquetReadDatabase } from '../storage/workbook_tables_parquet.js';
 import type { PreparedPortableImport, WorkbookImportProgressConsumer } from '../workbook/persistence/workbook_import_provider.js';
 
 const state = {
@@ -11,6 +12,7 @@ const state = {
     commitPortableImport: vi.fn(),
     navigate: vi.fn(),
     readWorkbookBundleFromZip: vi.fn(),
+    archiveDatabase: {} as ParquetReadDatabase,
 };
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -22,6 +24,7 @@ const dependencies = {
         CompactNavBar: () => <></>,
     },
     readWorkbookBundleFromZip: state.readWorkbookBundleFromZip,
+    useWorkbookArchiveDatabase: () => async () => state.archiveDatabase,
     useWorkbookImport: () => ({ preparePortableImport: state.preparePortableImport, commitPortableImport: state.commitPortableImport }),
     useRouterNavigate: () => state.navigate,
 } as FileLoaderDependencies;
@@ -115,7 +118,7 @@ describe('FileLoader', () => {
         await act(async () => root.render(<FileLoader file={{ ...file(read), blob }} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
-        expect(state.readWorkbookBundleFromZip).toHaveBeenCalledWith(blob);
+        expect(state.readWorkbookBundleFromZip).toHaveBeenCalledWith(blob, state.archiveDatabase);
         expect(read).not.toHaveBeenCalled();
     });
 

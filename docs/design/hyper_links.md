@@ -10,7 +10,7 @@ second half describes the app.
 
 ## Link format
 
-A Hyper link is an app event, like the links of shared sessions: the query parameter `data` holds the base64url
+A Hyper link is an app event: the query parameter `data` holds the base64url
 encoding (without padding) of the UTF-8 JSON
 
 ```json
