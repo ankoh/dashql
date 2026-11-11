@@ -34,8 +34,22 @@ export type EmbeddedClientContext = Record<string, unknown>;
 /// the data frames of the computations, the database of the embedded Hyper connector, and the snippet search
 export type EmbeddedDatabaseAlias = '__dashql_compute' | 'hyper' | '__dashql_snippets';
 
+/// A database that a session attaches, like the attached databases of a Hyper server
+export interface EmbeddedAttachedDatabase {
+    /// The Hyper path of the database file
+    path: string;
+    /// The alias that statements name the database by
+    alias: string;
+}
+
 export interface EmbeddedConnectionOptions {
-    defaultDatabase?: EmbeddedDatabaseAlias;
+    /// The database of the instance that the session attaches first, the compute database by default, none with null
+    defaultDatabase?: EmbeddedDatabaseAlias | null;
+    /// Databases that the session attaches after its default database. Unlike the databases of the instance they
+    /// outlive it: a database is created when a session first attaches it, unless it exists, and never dropped. Hyper
+    /// resolves unqualified names only in a session with a single database, a session that attaches one has no default
+    /// database.
+    attachedDatabases?: readonly EmbeddedAttachedDatabase[];
     /// Reuse an idle connection and return it to a pool on close.
     /// Only for callers that leave no workbook state behind, such as settings, transactions or temporary tables.
     pooled?: boolean;

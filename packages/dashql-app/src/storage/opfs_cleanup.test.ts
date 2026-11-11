@@ -50,13 +50,15 @@ function messyStorage() {
         'connections/c1/dashql-catalog-relations.sql': '',
         'connections/c2/dashql-catalog-relations.sql': '',
         'exports/e1/result.parquet': '',
+        // The local cloud keeps its database across windows
+        'clouds/local.hyper': '',
     }, [
         'workbooktree', 'workbooktree/clients',
         'workbooks', 'workbooks/s1', 'workbooks/s1/scripts', 'workbooks/s1/scripts/page', 'workbooks/s1/cache',
         'workbooks/s2', 'workbooks/s2/attachments', 'workbooks/gone',
         'connections', 'connections/c1', 'connections/c2',
         'instances', `instances/${LIVE}`, `instances/${CLOSED}`,
-        'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests', 'cache',
+        'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests', 'cache', 'clouds',
         `dashql-session-${LEGACY}`,
     ]);
 }

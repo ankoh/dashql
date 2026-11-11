@@ -1,8 +1,9 @@
 # Workbook Tables
 
 A workbook that leaves the app travels as the rows of a fixed set of tables. A `.dashql` file is a ZIP that holds each
-table as a Parquet file, `<table>.parquet`, written and read by one converter (`storage/workbook_tables.ts`). The
-tables hold exactly one workbook, so no row names its workbook.
+table as a Parquet file, `<table>.parquet`. The cloud keeps published workbooks in the same tables, the rows of all
+versions merged and keyed by workbook and version (`cloud.md`). File and schema share one converter (`storage/workbook_tables.ts`); only the sink differs. The tables
+hold exactly one workbook, so no row names its workbook.
 
 ## Sharing a Workbook
 
@@ -11,6 +12,7 @@ tables hold exactly one workbook, so no row names its workbook.
 | `.dashql` file | the workbook tables as Parquet entries of a ZIP, the query results on request | this document |
 | Link, `?zip=` | the same ZIP inline, without query results and by default without catalogs | Links below |
 | Hosted folder, `?workbook=` | a workbook folder on a static host, read over HTTP | `workbook_publishing.md` |
+| Cloud | the rows of the workbook tables in the tables of the cloud connection, the store only so far | `cloud.md` |
 
 Every way imports through the portable import (`workbook_import_provider.tsx`): the connections of the workbook are
 matched with the registered ones, and a workbook whose id is registered already asks to be replaced or copied.
@@ -31,7 +33,8 @@ matched with the registered ones, and a workbook whose id is registered already 
 | `workbook_attachment_<32 hex>` | the data of one attachment |
 | `workbook_result_<32 hex>` | one cached query result |
 
-- **Names.** A table is named after what its rows belong to: the workbook or a connection of it.
+- **Names.** A table is named after what its rows belong to: the workbook or a connection of it. The cloud keeps the
+  tables of all published workbooks side by side under the same names (`cloud.md`).
 - **Data tables.** Every attachment and every cached query result is a table of its own. `workbook_attachments` and
   `workbook_results` name them. The text columns are `text`, the ids, `position` and `format_version` are `integer`, `is_aggregate` is
   `boolean`.

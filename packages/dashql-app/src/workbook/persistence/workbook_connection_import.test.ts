@@ -89,6 +89,12 @@ describe('workbook connection import', () => {
         expect(planConnectionImport(attached, [embedded])[0].decision).toEqual({ kind: 'link', connectionId: EMBEDDED });
         // Without an embedded database the app registers the imported one
         expect(planConnectionImport(workbook, ENTRIES)[0].decision).toEqual({ kind: 'register' });
+        // A local cloud attaches a database of the clouds folder, it is a connection of its own
+        const local = imported(IMPORTED, { hyper: {
+            protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+            attachedDatabases: [{ path: 'clouds/local.hyper', alias: 'dashql' }],
+        } } as ConnectionParams);
+        expect(planConnectionImport(local, [embedded])[0].decision).toEqual({ kind: 'register' });
     });
 
     it('registers unknown connections with their ids', () => {

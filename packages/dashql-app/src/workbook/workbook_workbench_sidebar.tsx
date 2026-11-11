@@ -63,6 +63,7 @@ import {
     createAttachedConnectionParamsForConnector,
 } from '../connections/connection_params.js';
 import { useNewWorkbookConnection } from '../connections/embedded_connection.js';
+import { useCloudConnectionId, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { ATTACHABLE_CONNECTORS } from '../connections/attached_connection.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { ConnectionSettingsOverlay } from '../connections/connection_settings_overlay.js';
@@ -693,6 +694,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const openGreeterPage = dependencies.useOpenGreeter();
     const ensureEphemeralWorkbook = dependencies.useEnsureEphemeralWorkbook();
     const resolveNewWorkbookConnection = dependencies.useNewWorkbookConnection();
+    const cloudConnectionId = useCloudConnectionId();
+    const setCloudConnection = useSetCloudConnection();
     const mergeConnections = dependencies.useMergeConnections();
     const replaceConnection = dependencies.useReplaceConnection();
     const detachConnectionFromWorkbooks = dependencies.useDetachConnection();
@@ -810,8 +813,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const workbookCount = workbooks.length + invalidItems.length;
     // The references follow the scripts registry
     const connectionRows = React.useMemo(
-        () => listedConnections(databaseRegistry, references, workbookConnectionRows),
-        [databaseRegistry, references, scriptsRegistry, workbookConnectionRows],
+        () => listedConnections(databaseRegistry, references, workbookConnectionRows, cloudConnectionId),
+        [databaseRegistry, references, scriptsRegistry, workbookConnectionRows, cloudConnectionId],
     );
     const workbookConnectionIds = React.useMemo(
         () => new Set(workbookConnectionRows.map(database => database.connectionId)),
@@ -1372,6 +1375,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                 attention={connectionAttention?.active === true}
                                 onOpenOverview={openOverview}
                                 openOverviewId={props.openOverviewId ?? null}
+                                cloudConnectionId={cloudConnectionId}
+                                onSetCloud={setCloudConnection}
                                 onOpenSettings={(connectionId, anchor) => {
                                     connectionSettingsAnchorRef.current = anchor;
                                     setConnectionOverlayDatabaseId(connectionId);

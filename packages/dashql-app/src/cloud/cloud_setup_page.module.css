@@ -1,0 +1,79 @@
+.card {
+    width: min(640px, calc(100vw - 32px));
+}
+
+.title {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font_size_subtitle);
+}
+
+.choose,
+.login {
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    padding: 16px;
+}
+
+.text {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.status {
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_small);
+}
+
+.error {
+    margin: 0;
+    color: var(--color_danger_fg);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.row_actions {
+    display: flex;
+    justify-content: flex-end;
+    column-gap: 8px;
+}
+
+.connections {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
+.connection {
+    display: grid;
+    grid-template-columns: 1fr max-content max-content;
+    column-gap: 12px;
+    align-items: center;
+}
+
+.connection_name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings {
+    height: min(480px, calc(100vh - 240px));
+    overflow: auto;
+}
+
+.workbooks {
+    margin: 0;
+    padding: 0 16px 16px 16px;
+    color: var(--color_fg_muted);
+}

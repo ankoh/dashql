@@ -8,6 +8,8 @@ export interface HyperArrowInsert {
     table: arrow.Table;
     /// The column descriptor of the external scan, Hyper cannot infer it from the Arrow schema
     columns: string;
+    /// The Hyper types of the columns
+    types: string[];
 }
 
 function quoteIdentifier(value: string): string {
@@ -161,12 +163,13 @@ export function prepareHyperArrowInsert(table: arrow.Table): HyperArrowInsert {
     // Converted columns are single chunks, the table redistributes the other columns into matching batches.
     // The rebuilt table drops the field metadata, so the descriptor follows the fields of the scanned table.
     const scanned = converted ? new arrow.Table(columns) : table;
-    const descriptor = scanned.schema.fields.map(field => {
+    const types = scanned.schema.fields.map(field => {
         const type = readableHyperType(field);
         if (type == null) {
             throw new Error(`Hyper cannot import Arrow columns of type ${String(field.type)}`);
         }
-        return `${quoteIdentifier(field.name)} ${type}`;
+        return type;
     });
-    return { table: scanned, columns: descriptor.join(', ') };
+    const descriptor = scanned.schema.fields.map((field, index) => `${quoteIdentifier(field.name)} ${types[index]}`);
+    return { table: scanned, columns: descriptor.join(', '), types };
 }

@@ -141,6 +141,7 @@ export enum QueryType {
     CATALOG_QUERY_HYPER_CLOUD,
     HEALTH_CHECK,
     INTERNAL_SQLFRAME,
+    CLOUD_STORE,
 }
 
 export interface QueryMetadata {

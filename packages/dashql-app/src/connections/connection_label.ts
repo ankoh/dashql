@@ -1,11 +1,16 @@
 import type { ConnectionState } from './connection_state.js';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { getConnectorInfoForParams, HYPER_CONNECTOR } from './connector_info.js';
+import { embeddedCloudDatabases } from './hyper/local_cloud.js';
 import type { ConnectionParams } from './connection_params.js';
 
+/// Is the connection the embedded Hyper of the app? A connection of the embedded Hyper that attaches a database of the
+/// clouds folder, the local cloud, is a connection of its own like one to a server.
 export function isHyperWasmConnection(database: ConnectionState): boolean {
-    return database.details.type === HYPER_CONNECTOR &&
-        (database.details.value.proto.setupParams?.protocol ?? 'WASM') === 'WASM';
+    const setupParams = database.details.type === HYPER_CONNECTOR ? database.details.value.proto.setupParams : null;
+    return database.details.type === HYPER_CONNECTOR
+        && (setupParams?.protocol ?? 'WASM') === 'WASM'
+        && embeddedCloudDatabases(setupParams).length === 0;
 }
 
 /// Does a connection offer an operational overview?

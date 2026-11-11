@@ -17,6 +17,7 @@ import {
     HYPER_INSTANCES_DIRECTORY,
     HYPER_LEGACY_INSTANCE_PREFIX,
     HYPER_LEGACY_LOGS_DIRECTORY,
+    HYPER_CLOUDS_DIRECTORY,
     isUuid,
 } from '../platform/hyperdb/hyperdb_opfs_instance.js';
 import { PARQUET_EXPORT_DIRECTORY } from '../platform/hyperdb/hyperdb_parquet_export.js';
@@ -148,6 +149,8 @@ export async function findOPFSCleanupCandidates(
             case STORAGE_SHELL_FOLDER:
             case SHELL_FILES_DIRECTORY:
             case STORAGE_WORKBOOK_TREE_FOLDER:
+            // The databases of clouds keep published workbooks, the Cloud overlay resets the local cloud
+            case HYPER_CLOUDS_DIRECTORY:
                 break;
             case HYPER_LEGACY_LOGS_DIRECTORY:
                 add([name], true, 'Hyper logs of an earlier version');

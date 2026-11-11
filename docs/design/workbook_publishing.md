@@ -1,8 +1,9 @@
 # Workbook Publishing
 
 DashQL workbooks can be published as ordinary, reviewable files on any static host with CORS, such as
-GitHub Pages, without a `.dashql` archive or a DashQL-hosted publishing service. A link points
-https://dashql.app at the workbook file, and the app imports the tree as an editable local workbook.
+GitHub Pages, without a `.dashql` archive or a database. A link points https://dashql.app at the workbook file, and
+the app imports the tree as an editable local workbook. The other ways to share a workbook are listed in
+`workbook_tables.md`.
 
 ## Published Tree
 

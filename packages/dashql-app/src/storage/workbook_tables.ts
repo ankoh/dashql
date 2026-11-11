@@ -19,8 +19,9 @@ import {
     type CatalogStructure,
 } from '../connections/catalog/catalog_structure.js';
 
-// The tables of one workbook, in a `.dashql` file as `<table>.parquet`. A table is named after what its rows belong to,
-// the workbook or a connection. See docs/design/workbook_tables.md.
+// The tables of one workbook: in a `.dashql` file as `<table>.parquet`, in the cloud as rows of tables of the same
+// names, merged across the versions of all workbooks. A table is named after what its rows belong to, the workbook or a
+// connection. See docs/design/workbook_tables.md.
 
 /// The workbook, one row
 export const WORKBOOK_TABLE = 'workbook';

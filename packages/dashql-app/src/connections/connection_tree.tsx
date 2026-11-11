@@ -44,6 +44,7 @@ import { ConnectionLabelView } from './connection_label_view.js';
 import { ConnectionURLShareOverlay } from './connection_url_share_overlay.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import { ConnectionReplacePicker } from './connection_replace_picker.js';
+import { isCloudCapable } from './cloud_connection.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
@@ -367,6 +368,10 @@ interface ConnectionTreeRowProps {
     renamingId: string | null;
     /// Start or stop renaming a connection
     setRenamingId: (connectionId: string | null) => void;
+    /// The cloud connection, null if there is none
+    cloudConnectionId: string | null;
+    /// Use a connection as cloud connection or, with null, none
+    onSetCloud?: (connectionId: string | null) => void;
 }
 
 /// How workbooks use a connection
@@ -460,6 +465,13 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         </svg>
                     )}
                 >
+                    {props.cloudConnectionId === connectionId && (
+                        <span className={styles.cloud_badge} title="Cloud connection" aria-label="Cloud connection" role="img" data-testid="connection-cloud-badge">
+                            <svg width="14" height="14" aria-hidden="true">
+                                <use xlinkHref={`${symbols}#cloud`} />
+                            </svg>
+                        </span>
+                    )}
                     <ConnectionStatusButton
                         database={row.database}
                         label={label}
@@ -484,6 +496,10 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         replaceCandidates={props.replaceCandidates == null ? undefined : () => props.replaceCandidates!(connectionId)}
                         labelOf={props.labelOf}
                         workbookCount={usage?.blockingWorkbookCount}
+                        isCloud={props.cloudConnectionId === connectionId}
+                        onSetCloud={props.onSetCloud == null || (props.cloudConnectionId !== connectionId && !isCloudCapable(row.database.params))
+                            ? undefined
+                            : cloud => props.onSetCloud!(cloud ? connectionId : null)}
                     />
                 </ConnectionTreeEntry>
             </div>
@@ -577,6 +593,10 @@ interface ConnectionTreeProps {
     openOverviewId?: string | null;
     /// Rename a connection, a blank name restores the default label. Connections can't be renamed without it
     onRename?: (connectionId: string, name: string) => void;
+    /// The cloud connection, it is listed first in its group
+    cloudConnectionId?: string | null;
+    /// Use a connection as cloud connection or, with null, none. Connections can't become the cloud connection without it
+    onSetCloud?: (connectionId: string | null) => void;
 }
 
 const connectionKey = (connectionId: string) => `connection:${connectionId}`;
@@ -624,6 +644,8 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onOpenOverview,
     openOverviewId = null,
     onRename,
+    cloudConnectionId = null,
+    onSetCloud,
 }) => {
     // The database states change with every query event while the catalogs rarely change.
     // A catalog caches its flat form until its version changes, so its identity tells us when the trees
@@ -684,8 +706,12 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             next.push({ type: 'connection-catalog', key: catalogKey(database.connectionId), database });
             next.push(...catalogRows[i]);
         };
+        // The cloud connection comes first in its group
+        const order = databases.map((_, i) => i);
+        const cloudIndex = databases.findIndex(database => database.connectionId === cloudConnectionId);
+        if (cloudIndex > 0) order.unshift(...order.splice(cloudIndex, 1));
         if (workbookConnectionIds == null) {
-            databases.forEach(pushConnection);
+            for (const i of order) pushConnection(databases[i], i);
             return next;
         }
         const groupOf = (database: ConnectionState): ConnectionGroupKind => {
@@ -696,12 +722,12 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         for (const group of CONNECTION_GROUP_ORDER) {
             if (!groups.includes(group)) continue;
             next.push({ type: 'connection-group', key: `connection-group:${group}`, group, label: CONNECTION_GROUP_LABELS[group] });
-            databases.forEach((database, i) => {
-                if (groups[i] === group) pushConnection(database, i);
-            });
+            for (const i of order) {
+                if (groups[i] === group) pushConnection(databases[i], i);
+            }
         }
         return next;
-    }, [databases, catalogRows, describeUsage, expanded, onOpenOverview, workbookConnectionIds]);
+    }, [databases, catalogRows, cloudConnectionId, describeUsage, expanded, onOpenOverview, workbookConnectionIds]);
     // The rows are virtualized, the tree remembers the renamed connection while its row scrolls out of view
     const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -735,7 +761,9 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         onRename,
         renamingId,
         setRenamingId,
-    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, onRename, onReplace, openOverviewId, renamingId, replaceBlocker, replaceCandidates, rows, toggle]);
+        cloudConnectionId,
+        onSetCloud,
+    }), [attention, cloudConnectionId, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, onRename, onReplace, onSetCloud, openOverviewId, renamingId, replaceBlocker, replaceCandidates, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -753,16 +781,17 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
 
 /// The connections shown next to the workbooks.
 /// The connections of the current workbook come first, followed by the connections of other
-/// workbooks and active connections that no workbook uses.
+/// workbooks and active connections that no workbook uses. The cloud connection is always listed.
 export function listedConnections(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
     currentWorkbookConnections: readonly ConnectionState[],
+    cloudConnectionId: string | null = null,
 ): ConnectionState[] {
     const listed = [...currentWorkbookConnections];
     const seen = new Set(listed.map(database => database.connectionId));
     for (const [connectionId, database] of registry.connections) {
-        if (!seen.has(connectionId) && isListedConnection(registry, references, connectionId)) {
+        if (!seen.has(connectionId) && (connectionId === cloudConnectionId || isListedConnection(registry, references, connectionId))) {
             listed.push(database);
         }
     }
@@ -797,6 +826,10 @@ interface ConnectionRowMenuProps {
     workbookCount?: number;
     /// The right click of the row that opens the menu
     contextMenu?: RowContextMenu;
+    /// Is the connection the cloud connection?
+    isCloud?: boolean;
+    /// Use the connection as cloud connection or stop using it, only for connections that can be one
+    onSetCloud?: (cloud: boolean) => void;
     dependencies?: ConnectionRefreshDependencies;
 }
 
@@ -808,7 +841,7 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, workbookCount = 0, contextMenu, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, workbookCount = 0, contextMenu, isCloud = false, onSetCloud, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     useRowContextMenuOpener(contextMenu, () => setOpen(true));
     // The menu turns into the picker of the connection that replaces this one
@@ -904,6 +937,20 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         </ActionList.Leading>
                         <ActionList.ItemText>Refresh</ActionList.ItemText>
                     </ActionList.ListItem>
+                    {/* The list takes elements only, the fragment wraps the optional item */}
+                    <>{onSetCloud && (
+                        <ActionList.ListItem data-testid="connection-menu-item" data-action="cloud" onClick={() => {
+                            setOpen(false);
+                            onSetCloud(!isCloud);
+                        }}>
+                            <ActionList.Leading>
+                                <svg width="16" height="16" aria-hidden="true">
+                                    <use xlinkHref={`${symbols}#${isCloud ? 'cloud_offline' : 'cloud'}`} />
+                                </svg>
+                            </ActionList.Leading>
+                            <ActionList.ItemText>{isCloud ? 'Stop Using as Cloud' : 'Use as Cloud'}</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     {/* The list takes elements only, the fragment wraps the optional item */}
                     <>{canShare && (
                         <ActionList.ListItem data-testid="connection-menu-item" data-action="share-url" onClick={(event) => {

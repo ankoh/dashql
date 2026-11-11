@@ -7,6 +7,7 @@ import {
 } from 'hyperdb-wasm';
 
 import type {
+    EmbeddedAttachedDatabase,
     EmbeddedComputeDatabase,
     EmbeddedConnectionOptions,
     EmbeddedDatabaseAlias,
@@ -75,9 +76,10 @@ function yieldToEventLoop(): Promise<void> {
 // A session keeps the client context it was connected with, the sessions are pooled per client context.
 const MAX_IDLE_WORKBOOKS = 4;
 
-/// The key of the idle sessions with a default database and a client context
-function poolKey(alias: string, clientContext: string | null): string {
-    return clientContext == null ? alias : `${alias}:${clientContext}`;
+/// The key of the idle sessions with a default database, attached databases and a client context
+function poolKey(alias: string | null, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): string {
+    const databases = [alias ?? '', ...attached.map(database => `${database.alias}=${database.path}`)].join(',');
+    return clientContext == null ? databases : `${databases}:${clientContext}`;
 }
 
 export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDatabase, EmbeddedExternalDirectoryDatabase {
@@ -94,6 +96,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
     private readonly computeDatabasePath: string | null;
     private readonly defaultDatabasePath: string | null;
     private readonly snippetsDatabasePath: string | null;
+    /// The attached databases that were created unless they existed, by path, once per instance
+    private readonly attachedDatabaseCreations = new Map<string, Promise<void>>();
     private readonly externalFiles = new Map<string, MountedResource>();
     private readonly externalDirectories = new Map<string, MountedResource>();
 
@@ -118,11 +122,12 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         if (this.termination || this.terminated) {
             throw new Error('database is terminated');
         }
-        const alias = options.defaultDatabase ?? '__dashql_compute';
+        const alias = options.defaultDatabase === null ? null : options.defaultDatabase ?? '__dashql_compute';
         const clientContext = options.clientContext == null ? null : JSON.stringify(options.clientContext);
+        const attached = options.attachedDatabases ?? [];
         let pool: HyperDBSession[] | null = null;
         if (options.pooled) {
-            const key = poolKey(alias, clientContext);
+            const key = poolKey(alias, attached, clientContext);
             pool = this.idleSessions.get(key) ?? [];
             this.idleSessions.set(key, pool);
         }
@@ -133,7 +138,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             return new HyperDBConnection(idle, release);
         }
 
-        const opening = this.openWorkbook(this.databasePath(alias), alias, clientContext);
+        for (const database of attached) await this.createAttachedDatabase(database.path);
+        const opening = this.openWorkbook(alias == null ? null : this.databasePath(alias), alias ?? '', attached, clientContext);
         this.openingSessions.add(opening);
         try {
             return new HyperDBConnection(await opening, release);
@@ -154,6 +160,19 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         }
     }
 
+    /// Create an attached database unless it exists. It is never dropped, so its tables outlive the instance.
+    private async createAttachedDatabase(path: string): Promise<void> {
+        let creation = this.attachedDatabaseCreations.get(path);
+        if (creation == null) {
+            creation = this.runDatabaseOperation(async () => {
+                await this.executeDatabaseStatement(`CREATE DATABASE IF NOT EXISTS ${quoteIdentifier(path)}`);
+            });
+            this.attachedDatabaseCreations.set(path, creation);
+            creation.catch(() => this.attachedDatabaseCreations.delete(path));
+        }
+        await creation;
+    }
+
     /// The paths of the databases that are created on startup and dropped on termination
     private databasePaths(): string[] {
         return [this.computeDatabasePath, this.defaultDatabasePath, this.snippetsDatabasePath].filter(path => path != null);
@@ -161,7 +180,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
 
     /// Open an engine connection with the database attached under the alias.
     /// A termination waits for the opening sessions, they close themselves if it started while they were attaching.
-    private async openWorkbook(databasePath: string | null, alias: string, clientContext: string | null): Promise<HyperDBSession> {
+    private async openWorkbook(databasePath: string | null, alias: string, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): Promise<HyperDBSession> {
         // Hyper logs the client context as ctx.client of the query events of the session
         const connection = await this.engine.connect(clientContext == null
             ? undefined
@@ -177,6 +196,9 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         try {
             if (databasePath != null) {
                 await session.execute(`ATTACH DATABASE ${quoteIdentifier(databasePath)} AS ${quoteIdentifier(alias)}`);
+            }
+            for (const database of attached) {
+                await session.execute(`ATTACH DATABASE ${quoteIdentifier(database.path)} AS ${quoteIdentifier(database.alias)}`);
             }
             if (this.termination || this.terminated) {
                 throw new Error('database is terminated');

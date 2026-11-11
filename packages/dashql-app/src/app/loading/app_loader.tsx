@@ -13,6 +13,7 @@ import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
 import { useSharedWorkbookImport } from './shared_workbook_import.js';
+import { useCloudSetupGate } from './cloud_setup_gate.js';
 import { useHyperLinks } from '../hyper_links.js';
 
 interface Props { }
@@ -33,6 +34,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const initialImport = React.useRef<Promise<boolean> | null>(null);
     const setup = useAppSetup(initialImport);
     const sharedWorkbookCard = useSharedWorkbookImport(setup.done, initialImport);
+    const cloudSetupPage = useCloudSetupGate(setup.done);
     useHyperLinks(setup.opened);
 
     React.useEffect(() => {
@@ -62,7 +64,8 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     // Setup done and workbook selected? Show main interface
     const pauseAfterSetup = config?.settings?.pauseAfterAppSetup ?? false;
     if (canShowWorkbook(routeContext, pauseAfterSetup)) {
-        return props.children;
+        // The cloud setup shows before the workbench, at the start of the app and when the Cloud overlay asks for it
+        return cloudSetupPage ?? props.children;
     } else {
         // Otherwise show the app loading page
         return <AppLoadingPage

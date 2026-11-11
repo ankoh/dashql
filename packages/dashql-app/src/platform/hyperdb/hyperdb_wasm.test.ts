@@ -572,6 +572,47 @@ describe('HyperDB embedded database adapter', () => {
         expect(client.calls.filter(call => /query:\d+:DROP DATABASE "\/mnt\/fs\/snippets.hyper"/.test(call))).toHaveLength(1);
     });
 
+    it('attaches databases with or without the default one, creates them once and keeps them', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, {
+            computeDatabasePath: '/mnt/fs/compute.hyper',
+            defaultDatabasePath: '/mnt/fs/user.hyper',
+        });
+        const attachedDatabases = [{ path: '/mnt/fs/clouds/local.hyper', alias: 'dashql' }];
+        const creates = () => client.calls.filter(call => /query:\d+:CREATE DATABASE IF NOT EXISTS "\/mnt\/fs\/clouds\/local.hyper"/.test(call));
+        expect(creates()).toHaveLength(0);
+
+        const [first, second] = await Promise.all([
+            database.connect({ defaultDatabase: 'hyper', attachedDatabases }),
+            database.connect({ defaultDatabase: null, attachedDatabases }),
+        ]);
+        expect(creates()).toHaveLength(1);
+        const attaches = client.calls.filter(call => /query:\d+:.*ATTACH DATABASE/.test(call));
+        // A session attaches its default database first, a session without one only the attached databases
+        expect(attaches.filter(call => call.includes('ATTACH DATABASE "/mnt/fs/user.hyper" AS "hyper"'))).toHaveLength(1);
+        expect(attaches.filter(call => call.includes('ATTACH DATABASE "/mnt/fs/clouds/local.hyper" AS "dashql"'))).toHaveLength(2);
+        await Promise.all([first.close(), second.close()]);
+        await database.terminate();
+        expect(client.calls.some(call => call.includes('DROP DATABASE "/mnt/fs/clouds/local.hyper"'))).toBe(false);
+        expect(client.calls.filter(call => /query:\d+:DROP DATABASE "\/mnt\/fs\/user.hyper"/.test(call))).toHaveLength(1);
+    });
+
+    it('pools sessions separately per attached databases', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { defaultDatabasePath: '/mnt/fs/user.hyper' });
+        const attachedDatabases = [{ path: '/mnt/fs/clouds/local.hyper', alias: 'dashql' }];
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true })).close();
+        const withoutAttached = client.connectCount;
+        // A session without the attached database doesn't serve one with it
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true, attachedDatabases })).close();
+        expect(client.connectCount).toBeGreaterThan(withoutAttached);
+        const withAttached = client.connectCount;
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true, attachedDatabases })).close();
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true })).close();
+        expect(client.connectCount).toBe(withAttached);
+        await database.terminate();
+    });
+
     it('gives concurrent pooled connections separate sessions and reuses both', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await createDatabase(client);

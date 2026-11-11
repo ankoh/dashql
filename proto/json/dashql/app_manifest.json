@@ -85,6 +85,10 @@
           "type": "string",
           "enum": ["lower", "upper"]
         },
+        "cloudConnectionId": {
+          "type": "string",
+          "description": "The connection that the user logs in to when the app starts, new workbooks start on it and published workbooks are stored in its tables"
+        },
         "forceReLogin": {
           "type": "boolean"
         },

@@ -180,7 +180,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             }, (workbookId, error) => {
                 traced.warn("Failed to delete a surplus ephemeral workbook", { workbookId, error: stringifyError(error) }, LOG_CTX);
             });
-            const greeter = ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, core));
+            const greeter = ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, core, config.settings?.cloudConnectionId ?? null));
 
             if (await shouldFinishInitialNavigation(initialImport.current)) {
                 const workbookId = selectStartupWorkbook(workbookIdFromPathname(pathname), loaded.restoredWorkbooks);

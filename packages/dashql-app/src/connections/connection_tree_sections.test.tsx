@@ -164,4 +164,40 @@ describe('ConnectionTree sections', () => {
             expect(nameInput()).toBeNull();
         });
     });
+
+    describe('cloud connection', () => {
+        const cloud = { ...connection('hyper-cloud', ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484' } } } as unknown as ConnectionState;
+        const rowIds = () => [...container.querySelectorAll('[data-testid="connection-toggle"]')]
+            .map(row => row.closest('[data-connection-id]')!.getAttribute('data-connection-id'));
+        const menuItem = () => document.querySelector<HTMLElement>('[data-testid="connection-menu-item"][data-action="cloud"]');
+
+        it('lists the cloud connection first with a badge', () => {
+            render({ databases: [hyper, trino, cloud], cloudConnectionId: 'hyper-cloud' });
+            expect(rowIds()).toEqual(['hyper-cloud', 'hyper-1', 'trino-1']);
+            expect(query('hyper-cloud', 'connection-cloud-badge')).not.toBeNull();
+            expect(query('hyper-1', 'connection-cloud-badge')).toBeNull();
+        });
+
+        it('uses a connection that can be one as cloud connection from the row menu', () => {
+            const onSetCloud = vi.fn();
+            render({ databases: [hyper, trino, cloud], onSetCloud });
+            act(() => query('hyper-cloud', 'connection-row-menu')!.click());
+            expect(menuItem()!.textContent).toBe('Use as Cloud');
+            act(() => menuItem()!.click());
+            expect(onSetCloud).toHaveBeenCalledWith('hyper-cloud');
+
+            // Trino doesn't write, it can't be the cloud connection
+            act(() => query('trino-1', 'connection-row-menu')!.click());
+            expect(menuItem()).toBeNull();
+        });
+
+        it('stops using the cloud connection from the row menu', () => {
+            const onSetCloud = vi.fn();
+            render({ databases: [hyper, trino, cloud], cloudConnectionId: 'hyper-cloud', onSetCloud });
+            act(() => query('hyper-cloud', 'connection-row-menu')!.click());
+            expect(menuItem()!.textContent).toBe('Stop Using as Cloud');
+            act(() => menuItem()!.click());
+            expect(onSetCloud).toHaveBeenCalledWith(null);
+        });
+    });
 });

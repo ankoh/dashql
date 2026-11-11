@@ -28,6 +28,25 @@ export interface HyperDBOPFSInstance {
     dispose(): Promise<void>;
 }
 
+/// The OPFS folder of the databases that the embedded Hyper connection attaches, next to the instance folders and never
+/// cleaned up, e.g. the local cloud `clouds/local.hyper`
+export const HYPER_CLOUDS_DIRECTORY = 'clouds';
+
+/// The database files that the embedded Hyper connection may attach, relative to the OPFS folder of the app
+const ATTACHABLE_DATABASE = /^clouds\/[A-Za-z0-9_-]+\.hyper$/;
+
+/// The Hyper path of a database that the embedded Hyper connection attaches, given relative to the OPFS folder of the
+/// app. Unlike the databases of an instance it outlives the window. Only files in the clouds folder may be attached,
+/// the OPFS cleanup leaves them alone.
+export async function embeddedAttachedDatabasePath(
+    path: string,
+    getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
+): Promise<string> {
+    if (!ATTACHABLE_DATABASE.test(path)) throw new Error(`The embedded Hyper only attaches databases in ${HYPER_CLOUDS_DIRECTORY}/, not ${path}`);
+    await (await getRoot()).getDirectoryHandle(HYPER_CLOUDS_DIRECTORY, { create: true });
+    return `${hyperOPFSRoot()}/${path}`;
+}
+
 export async function createHyperDBOPFSInstance(
     getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
 ): Promise<HyperDBOPFSInstance> {

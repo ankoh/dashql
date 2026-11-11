@@ -28,6 +28,9 @@ export interface AppSettings {
     /// Force the OAuth identity provider to re-prompt for login instead of silently reusing an
     /// existing browser session. Adds `prompt=login` to the authorization request.
     forceReLogin?: boolean;
+    /// The connection that the user logs in to when the app starts, new workbooks start on it and published workbooks are
+    /// stored in its tables (docs/design/cloud.md)
+    cloudConnectionId?: string;
     minLogLevel?: number;
     /// The id of the app flavor, the flavor query parameter of the url wins
     flavor?: string;

@@ -19,6 +19,7 @@ import { getRequestedFlavor } from '../config/flavor_resolution.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { HyperSetupProvider } from '../connections/hyper/hyper_connection_setup.js';
+import { CloudStateProvider } from '../cloud/cloud_state.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_client_provider.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
@@ -56,6 +57,7 @@ const LOG_CTX = 'app';
 // For example:
 // - WorkbookScriptsRegistryProvider comes first, the connection layer reads from it which workbooks use a connection.
 // - WorkbookCatalogLoaderProvider requires WorkbookScriptsRegistryProvider to mark connection scripts as outdated.
+// - CloudStateProvider runs its statements through the QueryExecutorProvider, the AppLoader shows the cloud setup from it.
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
     <WorkbookScriptsRegistryProvider>
         <ConnectionRegistry>
@@ -75,9 +77,11 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                                         <WorkbookImportProvider>
                                                             <WorkbookViewModeProvider>
                                                                 <WorkbookCommands>
-                                                                    <AppLoader>
-                                                                        {props.children}
-                                                                    </AppLoader>
+                                                                    <CloudStateProvider>
+                                                                        <AppLoader>
+                                                                            {props.children}
+                                                                        </AppLoader>
+                                                                    </CloudStateProvider>
                                                                 </WorkbookCommands>
                                                             </WorkbookViewModeProvider>
                                                         </WorkbookImportProvider>

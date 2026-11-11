@@ -47,21 +47,27 @@ describe('embedded connection', () => {
 describe('new workbook connection', () => {
     const embedded = () => ({ ...createDefaultHyperWasmConnectionState(dql), connectionId: 'embedded' });
     const linked = () => ({ ...createConnectionStateFromParams(dql, createHyperLinkConnectionParams('http://127.0.0.1:7484')), connectionId: 'linked' });
+    const cloud = () => ({ ...createConnectionStateFromParams(dql, { hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484', tls: {} } } as any), connectionId: 'cloud' });
 
-    it('starts new workbooks on the embedded Hyper without a link', () => {
+    it('starts new workbooks on the embedded Hyper without a link or a cloud connection', () => {
         const connection = embedded();
-        expect(newWorkbookConnection(new Map([['embedded', connection], ['linked', linked()]]), allocator(), dql, null)).toBe(connection);
+        expect(newWorkbookConnection(new Map([['embedded', connection], ['linked', linked()], ['cloud', cloud()]]), allocator(), dql, null, null)).toBe(connection);
     });
 
     it('starts new workbooks on the connection of the latest link of the tab', () => {
         const connection = linked();
         const allocate = allocator();
-        expect(newWorkbookConnection(new Map([['embedded', embedded()], ['linked', connection]]), allocate, dql, 'linked')).toBe(connection);
+        expect(newWorkbookConnection(new Map([['embedded', embedded()], ['linked', connection], ['cloud', cloud()]]), allocate, dql, 'cloud', 'linked')).toBe(connection);
         expect(allocate).not.toHaveBeenCalled();
     });
 
-    it('falls back to the embedded Hyper when the connection of the link is gone', () => {
+    it('starts new workbooks on the cloud connection without a link', () => {
+        const connection = cloud();
+        expect(newWorkbookConnection(new Map([['embedded', embedded()], ['cloud', connection]]), allocator(), dql, 'cloud', null)).toBe(connection);
+    });
+
+    it('falls back to the embedded Hyper when the connection of the link or the cloud is gone', () => {
         const connection = embedded();
-        expect(newWorkbookConnection(new Map([['embedded', connection]]), allocator(), dql, 'deleted')).toBe(connection);
+        expect(newWorkbookConnection(new Map([['embedded', connection]]), allocator(), dql, 'deleted', 'deleted')).toBe(connection);
     });
 });

@@ -31,6 +31,7 @@ import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
 import { DEFAULT_HYPER_ENDPOINT } from './connection_params.js';
 import { isHyperWasmConnection } from './connection_label.js';
+import { isLocalCloud } from './cloud_connection.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -117,8 +118,9 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const protocol = pageState.protocol;
 
     const wrongPlatform = protocol === "V3_GRPC" && !isDesktopHost();
-    // The app holds a single connection to the embedded Hyper, connections don't switch between it and a server
-    const embedded = connectionState != null && isHyperWasmConnection(connectionState);
+    // The app holds a single connection to the embedded Hyper, connections don't switch between it and a server. A local
+    // cloud runs on the embedded Hyper as well.
+    const embedded = connectionState != null && (isHyperWasmConnection(connectionState) || isLocalCloud(connectionState.params));
     // A connection to the Hyper of a link takes its endpoint from the link, it doesn't switch to another protocol
     const linked = protocol === "V3_HTTP_LINK";
     const protocols: connection.HyperProtocol[] = embedded
@@ -252,6 +254,21 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                                 copyValue={({ key, value }) => `--${key}=${value}`}
                                 copyLogContext={LOG_CTX}
                             />
+                            {pageState.attachedDatabases.length > 0 && (
+                                // The embedded Hyper attaches databases of the OPFS folder of the app, e.g. the local cloud
+                                <KeyValueListBuilder
+                                    className={style.grid_column_1_span_2}
+                                    title="Attached Databases"
+                                    caption="Databases in this browser that are attached next to the own one, e.g. the local cloud"
+                                    keyIcon={DatabaseIcon}
+                                    valueIcon={() => <div>ID</div>}
+                                    addButtonLabel="Add Database"
+                                    elements={pageState.attachedDatabases}
+                                    modifyElements={() => { }}
+                                    disabled
+                                    readOnly
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

@@ -26,6 +26,8 @@ import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState, hyperLinkChannelParams } from './hyper_link.js';
+import { embeddedAttachedDatabasePath } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
+import { embeddedCloudDatabases } from './local_cloud.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -52,9 +54,17 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
 
         if (params.protocol === 'WASM') {
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
+            // A local cloud attaches the databases of the clouds folder of its settings, like a Hyper server, and has no
+            // database of its own: Hyper resolves unqualified names only in a session with a single database. The files
+            // live in the OPFS folder of the app and outlive the window.
+            const attachedDatabases = await Promise.all(embeddedCloudDatabases(params).map(async attached => ({
+                path: await embeddedAttachedDatabasePath(attached.path),
+                alias: attached.alias,
+            })));
             // The Hyper log attributes the queries of the session to the connection by its client context
             const embeddedConnection = await database.connect({
-                defaultDatabase: 'hyper',
+                defaultDatabase: attachedDatabases.length > 0 ? null : 'hyper',
+                attachedDatabases,
                 clientContext: connectionId == null ? undefined : connectionClientContext(connectionId),
             });
             if (connectionId != null) logMetrics?.watch({ database, sessions: true }, connectionId);

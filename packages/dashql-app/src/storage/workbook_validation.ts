@@ -1,6 +1,7 @@
 import type { WorkbookData, WorkbookEntry } from './storage_backend.js';
 import { getConnectorInfoForParams, ConnectorType } from '../connections/connector_info.js';
 import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
+import { embeddedCloudDatabases } from '../connections/hyper/local_cloud.js';
 
 /// A syntactically valid UUID (any version), e.g. the output of `crypto.randomUUID()`.
 ///
@@ -115,8 +116,10 @@ export function validateWorkbookData(data: WorkbookData): WorkbookValidationResu
     return { ok: true };
 }
 
+/// Are the params those of the embedded Hyper of the app? A local cloud attaches a database of the clouds folder and is a
+/// connection of its own.
 export function isLocalHyperWasmParams(params: WorkbookData['connections'][number]['params']): boolean {
-    return 'hyper' in params && (params.hyper?.protocol ?? 'WASM') === 'WASM';
+    return 'hyper' in params && (params.hyper?.protocol ?? 'WASM') === 'WASM' && embeddedCloudDatabases(params.hyper).length === 0;
 }
 
 /// A workbook that failed metadata validation and was refused a load.
