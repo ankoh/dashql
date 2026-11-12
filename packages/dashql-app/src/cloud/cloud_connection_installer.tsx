@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as styles from './cloud_installer.module.css';
 
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { TrashIcon } from '../ui/foundations/symbol_icon.js';
 import type { ConnectionState } from '../connections/connection_state.js';
-import { connectionLabel } from '../connections/connection_label.js';
 import { isLocalCloud } from '../connections/cloud_connection.js';
 import { CloudInstaller } from './cloud_installer.js';
 import { useCloudQuery } from './cloud_query.js';
@@ -59,24 +59,24 @@ export function CloudConnectionInstaller(props: CloudConnectionInstallerProps): 
         }
     });
 
+    const resetAction = local && installation != null && installation.state !== 'unreachable' && installation.state !== 'missing'
+        ? (
+            <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Reset local cloud" disabled={busy}
+                onClick={() => void resetLocalCloud()} data-testid="cloud-reset-local">
+                <TrashIcon size={16} />
+            </IconButton>
+        )
+        : null;
     return (
         <>
             <CloudInstaller
                 key={`${cloud.connectionId} ${resets}`}
                 query={query}
-                connectionName={connectionLabel(cloud)}
                 options={options}
-                embedded={local}
+                actions={resetAction}
                 onInspected={inspected}
             />
-            {local && installation != null && installation.state !== 'unreachable' && (
-                <div className={styles.local_actions}>
-                    {error && <p className={styles.error} role="alert">{error}</p>}
-                    <Button variant={ButtonVariant.Danger} disabled={busy} onClick={() => void resetLocalCloud()} data-testid="cloud-reset-local">
-                        Reset Local Cloud
-                    </Button>
-                </div>
-            )}
+            {error && <p className={styles.error} role="alert">{error}</p>}
         </>
     );
 }

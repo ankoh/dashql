@@ -7,7 +7,7 @@ import { CloudSetupPage, cloudSetupStep, type CloudSetupPageDependencies } from 
 import { CloudStateProvider, useCloudState } from './cloud_state.js';
 import { CLOUD_DATABASE, installCloudStore } from './cloud_store_schema.js';
 import { createCloudFolder } from './cloud_folders.js';
-import { useCloudSetupGate } from '../app/loading/cloud_setup_gate.js';
+import { isCloudLink, useCloudSetupGate } from '../app/loading/cloud_setup_gate.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
@@ -186,7 +186,7 @@ describe('cloud setup page', () => {
 
         await act(async () => button('cloud-use-connection')!.click());
         await vi.waitFor(() => expect(page()!.dataset.step).toBe('login'));
-        expect(root.container.textContent).toContain('Log in to Server Http');
+        expect(button('cloud-setup-login')!.textContent).toContain('Server Http');
         expect(button('cloud-setup-done')!.textContent).toBe('Close');
 
         await act(async () => button('cloud-setup-login-button')!.click());
@@ -194,7 +194,7 @@ describe('cloud setup page', () => {
         await vi.waitFor(() => expect(installerState()).toBe('missing'), { timeout: 10_000 });
         await act(async () => button('cloud-installer-run')!.click());
         await vi.waitFor(() => expect(installerState()).toBe('current'), { timeout: 10_000 });
-        await vi.waitFor(() => expect(root.container.querySelector('[data-testid="cloud-setup-workbooks"]')?.textContent).toBe('The cloud holds 0 workbooks.'));
+        await vi.waitFor(() => expect(root.container.querySelector('[data-testid="cloud-setup-workbooks"]')?.textContent).toBe('0 workbooks'));
         expect(cloudState!.installation?.state).toBe('current');
         expect(cloudState!.tree).toEqual({ folders: [], workbooks: [] });
 
@@ -241,7 +241,7 @@ describe('cloud setup page', () => {
     it('shows when the overlay asks for it', async () => {
         const setupDone = Promise.resolve();
         function Gate() {
-            return useCloudSetupGate(setupDone, dependencies) ?? <div data-testid="workbench" />;
+            return useCloudSetupGate(setupDone, false, dependencies) ?? <div data-testid="workbench" />;
         }
         await prepare([], null);
         await root.render(tree(<Gate />));
@@ -255,11 +255,31 @@ describe('cloud setup page', () => {
         expect(page()).toBeNull();
     });
 
-    it('shows at the start of the app with a cloud connection until the cloud needs nothing', async () => {
+    it('skips the page at the start of the app without a cloud link', async () => {
+        const setupDone = Promise.resolve();
+        function Gate() {
+            return useCloudSetupGate(setupDone, false, dependencies) ?? <div data-testid="workbench" />;
+        }
+        await prepare([hyperConnection('server', ConnectionHealth.NOT_STARTED)], 'server');
+        await root.render(tree(<Gate />));
+        await vi.waitFor(() => expect(button('workbench')).not.toBeNull());
+        await act(async () => await setupDone);
+        expect(page()).toBeNull();
+        expect(logins).toEqual([]);
+    });
+
+    it('reads a cloud link from the query of the document', () => {
+        expect(isCloudLink('?cloud')).toBe(true);
+        expect(isCloudLink('?flavor=dbcom&cloud=1')).toBe(true);
+        expect(isCloudLink('')).toBe(false);
+        expect(isCloudLink('?zip=abc')).toBe(false);
+    });
+
+    it('shows at the start of the app with a cloud link until the cloud needs nothing', async () => {
         let finishSetup!: () => void;
         const setupDone = new Promise<void>(resolve => { finishSetup = resolve; });
         function Gate() {
-            return useCloudSetupGate(setupDone, dependencies) ?? <div data-testid="workbench" />;
+            return useCloudSetupGate(setupDone, true, dependencies) ?? <div data-testid="workbench" />;
         }
         await prepare([hyperConnection('server', ConnectionHealth.NOT_STARTED)], 'server');
         await root.render(tree(<Gate />));

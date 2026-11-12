@@ -2,23 +2,23 @@ import * as React from 'react';
 
 import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as styles from './cloud_setup_page.module.css';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { XIcon } from '../ui/foundations/symbol_icon.js';
+import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useConnectionAllocator, useConnectionRegistry } from '../connections/connection_registry.js';
 import { createConnectionStateFromParams } from '../connections/connection_params.js';
 import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
-import { connectionLabel } from '../connections/connection_label.js';
-import { CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { useConnectionAttach } from '../connections/attached_connection.js';
 import { ConnectorType } from '../connections/connector_info.js';
 import { createLocalCloudParams, isCloudCapable, isLocalCloud, useCloudConnection, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { HyperConnectorSettings } from '../connections/hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from '../connections/salesforce_connection_settings.js';
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
-import { useCloudLogin } from './cloud_login.js';
+import { connectionError, useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
+import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
 import type { CloudInstallation } from './cloud_store_schema.js';
 
@@ -42,15 +42,9 @@ export function cloudSetupStep(cloud: ConnectionState | null, configuring: boole
     return configuring ? 'configure' : 'login';
 }
 
-/// The error of the last setup of a connection
-function connectionError(cloud: ConnectionState): string | null {
-    const proto = cloud.details.value.proto as { setupError?: { message?: string }; healthCheckError?: { message?: string } };
-    return proto.setupError?.message ?? proto.healthCheckError?.message ?? null;
-}
-
-/// The number of workbooks in a phrase
-function workbookCount(count: number): string {
-    return count === 1 ? 'one workbook' : `${count} workbooks`;
+/// A count with its noun
+function countOf(count: number, noun: string): string {
+    return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 export interface CloudSetupPageDependencies {
@@ -81,14 +75,7 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
     const { onDone, startup } = props;
 
     // The local cloud needs no login, it connects right away
-    const embedded = isLocalCloud(cloud?.params);
-    const autoLogin = React.useRef<string | null>(null);
-    React.useEffect(() => {
-        if (cloud == null || !embedded || cloud.connectionHealth !== ConnectionHealth.NOT_STARTED) return;
-        if (autoLogin.current === cloud.connectionId) return;
-        autoLogin.current = cloud.connectionId;
-        void login.login();
-    }, [cloud, embedded, login]);
+    useLocalCloudAutoLogin(cloud, login);
 
     // The installer looked at the tables, at the start of the app the page goes on if nothing is missing
     const onInspected = React.useCallback((found: CloudInstallation) => {
@@ -115,45 +102,42 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
             const connecting = cloud!.connectionHealth === ConnectionHealth.CONNECTING;
             const error = cloud!.connectionHealth === ConnectionHealth.FAILED ? connectionError(cloud!) : null;
             content = (
-                <div className={styles.login} data-testid="cloud-setup-login">
-                    <p className={styles.text}>
-                        Log in to {connectionLabel(cloud!)} to open the workbooks of the cloud and to publish yours.
-                    </p>
-                    <div className={styles.status} data-testid="cloud-setup-status">
-                        {CONNECTION_HEALTH_NAMES[cloud!.connectionHealth]}
-                    </div>
-                    {error != null && <p className={styles.error} role="alert">{error}</p>}
-                    <div className={styles.row_actions}>
-                        <Button variant={ButtonVariant.Default} disabled={connecting} onClick={() => setConfiguring(true)}
-                            data-testid="cloud-setup-edit">
-                            Edit Settings
-                        </Button>
+                <div className={styles.section} data-testid="cloud-setup-login">
+                    <CloudConnectionRow connection={cloud!}>
+                        <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Edit settings" disabled={connecting}
+                            onClick={() => setConfiguring(true)} data-testid="cloud-setup-edit">
+                            <PencilIcon size={16} />
+                        </IconButton>
                         {connecting
-                            ? <Button variant={ButtonVariant.Default} onClick={login.cancel}>Cancel</Button>
+                            ? <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={login.cancel}>Cancel</Button>
                             : (
-                                <Button variant={ButtonVariant.Primary} disabled={!login.available} onClick={() => void login.login()}
-                                    data-testid="cloud-setup-login-button">
+                                <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} disabled={!login.available}
+                                    onClick={() => void login.login()} data-testid="cloud-setup-login-button">
                                     Log In
                                 </Button>
                             )}
-                    </div>
+                    </CloudConnectionRow>
+                    {error != null && <p className={styles.error} role="alert">{error}</p>}
                 </div>
             );
             break;
         }
-        case 'install':
+        case 'install': {
+            const tree = cloudState.tree;
+            const workbooks = tree == null ? 0 : tree.workbooks.length + tree.folders.reduce((sum, node) => sum + node.workbooks.length, 0);
             content = (
-                <>
+                <div className={styles.section}>
+                    <CloudConnectionRow connection={cloud!} />
                     <CloudConnectionInstaller cloud={cloud!} onInspected={onInspected} />
-                    {cloudState.tree != null && (
+                    {tree != null && (
                         <p className={styles.workbooks} data-testid="cloud-setup-workbooks">
-                            The cloud holds {workbookCount(cloudState.tree.workbooks.length + cloudState.tree.folders.reduce((sum, node) => sum + node.workbooks.length, 0))}
-                            {cloudState.tree.folders.length > 0 ? ` in ${cloudState.tree.folders.length === 1 ? 'one folder' : `${cloudState.tree.folders.length} folders`} and at the top` : ''}.
+                            {countOf(workbooks, 'workbook')}{tree.folders.length > 0 ? `, ${countOf(tree.folders.length, 'folder')}` : ''}
                         </p>
                     )}
-                </>
+                </div>
             );
             break;
+        }
     }
 
     const done = step === 'install' && installation != null && (installation.state === 'current' || installation.state === 'newer');
@@ -162,9 +146,12 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
             <NavBar />
             <main className={baseStyles.banner_and_content_container}>
                 <div className={baseStyles.content_container}>
-                    <section className={`${baseStyles.card} ${styles.card}`} data-testid="cloud-setup-page" data-step={step} aria-labelledby="cloud-setup-title">
+                    <section className={`${baseStyles.card} ${step === 'configure' ? styles.card_wide : styles.card}`} data-testid="cloud-setup-page" data-step={step} aria-labelledby="cloud-setup-title">
                         <div className={baseStyles.card_header} data-electron-drag-region>
                             <div className={baseStyles.card_header_left_container}>
+                                <svg className={styles.title_icon} width="16px" height="16px" aria-hidden="true">
+                                    <use xlinkHref={`${symbols}#cloud`} />
+                                </svg>
                                 <h1 id="cloud-setup-title" className={`${baseStyles.card_header_left_title} ${styles.title}`}>Cloud</h1>
                             </div>
                             <div className={baseStyles.card_header_right_container}>
@@ -221,36 +208,29 @@ function ChooseCloudConnection(props: { onConfigure: () => void }): React.ReactE
         setCloud(connection.connectionId);
     };
     return (
-        <div className={styles.choose} data-testid="cloud-setup-choose">
-            <p className={styles.text}>
-                Choose the connection that DashQL keeps published workbooks in, a Hyper server or Database.com. New
-                workbooks start on it. A local cloud keeps them in a database of this browser, to try the cloud.
-            </p>
-            {capable.length > 0 && (
-                <ul className={styles.connections}>
-                    {capable.map(connection => (
-                        <li key={connection.connectionId} className={styles.connection}>
-                            <span className={styles.connection_name}>{connectionLabel(connection)}</span>
-                            <span className={styles.status}>
-                                {isLocalCloud(connection.params) ? 'In this browser' : CONNECTION_HEALTH_NAMES[connection.connectionHealth]}
-                            </span>
-                            <Button variant={ButtonVariant.Default} onClick={() => setCloud(connection.connectionId)} data-testid="cloud-use-connection">
-                                Use as Cloud
-                            </Button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            <div className={styles.row_actions}>
-                <Button variant={ButtonVariant.Default} onClick={() => void add(ConnectorType.HYPER)} data-testid="cloud-setup-new-hyper">
-                    New Hyper Server
+        <div className={styles.section} data-testid="cloud-setup-choose">
+            <div className={styles.label}>Where DashQL keeps published workbooks</div>
+            {capable.map(connection => (
+                <CloudConnectionRow key={connection.connectionId} connection={connection}>
+                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => setCloud(connection.connectionId)}
+                        data-testid="cloud-use-connection">
+                        Use
+                    </Button>
+                </CloudConnectionRow>
+            ))}
+            <div className={styles.new_actions}>
+                <Button variant={ButtonVariant.Default} size={ButtonSize.Small} leadingVisual={PlusIcon}
+                    onClick={() => void add(ConnectorType.HYPER)} data-testid="cloud-setup-new-hyper">
+                    Hyper Server
                 </Button>
-                <Button variant={ButtonVariant.Default} onClick={() => void add(ConnectorType.DBCOM)} data-testid="cloud-setup-new-dbcom">
-                    New Database.com
+                <Button variant={ButtonVariant.Default} size={ButtonSize.Small} leadingVisual={PlusIcon}
+                    onClick={() => void add(ConnectorType.DBCOM)} data-testid="cloud-setup-new-dbcom">
+                    Database.com
                 </Button>
                 {!hasLocalCloud && (
-                    <Button variant={ButtonVariant.Default} onClick={() => void addLocalCloud()} data-testid="cloud-setup-new-local">
-                        New Local Cloud
+                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} leadingVisual={PlusIcon}
+                        onClick={() => void addLocalCloud()} data-testid="cloud-setup-new-local">
+                        Local Cloud
                     </Button>
                 )}
             </div>

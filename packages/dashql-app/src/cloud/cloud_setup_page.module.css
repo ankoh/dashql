@@ -1,5 +1,14 @@
 .card {
+    width: min(420px, calc(100vw - 32px));
+}
+
+.card_wide {
     width: min(640px, calc(100vw - 32px));
+}
+
+.title_icon {
+    flex-shrink: 0;
+    color: var(--color_fg_muted);
 }
 
 .title {
@@ -14,57 +23,32 @@
     font-size: var(--font_size_subtitle);
 }
 
-.choose,
-.login {
+.section {
     display: flex;
     flex-direction: column;
-    row-gap: 12px;
-    padding: 16px;
+    row-gap: 4px;
+    padding: 12px 16px;
 }
 
-.text {
-    margin: 0;
-    line-height: 1.4;
-}
-
-.status {
+.label {
     color: var(--color_fg_muted);
     font-size: var(--font_size_small);
 }
 
 .error {
     margin: 0;
+    padding-left: 24px;
     color: var(--color_danger_fg);
+    font-size: var(--font_size_small);
     line-height: 1.4;
     overflow-wrap: anywhere;
 }
 
-.row_actions {
+.new_actions {
     display: flex;
-    justify-content: flex-end;
-    column-gap: 8px;
-}
-
-.connections {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    row-gap: 8px;
-}
-
-.connection {
-    display: grid;
-    grid-template-columns: 1fr max-content max-content;
-    column-gap: 12px;
-    align-items: center;
-}
-
-.connection_name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 6px;
 }
 
 .settings {
@@ -74,6 +58,7 @@
 
 .workbooks {
     margin: 0;
-    padding: 0 16px 16px 16px;
+    padding-left: 24px;
     color: var(--color_fg_muted);
+    font-size: var(--font_size_small);
 }

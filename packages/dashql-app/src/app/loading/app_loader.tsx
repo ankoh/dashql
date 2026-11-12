@@ -13,7 +13,7 @@ import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
 import { useSharedWorkbookImport } from './shared_workbook_import.js';
-import { useCloudSetupGate } from './cloud_setup_gate.js';
+import { isCloudLink, useCloudSetupGate } from './cloud_setup_gate.js';
 import { useHyperLinks } from '../hyper_links.js';
 
 interface Props { }
@@ -34,7 +34,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const initialImport = React.useRef<Promise<boolean> | null>(null);
     const setup = useAppSetup(initialImport);
     const sharedWorkbookCard = useSharedWorkbookImport(setup.done, initialImport);
-    const cloudSetupPage = useCloudSetupGate(setup.done);
+    // The document query, HashRouter keeps it out of its location
+    const [cloudLink] = React.useState(() => isCloudLink(globalThis.location.search));
+    const cloudSetupPage = useCloudSetupGate(setup.done, cloudLink);
     useHyperLinks(setup.opened);
 
     React.useEffect(() => {
@@ -64,7 +66,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     // Setup done and workbook selected? Show main interface
     const pauseAfterSetup = config?.settings?.pauseAfterAppSetup ?? false;
     if (canShowWorkbook(routeContext, pauseAfterSetup)) {
-        // The cloud setup shows before the workbench, at the start of the app and when the Cloud overlay asks for it
+        // The cloud setup shows before the workbench, at the start of the app with a cloud link and when the Cloud overlay asks for it
         return cloudSetupPage ?? props.children;
     } else {
         // Otherwise show the app loading page

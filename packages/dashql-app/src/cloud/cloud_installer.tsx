@@ -1,8 +1,9 @@
 import * as React from 'react';
 import * as styles from './cloud_installer.module.css';
 
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
-import { AlertIcon, CheckIcon } from '../ui/foundations/symbol_icon.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { SyncIcon } from '../ui/foundations/symbol_icon.js';
 import {
     CLOUD_SCHEMA,
     inspectCloudStore,
@@ -51,7 +52,7 @@ function stepsOf(installation: CloudInstallation): Step[] {
     const steps: Step[] = [];
     if (installation.state !== 'missing' && installation.state !== 'outdated') return steps;
     if (installation.store == null) {
-        steps.push({ key: 'store', description: `Create the schema ${CLOUD_SCHEMA} and the store table`, detail: null });
+        steps.push({ key: 'store', description: `Create the schema ${CLOUD_SCHEMA}`, detail: null });
     }
     for (const pending of installation.pending) {
         steps.push({ key: pending.version, description: pending.migration.description, detail: describeMigration(pending.migration) });
@@ -59,49 +60,52 @@ function stepsOf(installation: CloudInstallation): Step[] {
     return steps;
 }
 
-/// What the installer found, in words
-function summaryOf(installation: CloudInstallation, connectionName: string): string {
+/// What the installer found, in a few words
+function summaryOf(installation: CloudInstallation): string {
     const version = installation.store?.version ?? 0;
     switch (installation.state) {
         case 'unreachable':
-            return `${connectionName} reaches no database ${installation.database}. Attach a database with the alias ${installation.database} to the connection, DashQL keeps its tables there.`;
+            return `No database ${installation.database} attached`;
         case 'missing':
-            return `DashQL is not installed in ${connectionName}. The installer creates the schema ${CLOUD_SCHEMA} in the database ${installation.database}:`;
+            return 'Not installed';
         case 'outdated':
-            return `The tables of DashQL in ${connectionName} are at version ${version}, this DashQL knows version ${installation.known}. The update runs:`;
+            return `Version ${version}, update to ${installation.known}`;
         case 'current':
-            return version > installation.known
-                ? `DashQL is installed in ${connectionName}, a newer DashQL updated it to version ${version}. This DashQL keeps working with it.`
-                : `DashQL is installed in ${connectionName}, version ${version}.`;
+            return version > installation.known ? `Version ${version}, from a newer DashQL` : `Installed, version ${version}`;
         case 'newer':
-            return installation.canRead
-                ? `A newer DashQL updated the tables in ${connectionName} to version ${version}. Update DashQL to publish workbooks.`
-                : `A newer DashQL updated the tables in ${connectionName} to version ${version}. Update DashQL to open and publish workbooks.`;
+            return installation.canRead ? `Version ${version}, update DashQL to publish` : `Version ${version}, update DashQL to open`;
     }
 }
 
-const StepIcon = (props: { status: StepStatus }) => {
-    switch (props.status) {
-        case 'done':
-            return <CheckIcon size={16} className={styles.step_done} aria-hidden="true" />;
-        case 'failed':
-            return <AlertIcon size={16} className={styles.step_failed} aria-hidden="true" />;
-        case 'running':
-            return <span className={styles.step_running} aria-hidden="true" />;
-        case 'pending':
-            return <span className={styles.step_pending} aria-hidden="true" />;
+/// The status of what the installer found, as an indicator
+function indicatorOf(installation: CloudInstallation | null, running: boolean): IndicatorStatus {
+    if (installation == null || running) return IndicatorStatus.Running;
+    switch (installation.state) {
+        case 'current':
+            return IndicatorStatus.Succeeded;
+        case 'unreachable':
+        case 'newer':
+            return IndicatorStatus.Failed;
+        case 'missing':
+        case 'outdated':
+            return IndicatorStatus.None;
     }
+}
+
+const STEP_INDICATOR: Record<StepStatus, IndicatorStatus> = {
+    pending: IndicatorStatus.None,
+    running: IndicatorStatus.Running,
+    done: IndicatorStatus.Succeeded,
+    failed: IndicatorStatus.Failed,
 };
 
 export interface CloudInstallerProps {
     /// Runs the statements on the cloud connection
     query: CloudQuery;
-    /// The name of the cloud connection
-    connectionName: string;
     /// The database of DashQL and the migrations that this DashQL knows
     options?: CloudStoreOptions;
-    /// The connection is the embedded Hyper, the local cloud that keeps the tables in this browser
-    embedded?: boolean;
+    /// More actions next to the ones of the installer
+    actions?: React.ReactNode;
     /// Called with what the installer found, after every look at the tables
     onInspected?: (installation: CloudInstallation) => void;
 }
@@ -196,60 +200,54 @@ export function CloudInstaller(props: CloudInstallerProps): React.ReactElement {
 
     const shownSteps = running || steps != null ? steps ?? [] : installation == null ? [] : stepsOf(installation);
     const canInstall = installation != null && (installation.state === 'missing' || installation.state === 'outdated');
-    const summary = installation == null
-        ? `Looking for DashQL in ${props.connectionName}`
-        : summaryOf(installation, props.connectionName);
+    const summary = installation == null ? 'Checking' : summaryOf(installation);
+    const waitingNote = waiting
+        ? 'Waiting for another client'
+        : !running && installation?.locked && canInstall ? 'Another client is installing' : null;
 
     return (
         <div className={styles.installer} data-testid="cloud-installer" data-state={installation?.state ?? 'inspecting'}>
-            <p className={styles.summary} data-testid="cloud-installer-summary">{summary}</p>
-            {props.embedded && (
-                <p className={styles.note}>
-                    The local cloud keeps the tables in a database of this browser, use it to try the cloud. The Cloud overlay resets it.
-                </p>
-            )}
+            <div className={styles.status}>
+                <StatusIndicator status={indicatorOf(installation, running)} width="14px" height="14px" />
+                <span className={styles.summary} data-testid="cloud-installer-summary">{summary}</span>
+                <div className={styles.actions}>
+                    {props.actions}
+                    <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Check again"
+                        disabled={running || (installation == null && error == null)} onClick={() => {
+                            setSteps(null);
+                            setStatus(new Map());
+                            setError(null);
+                            setInspection(value => value + 1);
+                        }}>
+                        <SyncIcon size={16} />
+                    </IconButton>
+                    {canInstall && (
+                        <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} disabled={running} onClick={() => void install()}
+                            data-testid="cloud-installer-run">
+                            {running
+                                ? installation.state === 'missing' ? 'Installing' : 'Updating'
+                                : error != null ? 'Try Again'
+                                : installation.state === 'missing' ? 'Install' : 'Update'}
+                        </Button>
+                    )}
+                </div>
+            </div>
             {shownSteps.length > 0 && (
                 <ol className={styles.steps}>
                     {shownSteps.map(step => {
                         const stepStatus = status.get(step.key) ?? 'pending';
                         return (
-                            <li key={step.key} className={styles.step} data-testid="cloud-installer-step" data-status={stepStatus}>
-                                <StepIcon status={stepStatus} />
-                                <div className={styles.step_text}>
-                                    <div className={styles.step_description}>{step.description}</div>
-                                    {step.detail && <div className={styles.step_detail}>{step.detail}</div>}
-                                </div>
+                            <li key={step.key} className={styles.step} data-testid="cloud-installer-step" data-status={stepStatus}
+                                title={step.detail ?? undefined}>
+                                <StatusIndicator status={STEP_INDICATOR[stepStatus]} width="12px" height="12px" />
+                                <span className={styles.step_description}>{step.description}</span>
                             </li>
                         );
                     })}
                 </ol>
             )}
-            {(waiting || (!running && installation?.locked && canInstall)) && (
-                <p className={styles.note} data-testid="cloud-installer-waiting">
-                    {waiting
-                        ? 'Waiting for another client that is installing or updating DashQL.'
-                        : 'Another client is installing or updating DashQL, the installer waits for it.'}
-                </p>
-            )}
+            {waitingNote != null && <p className={styles.note} data-testid="cloud-installer-waiting">{waitingNote}</p>}
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <div className={styles.actions}>
-                <Button variant={ButtonVariant.Default} disabled={running || (installation == null && error == null)} onClick={() => {
-                    setSteps(null);
-                    setStatus(new Map());
-                    setError(null);
-                    setInspection(value => value + 1);
-                }}>
-                    Check Again
-                </Button>
-                {canInstall && (
-                    <Button variant={ButtonVariant.Primary} disabled={running} onClick={() => void install()} data-testid="cloud-installer-run">
-                        {running
-                            ? installation.state === 'missing' ? 'Installing' : 'Updating'
-                            : error != null ? 'Try Again'
-                            : installation.state === 'missing' ? 'Install DashQL' : 'Update DashQL'}
-                    </Button>
-                )}
-            </div>
         </div>
     );
 }

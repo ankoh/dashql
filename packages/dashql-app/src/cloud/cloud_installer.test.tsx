@@ -45,27 +45,31 @@ const installer = () => root.container.querySelector<HTMLElement>('[data-testid=
 const summary = () => root.container.querySelector('[data-testid="cloud-installer-summary"]')!.textContent;
 const steps = () => [...root.container.querySelectorAll<HTMLElement>('[data-testid="cloud-installer-step"]')]
     .map(step => [step.dataset.status, step.textContent]);
+const stepDetails = () => [...root.container.querySelectorAll<HTMLElement>('[data-testid="cloud-installer-step"]')]
+    .map(step => step.title);
 const runButton = () => root.container.querySelector<HTMLButtonElement>('[data-testid="cloud-installer-run"]');
 const settled = async (state: string) => await vi.waitFor(() => expect(installer().dataset.state).toBe(state), { timeout: 10_000 });
 
 async function render(props: Partial<React.ComponentProps<typeof CloudInstaller>> = {}) {
-    await root.render(<CloudInstaller query={query} connectionName="Test Cloud" {...props} />);
+    await root.render(<CloudInstaller query={query} {...props} />);
 }
 
 describe('cloud installer', () => {
     it('installs DashQL in a database without its tables', async () => {
         await render();
         await settled('missing');
-        expect(summary()).toBe('DashQL is not installed in Test Cloud. The installer creates the schema dashql in the database dashql:');
+        expect(summary()).toBe('Not installed');
         expect(steps()).toEqual([
-            ['pending', 'Create the schema dashql and the store table'],
-            ['pending', expect.stringMatching(/^Create the tables of the published workbooksCreates workbook_versions, .*workbook_folders$/)],
+            ['pending', 'Create the schema dashql'],
+            ['pending', 'Create the tables of the published workbooks'],
         ]);
-        expect(runButton()!.textContent).toBe('Install DashQL');
+        // What a step changes is its tooltip
+        expect(stepDetails()[1]).toMatch(/^Creates workbook_versions, .*workbook_folders$/);
+        expect(runButton()!.textContent).toBe('Install');
 
         await act(async () => runButton()!.click());
         await settled('current');
-        expect(summary()).toBe('DashQL is installed in Test Cloud, version 1.');
+        expect(summary()).toBe('Installed, version 1');
         expect(steps().map(([status]) => status)).toEqual(['done', 'done']);
         expect(runButton()).toBeNull();
         expect(Number((await connection.query(`SELECT version FROM "dashql"."dashql"."cloud_store"`)).get(0)!.version)).toBe(1);
@@ -75,13 +79,14 @@ describe('cloud installer', () => {
         await installCloudStore(query);
         await render({ options: { migrations: NEWER } });
         await settled('outdated');
-        expect(summary()).toBe('The tables of DashQL in Test Cloud are at version 1, this DashQL knows version 2. The update runs:');
-        expect(steps()).toEqual([['pending', 'Add notes to scriptsAdds note to workbook_scripts']]);
-        expect(runButton()!.textContent).toBe('Update DashQL');
+        expect(summary()).toBe('Version 1, update to 2');
+        expect(steps()).toEqual([['pending', 'Add notes to scripts']]);
+        expect(stepDetails()).toEqual(['Adds note to workbook_scripts']);
+        expect(runButton()!.textContent).toBe('Update');
 
         await act(async () => runButton()!.click());
         await settled('current');
-        expect(steps()).toEqual([['done', 'Add notes to scriptsAdds note to workbook_scripts']]);
+        expect(steps()).toEqual([['done', 'Add notes to scripts']]);
         await connection.query(`SELECT note FROM "dashql"."dashql"."workbook_scripts" LIMIT 0`);
     });
 
@@ -109,7 +114,7 @@ describe('cloud installer', () => {
     it('tells that the connection reaches no database of DashQL', async () => {
         await render({ options: { database: 'nowhere' } });
         await settled('unreachable');
-        expect(summary()).toBe('Test Cloud reaches no database nowhere. Attach a database with the alias nowhere to the connection, DashQL keeps its tables there.');
+        expect(summary()).toBe('No database nowhere attached');
         expect(steps()).toEqual([]);
         expect(runButton()).toBeNull();
     });
@@ -118,13 +123,7 @@ describe('cloud installer', () => {
         await installCloudStore(query, { migrations: BREAKING });
         await render();
         await settled('newer');
-        expect(summary()).toBe('A newer DashQL updated the tables in Test Cloud to version 2. Update DashQL to publish workbooks.');
+        expect(summary()).toBe('Version 2, update DashQL to publish');
         expect(runButton()).toBeNull();
-    });
-
-    it('notes that the local cloud keeps the tables in this browser', async () => {
-        await render({ embedded: true });
-        await settled('missing');
-        expect(installer().textContent).toContain('The local cloud keeps the tables in a database of this browser');
     });
 });

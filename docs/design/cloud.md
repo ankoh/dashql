@@ -20,8 +20,8 @@ all workbooks.
 | The installer: finds what is missing, installs and updates the tables (`cloud/cloud_installer.tsx`) | done, tested against the embedded Hyper |
 | Reaching the `dashql` database on a Hyper server and on Database.com | open, see Open below |
 | The local cloud: a connection of the embedded Hyper that attaches `clouds/local.hyper` as `dashql`, across reloads | done, tested against the embedded Hyper |
-| The cloud setup before the workbench: choose or add the connection, log in, install, list the workbooks (`cloud/cloud_setup_page.tsx`) | done, tested against the embedded Hyper |
-| The Cloud overlay in the top bar: choosing the cloud connection, the installer, Set Up Cloud (`cloud/cloud_overlay.tsx`) | done |
+| The cloud setup before the workbench, on a cloud link or on request: choose or add the connection, log in, install, list the workbooks (`cloud/cloud_setup_page.tsx`) | done, tested against the embedded Hyper |
+| The Cloud overlay in the top bar: choosing the cloud connection, logging in, the installer, Set Up Cloud (`cloud/cloud_overlay.tsx`) | done |
 | Cloud and Local in the sidebar, read-only cloud workbooks, import with their origin, publish over or as new | planned |
 | The workbooks, connections and storage of the cloud in the Cloud overlay | planned |
 | Publish to Cloud in the menus of a workbook and a connection | planned |
@@ -50,8 +50,8 @@ manifest persists it with the other settings, and the connection itself is an or
   executor and show in the queries viewer, the catalog lists the tables of DashQL, new workbooks start on it, and the
   published workbooks survive a reload. Only a database of the `clouds` folder makes a connection of the embedded Hyper
   a local cloud (`embeddedCloudDatabases`), the embedded Hyper of the app ignores its other attached databases as it
-  always did, and workbooks that name the embedded Hyper never take the local cloud for it. The setup page offers New
-  Local Cloud, connects it without a click, and Reset Local Cloud drops its tables (`dropCloudStore`) to try the
+  always did, and workbooks that name the embedded Hyper never take the local cloud for it. The setup page offers a new
+  Local Cloud, connects it without a click, and the reset of the installer drops its tables (`dropCloudStore`) to try the
   installer again. Only the window that owns the app runs the embedded Hyper, so one window at a time reaches it.
 - **Choosing it.** The row menu of a capable connection in the sidebar offers Use as Cloud, and the row menu of the cloud
   connection offers Stop Using as Cloud. The Cloud overlay of the top bar lists the capable connections when there is no
@@ -246,22 +246,29 @@ migrations that ran (`cloudColumnsAfter`). The `cloud_store` table has one row:
 ### Setting Up the Cloud
 
 The cloud setup is a page like the one of the app loader, a card before the workbench (`cloud/cloud_setup_page.tsx`).
-The app loader shows it once after the setup of the app when there is a cloud connection, and whenever Set Up Cloud of
-the Cloud overlay asks for it (`app/loading/cloud_setup_gate.tsx`). It shows the step that the cloud still needs:
+The app loader shows it once after the setup of the app when the URL points to the cloud, a link with the parameter
+`?cloud` (`isCloudLink`), and whenever Set Up Cloud of the Cloud overlay asks for it (`app/loading/cloud_setup_gate.tsx`).
+Any other start goes to the workbench without a login, also with a cloud connection: the cloud is then reached through
+the Cloud button of the top bar. It shows the step that the cloud still needs:
 
 | Step | When | What the page shows |
 |------|------|---------------------|
-| `choose` | no cloud connection | the connections that can be one with Use as Cloud, New Hyper Server, New Database.com and New Local Cloud |
+| `choose` | no cloud connection | the connections that can be one with Use, and new ones: Hyper Server, Database.com and Local Cloud |
 | `configure` | on Edit Settings or for a new connection | the settings of the connection with their Connect |
-| `login` | the cloud connection is not online | Log In, the error of the last login, Edit Settings |
-| `install` | the cloud connection is online | the installer and the number of workbooks in the cloud |
+| `login` | the cloud connection is not online | the connection with Log In and Edit Settings, the error of the last login |
+| `install` | the cloud connection is online | the connection, the installer and the number of workbooks and folders |
 
 - **Log In.** The page logs in with the saved settings, the setup that Connect of the settings runs (`useCloudLogin`).
   Database.com opens its OAuth popup on the click, it keeps no refresh token, so every start of the app logs in again.
   The local cloud logs in without a click.
 - **Skipping.** At the start of the app the page offers Continue Without Cloud, the cloud connection stays set and the
-  app goes on without it. Once the tables are current the page closes by itself, so a start with a cloud that is
-  online and installed only shows the card for the look at the tables.
+  app goes on without it. Once the tables are current the page closes by itself, so a cloud link to a cloud that is
+  online and installed only shows the card for the look at the tables. The link keeps its parameter, a reload asks
+  again.
+- **The Cloud overlay.** The overlay of the top bar shows the cloud connection in one line, its logo, name and health,
+  with Log In while it is not online and Stop Using as Cloud. Without a cloud connection it lists the connections that
+  can be one, with Use. Once the connection is online the installer follows in the same compact form. Set Up Cloud
+  opens the page. The local cloud logs in without a click in both (`useLocalCloudAutoLogin`).
 - **The cloud state.** `CloudStateProvider` looks at the cloud whenever the cloud connection comes online and after the
   installer ran: what the installer finds and the folders and workbooks of the cloud, listed when this DashQL may read
   the tables (`useCloudState`). The page shows the number of workbooks from it, the sidebar will list them.
@@ -280,9 +287,11 @@ finds one of five states:
 | `current` | Nothing to do, also when a newer DashQL ran more migrations than this one knows. |
 | `newer` | A breaking migration of a newer DashQL raised `min_writer` above this DashQL. It asks to update DashQL. |
 
+- **Compact.** The installer is one line, an indicator, a few words of what it found and its actions: Check Again,
+  Install or Update, and for the local cloud Reset. The steps follow as one line each.
 - **Steps.** Installing and updating are one action (`installCloudStore`). The installer lists its steps, creating the
-  schema and the store row if there is none and every missing migration with the tables and columns it adds and whom
-  it breaks. It marks every step as it starts and ends (`onProgress`) and looks at the tables again when it is done.
+  schema and the store row if there is none and every missing migration, its tooltip names the tables and columns it
+  adds and whom it breaks. It marks every step as it starts and ends (`onProgress`) and looks at the tables again when it is done.
 - **Failures.** The step that failed shows the error of the statement, e.g. a login without the rights to create
   tables, and the installer offers to try again. The steps that ran stay counted in the store row, a second run starts
   after them.

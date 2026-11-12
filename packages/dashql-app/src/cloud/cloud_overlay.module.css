@@ -1,72 +1,62 @@
 .root {
     display: grid;
-    grid-template-rows: 40px auto;
+    grid-template-rows: 36px auto;
+    min-width: 0;
     min-height: 0;
     max-height: 100%;
 }
 
 .header {
     display: grid;
-    grid-template-columns: max-content auto max-content;
+    grid-template-columns: 16px minmax(0, 1fr) max-content max-content;
+    column-gap: 8px;
     align-items: center;
+    padding: 0 6px 0 12px;
     border-bottom: 1px solid var(--color_border);
 }
 
-.title {
-    margin-left: 16px;
-    font-size: var(--font_size_subtitle);
-}
-
-.header_actions {
-    grid-column: 3;
-    display: flex;
-    align-items: center;
-    column-gap: 4px;
-    padding: 0 4px;
-}
-
-.body {
-    min-height: 0;
-    overflow-y: auto;
-}
-
-.section {
-    display: flex;
-    flex-direction: column;
-    row-gap: 12px;
-    padding: 16px;
-    font-size: var(--font_size_subtitle);
-}
-
-.text {
-    margin: 0;
-    line-height: 1.4;
-}
-
-.muted {
-    margin: 0;
+.title_icon {
     color: var(--color_fg_muted);
 }
 
-.connections {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+.title {
+    font-size: var(--font_size_subtitle);
+    font-weight: 500;
+}
+
+.body {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    row-gap: 8px;
+    row-gap: 4px;
+    padding: 8px 12px 10px 12px;
+    font-size: var(--font_size_subtitle);
 }
 
-.connection {
-    display: grid;
-    grid-template-columns: 1fr max-content;
-    column-gap: 8px;
+.label {
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_small);
+}
+
+.empty {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
+    column-gap: 8px;
+    min-height: 28px;
 }
 
-.connection_name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.muted {
+    color: var(--color_fg_muted);
 }
 
+.error {
+    margin: 0;
+    padding-left: 24px;
+    color: var(--color_danger_fg);
+    font-size: var(--font_size_small);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}

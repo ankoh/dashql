@@ -1,0 +1,28 @@
+.row {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) 8px max-content;
+    column-gap: 8px;
+    align-items: center;
+    min-height: 28px;
+}
+
+.icon,
+.health {
+    flex-shrink: 0;
+}
+
+.name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    column-gap: 4px;
+}
+
+.actions:empty {
+    display: none;
+}

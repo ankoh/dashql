@@ -3,7 +3,8 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { useConnectionById } from '../connections/connection_registry.js';
 import { connectionParamsWithoutDraftRows } from '../connections/connection_params.js';
-import { ConnectionHealth } from '../connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { isLocalCloud } from '../connections/cloud_connection.js';
 import { useConnectionSetup } from '../connections/connection_setup.js';
 import { ConnectorType } from '../connections/connector_info.js';
 import { performHealthCheck } from '../connections/health_check.js';
@@ -65,3 +66,20 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
     return React.useMemo(() => ({ login, cancel: connectionSetup.cancel, available }), [available, connectionSetup.cancel, login]);
 }
 
+
+/// The error of the last login of a connection
+export function connectionError(connection: ConnectionState): string | null {
+    const proto = (connection.details.value as { proto?: { setupError?: { message?: string }; healthCheckError?: { message?: string } } }).proto;
+    return proto?.setupError?.message ?? proto?.healthCheckError?.message ?? null;
+}
+
+/// Log in to the local cloud without a click, it needs no credentials. Once per connection.
+export function useLocalCloudAutoLogin(cloud: ConnectionState | null, login: CloudLogin): void {
+    const loggedIn = React.useRef<string | null>(null);
+    React.useEffect(() => {
+        if (cloud == null || !isLocalCloud(cloud.params) || cloud.connectionHealth !== ConnectionHealth.NOT_STARTED) return;
+        if (loggedIn.current === cloud.connectionId) return;
+        loggedIn.current = cloud.connectionId;
+        void login.login();
+    }, [cloud, login]);
+}

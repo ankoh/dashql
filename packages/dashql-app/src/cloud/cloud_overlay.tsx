@@ -1,88 +1,106 @@
 import * as React from 'react';
 import * as styles from './cloud_overlay.module.css';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../ui/foundations/overlay.js';
-import { Button, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { XIcon } from '../ui/foundations/symbol_icon.js';
-import { ConnectionHealth } from '../connections/connection_state.js';
-import { connectionLabel } from '../connections/connection_label.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { ToolsIcon, UnlinkIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { isCloudCapable, useCloudConnection, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
+import { CloudConnectionRow } from './cloud_connection_row.js';
+import { connectionError, useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
 import { useCloudState } from './cloud_state.js';
 
-// The Cloud overlay of the top bar: the cloud connection and the installer of DashQL in it. See docs/design/cloud.md.
+// The Cloud overlay of the top bar: the cloud connection, its login and the installer of DashQL in it. See
+// docs/design/cloud.md.
 
 /// Pick the cloud connection among the connections that can be one
-function CloudConnectionPicker(): React.ReactElement {
+function CloudConnectionPicker(props: { onSetup: () => void }): React.ReactElement {
     const [registry] = useConnectionRegistry();
     const setCloud = useSetCloudConnection();
     const capable = [...registry.connections.values()].filter(connection => isCloudCapable(connection.params));
+    if (capable.length === 0) {
+        return (
+            <div className={styles.empty}>
+                <span className={styles.muted}>No cloud connection</span>
+                <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} onClick={props.onSetup}>Set Up</Button>
+            </div>
+        );
+    }
     return (
-        <div className={styles.section}>
-            <p className={styles.text}>
-                No cloud connection. DashQL keeps the workbooks that you publish in a Hyper server or Database.com, new
-                workbooks start on it.
-            </p>
-            {capable.length === 0
-                ? <p className={styles.muted}>Add a Hyper server or Database.com in the sidebar first.</p>
-                : (
-                    <ul className={styles.connections}>
-                        {capable.map(connection => (
-                            <li key={connection.connectionId} className={styles.connection}>
-                                <span className={styles.connection_name}>{connectionLabel(connection)}</span>
-                                <Button variant={ButtonVariant.Default} onClick={() => setCloud(connection.connectionId)}
-                                    data-testid="cloud-use-connection">
-                                    Use as Cloud
-                                </Button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-        </div>
+        <>
+            <div className={styles.label}>No cloud connection, use one of</div>
+            {capable.map(connection => (
+                <CloudConnectionRow key={connection.connectionId} connection={connection}>
+                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => setCloud(connection.connectionId)}
+                        data-testid="cloud-use-connection">
+                        Use
+                    </Button>
+                </CloudConnectionRow>
+            ))}
+        </>
+    );
+}
+
+/// The cloud connection, its login and, once online, the installer
+function CloudConnectionSection(props: { cloud: ConnectionState }): React.ReactElement {
+    const { cloud } = props;
+    const setCloud = useSetCloudConnection();
+    const login = useCloudLogin(cloud.connectionId);
+    useLocalCloudAutoLogin(cloud, login);
+    const health = cloud.connectionHealth;
+    const error = health === ConnectionHealth.FAILED ? connectionError(cloud) : null;
+    return (
+        <>
+            <CloudConnectionRow connection={cloud}>
+                {health === ConnectionHealth.CONNECTING
+                    ? <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={login.cancel}>Cancel</Button>
+                    : health !== ConnectionHealth.ONLINE && (
+                        <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} disabled={!login.available}
+                            onClick={() => void login.login()} data-testid="cloud-log-in">
+                            Log In
+                        </Button>
+                    )}
+                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Stop using as cloud"
+                    onClick={() => setCloud(null)} data-testid="cloud-stop-using">
+                    <UnlinkIcon size={16} />
+                </IconButton>
+            </CloudConnectionRow>
+            {error != null && <p className={styles.error} role="alert">{error}</p>}
+            {health === ConnectionHealth.ONLINE && <CloudConnectionInstaller cloud={cloud} />}
+        </>
     );
 }
 
 export function CloudPanel(props: { onClose: () => void }): React.ReactElement {
     const cloud = useCloudConnection();
     const { openSetup } = useCloudState();
-    const setCloud = useSetCloudConnection();
-
-    let body: React.ReactElement;
-    if (cloud == null) {
-        body = <CloudConnectionPicker />;
-    } else if (cloud.connectionHealth !== ConnectionHealth.ONLINE) {
-        body = (
-            <div className={styles.section}>
-                <p className={styles.text}>
-                    {connectionLabel(cloud)} is not connected. Log in to it with Set Up Cloud or in the sidebar to install DashQL or to look at its tables.
-                </p>
-            </div>
-        );
-    } else {
-        body = <CloudConnectionInstaller cloud={cloud} />;
-    }
+    const setup = () => {
+        props.onClose();
+        openSetup();
+    };
     return (
         <div className={styles.root} data-testid="cloud-panel">
             <div className={styles.header}>
+                <svg className={styles.title_icon} width="16px" height="16px" aria-hidden="true">
+                    <use xlinkHref={`${symbols}#cloud`} />
+                </svg>
                 <div className={styles.title}>Cloud</div>
-                <div className={styles.header_actions}>
-                    <Button variant={ButtonVariant.Invisible} onClick={() => { props.onClose(); openSetup(); }} data-testid="cloud-open-setup">
-                        Set Up Cloud
-                    </Button>
-                    {cloud != null && (
-                        <Button variant={ButtonVariant.Invisible} onClick={() => setCloud(null)} data-testid="cloud-stop-using">
-                            Stop Using as Cloud
-                        </Button>
-                    )}
-                    <IconButton variant={ButtonVariant.Invisible} aria-label="close-overlay" onClick={props.onClose}>
-                        <XIcon />
-                    </IconButton>
-                </div>
+                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Set up cloud" onClick={setup}
+                    data-testid="cloud-open-setup">
+                    <ToolsIcon size={16} />
+                </IconButton>
+                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="close-overlay" onClick={props.onClose}>
+                    <XIcon size={16} />
+                </IconButton>
             </div>
-            <div className={styles.body}>{body}</div>
+            <div className={styles.body}>
+                {cloud == null ? <CloudConnectionPicker onSetup={setup} /> : <CloudConnectionSection cloud={cloud} />}
+            </div>
         </div>
     );
 }

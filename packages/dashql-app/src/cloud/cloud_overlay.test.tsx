@@ -112,6 +112,7 @@ describe('CloudPanel', () => {
         reg.connections.set(connectionId, { ...reg.connections.get(connectionId)!, connectionHealth: health });
         return { ...reg };
     }));
+    const installer = () => root.container.querySelector<HTMLElement>('[data-testid="cloud-installer"]');
     const button = (testId: string) => root.container.querySelector<HTMLButtonElement>(`[data-testid="${testId}"]`);
 
     it('picks the cloud connection and installs DashQL in it', async () => {
@@ -126,20 +127,20 @@ describe('CloudPanel', () => {
         await root.render(tree(<CloudPanel onClose={onClose} />));
 
         // Trino doesn't write, only the local cloud can be the cloud connection
-        expect(root.container.textContent).toContain('No cloud connection');
+        expect(root.container.textContent).toContain('No cloud connection, use one of');
         expect([...root.container.querySelectorAll('[data-testid="cloud-use-connection"]')]).toHaveLength(1);
         expect(root.container.textContent).toContain('Trial Wasm');
         expect(root.container.textContent).not.toContain('Lake');
         await act(async () => button('cloud-use-connection')!.click());
         await vi.waitFor(() => expect(config!.settings?.cloudConnectionId).toBe('trial'));
 
-        // The installer waits for the connection
-        expect(root.container.textContent).toContain('Trial Wasm is not connected');
+        // The installer waits for the connection, the panel offers to log in
+        expect(installer()).toBeNull();
+        expect(button('cloud-log-in')).not.toBeNull();
         expect(executed).toEqual([]);
         await setHealth('trial', ConnectionHealth.ONLINE);
-        const installer = () => root.container.querySelector<HTMLElement>('[data-testid="cloud-installer"]');
+        expect(button('cloud-log-in')).toBeNull();
         await vi.waitFor(() => expect(installer()?.dataset.state).toBe('missing'), { timeout: 10_000 });
-        expect(installer()!.textContent).toContain('The local cloud keeps the tables in a database of this browser');
         await act(async () => button('cloud-installer-run')!.click());
         await vi.waitFor(() => expect(installer()?.dataset.state).toBe('current'), { timeout: 10_000 });
         // The statements run on the local cloud connection like on any cloud connection
@@ -156,5 +157,12 @@ describe('CloudPanel', () => {
         await act(async () => button('cloud-stop-using')!.click());
         await vi.waitFor(() => expect(config!.settings?.cloudConnectionId).toBeUndefined());
         expect(root.container.textContent).toContain('No cloud connection');
+    });
+
+    it('offers the setup without a connection that can be the cloud', async () => {
+        await root.render(tree(<CloudPanel onClose={() => {}} />));
+        await vi.waitFor(() => expect(config).not.toBeNull());
+        expect(root.container.textContent).toContain('No cloud connection');
+        expect(root.container.querySelector('[data-testid="cloud-use-connection"]')).toBeNull();
     });
 });
