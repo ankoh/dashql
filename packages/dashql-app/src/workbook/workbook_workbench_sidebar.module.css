@@ -287,6 +287,23 @@
     cursor: pointer;
 }
 
+/* The folders of the local workbooks and of the cloud at the top level: caret, icon, name and the number of workbooks */
+.root_button {
+    grid-template-columns: 12px 14px minmax(0, 1fr) max-content;
+    padding-right: 4px;
+}
+
+.root_count {
+    color: var(--color_fg_muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+/* The width of a row menu button with its margin */
+.root_menu_spacer {
+    width: 30px;
+}
+
 .tree_caret {
     display: inline-flex;
     align-items: center;

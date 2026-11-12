@@ -136,7 +136,8 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
         const bundle = prepared.bundle;
         let progress: ImportProgress = { step: (bundle.results?.length ?? 0) > 0 ? 'results' : 'workbook', results: null };
         const onProgress = (update: WorkbookImportProgress) => {
-            if (update.step === 'connections') return;
+            // The file shows the commit as adding the results and saving the workbook
+            if (update.step !== 'results' && update.step !== 'workbook') return;
             progress = { step: update.step, results: update.step === 'results' ? update.outcome : progress.results };
             setState(current => current.phase === 'importing' ? { ...current, progress } : current);
         };

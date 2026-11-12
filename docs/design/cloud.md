@@ -22,7 +22,8 @@ all workbooks.
 | The local cloud: a connection of the embedded Hyper that attaches `clouds/local.hyper` as `dashql`, across reloads | done, tested against the embedded Hyper |
 | The cloud setup before the workbench, on a cloud link or on request: choose or add the connection, log in, install, list the workbooks (`cloud/cloud_setup_page.tsx`) | done, tested against the embedded Hyper |
 | The Cloud overlay in the top bar: choosing the cloud connection, logging in, the installer, Set Up Cloud (`cloud/cloud_overlay.tsx`) | done |
-| Cloud and Local in the sidebar, read-only cloud workbooks, import with their origin, publish over or as new | planned |
+| The Cloud folder of the workbook list, read-only previews, import with the link, publish over or as new (`cloud/cloud_workbook_folder.tsx`, `cloud/cloud_workbooks.ts`) | done |
+| Publishing into a cloud folder, the login as `published_by`, a way to tell published results from local ones in the cache | planned |
 | The workbooks, connections and storage of the cloud in the Cloud overlay | planned |
 | Publish to Cloud in the menus of a workbook and a connection | planned |
 | The cloud link: log in to the connection, read the workbook, import it | planned |
@@ -159,6 +160,63 @@ of the version. `dashql.workbook_versions`, a list that only grows by publishing
 - **Reading.** A reader selects the rows of a version from the merged tables and converts the attachment and result
   tables to Parquet with the embedded Hyper, the workbook then imports like a `.dashql` file.
 
+### Workbooks in the App
+
+While there is a cloud connection, the workbook list of the sidebar has two folders at the top level: Cloud with the
+published workbooks (`cloud/cloud_workbook_folder.tsx`) and Local with the local workbooks and folders below it. Without
+a cloud connection the local workbooks are the top level. Cloud is collapsed at first, its row shows the number of
+published workbooks. Inside are the folders and workbooks of `CloudStateApi.tree`, a caret lists the versions of a
+workbook. The menu of the Cloud folder creates a folder, whose name is edited right away, refreshes the list and opens
+the cloud setup. The menu of a cloud folder renames and deletes it. A published workbook is dragged onto a cloud folder
+to move it there, or onto Cloud to move it to the top (`moveCloudWorkbook`). Local only groups the rows, its folders and
+workbooks are the top level of the workbook tree, and nothing local can be dragged into Cloud. While the cloud connection is not
+online the folder offers Log In, and the local cloud logs in without a click. While the cloud can't be read, the folder
+says why and offers Set Up Cloud.
+
+- **The link.** A local workbook knows the published workbook it came from or was published to, `metadata.cloud` of
+  its workbook file: the id of the published workbook and of the version that was opened or published last
+  (`WorkbookCloudLink`). The properties of the workbook write it with its name (`SET_WORKBOOK_CLOUD_LINK`). A
+  `.dashql` file, a link and a publish never carry it (`sharedWorkbookTables`), whoever reads the workbook links it
+  again.
+- **Previews.** A click on a published workbook opens its latest version, a click on a version that version
+  (`useCloudWorkbooks().open`). A preview is a local workbook like any other, under a fresh id with `preview` in its
+  link, loaded in a step of its own: the version is downloaded and imported like a `.dashql` file, its query results go
+  into the result cache. A card in place of the feed shows the steps like the card of an imported file: download,
+  resolve the connections, add the query results, save the scripts, save the attachments, open the workbook. A step
+  that the version has nothing for is skipped, a failed step stays on the card until it is closed
+  (`CloudWorkbookLoadingCard`, `cloud_workbook_loading.ts`). A preview is listed in
+  the Cloud folder and not in Local. One preview at a time: opening another discards the others, and a preview that was
+  shown is discarded once another workbook is shown (`CloudPreviewCleanup`). Opening a version that is shown already
+  shows it again.
+- **The connections of a preview.** A preview keeps the connections of the version, they need not exist in the app.
+  The import asks nothing (`connections: 'preview'`): the embedded Hyper is the one of the app, a connection that the
+  app has with the same params is used, one that may consolidate with an existing one uses the first candidate, and
+  the others are registered for the preview and removed with it. The bar shows them greyed with a lock, they open
+  nothing; the embedded Hyper is shown as it is.
+- **Running a preview.** Execute All runs a preview with no special case but one: only the embedded Hyper counts as
+  online (`WorkbookExecutionProvider`). The scripts of the other connections serve the published results from the
+  cache or are skipped, like the scripts of a connection that is not connected. The published results stay in the
+  cache after the preview is gone, the cache can't tell them from the results of local runs yet.
+- **Read-only.** A preview changes nothing until it is imported. The feed page provides `WorkbookReadOnlyContext`: the
+  cards have a dashed border and a lock where the run button is, no connection and no actions, the editors are
+  read-only, and there is no composer, no adding of scripts or attachments, no agent and no dashboard or dataflow view.
+  A single script doesn't run (`runWorkbookScript`), and the reducer refuses what changes the scripts, the names, the
+  inputs or the connections of the scripts (`isRefusedByCloudPreview`). The bar says Read-only preview next to Execute
+  All and offers Import instead of Share and Export.
+- **Importing.** Import in the bar promotes a preview: it drops `preview` (`SET_WORKBOOK_CLOUD_LINK`), the workbook
+  stays where it is with its results and is listed in Local from then on. A preview whose connections used an existing
+  one that a regular import asks about, or a preview that outlived the page, is imported again instead, now with the
+  questions, and the preview is discarded. Import in the menu of a published workbook or a version imports it with the
+  questions right away. Each import is a local workbook of its own, an import never replaces a local workbook.
+- **Publishing.** The menu of a local workbook offers Publish to Cloud. A linked workbook publishes a new version of
+  its published workbook instead, and Publish as New Workbook starts another one. The workbook is exported like a
+  shared `.dashql` file, with the catalogs and the cached query results and without the login hints
+  (`exportWorkbookAsSharedTables`, `retainWorkbookQueryResults`), and its link follows the published version. Results
+  that are too large to publish are left out. A publish to a deleted workbook fails, Publish as New Workbook publishes
+  it again.
+- **Deleting.** The menu of a published workbook deletes it from the cloud. Local workbooks linked to it keep their
+  link.
+
 ### Workbooks and Folders
 
 Where a workbook is shown and whether it was deleted belongs to the workbook, not to a version: moving a workbook
@@ -271,7 +329,7 @@ the Cloud button of the top bar. It shows the step that the cloud still needs:
   of its own below a separator, Installation, as on the page. Set Up Cloud opens the page. The local cloud logs in without a click in both (`useLocalCloudAutoLogin`).
 - **The cloud state.** `CloudStateProvider` looks at the cloud whenever the cloud connection comes online and after the
   installer ran: what the installer finds and the folders and workbooks of the cloud, listed when this DashQL may read
-  the tables (`useCloudState`). The page shows the number of workbooks from it, the sidebar will list them.
+  the tables (`useCloudState`). The page shows the number of workbooks from it, the sidebar lists them.
 
 ### The Installer
 

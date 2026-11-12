@@ -66,6 +66,7 @@ const dependencies = {
     useWorkbookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
     SegmentedControl,
     useWorkbookExecution: () => state.execution,
+    CloudWorkbookLoadingCard: () => null,
 } as unknown as WorkbookFeedPageDependencies;
 
 /// The label of a button of the view switch, its tooltip

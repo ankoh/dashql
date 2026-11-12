@@ -3,7 +3,7 @@ import * as styles from './workbook_feed.module.css';
 import type * as dashql from '@ankoh/dashql-core';
 
 import type { Icon } from '../../ui/foundations/symbol_icon.js';
-import { GraphIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { GraphIcon, LockIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { useRowContextMenu } from '../../ui/foundations/row_context_menu.js';
 import { ConnectionHealth } from '../../connections/connection_state.js';
@@ -23,6 +23,7 @@ import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { classNames } from '../../utils/classnames.js';
+import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
 const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
 const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -110,9 +111,17 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
     const contextMenu = useRowContextMenu();
     const [chartBuilderOpen, setChartBuilderOpen] = React.useState(false);
     const closeChartBuilder = React.useCallback(() => setChartBuilderOpen(false), []);
+    // A read-only workbook shows the connection, the diagnostics and the name, nothing that runs or changes the script
+    const readOnly = useWorkbookReadOnly();
 
     return (
-        <div className={classNames(styles.feed_entry_action_bar, props.className)} onContextMenu={contextMenu.onContextMenu}>
+        <div className={classNames(styles.feed_entry_action_bar, props.className)} onContextMenu={readOnly ? undefined : contextMenu.onContextMenu}>
+            {readOnly ? (
+                <span className={styles.feed_entry_read_only} title="Read-only: import the workbook to run or change it"
+                    role="img" aria-label="Read-only" data-testid="script-read-only">
+                    <LockIcon size={14} />
+                </span>
+            ) : (
             <ExecuteConnectionGuard workbookId={props.workbookId} blocked={!queryActive && connectionHealth !== ConnectionHealth.ONLINE}>
             <IconButton
                 className={needsConnection ? styles.feed_entry_execute_offline : props.focused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
@@ -136,6 +145,9 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                 {queryActive ? <SquareFillIcon size={12} /> : <PaperAirplaneIcon size={14} />}
             </IconButton>
             </ExecuteConnectionGuard>
+            )}
+            {/* A read-only workbook runs on no connection, a preview maps its connections when it is imported */}
+            {!readOnly && <>
             <span className={styles.feed_entry_action_separator} aria-hidden="true" />
             <div className={styles.feed_entry_file_name}>
                 <ScriptConnectionPicker
@@ -147,6 +159,8 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                     entryHeader
                 />
             </div>
+            </>}
+            {readOnly && <div className={styles.feed_entry_file_name} aria-hidden="true" />}
             {props.scriptDebugMode && props.scriptData != null && (
                 <div className={styles.feed_entry_stats_bar} data-entry-optional="1">
                     <dependencies.ScriptStatisticsBar stats={props.scriptData.statistics} />
@@ -172,12 +186,13 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
             )}
             <ScriptMentionTag
                 scriptName={displayName}
-                canTarget={props.canTarget}
+                canTarget={!readOnly && props.canTarget}
                 onTarget={props.onTarget}
                 renaming={renaming}
                 onRenamingChange={setRenaming}
                 onRename={props.onRename}
             />
+            {!readOnly && <>
             <IconButton
                 variant={chartBuilderOpen ? ButtonVariant.Default : ButtonVariant.Invisible}
                 size={ButtonSize.Small}
@@ -270,6 +285,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                     <MoveDownIcon size={14} />
                 </IconButton>
             )}
+            </>}
         </div>
     );
 }

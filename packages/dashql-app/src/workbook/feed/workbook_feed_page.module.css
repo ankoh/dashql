@@ -225,6 +225,15 @@
     pointer-events: none;
 }
 
+/* The card of a published workbook that is being loaded, centered where the feed is */
+.loading_layer {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+}
+
 /* The canvas and the inspector of the selected script, side by side */
 .dataflow_layout {
     display: flex;

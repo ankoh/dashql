@@ -409,6 +409,26 @@
     position: relative;
 }
 
+/* The cards of a read-only workbook have a dashed border, a preview of a published workbook is imported before it runs */
+.feed_entry_pair[data-read-only] .feed_entry_cell {
+    border-style: dashed;
+}
+
+/* A read-only card has no drag handle, the lock moves into its space above the line numbers */
+.feed_entry_pair[data-read-only] .feed_entry_action_bar {
+    padding-left: 6px;
+}
+
+/* The lock where the run button of a card is */
+.feed_entry_read_only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: var(--color_fg_muted);
+}
+
 .feed_entry_action_bar {
     /* border-bottom: 1px solid var(--color_border); */
     border-radius: var(--border_radius) var(--border_radius) 0 0;

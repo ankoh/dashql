@@ -20,6 +20,7 @@ import { GitHubTheme } from '../styles/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { HyperSetupProvider } from '../connections/hyper/hyper_connection_setup.js';
 import { CloudStateProvider } from '../cloud/cloud_state.js';
+import { CloudPreviewCleanup } from '../cloud/cloud_workbooks.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_client_provider.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
@@ -78,6 +79,7 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                                             <WorkbookViewModeProvider>
                                                                 <WorkbookCommands>
                                                                     <CloudStateProvider>
+                                                                        <CloudPreviewCleanup />
                                                                         <AppLoader>
                                                                             {props.children}
                                                                         </AppLoader>

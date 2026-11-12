@@ -7,7 +7,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, type WorkbookScripts } from './workbook_scripts.js';
+import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from './workbook_scripts.js';
 import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '../../storage/storage_writer.js';
 import {
     WorkbookScriptsRegistryProvider,
@@ -168,6 +168,67 @@ describe('useWorkbookScripts dispatch', () => {
             expect(isEphemeralWorkbook(registry.workbookScriptsMap.get('greeter')!)).toBe(false);
             expect(write).toHaveBeenLastCalledWith(expect.any(String), {
                 type: WRITE_WORKBOOK_PROPERTIES, value: ['greeter', { name: 'Renamed' }],
+            }, expect.any(Number));
+        } finally {
+            write.mockRestore();
+            act(() => root.unmount());
+        }
+    });
+
+    it('keeps a cloud preview unchanged until it is imported', async () => {
+        const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
+        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002' };
+        const preview = {
+            ...fixture('preview'),
+            name: 'Published',
+            workbookMetadata: { originalFileName: '', cloud: { ...cloud, preview: true } },
+        } as WorkbookScripts;
+        const container = document.createElement('div');
+        const root = createRoot(container);
+        let current!: ScriptsHook;
+        let registry!: ScriptsRegistry;
+        const capture = (scripts: ScriptsHook, nextRegistry: ScriptsRegistry) => {
+            current = scripts;
+            registry = nextRegistry;
+        };
+        try {
+            await act(async () => {
+                root.render(<LoggerProvider>
+                    <StorageProvider backend={new WorkbookTestBackend()}>
+                        <ConnectionRegistry>
+                            <WorkbookScriptsRegistryProvider>
+                                <SeedRegistry workbooks={[preview]}>
+                                    <Consumer workbookId="preview" capture={capture} />
+                                </SeedRegistry>
+                            </WorkbookScriptsRegistryProvider>
+                        </ConnectionRegistry>
+                    </StorageProvider>
+                </LoggerProvider>);
+            });
+            await vi.waitFor(() => expect(current?.[0]?.workbookId).toBe('preview'));
+
+            // Renaming and reordering change what the workbook says, a preview refuses them
+            await act(async () => { await current[1]({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
+            await act(async () => { await current[1]({ type: REORDER_SCRIPTS, value: ['1.sql'] }); });
+            expect(registry.workbookScriptsMap.get('preview')!.name).toBe('Published');
+            expect(write).not.toHaveBeenCalled();
+            // What a run registers stays, the runs refuse a preview before they start
+            await act(async () => { await current[1]({ type: REGISTER_QUERY, value: [1, 101] }); });
+            expect(registry.workbookScriptsMap.get('preview')!.scripts[1].latestQueryId).toBe(101);
+
+            // Importing drops the mark and keeps the link, the properties write it
+            await act(async () => { await current[1]({ type: SET_WORKBOOK_CLOUD_LINK, value: cloud }); });
+            const imported = registry.workbookScriptsMap.get('preview')!;
+            expect(isCloudPreview(imported)).toBe(false);
+            expect(imported.workbookMetadata.cloud).toEqual(cloud);
+            expect(write).toHaveBeenLastCalledWith(expect.any(String), {
+                type: WRITE_WORKBOOK_PROPERTIES, value: ['preview', { name: 'Published', cloud }],
+            }, expect.any(Number));
+
+            // A rename keeps the link
+            await act(async () => { await current[1]({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
+            expect(write).toHaveBeenLastCalledWith(expect.any(String), {
+                type: WRITE_WORKBOOK_PROPERTIES, value: ['preview', { name: 'Renamed', cloud }],
             }, expect.any(Number));
         } finally {
             write.mockRestore();

@@ -27,6 +27,27 @@
     bottom: -2px;
 }
 
+/* A connection of a preview that it doesn't run on: the logo is greyed, a lock replaces the health dot */
+.button[data-locked] {
+    cursor: default;
+}
+
+.button[data-locked] .logo > svg {
+    opacity: 0.45;
+    filter: grayscale(1);
+}
+
+.lock {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    display: inline-flex;
+    padding: 1px;
+    border-radius: 50%;
+    color: var(--color_fg_muted);
+    background: var(--color_bg_card);
+}
+
 .button[data-attention] {
     animation: connection_attention 450ms ease-in-out 2;
 }

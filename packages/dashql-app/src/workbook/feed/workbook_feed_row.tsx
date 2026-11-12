@@ -37,6 +37,7 @@ import type { ScriptConnectionView } from '../scripts/script_connection_picker.j
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { FeedEntryHeader } from './feed_entry_header.js';
+import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { FEED_TOP_PADDING } from './workbook_feed_layout.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
 
@@ -275,10 +276,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const closeTableOverlay = React.useCallback(() => setTableOverlayOpen(false), []);
 
     const resultContentId = props.scriptData != null ? `feed-result-${props.scriptData.scriptKey}` : undefined;
+    // A read-only workbook shows its cards greyed out
+    const readOnly = useWorkbookReadOnly();
     const hasFooterContent = entryStatus.kind !== EntryStatusKind.Idle;
     return (
         <article
             className={styles.feed_entry_pair}
+            data-read-only={readOnly ? '' : undefined}
             data-electron-drag-region="false"
             onPointerEnter={() => props.onFocus(props.scriptFileName)}
             aria-label={`${displayName} script cell`}
@@ -482,6 +486,9 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     // Every script runs on its own connection
     const connection = scriptData != null ? props.connections.get(scriptData.connection.connectionId) ?? null : null;
 
+    // A read-only workbook adds and moves no scripts
+    const readOnly = useWorkbookReadOnly();
+
     // Entries are in feed order, so the index drives the movement buttons
     const canMoveUp = entryIndex > 0;
     const canMoveDown = entryIndex < props.entries.length - 1;
@@ -494,6 +501,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         isDragging,
     } = dependencies.useSortable({
         id: entry?.scriptId ?? `missing-${entryIndex}`,
+        disabled: readOnly,
         // The optimistic order is already the final dropped layout. Suppress dnd-kit's derived
         // post-drop FLIP transform, which otherwise briefly animates the card back toward its old row.
         animateLayoutChanges: () => false,
@@ -541,7 +549,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     zIndex: isDragging ? 1 : undefined,
                 }}
             >
-                <button
+                {!readOnly && <><button
                     type="button"
                     className={styles.feed_entry_insert}
                     data-edge="above"
@@ -560,7 +568,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     {...listeners}
                 >
                     <DragHandleIcon size={16} />
-                </button>
+                </button></>}
                 <ScriptCard
                     key={entry?.scriptId}
                     workbookId={props.workbookId}
@@ -607,7 +615,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onEditorView={props.onEditorView}
                     dependencies={dependencies.scriptCard}
                 />
-                <button
+                {!readOnly && <button
                     type="button"
                     className={styles.feed_entry_insert}
                     data-edge="below"
@@ -616,7 +624,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onClick={() => props.onCreate(entryIndex + 1)}
                 >
                     <PlusIcon size={14} />
-                </button>
+                </button>}
             </div>
         </div>
     );

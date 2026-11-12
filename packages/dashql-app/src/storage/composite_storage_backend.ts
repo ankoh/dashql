@@ -32,6 +32,7 @@ import {
     seedConnectionCatalogs,
     writeWorkbookBundle,
     type WorkbookBundle,
+    type WorkbookBundleWriteStep,
 } from './workbook_bundle.js';
 import type { Logger } from '../platform/logger/logger.js';
 import { NativeFolder, OverlayFolder } from './migration/migration_folder.js';
@@ -414,8 +415,9 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         bundle: WorkbookBundle,
         targetWorkbookId: string,
         targetIsFresh: boolean,
+        onStep?: (step: WorkbookBundleWriteStep) => void,
     ): Promise<void> {
-        await writeWorkbookBundle(bundle, this.opfs, { targetWorkbookId, targetIsFresh });
+        await writeWorkbookBundle(bundle, this.opfs, { targetWorkbookId, targetIsFresh, onStep });
         this.setLocationAfterPortableWrite(targetWorkbookId);
         this.nativeCache.delete(targetWorkbookId);
     }

@@ -1,0 +1,45 @@
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.read_only {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color_fg_muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* The card in place of the feed while a version of a published workbook is loaded, like the card of an imported file */
+.loading_card {
+    width: min(520px, 100%);
+}
+
+.loading_title {
+    margin-block: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.loading_body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+.loading_name {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.loading_error {
+    color: var(--color_danger_fg);
+    font-size: 12px;
+}

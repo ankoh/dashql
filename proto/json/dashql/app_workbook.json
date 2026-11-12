@@ -151,8 +151,32 @@
         "ephemeral": {
           "type": "boolean",
           "description": "Is this the workbook of the greeter? It has no scripts and is promoted to a full workbook by its first script"
+        },
+        "cloud": {
+          "$ref": "#/definitions/WorkbookCloudLink",
+          "description": "The published workbook of the cloud that this workbook came from or was published to"
         }
       },
+      "additionalProperties": false
+    },
+    "WorkbookCloudLink": {
+      "type": "object",
+      "description": "A published workbook of the cloud and one of its versions",
+      "properties": {
+        "workbookId": {
+          "type": "string",
+          "description": "The id of the published workbook in the cloud, a UUID"
+        },
+        "versionId": {
+          "type": "string",
+          "description": "The version that was opened or published last, a UUID"
+        },
+        "preview": {
+          "type": "boolean",
+          "description": "Is this a read-only look at the version? The workbook is hidden from the local workbooks until it is imported"
+        }
+      },
+      "required": ["workbookId", "versionId"],
       "additionalProperties": false
     }
   }

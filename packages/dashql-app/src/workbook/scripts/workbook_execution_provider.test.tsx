@@ -439,6 +439,22 @@ describe('WorkbookExecutionProvider', () => {
         expect(current.state).toMatchObject({ totalScripts: 1, completedScripts: 0, skippedScripts: 1, totalStatements: 0 });
     });
 
+    it('runs a preview of a published workbook on the embedded Hyper only, its other connections are skipped', async () => {
+        const preview = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', preview: true };
+        const [embedded, remote] = fixtures;
+        for (const f of fixtures) Object.assign(f.workbook, { workbookMetadata: { cloud: preview } });
+        // The second connection is a Hyper server, it is online but a preview doesn't run on it
+        (remote.database.details.value as { proto: object }).proto = { setupParams: { protocol: 'V3_HTTP' } };
+        await render();
+        act(() => current.start(embedded.modify));
+        await vi.waitFor(() => expect(embedded.stream.produce).toHaveBeenCalledTimes(1));
+        await render('second');
+        act(() => current.start(remote.modify));
+        await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
+        expect(remote.executeQuery).not.toHaveBeenCalled();
+        expect(current.state).toMatchObject({ totalScripts: 1, completedScripts: 0, skippedScripts: 1, totalStatements: 0 });
+    });
+
     it('runs a change of inputs while the connection is not connected', async () => {
         const f = fixtures[0];
         f.database.connectionHealth = ConnectionHealth.NOT_STARTED;

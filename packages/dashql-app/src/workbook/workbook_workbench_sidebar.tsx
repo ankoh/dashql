@@ -45,6 +45,7 @@ import {
     SymbolIcon,
     UnlinkIcon,
     UploadIcon,
+    PaperAirplaneIcon,
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
@@ -64,6 +65,8 @@ import {
 } from '../connections/connection_params.js';
 import { useNewWorkbookConnection } from '../connections/embedded_connection.js';
 import { useCloudConnectionId, useSetCloudConnection } from '../connections/cloud_connection.js';
+import { CloudWorkbookFolder } from '../cloud/cloud_workbook_folder.js';
+import { useCloudWorkbooks } from '../cloud/cloud_workbooks.js';
 import { ATTACHABLE_CONNECTORS } from '../connections/attached_connection.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { ConnectionSettingsOverlay } from '../connections/connection_settings_overlay.js';
@@ -84,7 +87,7 @@ import {
 } from './persistence/app_state_loader.js';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
 import { describeWorkbookValidationError } from '../storage/workbook_validation.js';
-import { EPHEMERAL_WORKBOOK_NAME, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, type WorkbookScripts } from './scripts/workbook_scripts.js';
+import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from './scripts/workbook_scripts.js';
 import { scriptDisplayName } from './scripts/script_types.js';
 import { renameScript } from './scripts/script_rename.js';
 import {
@@ -173,12 +176,13 @@ const WORKBOOK_LIST_COLLISIONS: CollisionDetection = args => {
 
 /// The drop target at the end of the workbook list. It fills the empty space below the rows and moves a row to the
 /// end of the top level, a targeted drop shows the insertion line at the end of the list.
-const TopLevelDropZone: React.FC<{ targeted: boolean }> = ({ targeted }) => {
+const TopLevelDropZone: React.FC<{ targeted: boolean; depth: number }> = ({ targeted, depth }) => {
     const { setNodeRef } = useDroppable({ id: TOP_LEVEL_DROP_ID });
     return (
         <li
             ref={setNodeRef}
             className={classNames(styles.top_level_drop, { [styles.top_level_drop_targeted]: targeted })}
+            style={{ ['--workbook_row_indent' as string]: `${workbookListRowPadding(depth) + WORKBOOK_LIST_CARET_COLUMN}px` }}
             aria-hidden="true"
             data-testid="workbook-top-level-drop"
         />
@@ -187,12 +191,12 @@ const TopLevelDropZone: React.FC<{ targeted: boolean }> = ({ targeted }) => {
 
 /// The row of the ephemeral workbook, the last workbook of the root. It looks like the other workbooks and only opens the
 /// greeter: there is nothing to rename, move or delete until a script promotes the workbook.
-const EphemeralWorkbookRow: React.FC<{ selected: boolean; onOpen: () => void }> = ({ selected, onOpen }) => (
+const EphemeralWorkbookRow: React.FC<{ selected: boolean; depth: number; onOpen: () => void }> = ({ selected, depth, onOpen }) => (
     <li
         className={classNames(styles.entry_surface, styles.entry_interactive, styles.workbook_row, {
             [styles.entry_selected]: selected,
         })}
-        style={{ paddingLeft: workbookListRowPadding(0) }}
+        style={{ paddingLeft: workbookListRowPadding(depth) }}
         data-testid="workbook-ephemeral-row"
     >
         <button type="button" className={styles.tree_button} aria-current={selected ? 'page' : undefined} onClick={onOpen}>
@@ -247,6 +251,8 @@ export interface WorkbookWorkbenchSidebarDependencies {
     WorkbookStorageOverlay: typeof WorkbookStorageOverlay;
     WorkbookURLShareOverlay: typeof WorkbookURLShareOverlay;
     WorkbookFileSaveOverlay: typeof WorkbookFileSaveOverlay;
+    useCloudWorkbooks: typeof useCloudWorkbooks;
+    CloudWorkbookFolder: typeof CloudWorkbookFolder;
 }
 
 const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarDependencies = {
@@ -281,6 +287,8 @@ const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarD
     WorkbookStorageOverlay,
     WorkbookURLShareOverlay,
     WorkbookFileSaveOverlay,
+    useCloudWorkbooks,
+    CloudWorkbookFolder,
 };
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -304,6 +312,7 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
     const archiveExport = useAppFlavor().features.workbookArchiveExport;
     const [storageOpen, setStorageOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const cloudConnectionId = useCloudConnectionId();
 
     return (
         <AnchoredOverlay
@@ -400,6 +409,9 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
+                    <>{cloudConnectionId != null && (
+                        <WorkbookPublishItems item={item} onRun={() => setOpen(false)} dependencies={dependencies} />
+                    )}</>
                     <ActionList.ListItem data-testid="workbook-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
                         <ActionList.Leading>{item.isNative ? <UnlinkIcon size={16} /> : <TrashIcon size={16} />}</ActionList.Leading>
                         <ActionList.ItemText>{item.isNative ? 'Unlink' : 'Delete'}</ActionList.ItemText>
@@ -407,6 +419,43 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
                 </ActionList.List>
             </div>
         </AnchoredOverlay>
+    );
+};
+
+/// Publish a workbook to the cloud: a new version of the published workbook it is linked to, or a new published workbook
+const WorkbookPublishItems: React.FC<{ item: WorkbookItem; onRun: () => void; dependencies: WorkbookWorkbenchSidebarDependencies }> = ({ item, onRun, dependencies }) => {
+    const cloudWorkbooks = dependencies.useCloudWorkbooks();
+    const logger = dependencies.useLogger();
+    const link = workbookCloudLink(item.scripts);
+    const publish = (asNew: boolean) => {
+        onRun();
+        cloudWorkbooks.publish(item.workbookId, { asNew }).catch(error => {
+            logger.error(`Publishing "${item.label}" failed`, { workbookId: item.workbookId, error: String(error instanceof Error ? error.message : error) }, 'workbook_workbench');
+        });
+    };
+    return (
+        <>
+            <ActionList.ListItem
+                data-testid="workbook-menu-item"
+                data-action="publish"
+                disabled={!cloudWorkbooks.ready}
+                onClick={() => publish(false)}
+            >
+                <ActionList.Leading><PaperAirplaneIcon size={16} /></ActionList.Leading>
+                <ActionList.ItemText>{link == null ? 'Publish to cloud' : 'Publish new version'}</ActionList.ItemText>
+            </ActionList.ListItem>
+            <>{link != null && (
+                <ActionList.ListItem
+                    data-testid="workbook-menu-item"
+                    data-action="publish-as-new"
+                    disabled={!cloudWorkbooks.ready}
+                    onClick={() => publish(true)}
+                >
+                    <ActionList.Leading><PaperAirplaneIcon size={16} /></ActionList.Leading>
+                    <ActionList.ItemText>Publish as new workbook</ActionList.ItemText>
+                </ActionList.ListItem>
+            )}</>
+        </>
     );
 };
 
@@ -656,8 +705,8 @@ const ScriptRowMenu: React.FC<{ name: string; onRename: () => void; contextMenu:
     );
 };
 
-const InvalidWorkbookRow: React.FC<{ item: InvalidWorkbookItem; onDelete: () => void }> = ({ item, onDelete }) => (
-    <li className={classNames(styles.entry_surface, styles.workbook_row)}>
+const InvalidWorkbookRow: React.FC<{ item: InvalidWorkbookItem; depth: number; onDelete: () => void }> = ({ item, depth, onDelete }) => (
+    <li className={classNames(styles.entry_surface, styles.workbook_row)} style={{ paddingLeft: workbookListRowPadding(depth) }}>
         <div
             className={classNames(styles.workbook_button, styles.workbook_button_invalid)}
             title={item.invalidReason}
@@ -679,6 +728,34 @@ const InvalidWorkbookRow: React.FC<{ item: InvalidWorkbookItem; onDelete: () => 
         </IconButton>
     </li>
 );
+
+/// The folder of the local workbooks at the top level, next to the folder of the cloud. It only groups the rows, the
+/// folders and workbooks inside are the top level of the workbook tree.
+const LocalWorkbookFolderRow: React.FC<{ expanded: boolean; count: number; onToggle: () => void }> = ({ expanded, count, onToggle }) => {
+    const Caret = expanded ? ChevronDownIcon : ChevronRightIcon;
+    return (
+        <li
+            className={classNames(styles.entry_surface, styles.entry_interactive, styles.workbook_row)}
+            style={{ paddingLeft: workbookListRowPadding(0) }}
+            data-testid="local-folder"
+        >
+            <button
+                type="button"
+                className={classNames(styles.tree_button, styles.root_button)}
+                aria-expanded={expanded}
+                title="The workbooks of this browser"
+                onClick={onToggle}
+            >
+                <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
+                <svg width="14" height="14" aria-hidden="true"><use xlinkHref={`${symbols}#device_desktop_24`} /></svg>
+                <span className={styles.workbook_name}>Local</span>
+                <span className={styles.root_count} aria-label={`${count} local ${count === 1 ? 'workbook' : 'workbooks'}`}>{count}</span>
+            </button>
+            {/* Where the menu of the cloud is, the counts line up */}
+            <span className={styles.root_menu_spacer} aria-hidden="true" />
+        </li>
+    );
+};
 
 export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const connectorIcon = useConnectorIcon();
@@ -725,6 +802,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const treeWriteRef = React.useRef(Promise.resolve());
     // The collapsed folders, by folder path key
     const [collapsedFolders, setCollapsedFolders] = React.useState<ReadonlySet<string>>(() => new Set());
+    // Is the folder of the local workbooks expanded? It is shown while there is a cloud next to it
+    const [localExpanded, setLocalExpanded] = React.useState(true);
     // The workbook whose scripts are listed, all are collapsed at first
     const [expandedWorkbook, setExpandedWorkbook] = React.useState<string | null>(null);
     // The folder whose name is being edited, by folder path key
@@ -745,8 +824,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const workbookItems = React.useMemo<Map<string, WorkbookItem>>(() => {
         const items = new Map<string, WorkbookItem>();
         for (const [workbookId, scripts] of scriptsRegistry.workbookScriptsMap) {
-            // The ephemeral workbook has its own row at the end of the list
-            if (isEphemeralWorkbook(scripts)) continue;
+            // The ephemeral workbook has its own row at the end of the list, a cloud preview shows with the cloud
+            if (isEphemeralWorkbook(scripts) || isCloudPreview(scripts)) continue;
             const connections = references.connectionsOf(workbookId)
                 .map(id => databaseRegistry.connections.get(id))
                 .filter((connection): connection is ConnectionState => connection != null);
@@ -787,6 +866,11 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     }, [currentWorkbookFolderKey]);
     // Selecting another workbook collapses the one before, also when the selection doesn't come from the sidebar
     const currentWorkbookId = props.workbookScripts.workbookId;
+    // Opening a local workbook expands the local folder
+    const currentIsLocal = workbookItems.has(currentWorkbookId);
+    React.useEffect(() => {
+        if (currentIsLocal) setLocalExpanded(true);
+    }, [currentIsLocal, currentWorkbookId]);
     React.useEffect(() => {
         setExpandedWorkbook(current => current === currentWorkbookId ? current : null);
     }, [currentWorkbookId]);
@@ -832,7 +916,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
         const workbookIds = references.workbooksOf(connectionId).filter(workbookId => {
             const scripts = scriptsRegistry.workbookScriptsMap.get(workbookId);
-            return scripts == null || !isEphemeralWorkbook(scripts);
+            return scripts == null || (!isEphemeralWorkbook(scripts) && !isCloudPreview(scripts));
         });
         const database = databaseRegistry.connections.get(connectionId);
         const scriptsOf = (workbookId: string) => {
@@ -1176,6 +1260,16 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const workbookListRef = React.useRef<HTMLUListElement>(null);
     const getWorkbookScrollElement = React.useCallback(() => workbookListRef.current, []);
 
+    // With a cloud, the local workbooks are a folder of their own next to the folder of the cloud
+    const rootDepth = cloudConnectionId != null ? 1 : 0;
+    const localShown = rootDepth === 0 || localExpanded;
+
+    // A workbook that was opened from the cloud replaces an open connection overview
+    const openedFromCloud = React.useCallback(() => {
+        onOpenOverview?.(null);
+        closeAfterSelection?.();
+    }, [onOpenOverview, closeAfterSelection]);
+
     return (
         <nav className={styles.workbench} aria-label="Workbook workbench" data-electron-drag-region>
             <VerticalSplit
@@ -1254,14 +1348,28 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                 onDragEnd={dropRow}
                                 onDragCancel={endDrag}
                             >
-                                <SortableContext items={rows.map(row => row.id)} strategy={KEEP_ROWS_IN_PLACE}>
+                                <SortableContext items={localShown ? rows.map(row => row.id) : []} strategy={KEEP_ROWS_IN_PLACE}>
                                     <ul ref={workbookListRef} className={styles.workbook_list} aria-label="Workbooks" data-electron-drag-region="false">
-                                        {rows.map(row => row.kind === 'folder' ? (
+                                        {/* The published workbooks of the cloud, a folder above the local ones */}
+                                        {cloudConnectionId != null && (
+                                            <dependencies.CloudWorkbookFolder
+                                                currentWorkbookId={props.openOverviewId == null ? props.workbookScripts.workbookId : null}
+                                                onOpened={openedFromCloud}
+                                            />
+                                        )}
+                                        {rootDepth > 0 && (
+                                            <LocalWorkbookFolderRow
+                                                expanded={localExpanded}
+                                                count={workbookCount}
+                                                onToggle={() => setLocalExpanded(value => !value)}
+                                            />
+                                        )}
+                                        {localShown && rows.map(row => row.kind === 'folder' ? (
                                             <WorkbookFolderRow
                                                 key={row.id}
                                                 rowId={row.id}
                                                 folder={row.folder}
-                                                depth={row.depth}
+                                                depth={row.depth + rootDepth}
                                                 expanded={row.expanded}
                                                 renaming={renamingFolder === folderPathKey(row.folder.path)}
                                                 onToggle={() => toggleFolder(row.folder)}
@@ -1277,7 +1385,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                             <WorkbookRow
                                                 key={row.id}
                                                 item={row.item}
-                                                depth={row.depth}
+                                                depth={row.depth + rootDepth}
                                                 // An open connection overview replaces the workbook
                                                 selected={props.openOverviewId == null && row.item.workbookId === props.workbookScripts.workbookId}
                                                 onOpen={() => openWorkbook(row.item)}
@@ -1290,18 +1398,19 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                                 dependencies={dependencies}
                                             />
                                         ))}
-                                        {invalidItems.map(item => (
+                                        {localShown && invalidItems.map(item => (
                                             <InvalidWorkbookRow
                                                 key={item.workbookId}
                                                 item={item}
+                                                depth={rootDepth}
                                                 onDelete={() => { void deleteInvalidWorkbook(item.workbookId); }}
                                             />
                                         ))}
-                                        {ephemeralWorkbook != null && (
-                                            <EphemeralWorkbookRow selected={ephemeralWorkbookSelected} onOpen={openGreeter} />
+                                        {localShown && ephemeralWorkbook != null && (
+                                            <EphemeralWorkbookRow selected={ephemeralWorkbookSelected} depth={rootDepth} onOpen={openGreeter} />
                                         )}
                                         {storageReader.workbookFolders != null && (
-                                            <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} />
+                                            <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} depth={rootDepth} />
                                         )}
                                     </ul>
                                 </SortableContext>

@@ -2,11 +2,11 @@ import * as React from 'react';
 import * as styles from './script_editor.module.css';
 
 import { EditorView } from '@codemirror/view';
-import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
+import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, getSelectedScriptRef } from './workbook_scripts.js';
+import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, getSelectedScriptRef, isCloudPreview } from './workbook_scripts.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ModifyWorkbookScripts, useWorkbookScripts } from './workbook_scripts_registry.js';
@@ -64,13 +64,19 @@ const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
 };
 
 const LINE_WRAPPING_EXTENSIONS = [EditorView.lineWrapping];
+/// The editor of a script of a cloud preview is read-only, importing the preview makes it editable
+const READ_ONLY = new Compartment();
 
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const extraExtensions = props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : undefined;
     const logger = dependencies.useLogger();
     const config = dependencies.useAppConfig();
     const [scripts, modifyScripts] = dependencies.useWorkbookScripts(props.workbookId);
+    const readOnly = scripts != null && isCloudPreview(scripts);
+    const extraExtensions = React.useMemo(() => [
+        ...(props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : []),
+        READ_ONLY.of(EditorState.readOnly.of(readOnly)),
+    ], [props.lineWrapping, readOnly]);
 
     const scriptData = scripts?.scripts[props.scriptKey] ?? null;
 
@@ -103,7 +109,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
         // Binding a script replaces the editor state, which has to keep the extensions of the mount
-        const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...(extraExtensions ?? [])];
+        const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...extraExtensions];
         updateEditor(view, scripts, scriptData, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
     }, [
         config,
@@ -115,6 +121,11 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         scriptData?.connection.catalog,
         props.onNavigateToScript,
     ]);
+    // The editor follows an import of the preview
+    React.useEffect(() => {
+        if (view == null || view.state.readOnly === readOnly) return;
+        view.dispatch({ effects: READ_ONLY.reconfigure(EditorState.readOnly.of(readOnly)) });
+    }, [view, readOnly]);
     // The checked script references of the script, the check covers every script of the workbook
     const references = React.useMemo(
         () => scripts == null || scriptData == null ? null : checkWorkbookScriptReferences(scripts).get(scriptData.scriptKey) ?? null,

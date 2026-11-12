@@ -303,7 +303,12 @@ export interface WorkbookBundleWriteOptions {
     /// The caller guarantees the destination did not exist before this write. Only then may a
     /// failed whole-bundle write remove the destination as rollback.
     targetIsFresh?: boolean;
+    /// Follow the write: the scripts are written, then the attachments
+    onStep?: (step: WorkbookBundleWriteStep) => void;
 }
+
+/// A step of the write of a bundle, in order
+export type WorkbookBundleWriteStep = 'scripts' | 'attachments';
 
 /// Read the portable durable workbook data from a backend. The catalogs of the connections of the
 /// workbook are only read for exports that ask for them, and only from a backend that holds the connections.
@@ -373,9 +378,11 @@ export async function writeWorkbookBundle(
 
     try {
         await backend.saveWorkbookManifest(workbookId, workbook);
+        options.onStep?.('scripts');
         for (const script of bundle.scripts) {
             await backend.saveScript(workbookId, script.name, script.sql);
         }
+        options.onStep?.('attachments');
         for (const file of bundle.data ?? []) {
             await backend.saveDataFile(workbookId, file.name, file.bytes);
         }

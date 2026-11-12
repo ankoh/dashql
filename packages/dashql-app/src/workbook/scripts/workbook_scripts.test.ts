@@ -191,6 +191,23 @@ describe('V2 flat workbook script mutations', () => {
         }));
     });
 
+    it('runs no script of a preview of a published workbook', async () => {
+        const workbook = state(['1_alpha.sql']);
+        const current = { ...workbook, workbookMetadata: { ...workbook.workbookMetadata, cloud: {
+            workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', preview: true,
+        } } };
+        const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
+        const executeQuery = vi.fn(() => [11, Promise.resolve(null)] as [number, Promise<null>]);
+        const modifyWorkbookScripts = vi.fn(() => Promise.resolve(current));
+        await runWorkbookScript(current, current.scripts[scriptKey], executeQuery, modifyWorkbookScripts, logger);
+        expect(executeQuery).not.toHaveBeenCalled();
+        expect(modifyWorkbookScripts).not.toHaveBeenCalled();
+        // An input change refuses to write the tags of the preview, its scripts stay as published
+        const writer = new RecordingWriter(logger, new WorkbookTestBackend());
+        expect(reduce(current, { type: SET_WORKBOOK_INPUT, value: { name: 'region', literal: "'EU'", scriptKeys: [scriptKey] } }, writer)).toBe(current);
+        expect(writer.records).toEqual([]);
+    });
+
     it('inserts at an indexed feed boundary and persists the new flat file', () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const writer = new RecordingWriter(logger, new WorkbookTestBackend());

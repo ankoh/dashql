@@ -25,6 +25,7 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../connections/connection_state.js';
+import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { getSelectedScriptRef, getScriptRefs, newScriptConnection, WorkbookScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_WORKBOOK_ATTACHMENTS } from '../scripts/workbook_scripts.js';
 import { markWorkbookAttachmentsChanged } from '../attachments/attachment_mounts.js';
 import { renameAttachment } from '../attachments/attachment_rename.js';
@@ -242,7 +243,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         return () => cancel.abort();
     }, [workbookId, storageReader.backend, dataFilesVersion, logger, props.modifyWorkbookScripts]);
     const pinnedDataFiles = dataFiles?.workbookId === workbookId ? dataFiles.files : [];
-    const attachmentsEnabled = connectionReadsAttachments(props.conn?.details);
+    // A read-only workbook adds no scripts and no attachments
+    const readOnly = useWorkbookReadOnly();
+    const attachmentsEnabled = !readOnly && connectionReadsAttachments(props.conn?.details);
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {
         setAttachmentError(null);
         // A workbook attaches Parquet files only, they are table parameters of the scripts
@@ -803,14 +806,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         {attachmentsExpanded && (
                             <div id="workbook-attachments" className={styles.feed_data_drawer}
                                 onDragOver={event => event.preventDefault()} onDrop={handleAttachmentDrop}>
-                                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
+                                {!readOnly && <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
                                     aria-label="Add workbook attachments" disabled={!attachmentsEnabled}
                                     onClick={event => {
                                         event.stopPropagation();
                                         attachmentInputRef.current?.click();
                                     }}>
                                     <PlusIcon size={16} />
-                                </IconButton>
+                                </IconButton>}
                                 <div className={styles.feed_data_cards}>
                                     {pinnedDataFiles.map(file => (
                                         <WorkbookDataCard key={`${workbookId}/${file.name}`} workbookId={workbookId}
@@ -876,7 +879,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                     />
                 )}
             </div>
-            <div className={styles.feed_composer_section}>
+            {!readOnly && <div className={styles.feed_composer_section}>
                 <div className={styles.feed_composer_body}>
                     {composerConnection != null && <dependencies.WorkbookComposer
                         key={props.workbookScripts.workbookId}
@@ -910,7 +913,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         )}
                     />}
                 </div>
-            </div>
+            </div>}
         </div>
     );
 };

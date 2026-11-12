@@ -11,7 +11,8 @@ import { supportsParquet } from '../../platform/hyperdb/hyperdb_parquet_export.j
 import { registerScriptRunServices, type ScriptRunServices } from './script_run.js';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { scriptConnectionIds, SET_ATTACHMENT_COLUMNS } from './workbook_scripts.js';
+import { isCloudPreview, scriptConnectionIds, SET_ATTACHMENT_COLUMNS } from './workbook_scripts.js';
+import { isHyperWasmConnection } from '../../connections/connection_label.js';
 import { QueryType } from '../../query/query_execution_state.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { mountWorkbookAttachments, readAttachmentColumns } from '../attachments/attachment_mounts.js';
@@ -207,6 +208,9 @@ export function WorkbookExecutionProvider(props: React.PropsWithChildren) {
         const registry = readRegistry?.() ?? latest.current.registry;
         const workbook = registry.workbookScriptsMap.get(workbookId);
         if (!workbook || workbook.scriptOrder.length === 0) return;
+        // A preview of a published workbook runs only on the embedded Hyper, the scripts of its other connections serve
+        // the published results until it is imported
+        const preview = isCloudPreview(workbook);
         // A run takes every connection of the workbook, all of them must be idle. A run also starts while connections
         // aren't connected: their scripts serve their cached results, the others are skipped. A connection that is
         // connecting holds the run, it would join a moment later.
@@ -256,8 +260,10 @@ export function WorkbookExecutionProvider(props: React.PropsWithChildren) {
         }
         const controller = new AbortController();
         // A connection that comes online during the run doesn't join it
-        const online = new Set(connectionIds.filter(connectionId =>
-            latest.current.connections.connections.get(connectionId)?.connectionHealth === ConnectionHealth.ONLINE));
+        const online = new Set(connectionIds.filter(connectionId => {
+            const connection = latest.current.connections.connections.get(connectionId);
+            return connection?.connectionHealth === ConnectionHealth.ONLINE && (!preview || isHyperWasmConnection(connection));
+        }));
         logger.info('Starting the run of a workbook', {
             workbookId, inputs: options?.inputs?.join(', ') ?? null,
             online: connectionIds.filter(id => online.has(id)).join(', '),

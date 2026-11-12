@@ -4,6 +4,7 @@ import {
     describeWorkbookBundleDifference,
     seedConnectionCatalogs,
     type WorkbookBundle,
+    type WorkbookBundleWriteStep,
 } from './workbook_bundle.js';
 import {
     type CompositeStorageBackend,
@@ -36,6 +37,7 @@ export async function writePortableWorkbookFresh(
     backend: CompositeStorageBackend,
     bundle: WorkbookBundle,
     targetWorkbookId: string = bundle.workbook.workbookId,
+    onStep?: (step: WorkbookBundleWriteStep) => void,
 ): Promise<string> {
     const conflict = await backend.findWorkbookImportConflict(targetWorkbookId);
     if (conflict) {
@@ -43,7 +45,7 @@ export async function writePortableWorkbookFresh(
     }
 
     try {
-        await backend.writePortableWorkbookBundle(bundle, targetWorkbookId, true);
+        await backend.writePortableWorkbookBundle(bundle, targetWorkbookId, true, onStep);
         await verifyPortableBundle(backend, bundle, targetWorkbookId);
         await seedConnectionCatalogs(backend, bundle, targetWorkbookId);
     } catch (error) {

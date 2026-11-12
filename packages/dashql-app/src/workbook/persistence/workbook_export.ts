@@ -10,7 +10,8 @@ import {
     type WorkbookBundle,
     type WorkbookBundleResult,
 } from '../../storage/workbook_bundle.js';
-import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables } from '../../storage/workbook_tables.js';
+import type { DashQL } from '@ankoh/dashql-core';
+import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '../../storage/workbook_tables.js';
 import { workbookTableFileName, writeWorkbookTableParquet } from '../../storage/workbook_tables_parquet.js';
 import { parseCatalogSql } from '../../connections/catalog/catalog_structure.js';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
@@ -56,19 +57,17 @@ export interface SharedWorkbookExportOptions {
 
 type SharedWorkbookExportOptionsInput = SharedWorkbookExportOptions | boolean;
 
-/// Creates a `.dashql` ZIP from a workbook bundle: the workbook tables as `<table>.parquet`, written with the embedded
-/// Hyper, and the Parquet files of the attachment and result tables as they are (docs/design/workbook_tables.md).
-/// The archive is streamed into a Blob that the browser keeps, the query results are streamed from their files.
-/// The connection params are sanitized for sharing.
-export async function createWorkbookZip(
-    writer: WorkbookArchiveWriter,
-    bundle: WorkbookBundle,
-    signal?: AbortSignal,
-): Promise<Blob> {
+/// The workbook tables of a bundle that leaves the app, in a `.dashql` file or in the cloud: the connection params are
+/// sanitized for sharing and the draft script stays behind. The link to a published workbook of the cloud stays as well,
+/// whoever imports the workbook links it again (docs/design/cloud.md). The core reads the catalog files of the
+/// connections.
+export function sharedWorkbookTables(core: DashQL, bundle: WorkbookBundle): WorkbookTables {
+    const { cloud: _link, ...metadata } = bundle.workbook.metadata ?? {};
     const sanitized: WorkbookBundle = {
         ...bundle,
         workbook: {
             ...bundle.workbook,
+            metadata,
             connections: bundle.workbook.connections.map(connection => ({
                 connectionId: connection.connectionId,
                 params: sanitizeConnectionParamsForSharing(connection.params),
@@ -78,7 +77,19 @@ export async function createWorkbookZip(
         scripts: bundle.scripts.filter(script => script.name.toLowerCase() !== 'dashql-draft.sql'),
     };
     for (const file of sanitized.data ?? []) validateDataFileName(file.name);
-    const tables = workbookBundleToTables(sanitized, sql => parseCatalogSql(writer.core, sql));
+    return workbookBundleToTables(sanitized, sql => parseCatalogSql(core, sql));
+}
+
+/// Creates a `.dashql` ZIP from a workbook bundle: the workbook tables as `<table>.parquet`, written with the embedded
+/// Hyper, and the Parquet files of the attachment and result tables as they are (docs/design/workbook_tables.md).
+/// The archive is streamed into a Blob that the browser keeps, the query results are streamed from their files.
+/// The connection params are sanitized for sharing.
+export async function createWorkbookZip(
+    writer: WorkbookArchiveWriter,
+    bundle: WorkbookBundle,
+    signal?: AbortSignal,
+): Promise<Blob> {
+    const tables = sharedWorkbookTables(writer.core, bundle);
     // The signal also stops an entry that is being streamed
     const zip = new ZipWriter(new BlobWriter('application/zip'), { level: 6, signal });
     try {
@@ -116,19 +127,24 @@ export async function exportWorkbookAsZip(
     writer: WorkbookArchiveWriter,
     options: WorkbookExportOptions = {}
 ): Promise<Blob> {
+    return await createWorkbookZip(writer, await readExportedBundle(workbookId, backend, options), options.signal);
+}
+
+/// Read the bundle of a workbook that is exported: only the connections that the scripts use, transformed by the
+/// caller, with the given query results
+async function readExportedBundle(workbookId: string, backend: StorageBackend, options: WorkbookExportOptions): Promise<WorkbookBundle> {
     const bundle = pruneBundleConnections(await readWorkbookBundle(workbookId, backend, options.withCatalog ?? false));
     options.signal?.throwIfAborted();
 
     // Apply the caller's transform (sharing sanitization, name override, ...)
     const out = options.transformBundle ? options.transformBundle(bundle) : bundle;
-    // Create ZIP from loaded data
     const results = options.queryResults ?? [];
-    return await createWorkbookZip(writer, {
+    return {
         ...bundle,
         workbook: out.workbook,
         catalogs: out.catalogs,
         ...(results.length > 0 ? { results: [...results] } : {}),
-    }, options.signal);
+    };
 }
 
 /// Export a workbook as a shareable ZIP.
@@ -144,8 +160,24 @@ export async function exportWorkbookAsSharedZip(
     optionsInput: SharedWorkbookExportOptionsInput = {},
 ): Promise<Blob> {
     const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
+    return await exportWorkbookAsZip(workbookId, backend, writer, sharedExportOptions(connectionParams, options));
+}
+
+/// Export a workbook as the workbook tables of a shared workbook, as exportWorkbookAsSharedZip writes them into a file
+export async function exportWorkbookAsSharedTables(
+    backend: StorageBackend,
+    core: DashQL,
+    workbookId: string,
+    connectionParams: ReadonlyMap<string, ConnectionParams>,
+    options: SharedWorkbookExportOptions = {},
+): Promise<WorkbookTables> {
+    return sharedWorkbookTables(core, await readExportedBundle(workbookId, backend, sharedExportOptions(connectionParams, options)));
+}
+
+/// The export of a shared workbook: the live params of the connections, sanitized, with the names the user gave them
+function sharedExportOptions(connectionParams: ReadonlyMap<string, ConnectionParams>, options: SharedWorkbookExportOptions): WorkbookExportOptions {
     const withLoginHint = options.withLoginHint ?? true;
-    return await exportWorkbookAsZip(workbookId, backend, writer, {
+    return {
         withCatalog: options.withCatalog ?? true,
         queryResults: options.queryResults,
         signal: options.signal,
@@ -169,7 +201,7 @@ export async function exportWorkbookAsSharedZip(
                 ? { ...bundle, workbook: sanitized }
                 : regenerateBundleConnectionIds({ ...bundle, workbook: { ...sanitized, workbookId: crypto.randomUUID() } });
         },
-    });
+    };
 }
 
 /// Export a workbook as a shareable link that carries the workbook ZIP inline.

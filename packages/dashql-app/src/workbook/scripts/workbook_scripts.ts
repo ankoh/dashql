@@ -25,7 +25,7 @@ import {
     WRITE_SCRIPT,
     type WorkbookScriptList,
 } from '../../storage/storage_writer.js';
-import type { ConnectionParams, WorkbookConnection, WorkbookScript } from '../../storage/storage_backend.js';
+import type { ConnectionParams, WorkbookCloudLink, WorkbookConnection, WorkbookScript } from '../../storage/storage_backend.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { isHyperWasmConnection } from '../../connections/connection_label.js';
 import { Logger, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
@@ -117,6 +117,17 @@ export const EPHEMERAL_WORKBOOK_NAME = 'New Workbook';
 /// Is this the ephemeral workbook of the greeter? It has no scripts and the first one promotes it to a full workbook.
 export function isEphemeralWorkbook(state: WorkbookScripts): boolean {
     return state.workbookMetadata?.ephemeral === true;
+}
+
+/// The published workbook of the cloud that a workbook came from or was published to, null without one
+export function workbookCloudLink(state: WorkbookScripts): WorkbookCloudLink | null {
+    return state.workbookMetadata?.cloud ?? null;
+}
+
+/// Is this a read-only look at a version of a published workbook? It is hidden from the local workbooks, its scripts
+/// can't be changed, and importing it turns it into a workbook of its own. See docs/design/cloud.md.
+export function isCloudPreview(state: WorkbookScripts): boolean {
+    return state.workbookMetadata?.cloud?.preview === true;
 }
 
 /// The first of "Untitled", "Untitled 2", ... that no other workbook has, compared case-insensitively
@@ -303,6 +314,7 @@ export const DETACH_CONNECTION = Symbol('DETACH_CONNECTION');
 export const SET_WORKBOOK_ATTACHMENTS = Symbol('SET_WORKBOOK_ATTACHMENTS');
 export const SET_ATTACHMENT_COLUMNS = Symbol('SET_ATTACHMENT_COLUMNS');
 export const RENAME_ATTACHMENT = Symbol('RENAME_ATTACHMENT');
+export const SET_WORKBOOK_CLOUD_LINK = Symbol('SET_WORKBOOK_CLOUD_LINK');
 
 export type WorkbookScriptsAction =
     | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
@@ -337,7 +349,22 @@ export type WorkbookScriptsAction =
     | VariantKind<typeof SET_ATTACHMENT_COLUMNS, { fileName: string, stamp: string, columns: string[] }>
     /// An attachment whose file was renamed, the scripts that read it read the new name
     | VariantKind<typeof RENAME_ATTACHMENT, { fileName: string, newFileName: string }>
+    /// The published workbook of the cloud that the workbook is linked to, null removes the link. A link without
+    /// `preview` imports a cloud preview.
+    | VariantKind<typeof SET_WORKBOOK_CLOUD_LINK, WorkbookCloudLink | null>
     ;
+
+/// The actions that a cloud preview refuses: they change the scripts or the names of the workbook. Running scripts,
+/// inputs and the connections of the scripts stay, they don't change what the workbook says.
+const CLOUD_PREVIEW_REFUSED_ACTIONS: ReadonlySet<symbol> = new Set([
+    CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF,
+    RENAME_WORKBOOK, RENAME_ATTACHMENT, SET_WORKBOOK_INPUT, SET_SCRIPT_CONNECTION,
+]);
+
+/// Does a cloud preview refuse the action?
+export function isRefusedByCloudPreview(state: WorkbookScripts, action: WorkbookScriptsAction): boolean {
+    return isCloudPreview(state) && CLOUD_PREVIEW_REFUSED_ACTIONS.has(action.type);
+}
 
 const STATS_HISTORY_LIMIT = 20;
 
@@ -463,7 +490,11 @@ function writeWorkbookScriptList(state: WorkbookScripts, storage: WorkbookScript
 function writeWorkbookProperties(state: WorkbookScripts, storage: WorkbookScriptsStorage) {
     void storage.write(
         groupWorkbookManifestWrites(state.workbookId),
-        { type: WRITE_WORKBOOK_PROPERTIES, value: [state.workbookId, { name: state.name, ...(isEphemeralWorkbook(state) ? { ephemeral: true } : {}) }] },
+        { type: WRITE_WORKBOOK_PROPERTIES, value: [state.workbookId, {
+            name: state.name,
+            ...(isEphemeralWorkbook(state) ? { ephemeral: true } : {}),
+            ...(state.workbookMetadata?.cloud != null ? { cloud: state.workbookMetadata.cloud } : {}),
+        }] },
         DEBOUNCE_DURATION_WORKBOOK_WRITE,
     );
 }
@@ -479,6 +510,10 @@ export function promoteEphemeralWorkbook(state: WorkbookScripts, workbooks: Iter
 }
 
 export function reduceWorkbookScripts(state: WorkbookScripts, action: WorkbookScriptsAction, storage: WorkbookScriptsStorage, logger: Logger): WorkbookScripts {
+    if (isRefusedByCloudPreview(state, action)) {
+        logger.warn('Refused a change of a cloud preview', { workbookId: state.workbookId, actionType: action.type.description ?? '' }, LOG_CTX);
+        return state;
+    }
     // The table parameters of the scripts read the results of the scripts, which follow every change
     return publishTableParameters(state, reduceScripts(state, action, storage, logger));
 }
@@ -562,6 +597,15 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             const attachments = [...state.attachments!];
             attachments[index] = { ...attachments[index], columns };
             return { ...state, attachments };
+        }
+        case SET_WORKBOOK_CLOUD_LINK: {
+            const current = state.workbookMetadata?.cloud ?? null;
+            const link = action.value;
+            if (current?.workbookId === link?.workbookId && current?.versionId === link?.versionId && current?.preview === link?.preview) return state;
+            const { cloud: _previous, ...rest } = state.workbookMetadata;
+            const next = { ...state, workbookMetadata: link == null ? rest : { ...rest, cloud: link } };
+            writeWorkbookProperties(next, storage);
+            return next;
         }
         case RENAME_WORKBOOK: {
             const trimmed = action.value?.trim() ?? '';

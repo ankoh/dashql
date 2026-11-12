@@ -8,7 +8,9 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../connections/connection_status.js';
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
-import { connectionLabelText } from '../../connections/connection_label.js';
+import { connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
+import { LockIcon } from '../../ui/foundations/symbol_icon.js';
+import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useConnectionLabeler } from '../connection_labels.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 
@@ -30,11 +32,13 @@ const DEFAULT_DEPENDENCIES: WorkbookConnectionButtonsDependencies = {
 /// The connections that the scripts of a workbook and its next script run on, a connector logo with a health dot each.
 ///
 /// The user sees which connection is not connected yet. A button opens the settings of its connection,
-/// nothing connects by itself.
+/// nothing connects by itself. A read-only workbook, a preview of a published workbook, runs only on the embedded Hyper:
+/// its other connections are greyed with a lock and open nothing, the import maps them.
 export function WorkbookConnectionButtons(props: Props & { dependencies?: WorkbookConnectionButtonsDependencies }): React.ReactElement | null {
     const connectorIcon = useConnectorIcon();
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const labeler = useConnectionLabeler();
+    const readOnly = useWorkbookReadOnly();
     const [settingsConnectionId, setSettingsConnectionId] = React.useState<string | null>(null);
     const anchorRef = React.useRef<HTMLButtonElement | null>(null);
     if (props.connections.length === 0) return null;
@@ -42,7 +46,10 @@ export function WorkbookConnectionButtons(props: Props & { dependencies?: Workbo
         <div className={styles.buttons} role="group" aria-label="Connections of the workbook" data-testid="workbook-connections">
             {props.connections.map(connection => {
                 const health = connection.connectionHealth;
-                const label = `${connectionLabelText(labeler(connection))}: ${CONNECTION_HEALTH_NAMES[health]}`;
+                const locked = readOnly && !isHyperWasmConnection(connection);
+                const label = locked
+                    ? `${connectionLabelText(labeler(connection))}: locked until the workbook is imported`
+                    : `${connectionLabelText(labeler(connection))}: ${CONNECTION_HEALTH_NAMES[health]}`;
                 return (
                     <IconButton
                         key={connection.connectionId}
@@ -52,8 +59,11 @@ export function WorkbookConnectionButtons(props: Props & { dependencies?: Workbo
                         aria-label={label}
                         data-testid="workbook-connection"
                         data-health={ConnectionHealth[health]}
-                        data-attention={props.attention && health !== ConnectionHealth.ONLINE ? '' : undefined}
+                        data-locked={locked ? '' : undefined}
+                        title={locked ? label : undefined}
+                        data-attention={props.attention && !locked && health !== ConnectionHealth.ONLINE ? '' : undefined}
                         onClick={event => {
+                            if (locked) return;
                             anchorRef.current = event.currentTarget;
                             setSettingsConnectionId(connection.connectionId);
                         }}
@@ -62,10 +72,14 @@ export function WorkbookConnectionButtons(props: Props & { dependencies?: Workbo
                             <svg width="16px" height="16px" aria-hidden="true">
                                 <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
                             </svg>
-                            <svg className={styles.health} width="10px" height="10px" viewBox="0 0 10 10" aria-hidden="true">
-                                <circle cx="5" cy="5" r="5" style={{ fill: 'var(--color_bg_card)' }} />
-                                <circle cx="5" cy="5" r="3.5" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />
-                            </svg>
+                            {locked ? (
+                                <span className={styles.lock} aria-hidden="true"><LockIcon size={10} /></span>
+                            ) : (
+                                <svg className={styles.health} width="10px" height="10px" viewBox="0 0 10 10" aria-hidden="true">
+                                    <circle cx="5" cy="5" r="5" style={{ fill: 'var(--color_bg_card)' }} />
+                                    <circle cx="5" cy="5" r="3.5" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />
+                                </svg>
+                            )}
                         </span>
                     </IconButton>
                 );

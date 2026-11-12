@@ -8,6 +8,7 @@ import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { ConnectionHealth } from '../../connections/connection_state.js';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
 import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '../../connections/connector_info.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
@@ -176,6 +177,20 @@ describe('V2 workbook feed rows', () => {
         expect(props.onCreate).toHaveBeenLastCalledWith(0);
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-below"]')!.click());
         expect(props.onCreate).toHaveBeenLastCalledWith(1);
+    });
+
+    it('shows the scripts of a read-only workbook greyed out, without what runs or changes them', () => {
+        const props = baseProps();
+        act(() => root.render(<WorkbookReadOnlyContext.Provider value={true}>
+            <ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />
+        </WorkbookReadOnlyContext.Provider>));
+        expect(container.querySelector('[data-testid="script-cell"]')!.hasAttribute('data-read-only')).toBe(true);
+        expect(container.querySelector('[data-testid="script-read-only"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="editor"]')).not.toBeNull();
+        for (const action of ['script-execute', 'script-delete', 'script-chart', 'script-snippets', 'script-more-actions',
+            'script-move-up', 'script-move-down', 'script-insert-above', 'script-insert-below', 'script-drag-handle']) {
+            expect(container.querySelector(`[data-testid="${action}"]`), action).toBeNull();
+        }
     });
 
     it('marks a result that was loaded from the cache as cached in the status bar', async () => {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { filterInvalidWorkbookCatalogs, renameBundleCatalogs, type WorkbookBundle } from '../../storage/workbook_bundle.js';
+import { filterInvalidWorkbookCatalogs, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleWriteStep } from '../../storage/workbook_bundle.js';
 import type { PreparedNativeWorkbook } from '../../storage/composite_storage_backend.js';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import {
@@ -50,11 +50,16 @@ type ImportPresentation =
     };
 
 /// A step of an import, in order: the connections are resolved, the query results go to the cache, the workbook is saved
+/// with its scripts and attachments and opened
 export type WorkbookImportProgress =
     | { step: 'connections' }
     /// The query results of the workbook, with the outcome once they are added. Only reported if the workbook has some.
     | { step: 'results'; total: number; outcome: ImportedWorkbookQueryResults | null }
-    | { step: 'workbook' };
+    | { step: 'workbook' }
+    /// The parts of the saved workbook, reported by a fresh import only
+    | { step: WorkbookBundleWriteStep }
+    /// The saved workbook is restored into the app, reported by a fresh import only
+    | { step: 'open' };
 
 export type WorkbookImportProgressConsumer = (progress: WorkbookImportProgress) => void;
 
@@ -63,6 +68,20 @@ export interface PortableWorkbookImportOptions {
     reloadAfterSuccess?: boolean;
     /// Follow the steps of the import, e.g. to show the query results that weren't added
     onProgress?: WorkbookImportProgressConsumer;
+    /// How the connections of the workbook map to the connections of the app. `ask` asks about the connections that
+    /// may consolidate with existing ones. `preview` asks nothing: such a connection uses the first existing one, a
+    /// preview of a published workbook is imported again with the questions when the user imports it.
+    connections?: 'ask' | 'preview';
+    /// The mapping of the connections, once it is decided
+    onConnections?: (mapping: WorkbookImportConnectionMapping) => void;
+}
+
+/// How the connections of an imported workbook were mapped
+export interface WorkbookImportConnectionMapping {
+    /// The connections that the import registered, the app didn't have them
+    registered: string[];
+    /// Did a connection use an existing one that the user would have been asked about?
+    unasked: boolean;
 }
 
 /// A registered workbook with the id of an imported one
@@ -198,7 +217,12 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     /// Map the connections of an imported workbook to the connections of the app.
     /// Connections that may consolidate with existing ones are decided by the user, null if the
     /// user cancelled the import.
-    const resolveConnections = React.useCallback(async (bundle: WorkbookBundle, report?: WorkbookImportProgressConsumer): Promise<WorkbookBundle | null> => {
+    const resolveConnections = React.useCallback(async (
+        bundle: WorkbookBundle,
+        report?: WorkbookImportProgressConsumer,
+        mode: 'ask' | 'preview' = 'ask',
+        onMapping?: (mapping: WorkbookImportConnectionMapping) => void,
+    ): Promise<WorkbookBundle | null> => {
         report?.({ step: 'connections' });
         if (backend == null) return bundle;
         // The live connections may be ahead of the manifest while writes are debounced
@@ -224,7 +248,12 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         const plan = planConnectionImport(bundle.workbook, entries);
         const questions = connectionImportQuestions(plan);
         let choices = new Map<string, ConnectionImportChoice>();
-        if (questions.length > 0) {
+        if (mode === 'preview') {
+            // A preview asks nothing, the import of the preview asks
+            for (const question of questions) {
+                if (question.decision.kind === 'ask') choices.set(question.ref.connectionId, { kind: 'link', connectionId: question.decision.candidates[0].id });
+            }
+        } else if (questions.length > 0) {
             const workbookName = bundle.workbook.name?.trim() || bundle.workbook.metadata.originalFileName || 'Unnamed workbook';
             const chosen = await new Promise<Map<string, ConnectionImportChoice> | null>(resolve => {
                 setConnectionDialog({ workbookName, questions, resolve });
@@ -234,6 +263,10 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
             choices = chosen;
         }
         const { workbook, connectionIds } = applyConnectionImportPlan(bundle.workbook, plan, choices, entries);
+        onMapping?.({
+            registered: workbook.connections.map(connection => connection.connectionId).filter(id => !entries.some(entry => entry.id === id)),
+            unasked: mode === 'preview' && questions.length > 0,
+        });
         logger.info('resolved the connections of an imported workbook', {
             workbookId: bundle.workbook.workbookId,
             connections: plan.map(item => item.decision.kind).join(','),
@@ -242,8 +275,13 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     }, [backend, connectionStore, logger, references]);
 
     /// Resolve the connections, then add the query results to the cache: the last decision of an import is made then
-    const resolveAndImportResults = React.useCallback(async (bundle: WorkbookBundle, report?: WorkbookImportProgressConsumer): Promise<WorkbookBundle | null> => {
-        const resolved = await resolveConnections(bundle, report);
+    const resolveAndImportResults = React.useCallback(async (
+        bundle: WorkbookBundle,
+        report?: WorkbookImportProgressConsumer,
+        mode?: 'ask' | 'preview',
+        onMapping?: (mapping: WorkbookImportConnectionMapping) => void,
+    ): Promise<WorkbookBundle | null> => {
+        const resolved = await resolveConnections(bundle, report, mode, onMapping);
         return resolved == null ? null : await importQueryResults(resolved, report);
     }, [importQueryResults, resolveConnections]);
 
@@ -268,14 +306,16 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         bundle: WorkbookBundle,
         targetWorkbookId: string,
         suffixNameWithCopy: boolean,
+        report?: WorkbookImportProgressConsumer,
     ) => {
         if (backend == null) throw new Error('Workbook imports require composite storage');
         const importedBundle = suffixNameWithCopy
             ? withFreshIdentity(bundle, targetWorkbookId)
             : bundle;
-        await writePortableWorkbookFresh(backend, importedBundle, targetWorkbookId);
+        await writePortableWorkbookFresh(backend, importedBundle, targetWorkbookId, step => report?.({ step }));
         // The same bundle may have been imported and deleted before in this tab
         writer.reviveWorkbook(targetWorkbookId);
+        report?.({ step: 'open' });
         try {
             const core = await setupCore('workbook_import');
             const restored = await restoreSingleWorkbook(
@@ -327,7 +367,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         const conflict = await findWorkbookImportConflict(backend, validated.workbook.workbookId);
         const report = options.onProgress;
         if (conflict == null) {
-            const resolved = await resolveAndImportResults(validated, report);
+            const resolved = await resolveAndImportResults(validated, report, options.connections, options.onConnections);
             if (resolved == null) return null;
             bundle = resolved;
             const workbookId = bundle.workbook.workbookId;
@@ -335,7 +375,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
             if (options.reloadAfterSuccess) {
                 await reloadThen(() => writePortableWorkbookFresh(backend, bundle, workbookId), writer, reload);
             } else {
-                await restoreFreshPortable(bundle, workbookId, false);
+                await restoreFreshPortable(bundle, workbookId, false, report);
             }
             return workbookId;
         }

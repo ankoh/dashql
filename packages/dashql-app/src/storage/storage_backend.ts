@@ -72,6 +72,7 @@ export type AppSettings = app_manifest.AppSettings;
 export type ConnectionEntry = app_manifest.ConnectionEntry;
 export type WorkbookData = app_workbook.WorkbookData;
 export type WorkbookMetadata = app_workbook.WorkbookMetadata;
+export type WorkbookCloudLink = app_workbook.WorkbookCloudLink;
 export type WorkbookScript = app_workbook.WorkbookScript;
 export type WorkbookAttachment = app_workbook.WorkbookAttachment;
 export type WorkbookConnection = app_workbook.WorkbookConnection;

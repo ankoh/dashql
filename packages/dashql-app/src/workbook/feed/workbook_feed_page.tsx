@@ -5,6 +5,7 @@ import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon 
 
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import {
+    isCloudPreview,
     isEphemeralWorkbook,
     scriptConnectionIds,
     SELECT_SCRIPT,
@@ -33,6 +34,9 @@ import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { AgentWorkbookMenu } from '../../agent/agent_workbook_menu.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
+import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
+import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const CloseIcon = SymbolIcon('x_16');
@@ -64,6 +68,9 @@ export interface WorkbookFeedPageDependencies {
     useWorkbookViewMode: typeof useWorkbookViewMode;
     SegmentedControl: typeof SegmentedControl;
     useWorkbookExecution: typeof useWorkbookExecution;
+    CloudPreviewActions: typeof CloudPreviewActions;
+    CloudPreviewBadge: typeof CloudPreviewBadge;
+    CloudWorkbookLoadingCard: typeof CloudWorkbookLoadingCard;
 }
 
 const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
@@ -83,6 +90,9 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     useWorkbookViewMode,
     SegmentedControl,
     useWorkbookExecution,
+    CloudPreviewActions,
+    CloudPreviewBadge,
+    CloudWorkbookLoadingCard,
 };
 
 interface Props {
@@ -163,14 +173,18 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const { mode, setMode } = dependencies.useWorkbookViewMode();
     // The greeter shows the feed, its workbook has nothing to run, show or share until a script promotes it
     const ephemeral = isEphemeralWorkbook(props.workbookScripts);
+    // A read-only look at a published workbook is imported before it is shared
+    const preview = isCloudPreview(props.workbookScripts);
     React.useEffect(() => {
-        if (ephemeral && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
-    }, [ephemeral, mode, setMode]);
+        if ((ephemeral || preview) && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
+    }, [ephemeral, preview, mode, setMode]);
     const dashboardActive = mode === WorkbookViewMode.Dashboard;
     const dataflowActive = mode === WorkbookViewMode.Dataflow;
     const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Workbook;
     const overviewActive = overviewConnectionId != null;
-    const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive;
+    // A version of a published workbook that is being loaded takes the place of the views
+    const cloudLoading = useCloudWorkbookLoading() != null;
+    const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
     // A script opened from the sidebar shows in the feed
     const [revealRequest, setRevealRequest] = React.useState<WorkbookFeedRevealRequest | null>(null);
     const openScript = React.useCallback((workbookId: string, fileName: string) => {
@@ -191,12 +205,18 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
 
     return (
         <WorkbookConnectionAttentionContext.Provider value={connectionAttention}>
+        <WorkbookReadOnlyContext.Provider value={preview}>
         <div className={styles.page}>
             <aside className={styles.navigation_sidebar}>
                 {workbench(false)}
             </aside>
             <main className={styles.body_container} id="workbook-body">
                 <div className={styles.content_container}>
+                    {cloudLoading && (
+                        <div className={styles.loading_layer}>
+                            <dependencies.CloudWorkbookLoadingCard />
+                        </div>
+                    )}
                     <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
                         <dependencies.WorkbookFeed
                             workbookScripts={props.workbookScripts}
@@ -208,13 +228,13 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             scriptConnections={props.scriptConnections}
                         />
                     </div>
-                    {overviewConnectionId != null && (
+                    {overviewConnectionId != null && !cloudLoading && (
                         <dependencies.ConnectionOverviewPage
                             connectionId={overviewConnectionId}
                             onClose={closeOverview}
                         />
                     )}
-                    {dashboardActive && !overviewActive && (
+                    {dashboardActive && !overviewActive && !cloudLoading && (
                         <dependencies.Dashboard
                             workbookScripts={props.workbookScripts}
                             modifyWorkbookScripts={props.modifyWorkbookScripts}
@@ -222,7 +242,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             draftRenameRef={draftRenameRef}
                         />
                     )}
-                    {dataflowActive && !overviewActive && (
+                    {dataflowActive && !overviewActive && !cloudLoading && (
                         <div className={styles.dataflow_layout}>
                             <div className={styles.dataflow_canvas}>
                                 <dependencies.DataflowCanvas
@@ -257,7 +277,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                 </dependencies.IconButton>
                 {/* A connection overview is not part of the workbook, its controls are hidden */}
                 {!overviewActive && <>
-                    {!ephemeral && <dependencies.SegmentedControl
+                    {/* A preview shows its scripts only, it runs nothing until it is imported */}
+                    {!ephemeral && !preview && <dependencies.SegmentedControl
                         aria-label="Workbook view"
                         data-testid="workbook-view-switch"
                         size={SegmentedControlSize.Small}
@@ -321,18 +342,22 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             </>}
                         </div>
                     </div>}
+                    {/* A preview says it is read-only next to Execute All */}
+                    {preview && <dependencies.CloudPreviewBadge labelClassName={styles.action_label} />}
                     <div className={styles.header_actions}>
                         {/* The connections of the workbook, the user sees which one is not connected */}
+                        {/* A preview shows its connections locked, the import maps them */}
                         <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention.active} />
-                        <AgentWorkbookMenu workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />
-                        {!ephemeral && <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
+                        {!preview && <AgentWorkbookMenu workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
+                        {preview && <dependencies.CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
+                        {!ephemeral && !preview && <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);
                             setShareOpen(value => !value);
                         }}>
                             <span className={styles.action_label}>Share as URL</span>
                         </dependencies.Button>}
                         <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
-                        {archiveExport && !ephemeral && (
+                        {archiveExport && !ephemeral && !preview && (
                             <>
                                 <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen} onClick={() => {
                                     setShareOpen(false);
@@ -358,6 +383,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                 </dependencies.WorkbookNavigationDrawer>
             )}
         </div>
+        </WorkbookReadOnlyContext.Provider>
         </WorkbookConnectionAttentionContext.Provider>
     );
 };

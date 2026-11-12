@@ -86,6 +86,24 @@ describe('V2 storage writer flat mutations', () => {
         expect('ephemeral' in promoted.metadata).toBe(false);
     });
 
+    it('writes and removes the link to a published workbook of the cloud with the properties', async () => {
+        const backend = new WorkbookTestBackend();
+        const writer = new StorageWriter(new TestLogger(), backend);
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        const write = async (task: StorageWriteTaskVariant) => {
+            await writer.write(groupWorkbookManifestWrites(TEST_WORKBOOK_ID), task, 0);
+            await writer.flush();
+            return backend.loadWorkbook(TEST_WORKBOOK_ID);
+        };
+        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002' };
+        const previewed = await write({ type: WRITE_WORKBOOK_PROPERTIES, value: [TEST_WORKBOOK_ID, { name: 'Published', cloud: { ...cloud, preview: true } }] });
+        expect(previewed.metadata.cloud).toEqual({ ...cloud, preview: true });
+        const imported = await write({ type: WRITE_WORKBOOK_PROPERTIES, value: [TEST_WORKBOOK_ID, { name: 'Published', cloud }] });
+        expect(imported.metadata.cloud).toEqual(cloud);
+        const unlinked = await write({ type: WRITE_WORKBOOK_PROPERTIES, value: [TEST_WORKBOOK_ID, { name: 'Published' }] });
+        expect('cloud' in unlinked.metadata).toBe(false);
+    });
+
     it('patches the script list with its connections without losing pending property writes', async () => {
         const backend = new WorkbookTestBackend();
         const writer = new StorageWriter(new TestLogger(), backend);

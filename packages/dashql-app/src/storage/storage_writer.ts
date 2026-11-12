@@ -2,7 +2,7 @@ import * as Immutable from 'immutable';
 
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
-import type { StorageBackend, WorkbookData, WorkbookMetadata as StorageWorkbookMetadata, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
+import type { StorageBackend, WorkbookData, WorkbookMetadata as StorageWorkbookMetadata, WorkbookCloudLink, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
 import { ExternalScriptChangeError, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_CONNECTIONS_FOLDER, isWorkbookRegistryBackend } from './storage_backend.js';
 import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
 import { workbookAttachments, withWorkbookScripts } from './workbook_files.js';
@@ -65,6 +65,8 @@ export interface WorkbookProperties {
     name: string | null;
     /// Does the workbook stay ephemeral? A write without it promotes the workbook
     ephemeral?: boolean;
+    /// The published workbook of the cloud that the workbook is linked to, a write without it removes the link
+    cloud?: WorkbookCloudLink;
 }
 /// A workbook that is written as a whole, its scripts first and its manifest last
 export interface WorkbookReplacement {
@@ -777,13 +779,19 @@ export class StorageWriter {
                 break;
             }
             case WRITE_WORKBOOK_PROPERTIES: {
-                const [workbookId, { name, ephemeral }] = task.value;
+                const [workbookId, { name, ephemeral, cloud }] = task.value;
                 await this.patchWorkbookFile(key, workbookId, existing => {
                     const next: WorkbookData = { ...existing };
                     if (name) next.name = name;
                     else delete next.name;
                     if (!ephemeral && next.metadata?.ephemeral != null) {
                         const { ephemeral: _promoted, ...metadata } = next.metadata;
+                        next.metadata = metadata;
+                    }
+                    if (cloud != null) {
+                        next.metadata = { ...next.metadata, cloud };
+                    } else if (next.metadata?.cloud != null) {
+                        const { cloud: _unlinked, ...metadata } = next.metadata;
                         next.metadata = metadata;
                     }
                     return next;

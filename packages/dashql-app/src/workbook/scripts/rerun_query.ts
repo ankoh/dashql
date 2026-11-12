@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutor } from '../../connections/query_executor.js';
-import { WorkbookScripts, ScriptData, isAnalysisOutdated } from './workbook_scripts.js';
+import { WorkbookScripts, ScriptData, isAnalysisOutdated, isCloudPreview } from './workbook_scripts.js';
 import { ensureWorkbookScriptAnalyzed, ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
 import { isWorkbookExecutionRunning, releaseWorkbookExecution, waitForWorkbookExecution } from './workbook_execution.js';
@@ -19,6 +19,11 @@ export async function runWorkbookScript(
     options: ScriptRunOptions = {},
 ): Promise<void> {
     if (isWorkbookExecutionRunning(workbookScripts)) return;
+    // A preview of a published workbook runs nothing until it is imported
+    if (isCloudPreview(workbookScripts)) {
+        logger?.warn('A preview of a published workbook does not run', { workbookId: workbookScripts.workbookId });
+        return;
+    }
     logger?.info('Workbook script execution requested', {
         connectionId: scriptData.connection.connectionId,
         workbookId: workbookScripts.workbookId,
@@ -60,8 +65,10 @@ export async function runWorkbookScriptForResult(
     logger: LoggerLike,
     beforeRun?: (scriptData: ScriptData) => void,
 ): Promise<arrow.Table | null> {
-    const workbookId = getWorkbook()?.workbookId;
+    const workbook = getWorkbook();
+    const workbookId = workbook?.workbookId;
     if (workbookId == null) throw new Error('The workbook is gone');
+    if (isCloudPreview(workbook!)) throw new Error('A preview of a published workbook does not run, import it first');
     await waitForWorkbookExecution(workbookId);
     let handedOver = false;
     try {

@@ -12,6 +12,7 @@ import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '../../ui/foundati
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { formatBytes } from '../../utils/format.js';
 import { attachmentParameterName } from '../attachments/workbook_attachments.js';
+import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
 export interface WorkbookDataCardProps {
     workbookId: string;
@@ -31,6 +32,8 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
     const downloader = useFileDownloader();
     const logger = useLogger();
     const [busy, setBusy] = React.useState(false);
+    // A read-only workbook keeps its attachments
+    const readOnly = useWorkbookReadOnly();
     const [renaming, setRenaming] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const enabled = connectionReadsAttachments(props.conn?.details);
@@ -83,13 +86,13 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
                     <ScriptMentionTag
                         scriptName={parameter}
                         subject="attachment"
-                        canTarget={!disabled && props.onMention != null}
+                        canTarget={!disabled && !readOnly && props.onMention != null}
                         onTarget={() => props.onMention?.(parameter)}
                         renaming={renaming}
                         onRenamingChange={setRenaming}
                         onRename={name => props.onRename?.(name)}
                     />
-                    {props.onRename != null && (
+                    {props.onRename != null && !readOnly && (
                         <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium} disabled={disabled}
                             // The input takes the focus, a click while it is open keeps the edit
                             onMouseDown={(event) => event.preventDefault()}
@@ -101,10 +104,10 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
                         disabled={disabled} onClick={download} aria-label={`Download ${props.file.name}`} data-testid="data-file-download">
                         <DownloadIcon size={16} />
                     </IconButton>
-                    <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
+                    {!readOnly && <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
                         disabled={disabled} onClick={remove} aria-label={`Remove ${props.file.name}`} data-testid="data-file-remove">
                         <TrashIcon size={16} />
-                    </IconButton>
+                    </IconButton>}
                 </div>
             </div>
             {props.collides && (
