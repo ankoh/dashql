@@ -46,7 +46,7 @@
     "eslint": "^10.14.0",
     "flatbuffers": "^25.9.23",
     "hyperdb-wasm": "0.0.27204-dev.wasm.ga1ebe0c0",
-    "immutable": "^5.1.9",
+    "immutable": "^5.1.10",
     "json-schema-to-typescript": "^16.0.0",
     "jszip": "^3.10.2",
     "mocha": "^12.0.3",
