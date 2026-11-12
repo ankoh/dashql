@@ -1,9 +1,9 @@
 import { StorageBackendType, type WorkbookEntry } from './storage_backend.js';
 import {
     assembleWorkbookBundle,
+    describeWorkbookBundleDifference,
     seedConnectionCatalogs,
     type WorkbookBundle,
-    workbookBundlesEqual,
 } from './workbook_bundle.js';
 import {
     type CompositeStorageBackend,
@@ -198,11 +198,19 @@ async function verifyPortableBundle(
     source: WorkbookBundle,
     targetWorkbookId: string,
 ): Promise<void> {
-    const expected = normalizePortableBundle(source, targetWorkbookId);
-    const actual = await backend.readPortableWorkbookBundle(targetWorkbookId);
-    if (!workbookBundlesEqual(expected, actual)) {
-        throw new Error(`Workbook import verification failed for ${targetWorkbookId}`);
+    const expected = byFileName(normalizePortableBundle(source, targetWorkbookId));
+    const actual = byFileName(await backend.readPortableWorkbookBundle(targetWorkbookId));
+    const difference = describeWorkbookBundleDifference(expected, actual);
+    if (difference != null) {
+        throw new Error(`Workbook import verification failed for ${targetWorkbookId}: ${difference}`);
     }
+}
+
+/// The script and data files of a bundle by name. The order of the scripts is the order of the workbook file, a
+/// storage lists the files in an order of its own, e.g. OPFS by name, a bundle from tables in the workbook order.
+function byFileName(bundle: WorkbookBundle): WorkbookBundle {
+    const compare = (a: { name: string }, b: { name: string }) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    return assembleWorkbookBundle(bundle, [...bundle.scripts].sort(compare), [...(bundle.data ?? [])].sort(compare));
 }
 
 function normalizePortableBundle(bundle: WorkbookBundle, workbookId: string): WorkbookBundle {

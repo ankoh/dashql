@@ -318,9 +318,39 @@ describe('workbook import transactions', () => {
         const source = { workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID }), catalogs: [], scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }] };
         vi.spyOn(backend, 'readPortableWorkbookBundle').mockResolvedValue({ ...source, scripts: [] });
         const deleted = vi.spyOn(backend, 'deletePortableWorkbook');
-        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow(`verification failed for ${OTHER_WORKBOOK_ID}`);
+        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow(
+            `verification failed for ${OTHER_WORKBOOK_ID}: the scripts differ: expected [01_query.sql], found []`);
         expect(deleted).toHaveBeenCalledWith(OTHER_WORKBOOK_ID);
         expect(registry.manifest).toEqual([]);
+    });
+
+    it('names the field of the workbook file that does not verify', async () => {
+        const source = { workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID, metadata: { originalFileName: 'stocks' } }), catalogs: [], scripts: [] };
+        vi.spyOn(backend, 'readPortableWorkbookBundle').mockResolvedValue({ ...source, workbook: { ...source.workbook, metadata: {} } });
+        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow(
+            `verification failed for ${OTHER_WORKBOOK_ID}: workbook.metadata.originalFileName differs`);
+    });
+
+    it('writes a workbook whose scripts and attachments are not in the order of their names', async () => {
+        // A bundle from workbook tables lists the files in the order of the workbook, the storage by name
+        const source = {
+            workbook: testWorkbook({
+                workbookId: OTHER_WORKBOOK_ID,
+                scripts: [
+                    { name: 'prices.sql', connectionId: TEST_CONNECTION_ID },
+                    { name: 'dashboard.sql', connectionId: TEST_CONNECTION_ID },
+                ],
+                attachments: [{ name: 'quotes.parquet' }, { name: 'companies.parquet' }],
+            }),
+            catalogs: [],
+            scripts: [{ name: 'prices.sql', sql: 'SELECT 1' }, { name: 'dashboard.sql', sql: 'SELECT 2' }],
+            data: [
+                { name: 'quotes.parquet', bytes: new Uint8Array([1, 2]) },
+                { name: 'companies.parquet', bytes: new Uint8Array([3]) },
+            ],
+        };
+        await expect(writePortableWorkbookFresh(backend, source)).resolves.toBe(OTHER_WORKBOOK_ID);
+        expect((await backend.loadWorkbook(OTHER_WORKBOOK_ID)).scripts.map(script => script.name)).toEqual(['prices.sql', 'dashboard.sql']);
     });
 
     it('keeps the import error when the cleanup of a fresh write fails too', async () => {

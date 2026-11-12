@@ -417,6 +417,47 @@ export async function seedConnectionCatalogs(
     }
 }
 
+/// What differs between an expected and an actual bundle, null if nothing. Names the field or file and never a value,
+/// a value can be a secret of a connection.
+export function describeWorkbookBundleDifference(expected: WorkbookBundle, actual: WorkbookBundle): string | null {
+    // The files first, the workbook file lists them
+    const names = (files: readonly { name: string }[]) => files.map(file => file.name).join(', ');
+    if (names(expected.scripts) !== names(actual.scripts)) {
+        return `the scripts differ: expected [${names(expected.scripts)}], found [${names(actual.scripts)}]`;
+    }
+    const script = expected.scripts.find((script, i) => script.sql !== actual.scripts[i].sql);
+    if (script != null) return `the text of the script ${script.name} differs`;
+    const expectedData = expected.data ?? [];
+    const actualData = actual.data ?? [];
+    if (names(expectedData) !== names(actualData)) {
+        return `the attachments differ: expected [${names(expectedData)}], found [${names(actualData)}]`;
+    }
+    const file = expectedData.find((file, i) => file.bytes.byteLength !== actualData[i].bytes.byteLength
+        || file.bytes.some((byte, j) => byte !== actualData[i].bytes[j]));
+    if (file != null) return `the bytes of the attachment ${file.name} differ`;
+    const field = firstDifferentField(expected.workbook, actual.workbook, 'workbook');
+    if (field != null) return `${field} differs`;
+    if (JSON.stringify(expected.catalogs) !== JSON.stringify(actual.catalogs)) return 'the catalogs differ';
+    return workbookBundlesEqual(expected, actual) ? null : 'the bundles differ';
+}
+
+/// The path of the first field that differs, null if none. Fields that are undefined are missing, like in JSON.
+function firstDifferentField(expected: unknown, actual: unknown, path: string): string | null {
+    if (JSON.stringify(expected) === JSON.stringify(actual)) return null;
+    if (expected == null || actual == null || typeof expected !== 'object' || typeof actual !== 'object'
+        || Array.isArray(expected) !== Array.isArray(actual)) {
+        return path;
+    }
+    const a = expected as Record<string, unknown>;
+    const b = actual as Record<string, unknown>;
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const key of keys) {
+        const difference = firstDifferentField(a[key], b[key], Array.isArray(a) ? `${path}[${key}]` : `${path}.${key}`);
+        if (difference != null) return difference;
+    }
+    return `the order of the fields of ${path}`;
+}
+
 /// Compare all portable durable content. Used to verify a staged replacement before touching the
 /// live workbook UUID.
 export function workbookBundlesEqual(a: WorkbookBundle, b: WorkbookBundle): boolean {
