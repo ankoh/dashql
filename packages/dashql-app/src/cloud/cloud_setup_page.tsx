@@ -126,15 +126,20 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
             const tree = cloudState.tree;
             const workbooks = tree == null ? 0 : tree.workbooks.length + tree.folders.reduce((sum, node) => sum + node.workbooks.length, 0);
             content = (
-                <div className={styles.section}>
-                    <CloudConnectionRow connection={cloud!} />
-                    <CloudConnectionInstaller cloud={cloud!} onInspected={onInspected} />
-                    {tree != null && (
-                        <p className={styles.workbooks} data-testid="cloud-setup-workbooks">
-                            {countOf(workbooks, 'workbook')}{tree.folders.length > 0 ? `, ${countOf(tree.folders.length, 'folder')}` : ''}
-                        </p>
-                    )}
-                </div>
+                <>
+                    <div className={styles.section}>
+                        <CloudConnectionRow connection={cloud!} />
+                    </div>
+                    <div className={styles.section} data-testid="cloud-installation">
+                        <div className={styles.label}>Installation</div>
+                        <CloudConnectionInstaller cloud={cloud!} onInspected={onInspected} />
+                        {tree != null && (
+                            <p className={styles.workbooks} data-testid="cloud-setup-workbooks">
+                                {countOf(workbooks, 'workbook')}{tree.folders.length > 0 ? `, ${countOf(tree.folders.length, 'folder')}` : ''}
+                            </p>
+                        )}
+                    </div>
+                </>
             );
             break;
         }

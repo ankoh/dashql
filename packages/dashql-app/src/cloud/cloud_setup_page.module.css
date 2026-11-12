@@ -30,6 +30,10 @@
     padding: 12px 16px;
 }
 
+.section + .section {
+    border-top: 1px solid var(--color_border_muted);
+}
+
 .label {
     color: var(--color_fg_muted);
     font-size: var(--font_size_small);

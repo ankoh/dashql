@@ -30,9 +30,18 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    row-gap: 4px;
-    padding: 8px 12px 10px 12px;
     font-size: var(--font_size_subtitle);
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
+    padding: 8px 12px;
+}
+
+.section + .section {
+    border-top: 1px solid var(--color_border_muted);
 }
 
 .label {

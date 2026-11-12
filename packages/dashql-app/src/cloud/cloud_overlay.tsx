@@ -25,14 +25,16 @@ function CloudConnectionPicker(props: { onSetup: () => void }): React.ReactEleme
     const capable = [...registry.connections.values()].filter(connection => isCloudCapable(connection.params));
     if (capable.length === 0) {
         return (
-            <div className={styles.empty}>
-                <span className={styles.muted}>No cloud connection</span>
-                <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} onClick={props.onSetup}>Set Up</Button>
+            <div className={styles.section}>
+                <div className={styles.empty}>
+                    <span className={styles.muted}>No cloud connection</span>
+                    <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} onClick={props.onSetup}>Set Up</Button>
+                </div>
             </div>
         );
     }
     return (
-        <>
+        <div className={styles.section}>
             <div className={styles.label}>No cloud connection, use one of</div>
             {capable.map(connection => (
                 <CloudConnectionRow key={connection.connectionId} connection={connection}>
@@ -42,7 +44,7 @@ function CloudConnectionPicker(props: { onSetup: () => void }): React.ReactEleme
                     </Button>
                 </CloudConnectionRow>
             ))}
-        </>
+        </div>
     );
 }
 
@@ -56,22 +58,29 @@ function CloudConnectionSection(props: { cloud: ConnectionState }): React.ReactE
     const error = health === ConnectionHealth.FAILED ? connectionError(cloud) : null;
     return (
         <>
-            <CloudConnectionRow connection={cloud}>
-                {health === ConnectionHealth.CONNECTING
-                    ? <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={login.cancel}>Cancel</Button>
-                    : health !== ConnectionHealth.ONLINE && (
-                        <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} disabled={!login.available}
-                            onClick={() => void login.login()} data-testid="cloud-log-in">
-                            Log In
-                        </Button>
-                    )}
-                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Stop using as cloud"
-                    onClick={() => setCloud(null)} data-testid="cloud-stop-using">
-                    <UnlinkIcon size={16} />
-                </IconButton>
-            </CloudConnectionRow>
-            {error != null && <p className={styles.error} role="alert">{error}</p>}
-            {health === ConnectionHealth.ONLINE && <CloudConnectionInstaller cloud={cloud} />}
+            <div className={styles.section}>
+                <CloudConnectionRow connection={cloud}>
+                    {health === ConnectionHealth.CONNECTING
+                        ? <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={login.cancel}>Cancel</Button>
+                        : health !== ConnectionHealth.ONLINE && (
+                            <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} disabled={!login.available}
+                                onClick={() => void login.login()} data-testid="cloud-log-in">
+                                Log In
+                            </Button>
+                        )}
+                    <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Stop using as cloud"
+                        onClick={() => setCloud(null)} data-testid="cloud-stop-using">
+                        <UnlinkIcon size={16} />
+                    </IconButton>
+                </CloudConnectionRow>
+                {error != null && <p className={styles.error} role="alert">{error}</p>}
+            </div>
+            {health === ConnectionHealth.ONLINE && (
+                <div className={styles.section} data-testid="cloud-installation">
+                    <div className={styles.label}>Installation</div>
+                    <CloudConnectionInstaller cloud={cloud} />
+                </div>
+            )}
         </>
     );
 }

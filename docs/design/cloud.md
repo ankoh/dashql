@@ -267,8 +267,8 @@ the Cloud button of the top bar. It shows the step that the cloud still needs:
   again.
 - **The Cloud overlay.** The overlay of the top bar shows the cloud connection in one line, its logo, name and health,
   with Log In while it is not online and Stop Using as Cloud. Without a cloud connection it lists the connections that
-  can be one, with Use. Once the connection is online the installer follows in the same compact form. Set Up Cloud
-  opens the page. The local cloud logs in without a click in both (`useLocalCloudAutoLogin`).
+  can be one, with Use. Once the connection is online the installer follows in the same compact form, in a section
+  of its own below a separator, Installation, as on the page. Set Up Cloud opens the page. The local cloud logs in without a click in both (`useLocalCloudAutoLogin`).
 - **The cloud state.** `CloudStateProvider` looks at the cloud whenever the cloud connection comes online and after the
   installer ran: what the installer finds and the folders and workbooks of the cloud, listed when this DashQL may read
   the tables (`useCloudState`). The page shows the number of workbooks from it, the sidebar will list them.
