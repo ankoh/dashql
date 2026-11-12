@@ -70,8 +70,10 @@ workbook_result_<id>.parquet
 - **Writing.** The embedded Hyper writes the workbook tables (`exportArrowTableAsParquet`). Attachments and results are
   Parquet files already, so they go in unchanged. Empty tables are left out, and a reader takes a missing table as one
   without rows.
-- **Compression.** All entries are stored without compression: Parquet compresses its own pages, and an import reads a
-  result as a slice of the archive (`query_cache.md`).
+- **Compression.** The entries are deflated. Hyper compresses the pages of a Parquet file with Snappy, but not its
+  footer, which is most of a small table: deflate halves the workbook tables, and an attachment that Hyper wrote as
+  well. Hyper takes no Parquet option but `codec`, and deflate over Snappy pages comes out smaller than over plain ones.
+  A query result stays stored, an import reads it as a slice of the archive (`query_cache.md`).
 - **Reading.** The embedded Hyper mounts every workbook table and scans it (`readWorkbookTableParquet`). An archive
   without `workbook.parquet` is an archive of an older version, which holds the files of a workbook folder
   (`dashql-workbook.json`, `scripts/`, `attachments/`, `connections/<id>/`, `results/`). The import still reads it,

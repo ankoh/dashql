@@ -18,6 +18,7 @@ import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnecti
 import type { ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
+import { BlobReader, ZipReader } from './workbook_zip.js';
 import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '../../connections/catalog/catalog_structure.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -57,6 +58,16 @@ async function archiveNames(blob: Blob | ArrayBuffer): Promise<string[]> {
     return Object.keys((await JSZip.loadAsync(blob)).files).sort();
 }
 
+/// The compression method of every entry of an archive, 0 is stored and 8 is deflated
+async function archiveCompression(blob: Blob): Promise<Record<string, number>> {
+    const zip = new ZipReader(new BlobReader(blob));
+    try {
+        return Object.fromEntries((await zip.getEntries()).map(entry => [entry.filename, entry.compressionMethod]));
+    } finally {
+        await zip.close();
+    }
+}
+
 /// The archive of a link
 function linkArchive(url: URL): Blob {
     expect(url.searchParams.get('data')).toBeNull();
@@ -94,6 +105,8 @@ describe('workbook export', () => {
         ].sort());
         expect(attachmentTable).toMatch(/^workbook_attachment_[0-9a-f]{32}\.parquet$/);
         expect(await (await JSZip.loadAsync(blob)).file(attachmentTable)!.async('uint8array')).toEqual(bytes);
+        // Deflate shrinks the footers of the Parquet files, which Hyper leaves uncompressed
+        expect(Object.values(await archiveCompression(blob))).toEqual(names.map(() => 8));
 
         const target = new WorkbookTestBackend();
         await importWorkbookFromZip(blob, target, database);
@@ -228,7 +241,9 @@ describe('workbook export', () => {
         expect(names).toHaveLength(2);
         expect(names[0]).toMatch(/^workbook_result_[0-9a-f]{32}\.parquet$/);
         expect(names[1]).toBe('workbook_results.parquet');
-        // Parquet is compressed already, the archive stores it as it is
+        // A result stays stored, deflated like the other tables it could not be read in place
+        expect((await archiveCompression(zip))[names[0]]).toBe(0);
+        expect((await archiveCompression(zip))[names[1]]).toBe(8);
         const zeros = new Uint8Array(64 * 1024);
         const stored = await exportWorkbookAsSharedZip(source, writer, TEST_WORKBOOK_ID, new Map(), { queryResults: [{ key, bytes: new Blob([zeros]) }] });
         expect(stored.size).toBeGreaterThan(zeros.length);

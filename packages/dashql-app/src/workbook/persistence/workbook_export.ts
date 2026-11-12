@@ -10,7 +10,7 @@ import {
     type WorkbookBundle,
     type WorkbookBundleResult,
 } from '../../storage/workbook_bundle.js';
-import { WORKBOOK_TABLE_NAMES, workbookBundleToTables } from '../../storage/workbook_tables.js';
+import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables } from '../../storage/workbook_tables.js';
 import { workbookTableFileName, writeWorkbookTableParquet } from '../../storage/workbook_tables_parquet.js';
 import { parseCatalogSql } from '../../connections/catalog/catalog_structure.js';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
@@ -82,7 +82,9 @@ export async function createWorkbookZip(
     // The signal also stops an entry that is being streamed
     const zip = new ZipWriter(new BlobWriter('application/zip'), { level: 6, signal });
     try {
-        // Parquet is compressed already, a stored entry is a plain slice of the archive that an import reads in place.
+        // The entries are deflated: Hyper compresses the pages with Snappy, but the footer of a Parquet file is not
+        // compressed, and it is most of a small table. Deflate halves the workbook tables and an attachment that Hyper
+        // wrote. A query result stays stored, an import reads it in place as a slice of the archive.
         // The entries are added one after the other, concurrent entries would wait in memory.
         // Empty tables are left out, an import reads a missing table as one without rows. The workbook comes first.
         for (const name of WORKBOOK_TABLE_NAMES) {
@@ -90,10 +92,11 @@ export async function createWorkbookZip(
             if (rows.length === 0) continue;
             const bytes = await writeWorkbookTableParquet(writer.database, name, rows as never);
             signal?.throwIfAborted();
-            await zip.add(workbookTableFileName(name), new Uint8ArrayReader(bytes), { level: 0 });
+            await zip.add(workbookTableFileName(name), new Uint8ArrayReader(bytes));
         }
         for (const [tableName, file] of tables.data) {
-            await zip.add(workbookTableFileName(tableName), new BlobReader(file.bytes), { level: 0 });
+            const level = tableName.startsWith(RESULT_TABLE_PREFIX) ? 0 : undefined;
+            await zip.add(workbookTableFileName(tableName), new BlobReader(file.bytes), { level });
         }
         return await zip.close();
     } catch (error) {
