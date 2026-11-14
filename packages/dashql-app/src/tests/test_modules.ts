@@ -9,7 +9,7 @@ function normalizePath(path: string): string {
     return path.startsWith('./') ? `src/tests/${path.slice(2)}` : path.replace(/^\.\.\//, 'src/');
 }
 
-/// The tests of the SDK run in the browsers too, they also run in Node (//packages/dashql-sdk:test_node)
+/// The tests of the SDK run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-sdk:test_node)
 export const SDK_TEST_MODULES = import.meta.glob([
     '../../../dashql-sdk/src/**/*.test.ts',
 ]);

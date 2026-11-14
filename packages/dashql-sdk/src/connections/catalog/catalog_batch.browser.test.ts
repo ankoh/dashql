@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQLCatalog, DashQLScript } from '@ankoh/dashql-core';
 import type { BatchRequest, BatchResult } from '@ankoh/dashql-core';
-import { beginCatalogBatch, disposeCatalogBatchWorker, initializeCatalogBatchWorker, invalidateCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
+import { beginCatalogBatch, disposeCatalogBatchWorker, initializeCatalogBatchWorker, invalidateCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog_batch.js';
 import { DashQL } from '@ankoh/dashql-core';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 function fixture() {
     const builder = new flatbuffers.Builder();

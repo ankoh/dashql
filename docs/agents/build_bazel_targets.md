@@ -124,7 +124,7 @@ bazel test //...
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql-sdk:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the SDK (`src/testing/`), with the globals of vitest |
-| `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest). Tests that need a browser, e.g. a Web Worker, still run in the browser tests of the app |
+| `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all of them |
 | `//packages/dashql-sdk:boundary_test` | The SDK reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
 | `//packages/dashql-sdk:editor_config_test` | Editors resolve every import of the SDK: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
