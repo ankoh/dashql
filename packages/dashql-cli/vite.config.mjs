@@ -1,5 +1,5 @@
 // The command of dashql as one module for Node. The runtime is bundled from its sources, the core stays a package: its Wasm
-// file lies next to it (@ankoh/dashql-runtime/node/node_core). The generated packages that the runtime imports are folders
+// file lies next to it (@ankoh/dashql-runtime/node/node_core), and so does hyperdb-wasm with its Wasm file and its worker. The generated packages that the runtime imports are folders
 // of Bazel (BUILD.bazel).
 import path from 'node:path';
 
@@ -24,6 +24,6 @@ export default {
     },
     ssr: {
         noExternal: true,
-        external: ['@ankoh/dashql-core'],
+        external: ['@ankoh/dashql-core', 'hyperdb-wasm'],
     },
 };

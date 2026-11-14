@@ -5,7 +5,7 @@ harness gets the answers of the app (`docs/wip/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
-- **`dashql run`** runs the scripts of a workbook folder on their connections, Trino with basic auth for now.
+- **`dashql run`** runs the scripts of a workbook folder on Trino and the embedded Hyper, results go into the query result cache.
 - **`dashql session`** shows the session of an agent harness in DashQL, see below.
 
 ```
@@ -85,14 +85,15 @@ errors.
 ## dashql run
 
 ```
-dashql run [--rows <n>] [--verbose] <workbook-dir> [<script>...]
+dashql run [--rows <n>] [--refresh] [--verbose] <workbook-dir> [<script>...]
 ```
 
 Runs scripts of a workbook folder (a folder with `dashql-workbook.json` and `scripts/`) on their connections, in the
 order of the workbook, all of them by default. Scripts are named by their file names (`a.sql` or `scripts/a.sql`).
 Each script runs like the Run of the script in DashQL, with the runtime of the app: it is analyzed and planned with
-the scripts it references, a `:foo` of a script on the same connection becomes a common table expression. The run
-stops at the first script that fails.
+the scripts it references. A `:foo` of a script on the same connection becomes a common table expression, a `:foo` of
+a script on the embedded Hyper that runs on Trino is materialized as Parquet file and scanned. The run stops at the
+first script that fails.
 
 ```
 nations.sql  ok  25 rows  0.3 s
@@ -102,19 +103,30 @@ nations.sql  ok  25 rows  0.3 s
   0         | ALGERIA   | AFRICA
   1         | ARGENTINA | AMERICA
   … 23 more
+  /home/me/.dashql/cache/5f0e…c2.8d1a…77.parquet
 broken.sql  failed
   line 1:8: Column 'nope' cannot be resolved
 ```
 
-Every result shows its schema, its row count and its first rows (`--rows`, 10 by default). Nothing is written into the
-folder, results as Parquet files follow with the embedded Hyper on Node. `--verbose` prints the log of the runtime to
-stderr.
+Every result shows its schema, its row count, its first rows (`--rows`, 10 by default) and its Parquet file in the
+query result cache. `--verbose` prints the log of the runtime to stderr.
 
-- **Connections.** Trino with basic auth. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the
-  password of the workbook. They stay in memory, the workbook keeps its params. Connections with OAuth, Salesforce and
-  the embedded Hyper are refused before anything runs. Every connection is checked with `select 1` first.
-- **Not yet.** A script that scans the results of a script on another connection, or reads an attachment, needs the
-  compute database and fails with the error of its plan. The catalog of a connection is not described.
+- **The files of DashQL.** `DASHQL_HOME` (`~/.dashql`) has the layout of the storage of the app
+  (`docs/design/storage_layout.md`): the query result cache in `cache/`, the attachments of a workbook in
+  `workbooks/<id>/attachments/`, mirrored from the folder before the run, and a folder per run of the embedded Hyper
+  in `instances/`, removed at its end. It is a root of its own, the app keeps its files in the storage of the browser.
+- **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
+  app; the result then says `from the cache`. `--refresh` runs every script. The workbook folder is not written.
+- **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
+  override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
+  Connections with OAuth, Salesforce and remote Hyper servers are refused before their first statement. A connection
+  is set up and checked with `select 1` when a plan first runs statements on it.
+- **The embedded Hyper** is the build of `hyperdb-wasm` for Node, loaded only by `run`. It needs Node 24.15 or later,
+  older versions of Node 24 get the flag for exnref from the command itself. Without it the scripts on Trino still run
+  and nothing is written. Its worker prints a line to the descriptor 1 of its process, which no code in the process
+  can filter, so `run` runs in a child process whose descriptor 1 goes nowhere and writes its output to the stdout of
+  the parent.
+- **Not yet.** The catalog of a connection is not described.
 - **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
 
 The exit code is 0 if all scripts ran, 1 if a script or a connection failed and 2 on usage errors or a folder without a
@@ -169,8 +181,8 @@ Codex, in `hooks.json` of its home (`~/.codex`); Codex runs user hooks once the 
 bazel test //packages/dashql-cli:all
 ```
 
-`:test` runs the commands with the process of a test (vitest), `run` against a fake Trino, `:binary_test` runs the
-bundle as the user calls it, and
+`:test` runs the commands with the process of a test (vitest), `run` against a fake Trino and the embedded Hyper,
+`:binary_test` runs the bundle as the user calls it, and
 `:example_snippets_formatted_test` checks that the snippets of the app are what `dashql format` prints.
 `//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex, and their hooks with
 `dashql session hook`.

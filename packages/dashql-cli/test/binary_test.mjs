@@ -19,7 +19,8 @@ function directory(script) {
 
 /// Run dashql in a directory, as `bazel run` does with BUILD_WORKING_DIRECTORY
 function dashql(dir, args, input = '') {
-    return spawnSync(DASHQL, args, { input, encoding: 'utf8', env: { ...process.env, BUILD_WORKING_DIRECTORY: dir, NO_COLOR: '1' } });
+    const home = mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
+    return spawnSync(DASHQL, args, { input, encoding: 'utf8', env: { ...process.env, BUILD_WORKING_DIRECTORY: dir, DASHQL_HOME: home, NO_COLOR: '1' } });
 }
 
 test('exits with 0 for a clean script', () => {

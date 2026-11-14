@@ -15,8 +15,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
 | One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
-| Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper follows |
-| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth, done; `workbook check`, `pack`, `link`, `auth`, results as Parquet follow |
+| Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper over a root folder with the layout of OPFS, done |
+| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth and the embedded Hyper, results in the query result cache, done; `workbook check`, `pack`, `link`, `auth` follow |
 | Editor state out of `ScriptData` | Later, step 5 |
 
 ## Why
@@ -318,18 +318,35 @@ Electron's Node (`ELECTRON_RUN_AS_NODE`).
   the folder with `restoreSingleWorkbook` over a `NativeStorageBackend` and runs the scripts in the order of the
   workbook, each like the Run of the script in the app: `ensureWorkbookScriptAnalyzed`, then `runPlannedScript` with the
   scripts it references. It stops at the first failure. What is built:
-  - Trino with basic auth only. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the password of
+  - Trino with basic auth. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the password of
     the workbook; the connection keeps the params of the workbook, so the credentials of the environment are never
     written (a successful setup otherwise saves the params it was set up with into every workbook of the connection).
-  - The setup is the app's (`setupTrinoConnection`, then `performHealthCheck`, now in the runtime and rethrowing the
-    error of the probe, e.g. a rejected login).
-  - No compute database on Node yet: the executor needs one only to analyze results, which `run` skips, so a script
-    that scans the results of another connection or reads an attachment fails with the error of its plan.
-  - The catalog loader is stopped, `run` describes no connection; `catalog refresh` follows.
-  - It prints the schema, the row count and the first rows (`--rows`), and the message of Trino on a failure. The
-    result is not written yet: Parquet needs the embedded Hyper on Node.
+  - The embedded Hyper, see below. Its connection is a session of the `hyper` database of the instance in an
+    `EmbeddedHyperDatabaseChannel` (`connections/embedded/`, moved from the app) like in the app.
+  - The setups are the app's (`setupTrinoConnection`, then `performHealthCheck`, in the runtime, rethrowing the error
+    of the probe, e.g. a rejected login). A connection is set up when the plan of a script first runs statements on it.
+  - It prints the schema, the row count and the first rows (`--rows`), the file of the result in the query result
+    cache, and the message of Trino on a failure. A cached result is served like in the app, `--refresh` runs again.
+  - The results are not analyzed (the summaries of the app), the catalog loader is stopped; `catalog refresh` follows.
   - Tested against a fake Trino in `//packages/dashql-cli:test`, the bundle in `:binary_test`, by hand against
     `bazel run //:trino`.
+- **The root of Node.** The CLI brings its own root, a folder with the layout of the origin private file system
+  (`DASHQL_HOME`, `~/.dashql`; `docs/design/storage_layout.md`), so the modules of the runtime that keep files in the
+  root run unchanged: `setOPFSRootProvider` (`platform/opfs_root.ts`) hands them `NodeDirectoryHandle`s
+  (`node/node_directory_handle.ts`), the handles of the File System Access API over `node:fs` that the modules use, with
+  the path of the host. `openNodeComputeDatabase` (`node/node_hyperdb.ts`) starts the build of `hyperdb-wasm` for Node
+  lazily with the root as its storage, which the engine sees at `/mnt/fs` like OPFS, opens an instance folder like a
+  window of the app and creates the query result cache of the root (`storage/opfs_query_result_cache.ts`, moved from
+  the app). The `HyperDB` of the app (`platform/hyperdb/hyperdb_wasm.ts`, with `hyperdb_arrow_insert.ts` and
+  `hyperdb_settings.ts`) moved into the runtime and imports only the types of `hyperdb-wasm`: it mounts the path of a
+  handle of the host, and a `mountFile` option writes the files that statements mount (the Arrow IPC of an insert) into
+  the instance folder first, the build of Node mounts only files of the host. `mirrorWorkbookAttachments`
+  (`workbook/attachments/attachment_mirror.ts`) copies the attachments of a workbook folder into the root.
+  The app's `hyperdb_wasm.ts` re-exports the runtime's and the engine class of the browser build.
+- **What differs in Node.** The root is not the one of the app: a viewer mirrors what it needs into its OPFS, e.g. the
+  connection of a live view. The Web Locks of the cache are those of the process (`node/node_locks.ts`), a root that
+  two processes use at once is not protected. Its worker writes a LogFile line to the descriptor 1 of the process, so
+  `dashql run` runs in a child process that writes its output to descriptor 3.
 
 ## Testing both platforms
 

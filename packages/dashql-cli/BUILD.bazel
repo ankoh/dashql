@@ -51,6 +51,7 @@ _DEPENDENCIES = [
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/apache-arrow",
     "//:node_modules/flatbuffers",
+    "//:node_modules/hyperdb-wasm",
     "//:node_modules/immutable",
     "//:node_modules/vega-lite",
 ]
@@ -78,6 +79,8 @@ js_binary(
         "//:node_modules/@ankoh/dashql-core",
         # The core imports it without declaring it
         "//:node_modules/flatbuffers",
+        # The embedded Hyper of `run`, loaded only there with its Wasm file
+        "//:node_modules/hyperdb-wasm",
     ],
     entry_point = "dist/dashql.js",
     visibility = ["//visibility:public"],

@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { runRun, type RunEnvironment } from './run_command.js';
@@ -90,12 +91,32 @@ function trinoWorkbook(endpoint: string, scripts: Array<[string, string]>, usern
     ]);
 }
 
+const HYPER_ID = '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d';
+
+/// Add scripts on the embedded Hyper to a workbook folder
+function withHyperScripts(dir: string, scripts: Array<[string, string]>): void {
+    const file = path.join(dir, 'dashql-workbook.json');
+    const workbook = JSON.parse(readFileSync(file, 'utf8'));
+    workbook.connections.push({ connectionId: HYPER_ID, params: { hyper: { protocol: 'WASM' } } });
+    for (const [name, text] of scripts) {
+        workbook.scripts.push({ name, connectionId: HYPER_ID });
+        writeFileSync(path.join(dir, 'scripts', name), text);
+    }
+    writeFileSync(file, JSON.stringify(workbook, null, 2));
+}
+
 const ORDERS: [string, string] = ['01_orders.sql', 'select id, name from orders\n'];
 const BROKEN: [string, string] = ['02_broken.sql', 'select fail from orders\n'];
-const PASSWORD: RunEnvironment = { trinoPassword: 'pw' };
+const PASSWORD: Partial<RunEnvironment> = { trinoPassword: 'pw' };
 
-const run = (dir: string, args: string[], env: RunEnvironment = PASSWORD) =>
-    runWith((runArgs, cli) => runRun(runArgs, cli, env), dir, args);
+/// A folder for the files of DashQL
+const tempHome = () => mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
+
+const run = (dir: string, args: string[], env: Partial<RunEnvironment> = PASSWORD, home = tempHome()) =>
+    runWith((runArgs, cli) => runRun(runArgs, cli, { home, ...env }), dir, args);
+
+/// The Parquet files of the query result cache of a home
+const cacheFiles = (home: string) => readdirSync(path.join(home, 'cache')).filter(file => file.endsWith('.parquet'));
 
 describe('dashql run', () => {
     let trino: FakeTrino;
@@ -110,17 +131,22 @@ describe('dashql run', () => {
 
     it('runs a script on Trino and prints the schema, the row count and the rows', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
-        const output = await run(dir, ['.', 'scripts/01_orders.sql']);
+        const home = tempHome();
+        const output = await run(dir, ['.', 'scripts/01_orders.sql'], PASSWORD, home);
         expect(output.stderr).toBe('');
         expect(output.code).toBe(0);
         expect(output.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s\n/);
+        const [cached] = cacheFiles(home);
         expect(output.stdout.split('\n').slice(1).join('\n')).toBe(`  id Int32, name Utf8
   id | name
   ---+------
   1  | apple
   2  | pear
   3  | NULL
+  ${path.join(home, 'cache', cached)}
 `);
+        // The instance of the embedded Hyper is gone, the cache stays
+        expect(readdirSync(path.join(home, 'instances'))).toEqual([]);
         // The health check, then the script; the user of the workbook with the password of the environment
         expect(trino.statements).toHaveLength(2);
         expect(trino.statements[1]).toContain('from orders');
@@ -142,11 +168,61 @@ describe('dashql run', () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
         const output = await run(dir, ['--rows', '1', '.']);
         expect(output.code).toBe(0);
-        expect(output.stdout.split('\n').slice(2).join('\n')).toBe(`  id | name
+        expect(output.stdout.split('\n').slice(2, 6).join('\n')).toBe(`  id | name
   ---+------
   1  | apple
-  … 2 more
-`);
+  … 2 more`);
+    });
+
+    it('serves a cached result unless a refresh runs the script again', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        const home = tempHome();
+        expect((await run(dir, ['.'], PASSWORD, home)).code).toBe(0);
+        const [first] = cacheFiles(home);
+        expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
+
+        const again = await run(dir, ['.'], PASSWORD, home);
+        expect(again.code).toBe(0);
+        expect(again.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s {2}from the cache\n/);
+        expect(again.stdout).toContain(path.join(home, 'cache', first));
+        expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
+
+        const refreshed = await run(dir, ['--refresh', '.'], PASSWORD, home);
+        expect(refreshed.code).toBe(0);
+        expect(refreshed.stdout).not.toContain('from the cache');
+        expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(2);
+        // The newer file of the key replaced the older one
+        expect(cacheFiles(home)).toHaveLength(1);
+        expect(cacheFiles(home)).not.toEqual([first]);
+    });
+
+    it('scans the result of a script on Trino from a script on the embedded Hyper', async () => {
+        // A reference names a script by an identifier
+        const dir = trinoWorkbook(trino.endpoint, [['orders.sql', ORDERS[1]]]);
+        withHyperScripts(dir, [['02_count.sql', 'select count(*) as n, count(name) as named from :orders\n']]);
+        const home = tempHome();
+        const output = await run(dir, ['.', '02_count.sql'], PASSWORD, home);
+        expect(output.stderr).toBe('');
+        expect(output.stdout).toMatch(/^02_count\.sql {2}ok {2}1 row {2}\d+\.\d s\n {2}n Int64, named Int64\n {2}n \| named\n {2}--\+------\n {2}3 \| 2\n/);
+        expect(output.code).toBe(0);
+        // The result of the Trino script was materialized into the cache and scanned
+        expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
+        expect(cacheFiles(home).length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('reads the attachments of the workbook folder from the embedded Hyper', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        const home = tempHome();
+        expect((await run(dir, ['.'], PASSWORD, home)).code).toBe(0);
+        // A Parquet file as attachment, the cached result of the Trino script
+        mkdirSync(path.join(dir, 'attachments'));
+        copyFileSync(path.join(home, 'cache', cacheFiles(home)[0]), path.join(dir, 'attachments', 'fruits.parquet'));
+        withHyperScripts(dir, [['02_fruits.sql', "select name from :fruits where id = 2\n"]]);
+        const output = await run(dir, ['.', '02_fruits.sql'], PASSWORD, home);
+        expect(output.stderr).toBe('');
+        expect(output.code).toBe(0);
+        expect(output.stdout).toContain('  pear\n');
+        expect(readdirSync(path.join(home, 'workbooks', WORKBOOK_ID, 'attachments'))).toEqual(['fruits.parquet']);
     });
 
     it('fails before the scripts when the connection rejects the password', async () => {
@@ -169,6 +245,7 @@ describe('dashql run', () => {
         const unknown = await run(dir, ['.', 'gone.sql']);
         expect(unknown.code).toBe(2);
         expect(unknown.stderr).toBe('error: the workbook has no script gone.sql, its scripts are 01_orders.sql\n');
+        expect(existsSync(dir)).toBe(true);
         const empty = testFiles(['a.sql']);
         const noWorkbook = await run(empty, ['.']);
         expect(noWorkbook.code).toBe(2);
