@@ -105,9 +105,11 @@ Step 2 moved the 94 modules into `packages/dashql-sdk/src` with the folders they
 `@ankoh/dashql-sdk/<path>`. A source package like `@ankoh/dashql-ui`: linked as `//:node_modules/@ankoh/dashql-sdk`,
 mapped in the root `tsconfig.json` and the Vite config. Bazel type-checks the SDK against the `WebWorker` lib of
 TypeScript (no `window`, no `document`, no elements) with its own copies of the generated `@ankoh/dashql-protobuf` and
-`@ankoh/dashql-jsonschema` (`tsconfig.bazel.json`, `tsconfig.bazel.test.json` for the tests).
+`@ankoh/dashql-jsonschema` (`tsconfig.bazel.json`, `tsconfig.bazel.test.json` for the tests). `platform/electron_fs.ts`
+owns the type of the file system of the Electron bridge, the global declaration of the app (`types/electron.d.ts`)
+refers to it.
 
-Two properties of the source package stay guarded:
+Two properties of the source package hold:
 
 - **Editors resolve everything.** An editor checks a module of the SDK with the `tsconfig.json` of the package, which
   extends the root `tsconfig.json` and its paths into `bazel-bin` (the core, the generated packages), with the lib of
@@ -115,12 +117,9 @@ Two properties of the source package stay guarded:
   the root, or when a module imports a package that is neither a path of the root `tsconfig.json` nor a dependency of
   the root `package.json`.
 - **The dev server picks up edits.** The Vite alias points at the sources and `server.fs.allow` includes them, so the
-  dev server serves and watches them like the sources of the app. `bazel run //packages/dashql-app:check_dev_hmr`
-  starts the dev server, opens the app in headless Chromium and reports for a module of the SDK and of `dashql-ui`
-  that the page loaded it from the sources and that a change reached the page. An edit of a module of the SDK arrives
-  as hot updates; since the modules of the SDK export no components, the update climbs to the app and often ends in a
-  full reload, as it did before the move. An edit of a component of `dashql-ui` updates in place. `platform/electron_fs.ts` owns the type of the file system of the Electron bridge, the
-global declaration of the app (`types/electron.d.ts`) refers to it.
+  dev server serves and watches them like the sources of the app. An edit of a module of the SDK arrives as hot
+  updates; since the modules of the SDK export no components, the update climbs to the app and often ends in a
+  full reload, as it did before the move. An edit of a component of `dashql-ui` updates in place.
 
 `//packages/dashql-sdk:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
 `.tsx` module, and the seams that only a browser or a bundler provides are known by name. Step 4 removes them:

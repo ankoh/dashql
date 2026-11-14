@@ -310,13 +310,7 @@ bazel run //packages/dashql-native:dev
 Run the last two commands in separate terminals for Electron development.
 
 The dev servers of the app and the website read `packages/dashql-ui` from its sources, the dev server of the app reads
-`packages/dashql-sdk` from its sources too; an edit reaches the page without a build or a restart. To check that it
-still does, e.g. after a change to the Vite config or the aliases:
-
-```bash
-# Starts the dev server with headless Chromium, simulates an edit of the SDK and of dashql-ui, fails if one doesn't reach the page
-bazel run //packages/dashql-app:check_dev_hmr
-```
+`packages/dashql-sdk` from its sources too; an edit reaches the page without a build or a restart.
 
 The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
 Bazel builds the SVG symbols it reads from `bazel-bin`:

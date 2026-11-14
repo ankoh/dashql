@@ -438,28 +438,6 @@ sh_binary(
     visibility = ["//visibility:public"],
 )
 
-# Does the dev server pick up changes of @ankoh/dashql-sdk and @ankoh/dashql-ui? See utils/check_dev_hmr.mjs.
-sh_binary(
-    name = "check_dev_hmr",
-    srcs = ["utils/check_dev_hmr.sh"],
-    args = [
-        "$(location :dev_config)",
-        "$(rootpath @playwright_chromium//:chromium)",
-    ],
-    data = [
-        ":dev_config",
-        ":dep_jsonschema",
-        ":dep_protobuf",
-        ":dep_svg_symbols",
-        ":extensions",
-        "utils/check_dev_hmr.mjs",
-        "//:node_modules/@ankoh/dashql-core",
-        "@playwright_chromium//:chromium",
-        "@playwright_chromium//:runtime",
-    ],
-    tags = ["manual"],
-)
-
 # Compares the experimental wasm backend of hyperdb-wasm with its default backend
 js_binary(
     name = "bench_hyperdb_wasm_backend",
