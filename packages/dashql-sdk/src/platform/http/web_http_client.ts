@@ -1,5 +1,5 @@
-import { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { ClientOptions, HttpClient, HttpFetchResult } from './http_client.js';
+import { Logger } from '../logger/logger.js';
 
 export class WebHttpClient implements HttpClient {
     logger: Logger;

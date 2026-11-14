@@ -15,7 +15,7 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
 | One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
-| Node platform | Step 4: the storage of a workbook folder over `node:fs` is done; fetch, Wasm from files and the embedded Hyper follow |
+| Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper follows |
 | The CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
 | Editor state out of `ScriptData` | Later, step 5 |
 
@@ -283,8 +283,13 @@ Each step ships on its own and keeps the behavior.
    takes a `FileSystem` (`platform/file_system.ts`); the app passes `ELECTRON_FILE_SYSTEM`, Node passes
    `NODE_FILE_SYSTEM` (`node/node_file_system.ts`). The modules of Node live in `src/node`, the only place that
    imports `node:` (the boundary test checks it), with a type check of their own against the types of Node
-   (`tsconfig.bazel.node.json`, `src/node/tsconfig.json` for editors). Next a fetch client, `EmbeddedDatabase` over
-   `hyperdb-wasm` `node` and Wasm from files. The CLI on top: offline
+   (`tsconfig.bazel.node.json`, `src/node/tsconfig.json` for editors). `createNodePlatform` (`node/node_platform.ts`)
+   passes a storage backend, `fetch` (`WebHttpClient`, moved from the app) and the core from the Wasm file of its
+   package (`node/node_core.ts`) to `createRuntime`; its OAuth flow refuses until `dashql auth` brings one. The SDK
+   runs in Node under vitest, which resolves what a bundler resolves. Plain Node does not: the CLI compiles the SDK
+   with `tsc` like `packages/hyperdb-edge`, so the two bundler seams go first: the SQL of the functions of Hyper
+   (`?raw`) and the specs of the extensions (`import.meta.glob`) come from the platform. Then `EmbeddedDatabase` over
+   `hyperdb-wasm` `node`. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
 5. **Editor state.** Out of `ScriptData` into the app.
 

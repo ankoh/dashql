@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useLogger } from '../logger/logger_provider.js';
 import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
 import { NativeHttpClient } from './native_http_client.js';
-import { WebHttpClient } from './web_http_client.js';
+import { WebHttpClient } from '@ankoh/dashql-sdk/platform/http/web_http_client';
 import { HttpClient } from '@ankoh/dashql-sdk/platform/http/http_client';
 import { HttpRequestLog, RecordingHttpClient } from './http_request_log.js';
 
