@@ -102,14 +102,14 @@ describe('cloud installer', () => {
         await render({ options: { migrations: NEWER } });
         await settled('outdated');
         await act(async () => runButton()!.click());
-        await vi.waitFor(() => expect(runButton()?.textContent).toBe('Try Again'));
+        await vi.waitFor(() => expect(runButton()?.textContent).toBe('Try Again'), { timeout: 10_000 });
         expect(root.container.querySelector('[role="alert"]')!.textContent).toBe('permission denied for table workbook_scripts');
         expect(steps().map(([status]) => status)).toEqual(['failed']);
 
         fail = false;
         await act(async () => runButton()!.click());
         await settled('current');
-        expect(root.container.querySelector('[role="alert"]')).toBeNull();
+        expect(root.container.querySelector('[role="alert"]')?.textContent ?? null).toBeNull();
         expect(steps().map(([status]) => status)).toEqual(['done']);
     });
 

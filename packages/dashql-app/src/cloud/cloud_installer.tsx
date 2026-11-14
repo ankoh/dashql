@@ -142,6 +142,12 @@ export function CloudInstaller(props: CloudInstallerProps): React.ReactElement {
         return () => controller.abort();
     }, [query, options, inspection]);
     React.useEffect(() => () => abort.current?.abort(), []);
+    // Forget the installation in the update that asks to look again, a render in between would offer a run of the
+    // installation that the run before changed, next to the inspection on the same connection
+    const inspectAgain = React.useCallback(() => {
+        setInstallation(null);
+        setInspection(value => value + 1);
+    }, []);
 
     const install = React.useCallback(async () => {
         if (installation == null) return;
@@ -193,10 +199,10 @@ export function CloudInstaller(props: CloudInstallerProps): React.ReactElement {
             if (!controller.signal.aborted) {
                 setRunning(false);
                 setWaiting(false);
-                setInspection(value => value + 1);
+                inspectAgain();
             }
         }
-    }, [installation, options, query]);
+    }, [installation, options, query, inspectAgain]);
 
     const shownSteps = running || steps != null ? steps ?? [] : installation == null ? [] : stepsOf(installation);
     const canInstall = installation != null && (installation.state === 'missing' || installation.state === 'outdated');
@@ -217,7 +223,7 @@ export function CloudInstaller(props: CloudInstallerProps): React.ReactElement {
                             setSteps(null);
                             setStatus(new Map());
                             setError(null);
-                            setInspection(value => value + 1);
+                            inspectAgain();
                         }}>
                         <SyncIcon size={16} />
                     </IconButton>
