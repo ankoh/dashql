@@ -11,10 +11,10 @@ const W = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-wor
 
 /// An environment whose server runs in the process of the test
 function testEnvironment(): { env: SessionEnvironment; servers: SessionServer[] } {
-    const servers = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-servers-'));
+    const serversFolder = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-servers-'));
     const servers: SessionServer[] = [];
     const env: SessionEnvironment = {
-        servers,
+        servers: serversFolder,
         home: null,
         appUrl: 'http://localhost:9002',
         startServer: args => {
@@ -24,7 +24,7 @@ function testEnvironment(): { env: SessionEnvironment; servers: SessionServer[] 
             void startSessionServer({ harness: named.get('harness')!, folder: named.get('folder')! }).then(async server => {
                 servers.push(server);
                 const { writeFileSync } = await import('node:fs');
-                writeFileSync(path.join(servers, `${named.get('session')}.json`), JSON.stringify({ session: named.get('session'), port: server.port, token: server.token, pid: process.pid }));
+                writeFileSync(path.join(serversFolder, `${named.get('session')}.json`), JSON.stringify({ session: named.get('session'), port: server.port, token: server.token, pid: process.pid }));
             });
         },
     };
