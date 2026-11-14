@@ -5,6 +5,7 @@ harness gets the answers of the app (`docs/wip/dashql_sdk.md`):
 
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
+- **`dashql session`** shows the session of an agent harness in DashQL, see below.
 
 ```
 bazel run //packages/dashql-cli:dashql -- lint examples/snippets/hyper
@@ -80,6 +81,49 @@ doesn't parse. These scripts are reported on stderr and stay as they are, the ot
 The exit code is 0 if all scripts could be formatted (with `--check`: are formatted), 1 otherwise and 2 on usage or I/O
 errors.
 
+## dashql session
+
+```
+dashql session hook <event> --harness <name>
+dashql session serve --session <id> --harness <name> [--folder <dir>] [--port <port>]
+dashql session link [--session <id>]
+```
+
+The hooks of a harness send its events to the server of the session, DashQL follows the session through a link
+(`docs/wip/agent_session.md`). `session hook` reads the payload of the hook on stdin, starts the server of the session
+(`session serve`, detached, on `127.0.0.1` with a token) if it has none, and sends the event to it. `SessionStart`
+prints the link, the harness hands it to the agent. A hook never fails the harness. The server keeps the question,
+the status lines, the files that the tools touched and the final message of every turn, and stops when the harness
+ends the session. `DASHQL_SESSION_HOME` is the folder of the running sessions (`~/.dashql/sessions`), `DASHQL_APP_URL`
+the page of the links (`https://dashql.app`).
+
+Claude Code, in its settings (`.claude/settings.json`):
+
+```json
+{
+    "hooks": {
+        "SessionStart": [{ "hooks": [{ "type": "command", "command": "dashql session hook SessionStart --harness claude" }] }],
+        "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "dashql session hook UserPromptSubmit --harness claude" }] }],
+        "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "dashql session hook PostToolUse --harness claude" }] }],
+        "Stop": [{ "hooks": [{ "type": "command", "command": "dashql session hook Stop --harness claude" }] }],
+        "SessionEnd": [{ "hooks": [{ "type": "command", "command": "dashql session hook SessionEnd --harness claude" }] }]
+    }
+}
+```
+
+Codex, in `hooks.json` of its home (`~/.codex`); Codex runs user hooks once the user trusted them in `/hooks`:
+
+```json
+{
+    "hooks": {
+        "SessionStart": [{ "hooks": [{ "type": "command", "command": "dashql session hook SessionStart --harness codex" }] }],
+        "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "dashql session hook UserPromptSubmit --harness codex" }] }],
+        "PostToolUse": [{ "hooks": [{ "type": "command", "command": "dashql session hook PostToolUse --harness codex" }] }],
+        "Stop": [{ "hooks": [{ "type": "command", "command": "dashql session hook Stop --harness codex" }] }]
+    }
+}
+```
+
 ## Tests
 
 ```
@@ -88,4 +132,5 @@ bazel test //packages/dashql-cli:all
 
 `:test` runs the commands with the process of a test (vitest), `:binary_test` runs the bundle as the user calls it, and
 `:example_snippets_formatted_test` checks that the snippets of the app are what `dashql format` prints.
-`//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex.
+`//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex, and their hooks with
+`dashql session hook`.

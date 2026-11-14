@@ -39,6 +39,28 @@
     },
     {
       "properties": {
+        "agentSession": {
+          "type": "object",
+          "description": "Follow the session of an agent harness, the server of dashql session serve on this machine",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "description": "The base url of the server, http on a loopback address"
+            },
+            "token": {
+              "type": "string",
+              "description": "The token of the server, it is never stored durably"
+            }
+          },
+          "required": ["endpoint", "token"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["agentSession"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
         "oauthRedirect": {
           "$ref": "auth.json#/definitions/OAuthRedirectData",
           "description": "Provide the oauth redirect"

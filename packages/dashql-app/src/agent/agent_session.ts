@@ -1,4 +1,6 @@
 import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import type { AgentSessionState } from '@ankoh/dashql-sdk/session/agent_session_state';
 
 /// A script that the agent wrote
 export interface AgentScript {
@@ -26,9 +28,9 @@ export interface AgentTurn {
     scripts: AgentScript[];
 }
 
-/// The session of a harness in the terminal that works on a workbook, as the page follows it. The page only watches:
-/// the hooks of the harness send its events to `dashql session serve`, the page reads them from there
-/// (docs/wip/agent_integration_tests.md). The questions come from the terminal, the prompt of the page is closed.
+/// The session of a harness in the terminal, as the page follows it. The page only watches: the hooks of the harness
+/// send its events to `dashql session serve`, the page reads them from there (docs/wip/agent_session.md). The
+/// questions come from the terminal, the prompt of the page is closed while the page reaches the session.
 export interface AgentSession {
     /// The harness, e.g. claude or codex
     harness: string;
@@ -76,8 +78,43 @@ export interface AgentSessionArgs {
     showScript: (scriptKey: number) => void;
 }
 
-/// The session that works on a workbook, null without one. No session reaches the page before `dashql session serve`
-/// exists.
-export function useAgentSession(_args: AgentSessionArgs): AgentSession | null {
-    return null;
+/// The session of an agent as its server tells it, and whether the page reaches the server
+export interface FollowedAgentSession {
+    state: AgentSessionState;
+    connected: boolean;
+}
+
+/// The session as the bar of a workbook shows it: the files that the agent touched are the scripts of the workbook
+/// with their names, the dismissed turns are gone. The prompt stays closed while the page reaches the session.
+export function agentSessionOf(
+    followed: FollowedAgentSession,
+    workbookScripts: WorkbookScripts,
+    dismissed: ReadonlySet<number>,
+    onDismiss: (questionId: number) => void,
+    onShowScript: (scriptKey: number) => void,
+): AgentSession {
+    const { state } = followed;
+    const turns: AgentTurn[] = state.turns.filter(turn => !dismissed.has(turn.turnId)).map(turn => {
+        const scripts: AgentScript[] = [];
+        for (const file of turn.files) {
+            const fileName = file.split(/[\\/]/).pop() ?? file;
+            const ref = workbookScripts.scriptRefs[fileName];
+            if (ref != null && !scripts.some(script => script.scriptKey === ref.scriptId)) {
+                scripts.push({ scriptKey: ref.scriptId, scriptName: scriptDisplayName(fileName) });
+            }
+        }
+        return {
+            questionId: turn.turnId,
+            question: { question: turn.question || 'A question in the terminal', status: turn.status, error: turn.error, note: turn.note },
+            scripts,
+        };
+    });
+    return {
+        harness: state.harness,
+        folder: state.folder,
+        connected: followed.connected && !state.ended,
+        turns,
+        onDismiss,
+        onShowScript,
+    };
 }

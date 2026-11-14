@@ -9,6 +9,7 @@
 //
 // The pages run without WebGL, they have to work on machines without it.
 
+import http from 'node:http';
 import { join } from 'node:path';
 
 /// A page has to boot the core and Hyper
@@ -132,6 +133,60 @@ async function testAppWorkbook(page, navigate) {
     await scriptEditor(page, 'select 43 as answer').waitFor();
     await navigate();
     await scriptEditor(page, 'select 43 as answer').waitFor();
+}
+
+/// A server of the session of an agent, like `dashql session serve`, that streams the states that the test pushes
+async function startSessionServer() {
+    const streams = new Set();
+    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], version: 0 };
+    const server = http.createServer((request, response) => {
+        response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
+        if (!request.url.startsWith('/v1/stream?token=secret')) return response.writeHead(401).end();
+        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+        response.write(`data: ${JSON.stringify(state)}\n\n`);
+        streams.add(response);
+        request.on('close', () => streams.delete(response));
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    return {
+        port: server.address().port,
+        push: next => {
+            state = { ...state, ...next, version: state.version + 1 };
+            for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`);
+        },
+        close: () => {
+            for (const stream of streams) stream.destroy();
+            return new Promise(resolve => server.close(resolve));
+        },
+    };
+}
+
+/// A link of `dashql session hook SessionStart` makes the page follow the session of an agent in the terminal: the bar
+/// shows the harness and its questions, the prompt is closed while the session runs
+async function testAppAgentSession(page, navigate) {
+    const session = await startSessionServer();
+    try {
+        await page.context().route(url => url.port === String(session.port), route => route.continue());
+        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null, files: ['scripts/orders.sql'] };
+        session.push({ turns: [turn] });
+        const data = Buffer.from(JSON.stringify({ agentSession: { endpoint: `http://127.0.0.1:${session.port}`, token: 'secret' } })).toString('base64url');
+        await navigate(`/?data=${data}`);
+        await page.getByTestId('composer-session').getByText('Claude Code works on this workbook in the terminal').waitFor();
+        await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
+        // The log opens by itself while the agent works
+        await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
+        await page.getByRole('status').getByText('dashql lint scripts/orders.sql').first().waitFor();
+
+        session.push({ turns: [{ ...turn, status: null, note: 'There are 42 orders' }] });
+        await page.getByRole('note').getByText('There are 42 orders').waitFor();
+        await page.locator('[data-testid="workbook-agent-state"][data-state="connected"]').waitFor();
+
+        // Once the harness ended the session, the prompt opens again
+        session.push({ ended: true });
+        await page.getByTestId('composer-send').waitFor();
+    } finally {
+        await session.close();
+    }
 }
 
 /// The storage of the workbook, the navbar and the color scheme
@@ -505,6 +560,7 @@ const PAGE_TESTS = [
     { name: 'app_greeter', options: DESKTOP, test: testAppGreeter },
     { name: 'app_wrapped_script', options: DESKTOP, test: testAppWrappedScript },
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
+    { name: 'app_agent_session', options: DESKTOP, test: testAppAgentSession },
     { name: 'app_catalog', options: DESKTOP, test: testAppCatalogFollowsStatements },
     { name: 'app_shared_workbook', options: DESKTOP, test: testAppSharedWorkbook },
     { name: 'app_feed_scroll_position', options: DESKTOP, test: testAppFeedScrollPosition },

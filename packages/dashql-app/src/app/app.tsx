@@ -36,6 +36,7 @@ import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
 import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 import { WorkbookPage } from '../workbook/workbook_page.js';
 import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
+import { AgentSessionProvider } from '../agent/agent_session_provider.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
@@ -73,20 +74,22 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                         <QueryExecutorProvider>
                                             <WorkbookExecutionProvider>
                                                 <NativeWorkbookSync />
-                                                <WorkbookCatalogLoaderProvider>
-                                                    <WorkbookImportProvider>
-                                                        <WorkbookViewModeProvider>
-                                                            <WorkbookCommands>
-                                                                <CloudStateProvider>
-                                                                    <CloudPreviewCleanup />
-                                                                    <AppLoader>
-                                                                        {props.children}
-                                                                    </AppLoader>
-                                                                </CloudStateProvider>
-                                                            </WorkbookCommands>
-                                                        </WorkbookViewModeProvider>
-                                                    </WorkbookImportProvider>
-                                                </WorkbookCatalogLoaderProvider>
+                                                <AgentSessionProvider>
+                                                    <WorkbookCatalogLoaderProvider>
+                                                        <WorkbookImportProvider>
+                                                            <WorkbookViewModeProvider>
+                                                                <WorkbookCommands>
+                                                                    <CloudStateProvider>
+                                                                        <CloudPreviewCleanup />
+                                                                        <AppLoader>
+                                                                            {props.children}
+                                                                        </AppLoader>
+                                                                    </CloudStateProvider>
+                                                                </WorkbookCommands>
+                                                            </WorkbookViewModeProvider>
+                                                        </WorkbookImportProvider>
+                                                    </WorkbookCatalogLoaderProvider>
+                                                </AgentSessionProvider>
                                             </WorkbookExecutionProvider>
                                         </QueryExecutorProvider>
                                     </WorkbookComputeQueryExecutionProvider>

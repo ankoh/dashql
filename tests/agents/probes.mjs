@@ -1,7 +1,7 @@
 // The probes of the agent integration tests: a server on loopback, a script that tries to reach it, and a hook that
 // runs the script and logs what it saw.
 import { spawn } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { join, resolve } from 'node:path';
 
@@ -19,6 +19,19 @@ exec ${JSON.stringify(NODE)} ${JSON.stringify(resolve(process.env.DASHQL_BUNDLE)
 `);
     chmodSync(command, 0o755);
     return command;
+}
+
+/// The state of the session that `dashql session hook` started in a folder of sessions, its server stops afterwards
+export async function readDashQLSession(home) {
+    const files = existsSync(home) ? readdirSync(home).filter(name => name.endsWith('.json')) : [];
+    if (files.length !== 1) return { files, state: null };
+    const session = JSON.parse(readFileSync(join(home, files[0]), 'utf8'));
+    try {
+        const response = await fetch(`http://127.0.0.1:${session.port}/v1/state`, { headers: { Authorization: `Bearer ${session.token}` } });
+        return { files, state: await response.json() };
+    } finally {
+        try { process.kill(session.pid); } catch { /* gone */ }
+    }
 }
 
 /// A server on loopback that the probes connect to

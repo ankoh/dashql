@@ -17,6 +17,7 @@ import {
     stopSessionServer,
     writeBrokenScript,
     writeDashQLCommand,
+    readDashQLSession,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -39,7 +40,7 @@ before(async () => {
 after(() => target?.close());
 
 /// Run `codex exec` with a fake model that calls exec_command once
-async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null, allowPrefix = null, escalate = false }) {
+async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null, hookEvents = HOOK_EVENTS, allowPrefix = null, escalate = false, env = {} }) {
     const codexHome = join(dir, 'codex');
     const work = join(dir, 'work');
     mkdirSync(join(codexHome, 'rules'), { recursive: true });
@@ -63,7 +64,7 @@ env_key = "FAKE_API_KEY"
 `);
     if (hook != null) {
         writeFileSync(join(codexHome, 'hooks.json'), JSON.stringify({
-            hooks: Object.fromEntries(HOOK_EVENTS.map(event => [event, [{ hooks: [{ type: 'command', command: `${hook} ${event}` }] }]])),
+            hooks: Object.fromEntries(hookEvents.map(event => [event, [{ hooks: [{ type: 'command', command: hook.includes('{event}') ? hook.replaceAll('{event}', event) : `${hook} ${event}` }] }]])),
         }));
     }
     if (allowPrefix != null) {
@@ -81,7 +82,7 @@ env_key = "FAKE_API_KEY"
             'run the probe',
         ], {
             cwd: work,
-            env: { PATH: '/usr/bin:/bin', HOME: join(dir, 'home'), CODEX_HOME: codexHome, FAKE_API_KEY: 'fake' },
+            env: { PATH: '/usr/bin:/bin', HOME: join(dir, 'home'), CODEX_HOME: codexHome, FAKE_API_KEY: 'fake', ...env },
         });
         const commands = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line))
             .filter(event => event.type === 'item.completed' && event.item?.type === 'command_execution')
@@ -149,4 +150,27 @@ test('dashql lint runs in workspace-write', async () => {
     assert.equal(commands.length, 1);
     assert.match(commands[0], /expected a table reference after FROM/);
     assert.match(commands[0], /1 file, 1 error/);
+});
+
+test('the hooks show the session in DashQL: the question, what the agent ran and its answer', async () => {
+    const dir = caseDir('dashql_session');
+    const sessions = join(dir, 'sessions');
+    const { commands } = await runCodex(dir, {
+        command: 'echo hello from scripts/orders.sql',
+        hook: `${DASHQL} session hook {event} --harness codex`,
+        hookEvents: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop'],
+        env: { DASHQL_SESSION_HOME: sessions },
+    });
+    assert.deepEqual(commands, ['hello from scripts/orders.sql']);
+    const { files, state } = await readDashQLSession(sessions);
+    assert.equal(files.length, 1, JSON.stringify(files));
+    assert.equal(state.harness, 'codex');
+    assert.deepEqual(state.turns, [{
+        turnId: 1,
+        question: 'run the probe',
+        status: null,
+        error: null,
+        note: 'done',
+        files: ['scripts/orders.sql'],
+    }]);
 });

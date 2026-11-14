@@ -69,7 +69,8 @@ import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../ui/foundations/s
 import { connectionReadsAttachments } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
-import { isAgentWorking, useAgentSession, type AgentFollowTarget } from '../../agent/agent_session.js';
+import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
+import { useAgentSession } from '../../agent/agent_session_provider.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';

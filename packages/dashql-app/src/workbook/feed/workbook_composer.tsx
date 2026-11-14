@@ -47,8 +47,8 @@ export interface WorkbookComposerProps {
     keywordCase: core.buffers.formatting.KeywordCase;
     /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then.
     agentWorking?: boolean;
-    /// The session of an agent in the terminal that works on the workbook. The agent writes the scripts, the prompt is
-    /// closed while it does, edits of the page would race its writes.
+    /// The session of an agent in the terminal. The agent writes the scripts, the prompt is closed while the page reaches
+    /// the session, edits of the page would race its writes.
     session?: AgentSession | null;
     /// Called with the draft when the user sends it, the draft is cleared before
     onSend: (text: string) => void;
@@ -239,7 +239,8 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (hero) view?.focus();
     }, [view]);
 
-    const session = props.session ?? null;
+    // The prompt is closed while the page reaches the session of an agent, the agent writes the scripts
+    const session = props.session != null && props.session.connected ? props.session : null;
     const showDraftInputs = session == null && draftInputs.length > 0;
     const blockedWorkbookId = offlineWorkbookId;
     const blocked = blockedWorkbookId != null;

@@ -16,6 +16,7 @@ import {
     stopSessionServer,
     writeBrokenScript,
     writeDashQLCommand,
+    readDashQLSession,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -37,7 +38,7 @@ before(async () => {
 after(() => target?.close());
 
 /// Run Claude Code headless with a fake model that calls Bash once, return the tool result
-async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTools = 'Bash', hook = null }) {
+async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTools = 'Bash', hook = null, hookEvents = HOOK_EVENTS, env = {} }) {
     const home = join(dir, 'home');
     const work = join(dir, 'work');
     mkdirSync(home, { recursive: true });
@@ -50,9 +51,9 @@ async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTo
     const settings = {
         sandbox: { enabled: true, ...sandbox },
         ...(hook == null ? {} : {
-            hooks: Object.fromEntries(HOOK_EVENTS.map(event => [event, [{
+            hooks: Object.fromEntries(hookEvents.map(event => [event, [{
                 ...(event === 'PostToolUse' ? { matcher: '*' } : {}),
-                hooks: [{ type: 'command', command: `${hook} ${event}` }],
+                hooks: [{ type: 'command', command: hook.includes('{event}') ? hook.replaceAll('{event}', event) : `${hook} ${event}` }],
             }]])),
         }),
     };
@@ -71,6 +72,7 @@ async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTo
                 ANTHROPIC_API_KEY: 'sk-fake',
                 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
                 DISABLE_AUTOUPDATER: '1',
+                ...env,
             },
         });
         const results = output.split('\n').filter(Boolean).map(line => JSON.parse(line))
@@ -145,4 +147,27 @@ test('dashql lint runs in the sandbox', async () => {
     const { output } = await runClaude(dir, { command: `${DASHQL} lint ${writeBrokenScript(join(dir, 'work'))}` });
     assert.match(output, /expected a table reference after FROM/);
     assert.match(output, /1 file, 1 error/);
+});
+
+test('the hooks show the session in DashQL: the question, what the agent ran and its answer', async () => {
+    const dir = caseDir('dashql_session');
+    const sessions = join(dir, 'sessions');
+    const { output } = await runClaude(dir, {
+        command: 'echo hello from scripts/orders.sql',
+        hook: `${DASHQL} session hook {event} --harness claude`,
+        hookEvents: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop'],
+        env: { DASHQL_SESSION_HOME: sessions },
+    });
+    assert.equal(output, 'hello from scripts/orders.sql');
+    const { files, state } = await readDashQLSession(sessions);
+    assert.equal(files.length, 1, JSON.stringify(files));
+    assert.equal(state.harness, 'claude');
+    assert.deepEqual(state.turns.map(turn => ({ ...turn })), [{
+        turnId: 1,
+        question: 'run the probe',
+        status: null,
+        error: null,
+        note: 'done',
+        files: ['scripts/orders.sql'],
+    }]);
 });
