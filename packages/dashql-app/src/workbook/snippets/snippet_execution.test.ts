@@ -2,9 +2,9 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { analyzeTable } from '../../compute/analyze_table.js';
+import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
 import { processTask } from '../../compute/computation_scheduler.js';
-import { SCHEDULE_TASK, type ComputationAction } from '../../compute/computation_state.js';
+import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-sdk/compute/computation_state';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';

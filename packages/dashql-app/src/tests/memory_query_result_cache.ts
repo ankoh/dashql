@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
 
-import type { QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
+import type { QueryResultCache, QueryResultCacheEntry } from '@ankoh/dashql-sdk/query/query_result_cache';
 
 /// A cached file of the memory cache, the key is empty for the files of results that can't be cached
 interface MemoryCacheFile {

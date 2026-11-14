@@ -12,9 +12,9 @@ import {
     type QueryExecutionState,
     type QueryExecutionTracker,
     type QueryMetadata,
-} from '@ankoh/dashql-sdk/query/query_execution_state';
-import { LoggableException, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { createTrace, type TraceContext } from '@ankoh/dashql-sdk/platform/logger/trace_context';
+} from './query_execution_state.js';
+import { LoggableException, stringifyError } from '../platform/logger/logger.js';
+import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
 
 let NEXT_QUERY_ID = 1;
 

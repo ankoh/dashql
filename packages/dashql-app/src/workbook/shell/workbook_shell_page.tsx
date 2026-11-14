@@ -22,7 +22,7 @@ import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useComputationDispatch } from '../../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
+import { DELETE_COMPUTATION } from '@ankoh/dashql-sdk/compute/computation_state';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/shell_files.js';
 import { useShellFiles } from '../../shell/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/shell_examples.js';

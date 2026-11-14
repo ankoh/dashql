@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 
-import { DataFrame, generateTableName } from '../data_frame.js';
-import { TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, SystemColumnComputationTask, ROWNUMBER_COLUMN } from '../computation_types.js';
+import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
+import { TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, SystemColumnComputationTask, ROWNUMBER_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
 import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { SQLFrame } from '../sql/sqlframe_builder.js';
-import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
-import { getToNumericFn, isIntegerType, createUniqueColumnName } from '../arrow_columns.js';
+import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
+import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { getToNumericFn, isIntegerType, createUniqueColumnName } from '@ankoh/dashql-sdk/compute/arrow_columns';
 
 const LOG_CTX = "compute";
 

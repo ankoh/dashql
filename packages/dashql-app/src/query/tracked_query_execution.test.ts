@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { QUERY_STATEMENT_STARTED, QUERY_STATEMENT_SUCCEEDED, QueryExecutionStatus, QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
+import { allocateQueryId, executeTrackedQuery } from '@ankoh/dashql-sdk/query/tracked_query_execution';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
 import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from '@ankoh/dashql-sdk/query/query_execution_state';
 

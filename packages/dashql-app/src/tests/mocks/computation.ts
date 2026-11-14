@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
-import { createTableComputationState, SCHEDULE_TASK, type ComputationAction, type TableComputationState } from '../../compute/computation_state.js';
-import type { ColumnGroup, TaskVariant } from '../../compute/computation_types.js';
+import { createTableComputationState, SCHEDULE_TASK, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
+import type { ColumnGroup, TaskVariant } from '@ankoh/dashql-sdk/compute/computation_types';
 import type { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
 import { mockDataFrame } from './compute_query.js';
 import { tableFromArrays } from '../arrow_fixtures.js';

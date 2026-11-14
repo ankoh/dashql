@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import { SQLFrame } from './sqlframe_builder.js';
+import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import {
@@ -595,7 +595,7 @@ describe('SQLFrame execution', () => {
             `(2, 'Bob', 'Austin'), ` +
             `(3, 'Carol', 'Seattle')`,
         );
-        const { buildDataSearchSQL } = await import('./query_result_search_sql.js');
+        const { buildDataSearchSQL } = await import('@ankoh/dashql-sdk/compute/sql/query_result_search_sql');
         const sql = buildDataSearchSQL('input', '_rownum', [
             { columnIdx: 0, columnGroupIdx: 1, fieldName: 'name' },
             { columnIdx: 1, columnGroupIdx: 2, fieldName: 'city' },

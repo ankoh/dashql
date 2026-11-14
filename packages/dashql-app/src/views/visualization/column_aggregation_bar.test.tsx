@@ -4,11 +4,11 @@ import { act } from '@dashql/browser-test-act';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as styles from './column_aggregation_bar.module.css';
-import { analyzeTable } from '../../compute/analyze_table.js';
+import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
 import { ComputationRegistry, useComputationRegistry } from '../../compute/computation_registry.js';
 import { ComputationScheduler } from '../../compute/computation_scheduler.js';
-import type { ComputationAction, ComputationState } from '../../compute/computation_state.js';
-import { MOST_FREQUENT_FILTER } from '../../compute/cross_filters.js';
+import type { ComputationAction, ComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
+import { MOST_FREQUENT_FILTER } from '@ankoh/dashql-sdk/compute/cross_filters';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';

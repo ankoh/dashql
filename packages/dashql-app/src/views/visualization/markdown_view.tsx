@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { buffers } from '@ankoh/dashql-core';
-import { ArrowTableFormatter } from '../../compute/arrow_formatter.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';

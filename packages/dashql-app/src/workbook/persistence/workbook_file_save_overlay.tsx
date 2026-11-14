@@ -19,7 +19,7 @@ import { IconButton } from '../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import type { QueryResultCache } from '../../query/query_result_cache.js';
+import type { QueryResultCache } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { scriptRunServices } from '../scripts/script_run.js';
 import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts } from './workbook_query_results.js';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';

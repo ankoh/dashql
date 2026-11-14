@@ -4,8 +4,8 @@ import * as styles from './data_table.module.css';
 
 import type { CellComponentProps } from 'react-window';
 
-import { ArrowTableFormatter, isArrowListType } from '../../compute/arrow_formatter.js';
-import { ColumnGroup } from '../../compute/computation_types.js';
+import { ArrowTableFormatter, isArrowListType } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { ColumnGroup } from '@ankoh/dashql-sdk/compute/computation_types';
 import { DataTableLayout } from './data_table_layout.js';
 import { Tag } from '../../ui/foundations/tag.js';
 import { peekFormat } from './format_peek.js';

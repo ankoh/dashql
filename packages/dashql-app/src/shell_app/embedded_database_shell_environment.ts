@@ -9,7 +9,7 @@ import {
 } from '@ankoh/dashql-sdk/query/query_execution_state';
 import type { EmbeddedConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { DashQLShellEnvironment } from '../shell/api.js';
-import { executeTrackedQuery } from '../query/tracked_query_execution.js';
+import { executeTrackedQuery } from '@ankoh/dashql-sdk/query/tracked_query_execution';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';
 
 interface EmbeddedDatabaseShellEnvironmentOptions {

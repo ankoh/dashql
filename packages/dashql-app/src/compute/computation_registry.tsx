@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { ComputationAction, ComputationState, createComputationState, reduceComputationState } from "./computation_state.js";
+import { ComputationAction, ComputationState, createComputationState, reduceComputationState } from "@ankoh/dashql-sdk/compute/computation_state";
 import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { Store } from '@ankoh/dashql-sdk/store/store';
 import { useStore, useStoreState } from '../utils/store_hooks.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { DataFrameRegistry } from './data_frame.js';
+import { DataFrameRegistry } from '@ankoh/dashql-sdk/compute/data_frame';
 
 // The state changes with every computation task step while dispatch and the data frame registry are stable.
 // Keep them in separate contexts so that consumers that only dispatch don't re-render on every step.

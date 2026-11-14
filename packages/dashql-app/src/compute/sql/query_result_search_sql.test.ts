@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, type ColumnGroup } from '../computation_types.js';
+import { LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, type ColumnGroup } from '@ankoh/dashql-sdk/compute/computation_types';
 import {
     buildColumnSearchSQL,
     buildDataSearchSQL,
     collectSearchableResultColumns,
     parseDataSearchMatches,
-} from './query_result_search_sql.js';
+} from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 function stringGroup(name: string): ColumnGroup {

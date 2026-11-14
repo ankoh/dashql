@@ -6,7 +6,7 @@ import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/co
 import type { QueryExecutor } from '../../connections/query_executor.js';
 import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
-import { QueryCacheMissError } from '../../query/query_result_cache.js';
+import { QueryCacheMissError } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';

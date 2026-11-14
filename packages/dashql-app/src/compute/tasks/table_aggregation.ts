@@ -1,11 +1,11 @@
-import { ArrowTableFormatter } from '../arrow_formatter.js';
-import { DataFrame, generateTableName } from '../data_frame.js';
-import { createArrowFieldIndex } from '../computation_state.js';
-import { TableAggregationTask, TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, ROWNUMBER_COLUMN } from '../computation_types.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
+import { createArrowFieldIndex } from '@ankoh/dashql-sdk/compute/computation_state';
+import { TableAggregationTask, TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, ROWNUMBER_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
 import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { SQLFrame } from '../sql/sqlframe_builder.js';
-import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
-import { isIntegerType, getSmallIntegerDomainSize } from '../arrow_columns.js';
+import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
+import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { isIntegerType, getSmallIntegerDomainSize } from '@ankoh/dashql-sdk/compute/arrow_columns';
 
 const LOG_CTX = "compute";
 

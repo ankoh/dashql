@@ -1,6 +1,6 @@
 import type * as arrow from 'apache-arrow';
 
-import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
+import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 
 /// The error of a query that may only read a cached result, see `cacheOnly` of the query execution args
 export class QueryCacheMissError extends Error {

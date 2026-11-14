@@ -13,7 +13,7 @@ import { TestLogger } from '../platform/logger/test_logger.js';
 import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
 import { HyperHttpError } from './hyper/hyperdb_http_client.js';
 import { logQueryFailure } from './query_executor.js';
-import { consumeQueryResponseStream } from './query_execution.js';
+import { consumeQueryResponseStream } from '@ankoh/dashql-sdk/connections/query_execution';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function createStream(table: arrow.Table): QueryExecutionResponseStream {

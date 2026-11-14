@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import { getProfileOperatorSymbol, shouldRenderProfileOperatorSymbol } from './profile_operator_symbol.js';
+import { getProfileOperatorSymbol, shouldRenderProfileOperatorSymbol } from '@ankoh/dashql-sdk/query/profile/profile_operator_symbol';
 
 const Kind = dashql.buffers.profile.ProfileOperatorKind;
 

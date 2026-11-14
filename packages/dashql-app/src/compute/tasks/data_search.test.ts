@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { ComputationStateVersion, type DataSearchTask } from '../computation_types.js';
-import type { ComputeQueryExecution } from '../computation_tasks.js';
-import { DATA_SEARCH_ROW_FIELD } from '../sql/query_result_search_sql.js';
+import { ComputationStateVersion, type DataSearchTask } from '@ankoh/dashql-sdk/compute/computation_types';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
 import { searchData } from './data_search.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';

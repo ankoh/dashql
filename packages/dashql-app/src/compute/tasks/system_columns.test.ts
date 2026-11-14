@@ -1,7 +1,7 @@
 
-import { appendRowNumbers, buildGridColumnGroups } from '../analyze_table.js';
-import { ComputationStateVersion } from '../computation_types.js';
-import { DataFrame } from '../data_frame.js';
+import { appendRowNumbers, buildGridColumnGroups } from '@ankoh/dashql-sdk/compute/analyze_table';
+import { ComputationStateVersion } from '@ankoh/dashql-sdk/compute/computation_types';
+import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
 import { computeSystemColumns } from './system_columns.js';
 import { computeTableAggregates } from './table_aggregation.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';

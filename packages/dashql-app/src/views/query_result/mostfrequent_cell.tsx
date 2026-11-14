@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './mostfrequent_cell.module.css';
 
-import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '../../compute/computation_types.js';
-import { dataTypeToString } from '../../compute/arrow_formatter.js';
+import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '@ankoh/dashql-sdk/compute/computation_types';
+import { dataTypeToString } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';

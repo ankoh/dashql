@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeQueryResultCacheKey } from './query_result_cache_key.js';
+import { computeQueryResultCacheKey } from '@ankoh/dashql-sdk/query/query_result_cache_key';
 
 describe('computeQueryResultCacheKey', () => {
     const sig = { host: 'h', database: 'db', roles: ['a', 'b'] };

@@ -1,5 +1,5 @@
 import { ScalarFilter } from './sql/sqlframe_builder.js';
-import { VariantKind } from "@ankoh/dashql-sdk/utils/variant";
+import { VariantKind } from "../utils/variant.js";
 import { OrdinalGridColumnGroup, StringGridColumnGroup } from "./computation_types.js";
 
 export const HISTOGRAM_FILTER = Symbol("HISTOGRAM_FILTER");

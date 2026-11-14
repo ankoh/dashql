@@ -12,7 +12,7 @@ import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/databas
 import { LoggableException, type Logger, type TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
-import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '../query/query_result_cache.js';
+import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '@ankoh/dashql-sdk/query/query_result_cache';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionStatus,

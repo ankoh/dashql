@@ -1,9 +1,9 @@
-import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
+import { AsyncValue } from '../utils/async_value.js';
 import { TaskVariant } from './computation_types.js';
 import { ComputationAction, SCHEDULE_TASK } from './computation_state.js';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
-import type { EmbeddedClientContext } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import { Dispatch } from '../utils/variant.js';
+import { LoggableException } from '../platform/logger/logger.js';
+import type { EmbeddedClientContext } from '../platform/database/embedded_database.js';
 
 /// Executes the query of a task, e.g. to track it as a query of the connection of the table.
 /// The query runs with the client context that execute receives, e.g. to attribute it in the Hyper log.

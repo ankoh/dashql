@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { DELETE_COMPUTATION } from '../compute/computation_state.js';
+import { DELETE_COMPUTATION } from '@ankoh/dashql-sdk/compute/computation_state';
 import { useComputationDispatch } from '../compute/computation_registry.js';
 import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-sdk/storage/storage_backend';

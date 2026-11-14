@@ -15,8 +15,8 @@ const mockState = {
     logError: vi.fn(),
 };
 
-import { MOST_FREQUENT_FILTER, CrossFilters } from '../../compute/cross_filters.js';
-import { SET_CROSS_FILTERS } from '../../compute/computation_state.js';
+import { MOST_FREQUENT_FILTER, CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
+import { SET_CROSS_FILTERS } from '@ankoh/dashql-sdk/compute/computation_state';
 import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';

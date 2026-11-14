@@ -1,10 +1,10 @@
 import * as React from 'react';
 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
-import type { ComputeQueryExecution } from '../compute/computation_tasks.js';
-import { computationTaskTitle, type TaskVariant } from '../compute/computation_types.js';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { computationTaskTitle, type TaskVariant } from '@ankoh/dashql-sdk/compute/computation_types';
 import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { executeTrackedQuery } from '../query/tracked_query_execution.js';
+import { executeTrackedQuery } from '@ankoh/dashql-sdk/query/tracked_query_execution';
 import { useShellQueryHistory } from './shell_query_history.js';
 
 const LOG_CTX = 'scheduler';

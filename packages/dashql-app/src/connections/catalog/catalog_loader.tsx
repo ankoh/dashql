@@ -21,7 +21,7 @@ import type { RelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog
 import { queryTrinoCatalogScopes, trinoCatalogScopes } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
 import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
 import { connectionCatalogIsDurable } from '@ankoh/dashql-sdk/connections/connection_params';
-import { ensureConnectionClientFunctions } from '../connection_client_functions.js';
+import { ensureConnectionClientFunctions } from '@ankoh/dashql-sdk/connections/connection_client_functions';
 import { connectorOfDetails } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 
 const LOG_CTX = 'catalog_loader';

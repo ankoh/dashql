@@ -4,7 +4,7 @@ import * as pb from '@ankoh/dashql-sdk/proto';
 
 import type { EmbeddedClientContext } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
-import { consumeQueryResponseStream } from '../query_execution.js';
+import { consumeQueryResponseStream } from '@ankoh/dashql-sdk/connections/query_execution';
 import type { HyperDatabaseChannel } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 
 /// A query on a channel to a remote Hyper, the channel keeps no session across its queries

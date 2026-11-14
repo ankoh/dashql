@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import type { ComputeQueryExecution } from './computation_tasks.js';
-import type { TaskVariant } from './computation_types.js';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import type { TaskVariant } from '@ankoh/dashql-sdk/compute/computation_types';
 
 export type CreateComputeQueryExecution = (task: TaskVariant) => ComputeQueryExecution;
 

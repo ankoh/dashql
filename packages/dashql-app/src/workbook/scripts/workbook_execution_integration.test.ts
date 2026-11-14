@@ -7,7 +7,7 @@ import type { CancelQuery, QueryExecutor } from '../../connections/query_executo
 import type { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { QueryCacheMissError } from '../../query/query_result_cache.js';
+import { QueryCacheMissError } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from './workbook_execution.js';
 import {

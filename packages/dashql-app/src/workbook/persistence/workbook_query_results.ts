@@ -1,4 +1,4 @@
-import type { QueryResultCache } from '../../query/query_result_cache.js';
+import type { QueryResultCache } from '@ankoh/dashql-sdk/query/query_result_cache';
 import type { WorkbookBundleResult } from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { computeWorkbookResultCacheKeys, type ScriptRunServices } from '../scripts/script_run.js';

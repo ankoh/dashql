@@ -4,7 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import type { QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
-import { executeConnectionClientFunction, ensureConnectionClientFunctions } from './connection_client_functions.js';
+import { executeConnectionClientFunction, ensureConnectionClientFunctions } from '@ankoh/dashql-sdk/connections/connection_client_functions';
 import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
 import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { createConnectionStateDetails } from '@ankoh/dashql-sdk/connections/connection_state_details';

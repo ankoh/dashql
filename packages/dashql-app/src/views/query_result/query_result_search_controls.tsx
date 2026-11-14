@@ -4,7 +4,7 @@ import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.j
 import { SearchIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { TextInput } from '../../ui/foundations/text_input.js';
 import { TextInputAction } from '../../ui/foundations/text_input_action.js';
-import type { ResultSearchState } from '../../compute/computation_types.js';
+import type { ResultSearchState } from '@ankoh/dashql-sdk/compute/computation_types';
 import * as styles from './query_result_search_controls.module.css';
 
 /// Data searches run SQL over the whole result, so they only start once typing pauses

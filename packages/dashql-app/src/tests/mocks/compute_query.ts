@@ -1,8 +1,8 @@
 import type * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
 
-import type { ComputeQueryExecution } from '../../compute/computation_tasks.js';
-import { DataFrame } from '../../compute/data_frame.js';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 
 /// A data frame of a table name without a database

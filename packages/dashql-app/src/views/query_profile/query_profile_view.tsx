@@ -12,13 +12,13 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { computeProfileFitTransform, ProfileFitBounds } from './profile_fit.js';
-import { createProfileLayoutConfig, PROFILE_OPERATOR_ANNOTATION_WIDTH } from './profile_layout_config.js';
+import { createProfileLayoutConfig, PROFILE_OPERATOR_ANNOTATION_WIDTH } from '@ankoh/dashql-sdk/query/profile/profile_layout_config';
 import { ProfileExecutionController } from './profile_execution_controller.js';
 import { isStatReported, ProfileExecutionState, type ProfileEntityState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../query_progress/query_progress_model.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileNavigationDirection } from './profile_navigation.js';
-import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderProfileOperatorSymbol } from './profile_operator_symbol.js';
+import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderProfileOperatorSymbol } from '@ankoh/dashql-sdk/query/profile/profile_operator_symbol';
 import { estimateRelativeDifference, materializeProfileScene, PROFILE_OPERATOR_PORT_INPUT, PROFILE_OPERATOR_PORT_OUTPUT, ProfileScene, ProfileSceneEdge, ProfileSceneOperator } from './profile_scene.js';
 import * as styles from './query_profile_view.module.css';
 import * as graphStyles from '../../ui/graph/graph.module.css';

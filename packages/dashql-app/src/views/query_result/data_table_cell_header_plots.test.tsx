@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as styles from './data_table.module.css';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { ArrowTableFormatter } from '../../compute/arrow_formatter.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import {
     type ColumnAggregationTask,
     type ColumnAggregationVariant,
@@ -20,9 +20,9 @@ import {
     TaskStatus,
     type WithFilter,
     type WithProgress,
-} from '../../compute/computation_types.js';
+} from '@ankoh/dashql-sdk/compute/computation_types';
 import { computeColumnAggregates } from '../../compute/tasks/column_aggregation.js';
-import { CrossFilters } from '../../compute/cross_filters.js';
+import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import { createTestRoot } from '../../tests/react_root.js';

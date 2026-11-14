@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
-import type { ComputeQueryExecution } from '../compute/computation_tasks.js';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
 import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';

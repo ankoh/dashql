@@ -4,10 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { analyzeTable } from './analyze_table.js';
+import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
 import { computeTableAggregates } from './tasks/table_aggregation.js';
-import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from './computation_types.js';
-import { DataFrame } from './data_frame.js';
+import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from '@ankoh/dashql-sdk/compute/computation_types';
+import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 

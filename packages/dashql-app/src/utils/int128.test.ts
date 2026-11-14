@@ -1,4 +1,4 @@
-import { Int128, UInt128, Decimal128 } from './int128.js';
+import { Int128, UInt128, Decimal128 } from '@ankoh/dashql-sdk/utils/int128';
 
 describe('Int128', () => {
     it("codec", () => {

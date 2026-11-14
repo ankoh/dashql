@@ -4,7 +4,7 @@ import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { ArrowTableFormatter } from '../../compute/arrow_formatter.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import {
     type ColumnAggregationTask,
     type ColumnAggregationVariant,
@@ -15,7 +15,7 @@ import {
     type TableAggregation,
     type WithFilter,
     type WithFilterEpoch,
-} from '../../compute/computation_types.js';
+} from '@ankoh/dashql-sdk/compute/computation_types';
 import { computeColumnAggregates, computeFilteredColumnAggregates } from '../../compute/tasks/column_aggregation.js';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';

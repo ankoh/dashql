@@ -2,8 +2,8 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { ArrowTableFormatter } from '../arrow_formatter.js';
-import type { ComputeQueryExecution } from '../computation_tasks.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
 import {
     ColumnAggregationTask,
     ColumnAggregationVariant,
@@ -15,7 +15,7 @@ import {
     ORDINAL_COLUMN,
     STRING_COLUMN,
     WithFilter,
-} from '../computation_types.js';
+} from '@ankoh/dashql-sdk/compute/computation_types';
 import { executeReturning, mockDataFrame as frame } from '../../tests/mocks/compute_query.js';
 import { computeFilteredColumnAggregates } from './column_aggregation.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';

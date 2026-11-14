@@ -1,4 +1,4 @@
-import { CrossFilters, MOST_FREQUENT_FILTER, HistogramFilterPredicate, MostFrequentFilterPredicate } from './cross_filters.js';
+import { CrossFilters, MOST_FREQUENT_FILTER, HistogramFilterPredicate, MostFrequentFilterPredicate } from '@ankoh/dashql-sdk/compute/cross_filters';
 
 describe('CrossFilters', () => {
     describe('constructor', () => {

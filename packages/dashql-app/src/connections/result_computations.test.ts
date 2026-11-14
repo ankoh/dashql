@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ResultComputations } from './result_computations.js';
+import { ResultComputations } from '@ankoh/dashql-sdk/connections/result_computations';
 
 describe('ResultComputations', () => {
     it('replaces the previous result of an owner and drops a stale one', () => {

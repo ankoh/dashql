@@ -23,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import { useComputationDispatch } from '../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '../compute/computation_state.js';
+import { DELETE_COMPUTATION } from '@ankoh/dashql-sdk/compute/computation_state';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import * as ActionList from '../ui/foundations/action_list.js';

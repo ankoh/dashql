@@ -13,7 +13,7 @@ import { createTestRoot } from '../../tests/react_root.js';
 import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import type { QueryResultCache } from '../../query/query_result_cache.js';
+import type { QueryResultCache } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { registerScriptRunServices } from '../scripts/script_run.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';

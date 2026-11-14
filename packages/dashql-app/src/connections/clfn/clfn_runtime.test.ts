@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
-import { ClientFunctionResultStream } from './clfn_result_stream.js';
+import { ClientFunctionResultStream } from '@ankoh/dashql-sdk/connections/clfn/clfn_result_stream';
 import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
 import { ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
 

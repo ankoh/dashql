@@ -1,16 +1,16 @@
 import * as arrow from 'apache-arrow';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { ArrowTableFormatter } from './arrow_formatter.js';
-import { DataFrame, DataFrameRegistry } from './data_frame.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { DataFrame, DataFrameRegistry } from '@ankoh/dashql-sdk/compute/data_frame';
 import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
-import { CLEAR_TABLE_ORDERING, COLUMN_AGGREGATION_SUCCEEDED, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_CROSS_FILTERS, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
-import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
+import { CLEAR_TABLE_ORDERING, COLUMN_AGGREGATION_SUCCEEDED, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_CROSS_FILTERS, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from '@ankoh/dashql-sdk/compute/computation_state';
+import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from '@ankoh/dashql-sdk/compute/computation_types';
 import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_types.js';
+import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from '@ankoh/dashql-sdk/compute/computation_types';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
-import { CrossFilters } from './cross_filters.js';
+import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function createOrdinalAggregate(

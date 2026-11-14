@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { ArrowTableFormatter } from '../../compute/arrow_formatter.js';
-import { createTableComputationState } from '../../compute/computation_state.js';
-import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '../../compute/computation_types.js';
+import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { createTableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
+import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';

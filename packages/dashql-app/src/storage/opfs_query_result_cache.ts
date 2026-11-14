@@ -1,6 +1,6 @@
 import type * as arrow from 'apache-arrow';
 
-import type { QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
+import type { QueryResultCache, QueryResultCacheEntry } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { copyArrowTableAsParquet, type ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { crc32CheckStream } from '../utils/crc32.js';

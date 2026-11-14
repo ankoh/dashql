@@ -1,4 +1,4 @@
-import { SQLFrame, quoteStringLiteral } from './sqlframe_builder.js';
+import { SQLFrame, quoteStringLiteral } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
 
 describe('SQLFrame SQL generation', () => {
     it('empty transform', () => {

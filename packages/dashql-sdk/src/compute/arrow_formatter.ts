@@ -1,7 +1,6 @@
 import * as arrow from 'apache-arrow';
-import * as styles from './arrow_formatter.module.css';
 import { Int128, Decimal128 } from '../utils/int128.js';
-import { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { LoggerLike } from '../platform/logger/logger.js';
 
 const LOG_CTX = 'arrow_formatter';
 
@@ -295,13 +294,10 @@ export interface ArrowColumnFormatter {
     getValue(batch: number, row: number): (string | null);
 }
 
-/// A per-value formatter for a single Arrow field: maps a (non-null) cell value to its display
-/// string, plus the CSS class the data-table uses for that value's alignment/appearance.
+/// A per-value formatter for a single Arrow field: maps a (non-null) cell value to its display string.
 export interface ArrowValueFormatter {
     /// Format a single cell value. Callers pass the raw Arrow value; `null`/`undefined` map to null.
     format: (value: unknown) => string | null;
-    /// The value CSS class (number vs. text alignment) matching the field's type.
-    valueClassName: string;
 }
 
 /// Format an epoch-millisecond count as a date, or as the plain count beyond the range of dates
@@ -337,7 +333,6 @@ function readRawInt64(column: arrow.Vector, row: number): bigint | null {
 /// stringification.
 export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike): ArrowValueFormatter {
     // The default: an unknown/unsupported type renders as empty text.
-    let valueClassName = styles.data_value_text;
     let formatter: (o: any) => (null | string) = _ => "";
 
     switch (field.type.typeId) {
@@ -349,13 +344,11 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.Float16:
         case arrow.Type.Float32:
         case arrow.Type.Float64: {
-            valueClassName = styles.data_value_number;
             const fmt = Intl.NumberFormat('en-US');
             formatter = (v: number) => (v == null ? null : fmt.format(v));
             break;
         }
         case arrow.Type.Decimal: {
-            valueClassName = styles.data_value_number;
             const decimalType = field.type as arrow.Decimal;
             formatter = (v: any) => {
                 const i = Int128.decodeLE(v);
@@ -365,11 +358,9 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         }
         case arrow.Type.Utf8:
         case arrow.Type.LargeUtf8:
-            valueClassName = styles.data_value_text;
             formatter = (v: string) => v || null;
             break;
         case arrow.Type.Bool: {
-            valueClassName = styles.data_value_text;
             formatter = (v: boolean) => (v == null ? null : v ? 'true' : 'false');
             break;
         }
@@ -380,7 +371,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.Binary:
         case arrow.Type.LargeBinary:
         case arrow.Type.FixedSizeBinary: {
-            valueClassName = styles.data_value_text;
             formatter = (v: Uint8Array) => (v == null ? null : formatBinary(v));
             break;
         }
@@ -389,7 +379,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.TimeMillisecond:
         case arrow.Type.TimeMicrosecond:
         case arrow.Type.TimeNanosecond: {
-            valueClassName = styles.data_value_text;
             const timeType = field.type as arrow.Time;
             formatter = (v: number | bigint) => (v == null ? null : formatTime(v, timeType.unit));
             break;
@@ -399,7 +388,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.TimestampMillisecond:
         case arrow.Type.TimestampMicrosecond:
         case arrow.Type.TimestampNanosecond: {
-            valueClassName = styles.data_value_text;
             // Arrow's GetVisitor already normalizes every timestamp unit to milliseconds when a
             // value is read (seconds ×1000, micro ÷1000, nano ÷1e6). The value handed to us is
             // therefore always an epoch-millisecond count regardless of `type.unit`; applying a
@@ -412,7 +400,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.DateMillisecond:
         case arrow.Type.DateDay:
         case arrow.Type.Date: {
-            valueClassName = styles.data_value_text;
             const fmt = Intl.DateTimeFormat('en-US', {
                 weekday: 'short',
                 day: 'numeric',
@@ -427,7 +414,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.DurationMillisecond:
         case arrow.Type.DurationMicrosecond:
         case arrow.Type.DurationNanosecond: {
-            valueClassName = styles.data_value_text;
             const durationType = field.type as arrow.Duration;
             formatter = (v: bigint) => {
                 if (v == null) return null;
@@ -437,7 +423,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         }
         case arrow.Type.List:
         case arrow.Type.FixedSizeList: {
-            valueClassName = styles.data_value_text;
             formatter = (v: arrow.Vector) => {
                 if (v == null) return null;
                 return formatList(v);
@@ -445,7 +430,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
             break;
         }
         case arrow.Type.Struct: {
-            valueClassName = styles.data_value_text;
             formatter = (v: any) => {
                 if (v == null) return null;
                 return formatStruct(v);
@@ -453,7 +437,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
             break;
         }
         case arrow.Type.Map: {
-            valueClassName = styles.data_value_text;
             formatter = (v: any) => {
                 if (v == null) return null;
                 return formatStruct(v);
@@ -464,7 +447,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.IntervalDayTime:
         case arrow.Type.IntervalYearMonth:
         case arrow.Type.IntervalMonthDayNano: {
-            valueClassName = styles.data_value_text;
             const intervalType = field.type;
             formatter = (v: any) => {
                 if (v == null) return null;
@@ -475,7 +457,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.Union:
         case arrow.Type.DenseUnion:
         case arrow.Type.SparseUnion: {
-            valueClassName = styles.data_value_text;
             formatter = (v: any) => {
                 if (v == null) return null;
                 if (typeof v === 'string') return v;
@@ -486,7 +467,6 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         }
         case arrow.Type.Dictionary: {
             // Dictionary values are decoded to their actual values by Arrow
-            valueClassName = styles.data_value_text;
             formatter = (v: any) => {
                 if (v == null) return null;
                 if (typeof v === 'string') return v;
@@ -503,7 +483,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
             break;
     }
 
-    return { format: (v: unknown) => (v == null ? null : formatter(v)), valueClassName };
+    return { format: (v: unknown) => (v == null ? null : formatter(v)) };
 }
 
 export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
@@ -515,7 +495,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     readonly loadedBatchValueCount: Uint32Array;
     readonly batchFormattedLengthSum: Float64Array;
     readonly batchFormattedLengthMax: Uint32Array;
-    readonly valueClassName: string;
     formattedRowCount: number;
     formattedLengthMax: number;
     formattedLengthSum: number;
@@ -541,7 +520,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
 
         // Setup the formatter (shared with single-value callers via makeArrowValueFormatter).
         const valueFormatter = makeArrowValueFormatter(schema.fields[columnId], logger);
-        this.valueClassName = valueFormatter.valueClassName;
         this.formatter = valueFormatter.format;
     }
 

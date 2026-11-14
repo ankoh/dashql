@@ -7,7 +7,7 @@ import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
 import { useQueryProfileDetail } from '../../connections/query_executor.js';
 import { QueryProgressFollower, type QueryProfileProgress } from '@ankoh/dashql-sdk/query/query_progress_model';
-import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '../query_profile/profile_layout_config.js';
+import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@ankoh/dashql-sdk/query/profile/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';

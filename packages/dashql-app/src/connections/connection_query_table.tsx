@@ -1,16 +1,16 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { analyzeTable } from '../compute/analyze_table.js';
+import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
 import { useComputationDispatch, useComputationRegistry, useComputationStore } from '../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '../compute/computation_state.js';
-import { scheduleTask } from '../compute/computation_tasks.js';
-import { TABLE_ORDERING_TASK } from '../compute/computation_types.js';
+import { DELETE_COMPUTATION } from '@ankoh/dashql-sdk/compute/computation_state';
+import { scheduleTask } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { TABLE_ORDERING_TASK } from '@ankoh/dashql-sdk/compute/computation_types';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { allocateQueryId } from '../query/tracked_query_execution.js';
+import { allocateQueryId } from '@ankoh/dashql-sdk/query/tracked_query_execution';
 import { DataTable } from '../views/query_result/data_table.js';
 import { TableColumnHeader } from '../views/query_result/data_table_cell.js';
 import { createOrderingTask } from '../views/query_result/data_table_ordering.js';

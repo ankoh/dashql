@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import type { QueryExecutor } from '../../connections/query_executor.js';
-import type { QueryResultCache } from '../../query/query_result_cache.js';
+import type { QueryResultCache } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import {
     ScriptPlanError,

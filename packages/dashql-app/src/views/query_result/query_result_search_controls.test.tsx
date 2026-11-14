@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { createResultSearchState } from '../../compute/computation_types.js';
+import { createResultSearchState } from '@ankoh/dashql-sdk/compute/computation_types';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 
 describe('QueryResultSearchControls', () => {

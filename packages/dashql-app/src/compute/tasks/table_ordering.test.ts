@@ -1,8 +1,8 @@
 
-import { appendRowNumbers } from '../analyze_table.js';
-import { createArrowFieldIndex } from '../computation_state.js';
-import { ComputationStateVersion } from '../computation_types.js';
-import { DataFrame } from '../data_frame.js';
+import { appendRowNumbers } from '@ankoh/dashql-sdk/compute/analyze_table';
+import { createArrowFieldIndex } from '@ankoh/dashql-sdk/compute/computation_state';
+import { ComputationStateVersion } from '@ankoh/dashql-sdk/compute/computation_types';
+import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
 import { sortTable } from './table_ordering.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';

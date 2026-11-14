@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { DataFrame, generateTableName } from '../../compute/data_frame.js';
+import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
 import { WebFile } from '../file/web_file.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';

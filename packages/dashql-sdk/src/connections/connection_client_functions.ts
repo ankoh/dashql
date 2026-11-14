@@ -1,14 +1,14 @@
 import type { DashQLCatalog } from '@ankoh/dashql-core';
 
-import type { HttpClient } from '@ankoh/dashql-sdk/platform/http/http_client';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import type { QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { HttpClient } from '../platform/http/http_client.js';
+import type { Logger } from '../platform/logger/logger.js';
+import type { QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import { ClientFunctionResultStream } from './clfn/clfn_result_stream.js';
-import { explainClientFunctionCall, runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
-import { ClientFunctionError, type ClientFunctionCallDescription } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
-import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { connectorOfDetails, type ClientFunctionBinding } from '@ankoh/dashql-sdk/connections/connector_descriptor';
+import { explainClientFunctionCall, runClientFunctionCall } from './clfn/clfn_runtime.js';
+import { ClientFunctionError, type ClientFunctionCallDescription } from './clfn/clfn_spec.js';
+import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
+import type { ConnectionState } from './connection_state.js';
+import { connectorOfDetails, type ClientFunctionBinding } from './connector_descriptor.js';
 
 const LOG_CTX = 'connection_client_functions';
 

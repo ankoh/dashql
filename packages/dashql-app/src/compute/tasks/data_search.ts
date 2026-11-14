@@ -1,8 +1,8 @@
-import { DataFrame, generateTableName } from '../data_frame.js';
-import { DataSearchTask, DataSearchTable } from '../computation_types.js';
+import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
+import { DataSearchTask, DataSearchTable } from '@ankoh/dashql-sdk/compute/computation_types';
 import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { buildDataSearchSQL, DATA_SEARCH_ROW_FIELD } from '../sql/query_result_search_sql.js';
-import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
+import { buildDataSearchSQL, DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
+import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-sdk/compute/computation_tasks';
 
 const LOG_CTX = "compute";
 

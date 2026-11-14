@@ -2,9 +2,9 @@ import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputationRegistry } from '../../compute/computation_registry.js';
-import { COLUMN_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, SET_RESULT_SEARCH_PATTERN, type ComputationAction, type TableComputationState } from '../../compute/computation_state.js';
-import { type ColumnGroup, DATA_SEARCH_TASK, type ResultSearchState, ROWNUMBER_COLUMN, STRING_COLUMN } from '../../compute/computation_types.js';
-import type { DataFrame } from '../../compute/data_frame.js';
+import { COLUMN_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, SET_RESULT_SEARCH_PATTERN, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
+import { type ColumnGroup, DATA_SEARCH_TASK, type ResultSearchState, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
+import type { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';

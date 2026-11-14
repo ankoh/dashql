@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
 import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { TaskStatus, ComputationStateVersion } from './computation_types.js';
+import { TaskStatus, ComputationStateVersion } from '@ankoh/dashql-sdk/compute/computation_types';
 import {
     ComputationAction,
     UPDATE_SCHEDULER_TASK,
@@ -16,7 +16,7 @@ import {
     DATA_SEARCH_FAILED,
     DATA_SEARCH_SUCCEEDED,
     FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
-} from './computation_state.js';
+} from '@ankoh/dashql-sdk/compute/computation_state';
 import { processTask, ComputationScheduler, COMPUTATION_OPERATIONS } from './computation_scheduler.js';
 import {
     TaskVariant,
@@ -27,16 +27,16 @@ import {
     COLUMN_AGGREGATION_TASK,
     DATA_SEARCH_TASK,
     FILTERED_COLUMN_AGGREGATION_TASK,
-} from './computation_types.js';
+} from '@ankoh/dashql-sdk/compute/computation_types';
 const computationLogic = COMPUTATION_OPERATIONS;
 import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import type { ComputeQueryExecution } from './computation_tasks.js';
+import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { ComputationRegistry, useComputationRegistry } from './computation_registry.js';
 import { ComputeQueryExecutionProvider } from './compute_query_execution.js';
-import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from './computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from '@ankoh/dashql-sdk/compute/computation_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 

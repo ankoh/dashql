@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputationRegistry, useComputationRegistry } from '../../compute/computation_registry.js';
 import { ComputeConnectionProvider } from '../../compute/compute_connection_provider.js';
-import { COMPUTATION_FROM_QUERY_RESULT } from '../../compute/computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT } from '@ankoh/dashql-sdk/compute/computation_state';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';

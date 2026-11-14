@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { SET_CROSS_FILTERS, type ComputationAction, type TableComputationState } from '../../compute/computation_state.js';
-import { CrossFilters } from '../../compute/cross_filters.js';
+import { SET_CROSS_FILTERS, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
+import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
 import {
     type ColumnAggregationVariant,
     type ColumnGroup,
@@ -15,8 +15,8 @@ import {
     type TableAggregation,
     TABLE_FILTERING_TASK,
     TaskStatus,
-} from '../../compute/computation_types.js';
-import type { ScalarFilter } from '../../compute/sql/sqlframe_builder.js';
+} from '@ankoh/dashql-sdk/compute/computation_types';
+import type { ScalarFilter } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';

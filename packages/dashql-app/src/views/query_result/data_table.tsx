@@ -4,8 +4,8 @@ import * as styles from './data_table.module.css';
 
 import { Grid, useGridCallbackRef } from 'react-window';
 
-import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '../../compute/arrow_formatter.js';
-import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
+import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { ComputationAction, TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
 import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
@@ -22,7 +22,7 @@ import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_colu
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
 import { resolveSearchedRowIndices } from './visible_rows.js';
-import { collectSearchableResultColumns } from '../../compute/sql/query_result_search_sql.js';
+import { collectSearchableResultColumns } from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
 
 const LOG_CTX = 'data_table';
 

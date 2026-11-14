@@ -12,7 +12,7 @@ import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_typ
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
 import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
-import { isQueryCacheMiss, type QueryResultCache } from '../../query/query_result_cache.js';
+import { isQueryCacheMiss, type QueryResultCache } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { affectedScriptIndices, workbookPlanRequest } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
 
 /// The run that holds a workbook, a run of the whole workbook or of one of its scripts

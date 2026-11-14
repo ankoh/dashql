@@ -1,8 +1,8 @@
-import { DataFrame, generateTableName } from '../data_frame.js';
-import { TableFilteringTask, FilterTable } from '../computation_types.js';
+import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
+import { TableFilteringTask, FilterTable } from '@ankoh/dashql-sdk/compute/computation_types';
 import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { SQLFrame } from '../sql/sqlframe_builder.js';
-import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
+import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
+import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-sdk/compute/computation_tasks';
 
 const LOG_CTX = "compute";
 
