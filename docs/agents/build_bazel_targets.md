@@ -142,7 +142,7 @@ Trino. The regular tests read the checked-in recordings instead.
 # Check the assumptions of the query progress model against Trino
 bazel test //packages/trino-testing:trino_assumptions_test
 
-# Refresh snapshots/profiles/trino/recordings/ (statement polls, the QueryInfos the app fetches, EXPLAIN plans)
+# Refresh tests/snapshots/profiles/trino/recordings/ (statement polls, the QueryInfos the app fetches, EXPLAIN plans)
 bazel run //packages/trino-testing:trino_recorder
 
 # Serve Trino for the app at http://127.0.0.1:8080 (tpch catalog, behind a CORS proxy), Enter stops it
@@ -189,26 +189,26 @@ bazel test --test_output=errors //packages/dashql-core:dashql_core_unit_tests
 
 ### Snapshot Tests
 
-Many tests use snapshot fixtures in `snapshots/<category>/`. To update snapshots after intentional changes:
+Many tests use snapshot fixtures in `tests/snapshots/<category>/`. To update snapshots after intentional changes:
 
 ```bash
-bazel run //snapshots/parser:update
-bazel run //snapshots/analyzer:update
-bazel run //snapshots/formatter:update
-bazel run //snapshots/completion:update
-bazel run //snapshots/planner:update
-bazel run //snapshots/dataflow:update
-bazel run //snapshots/visualize:update
-bazel run //snapshots/diff:update
-bazel run //snapshots/profiles/hyper/tests:update
-bazel run //snapshots/profiles/progress:update
-bazel run //snapshots/profiles/trino/progress:update
-bazel run //snapshots/profiles/trino/plans:update
+bazel run //tests/snapshots/parser:update
+bazel run //tests/snapshots/analyzer:update
+bazel run //tests/snapshots/formatter:update
+bazel run //tests/snapshots/completion:update
+bazel run //tests/snapshots/planner:update
+bazel run //tests/snapshots/dataflow:update
+bazel run //tests/snapshots/visualize:update
+bazel run //tests/snapshots/diff:update
+bazel run //tests/snapshots/profiles/hyper/tests:update
+bazel run //tests/snapshots/profiles/progress:update
+bazel run //tests/snapshots/profiles/trino/progress:update
+bazel run //tests/snapshots/profiles/trino/plans:update
 # All categories at once
-bazel run //snapshots:update
+bazel run //tests/snapshots:update
 ```
 
-These targets regenerate `snapshots/<category>/<name>.yaml` from the templates `<name>.tpl.yaml` next to them with the Rust core
+These targets regenerate `tests/snapshots/<category>/<name>.yaml` from the templates `<name>.tpl.yaml` next to them with the Rust core
 (`//packages/dashql-snapshots:snapshotter`, flags `--source_dir=<repository> [--filter=<category>]`).
 
 - The snapshot tests compare YAML trees structurally, including the key order of every map; numbers
@@ -371,7 +371,7 @@ bazel build //packages/dashql-native-proxy:addon
 bazel test //packages/dashql-native:test
 
 # ✅ Bazel target for code generation
-bazel run //snapshots/parser:update
+bazel run //tests/snapshots/parser:update
 ```
 
 ## Common Workflows
@@ -428,11 +428,11 @@ untrusted fastbuild CI run both core JS test target sets.
 
 ```bash
 # Rebuild the parser and update the snapshots
-bazel run //snapshots/parser:update
+bazel run //tests/snapshots/parser:update
 bazel test //packages/dashql-parser:all //packages/dashql-snapshots:parser_snapshot_test
 
 # Verify snapshot changes
-git diff snapshots/parser/
+git diff tests/snapshots/parser/
 ```
 
 ### Checking SQL Scripts

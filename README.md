@@ -45,22 +45,22 @@ bazel run //packages/dashql-native:mac_package_x86_64
 bazel test //...
 
 # Many tests are backed by snapshots / fixtures
-# /snapshots/*.tpl.yaml are the input to generate /snapshots/*.yaml
+# /tests/snapshots/*.tpl.yaml are the input to generate /tests/snapshots/*.yaml
 # Update a snapshot category after intentional changes:
-bazel run //snapshots/analyzer:update
-bazel run //snapshots/completion:update
-bazel run //snapshots/dataflow:update
-bazel run //snapshots/diff:update
-bazel run //snapshots/formatter:update
-bazel run //snapshots/parser:update
-bazel run //snapshots/planner:update
-bazel run //snapshots/profiles/hyper/tests:update
-bazel run //snapshots/profiles/progress:update
-bazel run //snapshots/profiles/trino/plans:update
-bazel run //snapshots/profiles/trino/progress:update
-bazel run //snapshots/visualize:update
+bazel run //tests/snapshots/analyzer:update
+bazel run //tests/snapshots/completion:update
+bazel run //tests/snapshots/dataflow:update
+bazel run //tests/snapshots/diff:update
+bazel run //tests/snapshots/formatter:update
+bazel run //tests/snapshots/parser:update
+bazel run //tests/snapshots/planner:update
+bazel run //tests/snapshots/profiles/hyper/tests:update
+bazel run //tests/snapshots/profiles/progress:update
+bazel run //tests/snapshots/profiles/trino/plans:update
+bazel run //tests/snapshots/profiles/trino/progress:update
+bazel run //tests/snapshots/visualize:update
 # Or all categories at once:
-bazel run //snapshots:update
+bazel run //tests/snapshots:update
 
 # Upgrade the Rust crates declared in bazel/crates/*.MODULE.bazel
 bazel run //scripts:repin_crates -- full

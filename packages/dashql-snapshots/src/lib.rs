@@ -1,4 +1,4 @@
-//! The shared YAML snapshot tests (`//snapshots/<category>/*.yaml`) for the Rust core.
+//! The shared YAML snapshot tests (`//tests/snapshots/<category>/*.yaml`) for the Rust core.
 //!
 //! This crate loads the snapshot files, turns every case into a libtest-mimic trial, and compares
 //! produced YAML structurally against the `expected` node of a case.
@@ -63,12 +63,12 @@ pub fn trim_input(input: &str) -> String {
 
 /// The directory holding the snapshot categories.
 ///
-/// Tests find `snapshots/` in their runfiles. `DASHQL_SNAPSHOT_ROOT` overrides the location,
+/// Tests find `tests/snapshots/` in their runfiles. `DASHQL_SNAPSHOT_ROOT` overrides the location,
 /// e.g. for `bazel run` against the source tree.
 pub fn snapshot_root() -> PathBuf {
     match std::env::var_os("DASHQL_SNAPSHOT_ROOT") {
         Some(root) => PathBuf::from(root),
-        None => PathBuf::from("snapshots"),
+        None => PathBuf::from("tests/snapshots"),
     }
 }
 

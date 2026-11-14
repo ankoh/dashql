@@ -54,9 +54,9 @@ DASHQL_CORE_SESSION_TESTS = [
 
 # Snapshot tests: one target per category, each a libtest-mimic binary
 DASHQL_CORE_SESSION_SNAPSHOT_TESTS = {
-    "dataflow_snapshot_test": ("dataflow_snapshots.rs", "//snapshots/dataflow:files"),
-    "planner_snapshot_test": ("planner_snapshots.rs", "//snapshots/planner:files"),
-    "visualize_snapshot_test": ("visualize_snapshots.rs", "//snapshots/visualize:files"),
+    "dataflow_snapshot_test": ("dataflow_snapshots.rs", "//tests/snapshots/dataflow:files"),
+    "planner_snapshot_test": ("planner_snapshots.rs", "//tests/snapshots/planner:files"),
+    "visualize_snapshot_test": ("visualize_snapshots.rs", "//tests/snapshots/visualize:files"),
 }
 
 [rust_test(
@@ -85,7 +85,7 @@ rust_test(
     srcs = ["tests/planner_validation_hyper.rs"],
     data = [
         "//packages/hyper-api:hyperd",
-        "//snapshots/planner:files",
+        "//tests/snapshots/planner:files",
     ],
     edition = "2021",
     env = {"HYPERD_BINARY": "$(rootpath //packages/hyper-api:hyperd)"},

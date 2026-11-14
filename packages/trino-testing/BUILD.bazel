@@ -7,7 +7,7 @@ package(default_visibility = ["//visibility:private"])
 # neither `bazel build //...` nor `bazel test //...` (and CI) fetches or starts Trino:
 #
 #   bazel test //packages/trino-testing:trino_assumptions_test   check the assumptions against Trino
-#   bazel run //packages/trino-testing:trino_recorder            refresh snapshots/profiles/trino/recordings/
+#   bazel run //packages/trino-testing:trino_recorder            refresh tests/snapshots/profiles/trino/recordings/
 #   bazel run //:trino                                           serve Trino for the app on port 8080 (CORS proxy)
 
 config_setting(
@@ -91,7 +91,7 @@ rust_library(
     ],
 )
 
-# Records the Trino API responses into snapshots/profiles/trino/recordings/
+# Records the Trino API responses into tests/snapshots/profiles/trino/recordings/
 rust_binary(
     name = "trino_recorder",
     testonly = True,

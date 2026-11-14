@@ -1,4 +1,4 @@
-//! The diff snapshots (snapshots/diff/*.yaml).
+//! The diff snapshots (tests/snapshots/diff/*.yaml).
 
 use dashql_core::script_diff::ScriptDiff;
 use dashql_parser::parser::{parse, ParsedScript};

@@ -1,8 +1,8 @@
 //! The query profile snapshots, produced by the Rust query profile:
-//! - snapshots/profiles/hyper/tests/*.yaml: the structure of Hyper plans (and the state of analyzed plans)
-//! - snapshots/profiles/progress/*.yaml: a Hyper plan, input events, and the output events of the rollups
-//! - snapshots/profiles/trino/progress/*.yaml: recorded Trino statement polls through the Trino adapter
-//! - snapshots/profiles/trino/plans/*.yaml: recorded Trino plans, with the statement polls on top, laid out top-down or
+//! - tests/snapshots/profiles/hyper/tests/*.yaml: the structure of Hyper plans (and the state of analyzed plans)
+//! - tests/snapshots/profiles/progress/*.yaml: a Hyper plan, input events, and the output events of the rollups
+//! - tests/snapshots/profiles/trino/progress/*.yaml: recorded Trino statement polls through the Trino adapter
+//! - tests/snapshots/profiles/trino/plans/*.yaml: recorded Trino plans, with the statement polls on top, laid out top-down or
 //!   left-to-right (`layout`)
 //!
 //! The query profile is encoded with `dashql_snapshots::encode::query_profile`.

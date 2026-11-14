@@ -17,13 +17,13 @@ Example: for `OBJECT_SQL_ORDER`, read attributes like `SQL_ORDER_VALUE`, `SQL_OR
 ## 2) Add/extend formatter snapshot templates
 
 Formatter snapshot templates live in:
-- `snapshots/formatter/*.tpl.yaml`
+- `tests/snapshots/formatter/*.tpl.yaml`
 
 Generated snapshot files live in:
-- `snapshots/formatter/*.yaml`
+- `tests/snapshots/formatter/*.yaml`
 
 To add a new category:
-1. Create `snapshots/formatter/<category>.tpl.yaml`.
+1. Create `tests/snapshots/formatter/<category>.tpl.yaml`.
 2. Follow template structure used by existing files such as `expressions.tpl.yaml`.
 3. Add multiple focused test cases with:
    - `name`
@@ -37,15 +37,15 @@ To add a new category:
 Run:
 
 ```bash
-bazel run //snapshots/formatter:update
+bazel run //tests/snapshots/formatter:update
 ```
 
-This generates/updates `snapshots/formatter/<category>.yaml` from all `.tpl.yaml` files in the formatter snapshot folder.
+This generates/updates `tests/snapshots/formatter/<category>.yaml` from all `.tpl.yaml` files in the formatter snapshot folder.
 
 ## 4) Snapshot tests
 
-No test needs a registration: the first two read every `snapshots/formatter/*.yaml`, the round trip every
-`snapshots/parser/*.yaml`.
+No test needs a registration: the first two read every `tests/snapshots/formatter/*.yaml`, the round trip every
+`tests/snapshots/parser/*.yaml`.
 
 ### Snapshot equality
 Target:
@@ -69,7 +69,7 @@ This ensures both textual snapshot checks and executable SQL validation are cove
 Target:
 - `//packages/dashql-core:formatter_roundtrip_test` (`packages/dashql-core/tests/formatter_roundtrip.rs`)
 
-Every error-free script of the parser snapshots (`snapshots/parser/*.yaml`) must be fully formattable, and its
+Every error-free script of the parser snapshots (`tests/snapshots/parser/*.yaml`) must be fully formattable, and its
 output must parse without errors again. Without comments, formatting the output a second time must not change it.
 
 ## 5) Add a JS API formatting test (recommended)
@@ -99,14 +99,14 @@ bazel test //packages/dashql-app:all
 
 If failures occur:
 1. Fix formatter or expected snapshots as needed.
-2. Re-run `bazel run //snapshots/formatter:update` if templates changed.
+2. Re-run `bazel run //tests/snapshots/formatter:update` if templates changed.
 3. Re-run the formatter test targets until green.
 
 ## 7) Typical change checklist
 
 - [ ] Formatter logic updated in core (`packages/dashql-core/src/formatter/`)
 - [ ] New/updated `.tpl.yaml` tests added
-- [ ] Snapshots regenerated via `//snapshots/formatter:update`
+- [ ] Snapshots regenerated via `//tests/snapshots/formatter:update`
 - [ ] `validation.setup` added for Hyper-validatable cases
 - [ ] JS API formatting test added/updated
 - [ ] `bazel test //packages/dashql-core:all` passes

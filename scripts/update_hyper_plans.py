@@ -9,7 +9,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = Path(os.path.dirname(SCRIPT_DIR))
-SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "profiles" / "hyper"
+SNAPSHOTS_DIR = ROOT_DIR / "tests" / "snapshots" / "profiles" / "hyper"
 SETUP_FILE = SNAPSHOTS_DIR / "setup" / "setup.sql"
 QUERIES_DIR = SNAPSHOTS_DIR / "queries"
 OUTPUT_DIR = SNAPSHOTS_DIR / "tests"

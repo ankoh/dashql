@@ -1,4 +1,4 @@
-//! The planner snapshots (snapshots/planner/*.yaml).
+//! The planner snapshots (tests/snapshots/planner/*.yaml).
 
 use dashql_buffers::execution::ExecutionGraphT;
 use dashql_core_session::planner::plan_session;

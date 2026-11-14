@@ -19,7 +19,7 @@ def snapshot_library(filter, files_srcs = None):
     sh_binary(
         name = "update",
         testonly = True,
-        srcs = ["//snapshots:run_snapshotter.sh"],
+        srcs = ["//tests/snapshots:run_snapshotter.sh"],
         args = [
             "$(rootpath //packages/dashql-snapshots:snapshotter)",
             filter,

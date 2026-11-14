@@ -1,4 +1,4 @@
-//! The formatter snapshots (`snapshots/formatter/*.yaml`).
+//! The formatter snapshots (`tests/snapshots/formatter/*.yaml`).
 //!
 //! Every case formats its input for every expectation of every dialect that is not skipped. Cases
 //! named `coverage_*` must also be fully formattable, and their formatted output must scan and parse

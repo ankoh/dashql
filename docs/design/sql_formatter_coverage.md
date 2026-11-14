@@ -8,7 +8,7 @@ the formatter.
 ## Gates
 
 1. **Parser-corpus round trip** (`//packages/dashql-core:formatter_roundtrip_test`,
-   `packages/dashql-core/tests/formatter_roundtrip.rs`). Formats every error-free script of `snapshots/parser`
+   `packages/dashql-core/tests/formatter_roundtrip.rs`). Formats every error-free script of `tests/snapshots/parser`
    in all three modes. Each run must be fully formatted (`Formatter::is_fully_formatted`), its output must scan
    and parse without errors, and scripts without comments must format to the same text a second time. The test
    reports the unformattable node types of every failure. `UNFORMATTABLE` lists the scripts the formatter

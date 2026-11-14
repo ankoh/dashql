@@ -407,7 +407,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - `dashql-core/src/formatter/`: an unknown node renders as `'<OBJECT_...>'`, which fails the round-trip test.
 - `dashql-core-workbook/src/planner.rs`: see [Running calls](#running-calls).
 - `dashql-core-workbook/src/compiler.rs` and `dashql-core/src/pack.rs`, plus the labels in `dashql_story_decorations.ts`.
-- `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
+- `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
 
 ## Running calls
 
@@ -682,7 +682,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
 | Planner | `packages/dashql-core-workbook/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
-**Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
+**Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
 
 ## The runtime
 

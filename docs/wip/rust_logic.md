@@ -82,7 +82,7 @@ Each step is one commit and can stop there. Hyper goes first because it is the s
 
 1. Add `packages/dashql-core-profile/src/progress/hyper.rs`, reading `serde_json::Value` like `trino.rs`. Don't use
    `deny_unknown_fields`, because the payload is a full `QueryStatus`.
-2. Add an inline `statuses` case to `snapshots/profiles/progress/progress.tpl.yaml` (no sidecar), with the encoder and
+2. Add an inline `statuses` case to `tests/snapshots/profiles/progress/progress.tpl.yaml` (no sidecar), with the encoder and
    the snapshotter entry.
 3. Add the wasm binding in `packages/dashql-core-wasm/src/lib.rs` and the wrapper in
    `packages/dashql-core-js/src/api.ts`, following `applyTrinoStatementStats`.
@@ -121,9 +121,9 @@ after layout, so paths computed in `compute_layout` would miss them.
 ```bash
 bazel test //packages/dashql-core-profile:dashql_core_profile_unit_tests
 bazel test //packages/dashql-core-profile:query_profile_snapshot_test
-bazel run //snapshots/profiles/progress:update          # Step 1
-bazel run //snapshots/profiles/hyper/tests:update       # Step 2
-bazel run //snapshots/profiles/trino/plans:update       # Step 2
+bazel run //tests/snapshots/profiles/progress:update          # Step 1
+bazel run //tests/snapshots/profiles/hyper/tests:update       # Step 2
+bazel run //tests/snapshots/profiles/trino/plans:update       # Step 2
 bazel test //packages/dashql-app:tsc_typecheck_test
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 ```

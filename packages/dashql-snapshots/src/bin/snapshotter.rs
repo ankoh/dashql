@@ -1,4 +1,4 @@
-//! Regenerates the snapshot files `snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
+//! Regenerates the snapshot files `tests/snapshots/**/<name>.yaml` from their templates `<name>.tpl.yaml`.
 //!
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
 //! dataflow, completion, formatter, hyper_profile, profile_progress, trino_profile, visualize, diff. An empty filter
@@ -687,7 +687,7 @@ fn main() -> ExitCode {
         println!("Invalid source directory: {source_dir}");
         return ExitCode::FAILURE;
     }
-    let snapshots = Path::new(&source_dir).join("snapshots");
+    let snapshots = Path::new(&source_dir).join("tests/snapshots");
     let selected = |category: &str| filter.is_empty() || filter == category;
     if selected("parser") {
         generate_parser_snapshots(&snapshots.join("parser"));

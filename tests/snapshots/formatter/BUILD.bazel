@@ -1,0 +1,3 @@
+load("//tests/snapshots:defs.bzl", "snapshot_library")
+
+snapshot_library(filter = "formatter")

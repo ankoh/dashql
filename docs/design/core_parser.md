@@ -447,7 +447,7 @@ TypeScript code reads the tree through the generated FlatBuffers readers.
    lost.
 3. **Land it in one change.** Change the grammar rules (`grammar/rules/*.y`),
    `proto/fb/dashql/parsed_script.fbs`, the Rust and TypeScript consumers, and update the snapshots
-   (`bazel run //snapshots:update`) in the same change.
+   (`bazel run //tests/snapshots:update`) in the same change.
 4. **Script signatures may change.** `SCRIPT_SIGNATURE_VERSION` (`packages/dashql-core/src/signature.rs`)
    versions the signature encoding, but signatures are not required to stay stable across versions,
    and no test pins them.

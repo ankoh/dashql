@@ -26,17 +26,17 @@ rust_test(
     crate = ":dashql_core_profile",
 )
 
-# The query profile snapshots (snapshots/profiles/hyper/tests/*.yaml, snapshots/profiles/progress/*.yaml)
+# The query profile snapshots (tests/snapshots/profiles/hyper/tests/*.yaml, tests/snapshots/profiles/progress/*.yaml)
 rust_test(
     name = "query_profile_snapshot_test",
     size = "small",
     srcs = ["tests/query_profile_snapshots.rs"],
     data = [
-        "//snapshots/profiles/hyper/tests:files",
-        "//snapshots/profiles/progress:files",
-        "//snapshots/profiles/trino/recordings:files",
-        "//snapshots/profiles/trino/plans:files",
-        "//snapshots/profiles/trino/progress:files",
+        "//tests/snapshots/profiles/hyper/tests:files",
+        "//tests/snapshots/profiles/progress:files",
+        "//tests/snapshots/profiles/trino/recordings:files",
+        "//tests/snapshots/profiles/trino/plans:files",
+        "//tests/snapshots/profiles/trino/progress:files",
     ],
     edition = "2021",
     use_libtest_harness = False,

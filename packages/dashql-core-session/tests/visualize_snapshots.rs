@@ -1,4 +1,4 @@
-//! The visualize snapshots (snapshots/visualize/*.yaml).
+//! The visualize snapshots (tests/snapshots/visualize/*.yaml).
 //!
 //! Renderers other than `markdown`, including `table`, compare the Vega-Lite JSON.
 

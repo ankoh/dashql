@@ -1,4 +1,4 @@
-//! The dataflow snapshots (snapshots/dataflow/*.yaml).
+//! The dataflow snapshots (tests/snapshots/dataflow/*.yaml).
 
 use dashql_snapshots::encode::dataflow::encode_fixture;
 use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial};

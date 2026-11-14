@@ -1,4 +1,4 @@
-//! The parser snapshots (snapshots/parser/*.yaml), produced by the Rust scanner and parser.
+//! The parser snapshots (tests/snapshots/parser/*.yaml), produced by the Rust scanner and parser.
 
 use dashql_parser::parser::parse;
 use dashql_parser::scanner::scan;

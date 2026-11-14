@@ -266,7 +266,7 @@ The browser and Node must offer the same: every feature of the SDK runs, and is 
   `createTestRuntime()` of their platform: open a workbook, edit and check scripts, run queries on the embedded Hyper,
   update catalogs, pack and unpack, links. The Node target runs them with the Node platform, the browser targets with
   the browser platform. A test fails when a scenario file isn't part of both targets.
-- **Connectors offline.** Recorded HTTP exchanges (the Trino recordings of `snapshots/profiles/trino/recordings/`,
+- **Connectors offline.** Recorded HTTP exchanges (the Trino recordings of `tests/snapshots/profiles/trino/recordings/`,
   the Salesforce mocks) answer through the `HttpClient` seam on both platforms.
 - **Artifacts across platforms.** `pack` writes byte for byte the same `.dashql` on both (fixed ZIP times, the same
   Parquet settings), a checked-in file reads back the same rows on both, and a file packed in Node imports in the

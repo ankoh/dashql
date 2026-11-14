@@ -37,13 +37,13 @@ Edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and
 which the scan references stand for, are no dataflow. A relation that a statement reads before another statement
 creates it in session order has no edge, a run would read it before it is written.
 
-The snapshots in `snapshots/dataflow/` have cases of their own, they describe a session like the planner snapshots
+The snapshots in `tests/snapshots/dataflow/` have cases of their own, they describe a session like the planner snapshots
 (`connections`, `catalog`, `scripts`, `stale-prepend`, `attachments`, and `collapsed` for the scripts whose boxes are
 collapsed, `targets` and `materialized` are ignored) and
 expect the statements of every script, the box of every script on the canvas (`box: [x, y, width, height]`, see
 Layout), the inputs with their type, value and box, the attachments with their file and box, and the edges, an input
 edge from `":min"`, an attachment edge from its file, an edge between boxes with its `route`
-(`bazel run //snapshots/dataflow:update`).
+(`bazel run //tests/snapshots/dataflow:update`).
 
 ## Layout
 

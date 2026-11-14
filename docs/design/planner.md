@@ -331,7 +331,7 @@ materialization into a temporary directory that stands for the mount prefix. A
 fixture with `hyper: skip` is left out (Hyper rejects `SELECT INTO`).
 
 ```bash
-bazel run //snapshots/planner:update
+bazel run //tests/snapshots/planner:update
 bazel test //packages/dashql-core-session:planner_snapshot_test //packages/dashql-core-session:planner_validation_hyper_test \
     //packages/dashql-core-session:dashql_core_session_unit_tests
 bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all

@@ -132,7 +132,7 @@ export class QueryProgressFollower {
 }
 
 /// Read a recording: a profile recording of the app, or a recording of the Trino test harness
-/// (snapshots/profiles/trino/recordings/, written by //packages/trino-testing:trino_recorder)
+/// (tests/snapshots/profiles/trino/recordings/, written by //packages/trino-testing:trino_recorder)
 export function readProfileRecording(text: string): ProfileRecording {
     const document = JSON.parse(text);
     if (document?.version === 1 && Array.isArray(document.payloads)) return document as ProfileRecording;

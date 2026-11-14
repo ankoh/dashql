@@ -1,4 +1,4 @@
-//! Records the Trino API responses of the queries in `queries.rs` into `snapshots/profiles/trino/recordings/`.
+//! Records the Trino API responses of the queries in `queries.rs` into `tests/snapshots/profiles/trino/recordings/`.
 //!
 //! `bazel run //packages/trino-testing:trino_recorder` starts a Trino server, runs every query and writes one
 //! JSON file per query: the `/v1/statement` responses, the `/v1/query/{id}` responses that the app fetches (one
@@ -29,7 +29,7 @@ fn without_tasks(mut info: Value) -> Value {
 
 fn main() {
     let workspace = std::env::var("BUILD_WORKSPACE_DIRECTORY").expect("run with bazel run");
-    let output_dir = PathBuf::from(workspace).join("snapshots/profiles/trino/recordings");
+    let output_dir = PathBuf::from(workspace).join("tests/snapshots/profiles/trino/recordings");
     std::fs::create_dir_all(&output_dir).expect("create the recordings directory");
 
     let server = TrinoServer::start().unwrap_or_else(|e| panic!("cannot start Trino: {e}"));

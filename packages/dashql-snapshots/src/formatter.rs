@@ -1,4 +1,4 @@
-//! The formatter snapshot cases (`snapshots/formatter/*.yaml`).
+//! The formatter snapshot cases (`tests/snapshots/formatter/*.yaml`).
 //!
 //! Every dialect of a case carries formatting expectations and optionally a validation block that executes the
 //! formatted output against a live database.

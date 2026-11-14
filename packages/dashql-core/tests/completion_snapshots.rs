@@ -1,4 +1,4 @@
-//! The completion snapshots (snapshots/completion/*.yaml): the analysis of the catalog and editor
+//! The completion snapshots (tests/snapshots/completion/*.yaml): the analysis of the catalog and editor
 //! scripts on the keys of the analyzer snapshots, and the complete completion encoding.
 
 use dashql_snapshots::encode::analyzer::compare_script;
