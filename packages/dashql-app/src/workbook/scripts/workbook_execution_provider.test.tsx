@@ -14,7 +14,7 @@ import { ConnectionRegistry, useConnectionRegistry } from '../../connections/con
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { QueryExecutorProvider } from '../../connections/query_executor.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookExecutionProvider, workbookExecutionIsBusy, useWorkbookExecution } from './workbook_execution_provider.js';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';

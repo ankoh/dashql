@@ -9,7 +9,7 @@ import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connection
 import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { createConnectionStateDetails } from '@ankoh/dashql-sdk/connections/connection_state_details';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_client_functions';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

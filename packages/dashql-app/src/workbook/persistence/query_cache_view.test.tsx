@@ -11,7 +11,7 @@ import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider
 import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { createTestRoot } from '../../tests/react_root.js';
 

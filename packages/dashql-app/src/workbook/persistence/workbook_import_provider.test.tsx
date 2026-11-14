@@ -12,7 +12,7 @@ import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { NativeStorageBackend } from '../../storage/native_storage_backend.js';
 import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';

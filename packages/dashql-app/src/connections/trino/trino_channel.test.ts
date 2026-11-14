@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createQueryResponseStreamMetrics } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { ChannelError } from '@ankoh/dashql-sdk/platform/channel_common';
 import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import type { TrinoApiClientInterface, TrinoQueryResult, TrinoQueryStage } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';

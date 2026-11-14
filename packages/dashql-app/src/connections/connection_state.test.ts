@@ -17,7 +17,7 @@ import {
     connectionCachesQueryResults,
     type ConnectionState,
 } from '@ankoh/dashql-sdk/connections/connection_state';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { createConnectionStateDetails } from '@ankoh/dashql-sdk/connections/connection_state_details';
 import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';

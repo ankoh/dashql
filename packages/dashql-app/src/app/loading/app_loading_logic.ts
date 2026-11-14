@@ -1,13 +1,13 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import type { AppStateRestorationProgress, RestoredAppState } from '../../workbook/persistence/app_state_loader.js';
+import type { AppStateRestorationProgress, RestoredAppState } from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { SetConnectionRegistryAction } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { SetWorkbookScriptsRegistryAction } from '../../workbook/scripts/workbook_scripts_registry.js';
-import { ProgressCounter } from '../../utils/progress.js';
+import { ProgressCounter } from '@ankoh/dashql-sdk/utils/progress';
 import { InvalidWorkbook } from '@ankoh/dashql-sdk/storage/workbook_validation';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';

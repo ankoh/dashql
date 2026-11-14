@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { parseTrinoTimestampMs, translateAnyRowsToArrowBatch } from '@ankoh/dashql-sdk/connections/trino/arrow_conversion';
 
 /// Translate the values of a single column

@@ -17,7 +17,7 @@ import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-sdk/connections/trino
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 
 const CONNECTION_ID = 'trino-settings-test';
 

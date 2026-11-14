@@ -13,7 +13,7 @@ import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_ca
 import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
 import { ComposerInputMode } from '../../agent/input_mode.js';

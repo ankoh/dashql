@@ -8,7 +8,7 @@ import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state
 import { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { WorkbookScriptsRegistryProvider } from './workbook_scripts_registry.js';
 import { ScriptConnectionPicker, type ScriptConnectionPickerDependencies, type ScriptConnectionView } from './script_connection_picker.js';
 

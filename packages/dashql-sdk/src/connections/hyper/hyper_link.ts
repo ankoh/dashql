@@ -1,9 +1,9 @@
-import * as React from 'react';
 import type * as dashql from '@ankoh/dashql-core';
 
-import { createConnectionStateFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
-import type { ConnectionAllocator } from '../connection_registry.js';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { createConnectionStateFromParams, type ConnectionParams } from '../connection_params.js';
+import type { ConnectionAllocator } from '../connection_registry_state.js';
+import type { KeyValueStorage } from '../../platform/key_value_storage.js';
+import type { ConnectionState } from '../connection_state.js';
 import { isLoopbackHyperLink, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
 
 export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
@@ -13,7 +13,7 @@ const HYPER_LINK_WORKBOOK_STORAGE_KEY = 'dashql.hyper_links';
 
 /// Confirm a link before the app uses it.
 /// A link to another machine would receive the queries of the new workbooks, the user confirms its host first.
-export function confirmHyperLink(target: HyperLinkTarget, confirm: (message: string) => boolean = message => globalThis.confirm(message)): boolean {
+export function confirmHyperLink(target: HyperLinkTarget, confirm: (message: string) => boolean): boolean {
     if (isLoopbackHyperLink(target)) return true;
     return confirm(`Run new workbooks on the Hyper at ${target.endpoint}? Only continue if you trust the link that opened DashQL.`);
 }
@@ -28,17 +28,8 @@ export interface HyperLinkTabState {
 
 const NO_HYPER_LINKS: HyperLinkTabState = { tokens: {}, current: null };
 
-/// The storage of the tab, null if the browser refuses it
-function tabStorage(): Storage | null {
-    try {
-        return globalThis.sessionStorage ?? null;
-    } catch {
-        return null;
-    }
-}
-
-/// Read the Hyper links of the tab, a reload keeps them and closing the tab ends them
-export function readHyperLinkTabState(storage: Storage | null = tabStorage()): HyperLinkTabState {
+/// Read the Hyper links of a tab, a reload keeps them and closing the tab ends them
+export function readHyperLinkTabState(storage: KeyValueStorage | null): HyperLinkTabState {
     try {
         const parsed = JSON.parse(storage?.getItem(HYPER_LINK_WORKBOOK_STORAGE_KEY) ?? 'null');
         if (parsed == null || typeof parsed !== 'object') return NO_HYPER_LINKS;
@@ -49,36 +40,36 @@ export function readHyperLinkTabState(storage: Storage | null = tabStorage()): H
     }
 }
 
-let HYPER_LINK_TAB_STATE: HyperLinkTabState | null = null;
-const HYPER_LINK_LISTENERS = new Set<() => void>();
+/// The Hyper links of a tab, kept in the storage of the tab, null if there is none
+export class HyperLinkTabStore {
+    protected state: HyperLinkTabState | null = null;
+    protected readonly listeners = new Set<() => void>();
 
-/// Get the Hyper links of the tab
-export function getHyperLinkTabState(): HyperLinkTabState {
-    HYPER_LINK_TAB_STATE ??= readHyperLinkTabState();
-    return HYPER_LINK_TAB_STATE;
-}
+    constructor(protected readonly storage: KeyValueStorage | null) {}
 
-/// Remember the token of the connection that a link was bound to, new workbooks start on the connection
-export function setHyperLinkToken(connectionId: string, token: string, storage: Storage | null = tabStorage()): void {
-    const prev = getHyperLinkTabState();
-    HYPER_LINK_TAB_STATE = { tokens: { ...prev.tokens, [connectionId]: token }, current: connectionId };
-    try {
-        storage?.setItem(HYPER_LINK_WORKBOOK_STORAGE_KEY, JSON.stringify(HYPER_LINK_TAB_STATE));
-    } catch {
-        // Without storage, a reload forgets the links
+    /// The Hyper links of the tab
+    get = (): HyperLinkTabState => {
+        this.state ??= readHyperLinkTabState(this.storage);
+        return this.state;
+    };
+
+    /// Remember the token of the connection that a link was bound to, new workbooks start on the connection
+    setToken(connectionId: string, token: string): void {
+        const prev = this.get();
+        this.state = { tokens: { ...prev.tokens, [connectionId]: token }, current: connectionId };
+        try {
+            this.storage?.setItem(HYPER_LINK_WORKBOOK_STORAGE_KEY, JSON.stringify(this.state));
+        } catch {
+            // Without storage, a reload forgets the links
+        }
+        for (const listener of this.listeners) listener();
     }
-    for (const listener of HYPER_LINK_LISTENERS) listener();
-}
 
-/// Subscribe to the Hyper links of the tab
-function subscribeHyperLinkTabState(listener: () => void): () => void {
-    HYPER_LINK_LISTENERS.add(listener);
-    return () => HYPER_LINK_LISTENERS.delete(listener);
-}
-
-/// The Hyper links of the tab, they change with every link
-export function useHyperLinkTabState(): HyperLinkTabState {
-    return React.useSyncExternalStore(subscribeHyperLinkTabState, getHyperLinkTabState);
+    /// Subscribe to the Hyper links of the tab
+    subscribe = (listener: () => void): (() => void) => {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+    };
 }
 
 /// Does a connection speak to the Hyper of a link?

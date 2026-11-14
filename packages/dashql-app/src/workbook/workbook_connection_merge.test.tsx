@@ -15,7 +15,7 @@ import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from
 import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
 import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { QueryExecutorProvider, useQueryExecutor } from '../connections/query_executor.js';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookScriptsRegistryProvider } from './scripts/workbook_scripts_registry.js';
 import { useMergeConnections } from './workbook_connection_merge.js';

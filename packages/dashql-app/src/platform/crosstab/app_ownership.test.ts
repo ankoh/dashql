@@ -4,7 +4,7 @@ import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } 
 import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
 import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { TestLogger } from '../logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 
 /// A browsing context of the origin that stands in for a tab, it has its own locks and channels

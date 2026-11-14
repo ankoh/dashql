@@ -8,7 +8,7 @@ import { CLEAR_TABLE_ORDERING, COLUMN_AGGREGATION_SUCCEEDED, COLUMN_SEARCH_SUCCE
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from '@ankoh/dashql-sdk/compute/computation_types';
 import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from '@ankoh/dashql-sdk/compute/computation_types';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
 import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
 import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';

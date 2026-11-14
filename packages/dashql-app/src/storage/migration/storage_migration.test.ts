@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '../test_fs_mock.js';
 import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';

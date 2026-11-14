@@ -10,7 +10,7 @@ import { AgentCommandError } from './agent_client.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
-import { findEmbeddedConnection } from '../connections/embedded_connection.js';
+import { findEmbeddedConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
     CREATE_SCRIPT,

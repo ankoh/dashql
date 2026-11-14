@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
 import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { TaskStatus, ComputationStateVersion } from '@ankoh/dashql-sdk/compute/computation_types';
 import {
     ComputationAction,

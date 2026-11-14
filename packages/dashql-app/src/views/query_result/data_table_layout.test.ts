@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import { createTableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
 import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 

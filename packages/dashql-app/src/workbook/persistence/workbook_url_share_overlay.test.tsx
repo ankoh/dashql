@@ -7,7 +7,7 @@ import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFEREN
 import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';

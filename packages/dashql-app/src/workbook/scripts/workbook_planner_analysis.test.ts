@@ -2,9 +2,9 @@ import * as core from '@ankoh/dashql-core';
 import * as Immutable from 'immutable';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-sdk/workbook/scripts/focus';
 import { DashQLCompletionStatus } from '../editor/dashql_processor.js';

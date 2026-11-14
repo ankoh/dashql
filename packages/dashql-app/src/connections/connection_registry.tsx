@@ -22,6 +22,7 @@ import {
     NO_CONNECTION_REFERENCES,
     registerConnection,
     resolveWorkbookConnections,
+    type ConnectionAllocator,
     type ConnectionDispatch,
     type ConnectionReferences,
     type ConnectionRegistry as ConnectionRegistryState,
@@ -42,6 +43,7 @@ export {
     resolveWorkbookConnections,
     scheduleConnectionParamsWrites,
     workbookConnectionFromState,
+    type ConnectionAllocator,
     type ConnectionDispatch,
     type ConnectionReferences,
     type DynamicConnectionDispatch,
@@ -127,7 +129,6 @@ export function useConnectionRegistrySetter(): Dispatch<SetConnectionRegistryAct
     return React.useContext(CONNECTION_REGISTRY_SETTER_CTX)!;
 }
 
-export type ConnectionAllocator = (state: ConnectionStateWithoutId, connectionId?: string) => ConnectionState;
 
 /// Allocate a new connection that no workbook references yet.
 /// A workbook references the connection once its scripts use it.

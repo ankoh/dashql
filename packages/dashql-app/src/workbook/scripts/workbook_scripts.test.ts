@@ -3,9 +3,9 @@ import * as Immutable from 'immutable';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { PATCH_WORKBOOK_CONNECTION, StorageWriter, WRITE_WORKBOOK_PROPERTIES, WRITE_WORKBOOK_SCRIPTS, type StorageWriteTaskVariant } from '@ankoh/dashql-sdk/storage/storage_writer';
 import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import {

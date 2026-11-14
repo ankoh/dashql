@@ -2,8 +2,9 @@ import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
 import { useConnectionAllocator, useConnectionRegistryStore, workbookConnectionFromState } from '../connections/connection_registry.js';
 import { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { findEmbeddedConnection, newWorkbookConnection } from '../connections/embedded_connection.js';
-import { getHyperLinkTabState, isHyperLinkParams } from '../connections/hyper/hyper_link.js';
+import { findEmbeddedConnection, newWorkbookConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
+import { isHyperLinkParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { groupWorkbookManifestWrites, WRITE_WORKBOOK_MANIFEST } from '@ankoh/dashql-sdk/storage/storage_writer';
 import {
@@ -90,7 +91,7 @@ export function useEnsureEphemeralWorkbook(): () => WorkbookScripts | null {
         const { connections } = registryStore.current;
         const embedded = findEmbeddedConnection(connections.values());
         if (embedded == null) return null;
-        return ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, embedded.instance));
+        return ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, embedded.instance, getHyperLinkTabState().current));
     }, [allocateConnection, ephemeralWorkbook, registryStore]);
 }
 

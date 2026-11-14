@@ -14,8 +14,8 @@ import {
 } from '../../storage/workbook_import_transaction.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { useStorage } from '../../storage/storage_provider.js';
-import { restoreSingleWorkbook } from './app_state_loader.js';
-import { mergeRestoredWorkbookIntoConnections, mergeRestoredWorkbookIntoScripts } from './app_state_loader.js';
+import { restoreSingleWorkbook } from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
+import { mergeRestoredWorkbookIntoConnections, mergeRestoredWorkbookIntoScripts } from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
 import { connectionEntryFromState, findWorkbookQueries, useConnectionReferences, useConnectionRegistrySetter, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';

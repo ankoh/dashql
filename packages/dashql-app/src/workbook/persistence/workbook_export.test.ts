@@ -14,7 +14,7 @@ import {
 } from './workbook_export.js';
 import { importWorkbookFromZip, readWorkbookBundleFromZip } from './workbook_import.js';
 import { workbookBundlesEqual, type WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import type { ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';

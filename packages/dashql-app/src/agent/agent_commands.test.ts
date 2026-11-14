@@ -3,7 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { runAgentCommand, findScript, type AgentCommandEnvironment } from './agent_commands.js';
 import { AgentCommandError } from './agent_client.js';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
 import type { QueryExecutor } from '../connections/query_executor.js';
@@ -13,7 +13,7 @@ import {
 } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { acquireWorkbookExecution, isWorkbookExecutionRunning, releaseWorkbookExecution } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 

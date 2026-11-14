@@ -1,6 +1,7 @@
 import {
     ConnectionState,
     ConnectionAction,
+    type ConnectionStateWithoutId,
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
@@ -174,6 +175,8 @@ export function connectionOrdinals(
 }
 
 export type ConnectionDispatch = (action: ConnectionAction) => void;
+/// Register a new connection, with a fixed id or a new one
+export type ConnectionAllocator = (state: ConnectionStateWithoutId, connectionId?: string) => ConnectionState;
 export type DynamicConnectionDispatch = (connectionId: string | null, action: ConnectionAction) => void;
 
 /// Apply an action to a connection of the registry (mutates the registry)

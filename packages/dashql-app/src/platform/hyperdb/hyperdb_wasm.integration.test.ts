@@ -7,7 +7,7 @@ import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
 import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hyperdb_opfs_instance.js';
-import { TestLogger } from '../logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { createExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';

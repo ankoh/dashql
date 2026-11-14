@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
-import { TestLogger } from '../logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
 import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, type SetupEventVariant } from './event.js';
 

@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import { ClientFunctionResultStream } from '@ankoh/dashql-sdk/connections/clfn/clfn_result_stream';
 import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';

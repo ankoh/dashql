@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../platform/logger/test_logger.js';
-import { WorkbookTestBackend } from './workbook_test_backend.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import {
     DELETE_SCRIPT,
     groupScriptDeletes,
@@ -30,7 +30,7 @@ import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-s
 import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { CONNECTOR_INFOS } from '@ankoh/dashql-sdk/connections/connector_info';
 import { workbookConnectionFromState } from '../connections/connection_registry.js';
-import { testConnections, testWorkbook, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from './workbook_test_backend.js';
+import { testConnections, testWorkbook, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 
 describe('V2 storage writer flat mutations', () => {
     it.each(['name-first', 'connection-first'])('retains rename and connection copy in separate debounced tasks (%s)', async order => {

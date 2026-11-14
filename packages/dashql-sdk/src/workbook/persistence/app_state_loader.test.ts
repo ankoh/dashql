@@ -2,17 +2,17 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as dashql from '@ankoh/dashql-core';
 import * as flatbuffers from 'flatbuffers';
 import * as buffers from '@ankoh/dashql-core/buffers';
-import type { BatchProcessor } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
+import type { BatchProcessor } from '../../connections/catalog/catalog_batch.js';
 import type { BatchRequest } from '@ankoh/dashql-core';
 
 import type { DashQL } from '@ankoh/dashql-core';
-import { TestLogger } from '../../platform/logger/test_logger.js';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { TestLogger } from '../../testing/test_logger.js';
+import { ConnectorType } from '../../connections/connector_info.js';
 import { destroyRestoredWorkbook, restoreAppState, restoreSingleWorkbook } from './app_state_loader.js';
-import { destroyWorkbookScripts, isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import type { WorkbookRegistryBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../storage/workbook_test_backend.js';
+import { destroyWorkbookScripts, isEphemeralWorkbook, workbookConnectionIds } from '../scripts/workbook_scripts.js';
+import type { WorkbookRegistryBackend } from '../../storage/storage_backend.js';
+import { StorageBackendType } from '../../storage/storage_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../testing/workbook_test_backend.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

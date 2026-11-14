@@ -1,6 +1,6 @@
 # DashQL SDK
 
-Status: steps 1 and 2 are built, step 3 is built for four services, step 4 has the OAuth flow, the rest is proposed.
+Status: steps 1 and 2 are built, step 3 is built for four services, step 4 has the OAuth flow and the restore, the rest is proposed.
 
 `packages/dashql-sdk` (`@ankoh/dashql-sdk`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -13,7 +13,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | `packages/dashql-sdk` with the clean modules, `//packages/dashql-sdk:boundary_test` | Done, step 2; their tests still run in the browser tests of the app |
 | Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections are done |
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
-| The restore, one runtime | Step 4, with the tab state of the platform |
+| The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
+| One runtime | Step 4, `createRuntime` |
 | Node platform and the CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
 | Editor state out of `ScriptData` | Later, step 5 |
 
@@ -258,17 +259,19 @@ Each step ships on its own and keeps the behavior.
      runs of single scripts;
    - `ConnectionPersistenceService` (`connections/connection_persistence_service.ts`).
 
-   The rest waits for the seams of step 4. The restore (`app_state_loader.ts`) reads the tokens of Hyper links from
-   the storage of the tab (`connections/hyper/hyper_link.ts`, `embedded_connection.ts` also binds React). It moves
-   once the platform passes the tab state in. The runtime object that replaces the
+   The rest waited for the seams of step 4. The runtime object that replaces the
    nesting of providers comes with them: `createRuntime` states the startup order that the nesting implies today
    (the embedded Hyper needs the core, the Hyper setup needs the embedded Hyper).
 4. **Platform seams and Node.** An OAuth flow, done: `oauth/oauth_flow.ts` of the SDK opens the authorization page
    and receives the redirect, through the redirect page (`oauth.html`, to the opener in a browser or as a link of the
    desktop app) or a loopback server (Trino). A connector builds the URL and exchanges the code. The app implements it
    in `oauth/app_oauth_flow.ts` (a popup that a dialog reserved during the click, the Electron bridge); the setups of
-   Salesforce and Trino, their mocks and `connector_configs.ts` moved into the SDK. Next the tab state passed in, so
-   the restore moves; `createRuntime`. Then the Node platform: a
+   Salesforce and Trino, their mocks and `connector_configs.ts` moved into the SDK. The restore, done:
+   `workbook/persistence/app_state_loader.ts` moved with `connection_restore.ts`, `embedded_connection.ts` and the
+   Hyper links (`connections/hyper/hyper_link.ts`). A `HyperLinkTabStore` keeps the links of a tab in a
+   `KeyValueStorage` (`platform/key_value_storage.ts`) that the platform passes in; the app holds the one of its tab
+   over `sessionStorage` in `connections/hyper/hyper_link_tab.ts`, with the hooks. The test helpers `TestLogger` and
+   `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. Next `createRuntime`. Then the Node platform: a
    storage backend over `node:fs` (`NativeStorageBackend` with the fs functions passed in), a fetch client,
    `EmbeddedDatabase` over `hyperdb-wasm` `node`, Wasm from files. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
@@ -282,6 +285,11 @@ commands: `lint` and `format` are calls of the core, the agent server moves to N
 Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
 - **Offline by default.** `check`, `pack`, `unpack` and `link` read and write files in the workspace, nothing else.
+- **`dashql auth`.** The Node platform passes an `OAuthFlow` with a loopback server on `127.0.0.1` and the browser of
+  the system. Trino redirects to the loopback directly. The connected app of Salesforce redirects to the fixed
+  `oauth.html`, which gets a third way back: to a loopback URL that the state names, only to `127.0.0.1` or
+  `localhost`. PKCE keeps the code useless without the verifier of the CLI. `dashql auth login` keeps the tokens for
+  `run` and `catalog refresh`; it listens and reaches the network, so the user runs it or approves it by prefix.
 - **Network in separate subcommands.** `run` and `catalog refresh` reach connections; a harness approves them by
   prefix (`dashql run`), never through `node` or `npx`.
 - **Results stay in files.** Harness telemetry records tool output, so `run` prints the error with its position, the

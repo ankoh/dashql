@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { TrinoApiClient, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
 import { TrinoChannel } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
 import { createTrinoSetup, setupTrinoConnection } from '@ankoh/dashql-sdk/connections/trino/trino_connection_setup';

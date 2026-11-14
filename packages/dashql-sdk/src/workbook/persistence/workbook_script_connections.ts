@@ -1,6 +1,6 @@
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import type { WorkbookConnection, WorkbookData, WorkbookScript } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { reconcileWorkbookScripts, sanitizeWorkbookFiles, withWorkbookScripts } from '@ankoh/dashql-sdk/storage/workbook_files';
+import type { ConnectionState } from '../../connections/connection_state.js';
+import type { WorkbookConnection, WorkbookData, WorkbookScript } from '../../storage/storage_backend.js';
+import { reconcileWorkbookScripts, sanitizeWorkbookFiles, withWorkbookScripts } from '../../storage/workbook_files.js';
 
 /// A script of a workbook file with the connection it runs on
 export interface ResolvedWorkbookScript {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { getTestHyperDBClient, openTestHyperDBWindow, testDatabasePath } from '../tests/hyperdb_test_client.js';
-import { TEST_CONNECTION_ID, testWorkbook } from '../storage/workbook_test_backend.js';
+import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { workbookBundleToTables } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { publishCloudWorkbook } from './cloud_store.js';
 import { createCloudFolder, listCloudEntries } from './cloud_folders.js';

@@ -12,7 +12,7 @@ import { MOST_FREQUENT_FILTER } from '@ankoh/dashql-sdk/compute/cross_filters';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';

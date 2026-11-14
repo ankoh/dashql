@@ -12,7 +12,8 @@ import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_s
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { bindHyperLink, confirmHyperLink, getHyperLinkTabState, isHyperLinkParams, setHyperLinkToken, type HyperLinkTarget } from '../connections/hyper/hyper_link.js';
+import { bindHyperLink, isHyperLinkParams, type HyperLinkTarget } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { confirmHyperLink, getHyperLinkTabState, setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 
 const LOG_CTX = 'hyper_link';
 

@@ -5,7 +5,7 @@ import { act } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as styles from './data_table.module.css';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import {
     type ColumnAggregationTask,

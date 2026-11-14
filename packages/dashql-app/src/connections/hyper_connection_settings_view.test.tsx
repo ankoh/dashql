@@ -18,7 +18,7 @@ import { HYPERDB_WASM_ENGINE_SETTING_ELEMENTS, HyperConnectorSettings } from './
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 
 const CONNECTION_ID = 'hyper-settings-test';
 

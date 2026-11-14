@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { ComputationStateVersion, type DataSearchTask } from '@ankoh/dashql-sdk/compute/computation_types';
 import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
 import { DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';

@@ -10,7 +10,7 @@ import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sd
 import { createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { createEmptyScriptData, replaceScriptSessionText, scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../../workbook/scripts/workbook_scripts_registry.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';

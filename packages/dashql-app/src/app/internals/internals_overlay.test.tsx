@@ -13,7 +13,7 @@ import { createQueryExecutionState, QueryType, type QueryExecutionState } from '
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { createTestRoot } from '../../tests/react_root.js';

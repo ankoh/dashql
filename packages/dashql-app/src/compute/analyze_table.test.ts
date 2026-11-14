@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
 import { computeTableAggregates } from './tasks/table_aggregation.js';
 import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from '@ankoh/dashql-sdk/compute/computation_types';

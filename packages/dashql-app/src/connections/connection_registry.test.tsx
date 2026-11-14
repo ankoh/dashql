@@ -30,9 +30,9 @@ import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from 
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 
 function database(connectionId: string, health: ConnectionHealth): ConnectionState {

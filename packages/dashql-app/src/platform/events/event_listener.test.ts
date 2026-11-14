@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, type SetupEventVariant } from './event.js';
 import { parseClipboardSetup, PlatformEventListener, readWorkbookUrlParameter } from './event_listener.js';
-import { TestLogger } from '../logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
 
 class TestPlatformEventListener extends PlatformEventListener {

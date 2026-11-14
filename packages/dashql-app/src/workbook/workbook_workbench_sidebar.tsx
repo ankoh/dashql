@@ -63,7 +63,7 @@ import {
     createConnectionStateFromParams,
     createAttachedConnectionParamsForConnector,
 } from '@ankoh/dashql-sdk/connections/connection_params';
-import { useNewWorkbookConnection } from '../connections/embedded_connection.js';
+import { useNewWorkbookConnection } from '../connections/embedded_connection_hooks.js';
 import { useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { CloudsFolder } from '../cloud/cloud_sidebar.js';
 import { useClouds } from '../cloud/cloud_state.js';
@@ -85,7 +85,7 @@ import {
     mergeRestoredWorkbookIntoConnections,
     mergeRestoredWorkbookIntoScripts,
     restoreSingleWorkbook,
-} from './persistence/app_state_loader.js';
+} from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
 import { describeWorkbookValidationError } from '@ankoh/dashql-sdk/storage/workbook_validation';
 import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';

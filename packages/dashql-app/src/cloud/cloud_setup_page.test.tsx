@@ -17,7 +17,7 @@ import { EXECUTOR_CTX, type QueryExecutor } from '../connections/query_executor.
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { createTestRoot } from '../tests/react_root.js';

@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import {
     HyperDB,
     HyperDBConnection,

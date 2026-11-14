@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildSchemaContext } from './agent_catalog.js';
 import { packCatalogTable, type CatalogTable } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 import { isSystemSchema } from '../connections/catalog/system_schemas.js';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

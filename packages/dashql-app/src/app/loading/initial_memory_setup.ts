@@ -6,7 +6,8 @@ import type { DynamicConnectionDispatch } from '../../connections/connection_reg
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import type { HyperSetupApi } from '../../connections/hyper/hyper_connection_setup.js';
 import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-sdk/connections/connection_setup_cancellation';
-import { isHyperLinkParams, useHyperLinkTabState } from '../../connections/hyper/hyper_link.js';
+import { isHyperLinkParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 
 const startupAttempts = new Map<string, AbortController>();
 

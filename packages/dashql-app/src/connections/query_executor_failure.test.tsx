@@ -14,7 +14,7 @@ import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from 
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
 import { QueryExecutorProvider, useQueryExecutor } from './query_executor.js';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
 

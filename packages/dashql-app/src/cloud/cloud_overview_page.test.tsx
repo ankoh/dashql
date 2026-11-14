@@ -29,7 +29,7 @@ import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { workbookBundleToTables, type CatalogParser } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '../tests/react_root.js';

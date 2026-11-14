@@ -9,7 +9,7 @@ import type {
 } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
 import { HyperHttpError } from './hyper/hyperdb_http_client.js';
 import { logQueryFailure } from './query_executor.js';

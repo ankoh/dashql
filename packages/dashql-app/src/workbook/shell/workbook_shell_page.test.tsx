@@ -23,7 +23,7 @@ import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { DashQLShell, type DashQLShellOptions } from '../../shell/api.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { resolveClientFunctionCall } from './workbook_shell_environment.js';

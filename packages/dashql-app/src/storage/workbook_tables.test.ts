@@ -19,7 +19,7 @@ import {
     workbookTablesToBundle,
     workbookTableToArrow,
 } from '@ankoh/dashql-sdk/storage/workbook_tables';
-import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from './workbook_test_backend.js';
+import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL, parseCatalogSql } from '@ankoh/dashql-sdk/connections/catalog/catalog_structure';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

@@ -3,7 +3,7 @@ import * as buf from '@bufbuild/protobuf';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import * as pb from '@ankoh/dashql-sdk/proto';
-import { TestLogger } from '../../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../../tests/mocks/native_proxy.js';
 import type { HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';

@@ -11,10 +11,10 @@ import { useStorage } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { WorkbookScriptsStorageSnapshot, WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { NamedFileStamp } from '../../storage/native_storage_backend.js';
-import { connectionStateFromStorage, destroyUnregisteredConnection } from '../../connections/connection_restore.js';
-import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from './workbook_script_connections.js';
+import { connectionStateFromStorage, destroyUnregisteredConnection } from '@ankoh/dashql-sdk/connections/connection_restore';
+import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from '@ankoh/dashql-sdk/workbook/persistence/workbook_script_connections';
 import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { findEmbeddedConnection } from '../../connections/embedded_connection.js';
+import { findEmbeddedConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
 import { isLocalHyperWasmParams } from '@ankoh/dashql-sdk/storage/workbook_validation';
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,

@@ -1,13 +1,13 @@
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import type { QueryExecutor } from '../../connections/query_executor.js';
 import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { QueryCacheMissError } from '@ankoh/dashql-sdk/query/query_result_cache';
-import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
 import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';

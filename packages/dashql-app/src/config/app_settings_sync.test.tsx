@@ -9,7 +9,7 @@ import { DASHQL_FLAVOR, DBCOM_FLAVOR, type AppFlavor } from './flavors.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { applyFlavorToDocument } from './flavor_resolution.js';
 import { createTestRoot } from '../tests/react_root.js';
 

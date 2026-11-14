@@ -25,7 +25,8 @@ import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metri
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
-import { getHyperLinkTabState, hyperLinkChannelParams } from './hyper_link.js';
+import { hyperLinkChannelParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { getHyperLinkTabState } from './hyper_link_tab.js';
 import { embeddedAttachedDatabasePath } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
 import { embeddedCloudDatabases } from '@ankoh/dashql-sdk/connections/hyper/local_cloud';
 

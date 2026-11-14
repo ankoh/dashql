@@ -1,26 +1,26 @@
 import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import type { ConnectionReferences, ConnectionRegistry } from '../../connections/connection_registry.js';
 import { workbookConnectionReferences } from '../scripts/workbook_scripts_registry.js';
 import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { writePortableWorkbookFresh } from '../../storage/workbook_import_transaction.js';
-import { WorkbookTestBackend, WorkbookTestRegistry } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
 import { ANALYZE_OUTDATED_SCRIPT, analyzeScriptData, reduceWorkbookScripts, REORDER_SCRIPTS, scriptConnectionOf, workbookConnectionIds, SET_SCRIPT_CONNECTION, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { restoreAppState, type RestoredAppState } from './app_state_loader.js';
+import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
 import { applyConnectionImportPlan, planConnectionImport, type ConnectionImportChoice } from './workbook_connection_import.js';
 import { exportWorkbookAsSharedZip } from './workbook_export.js';
 import { readWorkbookBundleFromZip } from './workbook_import.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
-import { workbookScriptsResolutionChanged } from './workbook_script_connections.js';
+import { workbookScriptsResolutionChanged } from '@ankoh/dashql-sdk/workbook/persistence/workbook_script_connections';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

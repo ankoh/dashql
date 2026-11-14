@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from './workbook_test_backend.js';
+import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import {
     findWorkbookImportConflict,

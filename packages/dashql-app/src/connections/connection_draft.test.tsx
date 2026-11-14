@@ -22,7 +22,7 @@ import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-sd
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';

@@ -13,7 +13,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { DASHQL_AGENT_PORT } from '../globals.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useConnectionRegistryStore } from '../connections/connection_registry.js';
-import { useEmbeddedConnection } from '../connections/embedded_connection.js';
+import { useEmbeddedConnection } from '../connections/embedded_connection_hooks.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useRouteContext } from '../app/router/router.js';
 import { AgentQuestionStore } from './agent_question_store.js';

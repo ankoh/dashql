@@ -5,7 +5,7 @@ import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
 import { processTask } from '../../compute/computation_scheduler.js';
 import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-sdk/compute/computation_state';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { consumeQueryResponseStream } from '@ankoh/dashql-sdk/connections/query_execution';
 import { ClientFunctionResultStream } from '@ankoh/dashql-sdk/connections/clfn/clfn_result_stream';

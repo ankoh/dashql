@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { OAuthState } from '@ankoh/dashql-sdk/oauth/oauth_types';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';

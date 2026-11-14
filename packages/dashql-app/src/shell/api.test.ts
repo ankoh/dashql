@@ -2,7 +2,7 @@ import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellProm
 import * as dashql from '@ankoh/dashql-core';
 import { createEmbeddedDatabaseShellEnvironment } from '../shell_app/embedded_database_shell_environment.js';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import {
     HyperDB,
     HyperDBConnection,

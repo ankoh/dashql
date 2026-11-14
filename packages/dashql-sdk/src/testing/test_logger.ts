@@ -1,6 +1,6 @@
-import type { LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
-import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { LogRecord } from '../platform/logger/log_buffer.js';
+import { LogLevel } from '../platform/logger/log_buffer.js';
+import { Logger } from '../platform/logger/logger.js';
 
 /// A log record for tests, an info message unless overridden
 export function testLogRecord(fields: Partial<LogRecord> = {}): LogRecord {

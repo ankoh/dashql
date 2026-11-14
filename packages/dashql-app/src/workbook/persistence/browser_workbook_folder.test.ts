@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readWorkbookBundleFromBrowserFolder } from './browser_workbook_folder.js';
-import { TEST_CONNECTION_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
+import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 
 function file(path: string, text: string): File {
     const value = new File([text], path.split('/').pop()!);

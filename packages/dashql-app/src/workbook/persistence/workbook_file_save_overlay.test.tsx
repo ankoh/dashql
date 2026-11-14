@@ -8,7 +8,7 @@ import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_s
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';

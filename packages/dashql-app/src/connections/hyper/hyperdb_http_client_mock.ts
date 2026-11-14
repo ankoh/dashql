@@ -9,7 +9,7 @@ import {
     QueryErrorResponse,
     QueryStatus,
 } from './hyperdb_http_client.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 
 const ARROW_CONTENT_TYPE = "application/vnd.apache.arrow.stream";
 

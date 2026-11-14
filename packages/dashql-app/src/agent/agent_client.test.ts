@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentClient, AgentCommandError, AgentConnectionStatus, type AgentSocket } from './agent_client.js';
 import { AGENT_FEATURES, AGENT_PROTOCOL_VERSION, type AgentCommandParams, type AgentCommandResult } from './agent_protocol.js';
-import { TestLogger } from '../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { LogLevel, type LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 
 /// Run the pending promise callbacks, the commands answer asynchronously

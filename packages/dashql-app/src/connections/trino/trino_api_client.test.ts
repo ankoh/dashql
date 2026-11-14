@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { parseTrinoJson, TARGET_RESULT_SIZE, TrinoApiClient, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
 
 const NEXT_URI = 'https://trino.example.com/v1/statement/executing/q1/y1/1';

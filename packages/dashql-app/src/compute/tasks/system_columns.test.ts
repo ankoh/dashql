@@ -6,7 +6,7 @@ import { computeSystemColumns } from './system_columns.js';
 import { computeTableAggregates } from './table_aggregation.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 describe('computeSystemColumns', () => {

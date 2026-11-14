@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { reportWorkbookOutcomes, WORKBOOK_STATUS_LOG_TARGET, WorkbookStatusStore } from './workbook_status_store.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 
 function status(key: string, tone = WorkbookStatusTone.Progress, extra: Partial<WorkbookStatus> = {}): WorkbookStatus {

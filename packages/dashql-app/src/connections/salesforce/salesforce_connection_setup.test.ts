@@ -4,7 +4,7 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { createSalesforceSetup, setupSalesforceConnection } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
 import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';

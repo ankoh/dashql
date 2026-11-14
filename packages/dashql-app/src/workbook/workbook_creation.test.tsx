@@ -8,11 +8,11 @@ import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_s
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { WorkbookTestBackend, TEST_CONNECTION_ID } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
-import { setHyperLinkToken } from '../connections/hyper/hyper_link.js';
+import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 
 describe('workbook creation', () => {
     it('picks the first workbook name no other workbook has', () => {

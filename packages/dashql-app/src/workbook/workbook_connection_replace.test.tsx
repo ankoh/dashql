@@ -13,7 +13,7 @@ import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from 
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { QueryExecutorProvider } from '../connections/query_executor.js';
-import { WorkbookTestBackend, testWorkbook } from '../storage/workbook_test_backend.js';
+import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { scriptConnectionOf, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';

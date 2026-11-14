@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '../../platform/logger/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { ArrowTableFormatter, dataTypeToString } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import {
     type ColumnAggregationTask,

@@ -7,7 +7,7 @@ import {
     connectionRefsChanged,
     planConnectionImport,
 } from './workbook_connection_import.js';
-import { testWorkbook } from '../../storage/workbook_test_backend.js';
+import { testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import type { ConnectionEntry, ConnectionParams } from '@ankoh/dashql-sdk/storage/storage_backend';
 
 const KNOWN = 'aaaaaaaa-0000-4000-8000-00000000000a';
