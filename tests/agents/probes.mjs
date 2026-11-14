@@ -3,7 +3,11 @@
 import { spawn } from 'node:child_process';
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+
+/// The Node binary itself: in a js_test of Bazel, process.execPath is a wrapper that needs the environment of the test,
+/// which a harness doesn't pass to its hooks
+const NODE = process.env.JS_BINARY__NODE_BINARY ? resolve(process.env.JS_BINARY__NODE_BINARY) : process.execPath;
 
 /// A server on loopback that the probes connect to
 export async function startLoopbackTarget() {
@@ -65,4 +69,74 @@ export function runHarness(binary, args, { cwd, env, timeoutMs = 90_000 }) {
             else fail(new Error(`${binary} exited with ${code}: ${stderr.slice(-2000)}`));
         });
     });
+}
+
+/// A server on loopback that a SessionStart hook starts for the session, like the server of a live view. It records
+/// the lines that the hooks send it in session.events and writes its port to session.port.
+function writeSessionServer(dir) {
+    const server = join(dir, 'session_server.mjs');
+    writeFileSync(server, `import net from 'node:net';
+import { appendFileSync, writeFileSync } from 'node:fs';
+const server = net.createServer(socket => {
+    socket.setEncoding('utf8');
+    socket.on('data', data => appendFileSync(${JSON.stringify(join(dir, 'session.events'))}, data));
+});
+server.listen(0, '127.0.0.1', () => {
+    appendFileSync(${JSON.stringify(join(dir, 'session.events'))}, 'started\\n');
+    writeFileSync(${JSON.stringify(join(dir, 'session.pid'))}, String(process.pid));
+    writeFileSync(${JSON.stringify(join(dir, 'session.port'))}, String(server.address().port));
+});
+`);
+    return server;
+}
+
+/// A hook that starts the session server on SessionStart and sends every other event to it
+export function writeSessionHook(dir) {
+    const server = writeSessionServer(dir);
+    const port = join(dir, 'session.port');
+    const hook = join(dir, 'session_hook.sh');
+    writeFileSync(hook, `#!/bin/bash
+cat > /dev/null
+if [ "$1" = SessionStart ]; then
+    # The harness waits for the output of a hook, the server must not hold it
+    nohup ${JSON.stringify(NODE)} ${JSON.stringify(server)} > ${JSON.stringify(join(dir, 'session.log'))} 2>&1 &
+    for i in $(seq 50); do [ -s ${JSON.stringify(port)} ] && break; sleep 0.1; done
+fi
+if [ -s ${JSON.stringify(port)} ]; then
+    exec 3<>/dev/tcp/127.0.0.1/$(cat ${JSON.stringify(port)}) && echo "$1" >&3
+fi
+`);
+    chmodSync(hook, 0o755);
+    return hook;
+}
+
+/// A script that tries to reach the session server, prints `loopback:ok` or `loopback:blocked`
+export function writeSessionProbe(dir) {
+    const probe = join(dir, 'session_probe.sh');
+    writeFileSync(probe, `#!/bin/bash
+if (exec 3<>/dev/tcp/127.0.0.1/$(cat ${JSON.stringify(join(dir, 'session.port'))})) 2>/dev/null; then echo loopback:ok; else echo loopback:blocked; fi
+`);
+    chmodSync(probe, 0o755);
+    return probe;
+}
+
+/// The events that reached the session server and its output, it stops afterwards
+export function stopSessionServer(dir) {
+    const pid = join(dir, 'session.pid');
+    if (existsSync(pid)) {
+        try { process.kill(Number(readFileSync(pid, 'utf8'))); } catch { /* gone */ }
+    }
+    const events = join(dir, 'session.events');
+    const log = join(dir, 'session.log');
+    return {
+        events: existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n') : [],
+        log: existsSync(log) ? readFileSync(log, 'utf8') : '',
+    };
+}
+
+/// A SQL file with a parse error for `dashql lint`
+export function writeBrokenScript(dir) {
+    const script = join(dir, 'broken.sql');
+    writeFileSync(script, 'select * from;\n');
+    return script;
 }

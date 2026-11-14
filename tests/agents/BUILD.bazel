@@ -54,12 +54,19 @@ js_test(
     data = [
         "fake_anthropic.mjs",
         "probes.mjs",
+        "//packages/dashql-cli:dashql",
         ":claude",
     ],
     entry_point = "claude_code_sandbox_test.mjs",
-    env = {"CLAUDE_BINARY": "$(rootpath :claude)"},
+    env = {
+        "DASHQL_BINARY": "$(rootpath //packages/dashql-cli:dashql)",
+        "CLAUDE_BINARY": "$(rootpath :claude)",
+    },
     # The binary of the harness stays in its repository, js_test copies only sources of this package
-    no_copy_to_bin = [":claude"],
+    no_copy_to_bin = [
+        ":claude",
+        "//packages/dashql-cli:dashql",
+    ],
     tags = ["no-sandbox"],
 )
 
@@ -69,15 +76,20 @@ js_test(
     data = [
         "fake_openai.mjs",
         "probes.mjs",
+        "//packages/dashql-cli:dashql",
         ":codex",
         ":codex_files",
     ],
     entry_point = "codex_sandbox_test.mjs",
-    env = {"CODEX_BINARY": "$(rootpath :codex)"},
+    env = {
+        "DASHQL_BINARY": "$(rootpath //packages/dashql-cli:dashql)",
+        "CODEX_BINARY": "$(rootpath :codex)",
+    },
     # The binary and the resources of the harness stay in its repository, js_test copies only sources of this package
     no_copy_to_bin = [
         ":codex",
         ":codex_files",
+        "//packages/dashql-cli:dashql",
     ],
     tags = ["no-sandbox"],
 )
