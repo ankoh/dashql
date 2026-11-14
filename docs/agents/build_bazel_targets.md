@@ -140,6 +140,8 @@ bazel test //...
 | `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, the ways out of the sandbox, a session server of hooks, `dashql lint` in the sandbox, see `docs/wip/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
 | `//tests/agents:hyperdb_edge_claude_code_test` | hyperdb-edge in Claude Code with a fake model: `describe` and `run` in the sandbox, a database and files in the workspace, errors, rules by prefix, the skill, see `docs/wip/hyperdb_edge.md`. Needs what `claude_code_sandbox_test` needs |
 | `//tests/agents:hyperdb_edge_codex_test` | hyperdb-edge in Codex with a fake model: `describe` and `run` in `workspace-write` without network, `describe` in `read-only`, the skill, see `docs/wip/hyperdb_edge.md` |
+| `//tests/agents:hyperdb_edge_tool_runner_test` | The tools of hyperdb-edge in the Tool Runner of the Anthropic SDK with a fake model: their schemas, the calls of one turn in order, errors, `max_rows`, see `docs/wip/hyperdb_edge.md` |
+| `//tests/agents:hyperdb_edge_agent_sdk_test` | The tools of hyperdb-edge in the Claude Agent SDK with a fake model and the pinned Claude Code: their schemas without built-in tools, the calls of one turn in order, errors, `allowedTools`, see `docs/wip/hyperdb_edge.md` |
 | `//tests/agents:codex_sandbox_test` | Codex with a fake model: its sandbox modes, its hooks, an `allow` rule and a request to escalate, a session server of hooks, `dashql lint` in the sandbox, see `docs/wip/agent_integration_tests.md`. Downloads the binary of Codex |
 
 ### Trino (manual, local only)

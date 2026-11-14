@@ -43,10 +43,16 @@ function reply(res, request, id, content) {
 }
 
 /// Start the fake. `turn(request, index)` returns the content blocks of the next turn of the main conversation, the
-/// one whose request offers the tool `mainTool`.
+/// one whose request offers the tool `mainTool`. A request on a message thread (the Tool Runner of the Anthropic SDK
+/// uses them) sends only new messages and no tools: it belongs to the main conversation when it continues one of its
+/// replies.
 export async function startFakeAnthropic({ turn, mainTool = 'Bash' }) {
     const requests = [];
     let turns = 0;
+    const mainReplies = new Set();
+    const isMain = request =>
+        request.tools?.some(tool => tool.name === mainTool) ||
+        (request.thread?.type === 'continue' && mainReplies.has(request.thread.previous_message_id));
     const server = http.createServer((req, res) => {
         let body = '';
         req.on('data', chunk => { body += chunk; });
@@ -57,8 +63,10 @@ export async function startFakeAnthropic({ turn, mainTool = 'Bash' }) {
             if (!req.url.startsWith('/v1/messages') || req.url.includes('count_tokens')) {
                 res.writeHead(200, { 'content-type': 'application/json' });
                 res.end(JSON.stringify({ input_tokens: 1 }));
-            } else if (request.tools?.some(tool => tool.name === mainTool)) {
-                reply(res, request, `msg_${turns}`, turn(request, turns++));
+            } else if (isMain(request)) {
+                const id = `msg_${turns}`;
+                mainReplies.add(id);
+                reply(res, request, id, turn(request, turns++));
             } else {
                 reply(res, request, 'msg_side', [text('ok')]);
             }

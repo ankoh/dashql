@@ -24,8 +24,19 @@ export async function runStatement(
 ): Promise<StatementResult> {
     const operation = connection.queryIPC(sql, options);
     // The info rejects as well when the statement fails, the error reaches the caller through the result
-    operation.info.catch(() => {});
-    const bytes = await operation;
+    const settled = operation.info.then(
+        () => {},
+        () => {},
+    );
+    let bytes: Uint8Array;
+    try {
+        bytes = await operation;
+    } catch (e) {
+        // An aborted query rejects at once, while the connection stays busy until the engine cancelled it ("connection
+        // has an active operation"). The info settles then, so wait for it: the connection is free when this returns.
+        await settled;
+        throw e;
+    }
     const info = await operation.info;
     const table = info.producesRows && bytes.byteLength > 0 ? tableFromIPC(bytes) : null;
     return {

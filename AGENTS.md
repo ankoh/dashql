@@ -42,7 +42,7 @@ Please consult relevant docs in that directory before making changes.
     - `extensions/d360-api/clfn/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `extensions/d360-api/clfn/spec/*.yaml`, the source of the spec as well)
     - `extensions/d360-api/clfn/docs/api_notes.md` (API quirks, usage order, source conflicts, checks to run on an org)
 
-- hyperdb-edge (`packages/hyperdb-edge`: a command line tool and library for the embedded Hyper of hyperdb-wasm, derived from it, not part of it; `run` and `describe` only, no app logic; every SQL example of `describe` runs in the tests; harness tests in `tests/agents/`)
+- hyperdb-edge (`packages/hyperdb-edge`: a command line tool and library for the embedded Hyper of hyperdb-wasm, derived from it, not part of it; `run` and `describe` only, no app logic; the same two as in-process tools for the Tool Runner and the Claude Agent SDK on a session with a warm engine; every SQL example of `describe` runs in the tests; harness and SDK tests in `tests/agents/`)
     - `docs/wip/hyperdb_edge.md`
 
 - Workbook tables (`.dashql` files and links: the tables of one workbook, Parquet entries of a ZIP, `?zip=` links, archives of older versions)

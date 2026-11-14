@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { openEngine } from '../node/open_engine.js';
+import { openEngine } from './open_engine.js';
 import { runStatement } from '../run_statement.js';
 import { splitStatements } from '../statements.js';
 import { DESCRIBE_DIRECTORY, describeTopics, readDescribe, UnknownTopicError } from './describe.js';

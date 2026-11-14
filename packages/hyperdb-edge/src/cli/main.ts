@@ -1,19 +1,16 @@
 #!/usr/bin/env node
 // hyperdb-edge: runs SQL on the embedded Hyper of hyperdb-wasm. Builds on hyperdb-wasm, not part of it.
 
-import { fork } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { acquireDatabaseLock, DatabaseInUseError } from '../node/database_lock.js';
+import { DatabaseInUseError } from '../node/database_lock.js';
+import { readDescribe, UnknownTopicError } from '../node/describe.js';
+import { DatabaseFolderMissingError } from '../node/open_engine.js';
 import { checkWasmFeatures, WASM_FEATURE_MODULES } from '../node/runtime_check.js';
+import { EdgeSession, EngineOpenError } from '../node/session.js';
 import { splitStatements } from '../statements.js';
 import { parseArguments, USAGE, UsageError, type RunArguments } from './args.js';
-import { readDescribe, UnknownTopicError } from './describe.js';
-import type { EngineMessage, EngineRequest } from './protocol.js';
-
-const ENGINE_PROCESS = fileURLToPath(new URL('./engine_process.js', import.meta.url));
 
 function write(stream: NodeJS.WriteStream, text: string) {
     stream.write(text);
@@ -48,14 +45,7 @@ async function readStdin(): Promise<string> {
     return text;
 }
 
-function isDirectory(folder: string): boolean {
-    try {
-        return statSync(folder).isDirectory();
-    } catch {
-        return false;
-    }
-}
-
+/// `run` is a session with one call
 async function run(args: RunArguments): Promise<number> {
     const workDirectory = process.cwd();
     let sql: string;
@@ -74,105 +64,41 @@ async function run(args: RunArguments): Promise<number> {
             sql = await readStdin();
             break;
     }
-    const statements = splitStatements(sql);
-    if (statements.length === 0) return fail('the SQL has no statement', 2);
+    // Checked before the engine starts
+    if (splitStatements(sql).length === 0) return fail('the SQL has no statement', 2);
 
-    let database: string | null = null;
-    let release = () => {};
-    if (args.database != null) {
-        database = path.resolve(workDirectory, args.database);
-        if (!isDirectory(path.dirname(database))) {
-            return fail(`the folder ${path.dirname(database)} of the database does not exist`, 2);
-        }
-        try {
-            release = acquireDatabaseLock(database);
-        } catch (e) {
-            if (e instanceof DatabaseInUseError) return fail(e.message, 2);
-            throw e;
-        }
-    }
-
+    let session: EdgeSession;
     try {
-        return await runEngine({
-            type: 'run',
-            database,
+        session = await EdgeSession.open({
+            database: args.database,
             workDirectory,
             settings: args.settings,
-            statements,
             format: args.format,
             maxRows: args.maxRows,
         });
-    } finally {
-        release();
+    } catch (e) {
+        if (e instanceof DatabaseInUseError || e instanceof DatabaseFolderMissingError) return fail(e.message, 2);
+        if (e instanceof EngineOpenError) return fail(e.message, e.usage ? 2 : 1);
+        return fail((e as Error).message, 1);
     }
-}
 
-/// A warning of Node that the worker of the engine causes when it closes its files, now and then. Harnesses show
-/// stderr to the model, so it would read as a problem of the command.
-const ENGINE_FD_WARNING = /^\(node:\d+\) Warning: File descriptor \d+ closed but not opened in unmanaged mode$/;
-const TRACE_WARNINGS_HINT = /^\(Use `node --trace-warnings \.\.\.` to show where the warning was created\)$/;
-
-/// Pass on the stderr of the engine process without the warning above and the hint that Node prints after it
-function forwardEngineStderr(stream: NodeJS.ReadableStream) {
-    let pending = '';
-    let droppedWarning = false;
-    const forward = (line: string) => {
-        if (ENGINE_FD_WARNING.test(line)) {
-            droppedWarning = true;
-            return;
-        }
-        if (droppedWarning && TRACE_WARNINGS_HINT.test(line)) {
-            droppedWarning = false;
-            return;
-        }
-        droppedWarning = false;
-        write(process.stderr, `${line}\n`);
-    };
-    stream.setEncoding('utf8');
-    stream.on('data', (chunk: string) => {
-        pending += chunk;
-        const lines = pending.split('\n');
-        pending = lines.pop()!;
-        lines.forEach(forward);
-    });
-    stream.on('end', () => {
-        if (pending.length > 0) forward(pending);
-    });
-}
-
-/// Run the statements in the engine process and pass on its output
-function runEngine(request: EngineRequest): Promise<number> {
-    return new Promise(resolve => {
-        const child = fork(ENGINE_PROCESS, [], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], execArgv: [] });
-        forwardEngineStderr(child.stderr!);
-        let code: number | null = null;
-        const forward = (signal: NodeJS.Signals) => child.kill(signal);
-        process.on('SIGINT', forward);
-        process.on('SIGTERM', forward);
-        child.on('message', (message: EngineMessage) => {
-            switch (message.type) {
-                case 'stdout':
-                    write(process.stdout, message.text);
-                    break;
-                case 'stderr':
-                    write(process.stderr, message.text);
-                    break;
-                case 'done':
-                    code = message.code;
-                    break;
-            }
+    const cancel = new AbortController();
+    const onSignal = () => cancel.abort();
+    process.on('SIGINT', onSignal);
+    process.on('SIGTERM', onSignal);
+    try {
+        const result = await session.run(sql, {
+            signal: cancel.signal,
+            onOutput: (stream, text) => write(stream === 'stdout' ? process.stdout : process.stderr, text),
         });
-        // After the stderr of the child ended, so no line of it comes after the command returned
-        child.on('close', (exitCode, signal) => {
-            process.off('SIGINT', forward);
-            process.off('SIGTERM', forward);
-            if (code == null) {
-                code = fail(`the engine process ended ${signal != null ? `with ${signal}` : `with code ${exitCode}`}`, 1);
-            }
-            resolve(code);
-        });
-        child.send(request);
-    });
+        return result.failed != null || result.cancelled ? 1 : 0;
+    } catch (e) {
+        return fail((e as Error).message, 1);
+    } finally {
+        process.off('SIGINT', onSignal);
+        process.off('SIGTERM', onSignal);
+        await session.close();
+    }
 }
 
 async function main(argv: string[]): Promise<number> {

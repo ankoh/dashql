@@ -39,6 +39,14 @@ _DEPENDENCIES = [
     "//:node_modules/hyperdb-wasm",
 ]
 
+# The SDKs of the adapters in src/adapters/, peer dependencies of those modules only
+_ADAPTER_DEPENDENCIES = [
+    "//:node_modules/@anthropic-ai/claude-agent-sdk",
+    "//:node_modules/@anthropic-ai/sdk",
+    "//:node_modules/@modelcontextprotocol/sdk",
+    "//:node_modules/zod",
+]
+
 typescript_bin.tsc_binary(
     name = "tsc_bin",
 )
@@ -55,7 +63,7 @@ ts_project(
     transpiler = "tsc",
     validate = False,
     validator = ":tsc_bin",
-    deps = _DEPENDENCIES,
+    deps = _DEPENDENCIES + _ADAPTER_DEPENDENCIES,
 )
 
 js_binary(
@@ -97,7 +105,7 @@ typescript_bin.tsc_test(
     data = [
         ":typecheck_inputs",
         "//:node_modules/vitest",
-    ] + _DEPENDENCIES,
+    ] + _DEPENDENCIES + _ADAPTER_DEPENDENCIES,
 )
 
 # The tests in Node: the library against the engine, and the compiled command run as separate processes

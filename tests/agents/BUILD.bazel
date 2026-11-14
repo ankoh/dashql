@@ -141,3 +141,35 @@ js_test(
     ],
     tags = ["no-sandbox"],
 )
+
+# The tools of hyperdb-edge in the Tool Runner of the Anthropic SDK, with the fake model. It needs no harness, it is
+# tagged like the other tests of the package since the copies of their shared sources must be the same actions.
+js_test(
+    name = "hyperdb_edge_tool_runner_test",
+    size = "large",
+    data = _HYPERDB_EDGE + [
+        "fake_anthropic.mjs",
+        "//:node_modules/@anthropic-ai/sdk",
+    ],
+    entry_point = "hyperdb_edge_tool_runner_test.mjs",
+    tags = ["no-sandbox"],
+)
+
+# The tools of hyperdb-edge in the Claude Agent SDK, which runs the pinned Claude Code
+js_test(
+    name = "hyperdb_edge_agent_sdk_test",
+    size = "large",
+    data = _HYPERDB_EDGE + [
+        "fake_anthropic.mjs",
+        ":claude",
+        "//:node_modules/@anthropic-ai/claude-agent-sdk",
+        "//:node_modules/@modelcontextprotocol/sdk",
+        "//:node_modules/zod",
+    ],
+    entry_point = "hyperdb_edge_agent_sdk_test.mjs",
+    env = {
+        "CLAUDE_BINARY": "$(rootpath :claude)",
+    },
+    no_copy_to_bin = [":claude"],
+    tags = ["no-sandbox"],
+)

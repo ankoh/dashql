@@ -75,6 +75,18 @@ describe('runStatement', () => {
         await expect(runStatement(engine.connection, 'select 1; select 2')).rejects.toBeInstanceOf(HyperDBError);
     });
 
+    it('returns from a cancelled statement with the connection free for the next', async () => {
+        const cancel = new AbortController();
+        const running = runStatement(engine.connection, 'select count(*) from generate_series(1, 2000000) a, generate_series(1, 2000) b', {
+            signal: cancel.signal,
+        });
+        setTimeout(() => cancel.abort(), 200);
+        await expect(running).rejects.toThrow();
+        // At once, without waiting: the engine would otherwise answer "connection has an active operation"
+        const next = await runStatement(engine.connection, 'select 1 as a');
+        expect(next.table!.numRows).toBe(1);
+    });
+
     it('keeps the connection usable after a failed statement', async () => {
         await runStatement(engine.connection, 'select * from missing_table').catch(() => null);
         const result = await runStatement(engine.connection, 'select count(*) as n from t');
