@@ -48,6 +48,13 @@ function pathToken(url: URL): string | null {
     return parts[1] === 'v1' && (parts[2] === 'workbooks' || parts[2] === 'results') ? decodeURIComponent(parts[3] ?? '') : null;
 }
 
+/// A workbook folder of the journal, only inside the folder of the session: the server hands out no other files
+function workbookFolder(sessionFolder: string, relative: string): string {
+    const folder = path.resolve(sessionFolder, relative);
+    const root = path.resolve(sessionFolder);
+    return folder === root || folder.startsWith(root + path.sep) ? folder : path.join(root, '\0outside');
+}
+
 /// A file of a workbook folder by its path in the folder, null unless the folder holds it and the server hands it out
 function workbookFile(folder: string, parts: string[]): string | null {
     const relative = parts.join('/');
@@ -151,7 +158,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                     // The marker names the files of a folder, the server reads their stamps
                     const paths = journalFilePaths(record);
                     const workbook = record.keyValues[JOURNAL_KEYS.workbook];
-                    const files = paths == null || typeof workbook !== 'string' ? [] : stampFiles(path.resolve(options.folder, workbook), paths);
+                    const files = paths == null || typeof workbook !== 'string' ? [] : stampFiles(workbookFolder(options.folder, workbook), paths);
                     state = reduceAgentSessionJournal(state, record, files);
                 }
                 if (records.length > 0) broadcast();
@@ -222,7 +229,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             // /v1/workbooks/<token>/<workbook id>/<path in the folder>
             const [workbookId, ...parts] = url.pathname.split('/').slice(4).map(decodeURIComponent);
             const workbook = state.workbooks.find(other => other.workbookId === workbookId);
-            const file = workbook == null ? null : workbookFile(path.resolve(options.folder, workbook.path), parts);
+            const file = workbook == null ? null : workbookFile(workbookFolder(options.folder, workbook.path), parts);
             if (file == null) {
                 response.writeHead(404).end();
                 return;

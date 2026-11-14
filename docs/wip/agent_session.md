@@ -28,8 +28,9 @@ goes through a `dashql` command, so the commands tell what they changed.
 - **The server creates it.** `dashql session serve` creates `.dashql/journal.jsonl` in the folder of the session, empty
   for every session; the folder ignores itself (`.dashql/.gitignore` is `*`). A folder it can't write to has no
   journal.
-- **Commands append their log to it.** A command of a workbook folder walks up to the nearest `.dashql/journal.jsonl`
-  and appends its log records from `info` on, one JSON line each, the `LogRecord`s of the log of the app. Records of
+- **Commands append their log to it.** A command gets the workspace, the folder that the harness works in: the
+  invoking directory, or `--workspace <dir>`. If the workspace has `.dashql/journal.jsonl`, a command of a workbook
+  folder in the workspace appends its log records from `info` on, one JSON line each, the `LogRecord`s of the log of the app. Records of
   the target `workbook_journal` are markers of what changed (`session/workbook_journal.ts` of the runtime), with the
   workbook folder relative to the folder of the session and the workbook id in their values:
   - `Workbook files`: the paths of all files of the folder (`files` is a list, log values are texts or lists of texts);

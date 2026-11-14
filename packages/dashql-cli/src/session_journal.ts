@@ -1,4 +1,4 @@
-// The journal of the session that a workbook folder is in (@ankoh/dashql-runtime/session/workbook_journal): dashql
+// The journal of the session of a workspace (@ankoh/dashql-runtime/session/workbook_journal): dashql
 // commands append their log records, `dashql session serve` reads them.
 import { appendFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -16,30 +16,24 @@ export interface SessionJournal {
     write(record: LogRecord): void;
 }
 
-/// The journal of the session that a workbook folder is in: the nearest `.dashql/journal.jsonl` in the folder or above
-/// it, which `dashql session serve` creates in the folder of its session. Null outside a session.
-export function openSessionJournal(workbookFolder: string): SessionJournal | null {
-    const folder = path.resolve(workbookFolder);
-    let dir = folder;
-    while (true) {
-        const journal = path.join(dir, SESSION_JOURNAL_FOLDER, SESSION_JOURNAL_FILE);
-        if (existsSync(journal)) {
-            return {
-                workbook: path.relative(dir, folder).split(path.sep).join('/') || '.',
-                write: record => {
-                    try {
-                        // One write of a whole line, the appends of other commands never interleave with it
-                        appendFileSync(journal, `${JSON.stringify(record)}\n`);
-                    } catch {
-                        // The session is gone or its folder is not writable here
-                    }
-                },
-            };
-        }
-        const parent = path.dirname(dir);
-        if (parent === dir) return null;
-        dir = parent;
-    }
+/// The journal of the session of a workspace, `.dashql/journal.jsonl`, which `dashql session serve` creates in the
+/// folder of its session. Null outside a session and for a workbook folder outside the workspace: the server hands out
+/// only the files of its folder.
+export function openSessionJournal(workspace: string, workbookFolder: string): SessionJournal | null {
+    const journal = path.join(workspace, SESSION_JOURNAL_FOLDER, SESSION_JOURNAL_FILE);
+    const relative = path.relative(path.resolve(workspace), path.resolve(workbookFolder));
+    if (!existsSync(journal) || relative.startsWith('..') || path.isAbsolute(relative)) return null;
+    return {
+        workbook: relative.split(path.sep).join('/') || '.',
+        write: record => {
+            try {
+                // One write of a whole line, the appends of other commands never interleave with it
+                appendFileSync(journal, `${JSON.stringify(record)}\n`);
+            } catch {
+                // The session is gone or its folder is not writable here
+            }
+        },
+    };
 }
 
 /// The paths of all files of a workbook folder: its workbook file, its scripts and its attachments

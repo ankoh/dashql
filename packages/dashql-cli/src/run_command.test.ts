@@ -261,6 +261,25 @@ describe('dashql run', () => {
         expect(markers[4][2]).toMatchObject({ key: '', result_rows: '', error: "line 1:8: Column 'fail' cannot be resolved" });
     });
 
+    it('finds the session in the workspace that it is given, not above the invoking directory', async () => {
+        const workspace = testFiles([['.dashql/journal.jsonl', '']]);
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        const nested = path.join(workspace, 'orders');
+        copyFileSync(path.join(dir, 'dashql-workbook.json'), (mkdirSync(path.join(nested, 'scripts'), { recursive: true }), path.join(nested, 'dashql-workbook.json')));
+        copyFileSync(path.join(dir, 'scripts', ORDERS[0]), path.join(nested, 'scripts', ORDERS[0]));
+        const journal = () => readFileSync(path.join(workspace, '.dashql', 'journal.jsonl'), 'utf8');
+
+        // Invoked in the workbook folder, the session one level up is not searched for
+        expect((await run(nested, ['.'])).code).toBe(0);
+        expect(journal()).toBe('');
+
+        // Given the workspace, the run names its workbook folder relative to it
+        expect((await run(nested, ['--workspace', '..', '.'], PASSWORD, null)).code).toBe(0);
+        const markers = journal().trim().split('\n').map(line => JSON.parse(line)).filter(record => record.target === 'workbook_journal');
+        expect(markers[0].keyValues).toMatchObject({ workbook: 'orders', files: ['dashql-workbook.json', 'scripts/01_orders.sql'] });
+        expect(existsSync(path.join(workspace, '.dashql', 'cache'))).toBe(true);
+    });
+
     it('reports the progress of a running script to the journal', async () => {
         const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
         mkdirSync(path.join(dir, '.dashql'));

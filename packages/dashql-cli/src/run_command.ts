@@ -47,7 +47,7 @@ import {
 } from '@ankoh/dashql-runtime/session/workbook_journal';
 import type { LogKeyValues } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 
-export const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--verbose] <workbook-dir> [<script>...]
+export const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
 Runs scripts of a workbook folder on their connections, in the order of the workbook, all of them by default. Each
 script runs like the Run of the script in DashQL: with the scripts it references. The run stops at the first script
@@ -55,8 +55,9 @@ that fails. Prints the schema, the row count and the first rows of every result 
 Parquet file of the result in the query result cache.
 
 The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
-attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the nearest .dashql/ above the
-workbook folder, which dashql session serve creates in the folder of its session, or ~/.dashql. A script whose result is cached is not run
+attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the .dashql/ of the workspace, which
+dashql session serve creates in the folder of its session, or ~/.dashql. The workspace is the folder that the harness
+works in, the invoking directory unless --workspace names it. In a session, run appends its log to the journal there. A script whose result is cached is not run
 again unless a script it follows runs, --refresh runs every script.
 
 Connections: Trino with basic auth. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the user and the password
@@ -71,8 +72,8 @@ const MAX_CELL_LENGTH = 40;
 
 /// The files and the credentials of the process
 export interface RunEnvironment {
-    /// The folder of the files of DashQL (DASHQL_HOME), null to find it: the nearest `.dashql/` above the workbook
-    /// folder, which `dashql session serve` creates in the folder of its session, or `~/.dashql`
+    /// The folder of the files of DashQL (DASHQL_HOME), null for the `.dashql/` of the workspace, which
+    /// `dashql session serve` creates in the folder of its session, or `~/.dashql`
     home: string | null;
     trinoUser?: string;
     trinoPassword?: string;
@@ -88,6 +89,8 @@ export function processRunEnvironment(): RunEnvironment {
 
 interface RunArgs {
     workbook: string;
+    /// The folder that the harness works in, the invoking directory by default
+    workspace: string | null;
     scripts: string[];
     rows: number;
     refresh: boolean;
@@ -99,6 +102,7 @@ function parseRunArgs(args: string[]): RunArgs | string {
     let rows = DEFAULT_ROWS;
     let verbose = false;
     let refresh = false;
+    let workspace: string | null = null;
     const positional: string[] = [];
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
@@ -110,6 +114,10 @@ function parseRunArgs(args: string[]): RunArgs | string {
             verbose = true;
         } else if (arg === '--refresh') {
             refresh = true;
+        } else if (arg === '--workspace') {
+            const value = args[++i];
+            if (value == null || value.startsWith('-')) return '--workspace takes a folder';
+            workspace = value;
         } else if (arg.startsWith('-')) {
             return `unknown option ${arg}`;
         } else {
@@ -118,7 +126,7 @@ function parseRunArgs(args: string[]): RunArgs | string {
     }
     if (positional.length === 0) return 'missing the workbook folder';
     const [workbook, ...scripts] = positional;
-    return { workbook, scripts, rows, refresh, verbose };
+    return { workbook, workspace, scripts, rows, refresh, verbose };
 }
 
 /// The logger of a run, prints the records with --verbose
@@ -271,17 +279,11 @@ function count(n: number, noun: string): string {
     return `${n} ${noun}${n === 1 ? '' : 's'}`;
 }
 
-/// The root of the files of DashQL for a workbook folder: the nearest `.dashql/` in the folder or above it, the one of
-/// the session that the folder is in, or `~/.dashql`
-export function findDashQLRoot(workbookFolder: string): string {
-    let dir = path.resolve(workbookFolder);
-    while (true) {
-        const root = path.join(dir, SESSION_JOURNAL_FOLDER);
-        if (existsSync(root)) return root;
-        const parent = path.dirname(dir);
-        if (parent === dir) return path.join(homedir(), SESSION_JOURNAL_FOLDER);
-        dir = parent;
-    }
+/// The root of the files of DashQL of a workspace: its `.dashql/`, which `dashql session serve` creates in the folder of
+/// its session, or `~/.dashql` outside a session
+export function dashqlRootOf(workspace: string): string {
+    const root = path.join(workspace, SESSION_JOURNAL_FOLDER);
+    return existsSync(root) ? root : path.join(homedir(), SESSION_JOURNAL_FOLDER);
 }
 
 /// The connections that the plan of a script runs statements on: its own and those of the scripts it materializes. A
@@ -337,6 +339,8 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
+    // The folder that the harness works in, the folder of its session
+    const workspace = path.resolve(cli.cwd, parsed.workspace ?? '.');
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
@@ -348,7 +352,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     // connections and the attachments. Without it the scripts still run, nothing is written.
     let hyper: NodeComputeDatabase | null = null;
     try {
-        hyper = await openNodeComputeDatabase(env.home ?? findDashQLRoot(dir));
+        hyper = await openNodeComputeDatabase(env.home ?? dashqlRootOf(workspace));
     } catch (error) {
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
@@ -373,7 +377,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         if (hyper != null) await mirrorWorkbookAttachments(storage, workbookId);
         // A session below the folder learns the files of the folder, the agent may have changed them, and every result
         // In a session the log of the run goes into its journal, with markers of what changed
-        logger.journal = openSessionJournal(dir);
+        logger.journal = openSessionJournal(workspace, dir);
         const mark = (message: string, keyValues: LogKeyValues) => {
             if (logger.journal == null) return;
             logger.info(message, { [JOURNAL_KEYS.workbook]: logger.journal.workbook, [JOURNAL_KEYS.workbookId]: workbookId, ...keyValues }, JOURNAL_TARGET);

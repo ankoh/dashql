@@ -114,8 +114,9 @@ query result cache. `--verbose` prints the log of the runtime to stderr.
 - **The files of DashQL.** A root with the layout of the storage of the app (`docs/design/storage_layout.md`): the
   query result cache in `cache/`, the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the
   folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end. The root is
-  `DASHQL_HOME`, else the nearest `.dashql/` above the workbook folder, the one that `dashql session serve` creates in
-  the folder of its session, else `~/.dashql`. In a session, everything of a project is in its `.dashql/`, which
+  `DASHQL_HOME`, else the `.dashql/` of the workspace, the one that `dashql session serve` creates in the folder of its
+  session, else `~/.dashql`. The workspace is the folder that the harness works in: the invoking directory, or
+  `--workspace <dir>`; nothing is searched for. In a session, everything of a project is in its `.dashql/`, which
   commands in the sandbox of a harness may write. It is a root of its own, the app keeps its files in the storage of
   the browser.
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the

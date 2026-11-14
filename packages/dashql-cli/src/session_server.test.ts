@@ -71,6 +71,12 @@ describe('the journal of the session server', () => {
         expect((await fetch(`${base}/v1/workbooks/${server.token}/w1/scripts/%2E%2E/%2E%2E/secret.txt`)).status).toBe(404);
         expect((await fetch(`${base}/v1/workbooks/${server.token}/w2/scripts/a.sql`)).status).toBe(404);
         expect((await fetch(`${base}/v1/workbooks/wrong/w1/scripts/a.sql`)).status).toBe(401);
+        // A workbook folder outside the folder of the session is not handed out
+        writeFileSync(path.join(folder, '..', 'outside.sql'), 'no');
+        appendFileSync(journal, `${JSON.stringify(record(JOURNAL_FILES, JOURNAL_TARGET, { [JOURNAL_KEYS.workbook]: '..', [JOURNAL_KEYS.workbookId]: 'w9', [JOURNAL_KEYS.files]: ['dashql-workbook.json'] }))}\n`);
+        await until(() => server!.state().workbooks.some(workbook => workbook.workbookId === 'w9'));
+        expect(server.state().workbooks.find(workbook => workbook.workbookId === 'w9')?.files).toEqual([]);
+        expect((await fetch(`${base}/v1/workbooks/${server.token}/w9/dashql-workbook.json`)).status).toBe(404);
 
         const newest = await fetch(`${base}/v1/results/${server.token}/${key}`);
         expect(newest.status).toBe(200);
