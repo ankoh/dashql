@@ -359,7 +359,7 @@ export class AgentClient {
         const params = message.params as AgentCommandParams;
         const command = { id: String(id), command: String(params.command) };
         const logger = this.#options.logger;
-        logger.info('Running a command of the agent', { ...logFields(params.args), ...command, workbook: String(params.workbook) }, LOG_CTX);
+        logger.info('Running a command of the agent', { ...logFields(params.args), ...command, workbookId: String(params.workbook) }, LOG_CTX);
         // The texts that the agent passes, e.g. the script of edit or the spec of vis edit
         for (const [name, value] of Object.entries(params.args ?? {})) {
             if (typeof value === 'string' && isLongText(value)) logger.debug(`The ${name} of the command`, { ...command, [name]: value }, LOG_CTX);

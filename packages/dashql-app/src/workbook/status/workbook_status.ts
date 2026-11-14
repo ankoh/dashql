@@ -20,7 +20,7 @@ export enum WorkbookStatusSource {
     Connection = 'connection',
 }
 
-/// A status of the workbook that Wobble tells on the bar of the prompt, and a line of its log
+/// A status of the workbook that Wobble tells on its bar: what runs, what needs the user or how something ended
 export interface WorkbookStatus {
     /// Unique among the statuses and the lines of the log
     key: string;
@@ -34,20 +34,7 @@ export interface WorkbookStatus {
     scriptKey?: number | null;
     /// When it happened, in milliseconds since the epoch
     at: number;
-    /// A line of the log that a live status left: what started, how it went on. The bar tells the newest line of the
-    /// log that is not one, a live status that ended without a line of its own is over.
-    progress?: boolean;
 }
-
-/// The name of a source in the log
-export const WORKBOOK_STATUS_SOURCE_LABELS: Record<WorkbookStatusSource, string> = {
-    [WorkbookStatusSource.Agent]: 'Agent',
-    [WorkbookStatusSource.ExecuteAll]: 'Execute All',
-    [WorkbookStatusSource.Query]: 'Query',
-    [WorkbookStatusSource.Files]: 'Files',
-    [WorkbookStatusSource.Cloud]: 'Cloud',
-    [WorkbookStatusSource.Connection]: 'Connection',
-};
 
 /// The order of the sources when several things run at once, the first wins
 const SOURCE_ORDER: WorkbookStatusSource[] = [
@@ -64,17 +51,14 @@ function bySource(left: WorkbookStatus, right: WorkbookStatus): number {
 }
 
 /// The status that the bar shows. `live` are the conditions of the moment: what runs and what needs the user.
-/// `log` are the things that happened, the newest last.
-/// What runs comes first, then what needs the user, then the newest outcome in the log.
-export function pickWorkbookStatus(live: readonly WorkbookStatus[], log: readonly WorkbookStatus[]): WorkbookStatus | null {
+/// `outcome` is how the latest thing ended.
+/// What runs comes first, then what needs the user, then the outcome.
+export function pickWorkbookStatus(live: readonly WorkbookStatus[], outcome: WorkbookStatus | null): WorkbookStatus | null {
     const running = live.filter(status => status.tone === WorkbookStatusTone.Progress).sort(bySource);
     if (running.length > 0) return running[0];
     const attention = live.filter(status => status.tone !== WorkbookStatusTone.Progress).sort(bySource);
     if (attention.length > 0) return attention[0];
-    for (let i = log.length - 1; i >= 0; --i) {
-        if (!log[i].progress) return log[i];
-    }
-    return null;
+    return outcome;
 }
 
 /// Is anything running? Wobble's dot pulses then.

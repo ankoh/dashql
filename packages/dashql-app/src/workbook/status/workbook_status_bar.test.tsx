@@ -10,7 +10,7 @@ import type { ComposerAgent, ComposerAgentTurn } from '../../agent/agent_prompt_
 import { AgentBridgeContext, type AgentBridge } from '../../agent/agent_bridge.js';
 import { AgentQuestionStore } from '../../agent/agent_question_store.js';
 import { AgentConnectionStatus } from '../../agent/agent_client.js';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { getGlobalLogger, LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -110,7 +110,7 @@ describe('Workbook status bar', () => {
 
     it('tells what runs first, then what needs the user, then what happened last', () => {
         render();
-        act(() => store.push('w1', [status('a', WorkbookStatusTone.Success, '1_orders ran', { detail: 'in 12 ms' })]));
+        act(() => store.setOutcome('w1', status('a', WorkbookStatusTone.Success, '1_orders ran', { detail: 'in 12 ms' })));
         expect(statusLine().textContent).toBe('1_orders ran in 12 ms');
         act(() => store.setLive('w1', 'connections', [status('c', WorkbookStatusTone.Attention, 'Trino is not connected', { source: WorkbookStatusSource.Connection })]));
         expect(statusLine().textContent).toBe('Trino is not connected');
@@ -121,25 +121,35 @@ describe('Workbook status bar', () => {
         act(() => store.setLive('w1', 'queries', []));
         expect(busyDot()).toBeNull();
         // Another workbook has a status of its own
-        act(() => store.push('w2', [status('b', WorkbookStatusTone.Failed, '1_other failed')]));
+        act(() => store.setOutcome('w2', status('b', WorkbookStatusTone.Failed, '1_other failed')));
         expect(statusLine().textContent).toBe('Trino is not connected');
     });
 
-    it('shows the log in the bubble of Wobble and the scripts of its lines', () => {
-        const onShowScript = vi.fn();
-        render({ onShowScript });
+    it('shows the records of the log of the app that belong to the workbook in the bubble of Wobble', async () => {
+        render();
+        const logger = getGlobalLogger()!;
         act(() => wobble().click());
         expect(container.querySelector('[data-testid="workbook-bubble-empty"]')).not.toBeNull();
         // The log is dark in both color schemes
         expect(getComputedStyle(bubble()!).colorScheme).toBe('dark');
-        act(() => store.push('w1', [
-            status('a', WorkbookStatusTone.Success, '1_orders ran', { scriptKey: 1 }),
-            status('b', WorkbookStatusTone.Failed, 'Running all scripts failed'),
-        ]));
+        act(() => {
+            logger.info('1_orders ran', { workbookId: 'w1', scriptKey: '1', detail: 'in 12 ms' }, 'workbook_status');
+            logger.info('Another workbook ran', { workbookId: 'w2' }, 'workbook_status');
+            logger.warn('Running all scripts failed', { workbookId: 'w1', error: 'boom' }, 'workbook_execution');
+        });
+        await vi.waitFor(() => expect(container.querySelectorAll('[data-testid="workbook-log-line"]')).toHaveLength(2));
         const lines = [...container.querySelectorAll<HTMLElement>('[data-testid="workbook-log-line"]')];
-        expect(lines.map(line => line.dataset.tone)).toEqual(['success', 'failed']);
+        expect(lines.map(line => line.dataset.level)).toEqual(['info', 'warn']);
+        // A line is short: the time, the level, the message and the target
+        expect(lines[0].textContent).toContain('1_orders ran');
+        expect(lines[0].textContent).toContain('workbook_status');
+        expect(lines[0].textContent).not.toContain('in 12 ms');
+        // A click shows the fields of the record, as in the log window
         act(() => lines[0].querySelector('button')!.click());
-        expect(onShowScript).toHaveBeenCalledExactlyOnceWith(1);
+        expect(lines[0].hasAttribute('data-selected')).toBe(true);
+        await vi.waitFor(() => expect(document.body.textContent).toContain('in 12 ms'));
+        act(() => document.body.querySelector<HTMLButtonElement>('[aria-label="Next log"]')!.click());
+        await vi.waitFor(() => expect(document.body.textContent).toContain('boom'));
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="workbook-bubble-close"]')!.click());
         expect(bubble()).toBeNull();
     });

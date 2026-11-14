@@ -10,7 +10,7 @@ import { formatMilliseconds } from '../../utils/format.js';
 import { getQueryStatusText } from '../entry_status_model.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
-import { useLiveWorkbookStatuses, useWorkbookLogTransitions } from './workbook_status_store.js';
+import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
 
 /// The latest query of a script
 export interface ScriptQuery {
@@ -249,8 +249,8 @@ export function useWorkbookStatusSources(args: {
         [queries, execution, connections, args.publish],
     );
     useLiveWorkbookStatuses(workbookId, 'workbook', live);
-    useWorkbookLogTransitions(workbookId, queries, (prev, next) => diffScriptQueries(prev, next, executing, Date.now()));
-    useWorkbookLogTransitions(workbookId, execution, (prev, next) => diffExecution(prev, next, Date.now()));
-    useWorkbookLogTransitions(workbookId, connections, (prev, next) => diffConnections(prev, next, Date.now()));
-    useWorkbookLogTransitions(workbookId, args.publish, (prev, next) => diffPublish(prev, next, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, queries, (prev, next) => diffScriptQueries(prev, next, executing, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, execution, (prev, next) => diffExecution(prev, next, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, connections, (prev, next) => diffConnections(prev, next, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, args.publish, (prev, next) => diffPublish(prev, next, Date.now()));
 }

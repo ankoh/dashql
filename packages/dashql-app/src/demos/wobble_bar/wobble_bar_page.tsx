@@ -1,7 +1,9 @@
 import * as React from 'react';
 
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../../workbook/status/workbook_status_bar.js';
-import { WorkbookStatusContext, WorkbookStatusStore } from '../../workbook/status/workbook_status_store.js';
+import { WORKBOOK_STATUS_LOG_TARGET, WorkbookStatusContext, WorkbookStatusStore } from '../../workbook/status/workbook_status_store.js';
+import { LogLevel, type LogRecord } from '../../platform/logger/log_buffer.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../../workbook/status/workbook_status.js';
 import { agentLiveStatuses } from '../../agent/agent_workbook_status.js';
 import type { ComposerAgent, ComposerAgentTurn } from '../../agent/agent_prompt_panel.js';
@@ -96,15 +98,42 @@ const LONG_STATUS: ComposerAgentTurn = {
 function line(key: string, source: WorkbookStatusSource, tone: WorkbookStatusTone, text: string, detail: string | null = null, minutes = 0, scriptKey: number | null = null): WorkbookStatus {
     return { key, source, tone, text, detail, scriptKey, at: Date.now() - minutes * 60_000 };
 }
-/// A step of what ran, as the live statuses leave it in the log
-function step(status: WorkbookStatus): WorkbookStatus {
-    return { ...status, progress: true };
+/// A step of what ran, a record of the log like the query executor and Execute All write it
+type DemoLine = WorkbookStatus & { step?: boolean };
+function step(status: WorkbookStatus): DemoLine {
+    return { ...status, step: true };
+}
+
+/// The targets of the records of the steps
+const STEP_TARGETS: Record<WorkbookStatusSource, string> = {
+    [WorkbookStatusSource.Agent]: 'agent_bridge',
+    [WorkbookStatusSource.ExecuteAll]: 'workbook_execution',
+    [WorkbookStatusSource.Query]: 'query_executor',
+    [WorkbookStatusSource.Files]: 'workbook_feed',
+    [WorkbookStatusSource.Cloud]: 'cloud_workbooks',
+    [WorkbookStatusSource.Connection]: 'connection_registry',
+};
+
+/// The record of the log of a line of the demo
+function demoRecord(workbookId: string, line: DemoLine): LogRecord {
+    const failed = line.tone === WorkbookStatusTone.Failed;
+    return {
+        timestamp: line.at,
+        level: failed ? LogLevel.Warn : LogLevel.Info,
+        target: line.step ? STEP_TARGETS[line.source] : WORKBOOK_STATUS_LOG_TARGET,
+        message: line.step ? line.detail ?? line.text : line.text,
+        context: null,
+        tracing: null,
+        keyValues: line.step
+            ? { workbookId, task: line.text }
+            : { workbookId, source: line.source, detail: line.detail ?? undefined, scriptKey: line.scriptKey != null ? String(line.scriptKey) : undefined },
+    };
 }
 const Q = WorkbookStatusSource.Query;
 const T = WorkbookStatusTone;
 
 /// The log of a workbook that the user worked in for a while
-const LOG: WorkbookStatus[] = [
+const LOG: DemoLine[] = [
     step(line('s1', WorkbookStatusSource.Connection, T.Progress, 'Connecting to Trino', null, 15)),
     line('l1', WorkbookStatusSource.Connection, T.Success, 'Connected to Trino', null, 14),
     step(line('s2', Q, T.Progress, 'Running 1_orders', 'Preparing query', 13, 1)),
@@ -130,7 +159,7 @@ interface Situation {
     /// What runs and what needs the user, besides the agent
     live?: WorkbookStatus[];
     /// What happened
-    log?: WorkbookStatus[];
+    log?: DemoLine[];
     /// A bar of its own below the dashboard, without the prompt
     standalone?: boolean;
     /// The landing view of an empty workbook
@@ -262,15 +291,32 @@ const SITUATIONS: Situation[] = [
     },
 ];
 
-/// The status of a situation in a store of its own
+/// The situations that wrote their log already, the log of the app keeps the records for the session
+const LOGGED = new Set<string>();
+
+/// The status of a situation in a store of its own. Its log goes to the log of the app under a workbook of its own,
+/// the log window shows it as well.
 function useSituationStore(situation: Situation): WorkbookStatusStore {
+    const logger = useLogger();
     return React.useMemo(() => {
         const store = new WorkbookStatusStore();
-        store.setLive(WORKBOOK_ID, 'demo', situation.live ?? []);
-        store.setLive(WORKBOOK_ID, 'agent', agentLiveStatuses(situation.bridge, WORKBOOK_ID, situation.agent, Date.now()));
-        store.push(WORKBOOK_ID, situation.log ?? []);
+        const workbookId = situationWorkbookId(situation);
+        store.setLive(workbookId, 'demo', situation.live ?? []);
+        store.setLive(workbookId, 'agent', agentLiveStatuses(situation.bridge, workbookId, situation.agent, Date.now()));
+        const log = situation.log ?? [];
+        if (!LOGGED.has(workbookId)) {
+            LOGGED.add(workbookId);
+            for (const line of log) logger.push(demoRecord(workbookId, line));
+        }
+        const outcomes = log.filter(line => !line.step);
+        if (outcomes.length > 0) store.setOutcome(workbookId, outcomes[outcomes.length - 1]);
         return store;
-    }, [situation]);
+    }, [situation, logger]);
+}
+
+/// Every situation has a workbook of its own, with a log of its own
+function situationWorkbookId(situation: Situation): string {
+    return `${WORKBOOK_ID}_${situation.id}`;
 }
 
 /// The prompt of the feed with the real bar of the agent, built from the classes of the composer
@@ -282,7 +328,7 @@ function DemoPrompt(props: { situation: Situation }) {
         return (
             <WorkbookStatusContext.Provider value={store}>
                 <AgentBridgeContext.Provider value={situation.bridge}>
-                    <WorkbookStatusBar workbookId={WORKBOOK_ID} variant={WorkbookStatusBarVariant.Standalone} bridge={situation.bridge} gaze={{ pointer: true }} />
+                    <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Standalone} bridge={situation.bridge} gaze={{ pointer: true }} />
                 </AgentBridgeContext.Provider>
             </WorkbookStatusContext.Provider>
         );
@@ -293,8 +339,8 @@ function DemoPrompt(props: { situation: Situation }) {
             <div className={composerStyles.composer} data-variant={situation.landing ? 'hero' : 'docked'}
                 data-agent={situation.agent?.turns.some(turn => turn.question.status != null) ? 'working' : undefined}>
                 <div className={composerStyles.composer_bar}>
-                    <WorkbookStatusBar workbookId={WORKBOOK_ID} variant={WorkbookStatusBarVariant.Prompt} bridge={situation.bridge}
-                        agent={situation.agent} wobble={!situation.landing} gaze={{ pointer: true }} onShowScript={() => { }} />
+                    <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Prompt} bridge={situation.bridge}
+                        agent={situation.agent} wobble={!situation.landing} gaze={{ pointer: true }} />
                 </div>
                 <div className={composerStyles.composer_prompt}>
                     <div className={`${composerStyles.composer_editor} ${styles.editor}`}>

@@ -77,7 +77,7 @@ import { isAgentWorking } from '../../agent/agent_prompt_panel.js';
 import { agentLiveStatuses, diffAgentAccess, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { agentAccessState } from '../../agent/agent_workbook_menu.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
-import { useLiveWorkbookStatuses, useWorkbookLogTransitions, useWorkbookStatusStore } from '../status/workbook_status_store.js';
+import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
 import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
@@ -260,10 +260,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const attachmentsEnabled = !readOnly && connectionReadsAttachments(props.conn?.details);
     // The files that are being attached, the status of the workbook tells them
     const [attaching, setAttaching] = React.useState<{ workbookId: string; files: number } | null>(null);
-    const statusStore = useWorkbookStatusStore();
+    const reportOutcomes = useReportWorkbookOutcomes();
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {
         setAttachmentError(null);
-        const logFiles = (tone: WorkbookStatusTone, text: string, detail: string | null = null) => statusStore.push(workbookId, [{
+        const logFiles = (tone: WorkbookStatusTone, text: string, detail: string | null = null) => reportOutcomes(workbookId, [{
             key: `files:${text}:${Date.now()}`, source: WorkbookStatusSource.Files, tone, text, detail, at: Date.now(),
         }]);
         // A workbook attaches Parquet files only, they are table parameters of the scripts
@@ -288,12 +288,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             refreshDataFiles();
         } catch (e) {
             setAttachmentError('Adding attachment failed');
+            // The outcome is the record of the log
             logFiles(WorkbookStatusTone.Failed, 'Adding an attachment failed', stringifyError(e));
-            logger.error('Adding workbook attachment failed', { error: stringifyError(e) }, LOG_CTX);
         } finally {
             setAttaching(null);
         }
-    }, [logger, workbookId, refreshDataFiles, storageReader.backend, statusStore]);
+    }, [logger, workbookId, refreshDataFiles, storageReader.backend, reportOutcomes]);
     const attachingFiles = attaching?.workbookId === workbookId ? attaching.files : 0;
     const filesLive = React.useMemo<WorkbookStatus[]>(() => attachingFiles === 0 ? [] : [{
         key: 'files:attaching', source: WorkbookStatusSource.Files, tone: WorkbookStatusTone.Progress,
@@ -506,7 +506,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             .then(renamed => { if (renamed != null) refreshDataFiles(); })
             .catch(e => {
                 setAttachmentError('Renaming attachment failed');
-                logger.error('Renaming workbook attachment failed', { error: stringifyError(e) }, LOG_CTX);
+                logger.error('Renaming workbook attachment failed', { workbookId, error: stringifyError(e) }, LOG_CTX);
             });
     }, [props.modifyWorkbookScripts, storageReader.backend, composerRenameScriptRef, refreshDataFiles, logger]);
     const scriptNames = React.useMemo(() => props.workbookScripts.scriptOrder.map(scriptDisplayName), [props.workbookScripts.scriptOrder]);
@@ -727,8 +727,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         [agent, workbookId, composerAgent.agent],
     );
     useLiveWorkbookStatuses(workbookId, 'agent', agentLive);
-    useWorkbookLogTransitions(workbookId, composerAgent.agent, (prev, next) => diffAgentQuestions(prev, next, Date.now()));
-    useWorkbookLogTransitions(workbookId, agent != null ? agentAccessState(agent, workbookId) : null, (prev, next) => diffAgentAccess(prev, next, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, composerAgent.agent, (prev, next) => diffAgentQuestions(prev, next, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, agent != null ? agentAccessState(agent, workbookId) : null, (prev, next) => diffAgentAccess(prev, next, Date.now()));
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
@@ -841,7 +841,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             bridge={readOnly ? null : agent}
             agent={composerAgent.agent}
             wobble={!landing}
-            onShowScript={handleShowAgentScript}
             gaze={dockGaze}
             lastInput={composerLastInput}
             paused={!props.active}

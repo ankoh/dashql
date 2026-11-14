@@ -9,7 +9,12 @@ import { isAgentAnswering } from '../../agent/use_agent_questions.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { SquareFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { IndicatorStatus, StatusDot } from '../../ui/foundations/status_indicator.js';
-import { WORKBOOK_STATUS_SOURCE_LABELS, WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
+import { WorkbookStatusSource, WorkbookStatusTone } from './workbook_status.js';
+import { useWorkbookLog } from './workbook_log.js';
+import { getLogLevelName, type LogRecord } from '../../platform/logger/log_buffer.js';
+import { formatLogTimestamp } from '../../ui/logs/log_viewer.js';
+import { LogJsonModal } from '../../ui/logs/log_json_modal.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { useWorkbookStatus } from './workbook_status_store.js';
 
 /// Where the bar stands
@@ -30,31 +35,12 @@ export interface WorkbookStatusBarProps {
     agent?: ComposerAgent | null;
     /// Show Wobble with the log? The landing view greets with its own Wobble, the bar only tells the status then.
     wobble?: boolean;
-    /// Shows a script of a line of the log
-    onShowScript?: (scriptKey: number) => void;
     /// What the eyes of Wobble look at, e.g. the caret of the composer
     gaze?: WobbleGaze;
     /// The time of the last input in the composer, Wobble squints happily while the user types
     lastInput?: () => number | null;
     /// Stops the animation of Wobble, e.g. while the view is hidden
     paused?: boolean;
-}
-
-/// The status of the indicators of the scripts and of Execute All, the bar shows it as a dot in their colors. A step that
-/// a running thing left in the log is over, its dot is faint.
-function statusIndicator(status: WorkbookStatus): IndicatorStatus {
-    if (status.progress) return IndicatorStatus.None;
-    switch (status.tone) {
-        case WorkbookStatusTone.Progress: return IndicatorStatus.Running;
-        case WorkbookStatusTone.Success: return IndicatorStatus.Succeeded;
-        case WorkbookStatusTone.Failed: return IndicatorStatus.Failed;
-        case WorkbookStatusTone.Attention: return IndicatorStatus.Blocked;
-    }
-}
-
-/// The time of a line of the log
-function formatLogTime(at: number): string {
-    return new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 /// The agent at the right end of the bar: Enable Agent without agent access, else its state, stop and its menu
@@ -96,38 +82,34 @@ function AgentControls(props: { workbookId: string; bridge: AgentBridge; agent: 
     );
 }
 
-/// A line of the log of the workbook: the time, the source, the text and the whole detail
-function LogLine(props: { line: WorkbookStatus; onShowScript?: (scriptKey: number) => void }) {
-    const { line } = props;
-    const content = (
-        <>
-            <time className={styles.log_time} dateTime={new Date(line.at).toISOString()}>{formatLogTime(line.at)}</time>
-            <StatusDot className={styles.indicator} status={statusIndicator(line)} />
-            <span className={styles.log_source}>{WORKBOOK_STATUS_SOURCE_LABELS[line.source]}</span>
-            <span className={styles.log_text}>{line.text}</span>
-            {line.detail != null && <span className={styles.log_detail}>{line.detail}</span>}
-        </>
-    );
-    const scriptKey = line.scriptKey;
+/// A record of the log of the workbook in one short line, as the log window shows it: the time, the level, the message
+/// and the target. A click opens the record with its fields.
+function LogLine(props: { record: LogRecord; selected: boolean; onSelect: () => void }) {
+    const { record } = props;
     return (
-        <li className={styles.log_line} data-testid="workbook-log-line" data-tone={line.tone} data-step={line.progress ? '' : undefined}>
-            {scriptKey != null && props.onShowScript != null
-                ? <button type="button" className={styles.log_button} onClick={() => props.onShowScript!(scriptKey)}>{content}</button>
-                : <div className={styles.log_row}>{content}</div>}
+        <li className={styles.log_line} data-testid="workbook-log-line" data-level={getLogLevelName(record.level)}
+            data-selected={props.selected ? '' : undefined}>
+            <button type="button" className={styles.log_button} onClick={props.onSelect}>
+                <span className={styles.log_time}>{formatLogTimestamp(record.timestamp)}</span>
+                <span className={styles.log_level}>{getLogLevelName(record.level)}</span>
+                <span className={styles.log_text} title={record.message}>{record.message}</span>
+                <span className={styles.log_target}>{record.target}</span>
+            </button>
         </li>
     );
 }
 
 /// The bar of Wobble. Wobble leads it and tells the status of the workbook next to it: what runs, what needs the user,
-/// else what happened last. The agent sits at the right end.
-/// A click on Wobble opens a dark bubble above the bar with the questions of the agent and the log of the workbook,
-/// every status with its detail: what started, every step, how it ended.
+/// else what happened last. The dot of Wobble tells that something runs, a failure is red, the status has no dot of its
+/// own. The agent sits at the right end.
+/// A click on Wobble opens a dark bubble above the bar with the questions of the agent and the log of the workbook: the
+/// records of the log of the app that belong to the workbook, the same that the log window shows.
 /// It opens by itself when the agent starts to work and stays open until the user closes it. A dot pulses at the top
 /// right of Wobble while anything runs.
 export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactElement {
     const agent = props.agent ?? null;
     const wobble = props.wobble ?? true;
-    const { status, log, live, busy } = useWorkbookStatus(props.workbookId);
+    const { status, live, busy } = useWorkbookStatus(props.workbookId);
     const agentWorking = agent != null
         ? isAgentWorking(agent)
         : live.some(s => s.source === WorkbookStatusSource.Agent && s.tone === WorkbookStatusTone.Progress);
@@ -139,10 +121,15 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
         if (agentWorking) setOpen(true);
     }
     const bubbleId = React.useId();
+    const log = useWorkbookLog(props.workbookId, wobble && open);
+    // The record whose fields the overlay shows, as in the log window
+    const [selected, setSelected] = React.useState<number | null>(null);
+    const bubbleRef = React.useRef<HTMLDivElement>(null);
+    const selectedRecord = selected != null && open ? log[selected] ?? null : null;
     const close = React.useCallback(() => setOpen(false), []);
     // The log scrolls to the newest line
     const logRef = React.useRef<HTMLOListElement>(null);
-    const newest = log.length > 0 ? log[log.length - 1].key : null;
+    const newest = log.length;
     React.useLayoutEffect(() => {
         const list = logRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
@@ -166,7 +153,6 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
             )}
             <span className={styles.status} role="status" aria-live="polite" data-testid="workbook-status"
                 data-tone={status?.tone} data-source={status?.source}>
-                {status != null && <StatusDot className={styles.indicator} status={statusIndicator(status)} />}
                 <span className={styles.status_text}>
                     {status?.text ?? 'Ready'}
                     {status?.detail != null && <span className={styles.detail}> {status.detail}</span>}
@@ -178,7 +164,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                 </div>
             )}
             {wobble && open && (
-                <div id={bubbleId} className={styles.bubble} data-testid="workbook-bubble">
+                <div id={bubbleId} ref={bubbleRef} className={styles.bubble} data-testid="workbook-bubble">
                     <div className={styles.bubble_header}>
                         <span className={styles.bubble_title}>Log</span>
                         <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Close the log"
@@ -189,15 +175,26 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                     {agentTurns && <AgentPromptPanel agent={agent} />}
                     {log.length > 0 ? (
                         <ol ref={logRef} className={styles.log} aria-label="Log of the workbook">
-                            {log.map(line => <LogLine key={line.key} line={line} onShowScript={props.onShowScript} />)}
+                            {log.map((record, i) => <LogLine key={i} record={record} selected={i === selected && selectedRecord != null} onSelect={() => setSelected(i)} />)}
                         </ol>
                     ) : !agentTurns && (
                         <div className={styles.empty} data-testid="workbook-bubble-empty">
-                            Nothing happened yet. Runs, connections, files and the questions of the agent show up here.
+                            Nothing logged yet. The runs of the scripts, the agent, attachments and publishes of the workbook show up here.
                         </div>
                     )}
                 </div>
             )}
+            <LogJsonModal
+                record={selectedRecord}
+                recordIndex={selected ?? -1}
+                maxIndex={log.length - 1}
+                anchorRef={bubbleRef}
+                align={AnchorAlignment.End}
+                side={AnchorSide.OutsideRight}
+                onClose={() => setSelected(null)}
+                onPrevious={() => setSelected(i => i != null && i > 0 ? i - 1 : i)}
+                onNext={() => setSelected(i => i != null && i < log.length - 1 ? i + 1 : i)}
+            />
         </div>
     );
 }

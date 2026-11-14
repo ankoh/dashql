@@ -197,7 +197,7 @@ describe('AgentClient', () => {
         sockets[0].receive({ id: 's1', method: 'command', params: { workbook: 's1', command: 'edit', args: { script: 'q', text } } });
         await flush();
         expect(records('Running a command of the agent').map(r => r.keyValues)).toEqual([
-            { id: 's1', command: 'edit', workbook: 's1', script: 'q', text: '15 characters, 2 lines' },
+            { id: 's1', command: 'edit', workbookId: 's1', script: 'q', text: '15 characters, 2 lines' },
         ]);
         expect(records('The text of the command').map(r => r.keyValues)).toEqual([{ id: 's1', command: 'edit', text }]);
         expect(records('Finished the command of the agent').map(r => r.keyValues)).toMatchObject([

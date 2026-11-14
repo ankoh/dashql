@@ -30,17 +30,17 @@ function connection(health: ConnectionHealth, refreshingCatalog = false): Workbo
 const texts = (statuses: WorkbookStatus[]) => statuses.map(status => [status.tone, status.text, status.detail ?? null]);
 
 describe('Workbook status', () => {
-    it('picks what runs, then what needs the user, then the newest line of the log', () => {
+    it('picks what runs, then what needs the user, then how the last thing ended', () => {
         const at = NOW;
         const line: WorkbookStatus = { key: 'l', source: WorkbookStatusSource.Query, tone: WorkbookStatusTone.Success, text: 'ran', at };
         const attention: WorkbookStatus = { key: 'a', source: WorkbookStatusSource.Connection, tone: WorkbookStatusTone.Attention, text: 'not connected', at };
         const query: WorkbookStatus = { key: 'q', source: WorkbookStatusSource.Query, tone: WorkbookStatusTone.Progress, text: 'query', at };
         const agent: WorkbookStatus = { key: 'g', source: WorkbookStatusSource.Agent, tone: WorkbookStatusTone.Progress, text: 'agent', at };
-        expect(pickWorkbookStatus([], [])).toBeNull();
-        expect(pickWorkbookStatus([], [line])).toBe(line);
-        expect(pickWorkbookStatus([attention], [line])).toBe(attention);
-        expect(pickWorkbookStatus([attention, query], [line])).toBe(query);
-        expect(pickWorkbookStatus([query, agent], [line])).toBe(agent);
+        expect(pickWorkbookStatus([], null)).toBeNull();
+        expect(pickWorkbookStatus([], line)).toBe(line);
+        expect(pickWorkbookStatus([attention], line)).toBe(attention);
+        expect(pickWorkbookStatus([attention, query], line)).toBe(query);
+        expect(pickWorkbookStatus([query, agent], line)).toBe(agent);
     });
 
     it('tells the running queries, a run of all scripts instead of its queries, publishes and connections', () => {

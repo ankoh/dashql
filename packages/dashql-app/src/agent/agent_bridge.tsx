@@ -155,14 +155,14 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
             clientKind: isDesktopHost() ? 'desktop' : 'web',
             logger,
             handleCommand: async params => {
-                logger.info('Running an agent command', { workbook: params.workbook, command: params.command }, LOG_CTX);
+                logger.info('Running an agent command', { workbookId: params.workbook, command: params.command }, LOG_CTX);
                 const started = performance.now();
                 try {
                     const result = await runAgentCommand(commandEnv.current!, params);
-                    logger.info('Ran an agent command', { workbook: params.workbook, command: params.command, durationMs: String(Math.round(performance.now() - started)) }, LOG_CTX);
+                    logger.info('Ran an agent command', { workbookId: params.workbook, command: params.command, durationMs: String(Math.round(performance.now() - started)) }, LOG_CTX);
                     return result;
                 } catch (e: unknown) {
-                    logger.warn('An agent command failed', { workbook: params.workbook, command: params.command, durationMs: String(Math.round(performance.now() - started)), error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+                    logger.warn('An agent command failed', { workbookId: params.workbook, command: params.command, durationMs: String(Math.round(performance.now() - started)), error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
                     throw e;
                 }
             },
@@ -172,7 +172,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) {
-                            logger.info('Ignored the status of an unknown agent turn', { workbook: p.workbook, turnId: p.turnId }, LOG_CTX);
+                            logger.info('Ignored the status of an unknown agent turn', { workbookId: p.workbook, turnId: p.turnId }, LOG_CTX);
                             break;
                         }
                         turn.status(p.state, p.text);
@@ -182,11 +182,11 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) {
-                            logger.info('Ignored the answer of an unknown agent turn', { workbook: p.workbook, turnId: p.turnId }, LOG_CTX);
+                            logger.info('Ignored the answer of an unknown agent turn', { workbookId: p.workbook, turnId: p.turnId }, LOG_CTX);
                             break;
                         }
                         forgetTurn(p.workbook, p.turnId);
-                        logger.info('The agent finished a request', { workbook: p.workbook, turnId: p.turnId }, LOG_CTX);
+                        logger.info('The agent finished a request', { workbookId: p.workbook, turnId: p.turnId }, LOG_CTX);
                         turn.done(p.message);
                         break;
                     }
@@ -194,11 +194,11 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) {
-                            logger.info('Ignored the failure of an unknown agent turn', { workbook: p.workbook, turnId: p.turnId, error: p.error }, LOG_CTX);
+                            logger.info('Ignored the failure of an unknown agent turn', { workbookId: p.workbook, turnId: p.turnId, error: p.error }, LOG_CTX);
                             break;
                         }
                         forgetTurn(p.workbook, p.turnId);
-                        logger.warn('The agent failed a request', { workbook: p.workbook, turnId: p.turnId, error: p.error, cancelled: String(p.cancelled) }, LOG_CTX);
+                        logger.warn('The agent failed a request', { workbookId: p.workbook, turnId: p.turnId, error: p.error, cancelled: String(p.cancelled) }, LOG_CTX);
                         turn.failed(p.error, p.cancelled);
                         break;
                     }
@@ -313,7 +313,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
 
     const request = React.useCallback(async (workbookId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        logger.info('Sending a request to the agent', { workbook: workbookId, harness: harness ?? 'default', model: model ?? 'default', effort: effort ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
+        logger.info('Sending a request to the agent', { workbookId: workbookId, harness: harness ?? 'default', model: model ?? 'default', effort: effort ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
         const params = {
             workbook: workbookId,
             prompt,
@@ -322,22 +322,22 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
             ...(effort != null ? { effort } : {}),
         };
         const result = await client.request('agent/request', params).catch((e: unknown) => {
-            logger.warn('The agent server refused a request', { workbook: workbookId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+            logger.warn('The agent server refused a request', { workbookId: workbookId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
             throw e;
         });
         turns.current.set(result.turnId, listener);
         const workbookTurns = turnsByWorkbook.current.get(workbookId) ?? new Set();
         workbookTurns.add(result.turnId);
         turnsByWorkbook.current.set(workbookId, workbookTurns);
-        logger.info('Sent a request to the agent', { workbook: workbookId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
+        logger.info('Sent a request to the agent', { workbookId: workbookId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
         return result.turnId;
     }, [client, harness, model, effort, logger]);
     const cancel = React.useCallback(async (workbookId: string, turnId?: string) => {
-        logger.info('Stopping agent turns', { workbook: workbookId, turnId: turnId ?? 'all' }, LOG_CTX);
+        logger.info('Stopping agent turns', { workbookId: workbookId, turnId: turnId ?? 'all' }, LOG_CTX);
         await client?.request('agent/cancel', turnId == null ? { workbook: workbookId } : { workbook: workbookId, turnId });
     }, [client, logger]);
     const reset = React.useCallback(async (workbookId: string) => {
-        logger.info('Resetting the agent context', { workbook: workbookId }, LOG_CTX);
+        logger.info('Resetting the agent context', { workbookId: workbookId }, LOG_CTX);
         await client?.request('agent/reset', { workbook: workbookId });
     }, [client, logger]);
     const context = React.useCallback(async (workbookId: string) => {

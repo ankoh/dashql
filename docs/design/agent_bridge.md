@@ -419,15 +419,21 @@ else the agent says is shown by the bar of Wobble on the composer and the log in
 - **The bar of Wobble** is the header bar of the prompt of every workbook that can be edited, and a bar of its own at
   the bottom of the dashboard, the dataflow and a read-only workbook. Wobble leads it and tells the status of the
   workbook: what runs (the agent, Execute All, a query, attaching files, a publish, connecting, a catalog refresh), else
-  what needs the user (a connection that is not connected, the agent server it waits for), else what happened last.
-  The statuses of a workbook are kept per workbook for the session (`workbook/status/workbook_status_store.tsx`), the
-  feed feeds them and stays mounted while the other views show. On the right end of the bar are "Enable Agent" without
-  agent access, else "Agent" with its connection, a stop button while the agent works and the menu that controls it.
+  what needs the user (a connection that is not connected, the agent server it waits for), else how the last thing
+  ended. The statuses of a workbook are kept per workbook for the session (`workbook/status/workbook_status_store.tsx`),
+  the feed feeds them and stays mounted while the other views show. How things ended is logged to the log of the app
+  (target `workbook_status`). The status has no dot of its own: the dot of Wobble tells that something runs, a failure
+  is red. On the right end of the bar are "Enable Agent" without agent access, else "Agent" with its connection, a stop
+  button while the agent works and the menu that controls it.
 - **Wobble** opens a dark bubble above the bar (dark in both color schemes, like the chrome) with the questions of the
-  agent and the log of the workbook: the runs, connections, files, publishes and answers, a line of a script shows the
-  script. A dot pulses at the top right of Wobble while anything runs. The bubble opens when the agent starts to work
-  and stays open until the user closes it. While a turn is going, the frame of the composer turns in the gradient of the
-  agent colors of the flavor (`--agent_*` in `packages/dashql-ui/styles/flavors/<flavor>.css`, green in `dbcom.css`).
+  agent and the log of the workbook: the records of the log of the app that belong to the workbook, the same as in the
+  log window (`workbook/status/workbook_log.ts`). A record belongs to a workbook when its key `workbookId` names the
+  workbook, or when it is in the trace of a query of the workbook. Records about a workbook name it with `workbookId`.
+  A record is a short line: the time, the level, the message and the target. A click opens the record with its fields,
+  as in the log window. A dot pulses at the top right of Wobble while anything runs. The bubble opens when the agent
+  starts to work and stays open until the user closes it. While a turn is going, the frame of the composer turns in the
+  gradient of the agent colors of the flavor (`--agent_*` in `packages/dashql-ui/styles/flavors/<flavor>.css`, green in
+  `dbcom.css`).
 - **Landing view.** An empty workbook greets with the big Wobble above the centered prompt, the bar of the prompt
   leaves out its own Wobble. The first question docks the prompt at the bottom, even before the agent writes a script.
 - **A question** is a line in that log. Asking creates no script: the agent writes a new script or edits an

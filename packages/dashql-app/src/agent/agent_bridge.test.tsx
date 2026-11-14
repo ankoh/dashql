@@ -511,7 +511,7 @@ describe('AgentBridgeProvider', () => {
             const warn = vi.spyOn(api.logger, 'warn');
             const reply = await command(902, 'unknown', 'read', { script: 'query' });
             expect(reply.error.code).toBe('not_connected');
-            expect(warn).toHaveBeenCalledWith('An agent command failed', expect.objectContaining({ workbook: 'unknown', command: 'read' }), 'agent_bridge');
+            expect(warn).toHaveBeenCalledWith('An agent command failed', expect.objectContaining({ workbookId: 'unknown', command: 'read' }), 'agent_bridge');
         });
 
         it('tells the turns of the workbook about an edit, and only those', async () => {

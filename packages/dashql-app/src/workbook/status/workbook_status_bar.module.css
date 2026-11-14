@@ -178,76 +178,67 @@
     min-width: 0;
 }
 
-/* The time, the dot, the source and the text in a row, the detail below the text */
-.log_row,
-.log_button {
-    display: grid;
-    grid-template-columns: auto auto auto minmax(0, 1fr);
-    align-items: baseline;
-    column-gap: 8px;
-    row-gap: 2px;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 4px 8px;
-    border-radius: var(--border_radius);
-    color: var(--color_fg);
-    text-align: left;
-}
-
+/* The time, the level, the message and the target in one line, a click shows the fields */
 .log_button {
     appearance: none;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
     margin: 0;
+    padding: 2px 8px;
     border: none;
+    border-radius: var(--border_radius);
     background: none;
+    color: var(--color_fg);
     font: inherit;
+    text-align: left;
     cursor: pointer;
 }
 
-.log_button:hover {
+.log_button:hover,
+.log_line[data-selected] .log_button {
     background-color: var(--color_bg_hover);
 }
 
-/* The steps of what runs are quieter than how things ended */
-.log_line[data-step] .log_text {
-    color: var(--color_fg_muted);
-}
-
-.log_line[data-tone="failed"] .log_text {
-    color: var(--color_danger_fg);
-}
-
-.log_time {
+.log_time,
+.log_level {
     color: var(--color_fg_subtle);
     font-family: var(--font_family_mono);
     font-size: var(--font_size_micro);
     font-variant-numeric: tabular-nums;
 }
 
-.log_source {
-    color: var(--color_fg_subtle);
-    font-size: var(--font_size_micro);
+.log_level {
+    min-width: 3.2em;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
+}
+
+.log_line[data-level="warn"] .log_level {
+    color: var(--color_attention_fg);
+}
+
+.log_line[data-level="error"] .log_level,
+.log_line[data-level="error"] .log_text {
+    color: var(--color_danger_fg);
 }
 
 .log_text {
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
-/* The whole detail, e.g. an error, below the text */
-.log_detail {
-    grid-column: 4;
-    color: var(--color_fg_muted);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-/* An error keeps its layout, e.g. the caret under the position of the error */
-.log_line[data-tone="failed"] .log_detail {
-    font-family: var(--font_family_mono);
-    font-size: var(--font_size_caption);
+.log_target {
+    max-width: 140px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--color_fg_subtle);
+    font-size: var(--font_size_micro);
 }
 
 .empty {
