@@ -1,0 +1,17 @@
+{
+  "name": "@ankoh/hyperdb-edge",
+  "version": "0.0.0",
+  "description": "Runs SQL on the embedded Hyper of hyperdb-wasm, a command line tool and its library. Builds on hyperdb-wasm, not part of it",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "hyperdb-edge": "./dist/cli/main.js"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  }
+}

@@ -93,3 +93,49 @@ js_test(
     ],
     tags = ["no-sandbox"],
 )
+
+# hyperdb-edge in the harnesses, see docs/wip/hyperdb_edge.md: the compiled command, its describe texts and its skill
+_HYPERDB_EDGE = [
+    "hyperdb_edge.mjs",
+    "probes.mjs",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/hyperdb-wasm",
+    "//packages/hyperdb-edge:compile",
+    "//packages/hyperdb-edge:describe_files",
+    "//packages/hyperdb-edge:package_json",
+    "//packages/hyperdb-edge:skill_files",
+]
+
+js_test(
+    name = "hyperdb_edge_claude_code_test",
+    size = "large",
+    data = _HYPERDB_EDGE + [
+        "fake_anthropic.mjs",
+        ":claude",
+    ],
+    entry_point = "hyperdb_edge_claude_code_test.mjs",
+    env = {
+        "CLAUDE_BINARY": "$(rootpath :claude)",
+    },
+    no_copy_to_bin = [":claude"],
+    tags = ["no-sandbox"],
+)
+
+js_test(
+    name = "hyperdb_edge_codex_test",
+    size = "large",
+    data = _HYPERDB_EDGE + [
+        "fake_openai.mjs",
+        ":codex",
+        ":codex_files",
+    ],
+    entry_point = "hyperdb_edge_codex_test.mjs",
+    env = {
+        "CODEX_BINARY": "$(rootpath :codex)",
+    },
+    no_copy_to_bin = [
+        ":codex",
+        ":codex_files",
+    ],
+    tags = ["no-sandbox"],
+)

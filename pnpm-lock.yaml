@@ -398,6 +398,8 @@ importers:
 
   packages/dashql-ui: {}
 
+  packages/hyperdb-edge: {}
+
 packages:
 
   '@adobe/css-tools@4.3.3':

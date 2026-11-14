@@ -86,6 +86,7 @@ npm.npm_translate_lock(
         "//packages/dashql-org:package.json",
         "//packages/dashql-sdk:package.json",
         "//packages/dashql-ui:package.json",
+        "//packages/hyperdb-edge:package.json",
     ],
     pnpm_lock = "//:pnpm-lock.yaml",
     patches = {

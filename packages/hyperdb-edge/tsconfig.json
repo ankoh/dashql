@@ -1,0 +1,18 @@
+// Every module and test with the types of Node, for editors and //packages/hyperdb-edge:tsc_typecheck_node_test.
+// The "node" condition picks the Node API of hyperdb-wasm (HyperDB.create with a storagePath, mount).
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "customConditions": ["node"],
+    "lib": ["ES2023"],
+    "types": ["node", "vitest/globals"],
+    "strict": true,
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

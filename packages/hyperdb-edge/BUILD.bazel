@@ -1,0 +1,121 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+
+# hyperdb-edge: runs SQL on the embedded Hyper of hyperdb-wasm, a command line tool and its library, see
+# docs/wip/hyperdb_edge.md. Builds on hyperdb-wasm, not part of it. The library is a source package like
+# @ankoh/dashql-sdk, the command runs the JavaScript that :compile writes to dist/.
+
+package(default_visibility = ["//visibility:public"])
+
+_SOURCES = glob(["src/**/*.ts"])
+
+_MODULES = glob(
+    ["src/**/*.ts"],
+    exclude = ["src/**/*.test.ts"],
+)
+
+# The texts of `hyperdb-edge describe`, read at run time from describe/ of the package
+copy_to_bin(
+    name = "describe_files",
+    srcs = glob(["describe/*.md"]),
+)
+
+copy_to_bin(
+    name = "skill_files",
+    srcs = glob(["skill/**"]),
+)
+
+copy_to_bin(
+    name = "package_json",
+    srcs = ["package.json"],
+)
+
+_DEPENDENCIES = [
+    "//:node_modules/@types/node",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/hyperdb-wasm",
+]
+
+typescript_bin.tsc_binary(
+    name = "tsc_bin",
+)
+
+ts_project(
+    name = "compile",
+    srcs = _MODULES,
+    out_dir = "dist",
+    root_dir = "src",
+    tsconfig = "tsconfig.compile.json",
+    extends = "tsconfig.json",
+    tsc = ":tsc_bin",
+    tsc_worker = ":tsc_bin",
+    transpiler = "tsc",
+    validate = False,
+    validator = ":tsc_bin",
+    deps = _DEPENDENCIES,
+)
+
+js_binary(
+    name = "hyperdb-edge",
+    data = [
+        ":compile",
+        ":describe_files",
+        ":package_json",
+        "//:node_modules/apache-arrow",
+        "//:node_modules/hyperdb-wasm",
+    ],
+    entry_point = "dist/cli/main.js",
+)
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + [
+        "package.json",
+        "tsconfig.bazel.json",
+        "tsconfig.json",
+    ],
+)
+
+# The library without src/node/ and src/cli/: against the WebWorker lib, without the DOM and the types of Node
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.json"],
+    chdir = "packages/hyperdb-edge",
+    data = [":typecheck_inputs"] + _DEPENDENCIES,
+)
+
+# Every module and test with the types of Node
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_node_test",
+    size = "small",
+    args = ["--project", "tsconfig.json"],
+    chdir = "packages/hyperdb-edge",
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+    ] + _DEPENDENCIES,
+)
+
+# The tests in Node: the library against the engine, and the compiled command run as separate processes
+vitest_bin.vitest_test(
+    name = "test",
+    size = "large",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+    ],
+    chdir = "packages/hyperdb-edge",
+    data = _SOURCES + [
+        "vitest.config.mjs",
+        ":compile",
+        ":describe_files",
+        ":package_json",
+        ":skill_files",
+        "//:node_modules/vitest",
+    ] + _DEPENDENCIES,
+)
