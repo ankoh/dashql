@@ -64,7 +64,7 @@ bazel build //...
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-runtime`, bundled for Node with Vite: `lint` and `format` for SQL files |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-runtime`, bundled for Node with Vite: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -120,7 +120,7 @@ bazel test //...
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes |
+| `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes, `run` against a fake Trino |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-runtime:tsc_typecheck_test` | Type check of the runtime against the WebWorker lib, without the DOM and without the types of Node |

@@ -5,6 +5,7 @@ harness gets the answers of the app (`docs/wip/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
+- **`dashql run`** runs the scripts of a workbook folder on their connections, Trino with basic auth for now.
 - **`dashql session`** shows the session of an agent harness in DashQL, see below.
 
 ```
@@ -14,7 +15,7 @@ bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/sni
 
 Vite bundles the command with the sources of the runtime into one module for Node (`dist/dashql.js`,
 `//packages/dashql-cli:bundle`). The core stays a package next to it, the command reads its Wasm file from there.
-`lint` and `format` need Node 22 or later.
+`lint`, `format` and `run` need Node 22 or later.
 
 ## dashql lint
 
@@ -81,6 +82,44 @@ doesn't parse. These scripts are reported on stderr and stay as they are, the ot
 The exit code is 0 if all scripts could be formatted (with `--check`: are formatted), 1 otherwise and 2 on usage or I/O
 errors.
 
+## dashql run
+
+```
+dashql run [--rows <n>] [--verbose] <workbook-dir> [<script>...]
+```
+
+Runs scripts of a workbook folder (a folder with `dashql-workbook.json` and `scripts/`) on their connections, in the
+order of the workbook, all of them by default. Scripts are named by their file names (`a.sql` or `scripts/a.sql`).
+Each script runs like the Run of the script in DashQL, with the runtime of the app: it is analyzed and planned with
+the scripts it references, a `:foo` of a script on the same connection becomes a common table expression. The run
+stops at the first script that fails.
+
+```
+nations.sql  ok  25 rows  0.3 s
+  nationkey Int64, name Utf8, region Utf8
+  nationkey | name      | region
+  ----------+-----------+--------
+  0         | ALGERIA   | AFRICA
+  1         | ARGENTINA | AMERICA
+  … 23 more
+broken.sql  failed
+  line 1:8: Column 'nope' cannot be resolved
+```
+
+Every result shows its schema, its row count and its first rows (`--rows`, 10 by default). Nothing is written into the
+folder, results as Parquet files follow with the embedded Hyper on Node. `--verbose` prints the log of the runtime to
+stderr.
+
+- **Connections.** Trino with basic auth. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the
+  password of the workbook. They stay in memory, the workbook keeps its params. Connections with OAuth, Salesforce and
+  the embedded Hyper are refused before anything runs. Every connection is checked with `select 1` first.
+- **Not yet.** A script that scans the results of a script on another connection, or reads an attachment, needs the
+  compute database and fails with the error of its plan. The catalog of a connection is not described.
+- **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
+
+The exit code is 0 if all scripts ran, 1 if a script or a connection failed and 2 on usage errors or a folder without a
+workbook.
+
 ## dashql session
 
 ```
@@ -130,7 +169,8 @@ Codex, in `hooks.json` of its home (`~/.codex`); Codex runs user hooks once the 
 bazel test //packages/dashql-cli:all
 ```
 
-`:test` runs the commands with the process of a test (vitest), `:binary_test` runs the bundle as the user calls it, and
+`:test` runs the commands with the process of a test (vitest), `run` against a fake Trino, `:binary_test` runs the
+bundle as the user calls it, and
 `:example_snippets_formatted_test` checks that the snippets of the app are what `dashql format` prints.
 `//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex, and their hooks with
 `dashql session hook`.

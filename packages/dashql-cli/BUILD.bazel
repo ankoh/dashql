@@ -1,4 +1,5 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
@@ -9,6 +10,7 @@ load("@rules_shell//shell:sh_test.bzl", "sh_test")
 #
 # bazel run //packages/dashql-cli:dashql -- lint <file.sql|dir|->...
 # bazel run //packages/dashql-cli:dashql -- format [--write|--check] <file.sql|dir|->...
+# bazel run //packages/dashql-cli:dashql -- run <workbook-dir> [<script>...]
 
 package(default_visibility = ["//visibility:private"])
 
@@ -19,9 +21,38 @@ _MODULES = glob(
     exclude = ["src/**/*.test.ts"],
 )
 
+# The generated packages that the runtime imports, resolved through the aliases of vite.config.mjs and
+# vitest.config.mjs and the paths of tsconfig.bazel.json like in the runtime
+copy_to_directory(
+    name = "dep_protobuf",
+    srcs = ["//proto/pb:ts_gen"],
+    out = "./dependencies/dashql-protobuf",
+    replace_prefixes = {
+        "proto/pb/ts_gen": "",
+    },
+)
+
+copy_to_directory(
+    name = "dep_jsonschema",
+    srcs = ["//proto/json:ts_gen"],
+    out = "./dependencies/dashql-jsonschema",
+    replace_prefixes = {
+        "proto/json": "",
+    },
+)
+
+# The runtime is a source package, its imports come from here. `run` reaches all of it, `lint` and `format` only the
+# core.
 _DEPENDENCIES = [
+    ":dep_jsonschema",
+    ":dep_protobuf",
     "//:node_modules/@ankoh/dashql-core",
     "//:node_modules/@ankoh/dashql-runtime",
+    "//:node_modules/@bufbuild/protobuf",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/flatbuffers",
+    "//:node_modules/immutable",
+    "//:node_modules/vega-lite",
 ]
 
 # The command as one module for Node, the core stays a package next to it

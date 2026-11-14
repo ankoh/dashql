@@ -4,13 +4,17 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "WebWorker"],
     "types": ["node", "vitest/globals"],
     "strict": true,
     "noImplicitAny": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
+      "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

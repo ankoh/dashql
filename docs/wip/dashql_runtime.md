@@ -16,7 +16,7 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
 | One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
 | Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper follows |
-| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `workbook check`, `pack`, `link`, `auth`, `run` follow |
+| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth, done; `workbook check`, `pack`, `link`, `auth`, results as Parquet follow |
 | Editor state out of `ScriptData` | Later, step 5 |
 
 ## Why
@@ -291,7 +291,8 @@ Each step ships on its own and keeps the behavior.
    with `tsc` like `packages/hyperdb-edge`; the two bundler seams are gone for that (see The package). Then
    `EmbeddedDatabase` over
    `hyperdb-wasm` `node`. The CLI on top: offline
-   `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
+   `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`. `run` came first after all,
+   on Trino with basic auth (see The CLI on the SDK).
 5. **Editor state.** Out of `ScriptData` into the app.
 
 ## The CLI on the runtime
@@ -313,6 +314,22 @@ Electron's Node (`ELECTRON_RUN_AS_NODE`).
   prefix (`dashql run`), never through `node` or `npx`.
 - **Results stay in files.** Harness telemetry records tool output, so `run` prints the error with its position, the
   schema, the row count and a few rows, and writes the result as Parquet into the workbook.
+- **`dashql run`, built.** `dashql run <workbook-dir> [<script>...]` (`packages/dashql-cli/src/run_command.ts`) loads
+  the folder with `restoreSingleWorkbook` over a `NativeStorageBackend` and runs the scripts in the order of the
+  workbook, each like the Run of the script in the app: `ensureWorkbookScriptAnalyzed`, then `runPlannedScript` with the
+  scripts it references. It stops at the first failure. What is built:
+  - Trino with basic auth only. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the password of
+    the workbook; the connection keeps the params of the workbook, so the credentials of the environment are never
+    written (a successful setup otherwise saves the params it was set up with into every workbook of the connection).
+  - The setup is the app's (`setupTrinoConnection`, then `performHealthCheck`, now in the runtime and rethrowing the
+    error of the probe, e.g. a rejected login).
+  - No compute database on Node yet: the executor needs one only to analyze results, which `run` skips, so a script
+    that scans the results of another connection or reads an attachment fails with the error of its plan.
+  - The catalog loader is stopped, `run` describes no connection; `catalog refresh` follows.
+  - It prints the schema, the row count and the first rows (`--rows`), and the message of Trino on a failure. The
+    result is not written yet: Parquet needs the embedded Hyper on Node.
+  - Tested against a fake Trino in `//packages/dashql-cli:test`, the bundle in `:binary_test`, by hand against
+    `bazel run //:trino`.
 
 ## Testing both platforms
 
