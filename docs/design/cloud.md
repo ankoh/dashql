@@ -65,9 +65,9 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
   reset or deleted. The startup setting `experimental_redo_log` (`EXPERIMENTAL_REDO_LOG_SETTING`) makes Hyper log
   every commit to `<file>.dblog` and replay it on the next attach, the log empties once the session detaches the
   database. It costs about 15% of the written data and well under a millisecond per small write. The app doesn't
-  set it yet: hyperdb-wasm 0.0.27356 replays a NULL as the zero value of its type, so `deleted_at` would read as
-  4714 BC and the cleanup would purge every folder and workbook. `platform/hyperdb/integration/redo_log.test.ts` and
-  `cloud/local_cloud.test.ts` cover the reload and skip their NULL checks while the replay loses NULLs.
+  set it yet. Since hyperdb-wasm 0.0.27361 the replay keeps NULLs, earlier versions replayed a NULL as the zero value
+  of its type, so `deleted_at` read as 4714 BC and the cleanup purged every folder and workbook.
+  `platform/hyperdb/integration/redo_log.test.ts` and `cloud/local_cloud.test.ts` cover the reload, NULLs included.
 - **Deleting a local cloud.** A local cloud exists only to be one, so its menus delete it rather than stop using it:
   Delete Local Cloud in its row of Clouds, its overview and the setup page (`useCloudRemoval`). After a confirmation
   the workbooks that would only start new scripts on it fall back to the embedded Hyper, it leaves the list of clouds,

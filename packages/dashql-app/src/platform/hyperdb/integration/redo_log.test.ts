@@ -103,11 +103,8 @@ describe('HyperDB Wasm redo log', () => {
         });
     }, 60_000);
 
-    // hyperdb-wasm 0.0.27356 replays a NULL of a nullable column as the zero value of its type: 0, '', false,
-    // 4714-11-24 BC, the UUID of zeros. Reading such rows may even fail with "tuple size limit exceeded" or end the
-    // worker with "memory access out of bounds". The test skips while it sees that and checks the NULLs once Hyper
-    // replays them.
-    it('replays NULLs on a reload', async function (this: { skip(): never }) {
+    // hyperdb-wasm before 0.0.27361 replayed a NULL of a nullable column as the zero value of its type
+    it('replays NULLs on a reload', async () => {
         await withDatabaseFolder(async path => {
             const first = await openWindow(path, true);
             await first.session.execute('CREATE TABLE d.public.n (k integer NOT NULL, i integer, t text, b boolean, ts timestamptz, u uuid)');
@@ -117,23 +114,21 @@ describe('HyperDB Wasm redo log', () => {
             await first.reload();
 
             const second = await openWindow(path, true);
-            let replayedAsZero = false;
             try {
-                // One column at a time, a query over several columns of the replayed rows may end the worker
-                const nulls: Record<string, unknown>[] = [];
-                for (const column of ['i', 't', 'b', 'ts', 'u']) {
-                    nulls.push(...await rows(second.session, `SELECT '${column}' AS c, count(*) AS n FROM d.public.n WHERE ${column} IS NULL`));
-                }
-                // The known bug: not one NULL is left
-                replayedAsZero = nulls.every(row => row.n === 0n);
-                if (!replayedAsZero) {
-                    expect(nulls).toEqual(['i', 't', 'b', 'ts', 'u'].map(c => ({ c, n: 2n })));
-                    expect(await rows(second.session, 'SELECT k, i, t FROM d.public.n WHERE k = 2')).toEqual([{ k: 2, i: 5, t: 'x' }]);
-                }
+                expect(await rows(second.session, `
+                    SELECT k, i IS NULL AS i, t IS NULL AS t, b IS NULL AS b, ts IS NULL AS ts, u IS NULL AS u
+                    FROM d.public.n ORDER BY k
+                `)).toEqual([1, 2, 3].map(k => {
+                    const isNull = k !== 2;
+                    return { k, i: isNull, t: isNull, b: isNull, ts: isNull, u: isNull };
+                }));
+                expect(await rows(second.session, `
+                    SELECT k, i, t, b, ts = '2026-01-01 00:00:00+00' AS ts, u::text AS u
+                    FROM d.public.n WHERE k = 2
+                `)).toEqual([{ k: 2, i: 5, t: 'x', b: true, ts: true, u: '7c9e6679-7425-40de-944b-e07fc1f90ae7' }]);
             } finally {
                 await second.close();
             }
-            if (replayedAsZero) this.skip();
         });
     }, 60_000);
 });

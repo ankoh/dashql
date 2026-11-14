@@ -67,9 +67,9 @@ describe('local cloud', () => {
         }
     }, 60_000);
 
-    // hyperdb-wasm 0.0.27356 replays NULLs as the zero values of their types, the folders then seem to be deleted, see
-    // platform/hyperdb/integration/redo_log.test.ts. The test skips while the top of the cloud lists nothing.
-    it('keeps the published workbooks across a reload with the redo log', async function (this: { skip(): never }) {
+    // The redo log replays the NULLs of `deleted_at`, the folders and workbooks stay alive, see
+    // platform/hyperdb/integration/redo_log.test.ts
+    it('keeps the published workbooks across a reload with the redo log', async () => {
         const attachedDatabases = [{ path: await testDatabasePath(`dashql-local-cloud-${crypto.randomUUID()}.hyper`), alias: 'dashql' }];
         const settings = { [EXPERIMENTAL_REDO_LOG_SETTING]: true };
         const first = await openTestHyperDBWindow(attachedDatabases, settings);
@@ -86,20 +86,15 @@ describe('local cloud', () => {
         await first.reload();
 
         const second = await openTestHyperDBWindow(attachedDatabases, settings);
-        let nullsLost = false;
         try {
             const queryAgain: CloudQuery = async (sql, signal) => await second.session.query(sql, signal);
             expect((await inspectCloudStore(queryAgain)).state).toBe('current');
             const top = await listCloudEntries(queryAgain, { folderId: null });
-            nullsLost = top.entries.length === 0;
-            if (!nullsLost) {
-                expect(top.entries.map(entry => entry.kind === 'folder' ? entry.folder.name : null)).toEqual(['Reports']);
-                const inReports = await listCloudEntries(queryAgain, { folderId: reports.folderId });
-                expect(inReports.entries.map(entry => entry.kind === 'workbook' ? entry.workbook.versionId : null)).toEqual([sales.versionId]);
-            }
+            expect(top.entries.map(entry => entry.kind === 'folder' ? entry.folder.name : null)).toEqual(['Reports']);
+            const inReports = await listCloudEntries(queryAgain, { folderId: reports.folderId });
+            expect(inReports.entries.map(entry => entry.kind === 'workbook' ? entry.workbook.versionId : null)).toEqual([sales.versionId]);
         } finally {
             await second.close();
         }
-        if (nullsLost) this.skip();
     }, 60_000);
 });
