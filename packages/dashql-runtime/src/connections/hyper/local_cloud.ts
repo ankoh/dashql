@@ -9,7 +9,7 @@ export const LOCAL_CLOUD_DATABASE = { path: 'clouds/local.hyper', alias: 'dashql
 const CLOUDS_FOLDER = 'clouds/';
 
 /// The params of a Hyper connection as far as the local cloud cares
-interface HyperParamsLike {
+export interface HyperParamsLike {
     protocol?: string;
     attachedDatabases?: readonly { path?: string; alias?: string }[];
 }

@@ -6,7 +6,7 @@ import path from 'node:path';
 
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
+import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
 import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
 import { HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { TrinoApiClient } from '@ankoh/dashql-runtime/connections/trino/trino_api_client';
@@ -20,6 +20,17 @@ import { NODE_FILE_SYSTEM } from '@ankoh/dashql-runtime/node/node_file_system';
 import { LogLevel, type LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 import { LoggableException, Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
+import {
+    JOURNAL_TARGET,
+    SESSION_JOURNAL_FOLDER,
+    journalFilesMarker,
+    journalScriptProgressMarker,
+    journalScriptResultMarker,
+    journalScriptStartedMarker,
+    type JournalMarker,
+    type JournalResult,
+    type JournalWorkbookRef,
+} from '@ankoh/dashql-runtime/session/workbook_journal';
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
@@ -29,39 +40,31 @@ import {
     restoreSingleWorkbook,
 } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { mirrorWorkbookAttachments } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mirror';
-import { computeScriptResultCacheKey, runPlannedScript } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
-import { createMountPrefix, planWorkbookScripts, prepareWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import { runPlannedScript } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
+import type { ScriptResultOutcome } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { ensureWorkbookScriptAnalyzed } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
 
-import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
+import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { openSessionJournal, workbookFolderPaths, type SessionJournal } from './session_journal.js';
-import {
-    JOURNAL_FILES,
-    JOURNAL_KEYS,
-    JOURNAL_SCRIPT_PROGRESS,
-    JOURNAL_SCRIPT_RESULT,
-    JOURNAL_SCRIPT_STARTED,
-    JOURNAL_TARGET,
-    SESSION_JOURNAL_FOLDER,
-} from '@ankoh/dashql-runtime/session/workbook_journal';
-import type { LogKeyValues } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 
-export const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
+const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
 Runs scripts of a workbook folder on their connections, in the order of the workbook, all of them by default. Each
 script runs like the Run of the script in DashQL: with the scripts it references. The run stops at the first script
 that fails. Prints the schema, the row count and the first rows of every result (--rows, 10 by default), and the
 Parquet file of the result in the query result cache.
 
+A script whose result is cached is not run again unless a script it follows runs, --refresh runs every script. A
+connection is set up when the first statement runs on it, a result that the cache serves needs none.
+
 The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
 attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the .dashql/ of the workspace, which
 dashql session serve creates in the folder of its session, or ~/.dashql. The workspace is the folder that the harness
-works in, the invoking directory unless --workspace names it. In a session, run appends its log to the journal there. A script whose result is cached is not run
-again unless a script it follows runs, --refresh runs every script.
+works in, the invoking directory unless --workspace names it. In a session, run appends its log to the journal there.
 
-Connections: Trino with basic auth. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the user and the password
-of the workbook.
+Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
+user and the password of the workbook.
 
 --verbose prints the log of the runtime to stderr.`;
 
@@ -69,6 +72,8 @@ of the workbook.
 const DEFAULT_ROWS = 10;
 /// The longest value of a cell
 const MAX_CELL_LENGTH = 40;
+/// How often a running script reports its progress to the journal at most
+const PROGRESS_INTERVAL_MS = 1000;
 
 /// The files and the credentials of the process
 export interface RunEnvironment {
@@ -83,7 +88,7 @@ export function processRunEnvironment(): RunEnvironment {
     return {
         home: process.env.DASHQL_HOME || null,
         trinoUser: process.env.DASHQL_TRINO_USER || undefined,
-        trinoPassword: process.env.DASHQL_TRINO_PASSWORD,
+        trinoPassword: process.env.DASHQL_TRINO_PASSWORD || undefined,
     };
 }
 
@@ -129,12 +134,12 @@ function parseRunArgs(args: string[]): RunArgs | string {
     return { workbook, workspace, scripts, rows, refresh, verbose };
 }
 
-/// The logger of a run, prints the records with --verbose
+/// The logger of a run: prints the records with --verbose, writes them from info on into the journal of a session
 class RunLogger extends Logger {
-    /// The journal of the session of the workbook folder, it gets the records from info on
-    journal: SessionJournal | null = null;
-
-    constructor(private readonly print: ((record: LogRecord) => void) | null) {
+    constructor(
+        private readonly print: ((record: LogRecord) => void) | null,
+        private readonly journal: SessionJournal | null,
+    ) {
         super();
     }
 
@@ -151,9 +156,6 @@ class RunLogger extends Logger {
     }
 }
 
-/// How often a running script reports its progress to the journal at most
-const PROGRESS_INTERVAL_MS = 1000;
-
 /// A log record in one line
 function logLine(record: LogRecord): string {
     const values = Object.entries(record.keyValues).map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : value}`).join(' ');
@@ -161,7 +163,7 @@ function logLine(record: LogRecord): string {
 }
 
 /// The message of an error: what Trino says, the status of a failed request, or why a request failed
-export function describeError(error: unknown): string {
+function describeError(error: unknown): string {
     if (error instanceof LoggableException) {
         const text = (value: unknown) => typeof value === 'string' && value.length > 0 ? value : null;
         const [errorMessage, status, message] = [text(error.keyValues.errorMessage), text(error.keyValues.status), text(error.keyValues.message)];
@@ -183,32 +185,25 @@ function connectionLabel(conn: ConnectionState): string {
     return 'dbcom';
 }
 
-/// Set up the connection to the embedded Hyper on a session of its database, like the app
-async function setupEmbeddedHyper(rt: Runtime, conn: ConnectionState, hyper: NodeComputeDatabase): Promise<string | null> {
-    const params = conn.params;
-    if (!('hyper' in params)) return null;
-    const dispatch = (action: ConnectionAction) => rt.connections.dispatch(conn.connectionId, action);
-    const abort = new AbortController();
-    try {
-        dispatch({ type: HYPER_CHANNEL_SETUP_STARTED, value: params.hyper as connection.HyperConnectionParams });
-        const session = await hyper.database.connect({ defaultDatabase: 'hyper' });
-        const channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(session));
-        dispatch({ type: HYPER_CHANNEL_READY, value: [channel, params.hyper as connection.HyperConnectionParams] });
-        await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'hyper', channel }, dispatch, abort.signal);
-    } catch (error) {
-        dispatch({ type: HYPER_CHANNEL_SETUP_FAILED, value: { message: describeError(error) } });
-        return describeError(error);
-    }
-    return null;
-}
-
 /// Set up a connection and check that it answers, an error message if it can't be set up: Trino with basic auth and the
-/// embedded Hyper
+/// embedded Hyper, also a local cloud on it
 async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvironment, hyper: NodeComputeDatabase | null): Promise<string | null> {
     const params = conn.params;
-    if ('hyper' in params && params.hyper.protocol === 'WASM') {
+    const dispatch = (action: ConnectionAction) => rt.connections.dispatch(conn.connectionId, action);
+    const abort = new AbortController();
+    if ('hyper' in params && (params.hyper.protocol ?? 'WASM') === 'WASM') {
         if (hyper == null) return 'the script runs on the embedded Hyper, which did not start';
-        return await setupEmbeddedHyper(rt, conn, hyper);
+        const hyperParams = params.hyper as connection.HyperConnectionParams;
+        try {
+            dispatch({ type: HYPER_CHANNEL_SETUP_STARTED, value: hyperParams });
+            const channel = await connectEmbeddedHyper(hyper.database, hyperParams);
+            dispatch({ type: HYPER_CHANNEL_READY, value: [channel, hyperParams] });
+            await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'hyper', channel }, dispatch, abort.signal);
+        } catch (error) {
+            dispatch({ type: HYPER_CHANNEL_SETUP_FAILED, value: { message: describeError(error) } });
+            return describeError(error);
+        }
+        return null;
     }
     if (!('trino' in params)) {
         return `dashql run reaches Trino and the embedded Hyper only, this script runs on ${connectionLabel(conn)}`;
@@ -231,12 +226,11 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
     const { logger, http, oauthFlow } = rt.platform;
     // A connection saves the params it was set up with once it is online, and saved params are written into the
     // workbook. The connection sees the params of the workbook, the credentials of the environment stay in the channel.
-    const dispatch = (action: ConnectionAction) => rt.connections.dispatch(conn.connectionId,
+    const trinoDispatch = (action: ConnectionAction) => dispatch(
         action.type === TRINO_CHANNEL_SETUP_STARTED ? { type: TRINO_CHANNEL_SETUP_STARTED, value: stored } : action);
-    const abort = new AbortController();
     try {
-        const channel = await setupTrinoConnection(dispatch, logger, trino, {}, new TrinoApiClient(logger, http), http, oauthFlow, false, abort.signal);
-        await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'trino', channel }, dispatch, abort.signal);
+        const channel = await setupTrinoConnection(trinoDispatch, logger, trino, {}, new TrinoApiClient(logger, http), http, oauthFlow, false, abort.signal);
+        await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'trino', channel }, trinoDispatch, abort.signal);
     } catch (error) {
         return describeError(error);
     }
@@ -281,40 +275,16 @@ function count(n: number, noun: string): string {
 
 /// The root of the files of DashQL of a workspace: its `.dashql/`, which `dashql session serve` creates in the folder of
 /// its session, or `~/.dashql` outside a session
-export function dashqlRootOf(workspace: string): string {
+function dashqlRootOf(workspace: string): string {
     const root = path.join(workspace, SESSION_JOURNAL_FOLDER);
     return existsSync(root) ? root : path.join(homedir(), SESSION_JOURNAL_FOLDER);
 }
 
-/// The connections that the plan of a script runs statements on: its own and those of the scripts it materializes. A
-/// script that can't be planned needs its own, its run reports why. The scripts are analyzed and published into the
-/// catalogs first, like a run does, the planner refuses stale analyses.
-async function plannedConnections(workbook: WorkbookScripts, file: string): Promise<string[]> {
-    const files = [...workbook.scriptOrder];
-    const scripts = files.map(name => workbook.scripts[workbook.scriptRefs[name].scriptId]);
-    const target = files.indexOf(file);
-    const own = scripts[target].connection.connectionId;
-    try {
-        await prepareWorkbookScripts(scripts, async () => { });
-        const { graph } = planWorkbookScripts({ instance: workbook.instance, scripts, files, mountPrefix: createMountPrefix(), targets: [target], workbook });
-        if (!graph.valid) return [own];
-        return [...new Set([own, ...graph.nodes.map(node => scripts[node.script].connection.connectionId)])];
-    } catch {
-        return [own];
+/// A connection that could not be set up, the run of the script that needed it fails with it
+class ConnectionSetupError extends Error {
+    constructor(readonly label: string, readonly reason: string) {
+        super(`${label}: ${reason}`);
     }
-}
-
-/// The file of the result of a script in the query result cache, null if its result is not cached. A file that is older
-/// than the run served the result.
-async function resultFile(rt: Runtime, hyper: NodeComputeDatabase, workbook: WorkbookScripts, scriptKey: number, startedAt: number): Promise<{ key: string; path: string; served: boolean } | null> {
-    // The executor writes the result after the query resolved
-    await rt.executor.flushCacheWrites();
-    const script = workbook.scripts[scriptKey];
-    if (script == null) return null;
-    const key = await computeScriptResultCacheKey(rt.execution.scriptRunServices, workbook, script);
-    const entry = key == null ? null : await hyper.resultCache.lookup(key);
-    if (entry == null) return null;
-    return { key: entry.key, path: path.join(hyper.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name), served: entry.cachedAtMs < startedAt };
 }
 
 /// Load the workbook of a folder into the runtime
@@ -346,50 +316,47 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
 
-    const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null);
+    // An interrupt stops the run after it cancelled the queries of the script that runs, also one during the start
+    const running = new Map<number, string>();
+    let rt: Runtime | null = null;
+    let interrupted = false;
+    const interrupt = () => {
+        interrupted = true;
+        for (const [queryId, connectionId] of running) void rt?.executor.cancel(connectionId, queryId);
+    };
+    if (cli.interrupt?.aborted) interrupt();
+    else cli.interrupt?.addEventListener('abort', interrupt, { once: true });
+
+    // In a session the log of the run goes into its journal, with markers of what changed
+    const journal = openSessionJournal(workspace, dir);
+    const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null, journal);
     const storage = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
     // The embedded Hyper writes the results into the query result cache of the root and reads the results of other
-    // connections and the attachments. Without it the scripts still run, nothing is written.
+    // connections and the attachments. Without it the scripts on Trino still run, nothing is written.
     let hyper: NodeComputeDatabase | null = null;
     try {
         hyper = await openNodeComputeDatabase(env.home ?? dashqlRootOf(workspace));
     } catch (error) {
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
-    const rt = await createRuntime({
+    const runtime = await createRuntime({
         ...createNodePlatform({ logger, storage }),
         setupCore: () => cli.setupCore(),
         computeDatabase: hyper?.database ?? null,
         resultCache: hyper?.resultCache ?? null,
     });
+    rt = runtime;
     try {
         // A run doesn't describe the connections, it only runs the scripts
-        rt.catalogLoader.stop();
+        runtime.catalogLoader.stop();
         let workbook: WorkbookScripts;
         try {
-            workbook = await loadWorkbook(rt, storage);
+            workbook = await loadWorkbook(runtime, storage);
         } catch (error) {
             cli.stderr(`error: ${parsed.workbook} could not be loaded: ${describeError(error)}\n`);
             return EXIT_USAGE;
         }
         const { workbookId } = workbook;
-        // The embedded Hyper reads the attachments from the root, like the app reads them from its storage
-        if (hyper != null) await mirrorWorkbookAttachments(storage, workbookId);
-        // A session below the folder learns the files of the folder, the agent may have changed them, and every result
-        // In a session the log of the run goes into its journal, with markers of what changed
-        logger.journal = openSessionJournal(workspace, dir);
-        const mark = (message: string, keyValues: LogKeyValues) => {
-            if (logger.journal == null) return;
-            logger.info(message, { [JOURNAL_KEYS.workbook]: logger.journal.workbook, [JOURNAL_KEYS.workbookId]: workbookId, ...keyValues }, JOURNAL_TARGET);
-        };
-        const markResult = (script: string, result: { key?: string | null; rows?: number | null; error?: string | null; cached?: boolean }) => mark(JOURNAL_SCRIPT_RESULT, {
-            [JOURNAL_KEYS.script]: script,
-            [JOURNAL_KEYS.key]: result.key ?? '',
-            [JOURNAL_KEYS.resultRows]: result.rows == null ? '' : String(result.rows),
-            [JOURNAL_KEYS.error]: result.error ?? '',
-            [JOURNAL_KEYS.cached]: String(result.cached ?? false),
-        });
-        mark(JOURNAL_FILES, { [JOURNAL_KEYS.files]: await workbookFolderPaths(storage) });
 
         // The scripts by their file names, `scripts/a.sql` names `a.sql`
         const files = [...workbook.scriptOrder];
@@ -402,13 +369,32 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         const selected = requested.size === 0 ? files : files.filter(file => requested.has(file));
         const scriptOf = (file: string) => workbook.scripts[workbook.scriptRefs[file].scriptId];
 
-        // The connections are set up once, when a plan first runs statements on them
+        // The embedded Hyper reads the attachments from the root, like the app reads them from its storage
+        if (hyper != null) await mirrorWorkbookAttachments(storage, workbookId);
+        const ref = journal == null ? null : { workbook: journal.workbook, workbookId };
+        const mark = (marker: (at: JournalWorkbookRef) => JournalMarker) => {
+            if (ref == null) return;
+            const { message, keyValues } = marker(ref);
+            logger.info(message, keyValues, JOURNAL_TARGET);
+        };
+        const markResult = (result: JournalResult) => mark(ref => journalScriptResultMarker(ref, result));
+        // The files of the folder, the agent may have changed them
+        const paths = await workbookFolderPaths(storage);
+        mark(ref => journalFilesMarker(ref, paths));
+
+        // The connections are set up once, before the first statement that runs on them
         const ready = new Set<string>();
+        const prepareConnection = async (connectionId: string) => {
+            if (ready.has(connectionId)) return;
+            const conn = runtime.connections.store.current.connections.get(connectionId);
+            if (conn == null) throw new Error(`the workbook has no connection ${connectionId}`);
+            const failure = await setupConnection(runtime, conn, env, hyper);
+            if (failure != null) throw new ConnectionSetupError(connectionLabel(conn), failure);
+            ready.add(connectionId);
+        };
         // The results are printed, the run doesn't analyze them
-        // The queries of the script that runs, their progress goes into the journal
-        const running = new Map<number, string>();
         const execute: QueryExecutor = (connectionId, queryArgs) => {
-            const [queryId, execution] = rt.executor.execute(connectionId, { ...queryArgs, analyzeResults: false });
+            const [queryId, execution] = runtime.executor.execute(connectionId, { ...queryArgs, analyzeResults: false });
             running.set(queryId, connectionId);
             return [queryId, execution];
         };
@@ -416,72 +402,66 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         let lastProgress = '';
         const reportProgress = (script: string) => {
             for (const [queryId, connectionId] of running) {
-                const progress = rt.connections.store.current.connections.get(connectionId)?.queriesActive.get(queryId)?.latestProgressUpdate;
+                const progress = runtime.connections.store.current.connections.get(connectionId)?.queriesActive.get(queryId)?.latestProgressUpdate;
                 if (progress == null) continue;
-                const values = {
-                    [JOURNAL_KEYS.script]: script,
-                    [JOURNAL_KEYS.phase]: progress.phase ?? '',
-                    [JOURNAL_KEYS.percent]: progress.progressPercent == null ? '' : String(Math.round(progress.progressPercent)),
-                    [JOURNAL_KEYS.rows]: progress.rowsProcessed == null ? '' : String(progress.rowsProcessed),
-                };
-                const text = JSON.stringify(values);
-                if (text !== lastProgress) mark(JOURNAL_SCRIPT_PROGRESS, values);
+                const marker = { script, phase: progress.phase ?? null, percent: progress.progressPercent ?? null, rows: progress.rowsProcessed ?? null };
+                const text = JSON.stringify(marker);
+                if (text !== lastProgress) mark(ref => journalScriptProgressMarker(ref, marker));
                 lastProgress = text;
             }
         };
-        const modify = (action: Parameters<Runtime['workbooks']['dispatch']>[1]) => rt.workbooks.dispatch(workbookId, action);
-        const current = () => rt.workbooks.store.current.workbookScriptsMap.get(workbookId)!;
+        const modify = (action: Parameters<Runtime['workbooks']['dispatch']>[1]) => runtime.workbooks.dispatch(workbookId, action);
+        const current = () => runtime.workbooks.store.current.workbookScriptsMap.get(workbookId)!;
         let succeeded = 0;
         for (const file of selected) {
+            if (interrupted) break;
             const started = performance.now();
-            const startedAt = Date.now();
             let table: arrow.Table | null;
+            let outcome: ScriptResultOutcome | null = null;
+            running.clear();
+            lastProgress = '';
+            mark(ref => journalScriptStartedMarker(ref, file));
+            const progressTimer = journal == null ? null : setInterval(() => reportProgress(file), PROGRESS_INTERVAL_MS);
             try {
                 const script = await ensureWorkbookScriptAnalyzed(current(), scriptOf(file).scriptKey, modify);
                 if (script == null) throw new Error('the script could not be analyzed');
-                for (const connectionId of await plannedConnections(current(), file)) {
-                    if (ready.has(connectionId)) continue;
-                    const conn = rt.connections.store.current.connections.get(connectionId);
-                    if (conn == null) throw new Error(`the workbook has no connection ${connectionId}`);
-                    const failure = await setupConnection(rt, conn, env, hyper);
-                    if (failure != null) {
-                        markResult(file, { error: `${connectionLabel(conn)}: ${failure}` });
-                        cli.stdout(`${connectionLabel(conn)}  failed\n  ${failure}\n`);
-                        return EXIT_FAILED;
-                    }
-                    ready.add(connectionId);
-                }
-                running.clear();
-                lastProgress = '';
-                mark(JOURNAL_SCRIPT_STARTED, { [JOURNAL_KEYS.script]: file });
-                const progressTimer = logger.journal == null ? null : setInterval(() => reportProgress(file), PROGRESS_INTERVAL_MS);
-                try {
-                    table = await runPlannedScript(rt.execution.scriptRunServices, current(), script, execute, modify, { logger, refresh: parsed.refresh });
-                } finally {
-                    if (progressTimer != null) clearInterval(progressTimer);
-                }
+                table = await runPlannedScript(runtime.execution.scriptRunServices, current(), script, execute, modify, {
+                    logger, refresh: parsed.refresh, prepareConnection, onResult: result => { outcome = result; },
+                });
             } catch (error) {
-                markResult(file, { error: describeError(error) });
-                cli.stdout(`${file}  failed\n  ${describeError(error).replace(/\n/g, '\n  ')}\n`);
-                const skipped = selected.length - succeeded - 1;
-                if (skipped > 0) cli.stdout(`\n${count(skipped, 'script')} not run\n`);
+                if (interrupted) break;
+                markResult({ script: file, key: null, rows: null, error: describeError(error), cached: false });
+                if (error instanceof ConnectionSetupError) cli.stdout(`${error.label}  failed\n  ${error.reason}\n`);
+                else cli.stdout(`${file}  failed\n  ${describeError(error).replace(/\n/g, '\n  ')}\n`);
+                const notRun = selected.length - succeeded - (error instanceof ConnectionSetupError ? 0 : 1);
+                if (notRun > 0) cli.stdout(`\n${count(notRun, 'script')} not run\n`);
                 return EXIT_FAILED;
+            } finally {
+                if (progressTimer != null) clearInterval(progressTimer);
             }
             const seconds = ((performance.now() - started) / 1000).toFixed(1);
-            const cached = hyper == null ? null : await resultFile(rt, hyper, current(), scriptOf(file).scriptKey, startedAt);
-            const from = cached?.served ? '  from the cache' : '';
+            const result = outcome as ScriptResultOutcome | null;
+            // The executor writes the result into the cache after the query resolved
+            await runtime.executor.flushCacheWrites();
+            const entry = hyper == null || result?.key == null ? null : await hyper.resultCache.lookup(result.key);
+            const from = result?.cached ? '  from the cache' : '';
             if (table == null) {
                 cli.stdout(`${file}  ok  no result  ${seconds} s\n`);
             } else {
                 cli.stdout(`${file}  ok  ${count(table.numRows, 'row')}  ${seconds} s${from}\n${describeTable(table, parsed.rows)}`);
             }
-            if (cached != null) cli.stdout(`  ${cached.path}\n`);
-            markResult(file, { key: cached?.key, rows: table?.numRows ?? null, cached: cached?.served ?? false });
+            if (entry != null) cli.stdout(`  ${path.join(hyper!.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name)}\n`);
+            markResult({ script: file, key: entry?.key ?? null, rows: table?.numRows ?? null, error: null, cached: result?.cached ?? false });
             ++succeeded;
+        }
+        if (interrupted) {
+            cli.stderr(`interrupted, ${count(selected.length - succeeded, 'script')} not run\n`);
+            return EXIT_INTERRUPTED;
         }
         return EXIT_OK;
     } finally {
-        await rt.destroy();
+        cli.interrupt?.removeEventListener('abort', interrupt);
+        await runtime.destroy();
         await hyper?.close();
     }
 }

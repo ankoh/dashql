@@ -15,7 +15,7 @@ async function until(condition: () => boolean): Promise<void> {
     expect(condition()).toBe(true);
 }
 
-describe('the journal of the session server', () => {
+describe('the session server', () => {
     let server: SessionServer | null = null;
     afterEach(async () => {
         await server?.close();
@@ -45,16 +45,17 @@ describe('the journal of the session server', () => {
             ({ timestamp: 1, level: LogLevel.Info, target, message, context: null, tracing: null, keyValues });
         const workbook = { [JOURNAL_KEYS.workbook]: 'orders', [JOURNAL_KEYS.workbookId]: 'w1' };
         const entries: LogRecord[] = [
-            record(JOURNAL_FILES, JOURNAL_TARGET, { ...workbook, [JOURNAL_KEYS.files]: ['dashql-workbook.json', 'scripts/a.sql', 'scripts/gone.sql'] }),
+            record(JOURNAL_FILES, JOURNAL_TARGET, { ...workbook, [JOURNAL_KEYS.files]: ['dashql-workbook.json', 'scripts/a.sql', 'scripts/gone_ä.sql'] }),
             record('Executed query', 'query_executor', { numRows: '1' }),
             record(JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET, { ...workbook, [JOURNAL_KEYS.script]: 'a.sql', [JOURNAL_KEYS.key]: key, [JOURNAL_KEYS.resultRows]: '1' }),
         ];
-        // A line arrives in two writes, the server waits for its end
-        const lines = entries.map(entry => `${JSON.stringify(entry)}\n`).join('');
-        appendFileSync(journal, lines.slice(0, 30));
+        // A line arrives in two writes, the second one in the middle of a character, the server waits for its end
+        const bytes = Buffer.from(entries.map(entry => `${JSON.stringify(entry)}\n`).join(''));
+        const split = bytes.indexOf(Buffer.from('ä')) + 1;
+        appendFileSync(journal, bytes.subarray(0, split));
         await new Promise(resolve => setTimeout(resolve, 300));
         expect(server.state().workbooks).toEqual([]);
-        appendFileSync(journal, lines.slice(30));
+        appendFileSync(journal, bytes.subarray(split));
         await until(() => server!.state().workbooks[0]?.results.length === 1);
         // The server read the stamps of the files that exist
         expect(server.state().workbooks[0]).toMatchObject({ path: 'orders', workbookId: 'w1' });
@@ -84,6 +85,38 @@ describe('the journal of the session server', () => {
         expect(Number(newest.headers.get('X-DashQL-Cached-At'))).toBeGreaterThan(0);
         expect((await fetch(`${base}/v1/results/${server.token}/${'b'.repeat(64)}`)).status).toBe(404);
         expect((await fetch(`${base}/v1/results/${server.token}/not-a-key`)).status).toBe(404);
+
+        // A stopped server leaves no journal, later commands find no session
+        await server.close();
+        server = null;
+        expect(existsSync(journal)).toBe(false);
+    });
+
+    it('serves the state only with the token and to the pages of DashQL', async () => {
+        const server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
+        try {
+            const base = `http://127.0.0.1:${server.port}`;
+            expect((await fetch(`${base}/v1/state`)).status).toBe(401);
+            expect((await fetch(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
+            expect((await fetch(`${base}/v1/state?token=${server.token}`, { headers: { Origin: 'https://evil.example' } })).status).toBe(403);
+            for (const origin of ['https://dashql.app', 'https://stable.dashql.app']) {
+                const page = await fetch(`${base}/v1/state?token=${server.token}`, { headers: { Origin: origin } });
+                expect(page.headers.get('access-control-allow-origin')).toBe(origin);
+            }
+            const preflight = await fetch(`${base}/v1/events`, { method: 'OPTIONS', headers: { Origin: 'http://localhost:9002' } });
+            expect(preflight.status).toBe(204);
+            expect(preflight.headers.get('access-control-allow-private-network')).toBe('true');
+        } finally {
+            await server.close();
+        }
+    });
+
+    it('answers malformed paths without ending', async () => {
+        server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
+        const base = `http://127.0.0.1:${server.port}`;
+        expect((await fetch(`${base}/v1/workbooks/%E0/x`)).status).toBe(401);
+        expect((await fetch(`${base}/v1/workbooks/${server.token}/%E0/x`)).status).toBe(404);
+        expect((await fetch(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
     });
 
     it('follows the conversation in a folder without a journal', async () => {

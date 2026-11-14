@@ -14,12 +14,16 @@ export interface CliProcess {
     style: ReportStyle;
     /// The core, instantiated once
     setupCore: () => Promise<core.DashQL>;
+    /// Aborted when the user interrupts the command, e.g. with Ctrl-C
+    interrupt?: AbortSignal;
 }
 
 /// The exit codes of the commands
 export const EXIT_OK = 0;
 export const EXIT_FAILED = 1;
 export const EXIT_USAGE = 2;
+/// The exit code of a command that the user interrupted, like a shell reports SIGINT
+export const EXIT_INTERRUPTED = 130;
 
 /// Colors when stdout is a terminal. `FORCE_COLOR` (other than `0`) forces them, `NO_COLOR` turns them off.
 export function stdoutStyle(): ReportStyle {

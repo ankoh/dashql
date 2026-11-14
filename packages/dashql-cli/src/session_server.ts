@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { createReadStream, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { open } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -8,7 +8,7 @@ import { createAgentSessionState, reduceAgentSessionEvent, reduceAgentSessionJou
 import { JOURNAL_KEYS, journalFilePaths, parseJournalLines, SESSION_JOURNAL_FILE, SESSION_JOURNAL_FOLDER, type JournalFile } from '@ankoh/dashql-runtime/session/workbook_journal';
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
-export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
+export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
 
 export interface SessionServerOptions {
     harness: string;
@@ -42,10 +42,19 @@ const RESULT_CACHE_FOLDER = 'cache';
 /// The files of a workbook folder that the server hands out: what a published workbook holds (workbook_publishing.md)
 const WORKBOOK_FILE = /^(dashql-workbook\.json|(scripts|attachments)\/[^/]+|connections\/[^/]+\/dashql-catalog-[a-z]+\.sql)$/;
 
+/// A part of a path without its escapes, null for a malformed escape
+function decodePart(part: string): string | null {
+    try {
+        return decodeURIComponent(part);
+    } catch {
+        return null;
+    }
+}
+
 /// The token in the path of the routes of files, null for other routes
 function pathToken(url: URL): string | null {
     const parts = url.pathname.split('/');
-    return parts[1] === 'v1' && (parts[2] === 'workbooks' || parts[2] === 'results') ? decodeURIComponent(parts[3] ?? '') : null;
+    return parts[1] === 'v1' && (parts[2] === 'workbooks' || parts[2] === 'results') ? decodePart(parts[3] ?? '') : null;
 }
 
 /// A workbook folder of the journal, only inside the folder of the session: the server hands out no other files
@@ -133,7 +142,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         journal = null;
     }
     let journalOffset = 0;
-    let journalRest = '';
+    // The bytes of a line that is not complete yet, a character may span two reads
+    let journalRest = Buffer.alloc(0);
     let journalReading = false;
     /// Read what was appended to the journal since the last read
     const readJournal = async () => {
@@ -144,7 +154,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             // A journal that started over is read again
             if (size < journalOffset) {
                 journalOffset = 0;
-                journalRest = '';
+                journalRest = Buffer.alloc(0);
             }
             if (size === journalOffset) return;
             const file = await open(journal, 'r');
@@ -152,8 +162,10 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 const bytes = Buffer.alloc(size - journalOffset);
                 const { bytesRead } = await file.read(bytes, 0, bytes.length, journalOffset);
                 journalOffset += bytesRead;
-                const { records, rest } = parseJournalLines(journalRest + bytes.subarray(0, bytesRead).toString('utf8'));
-                journalRest = rest;
+                const chunk = Buffer.concat([journalRest, bytes.subarray(0, bytesRead)]);
+                const end = chunk.lastIndexOf(0x0a);
+                journalRest = Buffer.from(chunk.subarray(end + 1));
+                const records = parseJournalLines(chunk.subarray(0, end + 1).toString('utf8'));
                 for (const record of records) {
                     // The marker names the files of a folder, the server reads their stamps
                     const paths = journalFilePaths(record);
@@ -187,7 +199,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         request.headers.authorization === `Bearer ${token}` || url.searchParams.get('token') === token
         || pathToken(url) === token;
 
-    const server = http.createServer((request, response) => {
+    const handle = (request: http.IncomingMessage, response: http.ServerResponse) => {
         const url = new URL(request.url ?? '/', 'http://127.0.0.1');
         if (!cors(request, response)) {
             response.writeHead(403).end();
@@ -227,9 +239,10 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         }
         if (request.method === 'GET' && url.pathname.startsWith('/v1/workbooks/')) {
             // /v1/workbooks/<token>/<workbook id>/<path in the folder>
-            const [workbookId, ...parts] = url.pathname.split('/').slice(4).map(decodeURIComponent);
-            const workbook = state.workbooks.find(other => other.workbookId === workbookId);
-            const file = workbook == null ? null : workbookFile(workbookFolder(options.folder, workbook.path), parts);
+            const decoded = url.pathname.split('/').slice(4).map(decodePart);
+            const [workbookId, ...parts] = decoded;
+            const workbook = decoded.includes(null) ? null : state.workbooks.find(other => other.workbookId === workbookId);
+            const file = workbook == null ? null : workbookFile(workbookFolder(options.folder, workbook.path), parts as string[]);
             if (file == null) {
                 response.writeHead(404).end();
                 return;
@@ -262,6 +275,15 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             return;
         }
         response.writeHead(404).end();
+    };
+    // A request never ends the server, whatever it sends
+    const server = http.createServer((request, response) => {
+        try {
+            handle(request, response);
+        } catch {
+            if (!response.headersSent) response.writeHead(400);
+            response.end();
+        }
     });
     // Comments keep the streams open through proxies and tell a page that the server lives
     const keepAlive = setInterval(() => { for (const stream of streams) stream.write(': alive\n\n'); }, 15_000);
@@ -277,6 +299,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         close: () => new Promise<void>(resolve => {
             clearInterval(keepAlive);
             clearInterval(journalTimer);
+            // The commands of a later run find no session and append nothing
+            if (journal != null) rmSync(journal, { force: true });
             for (const stream of streams) stream.end();
             server.close(() => resolve());
         }),

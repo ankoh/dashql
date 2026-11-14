@@ -10,8 +10,10 @@ import { runWith, testFiles } from './test_process.js';
 const WORKBOOK_ID = '6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f';
 const CONNECTION_ID = '0d9e8f7a-6b5c-4d3e-8f21-0a1b2c3d4e5f';
 
-/// A Trino server that knows the table `orders` and the password `pw` of the user `ann`
+/// A Trino server that knows the table `orders` and the password of the user `ann`
 class FakeTrino {
+    /// The password of `ann`
+    password = 'pw';
     readonly statements: string[] = [];
     readonly users: Array<string | undefined> = [];
     private server: Server | null = null;
@@ -37,7 +39,7 @@ class FakeTrino {
     }
 
     private async answer(request: IncomingMessage): Promise<[number, object | null]> {
-        if (request.headers.authorization !== `Basic ${btoa('ann:pw')}`) return [401, null];
+        if (request.headers.authorization !== `Basic ${btoa(`ann:${this.password}`)}`) return [401, null];
         const url = new URL(request.url!, this.endpoint);
         if (request.method === 'POST' && url.pathname === '/v1/statement') {
             let text = '';
@@ -189,11 +191,13 @@ describe('dashql run', () => {
         const [first] = cacheFiles(home);
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
 
-        const again = await run(dir, ['.'], PASSWORD, home);
+        // The cache serves the result, the run doesn't reach Trino at all, not even to check the connection
+        const before = trino.statements.length;
+        const again = await run(dir, ['.'], { trinoPassword: 'wrong' }, home);
         expect(again.code).toBe(0);
         expect(again.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s {2}from the cache\n/);
         expect(again.stdout).toContain(path.join(home, 'cache', first));
-        expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
+        expect(trino.statements).toHaveLength(before);
 
         const refreshed = await run(dir, ['--refresh', '.'], PASSWORD, home);
         expect(refreshed.code).toBe(0);
@@ -295,15 +299,37 @@ describe('dashql run', () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
         const output = await run(dir, ['.'], { trinoPassword: 'wrong' });
         expect(output.code).toBe(1);
-        expect(output.stdout).toBe(`trino ${trino.endpoint}  failed\n  Query failed (401 Unauthorized)\n`);
+        expect(output.stdout).toBe(`trino ${trino.endpoint}  failed\n  Query failed (401 Unauthorized)\n\n1 script not run\n`);
         expect(trino.statements).toEqual([]);
     });
 
     it('takes the user from the environment and never writes the password', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS], 'someone');
-        const output = await run(dir, ['.'], { trinoUser: 'ann', trinoPassword: 'pw' });
+        // A session in the folder, its journal gets the log of the run
+        mkdirSync(path.join(dir, '.dashql'));
+        writeFileSync(path.join(dir, '.dashql', 'journal.jsonl'), '');
+        const secret = 'pw-0a1b2c3d';
+        trino.password = secret;
+        const output = await run(dir, ['.'], { trinoUser: 'ann', trinoPassword: secret }, null);
         expect(output.code).toBe(0);
-        expect(readFileSync(path.join(dir, 'dashql-workbook.json'), 'utf8')).not.toContain('"pw"');
+        // Neither the workbook nor anything of the session holds it
+        const files = [path.join(dir, 'dashql-workbook.json'), ...readdirSync(path.join(dir, '.dashql'), { recursive: true, withFileTypes: true })
+            .filter(entry => entry.isFile()).map(entry => path.join(entry.parentPath, entry.name))];
+        for (const file of files) expect(readFileSync(file).toString('latin1')).not.toContain(secret);
+    });
+
+    it('stops when interrupted, cancels the running query and removes its instance', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"], ORDERS]);
+        const home = tempHome();
+        // Interrupted while the slow query runs on Trino
+        const interrupt = new AbortController();
+        const watch = setInterval(() => { if (trino.statements.some(text => text.includes("'slow'"))) interrupt.abort(); }, 20);
+        const output = await runWith((runArgs, cli) => runRun(runArgs, { ...cli, interrupt: interrupt.signal }, { home, ...PASSWORD }), dir, ['.']);
+        clearInterval(watch);
+        expect(output.code).toBe(130);
+        expect(output.stderr).toBe('interrupted, 2 scripts not run\n');
+        expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
+        expect(readdirSync(path.join(home, 'instances'), { withFileTypes: true }).filter(entry => entry.isDirectory())).toEqual([]);
     });
 
     it('refuses unknown scripts, folders without a workbook and missing arguments', async () => {

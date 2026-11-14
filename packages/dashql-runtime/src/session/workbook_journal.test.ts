@@ -3,10 +3,11 @@ import { reduceAgentSessionJournal, createAgentSessionState } from './agent_sess
 import {
     JOURNAL_FILES,
     JOURNAL_KEYS,
-    JOURNAL_SCRIPT_PROGRESS,
-    JOURNAL_SCRIPT_RESULT,
-    JOURNAL_SCRIPT_STARTED,
     JOURNAL_TARGET,
+    journalScriptProgressMarker,
+    journalScriptResultMarker,
+    journalScriptStartedMarker,
+    type JournalMarker,
     journalFilePaths,
     parseJournalLines,
     reduceJournalMarker,
@@ -19,32 +20,27 @@ function record(message: string, keyValues: LogKeyValues, target = JOURNAL_TARGE
 const marker = (message: string, workbook: string, workbookId: string, keyValues: LogKeyValues = {}) =>
     record(message, { [JOURNAL_KEYS.workbook]: workbook, [JOURNAL_KEYS.workbookId]: workbookId, ...keyValues });
 
-const result = (script: string, rows: number) => marker(JOURNAL_SCRIPT_RESULT, 'orders', 'w1', {
-    [JOURNAL_KEYS.script]: script, [JOURNAL_KEYS.key]: 'k'.repeat(64), [JOURNAL_KEYS.resultRows]: String(rows),
-    [JOURNAL_KEYS.error]: '', [JOURNAL_KEYS.cached]: 'false',
-});
+/// A record of a marker as a command logs it
+const logged = (built: JournalMarker) => record(built.message, built.keyValues);
+
+const ORDERS = { workbook: 'orders', workbookId: 'w1' };
+const result = (script: string, rows: number) => logged(journalScriptResultMarker(ORDERS, { script, key: 'k'.repeat(64), rows, error: null, cached: false }));
 
 describe('the journal of a session', () => {
-    it('parses complete lines of records and keeps the rest of an incomplete one', () => {
+    it('parses the lines that are records', () => {
         const files = marker(JOURNAL_FILES, '.', 'w1', { [JOURNAL_KEYS.files]: ['dashql-workbook.json', 'scripts/a.sql'] });
-        const line = JSON.stringify(files);
-        const first = parseJournalLines(`${line}\nnot json\n{"message":1}\n${line.slice(0, 10)}`);
-        expect(first.records).toEqual([files]);
-        expect(first.rest).toBe(line.slice(0, 10));
-        const second = parseJournalLines(`${first.rest}${line.slice(10)}\n`);
-        expect(second.records).toEqual([files]);
-        expect(journalFilePaths(second.records[0])).toEqual(['dashql-workbook.json', 'scripts/a.sql']);
+        const records = parseJournalLines(`${JSON.stringify(files)}\nnot json\n{"message":1}\n`);
+        expect(records).toEqual([files]);
+        expect(journalFilePaths(records[0])).toEqual(['dashql-workbook.json', 'scripts/a.sql']);
         expect(journalFilePaths(record('Executed query', {}, 'query_executor'))).toBeNull();
     });
 
     it('folds the markers: the files, the running script with its progress, the latest result of every script', () => {
         const stamped = [{ path: 'scripts/a.sql', size: 5, mtimeMs: 2 }];
         let workbooks = reduceJournalMarker([], marker(JOURNAL_FILES, 'orders', 'w1', { [JOURNAL_KEYS.files]: ['scripts/a.sql'] }), stamped);
-        workbooks = reduceJournalMarker(workbooks, marker(JOURNAL_SCRIPT_STARTED, 'orders', 'w1', { [JOURNAL_KEYS.script]: 'a.sql' }));
+        workbooks = reduceJournalMarker(workbooks, logged(journalScriptStartedMarker(ORDERS, 'a.sql')));
         expect(workbooks[0].running).toEqual({ script: 'a.sql', phase: null, percent: null, rows: null });
-        workbooks = reduceJournalMarker(workbooks, marker(JOURNAL_SCRIPT_PROGRESS, 'orders', 'w1', {
-            [JOURNAL_KEYS.script]: 'a.sql', [JOURNAL_KEYS.phase]: 'RUNNING', [JOURNAL_KEYS.percent]: '42', [JOURNAL_KEYS.rows]: '1200',
-        }));
+        workbooks = reduceJournalMarker(workbooks, logged(journalScriptProgressMarker(ORDERS, { script: 'a.sql', phase: 'RUNNING', percent: 41.6, rows: 1200 })));
         expect(workbooks[0].running).toEqual({ script: 'a.sql', phase: 'RUNNING', percent: 42, rows: 1200 });
         workbooks = reduceJournalMarker(workbooks, result('a.sql', 3));
         workbooks = reduceJournalMarker(workbooks, result('b.sql', 1));

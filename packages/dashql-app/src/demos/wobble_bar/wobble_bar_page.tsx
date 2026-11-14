@@ -31,7 +31,7 @@ function fakeSession(turns: AgentTurn[], connected = true): AgentSession {
 const SCRIPTS = [{ scriptKey: 2, scriptName: '2_region_growth' }];
 const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql workbook run 2_region_growth', error: null, note: null },
+    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', error: null, note: null },
     scripts: SCRIPTS,
 };
 const ANSWERED: AgentTurn = {

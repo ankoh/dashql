@@ -87,6 +87,9 @@ export function useFollowedAgentSession(): FollowedAgentSession | null {
 
 /// The session of an agent for the bar of a workbook, null without one. The feed follows the agent to the latest script
 /// it touched while it works.
+/// The status line of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
+const DASHQL_RUN = /(^|[\s/])dashql run\b/;
+
 export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const followed = useFollowedAgentSession();
     const [dismissed, setDismissed] = React.useState<ReadonlySet<number>>(() => new Set());
@@ -101,7 +104,7 @@ export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const { followScript } = args;
     React.useEffect(() => {
         if (followedScript == null || latest == null) return;
-        followScript(followedScript.scriptKey, latest.question.status?.startsWith('dashql workbook run') ? 'result' : 'script');
+        followScript(followedScript.scriptKey, DASHQL_RUN.test(latest.question.status ?? '') ? 'result' : 'script');
         // Every event of the agent follows it again
     }, [version]);
     return session;

@@ -8,16 +8,14 @@ import v8 from 'node:v8';
 
 import { HyperDB, type HyperDBEngine, type MountFile } from '../platform/hyperdb/hyperdb_wasm.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
-import { hyperOPFSRoot, setOPFSRootProvider } from '../platform/opfs_root.js';
+import { setOPFSRootProvider } from '../platform/opfs_root.js';
+import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance, HYPER_INSTANCES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs_instance.js';
 import type { QueryResultCache } from '../query/query_result_cache.js';
 import { createOPFSQueryResultCache } from '../storage/opfs_query_result_cache.js';
 import { openNodeRoot } from './node_directory_handle.js';
+import { nodeInstanceLocks } from './node_instance_locks.js';
 import { PROCESS_LOCKS } from './node_locks.js';
 
-/// The folder with one folder per instance of the embedded Hyper, like in the browser
-const INSTANCES_DIRECTORY = 'instances';
-/// The folder of the log files in an instance folder
-const INSTANCE_LOGS_DIRECTORY = 'logs';
 /// The folder of the files that statements of an instance mount, e.g. the Arrow IPC of an insert
 const INSTANCE_FILES_DIRECTORY = 'files';
 
@@ -58,12 +56,12 @@ const WASM_FEATURES = {
 /// Can this Node run the engine? Node 24 before 24.15 has exnref behind a flag, it is set in V8 before the engine
 /// compiles: a flag on the command line would break the approval of a command by its prefix. Fails with the Node that
 /// runs, an agent harness may not run the one of the shell.
-export function checkNodeWasmFeatures(): void {
+function checkNodeWasmFeatures(): void {
     if (!WebAssembly.validate(WASM_FEATURES.exnref)) v8.setFlagsFromString('--experimental-wasm-exnref');
     const missing = (Object.keys(WASM_FEATURES) as Array<keyof typeof WASM_FEATURES>).filter(feature => !WebAssembly.validate(WASM_FEATURES[feature]));
     if (missing.length > 0) {
         throw new Error(`${process.execPath} (Node ${process.version}) can't run the embedded Hyper, it lacks the WebAssembly feature `
-            + `${missing.join(', ')}. The embedded Hyper needs Node 24.15 or later.`);
+            + `${missing.join(', ')}. The embedded Hyper needs Node 24 or later.`);
     }
 }
 
@@ -91,12 +89,12 @@ export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEng
     checkNodeWasmFeatures();
     const root = path.resolve(folder);
     const handle = await useNodeRoot(root);
-    const id = crypto.randomUUID();
-    const instance = await (await handle.getDirectoryHandle(INSTANCES_DIRECTORY, { create: true })).getDirectoryHandle(id, { create: true });
-    await instance.getDirectoryHandle(INSTANCE_LOGS_DIRECTORY, { create: true });
-    const removeInstance = () => rm(path.join(root, INSTANCES_DIRECTORY, id), { recursive: true, force: true });
-    const instancePath = `${hyperOPFSRoot()}/${INSTANCES_DIRECTORY}/${id}`;
-    const mountFile = mountHostFile(path.join(root, INSTANCES_DIRECTORY, id, INSTANCE_FILES_DIRECTORY));
+    // An instance folder like a window of the app, the folders of processes that are gone are removed
+    const locks = nodeInstanceLocks(path.join(root, HYPER_INSTANCES_DIRECTORY));
+    await cleanupStaleHyperDBOPFSInstances(async () => handle, locks);
+    const instance = await createHyperDBOPFSInstance(async () => handle, locks);
+    const instancePath = instance.directoryPath;
+    const mountFile = mountHostFile(path.join(root, HYPER_INSTANCES_DIRECTORY, instance.id, INSTANCE_FILES_DIRECTORY));
 
     let engine: HyperDBEngine;
     try {
@@ -104,10 +102,10 @@ export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEng
         const { HyperDB: Engine } = await import('hyperdb-wasm');
         engine = await Engine.create({
             storagePath: root,
-            settings: { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: `${instancePath}/${INSTANCE_LOGS_DIRECTORY}` },
+            settings: { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: instance.logDirectoryPath },
         }) as unknown as HyperDBEngine;
     } catch (error) {
-        await removeInstance();
+        await instance.dispose();
         throw error;
     }
     const pathOf = (name: string | undefined) => name == null ? undefined : `${instancePath}/${name}`;
@@ -125,7 +123,7 @@ export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEng
             try {
                 await engine.terminate();
             } finally {
-                await removeInstance();
+                await instance.dispose();
             }
         },
     };

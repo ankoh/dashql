@@ -9,7 +9,7 @@ import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
 import { useCancelQuery } from './query_executor.js';
 import { dropsAttachedDatabases } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
-import { embeddedAttachedDatabasePath } from '../platform/hyperdb/hyperdb_opfs_instance.js';
+import { embeddedAttachedDatabasePath } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_opfs_instance';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 

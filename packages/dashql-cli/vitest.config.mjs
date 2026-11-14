@@ -14,5 +14,7 @@ export default {
         environment: 'node',
         globals: true,
         include: ['src/**/*.test.ts'],
+        // Every `dashql run` starts the embedded Hyper, about 1.5 s
+        testTimeout: 20_000,
     },
 };

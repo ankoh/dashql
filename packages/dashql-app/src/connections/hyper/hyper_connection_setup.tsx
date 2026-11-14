@@ -20,15 +20,13 @@ import { useAppConfig } from '../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
-import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
+import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
 import { hyperLinkChannelParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
-import { embeddedAttachedDatabasePath } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
-import { embeddedCloudDatabases } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 
 const LOG_CTX = "hyper_setup";
 
@@ -55,21 +53,9 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
 
         if (params.protocol === 'WASM') {
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
-            // A local cloud attaches the databases of the clouds folder of its settings, like a Hyper server, and has no
-            // database of its own: Hyper resolves unqualified names only in a session with a single database. The files
-            // live in the OPFS folder of the app and outlive the window.
-            const attachedDatabases = await Promise.all(embeddedCloudDatabases(params).map(async attached => ({
-                path: await embeddedAttachedDatabasePath(attached.path),
-                alias: attached.alias,
-            })));
             // The Hyper log attributes the queries of the session to the connection by its client context
-            const embeddedConnection = await database.connect({
-                defaultDatabase: attachedDatabases.length > 0 ? null : 'hyper',
-                attachedDatabases,
-                clientContext: connectionId == null ? undefined : connectionClientContext(connectionId),
-            });
+            channel = await connectEmbeddedHyper(database, params, connectionId == null ? undefined : connectionClientContext(connectionId));
             if (connectionId != null) logMetrics?.watch({ database, sessions: true }, connectionId);
-            channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(embeddedConnection));
         } else {
             // The Hyper of a link is reached with the token of the link, it is never stored
             let connectParams = params;

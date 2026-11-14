@@ -13,29 +13,21 @@ const FORBIDDEN_PACKAGE = /^(react|react-dom|react-router-dom|react-window|vega-
 /// Bundler assets
 const ASSET = /(\?url|\?raw|\.css)$/;
 
-/// The seams that only a browser or a bundler provides
+/// The seams that only a browser or a bundler provides. The handles of the origin private file system are no seam:
+/// Node passes handles of a folder of the host (node/node_directory_handle.ts), only the root of the browser is one.
 const SEAMS = [
     { name: 'a bundler asset', test: text => [...text.matchAll(IMPORT)].some(match => ASSET.test(match[1])) },
     { name: 'import.meta.glob', test: text => /\bimport\.meta\.glob\b/.test(text) },
-    { name: 'the origin private file system', test: text => /\bnavigator\.storage\b|\bFileSystem(Directory|File)Handle\b/.test(text) },
+    { name: 'the origin private file system', test: text => /\bnavigator\.storage\b/.test(text) },
+    { name: 'a Web Worker', test: text => /@ankoh\/dashql-core\/browser-worker|\bnew Worker\(/.test(text) },
     { name: 'the Electron bridge', test: text => /\bdashqlElectron\b/.test(text) },
 ];
-/// The modules that still use a seam, step 4 gives each another way to what it needs
+/// The modules that still use a seam, each needs another way to what it does before Node can use it
 const KNOWN_SEAMS = new Map([
-    ['platform/database/embedded_database.ts', ['the origin private file system']],
+    ['connections/catalog/catalog_batch.ts', ['a Web Worker']],
     ['platform/electron_fs.ts', ['the Electron bridge']],
-    // Node gives the modules of the origin private file system a folder of the host with its handles
-    ['node/node_directory_handle.ts', ['the origin private file system']],
-    ['node/node_hyperdb.ts', ['the origin private file system']],
     ['platform/native_globals.ts', ['the Electron bridge']],
-    ['platform/hyperdb/hyperdb_parquet_export.ts', ['the origin private file system']],
-    ['platform/hyperdb/hyperdb_wasm.ts', ['the origin private file system']],
     ['platform/opfs_root.ts', ['the origin private file system']],
-    ['storage/migration/migration_folder.ts', ['the origin private file system']],
-    ['storage/opfs_query_result_cache.ts', ['the origin private file system']],
-    ['storage/workbook_tree.ts', ['the origin private file system']],
-    ['workbook/attachments/attachment_mirror.ts', ['the origin private file system']],
-    ['workbook/attachments/attachment_mounts.ts', ['the origin private file system']],
 ]);
 
 const IMPORT = /(?:^|[\n;])\s*(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;

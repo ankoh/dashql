@@ -85,7 +85,7 @@ errors.
 ## dashql run
 
 ```
-dashql run [--rows <n>] [--refresh] [--verbose] <workbook-dir> [<script>...]
+dashql run [--rows <n>] [--refresh] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 ```
 
 Runs scripts of a workbook folder (a folder with `dashql-workbook.json` and `scripts/`) on their connections, in the
@@ -113,30 +113,33 @@ query result cache. `--verbose` prints the log of the runtime to stderr.
 
 - **The files of DashQL.** A root with the layout of the storage of the app (`docs/design/storage_layout.md`): the
   query result cache in `cache/`, the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the
-  folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end. The root is
+  folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end or by the next
+  run once its process is gone. The root is
   `DASHQL_HOME`, else the `.dashql/` of the workspace, the one that `dashql session serve` creates in the folder of its
   session, else `~/.dashql`. The workspace is the folder that the harness works in: the invoking directory, or
   `--workspace <dir>`; nothing is searched for. In a session, everything of a project is in its `.dashql/`, which
   commands in the sandbox of a harness may write. It is a root of its own, the app keeps its files in the storage of
   the browser.
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
-  app; the result then says `from the cache`. `--refresh` runs every script. The workbook folder is not written.
+  app; the result then says `from the cache` and its connection is not needed. `--refresh` runs every script. The
+  workbook folder is not written.
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
   override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
+  A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
   Connections with OAuth, Salesforce and remote Hyper servers are refused before their first statement. A connection
-  is set up and checked with `select 1` when a plan first runs statements on it.
-- **The embedded Hyper** is the build of `hyperdb-wasm` for Node, loaded only by `run`. It needs Node 24.15 or later,
-  older versions of Node 24 get the flag for exnref from the command itself. Without it the scripts on Trino still run
-  and nothing is written. Its worker prints a line to the descriptor 1 of its process, which no code in the process
-  can filter, so `run` runs in a child process whose descriptor 1 goes nowhere and writes its output to the stdout of
-  the parent.
+  is set up and checked with `select 1` right before the first statement that runs on it.
+- **The embedded Hyper** is the build of `hyperdb-wasm` for Node, loaded only by `run`. It runs on Node 24: Node 24.15
+  and later have every WebAssembly feature it needs, earlier versions of Node 24 get the flag for exnref from the
+  command itself. Without it the scripts on Trino still run and nothing is written.
+- **Interrupts.** The first Ctrl-C cancels the running queries and removes the folder of the instance, the second one
+  ends the process.
 - **Not yet.** The catalog of a connection is not described.
 - **Sessions.** In the folder of a session (`dashql session`), `run` appends the files of the workbook folder and every
   result to the journal of the session.
 - **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
 
-The exit code is 0 if all scripts ran, 1 if a script or a connection failed and 2 on usage errors or a folder without a
-workbook.
+The exit code is 0 if all scripts ran, 1 if a script or a connection failed, 2 on usage errors or a folder without a
+workbook and 130 when interrupted.
 
 ## dashql session
 

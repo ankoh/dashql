@@ -3,7 +3,7 @@
 // the target `workbook_journal` are markers that tell what changed: the files of a workbook folder, a script that
 // started, its progress and its result. The server folds the markers into the workbooks of the session and keeps the
 // latest other records as the log of the commands; the page fetches the files and the results that it lacks.
-import type { LogRecord, LogValue } from '../platform/logger/log_buffer.js';
+import type { LogKeyValues, LogRecord, LogValue } from '../platform/logger/log_buffer.js';
 
 /// The folder of the journal in the folder of a session
 export const SESSION_JOURNAL_FOLDER = '.dashql';
@@ -84,13 +84,59 @@ export interface SessionWorkbook {
     running: JournalRunningScript | null;
 }
 
-/// Parse the complete lines of a chunk of the journal. Returns the records and the text of an incomplete last line,
-/// which the next chunk completes. Lines that are no records are skipped.
-export function parseJournalLines(text: string): { records: LogRecord[]; rest: string } {
-    const end = text.lastIndexOf('\n');
-    const complete = end < 0 ? '' : text.slice(0, end);
+/// The workbook folder of a marker: its path relative to the folder of the session and the id of its workbook
+export interface JournalWorkbookRef {
+    workbook: string;
+    workbookId: string;
+}
+
+/// A marker of the journal, a command logs it with the target JOURNAL_TARGET
+export interface JournalMarker {
+    message: string;
+    keyValues: LogKeyValues;
+}
+
+function markerOf(message: string, ref: JournalWorkbookRef, keyValues: LogKeyValues): JournalMarker {
+    return { message, keyValues: { [JOURNAL_KEYS.workbook]: ref.workbook, [JOURNAL_KEYS.workbookId]: ref.workbookId, ...keyValues } };
+}
+
+const textOfNumber = (value: number | null) => value == null ? '' : String(value);
+
+/// The marker of all files of a workbook folder
+export function journalFilesMarker(ref: JournalWorkbookRef, files: readonly string[]): JournalMarker {
+    return markerOf(JOURNAL_FILES, ref, { [JOURNAL_KEYS.files]: files });
+}
+
+/// The marker of a script that starts
+export function journalScriptStartedMarker(ref: JournalWorkbookRef, script: string): JournalMarker {
+    return markerOf(JOURNAL_SCRIPT_STARTED, ref, { [JOURNAL_KEYS.script]: script });
+}
+
+/// The marker of the progress of a script that runs
+export function journalScriptProgressMarker(ref: JournalWorkbookRef, running: JournalRunningScript): JournalMarker {
+    return markerOf(JOURNAL_SCRIPT_PROGRESS, ref, {
+        [JOURNAL_KEYS.script]: running.script,
+        [JOURNAL_KEYS.phase]: running.phase ?? '',
+        [JOURNAL_KEYS.percent]: textOfNumber(running.percent == null ? null : Math.round(running.percent)),
+        [JOURNAL_KEYS.rows]: textOfNumber(running.rows),
+    });
+}
+
+/// The marker of the result of a script
+export function journalScriptResultMarker(ref: JournalWorkbookRef, result: JournalResult): JournalMarker {
+    return markerOf(JOURNAL_SCRIPT_RESULT, ref, {
+        [JOURNAL_KEYS.script]: result.script,
+        [JOURNAL_KEYS.key]: result.key ?? '',
+        [JOURNAL_KEYS.resultRows]: textOfNumber(result.rows),
+        [JOURNAL_KEYS.error]: result.error ?? '',
+        [JOURNAL_KEYS.cached]: String(result.cached),
+    });
+}
+
+/// Parse lines of the journal, the lines that are no records are skipped
+export function parseJournalLines(text: string): LogRecord[] {
     const records: LogRecord[] = [];
-    for (const line of complete.split('\n')) {
+    for (const line of text.split('\n')) {
         if (line.trim().length === 0) continue;
         try {
             const record = JSON.parse(line) as LogRecord;
@@ -101,7 +147,7 @@ export function parseJournalLines(text: string): { records: LogRecord[]; rest: s
             // A torn write or a line of another version
         }
     }
-    return { records, rest: text.slice(end + 1) };
+    return records;
 }
 
 function textOf(value: LogValue): string | null {

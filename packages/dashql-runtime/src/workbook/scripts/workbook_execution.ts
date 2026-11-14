@@ -162,6 +162,14 @@ export function createExecutionMounts(cache: QueryResultCache, database: Parquet
     };
 }
 
+/// The outcome of a script with a result in a run
+export interface ScriptResultOutcome {
+    /// The key of its result in the query result cache, null if the result is not reusable
+    key: string | null;
+    /// Did the cache serve the result instead of the connection of the script?
+    cached: boolean;
+}
+
 /// The result key of a script of a plan
 interface ScriptResultKey {
     /// The key, the files of the results of the script are named after it
@@ -740,6 +748,12 @@ export async function runWorkbookPlan(args: {
     /// serve their cached results, the others are skipped with the scripts that follow them. All run if absent.
     canRun?: (connectionId: string) => boolean;
     maxConcurrentQueries?: (connectionId: string) => number;
+    /// Set up a connection before the first statement that runs on it, e.g. a connection of the command line tool.
+    /// Results served from the cache need no connection. A failure fails the run.
+    prepareConnection?: (connectionId: string) => Promise<void>;
+    /// The outcome of every script with a result: its key in the query result cache if it is reusable, and whether
+    /// the cache served it instead of its connection
+    onScriptResult?: (script: number, result: ScriptResultOutcome) => void;
     logger?: LoggerLike;
 }): Promise<Array<number | null>> {
     const { workbook, signal, queries, cooperate, emit, mounts, cache, run } = args;
@@ -853,6 +867,7 @@ export async function runWorkbookPlan(args: {
                 if (served == null) continue;
                 runs[index] = false;
                 cachedFiles.set(index, file.entry.name);
+                args.onScriptResult?.(index, { key: key.key, cached: true });
                 await args.modifyWorkbookScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
                 await args.modifyWorkbookScripts({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [script.scriptKey, visualization] });
                 if (served.table != null) await args.modifyWorkbookScripts({ type: REGISTER_SCRIPT_RESULT, value: [script.scriptKey, queryId] });
@@ -898,6 +913,12 @@ export async function runWorkbookPlan(args: {
                 workbookId, scripts: skipped.map(index => `${files[index]} (${reason(index)})`).join(', '),
             }, LOG_CTX);
         }
+        if (args.prepareConnection != null) {
+            for (const connectionId of new Set(graph.nodes.flatMap((node, index) => skip.has(index) ? [] : [plan.connectionIds[node.connection]]))) {
+                await args.prepareConnection(connectionId);
+                signal.throwIfAborted();
+            }
+        }
         const outputs = await runExecutionGraph({
             plan, scripts, files, workbookId,
             executeQuery: args.executeQuery, modifyWorkbookScripts: args.modifyWorkbookScripts,
@@ -911,6 +932,9 @@ export async function runWorkbookPlan(args: {
                 ? { cacheable: true, refreshCache: true, cacheSignature: keys[index]!.signature }
                 : {},
         });
+        for (const index of new Set(graph.nodes.flatMap((node, n) => !skip.has(n) && node.scriptResult ? [node.script] : []))) {
+            args.onScriptResult?.(index, { key: keys[index]?.reusable ? keys[index]!.key : null, cached: false });
+        }
         return outputs;
     } finally {
         await mounts?.release();

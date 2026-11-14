@@ -19,7 +19,7 @@ import {
     HYPER_LEGACY_LOGS_DIRECTORY,
     HYPER_CLOUDS_DIRECTORY,
     isUuid,
-} from '../platform/hyperdb/hyperdb_opfs_instance.js';
+} from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_opfs_instance';
 import { PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { OPFS_TESTS_FOLDER } from '@ankoh/dashql-runtime/platform/opfs_root';

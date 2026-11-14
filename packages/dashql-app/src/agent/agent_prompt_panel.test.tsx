@@ -52,7 +52,7 @@ describe('Agent prompt panel', () => {
         const agent = agentSession({
             turns: [{
                 questionId: 3,
-                question: { question: 'how many orders', status: 'dashql workbook check', error: null, note: null },
+                question: { question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null },
                 scripts: [{ scriptKey: 7, scriptName: 'orders' }],
             }],
         });
@@ -62,7 +62,7 @@ describe('Agent prompt panel', () => {
         const turn = container.querySelector('[data-testid="composer-agent-turn"]')!;
         expect(turn.getAttribute('data-state')).toBe('working');
         expect(turn.textContent).toContain('how many orders');
-        expect(turn.querySelector('[role="status"]')?.textContent).toBe('dashql workbook check');
+        expect(turn.querySelector('[role="status"]')?.textContent).toBe('dashql lint scripts/orders.sql');
         expect(turn.querySelector('[data-testid="question-dismiss"]')).toBeNull();
         expect(turn.querySelector('[data-testid="question-stop"]')).toBeNull();
         act(() => turn.querySelector<HTMLButtonElement>('[data-testid="composer-agent-script"]')!.click());

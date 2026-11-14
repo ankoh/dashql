@@ -20,7 +20,7 @@ export const SESSION_USAGE = `Usage:
 DASHQL_SERVERS is the folder of the running servers of sessions (~/.dashql/servers), DASHQL_APP_URL the page of the links
 (https://dashql.app).`;
 
-/// A running session, as its server leaves it in the folder of the sessions
+/// A running session, as its server leaves it in the folder of the servers
 interface SessionFile {
     session: string;
     port: number;
@@ -30,10 +30,10 @@ interface SessionFile {
 
 /// Where the sessions and the links point to
 export interface SessionEnvironment {
-    /// The folder of the running sessions
-    home: string;
+    /// The folder of the running servers of sessions, a file per server
+    servers: string;
     /// The folder of the files of DashQL (DASHQL_HOME), null for the `.dashql/` of the folder of the session
-    dashqlHome: string | null;
+    home: string | null;
     /// The page of the links
     appUrl: string;
     /// Start `dashql session serve` with the arguments after `session serve`, detached from the hook
@@ -42,8 +42,8 @@ export interface SessionEnvironment {
 
 export function processSessionEnvironment(): SessionEnvironment {
     return {
-        home: process.env.DASHQL_SERVERS || path.join(homedir(), '.dashql', 'servers'),
-        dashqlHome: process.env.DASHQL_HOME || null,
+        servers: process.env.DASHQL_SERVERS || path.join(homedir(), '.dashql', 'servers'),
+        home: process.env.DASHQL_HOME || null,
         appUrl: process.env.DASHQL_APP_URL || 'https://dashql.app',
         startServer: args => {
             // Node runs the module of dashql again, a hook must not wait for the server
@@ -57,9 +57,9 @@ function sessionFileName(session: string): string {
     return `${session.replace(/[^\w.-]/g, '_')}.json`;
 }
 
-function readSessionFile(home: string, session: string): SessionFile | null {
+function readSessionFile(servers: string, session: string): SessionFile | null {
     try {
-        return JSON.parse(readFileSync(path.join(home, sessionFileName(session)), 'utf8')) as SessionFile;
+        return JSON.parse(readFileSync(path.join(servers, sessionFileName(session)), 'utf8')) as SessionFile;
     } catch {
         return null;
     }
@@ -120,14 +120,14 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
     if (event == null) return EXIT_OK;
     const session = (payload as { session_id?: unknown })?.session_id;
     const id = typeof session === 'string' && session.length > 0 ? session : 'default';
-    let file = readSessionFile(env.home, id);
+    let file = readSessionFile(env.servers, id);
     if (file == null || !(await alive(file))) {
         if (event.event === 'SessionEnd') return EXIT_OK;
         env.startServer(['--session', id, '--harness', harness, '--folder', event.folder || cli.cwd]);
         file = null;
         for (let i = 0; i < 100 && file == null; ++i) {
             await new Promise(resolve => setTimeout(resolve, 50));
-            const written = readSessionFile(env.home, id);
+            const written = readSessionFile(env.servers, id);
             if (written != null && await alive(written)) file = written;
         }
         if (file == null) {
@@ -155,12 +155,12 @@ async function serve(args: string[], cli: CliProcess, env: SessionEnvironment): 
     const server = await startSessionServer({
         harness: named.get('harness') ?? 'agent',
         folder: named.get('folder') ?? cli.cwd,
-        home: env.dashqlHome,
+        home: env.home,
         port: Number(named.get('port') ?? 0),
         onEnd: () => setTimeout(() => void stop(), 100),
     });
-    mkdirSync(env.home, { recursive: true });
-    const target = path.join(env.home, sessionFileName(id));
+    mkdirSync(env.servers, { recursive: true });
+    const target = path.join(env.servers, sessionFileName(id));
     const file: SessionFile = { session: id, port: server.port, token: server.token, pid: process.pid };
     // Written at once, a hook never reads half of it
     writeFileSync(`${target}.tmp`, JSON.stringify(file), { mode: 0o600 });
@@ -186,14 +186,14 @@ function link(args: string[], cli: CliProcess, env: SessionEnvironment): number 
         // The latest session
         let names: string[];
         try {
-            names = readdirSync(env.home).filter(name => name.endsWith('.json'));
+            names = readdirSync(env.servers).filter(name => name.endsWith('.json'));
         } catch {
             names = [];
         }
-        names.sort((a, b) => statSync(path.join(env.home, b)).mtimeMs - statSync(path.join(env.home, a)).mtimeMs);
+        names.sort((a, b) => statSync(path.join(env.servers, b)).mtimeMs - statSync(path.join(env.servers, a)).mtimeMs);
         id = names[0]?.slice(0, -'.json'.length);
     }
-    const file = id == null ? null : readSessionFile(env.home, id);
+    const file = id == null ? null : readSessionFile(env.servers, id);
     if (file == null) {
         cli.stderr('dashql: no session runs\n');
         return EXIT_FAILED;

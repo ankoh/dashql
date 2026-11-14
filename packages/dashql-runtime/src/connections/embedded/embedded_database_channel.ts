@@ -1,7 +1,9 @@
 import type * as arrow from 'apache-arrow';
 import type * as pb from '../../proto.js';
 
-import type { EmbeddedConnection, EmbeddedResultStream } from '../../platform/database/embedded_database.js';
+import type { EmbeddedClientContext, EmbeddedConnection, EmbeddedDatabase, EmbeddedResultStream } from '../../platform/database/embedded_database.js';
+import { embeddedAttachedDatabasePath } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
+import { embeddedCloudDatabases, type HyperParamsLike } from '../hyper/local_cloud.js';
 import type { AsyncConsumer } from '../../utils/async_consumer.js';
 import {
     createQueryResponseStreamMetrics,
@@ -153,4 +155,25 @@ export class EmbeddedHyperDatabaseChannel implements HyperDatabaseChannel {
     async close(): Promise<void> {
         await this.channel.close();
     }
+}
+
+/// The channel of a connection to the embedded Hyper, on a session of the database of the instance. A local cloud
+/// attaches the databases of the clouds folder of its params instead, like a Hyper server, and has no database of its
+/// own: Hyper resolves unqualified names only in a session with a single database. Returns the session too, the Hyper
+/// log attributes its queries to the client context.
+export async function connectEmbeddedHyper(
+    database: EmbeddedDatabase,
+    params: HyperParamsLike,
+    clientContext?: EmbeddedClientContext,
+): Promise<EmbeddedHyperDatabaseChannel> {
+    const attachedDatabases = await Promise.all(embeddedCloudDatabases(params).map(async attached => ({
+        path: await embeddedAttachedDatabasePath(attached.path),
+        alias: attached.alias,
+    })));
+    const session = await database.connect({
+        defaultDatabase: attachedDatabases.length > 0 ? null : 'hyper',
+        attachedDatabases,
+        clientContext,
+    });
+    return new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(session));
 }

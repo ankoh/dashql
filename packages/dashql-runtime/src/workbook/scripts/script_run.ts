@@ -14,6 +14,7 @@ import {
     runWorkbookPlan,
     type ExecutionMounts,
     type RunQueries,
+    type ScriptResultOutcome,
 } from './workbook_execution.js';
 import { REGISTER_QUERY, scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
@@ -67,6 +68,10 @@ export interface ScriptRunOptions {
     held?: boolean;
     /// Logs the plan, its statements and the cached results it reads
     logger?: LoggerLike;
+    /// Set up a connection before the first statement that runs on it (runWorkbookPlan)
+    prepareConnection?: (connectionId: string) => Promise<void>;
+    /// The outcome of the script: the key of its result and whether the cache served it
+    onResult?: (result: ScriptResultOutcome) => void;
 }
 
 /// Run a script: plan it with the scripts it needs and run the plan (`runWorkbookPlan`). Resolves with the last output
@@ -113,6 +118,8 @@ export async function runPlannedScript(
             resultKey: services.cacheKey, cachesResults: services.cachesResults,
             cache: services.cache, refresh: options.refresh ?? false,
             maxConcurrentQueries: services.maxConcurrentQueries, logger: options.logger,
+            prepareConnection: options.prepareConnection,
+            onScriptResult: (index, result) => { if (index === targetIndex) options.onResult?.(result); },
         });
         if (outputs[targetIndex] != null) {
             await modifyWorkbookScripts({ type: REGISTER_QUERY, value: [target.scriptKey, outputs[targetIndex]!] });

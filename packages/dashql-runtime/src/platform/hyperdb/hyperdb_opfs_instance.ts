@@ -1,4 +1,4 @@
-import { getOPFSRoot, hyperOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { getOPFSRoot, hyperOPFSRoot } from '../opfs_root.js';
 
 /// The OPFS folder with one folder per embedded database instance, e.g. `instances/<uuid>/compute.hyper`
 export const HYPER_INSTANCES_DIRECTORY = 'instances';
@@ -11,9 +11,51 @@ export const HYPER_LEGACY_INSTANCE_PREFIX = 'dashql-session-';
 /// The default log folder of Hyper in the OPFS root, which app versions before the instance log folders filled
 export const HYPER_LEGACY_LOGS_DIRECTORY = 'logs';
 
-/// The database files of an embedded database instance, which lives as long as its app window.
-/// A Web Lock marks the instance as alive, the folders of instances without a lock are stale.
+/// What marks the instances of the embedded Hyper as alive: a lock per instance, held as long as its window or process
+/// lives. The folders of instances whose lock nobody holds are stale.
+export interface InstanceLocks {
+    /// Hold a lock until the release
+    hold(name: string): Promise<() => void>;
+    /// Run a step while nobody holds a lock, resolves false without running it if somebody does
+    whileFree(name: string, step: () => Promise<void>): Promise<boolean>;
+}
+
+/// The Web Locks of the origin, they span the windows of the app. Without them nothing is held and nothing is free.
+export const WEB_INSTANCE_LOCKS: InstanceLocks = {
+    async hold(name) {
+        if (globalThis.navigator?.locks == null) return () => {};
+        let acquired!: () => void;
+        const acquiredLock = new Promise<void>(resolve => { acquired = resolve; });
+        let release!: () => void;
+        const held = new Promise<void>(resolve => { release = resolve; });
+        void navigator.locks.request(name, async () => {
+            acquired();
+            await held;
+        });
+        await acquiredLock;
+        return release;
+    },
+    async whileFree(name, step) {
+        if (globalThis.navigator?.locks == null) return false;
+        const outcome = await navigator.locks.request(name, { ifAvailable: true }, async lock => {
+            if (lock == null) return { ran: false };
+            try {
+                await step();
+                return { ran: true };
+            } catch (error) {
+                return { ran: true, error };
+            }
+        });
+        if (outcome.error != null) throw outcome.error;
+        return outcome.ran;
+    },
+};
+
+/// The database files of an embedded database instance, which lives as long as its app window or process.
+/// A lock marks the instance as alive, the folders of instances without a lock are stale.
 export interface HyperDBOPFSInstance {
+    /// The id of the instance, the name of its folder
+    readonly id: string;
     /// The Hyper path of the instance folder
     readonly directoryPath: string;
     /// The Hyper path of the compute database with the data frames
@@ -49,9 +91,10 @@ export async function embeddedAttachedDatabasePath(
 
 export async function createHyperDBOPFSInstance(
     getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
+    locks: InstanceLocks = WEB_INSTANCE_LOCKS,
 ): Promise<HyperDBOPFSInstance> {
     const id = crypto.randomUUID();
-    const release = await holdLock(`${HYPER_INSTANCE_LOCK_PREFIX}${id}`);
+    const release = await locks.hold(`${HYPER_INSTANCE_LOCK_PREFIX}${id}`);
     try {
         const instances = await (await getRoot()).getDirectoryHandle(HYPER_INSTANCES_DIRECTORY, { create: true });
         const instance = await instances.getDirectoryHandle(id, { create: true });
@@ -59,6 +102,7 @@ export async function createHyperDBOPFSInstance(
         const folder = `${hyperOPFSRoot()}/${HYPER_INSTANCES_DIRECTORY}/${id}`;
         let disposed = false;
         return {
+            id,
             directoryPath: folder,
             computeDatabasePath: `${folder}/compute.hyper`,
             userDatabasePath: `${folder}/user.hyper`,
@@ -84,8 +128,8 @@ export async function createHyperDBOPFSInstance(
 /// files of earlier app versions.
 export async function cleanupStaleHyperDBOPFSInstances(
     getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
+    locks: InstanceLocks = WEB_INSTANCE_LOCKS,
 ): Promise<void> {
-    if (navigator.locks == null) return;
     const root = await getRoot();
     let instances: FileSystemDirectoryHandle | null = null;
     try {
@@ -95,12 +139,12 @@ export async function cleanupStaleHyperDBOPFSInstances(
     }
     if (instances != null) {
         for await (const [name, handle] of instances.entries()) {
-            if (handle.kind === 'directory' && isUuid(name)) await removeUnlocked(instances, name, `${HYPER_INSTANCE_LOCK_PREFIX}${name}`);
+            if (handle.kind === 'directory' && isUuid(name)) await removeUnlocked(locks, instances, name, `${HYPER_INSTANCE_LOCK_PREFIX}${name}`);
         }
     }
     for await (const [name, handle] of root.entries()) {
         if (handle.kind === 'directory' && name.startsWith(HYPER_LEGACY_INSTANCE_PREFIX) && isUuid(name.slice(HYPER_LEGACY_INSTANCE_PREFIX.length))) {
-            await removeUnlocked(root, name, name);
+            await removeUnlocked(locks, root, name, name);
         }
     }
     // The log folders of earlier app versions have no lock, the processes of open windows keep their files open.
@@ -118,16 +162,8 @@ export async function cleanupStaleHyperDBOPFSInstances(
 }
 
 /// Remove a folder unless its lock is held.
-async function removeUnlocked(parent: FileSystemDirectoryHandle, name: string, lockName: string): Promise<void> {
-    const failure = await navigator.locks.request(lockName, { ifAvailable: true }, async lock => {
-        if (lock == null) return;
-        try {
-            await removeOpenTolerant(parent, name);
-        } catch (error) {
-            return { error };
-        }
-    });
-    if (failure != null) throw failure.error;
+async function removeUnlocked(locks: InstanceLocks, parent: FileSystemDirectoryHandle, name: string, lockName: string): Promise<void> {
+    await locks.whileFree(lockName, () => removeOpenTolerant(parent, name));
 }
 
 /// Remove a folder, a folder with files that are still open is left for a later cleanup.
@@ -140,20 +176,6 @@ async function removeOpenTolerant(parent: FileSystemDirectoryHandle, name: strin
         if (errorName !== 'InvalidModificationError' && errorName !== 'NoModificationAllowedError'
             && errorName !== 'NotFoundError') throw error;
     }
-}
-
-async function holdLock(name: string): Promise<() => void> {
-    if (navigator.locks == null) return () => {};
-    let acquired!: () => void;
-    const acquiredLock = new Promise<void>(resolve => { acquired = resolve; });
-    let release!: () => void;
-    const held = new Promise<void>(resolve => { release = resolve; });
-    void navigator.locks.request(name, async () => {
-        acquired();
-        await held;
-    });
-    await acquiredLock;
-    return release;
 }
 
 /// Is the value a UUID, e.g. the id of an instance?
