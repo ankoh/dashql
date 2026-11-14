@@ -1,0 +1,35 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+
+# The logic of DashQL without React, shared by the app (//packages/dashql-app) and the command line tool, see
+# docs/wip/dashql_sdk.md. A source package, nothing is compiled: the app bundles the TypeScript itself.
+# Linked as //:node_modules/@ankoh/dashql-sdk, the dev server of the app reads packages/dashql-sdk directly.
+
+package(default_visibility = ["//visibility:public"])
+
+_SOURCES = glob(["src/**/*.ts"])
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + ["package.json", "tsconfig.json"],
+)
+
+# Without the DOM and without the types of Node: an API of only one platform fails here
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.json"],
+    chdir = "packages/dashql-sdk",
+    data = [
+        ":typecheck_inputs",
+    ],
+)
+
+npm_package(
+    name = "npm_package",
+    package = "@ankoh/dashql-sdk",
+    srcs = ["package.json"] + _SOURCES,
+    include_transitive_sources = False,
+    include_transitive_types = False,
+)

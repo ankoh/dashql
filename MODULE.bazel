@@ -84,6 +84,7 @@ npm.npm_translate_lock(
         "//:package.json",
         "//packages/dashql-core-js:package.json",
         "//packages/dashql-org:package.json",
+        "//packages/dashql-sdk:package.json",
         "//packages/dashql-ui:package.json",
     ],
     pnpm_lock = "//:pnpm-lock.yaml",

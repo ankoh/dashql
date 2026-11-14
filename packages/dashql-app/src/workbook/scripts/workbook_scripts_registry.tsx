@@ -4,7 +4,7 @@ import { forgetWorkbookScriptReferences } from './script_reference_reports.js';
 import { forgetDataflowGraph } from '../dataflow/dataflow_graph.js';
 import { WorkbookScripts, WorkbookScriptsAction, destroyWorkbookScripts, newScriptConnection, workbookConnectionIds, workbookScriptListWrite } from './workbook_scripts.js';
 import { Dispatch } from '../../utils/variant.js';
-import { UpdateQueue } from '../../utils/store.js';
+import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
 import { useStore, useStoreState, useUpdateQueue } from '../../utils/store_hooks.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
 import { ConnectionReferencesProvider, type ConnectionReferences } from '../../connections/connection_registry.js';

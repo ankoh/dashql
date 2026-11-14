@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Store, TASK_UPDATE_SCHEDULER, UpdateQueue } from './store.js';
+import { Store, TASK_UPDATE_SCHEDULER, UpdateQueue } from '@ankoh/dashql-sdk/store/store';
 import { FRAME_UPDATE_SCHEDULER } from './store_hooks.js';
 
 describe('store', () => {

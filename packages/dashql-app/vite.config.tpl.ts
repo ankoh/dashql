@@ -39,6 +39,8 @@ export default vite.defineConfig(({ mode, command }) => {
     // The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the website.
     // A source package: the dev server reads packages/dashql-ui, Vite watches it and updates the page in place.
     const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
+    // The package root of @ankoh/dashql-sdk, the logic of DashQL without React. A source package like @ankoh/dashql-ui.
+    const SDK_PATH = path.resolve(rootDir, "__SDK_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
@@ -328,6 +330,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /^@ankoh\/dashql-core\/browser-worker$/, replacement: path.join(CORE_PATH, 'browser_worker.js') },
                 { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
+                { find: /^@ankoh\/dashql-sdk\/(.+)$/, replacement: path.join(SDK_PATH, 'src/$1.ts') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
                 { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
@@ -385,6 +388,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     const paths = [
                         CORE_PATH,
                         UI_PATH,
+                        SDK_PATH,
                         PROTOBUF_PATH,
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,

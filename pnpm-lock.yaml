@@ -394,6 +394,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  packages/dashql-sdk: {}
+
   packages/dashql-ui: {}
 
 packages:

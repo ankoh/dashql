@@ -48,6 +48,7 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
 | `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
+| `//packages/dashql-sdk:npm_package` | `@ankoh/dashql-sdk`: the logic of DashQL without React, shared by the app and the command line tool, a source package with nothing compiled, see `docs/wip/dashql_sdk.md` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
@@ -121,6 +122,8 @@ bazel test //...
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint`, `format` |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
+| `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK without the DOM and without the types of Node |
+| `//packages/dashql-app:sdk_boundary_test` | The modules that move into the SDK reach no React, editor, `.tsx` module or bundler asset |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |

@@ -9,7 +9,7 @@ import {
 } from './connection_state.js';
 import { QUERY_PROGRESS_UPDATED, QUERY_RECEIVED_BATCH } from '../query/query_execution_state.js';
 import { Dispatch } from '../utils/variant.js';
-import { UpdateQueue } from '../utils/store.js';
+import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
 import { useStore, useStoreState, useUpdateQueue } from '../utils/store_hooks.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
 import { useStorageWriter } from '../storage/storage_provider.js';

@@ -9,7 +9,6 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
 /// The modules of the SDK and everything they import
 const ROOTS = [
-    'utils/store.ts',
     'workbook/scripts/workbook_scripts.ts',
     'workbook/scripts/workbook_scripts_registry_state.ts',
     'connections/connection_state.ts',

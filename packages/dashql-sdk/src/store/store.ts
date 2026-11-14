@@ -7,7 +7,7 @@ export type StoreAction<T> = T | ((prev: T) => T);
 /// double-invokes them in strict mode. The registries free Wasm objects and schedule storage writes
 /// while they reduce, so their updates must run exactly once. A store applies every update right
 /// away, synchronously and in call order, and notifies its subscribers afterwards.
-/// The hooks that bind a store to React are in store_hooks.ts.
+/// The hooks that bind a store to React are in packages/dashql-app/src/utils/store_hooks.ts.
 export class Store<T> {
     /// The current state
     current: T;

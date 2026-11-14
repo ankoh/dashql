@@ -19,7 +19,7 @@ import {
 import { quoteIdentifier } from '../../platform/hyperdb/hyperdb_wasm.js';
 import type { Logger } from '../../platform/logger/logger.js';
 import { stringifyError } from '../../platform/logger/logger.js';
-import { Store } from '../../utils/store.js';
+import { Store } from '@ankoh/dashql-sdk/store/store';
 
 const LOG_CTX = 'hyper_log_metrics';
 

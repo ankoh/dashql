@@ -45,6 +45,12 @@ npm_link_package(
     src = "//packages/dashql-core-js:npm_package",
 )
 
+# The logic of DashQL without React, shared by //packages/dashql-app and the command line tool.
+npm_link_package(
+    name = "node_modules/@ankoh/dashql-sdk",
+    src = "//packages/dashql-sdk:npm_package",
+)
+
 # The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
 npm_link_package(
     name = "node_modules/@ankoh/dashql-ui",

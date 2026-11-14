@@ -5,6 +5,7 @@ packages/dashql-core-js/node_modules
 packages/dashql-org/node_modules
 packages/dashql-org/.astro
 packages/dashql-org/dist
+packages/dashql-sdk/node_modules
 packages/dashql-ui/node_modules
 packages/vite-example/node_modules
 node_modules
