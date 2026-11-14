@@ -15,7 +15,7 @@ import { DELETE_SCRIPT, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, t
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
-import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
+import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';

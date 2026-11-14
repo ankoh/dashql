@@ -3,10 +3,9 @@ import * as flatbuffers from 'flatbuffers';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
-import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { queryPgProc, generateCatalogSQLFromPgProc } from '@ankoh/dashql-runtime/connections/catalog/catalog_query_pg_proc';
-import type { QueryExecutor } from '../query_executor.js';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
+import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
+import type { QueryExecutor } from '../query_execution_args.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -18,7 +17,7 @@ describe('PostgreSQL function query integration', () => {
     afterEach(() => dql.resetUnsafe());
 
     it('imports the live Hyper WASM function catalog through a batch descriptor', async () => {
-        const database = await setupWebHyperDB('catalog_pg_proc_test', new TestLogger());
+        const database = await openTestHyperDB('catalog_pg_proc_test');
         const connection = await database.connect();
         try {
             const executor: QueryExecutor = (_id, args) => [1, connection.query(args.query)];

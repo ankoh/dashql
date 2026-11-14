@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
+import { openTestHyperDB } from '../testing/test_hyperdb.js';
 import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { DataFrame, DataFrameRegistry, generateTableName } from '@ankoh/dashql-runtime/compute/data_frame';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { TestLogger } from '../testing/test_logger.js';
+import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
+import { tableFromArrays } from '../testing/arrow_fixtures.js';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -21,7 +21,7 @@ describe('DataFrame', () => {
     let database: HyperDB | null = null;
 
     beforeEach(async () => {
-        database = await setupWebHyperDB('data_frame_test', new TestLogger());
+        database = await openTestHyperDB('data_frame_test');
     }, 60_000);
 
     afterEach(async () => {

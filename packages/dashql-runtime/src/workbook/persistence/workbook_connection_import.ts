@@ -1,7 +1,7 @@
-import { connectionParamsShareEqual, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { ConnectionEntry, WorkbookConnection, WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { dedupeConnections } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_validation';
+import { connectionParamsShareEqual, type ConnectionParams } from '../../connections/connection_params.js';
+import type { ConnectionEntry, WorkbookConnection, WorkbookData } from '../../storage/storage_backend.js';
+import { dedupeConnections } from '../../storage/storage_writer.js';
+import { isLocalHyperWasmParams } from '../../storage/workbook_validation.js';
 
 /// A connection that a workbook brings along
 export interface ImportedConnectionRef {

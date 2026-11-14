@@ -15,7 +15,7 @@ import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { checkWorkbookScriptReferences } from '../scripts/script_reference_reports.js';
 import type { ScriptReferenceReport } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';

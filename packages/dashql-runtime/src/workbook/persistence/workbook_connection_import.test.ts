@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { sanitizeConnectionParamsForSharing } from '@ankoh/dashql-runtime/connections/connection_params';
+import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
 import {
     applyConnectionImportPlan,
     connectionImportQuestions,
     connectionRefsChanged,
     planConnectionImport,
 } from './workbook_connection_import.js';
-import { testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import type { ConnectionEntry, ConnectionParams } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { testWorkbook } from '../../testing/workbook_test_backend.js';
+import type { ConnectionEntry, ConnectionParams } from '../../storage/storage_backend.js';
 
 const KNOWN = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const OTHER = 'aaaaaaaa-0000-4000-8000-00000000000b';

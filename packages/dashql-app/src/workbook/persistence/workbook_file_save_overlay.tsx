@@ -21,7 +21,7 @@ import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegis
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
 import { scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
-import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts } from './workbook_query_results.js';
+import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 

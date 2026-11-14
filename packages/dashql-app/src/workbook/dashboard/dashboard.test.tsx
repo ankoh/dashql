@@ -8,7 +8,7 @@ import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { flushContinuousUpdates } from '../../tests/react_act.js';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import {
     ACCEPT_PENDING_DIFF,

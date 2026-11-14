@@ -35,10 +35,10 @@ import {
     planConnectionImport,
     type ConnectionImportChoice,
     type ConnectionImportPlanItem,
-} from './workbook_connection_import.js';
+} from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
 import { AppHost, getAppHost } from '@ankoh/dashql-runtime/platform/native_globals';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { failedWorkbookQueryResults, importWorkbookQueryResults, type ImportedWorkbookQueryResults } from './workbook_query_results.js';
+import { failedWorkbookQueryResults, importWorkbookQueryResults, type ImportedWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 type ImportPresentation =

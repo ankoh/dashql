@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { ConnectionState } from './connection_state.js';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
 import { checkSalesforceConnectionSetup, ConnectionSetupCheck } from './connector_setup_check.js';
 
 describe('Salesforce connection setup check', () => {

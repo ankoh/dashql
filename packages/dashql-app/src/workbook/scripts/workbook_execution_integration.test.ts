@@ -31,7 +31,7 @@ import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/wor
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { importWorkbookQueryResults, retainWorkbookQueryResults } from '../persistence/workbook_query_results.js';
+import { importWorkbookQueryResults, retainWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
 import { decodeConnectionFromProto } from '@ankoh/dashql-runtime/connections/connection_import';

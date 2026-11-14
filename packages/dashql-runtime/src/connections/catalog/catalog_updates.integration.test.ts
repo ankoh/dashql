@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
-import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import type { EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { updateHyperCatalog } from '@ankoh/dashql-runtime/connections/hyper/hyper_catalog_update';
-import type { QueryExecutor } from '../query_executor.js';
-import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
+import type { EmbeddedConnection } from '../../platform/database/embedded_database.js';
+import { TestLogger } from '../../testing/test_logger.js';
+import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
+import type { QueryExecutor } from '../query_execution_args.js';
+import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from './catalog_sql_generator.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -52,7 +52,7 @@ describe('the catalog of a connection follows statements', () => {
 
     beforeAll(async () => {
         dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
-        const database = await setupWebHyperDB('catalog_updates_integration_test', new TestLogger());
+        const database = await openTestHyperDB('catalog_updates_integration_test');
         connection = await database.connect();
         catalog = dql.createCatalog();
         functions = dql.createScript(catalog);

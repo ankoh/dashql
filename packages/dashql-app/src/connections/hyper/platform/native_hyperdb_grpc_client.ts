@@ -24,7 +24,7 @@ import {
     QueryExecutionStatus,
 } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ChannelArgs, ChannelError } from '@ankoh/dashql-runtime/platform/channel_common';
-import { decodeGrpcErrorHeaders, HyperQueryError } from '../hyper_error_info.js';
+import { decodeGrpcErrorHeaders, HyperQueryError } from '@ankoh/dashql-runtime/connections/hyper/hyper_error_info';
 import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
 import { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';

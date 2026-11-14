@@ -31,7 +31,7 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/co
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { useCatalogLoaderQueue } from './catalog/catalog_loader.js';
 import { isCatalogOutOfDate, isCatalogRefreshRunning } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
-import { canRefreshConnection } from './connection_refresh.js';
+import { canRefreshConnection } from '@ankoh/dashql-runtime/connections/connection_refresh';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {
     connectionLabelParts,

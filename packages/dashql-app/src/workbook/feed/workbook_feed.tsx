@@ -28,7 +28,7 @@ import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from 
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { getSelectedScriptRef, getScriptRefs, newScriptConnection, WorkbookScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
-import { renameAttachment } from '../attachments/attachment_rename.js';
+import { renameAttachment } from '@ankoh/dashql-runtime/workbook/attachments/attachment_rename';
 import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql-runtime/workbook/attachments/workbook_attachments';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
@@ -37,7 +37,7 @@ import { checkWorkbookScriptReferences } from '../scripts/script_reference_repor
 import { workbookTableParameters } from '@ankoh/dashql-runtime/workbook/scripts/table_parameters_publisher';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
-import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
+import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { computeScriptResultCacheKey, scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';

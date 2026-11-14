@@ -6,15 +6,15 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
     QueryExecutionProgress,
     QueryExecutionResponseStream,
-} from '@ankoh/dashql-runtime/query/query_execution_state';
-import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { LogLevel } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
+} from '../query/query_execution_state.js';
+import { QueryExecutionStatus } from '../query/query_execution_state.js';
+import { LogLevel } from '../platform/logger/log_buffer.js';
+import { TestLogger } from '../testing/test_logger.js';
+import { createTrace } from '../platform/logger/trace_context.js';
 import { HyperHttpError } from './hyper/hyperdb_http_client.js';
-import { logQueryFailure } from './query_executor.js';
-import { consumeQueryResponseStream } from '@ankoh/dashql-runtime/connections/query_execution';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { logQueryFailure } from './query_executor_service.js';
+import { consumeQueryResponseStream } from './query_execution.js';
+import { tableFromArrays } from '../testing/arrow_fixtures.js';
 
 function createStream(table: arrow.Table): QueryExecutionResponseStream {
     const metrics = {

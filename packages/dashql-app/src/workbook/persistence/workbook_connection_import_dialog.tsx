@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { Button, ButtonVariant } from '../../ui/foundations/button.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import type { ConnectionImportChoice, ConnectionImportPlanItem } from './workbook_connection_import.js';
+import type { ConnectionImportChoice, ConnectionImportPlanItem } from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
 import { connectionParamsLabel } from '@ankoh/dashql-runtime/connections/connection_label';
 
 import * as styles from './workbook_import_conflict_dialog.module.css';

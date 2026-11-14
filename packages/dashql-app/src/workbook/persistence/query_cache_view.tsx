@@ -7,7 +7,7 @@ import { XIcon, TrashIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js'
 
 import { ButtonVariant, ButtonSize, IconButton } from '../../ui/foundations/button.js';
 import type { QueryResultCacheEntry } from '@ankoh/dashql-runtime/query/query_result_cache';
-import { markDeletedQueryResults } from './query_result_cache_clear.js';
+import { markDeletedQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/query_result_cache_clear';
 import { useDynamicConnectionDispatch } from '../../connections/connection_registry.js';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';

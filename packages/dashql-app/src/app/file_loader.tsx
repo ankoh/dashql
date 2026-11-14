@@ -6,7 +6,7 @@ import { readWorkbookBundleFromZip } from '../workbook/persistence/workbook_impo
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import { useWorkbookImport, type ConflictChoice, type PreparedPortableImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';
-import type { ImportedWorkbookQueryResults } from '../workbook/persistence/workbook_query_results.js';
+import type { ImportedWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { OPEN_LINK_WORKBOOK, useRouterNavigate } from './router/router.js';
 import { useLogger } from '../platform/logger/logger_provider.js';

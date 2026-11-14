@@ -14,8 +14,8 @@ import {
     HyperHttpError,
     mergeQueryStatus,
     QueryStatus,
-} from '../hyperdb_http_client.js';
-import { fromHttpErrorResponse, HyperQueryError } from '../hyper_error_info.js';
+} from '@ankoh/dashql-runtime/connections/hyper/hyperdb_http_client';
+import { fromHttpErrorResponse, HyperQueryError } from '@ankoh/dashql-runtime/connections/hyper/hyper_error_info';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionMetrics,

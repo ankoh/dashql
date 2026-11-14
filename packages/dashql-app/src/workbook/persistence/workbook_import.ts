@@ -26,7 +26,7 @@ import {
     type WorkbookTables,
 } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { readWorkbookTableParquet, workbookTableFileName, type ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
-import { WORKBOOK_RESULTS_FOLDER, workbookResultKey } from './workbook_query_results.js';
+import { WORKBOOK_RESULTS_FOLDER, workbookResultKey } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import {
     BlobReader,
     BlobWriter,

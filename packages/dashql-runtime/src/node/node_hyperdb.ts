@@ -74,6 +74,63 @@ export async function useNodeRoot(folder: string): Promise<FileSystemDirectoryHa
     return root;
 }
 
+/// An engine of the embedded Hyper of Node with an instance folder, the HyperDBs on it get databases in that folder
+export interface NodeHyperEngine {
+    /// The folder of the host that is the root of the files of the app
+    readonly root: string;
+    /// The Hyper path of the folder of the instance
+    readonly instancePath: string;
+    /// Create a HyperDB on the engine. Its databases are dropped when it terminates, the engine stays.
+    createDatabase(databases: { compute?: string; default?: string; snippets?: string }): Promise<HyperDB>;
+    /// Stop the engine and remove the folder of the instance
+    close(): Promise<void>;
+}
+
+/// Start the engine of the embedded Hyper in a folder of the host with an instance of its own, like a window of the app
+export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEngine> {
+    checkNodeWasmFeatures();
+    const root = path.resolve(folder);
+    const handle = await useNodeRoot(root);
+    const id = crypto.randomUUID();
+    const instance = await (await handle.getDirectoryHandle(INSTANCES_DIRECTORY, { create: true })).getDirectoryHandle(id, { create: true });
+    await instance.getDirectoryHandle(INSTANCE_LOGS_DIRECTORY, { create: true });
+    const removeInstance = () => rm(path.join(root, INSTANCES_DIRECTORY, id), { recursive: true, force: true });
+    const instancePath = `${hyperOPFSRoot()}/${INSTANCES_DIRECTORY}/${id}`;
+    const mountFile = mountHostFile(path.join(root, INSTANCES_DIRECTORY, id, INSTANCE_FILES_DIRECTORY));
+
+    let engine: HyperDBEngine;
+    try {
+        // Loaded only here, the commands that don't query the embedded Hyper run without it
+        const { HyperDB: Engine } = await import('hyperdb-wasm');
+        engine = await Engine.create({
+            storagePath: root,
+            settings: { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: `${instancePath}/${INSTANCE_LOGS_DIRECTORY}` },
+        }) as unknown as HyperDBEngine;
+    } catch (error) {
+        await removeInstance();
+        throw error;
+    }
+    const pathOf = (name: string | undefined) => name == null ? undefined : `${instancePath}/${name}`;
+    return {
+        root,
+        instancePath,
+        createDatabase: async databases => await HyperDB.create(engine, {
+            computeDatabasePath: pathOf(databases.compute),
+            defaultDatabasePath: pathOf(databases.default),
+            snippetsDatabasePath: pathOf(databases.snippets),
+            terminateEngine: false,
+            mountFile,
+        }),
+        async close() {
+            try {
+                await engine.terminate();
+            } finally {
+                await removeInstance();
+            }
+        },
+    };
+}
+
 /// The embedded Hyper of Node with the query result cache of the root
 export interface NodeComputeDatabase {
     /// The folder of the host that is the root of the files of the app
@@ -86,42 +143,24 @@ export interface NodeComputeDatabase {
 
 /// Start the embedded Hyper in a folder of the host with an instance of its own, like a window of the app
 export async function openNodeComputeDatabase(folder: string): Promise<NodeComputeDatabase> {
-    checkNodeWasmFeatures();
-    const root = path.resolve(folder);
-    const handle = await useNodeRoot(root);
-    const id = crypto.randomUUID();
-    const instance = await (await handle.getDirectoryHandle(INSTANCES_DIRECTORY, { create: true })).getDirectoryHandle(id, { create: true });
-    await instance.getDirectoryHandle(INSTANCE_LOGS_DIRECTORY, { create: true });
-    const removeInstance = () => rm(path.join(root, INSTANCES_DIRECTORY, id), { recursive: true, force: true });
-    const instancePath = `${hyperOPFSRoot()}/${INSTANCES_DIRECTORY}/${id}`;
-
+    const engine = await startNodeHyperEngine(folder);
     let database: HyperDB;
     try {
-        // Loaded only here, the commands that don't query the embedded Hyper run without it
-        const { HyperDB: Engine } = await import('hyperdb-wasm');
-        const engine = await Engine.create({
-            storagePath: root,
-            settings: { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: `${instancePath}/${INSTANCE_LOGS_DIRECTORY}` },
-        }) as unknown as HyperDBEngine;
-        database = await HyperDB.create(engine, {
-            computeDatabasePath: `${instancePath}/compute.hyper`,
-            // The database of the embedded Hyper connector, scratch space of the instance like in a window of the app
-            defaultDatabasePath: `${instancePath}/user.hyper`,
-            mountFile: mountHostFile(path.join(root, INSTANCES_DIRECTORY, id, INSTANCE_FILES_DIRECTORY)),
-        });
+        // The database of the embedded Hyper connector is scratch space of the instance like in a window of the app
+        database = await engine.createDatabase({ compute: 'compute.hyper', default: 'user.hyper' });
     } catch (error) {
-        await removeInstance();
+        await engine.close();
         throw error;
     }
     return {
-        root,
+        root: engine.root,
         database,
         resultCache: createOPFSQueryResultCache({ locks: PROCESS_LOCKS as unknown as LockManager }),
         async close() {
             try {
                 await database.terminate();
             } finally {
-                await removeInstance();
+                await engine.close();
             }
         },
     };

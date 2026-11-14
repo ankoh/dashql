@@ -34,7 +34,7 @@ import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';

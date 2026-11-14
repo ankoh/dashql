@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
-import { QUERY_CACHE_DELETED } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QUERY_CACHE_DELETED } from '../../query/query_execution_state.js';
 
 describe('Query result cache clearing', () => {
     it('marks the finished queries of every connection whose results were deleted', () => {

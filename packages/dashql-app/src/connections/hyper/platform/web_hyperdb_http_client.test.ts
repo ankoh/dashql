@@ -4,7 +4,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { WebHyperDatabaseClient } from './web_hyperdb_http_client.js';
-import { HyperHttpClientMock } from '../hyperdb_http_client_mock.js';
+import { HyperHttpClientMock } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_http_client_mock';
 import { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';

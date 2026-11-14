@@ -1,8 +1,8 @@
 import * as buf from "@bufbuild/protobuf";
 import * as wkt from "@bufbuild/protobuf/wkt";
-import * as pb from "@ankoh/dashql-runtime/proto";
+import * as pb from "../../proto.js";
 
-import { LoggableException } from "@ankoh/dashql-runtime/platform/logger/logger";
+import { LoggableException } from "../../platform/logger/logger.js";
 import type { QueryErrorResponse } from "./hyperdb_http_client.js";
 
 /// The gRPC "richer error model" trailer that carries the base64-encoded

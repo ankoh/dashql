@@ -2,13 +2,13 @@ import * as arrow from 'apache-arrow';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
-import { buildHyperCloudCatalogQuery, catalogTablesFromHyperCloud, updateHyperCatalog } from '@ankoh/dashql-runtime/connections/hyper/hyper_catalog_update';
-import { generateCatalogTablesSQL, generateRelationsFile } from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
-import type { QueryExecutor } from '../query_executor.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { CATALOG_QUERY_READ_TIMEOUT_MS } from '@ankoh/dashql-runtime/connections/catalog/catalog_query_pg_attribute';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { buildHyperCloudCatalogQuery, catalogTablesFromHyperCloud, updateHyperCatalog } from './hyper_catalog_update.js';
+import { generateCatalogTablesSQL, generateRelationsFile } from '../catalog/catalog_sql_generator.js';
+import type { QueryExecutor } from '../query_execution_args.js';
+import { TestLogger } from '../../testing/test_logger.js';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS } from '../catalog/catalog_query_pg_attribute.js';
+import { tableFromArrays, vectorFromArray } from '../../testing/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -428,7 +428,7 @@ describe('updateHyperCatalog of touched relations', () => {
 
 describe('updateHyperCatalog on the embedded Hyper', () => {
     it('reports what the database has after a statement, whatever the statement says', async () => {
-        const database = await setupWebHyperDB('hyper_catalog_relations_test', new TestLogger());
+        const database = await openTestHyperDB('hyper_catalog_relations_test');
         const connection = await database.connect();
         const catalog = dql.createCatalog();
         const script = catalog.allocateEntryId();

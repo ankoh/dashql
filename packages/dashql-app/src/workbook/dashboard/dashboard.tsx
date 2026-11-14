@@ -7,7 +7,7 @@ import { useCancelQuery, useQueryExecutor } from '../../connections/query_execut
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
 import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
+import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import type { DashboardSpec } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';

@@ -1,7 +1,7 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { isSalesforceDetails } from '@ankoh/dashql-runtime/connections/connection_state_details';
+import { ConnectionState } from './connection_state.js';
+import { isSalesforceDetails } from './connection_state_details.js';
 
 export enum ConnectionSetupCheck {
     UNKNOWN,

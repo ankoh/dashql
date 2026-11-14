@@ -90,7 +90,7 @@ import { useWorkbookImport } from './persistence/workbook_import_provider.js';
 import { describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { renameScript } from './scripts/script_rename.js';
+import { renameScript } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import {
     useInvalidWorkbooks,
     useWorkbookScripts,

@@ -359,8 +359,24 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   app run the tests of the runtime as well (`runtime/src/<path>` in their list), so each one runs in Node and in the browsers.
   A test of Node is named `*.node.test.ts` and runs only in Node, like `node/node_file_system.node.test.ts`.
   A test that needs a browser is named `*.browser.test.ts`, like `connections/catalog/catalog_batch.browser.test.ts`
-  (a Web Worker), and runs only in the browsers. Tests of the app that need parts of the app, like the embedded Hyper
-  of `hyperdb_provider_web.ts`, stay in the app until step 4 moves those parts.
+  (a Web Worker), and runs only in the browsers. Tests of the app that need parts of the app stay in the app until those
+  parts move.
+- **Moved so far.** About 70 test files of runtime logic moved from the app, the suite in Node has about 1000 tests:
+  the workbook scripts, script runs and workbook execution, the storage writer, native storage, bundles and the query
+  result cache, the connection state, client functions, the Trino, Salesforce and Hyper HTTP clients, the catalog
+  queries and updates, the computations and data frames. The tests of the HyperDB adapter over the browser build of
+  hyperdb-wasm (`hyperdb_wasm.browser.test.ts`, a fake worker client) stay in the browsers.
+- **The embedded Hyper in tests.** `openTestHyperDB(context)` (`src/testing/test_hyperdb.ts`) returns a HyperDB with
+  databases of its own on the engine that the tests of a platform share. The browser tests of the app install it over
+  their engine worker (`tests/hyperdb_pool.ts`), `test/setup_node.mjs` over the embedded Hyper of Node: one engine per
+  test file, started by the first test that needs it, about 1.5 s. Every test file in Node also gets a root of its own
+  with the layout of OPFS (`useNodeRoot`), so `getOPFSRoot()` works, and the locks of the process where Node has no Web
+  Locks.
+- **What remains in the app** (the inventory of the test files): the tests of providers, which become tests of the
+  services of the runtime (`QueryExecutorService`, `WorkbookExecutionService`, `CatalogLoaderService`, the registries);
+  the tests of the compute tasks, which need the task processor in the runtime; workbook export and import with
+  `workbook_execution_integration`, which need `workbook_archive_database.ts` without React; the OPFS and composite
+  storage backends; the connector setups, which need a fake `OAuthFlow`; the snippets and the local cloud.
 - **Compile time.** The runtime compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
   APIs it uses there, like `fetch`, `URL`, `TextEncoder`, `crypto` and `Blob`, Node has as well. The browser-only ones
   that remain are the named seams of the boundary test. Once step 4 removed them, the lib can shrink to ES plus a few
