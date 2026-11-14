@@ -1,39 +1,60 @@
+// The registry of connections of the runtime (ConnectionRegistryService) with the storage writer and the saving of
+// connections (ConnectionPersistenceService): routing, what is persisted, the catalogs of refreshes and lookups, shared
+// connections
 import * as dashql from '@ankoh/dashql-core';
-import { generateRelationsFile, packCatalogTable } from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
-import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
-import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
-import { CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
-import { DELETE_CONNECTION, SET_CONNECTION_DRAFT } from '@ankoh/dashql-runtime/connections/connection_state';
-import { ConnectionPersistenceProvider, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 
+import { generateRelationsFile, packCatalogTable } from './catalog/catalog_sql_generator.js';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog_update_state.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
+import { ConnectionPersistenceService, type ConnectionSaveResult } from './connection_persistence_service.js';
+import { ConnectionRegistryService } from './connection_registry_service.js';
+import {
+    connectionEntryFromState,
+    didPersistedConnectionChange,
+    resolveWorkbookConnections,
+    type ConnectionReferences,
+    type ConnectionRegistry,
+    type DynamicConnectionDispatch,
+} from './connection_registry_state.js';
 import {
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
     ConnectionHealth,
+    DELETE_CONNECTION,
+    SET_CONNECTION_DRAFT,
     UPDATE_CATALOG,
     type ConnectionState,
-} from '@ankoh/dashql-runtime/connections/connection_state';
-import {
-    type ConnectionRegistry,
-    type DynamicConnectionDispatch,
-    ConnectionRegistry as ConnectionRegistryProvider,
-    ConnectionReferencesProvider,
-    connectionEntryFromState,
-    didPersistedConnectionChange,
-    resolveWorkbookConnections,
-    useConnectionRegistry,
-    useDynamicConnectionDispatch,
-} from './connection_registry.js';
-import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
+} from './connection_state.js';
+import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
+import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '../storage/storage_writer.js';
+import { fixedConnectionReferences } from '../testing/mocks/connection_references.js';
+import { TestLogger } from '../testing/test_logger.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
+
+/// The tests of the providers of the app ran their steps in act(), the services need no rendering
+const act = async (step: () => unknown) => { await step(); };
+
+/// The registry of connections with the storage writer and the saving of connections, as the app wires them
+function renderRegistry(backend: WorkbookTestBackend, references: ConnectionReferences) {
+    const logger = new TestLogger();
+    const writer = new StorageWriter(logger, backend);
+    const service = new ConnectionRegistryService({ logger, storageWriter: writer, references }, TASK_UPDATE_SCHEDULER);
+    const persistence = new ConnectionPersistenceService({
+        storageWriter: writer,
+        readConnections: () => service.store.current,
+        references,
+        dispatchConnection: service.dispatch,
+    });
+    return {
+        service,
+        writer,
+        setRegistry: (update: (registry: ConnectionRegistry) => ConnectionRegistry) => service.store.update(update),
+        dispatch: service.dispatch as DynamicConnectionDispatch,
+        save: (): Promise<ConnectionSaveResult | null> => persistence.save(TEST_CONNECTION_ID),
+        dispose: () => service.dispose(),
+    };
+}
 
 function database(connectionId: string, health: ConnectionHealth): ConnectionState {
     return { connectionId: connectionId, connectionHealth: health } as ConnectionState;
@@ -142,29 +163,13 @@ describe('catalog refresh persistence', () => {
                 tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: true, touchedRelations: [],
             },
         } as unknown as ConnectionState;
-        let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
-        let currentRegistry!: ConnectionRegistry;
-        let dispatch!: DynamicConnectionDispatch;
-        let writer!: StorageWriter;
-        function Harness() {
-            [currentRegistry, setRegistry] = useConnectionRegistry();
-            [, dispatch] = useDynamicConnectionDispatch();
-            writer = useStorageWriter();
-            return null;
-        }
-        const container = document.createElement('div');
-        const root = createRoot(container);
+        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
-            await act(async () => root.render(React.createElement(LoggerProvider, null,
-                React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
-                ),
-            )));
             await act(async () => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, connection);
                 return { ...reg };
             }));
-            expect(currentRegistry.connections.get(TEST_CONNECTION_ID)).toBe(connection);
+            expect(service.store.current.connections.get(TEST_CONNECTION_ID)).toBe(connection);
             const task = {
                 taskId: 1, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
                 status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
@@ -176,7 +181,7 @@ describe('catalog refresh persistence', () => {
                     : { type: CATALOG_UPDATE_PARTIALLY_SUCCEEDED, value: [1, new Error('partial metadata')] });
             });
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
-            expect(currentRegistry.connections.get(TEST_CONNECTION_ID)?.catalogUpdates.tasksFinished.has(1)).toBe(true);
+            expect(service.store.current.connections.get(TEST_CONNECTION_ID)?.catalogUpdates.tasksFinished.has(1)).toBe(true);
             // The connection owns the catalog, workbooks don't keep a copy
             expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
             await writer.flush();
@@ -187,8 +192,7 @@ describe('catalog refresh persistence', () => {
                 pending: [], gone: [{ databaseName: 'lakehouse', schemaName: 'public', tableName: 'Gone__dlm' }],
             });
         } finally {
-            act(() => root.unmount());
-            container.remove();
+            dispose();
         }
     });
 
@@ -211,23 +215,8 @@ describe('catalog refresh persistence', () => {
             catalogFunctionScript: { toString: () => 'unchanged' },
             catalogUpdates: { tasksRunning: new Map([[4, task]]), tasksFinished: new Map(), currentFullRefresh: null, described, touchedRelations: [], touchedFailures: 0 },
         } as unknown as ConnectionState;
-        let dispatch!: DynamicConnectionDispatch;
-        let writer!: StorageWriter;
-        let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
-        function Harness() {
-            [, setRegistry] = useConnectionRegistry();
-            [, dispatch] = useDynamicConnectionDispatch();
-            writer = useStorageWriter();
-            return null;
-        }
-        const container = document.createElement('div');
-        const root = createRoot(container);
+        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
-            await act(async () => root.render(React.createElement(LoggerProvider, null,
-                React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
-                ),
-            )));
             act(() => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, connection);
                 return { ...reg };
@@ -237,8 +226,7 @@ describe('catalog refresh persistence', () => {
             await writer.flush();
             return backend;
         } finally {
-            act(() => root.unmount());
-            container.remove();
+            dispose();
         }
     }
 
@@ -282,23 +270,8 @@ describe('catalog refresh persistence', () => {
                 described: false,
             },
         } as unknown as ConnectionState;
-        let dispatch!: DynamicConnectionDispatch;
-        let writer!: StorageWriter;
-        let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
-        function Harness() {
-            [, setRegistry] = useConnectionRegistry();
-            [, dispatch] = useDynamicConnectionDispatch();
-            writer = useStorageWriter();
-            return null;
-        }
-        const container = document.createElement('div');
-        const root = createRoot(container);
+        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
-            await act(async () => root.render(React.createElement(LoggerProvider, null,
-                React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
-                ),
-            )));
             act(() => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, embedded);
                 return { ...reg };
@@ -308,8 +281,7 @@ describe('catalog refresh persistence', () => {
             await writer.flush();
             expect([...backend.connectionFiles.keys()]).toEqual([`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`]);
         } finally {
-            act(() => root.unmount());
-            container.remove();
+            dispose();
         }
     });
 
@@ -333,23 +305,8 @@ describe('catalog refresh persistence', () => {
                 described: true, touchedRelations: [],
             },
         } as unknown as ConnectionState;
-        let dispatch!: DynamicConnectionDispatch;
-        let writer!: StorageWriter;
-        let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
-        function Harness() {
-            [, setRegistry] = useConnectionRegistry();
-            [, dispatch] = useDynamicConnectionDispatch();
-            writer = useStorageWriter();
-            return null;
-        }
-        const container = document.createElement('div');
-        const root = createRoot(container);
+        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID, attachedId] }));
         try {
-            await act(async () => root.render(React.createElement(LoggerProvider, null,
-                React.createElement(StorageProvider, { backend },
-                    React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID, attachedId] }) }, React.createElement(ConnectionRegistryProvider, null, React.createElement(Harness))),
-                ),
-            )));
             act(() => setRegistry(reg => {
                 reg.connections.set(attachedId, attached);
                 return { ...reg };
@@ -363,8 +320,7 @@ describe('catalog refresh persistence', () => {
             expect(backend.connectionFiles.has(`${attachedId}/dashql-catalog-relations.sql`)).toBe(false);
             expect(backend.connectionFiles.get(`${attachedId}/dashql-catalog-functions.sql`)).toBe(functionScript.toString());
         } finally {
-            act(() => root.unmount());
-            container.remove();
+            dispose();
         }
     });
 });
@@ -395,34 +351,18 @@ describe('shared connection persistence', () => {
             connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             ...overrides,
         } as unknown as ConnectionState;
-        const harness = {} as {
-            registry: ConnectionRegistry;
-            dispatch: DynamicConnectionDispatch;
-            writer: StorageWriter;
-            save: () => Promise<ConnectionSaveResult | null>;
+        const rendered = renderRegistry(backend, fixedConnectionReferences(Object.fromEntries(workbookIds.map(workbookId => [workbookId, [TEST_CONNECTION_ID]]))));
+        const harness = {
+            get registry() { return rendered.service.store.current; },
+            dispatch: rendered.dispatch,
+            writer: rendered.writer,
+            save: rendered.save,
         };
-        let setRegistry!: React.Dispatch<React.SetStateAction<ConnectionRegistry>>;
-        function Harness() {
-            [harness.registry, setRegistry] = useConnectionRegistry();
-            [, harness.dispatch] = useDynamicConnectionDispatch();
-            harness.writer = useStorageWriter();
-            harness.save = useConnectionSave(TEST_CONNECTION_ID).save;
-            return null;
-        }
-        const container = document.createElement('div');
-        const root = createRoot(container);
-        await act(async () => root.render(React.createElement(LoggerProvider, null,
-            React.createElement(StorageProvider, { backend },
-                React.createElement(ConnectionReferencesProvider, { value: fixedConnectionReferences(Object.fromEntries(workbookIds.map(workbookId => [workbookId, [TEST_CONNECTION_ID]]))) }, React.createElement(ConnectionRegistryProvider, null,
-                    React.createElement(ConnectionPersistenceProvider, null, React.createElement(Harness)),
-                )),
-            ),
-        )));
-        await act(async () => setRegistry(reg => {
+        await act(async () => rendered.setRegistry(reg => {
             reg.connections.set(TEST_CONNECTION_ID, connection);
             return { ...reg };
         }));
-        return { backend, harness, unmount: () => { act(() => root.unmount()); container.remove(); } };
+        return { backend, harness, unmount: rendered.dispose };
     }
 
     it('keeps drafts in the app manifest and saves them into every workbook', async () => {

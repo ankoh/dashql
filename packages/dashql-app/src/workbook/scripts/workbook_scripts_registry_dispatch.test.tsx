@@ -51,6 +51,8 @@ function Consumer(props: { workbookId: string; capture: (scripts: ScriptsHook, r
     return null;
 }
 
+// The actions of the registry are tested in the runtime (workbook/scripts/workbook_scripts_registry_service.test.ts), this
+// is the hook of the app on it
 describe('useWorkbookScripts dispatch', () => {
     it('keeps retained and current modifiers bound to their workbooks when a reused route batches actions', async () => {
         const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
@@ -120,119 +122,4 @@ describe('useWorkbookScripts dispatch', () => {
         }
     });
 
-    it('promotes an ephemeral workbook that holds a script', async () => {
-        const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
-        const greeter = {
-            ...fixture('greeter'),
-            name: 'New Workbook',
-            workbookMetadata: { originalFileName: 'hyper', ephemeral: true },
-        } as WorkbookScripts;
-        const empty = { ...fixture('empty'), name: 'Other', workbookMetadata: { ephemeral: true }, scriptOrder: [] } as unknown as WorkbookScripts;
-        const workbooks = [{ ...fixture('other'), name: 'Untitled', workbookMetadata: {} } as WorkbookScripts, greeter, empty];
-        const container = document.createElement('div');
-        const root = createRoot(container);
-        let current!: ScriptsHook;
-        let registry!: ScriptsRegistry;
-        const capture = (scripts: ScriptsHook, nextRegistry: ScriptsRegistry) => {
-            current = scripts;
-            registry = nextRegistry;
-        };
-        try {
-            await act(async () => {
-                root.render(<LoggerProvider>
-                    <StorageProvider backend={new WorkbookTestBackend()}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <SeedRegistry workbooks={workbooks}>
-                                    <Consumer workbookId="greeter" capture={capture} />
-                                </SeedRegistry>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
-                    </StorageProvider>
-                </LoggerProvider>);
-            });
-            await vi.waitFor(() => expect(current?.[0]?.workbookId).toBe('greeter'));
-
-            await act(async () => { await current[1]({ type: REGISTER_QUERY, value: [1, 101] }); });
-            const promoted = registry.workbookScriptsMap.get('greeter')!;
-            expect(isEphemeralWorkbook(promoted)).toBe(false);
-            expect(promoted.workbookMetadata).toEqual({ originalFileName: 'hyper' });
-            // A free name among the full workbooks, the name of the other ephemeral workbook is not taken
-            expect(promoted.name).toBe('Untitled 2');
-            expect(write).toHaveBeenCalledWith(expect.any(String), {
-                type: WRITE_WORKBOOK_PROPERTIES, value: ['greeter', { name: 'Untitled 2' }],
-            }, expect.any(Number));
-
-            // Later writes of the properties don't bring the marker back
-            await act(async () => { await current[1]({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
-            expect(isEphemeralWorkbook(registry.workbookScriptsMap.get('greeter')!)).toBe(false);
-            expect(write).toHaveBeenLastCalledWith(expect.any(String), {
-                type: WRITE_WORKBOOK_PROPERTIES, value: ['greeter', { name: 'Renamed' }],
-            }, expect.any(Number));
-        } finally {
-            write.mockRestore();
-            act(() => root.unmount());
-        }
-    });
-
-    it('keeps a cloud preview unchanged until it is imported', async () => {
-        const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
-        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud' };
-        const preview = {
-            ...fixture('preview'),
-            name: 'Published',
-            workbookMetadata: { originalFileName: '', cloud: { ...cloud, preview: true } },
-        } as WorkbookScripts;
-        const container = document.createElement('div');
-        const root = createRoot(container);
-        let current!: ScriptsHook;
-        let registry!: ScriptsRegistry;
-        const capture = (scripts: ScriptsHook, nextRegistry: ScriptsRegistry) => {
-            current = scripts;
-            registry = nextRegistry;
-        };
-        try {
-            await act(async () => {
-                root.render(<LoggerProvider>
-                    <StorageProvider backend={new WorkbookTestBackend()}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <SeedRegistry workbooks={[preview]}>
-                                    <Consumer workbookId="preview" capture={capture} />
-                                </SeedRegistry>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
-                    </StorageProvider>
-                </LoggerProvider>);
-            });
-            await vi.waitFor(() => expect(current?.[0]?.workbookId).toBe('preview'));
-
-            // Renaming and reordering change what the workbook says, a preview refuses them
-            await act(async () => { await current[1]({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
-            await act(async () => { await current[1]({ type: REORDER_SCRIPTS, value: ['1.sql'] }); });
-            expect(registry.workbookScriptsMap.get('preview')!.name).toBe('Published');
-            expect(write).not.toHaveBeenCalled();
-            // What a run registers stays, the runs refuse a preview before they start
-            await act(async () => { await current[1]({ type: REGISTER_QUERY, value: [1, 101] }); });
-            expect(registry.workbookScriptsMap.get('preview')!.scripts[1].latestQueryId).toBe(101);
-
-            // Importing drops the mark and keeps the link, the properties write it
-            await act(async () => { await current[1]({ type: SET_WORKBOOK_CLOUD_LINK, value: cloud }); });
-            const imported = registry.workbookScriptsMap.get('preview')!;
-            expect(isCloudPreview(imported)).toBe(false);
-            expect(imported.workbookMetadata.cloud).toEqual(cloud);
-            expect(write).toHaveBeenLastCalledWith(expect.any(String), {
-                type: WRITE_WORKBOOK_PROPERTIES, value: ['preview', { name: 'Published', cloud }],
-            }, expect.any(Number));
-
-            // A rename keeps the link
-            await act(async () => { await current[1]({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
-            expect(write).toHaveBeenLastCalledWith(expect.any(String), {
-                type: WRITE_WORKBOOK_PROPERTIES, value: ['preview', { name: 'Renamed', cloud }],
-            }, expect.any(Number));
-        } finally {
-            write.mockRestore();
-            act(() => root.unmount());
-        }
-    });
 });

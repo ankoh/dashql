@@ -1,4 +1,4 @@
-import type { ConnectionReferences } from '../../connections/connection_registry.js';
+import type { ConnectionReferences } from '../../connections/connection_registry_state.js';
 
 /// The references of workbooks that use fixed connections (workbookId -> connectionIds, the default connection first)
 export function fixedConnectionReferences(connectionsByWorkbook: Record<string, string[]> | Map<string, string[]>): ConnectionReferences {

@@ -25,7 +25,7 @@ import { StorageProvider, useStorageWriter } from '../storage/storage_provider.j
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
+import { fixedConnectionReferences } from '@ankoh/dashql-runtime/testing/mocks/connection_references';
 
 /// The draft of the test connection in the app manifest
 function globalDraft(backend: WorkbookTestBackend): ConnectionParams | undefined {

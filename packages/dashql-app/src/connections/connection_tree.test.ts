@@ -3,7 +3,7 @@ import { type ConnectionState } from '@ankoh/dashql-runtime/connections/connecti
 import { connectionLabel, connectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 import type { ConnectionRegistry } from './connection_registry.js';
-import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
+import { fixedConnectionReferences } from '@ankoh/dashql-runtime/testing/mocks/connection_references';
 import {
     connectionTreeRowHeight,
     flattenCatalogRows,

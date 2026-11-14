@@ -372,9 +372,15 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   test file, started by the first test that needs it, about 1.5 s. Every test file in Node also gets a root of its own
   with the layout of OPFS (`useNodeRoot`), so `getOPFSRoot()` works, and the locks of the process where Node has no Web
   Locks.
-- **What remains in the app** (the inventory of the test files): the tests of providers, which become tests of the
-  services of the runtime (`QueryExecutorService`, `WorkbookExecutionService`, `CatalogLoaderService`, the registries);
-  the tests of the compute tasks, which need the task processor in the runtime; workbook export and import with
+- **The services in Node.** The tests of the providers of the app became tests of the services of the runtime:
+  `QueryExecutorService` (queries, client function calls, failures, cancelling, profiles, the query result cache),
+  `WorkbookExecutionService` (starting and stopping runs, the connections a run needs, previews, changes of inputs),
+  `CatalogLoaderService` (the queue of refreshes and lookups), `ConnectionRegistryService` with the storage writer and
+  `ConnectionPersistenceService`, and `WorkbookScriptsRegistryService`. `createTestRuntime()` (`src/testing/test_runtime.ts`)
+  is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
+  stopped unless a test asks for it, so it schedules no updates. The app keeps the
+  tests of what React adds: hooks, rendering order, remounting and unmounting.
+- **What remains in the app** (the inventory of the test files): the tests of the compute tasks, which need the task processor in the runtime; workbook export and import with
   `workbook_execution_integration`, which need `workbook_archive_database.ts` without React; the OPFS and composite
   storage backends; the connector setups, which need a fake `OAuthFlow`; the snippets and the local cloud.
 - **Compile time.** The runtime compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
