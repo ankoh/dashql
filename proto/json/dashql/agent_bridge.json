@@ -124,7 +124,7 @@
     },
     "ClientWorkbooksParams": {
       "type": "object",
-      "description": "client/workbooks, client → server: the workbooks with agent access, sent after connecting and on every change. A server with another protocol version closes the WebSocket with 1008.",
+      "description": "client/workbooks, client → server: the workbooks with agent access, sent after connecting and on every change. DashQL announces at most one, the visible workbook while the agent is on. A server with another protocol version closes the WebSocket with 1008.",
       "properties": {
         "protocol": { "const": 3, "description": "The version of the protocol, the server turns away other versions" },
         "client": { "type": "string", "description": "The kind of client, \"web\" or \"desktop\"" },

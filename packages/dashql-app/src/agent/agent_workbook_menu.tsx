@@ -45,8 +45,8 @@ interface Props {
     workbookId: string;
 }
 
-/// The agent access of a workbook in the bar of Wobble above the prompt: "Enable Agent" turns it on right away, the
-/// menu turns it off, forgets the agent context or continues in a terminal. The menu opens upwards.
+/// The agent in the bar of Wobble above the prompt: "Enable Agent" turns it on right away for the visible workbook,
+/// the menu turns it off, forgets the agent context or continues in a terminal. The menu opens upwards.
 export const AgentWorkbookMenu: React.FC<Props> = (props: Props) => {
     const bridge = useAgentBridge();
     const logger = useLogger();
@@ -86,11 +86,11 @@ export const AgentWorkbookMenu: React.FC<Props> = (props: Props) => {
                 aria-label="Enable Agent"
                 title={state === AgentAccessState.Unsupported
                     ? 'Safari cannot reach the local agent server. Use Chrome, Edge, Firefox or the DashQL desktop app.'
-                    : 'Let the agent on this machine read and edit the scripts of this workbook and run its queries'}
+                    : 'Let the agent on this machine read and edit the scripts of the workbook you see and run its queries'}
                 disabled={state === AgentAccessState.Unsupported}
                 data-testid="agent-access"
                 data-state={state}
-                onClick={() => bridge.setAccess(props.workbookId, true)}
+                onClick={() => bridge.setEnabled(true)}
             >
                 Enable Agent
             </Button>
@@ -131,7 +131,7 @@ export const AgentWorkbookMenu: React.FC<Props> = (props: Props) => {
                     <ActionList.ListItem
                         data-testid="agent-menu-item"
                         data-action="disable"
-                        onClick={() => { close(); bridge.setAccess(props.workbookId, false); }}
+                        onClick={() => { close(); bridge.setEnabled(false); }}
                     >
                         <ActionList.Leading><PlugIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Disable Agent</ActionList.ItemText>

@@ -60,8 +60,8 @@ function HarnessChoice(props: { label: string; values: string[]; picked: string 
     );
 }
 
-/// The agent bridge: the agent server with its port and harness, the workbooks with agent access, the turns and
-/// the clients of the server.
+/// The agent bridge: the agent server with its port and harness, whether the visible workbook has agent access, the
+/// turns and the clients of the server.
 /// The harness commands live in the config.json of the agent server, a page only picks among them and must
 /// not be able to choose the programs that run on the machine. The same holds for the models and efforts of a harness.
 /// The picks are settings of the app.
@@ -72,7 +72,7 @@ export function AgentView(props: { onClose: () => void }) {
     const [portDraft, setPortDraft] = React.useState<string>(String(bridge?.port ?? DASHQL_AGENT_PORT));
     React.useEffect(() => setPortDraft(String(bridge?.port ?? DASHQL_AGENT_PORT)), [bridge?.port]);
 
-    // The view shows the agent server even while no workbook has agent access
+    // The view shows the agent server even while the agent is off
     React.useEffect(() => bridge?.hold(), [bridge?.hold]);
 
     const connected = bridge?.status === AgentConnectionStatus.Connected;
@@ -188,20 +188,21 @@ export function AgentView(props: { onClose: () => void }) {
                     )}
                 </section>
 
-                <section className={styles.section} aria-labelledby="agent-section-workbooks">
-                    <h3 id="agent-section-workbooks" className={styles.section_title}>Workbooks</h3>
-                    {bridge.accessWorkbooks.map(workbook => (
-                        <div key={workbook.id} className={styles.row} data-testid="agent-settings-workbook">
-                            <div className={styles.row_label}>
-                                {workbook.name != null && workbook.name.length > 0 ? workbook.name : 'Unnamed workbook'}
-                                <span className={styles.row_detail}>{workbook.id}</span>
-                            </div>
-                            <div className={styles.row_value}>
-                                <Button size={ButtonSize.Small} onClick={() => bridge.setAccess(workbook.id, false)}>Disconnect</Button>
-                            </div>
+                <section className={styles.section} aria-labelledby="agent-section-access">
+                    <h3 id="agent-section-access" className={styles.section_title}>Access</h3>
+                    <div className={styles.row} data-testid="agent-settings-access" data-enabled={bridge.enabled}>
+                        <div className={styles.row_label}>
+                            Visible workbook
+                            <span className={styles.row_detail}>
+                                {bridge.enabled ? 'The agent reads, edits and runs the scripts of the workbook you see' : 'The agent is off'}
+                            </span>
                         </div>
-                    ))}
-                    {bridge.accessWorkbooks.length === 0 && <div className={styles.hint}>No workbook has agent access.</div>}
+                        <div className={styles.row_value}>
+                            <Button size={ButtonSize.Small} disabled={!bridge.supported} onClick={() => bridge.setEnabled(!bridge.enabled)}>
+                                {bridge.enabled ? 'Disable' : 'Enable'}
+                            </Button>
+                        </div>
+                    </div>
                 </section>
 
                 {info != null && (

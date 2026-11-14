@@ -661,7 +661,7 @@ describe('Workbook feed composer', () => {
             supported: true,
             port: 47100,
             hasAccess: () => true,
-            setAccess: vi.fn(),
+            setEnabled: vi.fn(),
             request: vi.fn(request),
             cancel: vi.fn(() => Promise.resolve()),
             reset: vi.fn(() => Promise.resolve()),

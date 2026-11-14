@@ -318,8 +318,8 @@ Work only through `dashql agent`; this folder holds no project files.
 pub fn cli_guide(page: Page) -> String {
     let connected = match page {
         Page::Unknown => {
-            "No DashQL is connected to the agent server. Say in your answer that the user has to open DashQL and turn on\n\
-             agent access for the workbook.\n\n"
+            "No DashQL is connected to the agent server. Say in your answer that the user has to open the workbook in\n\
+             DashQL and turn on the agent.\n\n"
         }
         Page::Features(_) => "",
     };
@@ -335,7 +335,7 @@ pub fn cli_guide(page: Page) -> String {
 ## How to work
 
 1. `dashql agent status` shows whether DashQL is connected. Exit code 2 means it is not: say in your answer
-   that the user has to open DashQL and turn on agent access for the workbook.
+   that the user has to open the workbook in DashQL and turn on the agent.
 2. `dashql agent scripts` and `dashql agent catalog` show the workbook and the schema.
 3. Write SQL with `dashql agent edit`, one statement per script: a script that other scripts read must be a
    single `SELECT`, and new statements go into new scripts that build on the existing ones. Check a script with

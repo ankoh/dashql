@@ -76,9 +76,9 @@ describe('AgentClient', () => {
     });
 
     it('connects only while a workbook has agent access', async () => {
-        client.setWorkbooks([], null);
+        client.setWorkbook(null);
         expect(sockets).toHaveLength(0);
-        client.setWorkbooks([{ id: 's1', name: 'Revenue' }], 's1');
+        client.setWorkbook({ id: 's1', name: 'Revenue' });
         expect(sockets).toHaveLength(1);
         expect(sockets[0].url).toBe('ws://127.0.0.1:47100/v1/ws');
         sockets[0].open();
@@ -93,11 +93,11 @@ describe('AgentClient', () => {
         await flush();
         expect(client.status).toBe(AgentConnectionStatus.Connected);
 
-        // A focus without agent access is not announced
-        client.setWorkbooks([{ id: 's1', name: 'Revenue' }], 'other');
-        expect(sockets[0].sent[1].params.focused).toBeNull();
+        // Another workbook replaces the first one
+        client.setWorkbook({ id: 's2', name: 'Costs' });
+        expect(sockets[0].sent[1].params).toMatchObject({ workbooks: [{ id: 's2', name: 'Costs' }], focused: 's2' });
 
-        client.setWorkbooks([], null);
+        client.setWorkbook(null);
         expect(sockets[0].closed).toBe(true);
         expect(client.status).toBe(AgentConnectionStatus.Off);
         expect(statuses).toEqual([AgentConnectionStatus.Connecting, AgentConnectionStatus.Connected, AgentConnectionStatus.Off]);
@@ -109,15 +109,16 @@ describe('AgentClient', () => {
         expect(sockets).toHaveLength(1);
         sockets[0].open();
         expect(sockets[0].sent[0].params.workbooks).toEqual([]);
-        client.setWorkbooks([{ id: 's1', name: '' }], null);
-        client.setWorkbooks([], null);
+        client.setWorkbook({ id: 's1', name: '' });
+        client.setWorkbook(null);
+        expect(sockets[0].sent[sockets[0].sent.length - 1].params).toMatchObject({ workbooks: [], focused: null });
         expect(sockets[0].closed).toBe(false);
         client.setHeld(false);
         expect(sockets[0].closed).toBe(true);
     });
 
     it('reconnects with backoff and announces the workbooks again', async () => {
-        client.setWorkbooks([{ id: 's1', name: '' }], null);
+        client.setWorkbook({ id: 's1', name: '' });
         sockets[0].drop();
         expect(client.status).toBe(AgentConnectionStatus.Connecting);
         vi.advanceTimersByTime(99);
@@ -148,7 +149,7 @@ describe('AgentClient', () => {
     });
 
     it('retries slowly when the server turns the client away', async () => {
-        client.setWorkbooks([{ id: 's1', name: '' }], null);
+        client.setWorkbook({ id: 's1', name: '' });
         sockets[0].open();
         sockets[0].drop(1008, 'protocol version 1 is not supported, expected 2');
         expect(client.status).toBe(AgentConnectionStatus.Incompatible);
@@ -167,7 +168,7 @@ describe('AgentClient', () => {
     });
 
     it('answers commands with results and errors', async () => {
-        client.setWorkbooks([{ id: 's1', name: '' }], 's1');
+        client.setWorkbook({ id: 's1', name: '' });
         sockets[0].open();
         sockets[0].receive({ id: 's1', method: 'command', params: { workbook: 's1', command: 'read', args: { script: 'q' } } });
         await flush();
@@ -190,7 +191,7 @@ describe('AgentClient', () => {
 
     it('logs commands with their short arguments, the texts at debug level', async () => {
         logger.buffer.setMinLogLevel(LogLevel.Debug);
-        client.setWorkbooks([{ id: 's1', name: '' }], 's1');
+        client.setWorkbook({ id: 's1', name: '' });
         sockets[0].open();
         handleCommand.mockResolvedValueOnce({ text: 'Updated q: sha256 abc, 0 errors\nq:1:1: warning: w' });
         const text = 'select 1\nfrom t';
@@ -215,7 +216,7 @@ describe('AgentClient', () => {
     });
 
     it('resolves requests and passes notifications on', async () => {
-        client.setWorkbooks([{ id: 's1', name: '' }], 's1');
+        client.setWorkbook({ id: 's1', name: '' });
         sockets[0].open();
         const request = client.request('agent/request', { workbook: 's1', prompt: 'hi' });
         const sent = sockets[0].sent[1];

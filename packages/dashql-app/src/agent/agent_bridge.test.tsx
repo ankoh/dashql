@@ -1,8 +1,8 @@
 import * as core from '@ankoh/dashql-core';
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act, waitForRender } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppConfigProvider, useAppConfig, useAppReconfigure } from '../config/app_config.js';
@@ -62,6 +62,8 @@ interface Api {
     reconfigure: ReturnType<typeof useAppReconfigure>;
     workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
     setWorkbooks: ReturnType<typeof useWorkbookScriptsRegistry>[1];
+    navigate: ReturnType<typeof useNavigate>;
+    pathname: string;
 }
 
 function Capture(props: { restored: RestoredAppState | null; capture: (api: Api) => void }) {
@@ -71,6 +73,8 @@ function Capture(props: { restored: RestoredAppState | null; capture: (api: Api)
     const reconfigure = useAppReconfigure();
     const [workbooks, setWorkbooks] = useWorkbookScriptsRegistry();
     const [, setConnections] = useConnectionRegistry();
+    const navigate = useNavigate();
+    const location = useLocation();
     React.useEffect(() => {
         if (props.restored == null) return;
         setConnections(registry => ({
@@ -85,7 +89,7 @@ function Capture(props: { restored: RestoredAppState | null; capture: (api: Api)
         }));
     }, [props.restored, setConnections, setWorkbooks]);
     React.useLayoutEffect(() => {
-        props.capture({ bridge, logger, config, reconfigure, workbooks, setWorkbooks });
+        props.capture({ bridge, logger, config, reconfigure, workbooks, setWorkbooks, navigate, pathname: location.pathname });
     });
     return null;
 }
@@ -210,9 +214,16 @@ describe('AgentBridgeProvider', () => {
         await respond(socket, 'client/workbooks');
         await vi.waitFor(() => expect(api.bridge.status).toBe(AgentConnectionStatus.Connected));
     }
-    /// Turn on the access of a workbook and connect
+    /// Show a workbook, the router renders the new location in a transition
+    async function show(workbookId: string | null) {
+        const pathname = workbookId == null ? '/' : `/workbooks/${workbookId}`;
+        await act(async () => { api.navigate(pathname); });
+        await waitForRender(() => expect(api.pathname).toBe(pathname));
+    }
+    /// Show a workbook, turn on the agent and connect
     async function connectWithAccess(workbookId: string = WORKBOOK_A) {
-        await act(async () => api.bridge.setAccess(workbookId, true));
+        await show(workbookId);
+        await act(async () => api.bridge.setEnabled(true));
         await vi.waitFor(() => expect(sockets().length > 0).toBe(true));
         await connect();
     }
@@ -229,7 +240,7 @@ describe('AgentBridgeProvider', () => {
     const notify = (method: string, params: unknown) => act(async () => { lastSocket().receive({ method, params }); });
 
     describe('the connection', () => {
-        it('stays off while no workbook has agent access', async () => {
+        it('stays off while the agent is off', async () => {
             await renderBridge();
             expect(api.bridge.status).toBe(AgentConnectionStatus.Off);
             expect(sockets().length).toBe(0);
@@ -237,7 +248,7 @@ describe('AgentBridgeProvider', () => {
             expect(api.bridge.port).toBe(DASHQL_AGENT_PORT);
         });
 
-        it('connects once a workbook has agent access and announces it', async () => {
+        it('connects once the agent is on and announces the visible workbook', async () => {
             await renderBridge();
             await connectWithAccess();
             expect(lastSocket().url).toBe(`ws://127.0.0.1:${DASHQL_AGENT_PORT}/v1/ws`);
@@ -245,6 +256,10 @@ describe('AgentBridgeProvider', () => {
             expect(announcement.protocol).toBe(AGENT_PROTOCOL_VERSION);
             expect(announcement.client).toBe('web');
             expect(announcement.workbooks).toEqual([{ id: WORKBOOK_A, name: 'Alpha' }]);
+            expect(announcement.focused).toBe(WORKBOOK_A);
+            expect(api.bridge.enabled).toBe(true);
+            expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(true);
+            expect(api.bridge.hasAccess(WORKBOOK_B)).toBe(false);
         });
 
         it('announces itself as the desktop app there', async () => {
@@ -254,38 +269,48 @@ describe('AgentBridgeProvider', () => {
             expect(lastSocket().sentWith('client/workbooks')[0].params.client).toBe('desktop');
         });
 
-        it('announces the focused workbook of the route, if it has agent access', async () => {
-            await renderBridge({ path: `/workbooks/${WORKBOOK_A}` });
-            await connectWithAccess();
-            expect(lastSocket().sentWith('client/workbooks')[0].params.focused).toBe(WORKBOOK_A);
-        });
-
-        it('does not announce the focused workbook without agent access', async () => {
-            await renderBridge({ path: `/workbooks/${WORKBOOK_B}` });
-            await connectWithAccess(WORKBOOK_A);
-            expect(lastSocket().sentWith('client/workbooks')[0].params.focused).toBeNull();
-        });
-
-        it('does not announce a workbook that is not loaded', async () => {
-            await renderBridge({ restored: null });
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
-            expect(sockets().length).toBe(0);
-            expect(api.bridge.accessWorkbooks).toEqual([{ id: WORKBOOK_A, name: null }]);
-        });
-
-        it('announces workbooks again when the access changes', async () => {
+        it('announces only the visible workbook, another one once the user switches', async () => {
             await renderBridge();
             await connectWithAccess(WORKBOOK_A);
-            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
+            await show(WORKBOOK_B);
             await vi.waitFor(() => expect(lastSocket().sentWith('client/workbooks').length).toBe(2));
-            expect(lastSocket().sentWith('client/workbooks')[1].params.workbooks.map((workbook: { name: string }) => workbook.name)).toEqual(['Alpha', 'Beta']);
+            const announcement = lastSocket().sentWith('client/workbooks')[1].params;
+            expect(announcement.workbooks).toEqual([{ id: WORKBOOK_B, name: 'Beta' }]);
+            expect(announcement.focused).toBe(WORKBOOK_B);
+            expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(false);
+            expect(api.bridge.hasAccess(WORKBOOK_B)).toBe(true);
             expect(sockets().length).toBe(1);
         });
 
-        it('disconnects when the last workbook loses its agent access', async () => {
+        it('stays connected without a workbook while the agent is on', async () => {
+            await renderBridge();
+            await connectWithAccess(WORKBOOK_A);
+            await show(null);
+            await vi.waitFor(() => expect(lastSocket().sentWith('client/workbooks').length).toBe(2));
+            expect(lastSocket().sentWith('client/workbooks')[1].params).toMatchObject({ workbooks: [], focused: null });
+            expect(lastSocket().closed).toBe(false);
+        });
+
+        it('does not announce a workbook that is not loaded', async () => {
+            await renderBridge({ restored: null, path: `/workbooks/${WORKBOOK_A}` });
+            await act(async () => api.bridge.setEnabled(true));
+            await vi.waitFor(() => expect(sockets().length).toBe(1));
+            await act(async () => { lastSocket().readyState = 1; lastSocket().onopen?.({}); });
+            expect(lastSocket().sentWith('client/workbooks')[0].params).toMatchObject({ workbooks: [], focused: null });
+        });
+
+        it('keeps the setting in the app config', async () => {
+            await renderBridge();
+            await act(async () => api.bridge.setEnabled(true));
+            expect(api.config?.settings?.agentEnabled).toBe(true);
+            await act(async () => api.bridge.setEnabled(false));
+            expect(api.config?.settings?.agentEnabled).toBeUndefined();
+        });
+
+        it('disconnects when the agent is turned off', async () => {
             await renderBridge();
             await connectWithAccess();
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, false));
+            await act(async () => api.bridge.setEnabled(false));
             expect(lastSocket().closed).toBe(true);
             await vi.waitFor(() => expect(api.bridge.status).toBe(AgentConnectionStatus.Off));
         });
@@ -318,31 +343,6 @@ describe('AgentBridgeProvider', () => {
             act(() => root!.unmount());
             root = null;
             expect(lastSocket().closed).toBe(true);
-        });
-    });
-
-    describe('agent access', () => {
-        it('lists the workbooks with their names', async () => {
-            await renderBridge();
-            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
-            expect(api.bridge.hasAccess(WORKBOOK_B)).toBe(true);
-            expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(false);
-            expect(api.bridge.accessWorkbooks).toEqual([{ id: WORKBOOK_B, name: 'Beta' }]);
-        });
-
-        it('adds a workbook once', async () => {
-            await renderBridge();
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
-            expect(api.bridge.accessWorkbooks.length).toBe(1);
-        });
-
-        it('keeps the list of workbooks while the names are unchanged, the registry changes with every edit', async () => {
-            await renderBridge();
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
-            const list = api.bridge.accessWorkbooks;
-            await act(async () => api.setWorkbooks(registry => ({ ...registry })));
-            expect(api.bridge.accessWorkbooks).toBe(list);
         });
     });
 
@@ -481,13 +481,28 @@ describe('AgentBridgeProvider', () => {
             expect(listener.failed).toHaveBeenCalledOnce();
         });
 
-        it('fails the running turns when the access is turned off', async () => {
+        it('stops the running turns when the agent is turned off', async () => {
             await renderBridge();
             await connectWithAccess();
             const listener = createListener();
             await startTurn(WORKBOOK_A, 'turn-1', listener);
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, false));
-            expect(listener.failed).toHaveBeenCalledWith('Agent access was turned off', false);
+            await act(async () => api.bridge.setEnabled(false));
+            expect(listener.failed).toHaveBeenCalledExactlyOnceWith('Agent access was turned off', false);
+            expect(lastSocket().sentWith('agent/cancel').map(message => message.params)).toEqual([{ workbook: WORKBOOK_A }]);
+        });
+
+        it('stops the running turns of a workbook that the user leaves', async () => {
+            await renderBridge();
+            await connectWithAccess(WORKBOOK_A);
+            const listener = createListener();
+            await startTurn(WORKBOOK_A, 'turn-1', listener);
+            await show(WORKBOOK_B);
+            expect(listener.failed).toHaveBeenCalledExactlyOnceWith('The agent stopped when you left the workbook', false);
+            expect(lastSocket().sentWith('agent/cancel').map(message => message.params)).toEqual([{ workbook: WORKBOOK_A }]);
+            // The turn is gone, a late answer finds nothing
+            await notify('agent/done', { workbook: WORKBOOK_A, turnId: 'turn-1', message: 'late' });
+            expect(listener.done).not.toHaveBeenCalled();
+            expect(lastSocket().closed).toBe(false);
         });
     });
 
@@ -514,20 +529,17 @@ describe('AgentBridgeProvider', () => {
             expect(warn).toHaveBeenCalledWith('An agent command failed', expect.objectContaining({ workbookId: 'unknown', command: 'read' }), 'agent_bridge');
         });
 
-        it('tells the turns of the workbook about an edit, and only those', async () => {
+        it('tells the turns of the workbook about an edit', async () => {
             await renderBridge();
             await connectWithAccess(WORKBOOK_A);
-            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
-            const [same, other] = [createListener(), createListener()];
+            const same = createListener();
             await startTurn(WORKBOOK_A, 'turn-1', same);
-            await startTurn(WORKBOOK_B, 'turn-2', other);
 
             const reply = await command(903, WORKBOOK_A, 'edit', { script: 'query', text: 'select 2' });
             expect(reply.error).toBeUndefined();
             const workbook = api.workbooks.workbookScriptsMap.get(WORKBOOK_A)!;
             const script = workbook.scripts[workbook.scriptRefs['query.sql'].scriptId];
             expect(same.edited).toHaveBeenCalledWith(script.scriptKey);
-            expect(other.edited).not.toHaveBeenCalled();
             await vi.waitFor(() => expect(script.scriptSession.getText()).toBe('select 2'));
         });
 
@@ -603,13 +615,12 @@ describe('AgentBridgeProvider', () => {
         it('takes its agent state along', async () => {
             await renderBridge();
             await connectWithAccess(WORKBOOK_A);
-            await act(async () => api.bridge.setAccess(WORKBOOK_B, true));
             const drop = vi.spyOn(api.bridge.questions, 'drop');
             await deleteWorkbook(WORKBOOK_A);
             await vi.waitFor(() => expect(lastSocket().sentWith('agent/forget').map(message => message.params)).toEqual([{ workbook: WORKBOOK_A }]));
             expect(drop).toHaveBeenCalledWith(WORKBOOK_A);
-            await vi.waitFor(() => expect(api.bridge.hasAccess(WORKBOOK_A)).toBe(false));
-            expect(api.bridge.hasAccess(WORKBOOK_B)).toBe(true);
+            // The workbook is gone from the announcement
+            await vi.waitFor(() => expect(lastSocket().sentWith('client/workbooks').slice(-1)[0].params.workbooks).toEqual([]));
         });
 
         it('leaves the other workbooks alone', async () => {
@@ -654,7 +665,7 @@ describe('AgentBridgeProvider', () => {
         it('never connects and says why', async () => {
             await renderBridge();
             expect(api.bridge.supported).toBe(false);
-            await act(async () => api.bridge.setAccess(WORKBOOK_A, true));
+            await act(async () => api.bridge.setEnabled(true));
             expect(sockets().length).toBe(0);
             await expect(api.bridge.request(WORKBOOK_A, 'hi', createListener())).rejects.toThrow('This browser cannot reach the agent server');
             await expect(api.bridge.context(WORKBOOK_A)).rejects.toThrow('This browser cannot reach the agent server');

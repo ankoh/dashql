@@ -58,12 +58,12 @@ export interface AgentBridge {
     effort: string | null;
     /// Pick among the efforts of the harness, null restores the harness's default
     setEffort: (effort: string | null) => void;
-    /// The workbooks with agent access, the name is null while a workbook is not loaded
-    accessWorkbooks: { id: string; name: string | null }[];
-    /// Does a workbook have agent access?
+    /// Is the agent on? Then the visible workbook has agent access, no other workbook has.
+    enabled: boolean;
+    /// Turn the agent on or off
+    setEnabled: (enabled: boolean) => void;
+    /// Does a workbook have agent access? Only the visible workbook while the agent is on.
     hasAccess: (workbookId: string) => boolean;
-    /// Turn agent access of a workbook on or off
-    setAccess: (workbookId: string, enabled: boolean) => void;
     /// Run the harness with a prompt in a workbook, resolves with the turn id
     request: (workbookId: string, prompt: string, listener: AgentTurnListener) => Promise<string>;
     /// Stop a turn of a workbook, or all turns of the workbook without a turn id
@@ -74,7 +74,7 @@ export interface AgentBridge {
     context: (workbookId: string) => Promise<AgentWorkbookContext>;
     /// The configuration and the state of the agent server
     info: () => Promise<AgentServerInfo>;
-    /// Stay connected while no workbook has agent access, returns the release
+    /// Stay connected while the agent is off, returns the release
     hold: () => () => void;
     /// The questions that the agent answers in the workbooks
     questions: AgentQuestionStore;
@@ -94,8 +94,6 @@ export function blocksLoopbackWebSockets(userAgent: string, desktop: boolean): b
     return /Safari\//.test(userAgent) && !/Chrome\/|Chromium\/|CriOS\/|Edg\/|Firefox\/|FxiOS\//.test(userAgent);
 }
 
-const NO_WORKBOOKS: string[] = [];
-
 export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const logger = useLogger();
     const config = useAppConfig();
@@ -110,7 +108,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     const [status, setStatus] = React.useState(AgentConnectionStatus.Off);
     const supported = !blocksLoopbackWebSockets(globalThis.navigator?.userAgent ?? '', isDesktopHost());
 
-    const accessWorkbooks = config?.settings?.agentWorkbooks ?? NO_WORKBOOKS;
+    const enabled = config?.settings?.agentEnabled === true;
     const port = config?.settings?.agentPort ?? DASHQL_AGENT_PORT;
     const harness = config?.settings?.agentHarness ?? null;
     const model = config?.settings?.agentModel ?? null;
@@ -218,25 +216,43 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     }, [supported, port, logger, forgetTurn]);
     React.useEffect(() => () => client?.dispose(), [client]);
 
-    // Announce the workbooks with agent access and the focused workbook
-    const announced = React.useMemo<AgentClientWorkbook[]>(() => {
-        const workbooks: AgentClientWorkbook[] = [];
-        for (const workbookId of accessWorkbooks) {
-            const scripts = registry.workbookScriptsMap.get(workbookId);
-            if (scripts != null) workbooks.push({ id: workbookId, name: scripts.name ?? '' });
-        }
-        return workbooks;
-    }, [accessWorkbooks, registry]);
-    const announcedKey = JSON.stringify(announced);
-    const focused = route.workbookId ?? null;
-    React.useEffect(() => {
-        client?.setWorkbooks(announced, focused);
-    }, [client, announcedKey, focused]);
+    // The visible workbook has agent access while the agent is on, the client announces it once it is loaded
+    const visibleWorkbook = route.workbookId ?? null;
+    const accessWorkbook = enabled ? visibleWorkbook : null;
+    const accessScripts = accessWorkbook != null ? registry.workbookScriptsMap.get(accessWorkbook) : undefined;
+    const announcedName = accessScripts != null ? (accessScripts.name ?? '') : null;
 
+    // A workbook that loses its access stops its turns, the agent must not work in a workbook that the user left.
+    // Runs before the announcement below, which disconnects when the agent is turned off.
+    React.useEffect(() => {
+        for (const [workbookId, turnIds] of [...turnsByWorkbook.current]) {
+            if (workbookId === accessWorkbook) continue;
+            const reason = enabled ? 'The agent stopped when you left the workbook' : 'Agent access was turned off';
+            logger.info('Stopping the agent turns of a workbook without access', { workbookId, reason }, LOG_CTX);
+            for (const turnId of [...turnIds]) {
+                const turn = turns.current.get(turnId);
+                forgetTurn(workbookId, turnId);
+                turn?.failed(reason, false);
+            }
+            if (client?.status === AgentConnectionStatus.Connected) {
+                // Sent before the client disconnects when the agent is turned off, only the answer may be lost
+                client.request('agent/cancel', { workbook: workbookId }).catch((e: unknown) => {
+                    logger.info('Stopping the agent turns of a workbook failed', { workbookId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+                });
+            }
+        }
+    }, [client, accessWorkbook, enabled, forgetTurn, logger]);
+
+    React.useEffect(() => {
+        const workbook: AgentClientWorkbook | null = accessWorkbook != null && announcedName != null ? { id: accessWorkbook, name: announcedName } : null;
+        client?.setWorkbook(workbook);
+    }, [client, accessWorkbook, announcedName]);
+
+    // The client stays connected while the agent is on, also on pages without a workbook
     const [holds, setHolds] = React.useState(0);
     React.useEffect(() => {
-        client?.setHeld(holds > 0);
-    }, [client, holds]);
+        client?.setHeld(enabled || holds > 0);
+    }, [client, enabled, holds]);
     const hold = React.useCallback(() => {
         setHolds(n => n + 1);
         return () => setHolds(n => n - 1);
@@ -268,33 +284,16 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentEffort: next ?? undefined } });
     }, [reconfigure, logger]);
 
-    const accessWorkbookList = React.useMemo(
-        () => accessWorkbooks.map(id => ({ id, name: registry.workbookScriptsMap.get(id)?.name ?? null })),
-        [accessWorkbooks, registry],
-    );
-    const accessWorkbookListKey = JSON.stringify(accessWorkbookList);
-    // Keep the identity while the names are unchanged, the registry changes with every edit
-    const stableAccessWorkbooks = React.useMemo(() => accessWorkbookList, [accessWorkbookListKey]);
-
-    const hasAccess = React.useCallback((workbookId: string) => accessWorkbooks.includes(workbookId), [accessWorkbooks]);
-    const setAccess = React.useCallback((workbookId: string, enabled: boolean) => {
-        logger.info(enabled ? 'Turned on agent access' : 'Turned off agent access', { workbookId }, LOG_CTX);
-        reconfigure(c => {
-            if (c == null) return c;
-            const current = c.settings?.agentWorkbooks ?? [];
-            const agentWorkbooks = enabled
-                ? (current.includes(workbookId) ? current : [...current, workbookId])
-                : current.filter(id => id !== workbookId);
-            return { ...c, settings: { ...(c.settings ?? {}), agentWorkbooks } };
-        });
+    const hasAccess = React.useCallback((workbookId: string) => workbookId === accessWorkbook, [accessWorkbook]);
+    const setEnabled = React.useCallback((next: boolean) => {
+        logger.info(next ? 'Turned on the agent' : 'Turned off the agent', {}, LOG_CTX);
+        reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentEnabled: next || undefined } });
     }, [reconfigure, logger]);
 
     // A deleted workbook takes its agent state along: the server stops its turns and removes its folder, its questions
-    // and its agent access go. Only a deletion drops a workbook from the registry. A workbook deleted while the agent
-    // server is not connected leaves its folder, the server removes the folders of unused workbooks after a while.
+    // go. Only a deletion drops a workbook from the registry. A workbook deleted while the agent server is not
+    // connected leaves its folder, the server removes the folders of unused workbooks after a while.
     const knownWorkbooks = React.useRef<ReadonlySet<string>>(new Set());
-    const latestAccessWorkbooks = React.useRef(accessWorkbooks);
-    latestAccessWorkbooks.current = accessWorkbooks;
     React.useEffect(() => {
         const workbooks = new Set(registry.workbookScriptsMap.keys());
         for (const workbookId of knownWorkbooks.current) {
@@ -306,10 +305,9 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                 });
             }
             questions.drop(workbookId);
-            if (latestAccessWorkbooks.current.includes(workbookId)) setAccess(workbookId, false);
         }
         knownWorkbooks.current = workbooks;
-    }, [registry.workbookScriptsMap, client, questions, setAccess, logger]);
+    }, [registry.workbookScriptsMap, client, questions, logger]);
 
     const request = React.useCallback(async (workbookId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
@@ -361,9 +359,9 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         setModel,
         effort,
         setEffort,
-        accessWorkbooks: stableAccessWorkbooks,
+        enabled,
+        setEnabled,
         hasAccess,
-        setAccess,
         request,
         cancel,
         reset,
@@ -371,7 +369,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         info,
         hold,
         questions,
-    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, stableAccessWorkbooks, hasAccess, setAccess, request, cancel, reset, context, info, hold, questions]);
+    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, enabled, setEnabled, hasAccess, request, cancel, reset, context, info, hold, questions]);
 
     return <AGENT_BRIDGE_CTX.Provider value={bridge}>{props.children}</AGENT_BRIDGE_CTX.Provider>;
 };

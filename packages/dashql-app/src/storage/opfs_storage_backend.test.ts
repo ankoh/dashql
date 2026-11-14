@@ -232,11 +232,10 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(await backend.loadAppSettings()).toEqual({ narrowScreenLayout: false });
     });
 
-    it('round-trips the workbooks with agent access in the app manifest', async () => {
-        const agentWorkbooks = ['workbook-a', 'workbook-b'];
-        await backend.saveAppSettings({ agentWorkbooks });
-        expect(await backend.loadAppSettings()).toEqual({ agentWorkbooks });
-        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).appSettings.agentWorkbooks).toEqual(agentWorkbooks);
+    it('round-trips the agent toggle in the app manifest', async () => {
+        await backend.saveAppSettings({ agentEnabled: true });
+        expect(await backend.loadAppSettings()).toEqual({ agentEnabled: true });
+        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).appSettings.agentEnabled).toBe(true);
     });
 
     it('stamps the current storage version on every manifest write', async () => {

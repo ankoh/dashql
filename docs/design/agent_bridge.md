@@ -20,7 +20,7 @@ and the open checks are in [docs/wip/agent_bridge.md](../wip/agent_bridge.md).
 | Agent server, CLI and skill | One Rust binary, `packages/dashql-cli`, `dashql agent serve` |
 | Real harnesses | Run on macOS: Claude Code 2.1 and opencode 1.18 pass; Codex 0.162 parses the arguments, no model access |
 | `dashql` in DashQL.app | Bundled as `Contents/Resources/bin/dashql`; on macOS the app runs it as a child process |
-| Page client, command registry, per-workbook toggle | `packages/dashql-app/src/agent/` |
+| Page client, command registry, agent toggle | `packages/dashql-app/src/agent/` |
 | Menu bar mode | Server supervision, tray icon and menu, activation policy, `--menu-bar`, quit and update handling |
 
 ## Motivation
@@ -175,7 +175,7 @@ and harness session id per DashQL workbook).
 Deleting a workbook in the app sends `agent/forget`: the server stops the workbook's turns and removes its folder,
 once a running harness exited. A workbook deleted while the app is not connected leaves its folder behind, and no
 client can tell that a folder is unused: every client (the desktop app, dashql.app in each browser profile)
-announces only its own workbooks with agent access. So the server also removes, at the start and then once a day,
+announces only the workbook it shows while the agent is on. So the server also removes, at the start and then once a day,
 the folders of workbooks unused for 30 days. The time of `state.json` is the last use: every turn and every
 announcement of the workbook marks it, and the folders of workbooks with turns or announced by a client stay.
 
@@ -269,10 +269,14 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 (`agent_commands.ts`), the provider (`agent_bridge.tsx`), the agent view and the agent workbook menu live in
 `packages/dashql-app/src/agent/`.
 
-- **Agent access toggle** per workbook, off by default. Enable Agent on the bar of Wobble above the prompt
-  turns it on right away. The workbooks with access are an app setting (`agentWorkbooks`), so a shared workbook file
-  never turns access on. While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with
-  backoff. After a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call
+- **Agent toggle**, off by default: the agent is on or off, and while it is on the visible workbook has agent access
+  and no other workbook has. Enable Agent on the bar of Wobble above the prompt turns it on right away. It is an app
+  setting (`agentEnabled`), so a shared workbook file never turns access on. The page announces the visible workbook
+  (the workbook of the route, once it is loaded) as its only workbook and as `focused`, and announces again when the
+  user switches workbooks; on a page without a workbook it announces none. A workbook that the user leaves stops its
+  turns: the page sends `agent/cancel` and fails them ("The agent stopped when you left the workbook"), and turning the
+  agent off does the same. While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws`, also on a page
+  without a workbook, and reconnects with backoff. After a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call
   that is in flight when the page goes away fails. The page counts as connected once the server answered its
   announcement. When the connection drops, the page fails the turns it follows, a new server does not know them.
   A server with another protocol version closes with 1008: the page shows that the versions differ (update
@@ -283,7 +287,7 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
   error}`), plus notifications for turns (`agent/status`, `agent/done`,
   `agent/failed`). The JSON Schema `proto/json/dashql/agent_bridge.json` defines the messages, the page
   generates its types from it. A client announces the workbooks it holds when it connects and when
-  they change.
+  they change; the protocol takes a list, DashQL sends at most one.
 - **Desktop windows** use the same client over the same WebSocket. They need no
   special path, and the agent can target a desktop workbook like a browser one.
 - **Safari** shows a notice instead of the toggle.
@@ -301,7 +305,7 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
   can already read the user's files. No pairing flow is needed.
 - **CLI → server:** a token from `~/.dashql/agent/config.json`. This keeps out other
   users on the same machine, who share 127.0.0.1.
-- **Consent:** the per-workbook toggle in the app, and the global "Agent Access" switch
+- **Consent:** the agent toggle in the app, which covers only the visible workbook, and the global "Agent Access" switch
   in the menu.
 
 ### App → agent
@@ -387,9 +391,9 @@ absolute paths.
 ### Settings
 
 The Agent button in the top bar configures the bridge. It holds the connection open while
-it is shown, so it also works before any workbook has agent access. Once a workbook has agent access, the bar
-of Wobble above its prompt shows Control Agent: Disable Agent turns the access off, Reset Agent forgets the agent
-context, Continue in terminal copies the command that continues the harness session.
+it is shown, so it also works while the agent is off. While the agent is on, the bar of Wobble above the prompt
+shows Control Agent: Disable Agent turns the agent off, Reset Agent forgets the agent context of the workbook,
+Continue in terminal copies the command that continues the harness session.
 
 - **Port** of the agent server, an app setting (`agentPort`); the build's default otherwise.
 - **Harness:** picks among the configured harnesses (`agent/info`), an app setting (`agentHarness`); the
@@ -398,7 +402,7 @@ context, Continue in terminal copies the command that continues the harness sess
 - **Model** and **effort:** pick among the `models` and `efforts` of the harness (`agent/info`), or Default for the
   harness's own, app settings (`agentModel`, `agentEffort`). Picking another harness restores both defaults. Turns show
   their model and effort.
-- **Workbooks** with agent access, each with "Disconnect".
+- **Access** of the visible workbook, with "Enable" or "Disable".
 - **Turns** of the server, each with "Stop", and the **clients** of the server.
 
 ### Agent edits

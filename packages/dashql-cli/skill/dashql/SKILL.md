@@ -7,7 +7,7 @@ description: Read and edit the SQL scripts of an open DashQL session, look up it
 
 DashQL runs in the browser (https://dashql.app) or as a desktop app. The data, the connections and the
 embedded database live in the open DashQL tab. `dashql agent` reaches that tab through the local agent server,
-so it works only while DashQL is open and agent access is turned on for the session.
+so it works only while DashQL shows the workbook and the agent is turned on.
 
 Run `dashql agent guide` before anything else and follow it. It prints the commands of the installed `dashql`
 and how DashQL works: its connections, the parameters of scripts and the attachments of the session.

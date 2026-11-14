@@ -71,6 +71,7 @@ describe('AppSettingsSync', () => {
             aiProvider: { apiKey: 'secret' },
             experimental_dashboards: true,
             experimental_dataflow: false,
+            agentWorkbooks: ['workbook-a'],
         } as NonNullable<AppConfig['settings']>;
         await render();
         expect(ready).toBe(false);
@@ -82,6 +83,7 @@ describe('AppSettingsSync', () => {
         expect(config!.settings).not.toHaveProperty('aiProvider');
         expect(config!.settings).not.toHaveProperty('experimental_dashboards');
         expect(config!.settings).not.toHaveProperty('experimental_dataflow');
+        expect(config!.settings).not.toHaveProperty('agentWorkbooks');
         expect(flavor.id).toBe(DBCOM_FLAVOR.id);
         expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(true);
     });

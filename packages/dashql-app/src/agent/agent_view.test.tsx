@@ -36,9 +36,9 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         setModel: vi.fn(),
         effort: null,
         setEffort: vi.fn(),
-        accessWorkbooks: [{ id: 's1', name: 'Revenue' }],
+        enabled: true,
         hasAccess: () => true,
-        setAccess: vi.fn(),
+        setEnabled: vi.fn(),
         request: vi.fn(),
         cancel: vi.fn(() => Promise.resolve()),
         reset: vi.fn(),
@@ -129,13 +129,16 @@ describe('Agent view', () => {
         expect(container.querySelector('[data-testid="agent-settings-effort"]')).toBeNull();
     });
 
-    it('turns off agent access of a workbook', async () => {
+    it('turns the agent off and on', async () => {
         const bridge = fakeBridge();
         await render(bridge);
-        const workbook = container.querySelector('[data-testid="agent-settings-workbook"]')!;
-        expect(workbook.textContent).toContain('Revenue');
-        await act(async () => workbook.querySelector('button')!.click());
-        expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', false);
+        const access = container.querySelector('[data-testid="agent-settings-access"]')!;
+        expect(access.textContent).toContain('Visible workbook');
+        await act(async () => access.querySelector('button')!.click());
+        expect(bridge.setEnabled).toHaveBeenCalledExactlyOnceWith(false);
+
+        await render(fakeBridge({ enabled: false }));
+        expect(container.querySelector('[data-testid="agent-settings-access"]')!.textContent).toContain('The agent is off');
     });
 
     it('resets the port to the default', async () => {
@@ -149,7 +152,7 @@ describe('Agent view', () => {
     });
 
     it('explains how to start the agent server while it is not connected', async () => {
-        const bridge = fakeBridge({ status: AgentConnectionStatus.Connecting, accessWorkbooks: [] });
+        const bridge = fakeBridge({ status: AgentConnectionStatus.Connecting, enabled: false });
         await render(bridge);
         expect(bridge.info).not.toHaveBeenCalled();
         expect(container.textContent).toContain('dashql agent serve');

@@ -21,9 +21,9 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         setModel: vi.fn(),
         effort: null,
         setEffort: vi.fn(),
-        accessWorkbooks: [],
+        enabled: false,
         hasAccess: () => false,
-        setAccess: vi.fn(),
+        setEnabled: vi.fn(),
         request: vi.fn(),
         cancel: vi.fn(() => Promise.resolve()),
         reset: vi.fn(() => Promise.resolve()),
@@ -75,7 +75,7 @@ describe('Agent workbook menu', () => {
         expect(trigger().textContent).toContain('Enable Agent');
         expect(trigger().dataset.state).toBe('off');
         await act(async () => trigger().click());
-        expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', true);
+        expect(bridge.setEnabled).toHaveBeenCalledExactlyOnceWith(true);
         expect(document.body.querySelector('[data-testid="agent-menu-item"]')).toBeNull();
     });
 
@@ -85,7 +85,7 @@ describe('Agent workbook menu', () => {
     });
 
     it('controls an enabled agent', async () => {
-        const bridge = fakeBridge({ hasAccess: () => true });
+        const bridge = fakeBridge({ enabled: true, hasAccess: () => true });
         await render(bridge);
         expect(trigger().getAttribute('aria-label')).toBe('Control Agent');
         expect(trigger().dataset.state).toBe('connected');
@@ -94,6 +94,6 @@ describe('Agent workbook menu', () => {
             ['disable', 'Disable Agent'], ['reset', 'Reset Agent'], ['terminal', 'Continue in terminal'],
         ]);
         await act(async () => items[0].click());
-        expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', false);
+        expect(bridge.setEnabled).toHaveBeenCalledExactlyOnceWith(false);
     });
 });

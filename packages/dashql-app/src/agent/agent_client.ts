@@ -17,11 +17,11 @@ const LOG_CTX = 'agent_client';
 
 /// The connection to the local agent server
 export enum AgentConnectionStatus {
-    /// No workbook has agent access and nothing holds the connection, the client does not connect
+    /// The agent is off and nothing holds the connection, the client does not connect
     Off = 'off',
     /// Connecting, or waiting to reconnect
     Connecting = 'connecting',
-    /// Connected, the server took the workbooks
+    /// Connected, the server took the announcement
     Connected = 'connected',
     /// The server turned the client away, it speaks another protocol version. The client retries slowly.
     Incompatible = 'incompatible',
@@ -117,14 +117,14 @@ interface PendingRequest {
 
 /// The WebSocket client of the agent bridge.
 ///
-/// Connects while at least one workbook has agent access and reconnects with backoff.
-/// The server queues calls while the page is gone, so a reload loses nothing.
+/// Connects while the visible workbook has agent access or something holds the connection, and reconnects with
+/// backoff. The server queues calls while the page is gone, so a reload loses nothing.
 export class AgentClient {
     readonly #options: AgentClientOptions;
     #socket: AgentSocket | null = null;
-    #workbooks: AgentClientWorkbook[] = [];
-    #focused: string | null = null;
-    /// Stay connected without workbooks, e.g. while the settings show the agent server
+    /// The visible workbook with agent access, the only one that the client announces
+    #workbook: AgentClientWorkbook | null = null;
+    /// Stay connected without a workbook, e.g. while the agent is on or the settings show the agent server
     #held = false;
     #status = AgentConnectionStatus.Off;
     #backoffMs: number;
@@ -141,21 +141,20 @@ export class AgentClient {
         return this.#status;
     }
 
-    /// Announce the workbooks with agent access, connects or disconnects as needed
-    setWorkbooks(workbooks: AgentClientWorkbook[], focused: string | null): void {
-        this.#workbooks = workbooks;
-        this.#focused = focused != null && workbooks.some(s => s.id === focused) ? focused : null;
+    /// Announce the visible workbook with agent access, or none, connects or disconnects as needed
+    setWorkbook(workbook: AgentClientWorkbook | null): void {
+        this.#workbook = workbook;
         this.#update();
     }
 
-    /// Stay connected while no workbook has agent access
+    /// Stay connected without a workbook
     setHeld(held: boolean): void {
         this.#held = held;
         this.#update();
     }
 
     #wanted(): boolean {
-        return this.#workbooks.length > 0 || this.#held;
+        return this.#workbook != null || this.#held;
     }
 
     #update(): void {
@@ -187,7 +186,7 @@ export class AgentClient {
 
     /// Disconnect for good
     dispose(): void {
-        this.#workbooks = [];
+        this.#workbook = null;
         this.#held = false;
         this.#disconnect();
     }
@@ -205,15 +204,15 @@ export class AgentClient {
         this.#options.onStatus(status);
     }
 
-    /// Announce the workbooks, resolves once the server took them
+    /// Announce the workbook, resolves once the server took the announcement
     async #announce(): Promise<boolean> {
         const socket = this.#socket;
         if (socket == null || socket.readyState !== SOCKET_OPEN) return false;
         const params: ClientWorkbooksParams = {
             protocol: AGENT_PROTOCOL_VERSION,
             client: this.#options.clientKind,
-            workbooks: this.#workbooks,
-            focused: this.#focused,
+            workbooks: this.#workbook != null ? [this.#workbook] : [],
+            focused: this.#workbook?.id ?? null,
             features: AGENT_FEATURES,
         };
         // A server that turns the client away closes the socket instead of answering
@@ -222,7 +221,7 @@ export class AgentClient {
 
     #connect(): void {
         this.#reconnectTimer = null;
-        // An incompatible server stays incompatible until it takes the workbooks
+        // An incompatible server stays incompatible until it takes the announcement
         if (this.#status !== AgentConnectionStatus.Incompatible) this.#setStatus(AgentConnectionStatus.Connecting);
         this.#options.logger.info('Connecting to the agent server', { url: this.#options.url }, LOG_CTX);
         let socket: AgentSocket;
@@ -235,7 +234,7 @@ export class AgentClient {
         }
         this.#socket = socket;
         socket.onopen = () => {
-            this.#options.logger.info('Opened the socket to the agent server, announcing the workbooks', { url: this.#options.url }, LOG_CTX);
+            this.#options.logger.info('Opened the socket to the agent server, announcing the workbook', { url: this.#options.url }, LOG_CTX);
             void this.#announce().then(accepted => {
                 if (!accepted || this.#socket !== socket) return;
                 this.#options.logger.info('Connected to the agent server', { url: this.#options.url }, LOG_CTX);
