@@ -25,8 +25,8 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import { computeQueryCacheKeyForConnection, logQueryFailure, type QueryExecutorService } from './query_executor_service.js';
 
-/// The tests of the provider of the app ran their steps in act(), the runtime needs no rendering
-const act = async (step: () => unknown) => { await step(); };
+/// Run a step of a test and wait for it
+const step = async (run: () => unknown) => { await run(); };
 
 const CONNECTION_ID = 'hyper';
 const SIGNATURE = 'script-signature';
@@ -154,7 +154,7 @@ describe('QueryExecutorService', () => {
 
     /// A runtime with the executor and a connection. A compute database that holds Parquet files makes results
     /// cacheable.
-    async function renderExecutor(executeQuery: unknown, options: {
+    async function createExecutor(executeQuery: unknown, options: {
         cache?: QueryResultCache;
         database?: ConnectionState;
         compute?: object;
@@ -183,7 +183,7 @@ describe('QueryExecutorService', () => {
     async function run(args: QueryExecutionArgs): Promise<{ queryId: number; table: arrow.Table | null }> {
         let queryId = 0;
         let table: arrow.Table | null = null;
-        await act(async () => {
+        await step(async () => {
             const [id, execution] = api!.executor.execute(CONNECTION_ID, args);
             queryId = id;
             table = await execution;
@@ -221,7 +221,7 @@ describe('QueryExecutorService', () => {
         it('asks the service and shows its result like any query', async () => {
             const backend = vi.fn();
             const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ segments: [{ apiName: 'Vip' }, { apiName: 'New' }] })));
-            await renderExecutor(backend, { database: salesforce(backend) });
+            await createExecutor(backend, { database: salesforce(backend) });
             const { queryId, table } = await run(argsOf({
                 query: 'call cdp.segment_list ()',
                 clientFunctionCall: description('segment_list'),
@@ -238,9 +238,9 @@ describe('QueryExecutorService', () => {
         it('fails with the message of the service', async () => {
             const backend = vi.fn();
             vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify([{ message: 'No access' }]), { status: 403 }));
-            await renderExecutor(backend, { database: salesforce(backend) });
+            await createExecutor(backend, { database: salesforce(backend) });
             const [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ clientFunctionCall: description('segment_list'), throwOnError: true }));
-            await act(async () => { await expect(execution).rejects.toThrow('No access'); });
+            await step(async () => { await expect(execution).rejects.toThrow('No access'); });
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.FAILED);
             expect(backend).not.toHaveBeenCalled();
         });
@@ -253,9 +253,9 @@ describe('QueryExecutorService', () => {
                 init!.signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
                 onStarted();
             }));
-            await renderExecutor(backend, { database: salesforce(backend) });
+            await createExecutor(backend, { database: salesforce(backend) });
             const [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ clientFunctionCall: description('segment_list') }));
-            await act(async () => {
+            await step(async () => {
                 await started;
                 await api!.executor.cancel(CONNECTION_ID, queryId);
                 await execution;
@@ -268,7 +268,7 @@ describe('QueryExecutorService', () => {
         it('collects the batches of the backend into a table', async () => {
             const stream = new TestStream([batchOf([1, 2]), batchOf([3])]);
             const executeQuery = vi.fn(async () => stream);
-            await renderExecutor(executeQuery);
+            await createExecutor(executeQuery);
             const { queryId, table } = await run(argsOf());
             expect(executeQuery).toHaveBeenCalledOnce();
             expect(table!.numRows).toBe(3);
@@ -280,7 +280,7 @@ describe('QueryExecutorService', () => {
 
         it('passes the progress of the backend on', async () => {
             const update = { isQueued: false, metrics: null } as unknown as QueryExecutionProgress;
-            await renderExecutor(vi.fn(async () => new TestStream(undefined, false, null, [update])));
+            await createExecutor(vi.fn(async () => new TestStream(undefined, false, null, [update])));
             const { queryId } = await run(argsOf());
             const query = await finished(queryId);
             expect(query.status).toBe(QueryExecutionStatus.SUCCEEDED);
@@ -288,14 +288,14 @@ describe('QueryExecutorService', () => {
         });
 
         it('drains a statement without a table when its results are not published', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             const { queryId, table } = await run(argsOf({ publishResults: false }));
             expect(table).toBeNull();
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.SUCCEEDED);
         });
 
         it('reports the lifecycle to its observers once', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             const onTiming = vi.fn();
             const onResultsReady = vi.fn();
             await run(argsOf({ onTiming, onResultsReady }));
@@ -304,7 +304,7 @@ describe('QueryExecutorService', () => {
         });
 
         it('is not interrupted by observers that throw', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             const boom = () => { throw new Error('observer failed'); };
             const { queryId, table } = await run(argsOf({ onTiming: boom, onResultsReady: boom, onLog: boom }));
             expect(table!.numRows).toBe(2);
@@ -312,7 +312,7 @@ describe('QueryExecutorService', () => {
         });
 
         it('streams the log messages of its trace while it runs', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             const unsubscribe = vi.spyOn(api!.logger.buffer, 'unsubscribeTrace');
             const messages: string[] = [];
             await run(argsOf({ onLog: message => messages.push(message) }));
@@ -323,7 +323,7 @@ describe('QueryExecutorService', () => {
         });
 
         it('finishes without results when the backend returns no stream', async () => {
-            await renderExecutor(vi.fn(async () => null));
+            await createExecutor(vi.fn(async () => null));
             const onTiming = vi.fn();
             const { queryId, table } = await run(argsOf({ onTiming }));
             expect(table).toBeNull();
@@ -334,7 +334,7 @@ describe('QueryExecutorService', () => {
         it('runs on an explicit channel instead of the channel of the connection', async () => {
             const ownChannel = vi.fn();
             const override = vi.fn(async () => new TestStream());
-            await renderExecutor(ownChannel);
+            await createExecutor(ownChannel);
             await run(argsOf({ channelOverride: { type: 'hyper', channel: { executeQuery: override } as never } }));
             expect(override).toHaveBeenCalledOnce();
             expect(ownChannel).not.toHaveBeenCalled();
@@ -344,9 +344,9 @@ describe('QueryExecutorService', () => {
     describe('a failing query', () => {
         it('records a query with a failure as failed without executing it', async () => {
             const executeQuery = vi.fn();
-            await renderExecutor(executeQuery);
+            await createExecutor(executeQuery);
             let queryId = 0;
-            await act(async () => {
+            await step(async () => {
                 const [id, execution] = api!.executor.execute(CONNECTION_ID, argsOf({
                     query: 'select * from :missing',
                     failure: new Error('bar.sql: unknown script :missing'),
@@ -363,7 +363,7 @@ describe('QueryExecutorService', () => {
         });
 
         it('records the failure and resolves with no result', async () => {
-            await renderExecutor(vi.fn(async () => { throw new Error('table does not exist'); }));
+            await createExecutor(vi.fn(async () => { throw new Error('table does not exist'); }));
             const { queryId, table } = await run(argsOf());
             expect(table).toBeNull();
             const query = await finished(queryId);
@@ -373,10 +373,10 @@ describe('QueryExecutorService', () => {
 
         it('hands the original error to hosts that ask for it', async () => {
             const failure = new Error('table does not exist');
-            await renderExecutor(vi.fn(async () => { throw failure; }));
+            await createExecutor(vi.fn(async () => { throw failure; }));
             let rejected: unknown = null;
             let queryId = 0;
-            await act(async () => {
+            await step(async () => {
                 const [id, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ throwOnError: true }));
                 queryId = id;
                 await execution.catch(error => { rejected = error; });
@@ -386,22 +386,22 @@ describe('QueryExecutorService', () => {
         });
 
         it('records a failure of the stream', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream([], false, new Error('connection lost'))));
+            await createExecutor(vi.fn(async () => new TestStream([], false, new Error('connection lost'))));
             const { queryId, table } = await run(argsOf());
             expect(table).toBeNull();
             expect((await finished(queryId)).error?.message).toBe('connection lost');
         });
 
         it('touches the relations of a failed statement, a statement of many may have run', async () => {
-            await renderExecutor(vi.fn(async () => { throw new Error('nope'); }));
+            await createExecutor(vi.fn(async () => { throw new Error('nope'); }));
             await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
             expect(api!.connection.catalogUpdates.touchedRelations).toEqual([{ databaseName: 'hyper', schemaName: '', tableName: 't' }]);
         });
 
         it('rejects for a connection that does not exist', async () => {
-            await renderExecutor(vi.fn());
+            await createExecutor(vi.fn());
             let rejected: Error | null = null;
-            await act(async () => {
+            await step(async () => {
                 const [, execution] = api!.executor.execute('unknown', argsOf());
                 await execution.catch(error => { rejected = error; });
             });
@@ -412,12 +412,12 @@ describe('QueryExecutorService', () => {
     describe('the analysis of a result', () => {
         it('fails the query and rejects, the result has no summaries', async () => {
             // The compute database of the test cannot run the analysis
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             let rejected: Error | null = null;
             let queryId = 0;
             const onTiming = vi.fn();
             const onResultsReady = vi.fn();
-            await act(async () => {
+            await step(async () => {
                 const [id, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ analyzeResults: true, onTiming, onResultsReady }));
                 queryId = id;
                 await execution.catch(error => { rejected = error; });
@@ -434,13 +434,13 @@ describe('QueryExecutorService', () => {
         const T = { databaseName: 'hyper', schemaName: '', tableName: 't' };
 
         it('are touched once a statement of the user succeeded', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
             expect(api!.connection.catalogUpdates.touchedRelations).toEqual([T]);
         });
 
         it('are not touched by the queries of the app', async () => {
-            await renderExecutor(vi.fn(async () => new TestStream()));
+            await createExecutor(vi.fn(async () => new TestStream()));
             await run(argsOf({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: false } }));
             expect(api!.connection.catalogUpdates.touchedRelations).toEqual([]);
         });
@@ -449,12 +449,12 @@ describe('QueryExecutorService', () => {
     describe('cancelling', () => {
         it('stops a running query at the backend', async () => {
             const stream = new TestStream(undefined, true);
-            await renderExecutor(vi.fn(async () => stream));
+            await createExecutor(vi.fn(async () => stream));
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
             await vi.waitFor(() => expect(stream.started).toBe(true));
-            await act(async () => { await api!.executor.cancel(CONNECTION_ID, queryId); });
+            await step(async () => { await api!.executor.cancel(CONNECTION_ID, queryId); });
             expect(stream.cancel).toHaveBeenCalledOnce();
             expect(await execution).toBeNull();
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.CANCELLED);
@@ -462,24 +462,24 @@ describe('QueryExecutorService', () => {
 
         it('stops a query with the signal of the caller', async () => {
             const stream = new TestStream(undefined, true);
-            await renderExecutor(vi.fn(async () => stream));
+            await createExecutor(vi.fn(async () => stream));
             const abort = new AbortController();
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ abortSignal: abort.signal })); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ abortSignal: abort.signal })); });
             await vi.waitFor(() => expect(stream.started).toBe(true));
-            await act(async () => { abort.abort(); await execution; });
+            await step(async () => { abort.abort(); await execution; });
             expect(stream.cancel).toHaveBeenCalledOnce();
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.CANCELLED);
         });
 
         it('does not reach the backend when the signal was aborted before', async () => {
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery);
+            await createExecutor(executeQuery);
             const abort = new AbortController();
             abort.abort();
             let queryId = 0;
-            await act(async () => {
+            await step(async () => {
                 const [id, execution] = api!.executor.execute(CONNECTION_ID, argsOf({ abortSignal: abort.signal }));
                 queryId = id;
                 await execution.catch(() => null);
@@ -491,14 +491,14 @@ describe('QueryExecutorService', () => {
         it('cancels a stream that arrives after the cancel', async () => {
             const stream = new TestStream();
             let deliver!: (stream: TestStream) => void;
-            await renderExecutor(vi.fn(() => new Promise<TestStream>(resolve => { deliver = resolve; })));
+            await createExecutor(vi.fn(() => new Promise<TestStream>(resolve => { deliver = resolve; })));
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
             await vi.waitFor(() => expect(deliver).toBeDefined());
             let cancelled!: Promise<void>;
-            await act(async () => { cancelled = api!.executor.cancel(CONNECTION_ID, queryId); });
-            await act(async () => { deliver(stream); await cancelled; });
+            await step(async () => { cancelled = api!.executor.cancel(CONNECTION_ID, queryId); });
+            await step(async () => { deliver(stream); await cancelled; });
             expect(stream.cancel).toHaveBeenCalledOnce();
             expect(await execution).toBeNull();
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.CANCELLED);
@@ -507,13 +507,13 @@ describe('QueryExecutorService', () => {
         it('logs a backend that fails to cancel and still ends the query', async () => {
             const stream = new TestStream(undefined, true);
             stream.cancel.mockImplementation(async () => { throw new Error('backend gone'); });
-            await renderExecutor(vi.fn(async () => stream));
+            await createExecutor(vi.fn(async () => stream));
             const warn = vi.spyOn(api!.logger, 'warn');
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
             await vi.waitFor(() => expect(stream.started).toBe(true));
-            await act(async () => { await api!.executor.cancel(CONNECTION_ID, queryId); });
+            await step(async () => { await api!.executor.cancel(CONNECTION_ID, queryId); });
             expect(warn).toHaveBeenCalledWith('Failed to cancel query at the backend', expect.objectContaining({ error: expect.stringContaining('backend gone') }), 'query_executor');
             expect(await execution).toBeNull();
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.CANCELLED);
@@ -521,9 +521,9 @@ describe('QueryExecutorService', () => {
 
         it('ignores a query that already ended', async () => {
             const stream = new TestStream();
-            await renderExecutor(vi.fn(async () => stream));
+            await createExecutor(vi.fn(async () => stream));
             const { queryId } = await run(argsOf());
-            await act(async () => { await api!.executor.cancel(CONNECTION_ID, queryId); });
+            await step(async () => { await api!.executor.cancel(CONNECTION_ID, queryId); });
             expect(stream.cancel).not.toHaveBeenCalled();
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.SUCCEEDED);
         });
@@ -532,10 +532,10 @@ describe('QueryExecutorService', () => {
     describe('the profile of a running query', () => {
         it('is fetched while a view shows it', async () => {
             const stream = new TestStream(undefined, true);
-            await renderExecutor(vi.fn(async () => stream));
+            await createExecutor(vi.fn(async () => stream));
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
             await vi.waitFor(() => expect(stream.started).toBe(true));
             // Nobody watched when the stream started
             expect(stream.setProfileDetail.mock.calls).toEqual([[false]]);
@@ -547,26 +547,26 @@ describe('QueryExecutorService', () => {
             stopSecond();
             expect(stream.setProfileDetail.mock.lastCall).toEqual([false]);
             stream.finish();
-            await act(async () => { await execution; });
+            await step(async () => { await execution; });
         });
 
         it('is fetched from the start when a view shows it before the stream arrives', async () => {
             const stream = new TestStream();
             let deliver!: (stream: TestStream) => void;
-            await renderExecutor(vi.fn(() => new Promise<TestStream>(resolve => { deliver = resolve; })));
+            await createExecutor(vi.fn(() => new Promise<TestStream>(resolve => { deliver = resolve; })));
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, argsOf()); });
             await vi.waitFor(() => expect(deliver).toBeDefined());
             const stop = api!.executor.watchProfile(queryId);
-            await act(async () => { deliver(stream); await execution; });
+            await step(async () => { deliver(stream); await execution; });
             expect(stream.setProfileDetail.mock.calls[0]).toEqual([true]);
             stop();
         });
 
         it('ignores a query that ended', async () => {
             const stream = new TestStream();
-            await renderExecutor(vi.fn(async () => stream));
+            await createExecutor(vi.fn(async () => stream));
             const { queryId } = await run(argsOf());
             const calls = stream.setProfileDetail.mock.calls.length;
             api!.executor.watchProfile(queryId)();
@@ -580,7 +580,7 @@ describe('QueryExecutorService', () => {
         it('stores the result of a miss for the next run', async () => {
             const cache = createCache();
             const stream = new TestStream();
-            await renderExecutor(vi.fn(async () => stream), { cache, compute });
+            await createExecutor(vi.fn(async () => stream), { cache, compute });
             const { queryId, table } = await run(cacheableArgs());
             expect(table!.numRows).toBe(2);
             await vi.waitFor(() => expect(cache.writeTable).toHaveBeenCalledOnce());
@@ -595,7 +595,7 @@ describe('QueryExecutorService', () => {
         it('serves a hit without reaching the backend', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute });
+            await createExecutor(executeQuery, { cache, compute });
             const onResultsReady = vi.fn();
             const { queryId, table } = await run(cacheableArgs({ onResultsReady }));
             expect(executeQuery).not.toHaveBeenCalled();
@@ -617,14 +617,14 @@ describe('QueryExecutorService', () => {
                 ...database, connectionHealth: ConnectionHealth.NOT_STARTED,
                 details: { ...database.details, value: { ...database.details.value, channel: null } },
             } as unknown as ConnectionState;
-            await renderExecutor(null, { cache, compute, database: offline });
+            await createExecutor(null, { cache, compute, database: offline });
             const { table } = await run(cacheableArgs({ cacheOnly: true }));
             expect(table!.numRows).toBe(1);
         });
 
         it('touches no relations with a cached result', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
-            await renderExecutor(vi.fn(), { cache, compute });
+            await createExecutor(vi.fn(), { cache, compute });
             await run(cacheableArgs({ query: 'create table t (a int)', metadata: { ...METADATA, userProvided: true } }));
             expect(api!.connection.catalogUpdates.touchedRelations).toEqual([]);
         });
@@ -632,7 +632,7 @@ describe('QueryExecutorService', () => {
         it('runs on the backend for a refresh and stores the new result', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute });
+            await createExecutor(executeQuery, { cache, compute });
             const { table } = await run(cacheableArgs({ refreshCache: true }));
             expect(cache.lookup).not.toHaveBeenCalled();
             expect(executeQuery).toHaveBeenCalledOnce();
@@ -643,10 +643,10 @@ describe('QueryExecutorService', () => {
         it('fails a query that may only come from the cache on a miss', async () => {
             const cache = createCache();
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute });
+            await createExecutor(executeQuery, { cache, compute });
             let rejected: unknown = null;
             let queryId = 0;
-            await act(async () => {
+            await step(async () => {
                 const [id, execution] = api!.executor.execute(CONNECTION_ID, cacheableArgs({ cacheOnly: true, throwOnError: true }));
                 queryId = id;
                 await execution.catch(error => { rejected = error; });
@@ -659,7 +659,7 @@ describe('QueryExecutorService', () => {
         it('falls back to the backend when the lookup fails', async () => {
             const cache = createCache({ lookup: vi.fn(async () => { throw new Error('opfs gone'); }) });
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute });
+            await createExecutor(executeQuery, { cache, compute });
             const { table } = await run(cacheableArgs());
             expect(executeQuery).toHaveBeenCalledOnce();
             expect(table!.numRows).toBe(2);
@@ -671,7 +671,7 @@ describe('QueryExecutorService', () => {
                 readTable: vi.fn(async () => { throw new Error('corrupt parquet'); }),
             });
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute });
+            await createExecutor(executeQuery, { cache, compute });
             const { queryId, table } = await run(cacheableArgs());
             expect(executeQuery).toHaveBeenCalledOnce();
             expect(table!.numRows).toBe(2);
@@ -683,7 +683,7 @@ describe('QueryExecutorService', () => {
                 lookup: vi.fn(async () => CACHE_HIT),
                 touch: vi.fn(async () => { throw new Error('read only'); }),
             });
-            await renderExecutor(vi.fn(), { cache, compute });
+            await createExecutor(vi.fn(), { cache, compute });
             const { queryId, table } = await run(cacheableArgs());
             expect(table!.numRows).toBe(1);
             expect((await finished(queryId)).status).toBe(QueryExecutionStatus.SUCCEEDED);
@@ -695,7 +695,7 @@ describe('QueryExecutorService', () => {
                 pin: vi.fn(async () => released),
                 writeTable: vi.fn(async () => { throw new Error('quota exceeded'); }),
             });
-            await renderExecutor(vi.fn(async () => new TestStream()), { cache, compute });
+            await createExecutor(vi.fn(async () => new TestStream()), { cache, compute });
             const { queryId, table } = await run(cacheableArgs());
             expect(table!.numRows).toBe(2);
             await vi.waitFor(() => expect(released).toHaveBeenCalledOnce());
@@ -706,14 +706,14 @@ describe('QueryExecutorService', () => {
 
         it('does not store a statement without a result', async () => {
             const cache = createCache();
-            await renderExecutor(vi.fn(async () => new TestStream()), { cache, compute });
+            await createExecutor(vi.fn(async () => new TestStream()), { cache, compute });
             await run(cacheableArgs({ publishResults: false }));
             expect(cache.pin).not.toHaveBeenCalled();
         });
 
         it('leaves queries that do not ask for the cache alone', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
-            await renderExecutor(vi.fn(async () => new TestStream()), { cache, compute });
+            await createExecutor(vi.fn(async () => new TestStream()), { cache, compute });
             await run(argsOf());
             expect(cache.lookup).not.toHaveBeenCalled();
             expect(cache.pin).not.toHaveBeenCalled();
@@ -721,7 +721,7 @@ describe('QueryExecutorService', () => {
 
         it('leaves a compute database without Parquet files alone', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
-            await renderExecutor(vi.fn(async () => new TestStream()), { cache });
+            await createExecutor(vi.fn(async () => new TestStream()), { cache });
             await run(cacheableArgs());
             expect(cache.lookup).not.toHaveBeenCalled();
         });
@@ -729,7 +729,7 @@ describe('QueryExecutorService', () => {
         it('leaves a connection that was not set up alone', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute, database: createDatabase(executeQuery, null) });
+            await createExecutor(executeQuery, { cache, compute, database: createDatabase(executeQuery, null) });
             await run(cacheableArgs());
             expect(cache.lookup).not.toHaveBeenCalled();
             expect(executeQuery).toHaveBeenCalledOnce();
@@ -739,14 +739,14 @@ describe('QueryExecutorService', () => {
             let finishLookup!: (entry: QueryResultCacheEntry | null) => void;
             const cache = createCache({ lookup: vi.fn(() => new Promise<QueryResultCacheEntry | null>(resolve => { finishLookup = resolve; })) });
             const executeQuery = vi.fn(async () => new TestStream());
-            await renderExecutor(executeQuery, { cache, compute });
+            await createExecutor(executeQuery, { cache, compute });
             let queryId = 0;
             let execution!: Promise<arrow.Table | null>;
-            await act(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, cacheableArgs()); });
+            await step(async () => { [queryId, execution] = api!.executor.execute(CONNECTION_ID, cacheableArgs()); });
             await vi.waitFor(() => expect(finishLookup).toBeDefined());
             let cancelled!: Promise<void>;
-            await act(async () => { cancelled = api!.executor.cancel(CONNECTION_ID, queryId); });
-            await act(async () => { finishLookup(CACHE_HIT); await cancelled; });
+            await step(async () => { cancelled = api!.executor.cancel(CONNECTION_ID, queryId); });
+            await step(async () => { finishLookup(CACHE_HIT); await cancelled; });
             expect(await execution).toBeNull();
             expect(executeQuery).not.toHaveBeenCalled();
             expect(cache.readTable).not.toHaveBeenCalled();

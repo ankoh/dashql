@@ -9,8 +9,8 @@ import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
 import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
 import { WorkbookScriptsRegistryService } from './workbook_scripts_registry_service.js';
 
-/// The tests of the provider of the app ran their steps in act(), the service needs no rendering
-const act = async (step: () => unknown) => { await step(); };
+/// Run a step of a test and wait for it
+const step = async (run: () => unknown) => { await run(); };
 
 function fixture(workbookId: string): WorkbookScripts {
     // REGISTER_QUERY only needs the script entry; no Wasm or execution setup is required.
@@ -24,7 +24,7 @@ function fixture(workbookId: string): WorkbookScripts {
 }
 
 /// The registry with workbooks, the actions on one of them and the registry as it is now
-function renderRegistry(workbooks: WorkbookScripts[], workbookId: string) {
+function createRegistry(workbooks: WorkbookScripts[], workbookId: string) {
     const logger = new TestLogger();
     const service = new WorkbookScriptsRegistryService({ logger, storageWriter: new StorageWriter(logger, new WorkbookTestBackend()) }, TASK_UPDATE_SCHEDULER);
     service.store.update(registry => ({ ...registry, workbookScriptsMap: new Map(workbooks.map(workbook => [workbook.workbookId, workbook])) }));
@@ -45,10 +45,10 @@ describe('WorkbookScriptsRegistryService', () => {
         } as WorkbookScripts;
         const empty = { ...fixture('empty'), name: 'Other', workbookMetadata: { ephemeral: true }, scriptOrder: [] } as unknown as WorkbookScripts;
         const workbooks = [{ ...fixture('other'), name: 'Untitled', workbookMetadata: {} } as WorkbookScripts, greeter, empty];
-        const { current, registry, dispose } = renderRegistry(workbooks, 'greeter');
+        const { current, registry, dispose } = createRegistry(workbooks, 'greeter');
         try {
 
-            await act(async () => { await current({ type: REGISTER_QUERY, value: [1, 101] }); });
+            await step(async () => { await current({ type: REGISTER_QUERY, value: [1, 101] }); });
             const promoted = registry().workbookScriptsMap.get('greeter')!;
             expect(isEphemeralWorkbook(promoted)).toBe(false);
             expect(promoted.workbookMetadata).toEqual({ originalFileName: 'hyper' });
@@ -59,7 +59,7 @@ describe('WorkbookScriptsRegistryService', () => {
             }, expect.any(Number));
 
             // Later writes of the properties don't bring the marker back
-            await act(async () => { await current({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
+            await step(async () => { await current({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
             expect(isEphemeralWorkbook(registry().workbookScriptsMap.get('greeter')!)).toBe(false);
             expect(write).toHaveBeenLastCalledWith(expect.any(String), {
                 type: WRITE_WORKBOOK_PROPERTIES, value: ['greeter', { name: 'Renamed' }],
@@ -78,20 +78,20 @@ describe('WorkbookScriptsRegistryService', () => {
             name: 'Published',
             workbookMetadata: { originalFileName: '', cloud: { ...cloud, preview: true } },
         } as WorkbookScripts;
-        const { current, registry, dispose } = renderRegistry([preview], 'preview');
+        const { current, registry, dispose } = createRegistry([preview], 'preview');
         try {
 
             // Renaming and reordering change what the workbook says, a preview refuses them
-            await act(async () => { await current({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
-            await act(async () => { await current({ type: REORDER_SCRIPTS, value: ['1.sql'] }); });
+            await step(async () => { await current({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
+            await step(async () => { await current({ type: REORDER_SCRIPTS, value: ['1.sql'] }); });
             expect(registry().workbookScriptsMap.get('preview')!.name).toBe('Published');
             expect(write).not.toHaveBeenCalled();
             // What a run registers stays, the runs refuse a preview before they start
-            await act(async () => { await current({ type: REGISTER_QUERY, value: [1, 101] }); });
+            await step(async () => { await current({ type: REGISTER_QUERY, value: [1, 101] }); });
             expect(registry().workbookScriptsMap.get('preview')!.scripts[1].latestQueryId).toBe(101);
 
             // Importing drops the mark and keeps the link, the properties write it
-            await act(async () => { await current({ type: SET_WORKBOOK_CLOUD_LINK, value: cloud }); });
+            await step(async () => { await current({ type: SET_WORKBOOK_CLOUD_LINK, value: cloud }); });
             const imported = registry().workbookScriptsMap.get('preview')!;
             expect(isCloudPreview(imported)).toBe(false);
             expect(imported.workbookMetadata.cloud).toEqual(cloud);
@@ -100,7 +100,7 @@ describe('WorkbookScriptsRegistryService', () => {
             }, expect.any(Number));
 
             // A rename keeps the link
-            await act(async () => { await current({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
+            await step(async () => { await current({ type: RENAME_WORKBOOK, value: 'Renamed' }); });
             expect(write).toHaveBeenLastCalledWith(expect.any(String), {
                 type: WRITE_WORKBOOK_PROPERTIES, value: ['preview', { name: 'Renamed', cloud }],
             }, expect.any(Number));

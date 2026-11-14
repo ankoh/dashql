@@ -32,11 +32,11 @@ import { fixedConnectionReferences } from '../testing/mocks/connection_reference
 import { TestLogger } from '../testing/test_logger.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
 
-/// The tests of the providers of the app ran their steps in act(), the services need no rendering
-const act = async (step: () => unknown) => { await step(); };
+/// Run a step of a test and wait for it
+const step = async (run: () => unknown) => { await run(); };
 
 /// The registry of connections with the storage writer and the saving of connections, as the app wires them
-function renderRegistry(backend: WorkbookTestBackend, references: ConnectionReferences) {
+function createRegistry(backend: WorkbookTestBackend, references: ConnectionReferences) {
     const logger = new TestLogger();
     const writer = new StorageWriter(logger, backend);
     const service = new ConnectionRegistryService({ logger, storageWriter: writer, references }, TASK_UPDATE_SCHEDULER);
@@ -163,9 +163,9 @@ describe('catalog refresh persistence', () => {
                 tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: true, touchedRelations: [],
             },
         } as unknown as ConnectionState;
-        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
+        const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
-            await act(async () => setRegistry(reg => {
+            await step(async () => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, connection);
                 return { ...reg };
             }));
@@ -174,13 +174,13 @@ describe('catalog refresh persistence', () => {
                 taskId: 1, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
                 status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
                 queries: [], error: null, startedAt: new Date(), finishedAt: null,            };
-            act(() => {
+            step(() => {
                 dispatch(TEST_CONNECTION_ID, { type: UPDATE_CATALOG, value: [1, task] });
                 dispatch(TEST_CONNECTION_ID, outcome === 'succeeded'
                     ? { type: CATALOG_UPDATE_SUCCEEDED, value: [1] }
                     : { type: CATALOG_UPDATE_PARTIALLY_SUCCEEDED, value: [1, new Error('partial metadata')] });
             });
-            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             expect(service.store.current.connections.get(TEST_CONNECTION_ID)?.catalogUpdates.tasksFinished.has(1)).toBe(true);
             // The connection owns the catalog, workbooks don't keep a copy
             expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
@@ -215,14 +215,14 @@ describe('catalog refresh persistence', () => {
             catalogFunctionScript: { toString: () => 'unchanged' },
             catalogUpdates: { tasksRunning: new Map([[4, task]]), tasksFinished: new Map(), currentFullRefresh: null, described, touchedRelations: [], touchedFailures: 0 },
         } as unknown as ConnectionState;
-        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
+        const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
-            act(() => setRegistry(reg => {
+            step(() => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, connection);
                 return { ...reg };
             }));
-            act(() => dispatch(TEST_CONNECTION_ID, { type: CATALOG_UPDATE_SUCCEEDED, value: [4, changed] }));
-            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            step(() => dispatch(TEST_CONNECTION_ID, { type: CATALOG_UPDATE_SUCCEEDED, value: [4, changed] }));
+            await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             await writer.flush();
             return backend;
         } finally {
@@ -270,14 +270,14 @@ describe('catalog refresh persistence', () => {
                 described: false,
             },
         } as unknown as ConnectionState;
-        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
+        const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
-            act(() => setRegistry(reg => {
+            step(() => setRegistry(reg => {
                 reg.connections.set(TEST_CONNECTION_ID, embedded);
                 return { ...reg };
             }));
-            act(() => dispatch(TEST_CONNECTION_ID, { type: CATALOG_UPDATE_SUCCEEDED, value: [3] }));
-            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            step(() => dispatch(TEST_CONNECTION_ID, { type: CATALOG_UPDATE_SUCCEEDED, value: [3] }));
+            await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             await writer.flush();
             expect([...backend.connectionFiles.keys()]).toEqual([`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`]);
         } finally {
@@ -305,14 +305,14 @@ describe('catalog refresh persistence', () => {
                 described: true, touchedRelations: [],
             },
         } as unknown as ConnectionState;
-        const { setRegistry, dispatch, writer, service, dispose } = renderRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID, attachedId] }));
+        const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID, attachedId] }));
         try {
-            act(() => setRegistry(reg => {
+            step(() => setRegistry(reg => {
                 reg.connections.set(attachedId, attached);
                 return { ...reg };
             }));
-            act(() => dispatch(attachedId, { type: CATALOG_UPDATE_SUCCEEDED, value: [2] }));
-            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            step(() => dispatch(attachedId, { type: CATALOG_UPDATE_SUCCEEDED, value: [2] }));
+            await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
             await writer.flush();
             expect([...backend.connectionFiles.keys()].every(key => key.startsWith(`${attachedId}/`))).toBe(true);
@@ -332,13 +332,13 @@ describe('shared connection persistence', () => {
 
     /// Dispatch to the connection and let the batched registry update apply
     async function dispatchAndSettle(harness: { dispatch: DynamicConnectionDispatch }, action: Parameters<DynamicConnectionDispatch>[1]) {
-        await act(async () => {
+        await step(async () => {
             harness.dispatch(TEST_CONNECTION_ID, action);
             await new Promise<void>(resolve => setTimeout(resolve, 0));
         });
     }
 
-    async function render(workbookIds: string[], overrides: Partial<ConnectionState> = {}) {
+    async function setupRegistry(workbookIds: string[], overrides: Partial<ConnectionState> = {}) {
         const backend = new WorkbookTestBackend();
         for (const workbookId of [TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]) {
             backend.workbooks.set(workbookId, testWorkbook({ workbookId, connections: [{ connectionId: TEST_CONNECTION_ID, params: trino('https://old') }] }));
@@ -351,22 +351,22 @@ describe('shared connection persistence', () => {
             connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             ...overrides,
         } as unknown as ConnectionState;
-        const rendered = renderRegistry(backend, fixedConnectionReferences(Object.fromEntries(workbookIds.map(workbookId => [workbookId, [TEST_CONNECTION_ID]]))));
+        const created = createRegistry(backend, fixedConnectionReferences(Object.fromEntries(workbookIds.map(workbookId => [workbookId, [TEST_CONNECTION_ID]]))));
         const harness = {
-            get registry() { return rendered.service.store.current; },
-            dispatch: rendered.dispatch,
-            writer: rendered.writer,
-            save: rendered.save,
+            get registry() { return created.service.store.current; },
+            dispatch: created.dispatch,
+            writer: created.writer,
+            save: created.save,
         };
-        await act(async () => rendered.setRegistry(reg => {
+        await step(async () => created.setRegistry(reg => {
             reg.connections.set(TEST_CONNECTION_ID, connection);
             return { ...reg };
         }));
-        return { backend, harness, unmount: rendered.dispose };
+        return { backend, harness, unmount: created.dispose };
     }
 
     it('keeps drafts in the app manifest and saves them into every workbook', async () => {
-        const { backend, harness, unmount } = await render([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
+        const { backend, harness, unmount } = await setupRegistry([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
         try {
             await dispatchAndSettle(harness, { type: SET_CONNECTION_DRAFT, value: trino('https://new') });
             await harness.writer.flush();
@@ -374,7 +374,7 @@ describe('shared connection persistence', () => {
             expect(backend.calls.filter(call => call.startsWith('manifest:'))).toEqual([]);
 
             let result!: ConnectionSaveResult | null;
-            await act(async () => {
+            await step(async () => {
                 result = await harness.save();
                 await new Promise<void>(resolve => setTimeout(resolve, 0));
             });
@@ -396,11 +396,11 @@ describe('shared connection persistence', () => {
     });
 
     it('reports workbooks whose copies could not be written', async () => {
-        const { backend, harness, unmount } = await render([TEST_WORKBOOK_ID, MISSING_WORKBOOK_ID]);
+        const { backend, harness, unmount } = await setupRegistry([TEST_WORKBOOK_ID, MISSING_WORKBOOK_ID]);
         try {
             await dispatchAndSettle(harness, { type: SET_CONNECTION_DRAFT, value: trino('https://new') });
             let result!: ConnectionSaveResult | null;
-            await act(async () => {
+            await step(async () => {
                 result = await harness.save();
                 await new Promise<void>(resolve => setTimeout(resolve, 0));
             });
@@ -416,7 +416,7 @@ describe('shared connection persistence', () => {
     });
 
     it('refuses to delete the embedded Hyper that no workbook uses', async () => {
-        const { harness, unmount } = await render([], {
+        const { harness, unmount } = await setupRegistry([], {
             params: { hyper: { protocol: 'WASM' } } as any,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } as any,
@@ -444,7 +444,7 @@ describe('shared connection persistence', () => {
     });
 
     it('refuses to delete connections that workbooks use', async () => {
-        const { harness, unmount } = await render([TEST_WORKBOOK_ID]);
+        const { harness, unmount } = await setupRegistry([TEST_WORKBOOK_ID]);
         try {
             await dispatchAndSettle(harness, { type: DELETE_CONNECTION, value: null });
             expect(harness.registry.connections.has(TEST_CONNECTION_ID)).toBe(true);

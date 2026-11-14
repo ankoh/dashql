@@ -11,8 +11,8 @@ import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } fro
 import type { QueryExecutor } from '../query_execution_args.js';
 import { TestLogger } from '../../testing/test_logger.js';
 
-/// The tests of the provider of the app ran their steps in act(), the service needs no rendering
-const act = async (step: () => unknown) => { await step(); };
+/// Run a step of a test and wait for it
+const step = async (run: () => unknown) => { await run(); };
 
 describe('CatalogLoaderService queue', () => {
     let registry: ConnectionRegistry;
@@ -24,8 +24,8 @@ describe('CatalogLoaderService queue', () => {
     const scriptsDispatch = vi.fn();
     const updateHyperCatalog = vi.fn<CatalogLoaderDependencies['updateHyperCatalog']>();
 
-    /// Hand the loader the current registry, like a render of the provider of the app, and let it schedule
-    async function render() {
+    /// Hand the loader the current registry, as the provider of the app does when it changes, and let it schedule
+    async function handRegistry() {
         if (service == null) {
             service = new CatalogLoaderService(dependencies);
             service.start();
@@ -36,7 +36,7 @@ describe('CatalogLoaderService queue', () => {
     }
 
     async function settleUpdate(settle: () => void) {
-        await act(async () => {
+        await step(async () => {
             settle();
             // The update finishes in microtasks, then the loader reconsiders its queue in one more microtask and may
             // start the next update. A task turn lets all of them run.
@@ -95,21 +95,21 @@ describe('CatalogLoaderService queue', () => {
     });
 
     it('aborts a running refresh once, preserves pending force, and starts its replacement after cancellation settles', async () => {
-        await render();
-        await act(async () => enqueue('database', false));
+        await handRegistry();
+        await step(async () => enqueue('database', false));
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         const first = updates[0];
         const task = registry.connections.get('database')!.catalogUpdates.tasksRunning.values().next().value!;
         const abort = vi.spyOn(task.cancellation, 'abort');
 
-        await act(async () => enqueue('database', true));
+        await step(async () => enqueue('database', true));
         expect(first.signal.aborted).toBe(true);
         expect(first.signal.reason.name).toBe('AbortError');
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         // An auto request cannot downgrade force while cancellation is still pending.
-        await act(async () => enqueue('database', false));
+        await step(async () => enqueue('database', false));
         registry = { ...registry };
-        await render();
+        await handRegistry();
         expect(abort).toHaveBeenCalledTimes(1);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
 
@@ -118,7 +118,7 @@ describe('CatalogLoaderService queue', () => {
         expect(updates[1].signal.aborted).toBe(false);
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_CANCELLED)).toBe(true);
         registry = { ...registry };
-        await render();
+        await handRegistry();
         expect(updates[1].signal.aborted).toBe(false);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
         await settleUpdate(() => updates[1].resolve());
@@ -135,7 +135,7 @@ describe('CatalogLoaderService queue', () => {
             catalogUpdates: { tasksRunning: new Map(), touchedRelations: [] },
             queriesActive: new Map(),
         } as unknown as ConnectionState);
-        await render();
+        await handRegistry();
         await vi.waitFor(() => expect(registerClientFunctions).toHaveBeenCalledTimes(1), { timeout: 5000 });
         await vi.waitFor(() => expect(scriptsDispatch).toHaveBeenCalledWith('salesforce'));
     });
@@ -146,8 +146,8 @@ describe('CatalogLoaderService queue', () => {
             ...connection,
             details: { type: DBCOM_CONNECTOR, value: { proto: { setupParams: { databaseName: 'sales' } } } },
         } as unknown as ConnectionState);
-        await render();
-        await act(async () => enqueue('database', true));
+        await handRegistry();
+        await step(async () => enqueue('database', true));
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         expect(updateHyperCatalog.mock.calls[0][4]).toEqual([{ path: 'hyper.cloud:sales', alias: 'lakehouse' }]);
         expect(updateHyperCatalog.mock.calls[0][10]).toBe(false);
@@ -173,11 +173,11 @@ describe('CatalogLoaderService queue', () => {
             const connection = registry.connections.get('database')!;
             registry.connections.set('database', { ...connection, queriesActive: new Map([[1, {}], [2, {}], [3, {}], [4, {}]]) } as unknown as ConnectionState);
             touch();
-            await render();
+            await handRegistry();
             expect(updateHyperCatalog).not.toHaveBeenCalled();
             registry.connections.set('database', { ...registry.connections.get('database')!, queriesActive: new Map() });
             registry = { ...registry };
-            await render();
+            await handRegistry();
             await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
             expect(relationsOfCall(0)).toEqual([ORDERS]);
             const started = dispatch.mock.calls.find(([, action]) => action.type === UPDATE_CATALOG)![1] as { value: [number, { taskVariant: CatalogUpdateVariant }] };
@@ -187,12 +187,12 @@ describe('CatalogLoaderService queue', () => {
         });
 
         it('wait for a running refresh that may have read them too early', async () => {
-            await render();
-            await act(async () => enqueue('database', false));
+            await handRegistry();
+            await step(async () => enqueue('database', false));
             expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
             expect(relationsOfCall(0)).toBeNull();
             touch();
-            await render();
+            await handRegistry();
             expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
             await settleUpdate(() => updates[0].resolve());
             await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
@@ -202,14 +202,14 @@ describe('CatalogLoaderService queue', () => {
 
         it('are asked about again when the update failed', async () => {
             touch();
-            await render();
+            await handRegistry();
             await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
             await settleUpdate(() => updates[0].reject(new Error('down')));
             expect(registry.connections.get('database')!.catalogUpdates.touchedRelations).toEqual([ORDERS]);
             expect(registry.connections.get('database')!.catalogUpdates.touchedFailures).toBe(1);
             // Not right away
             registry = { ...registry };
-            await render();
+            await handRegistry();
             expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
             registry = { ...registry };
             await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2), { timeout: 5000 });
@@ -222,16 +222,16 @@ describe('CatalogLoaderService queue', () => {
             const connection = registry.connections.get('database')!;
             registry.connections.set('database', { ...connection, catalogUpdates: { ...connection.catalogUpdates, touchedFailures: MAX_TOUCHED_ATTEMPTS } });
             touch();
-            await render();
-            await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+            await handRegistry();
+            await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             expect(updateHyperCatalog).not.toHaveBeenCalled();
         });
     });
 
     it('tries an auto request once more after a failure, without a registry rerender or another enqueue', async () => {
-        await render();
-        await act(async () => enqueue('database', true));
-        await act(async () => enqueue('database', false));
+        await handRegistry();
+        await step(async () => enqueue('database', true));
+        await step(async () => enqueue('database', false));
         expect(updates[0].signal.aborted).toBe(false);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         await settleUpdate(() => updates[0].reject(new Error('metadata unavailable')));
@@ -240,7 +240,7 @@ describe('CatalogLoaderService queue', () => {
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
         await settleUpdate(() => updates[1].resolve());
         registry = { ...registry };
-        await render();
+        await handRegistry();
         expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
     });
 
@@ -254,12 +254,12 @@ describe('CatalogLoaderService queue', () => {
             catalogUpdates: { ...connection.catalogUpdates, described: true, touchedRelations: [ORDERS] },
         } as ConnectionState);
         registry = { ...registry };
-        await render();
+        await handRegistry();
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
         expect(updateHyperCatalog.mock.calls[0][13]).toEqual([ORDERS]);
 
         // The forced refresh cancels the lookup, which gives its relation back
-        await act(async () => enqueue('database', true));
+        await step(async () => enqueue('database', true));
         expect(updates[0].signal.aborted).toBe(true);
         await settleUpdate(() => updates[0].reject(new DOMException('cancelled', 'AbortError')));
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
@@ -273,20 +273,20 @@ describe('CatalogLoaderService queue', () => {
     });
 
     it('consumes a queued auto request after success without cancelling a later forced refresh', async () => {
-        await render();
-        await act(async () => enqueue('database', true));
-        await act(async () => enqueue('database', false));
+        await handRegistry();
+        await step(async () => enqueue('database', true));
+        await step(async () => enqueue('database', false));
         await settleUpdate(() => updates[0].resolve());
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_SUCCEEDED)).toBe(true);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
         registry = { ...registry };
-        await render();
+        await handRegistry();
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
 
-        await act(async () => enqueue('database', true));
+        await step(async () => enqueue('database', true));
         registry = { ...registry };
-        await render();
+        await handRegistry();
         expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
         expect(updates[1].signal.aborted).toBe(false);
         await settleUpdate(() => updates[1].resolve());
@@ -296,21 +296,21 @@ describe('CatalogLoaderService queue', () => {
         const connection = registry.connections.get('database')!;
         registry.connections.set('database', { ...connection, params: { hyper: { protocol: 'WASM' } }, connectionHealth: ConnectionHealth.ONLINE } as ConnectionState);
         // The request is enqueued by an effect, its update starts with a later render
-        await render();
+        await handRegistry();
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
         await settleUpdate(() => updates[0].resolve());
         registry = { ...registry };
-        await render();
+        await handRegistry();
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
 
         // A reconnect describes the database again
         const online = registry.connections.get('database')!;
         registry.connections.set('database', { ...online, connectionHealth: ConnectionHealth.CONNECTING });
         registry = { ...registry };
-        await render();
+        await handRegistry();
         registry.connections.set('database', online);
         registry = { ...registry };
-        await render();
+        await handRegistry();
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
     });
 
@@ -322,8 +322,8 @@ describe('CatalogLoaderService queue', () => {
             connectionHealth: ConnectionHealth.ONLINE,
             catalogUpdates: { ...connection.catalogUpdates, described: true },
         } as ConnectionState);
-        await render();
-        await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+        await handRegistry();
+        await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
         expect(updateHyperCatalog).not.toHaveBeenCalled();
     });
 
@@ -336,12 +336,12 @@ describe('CatalogLoaderService queue', () => {
             connectionHealth: ConnectionHealth.CONNECTING,
             catalogUpdates: { ...connection.catalogUpdates, described: true, touchedRelations: [ORDERS] },
         } as ConnectionState);
-        await render();
-        await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
+        await handRegistry();
+        await step(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
         expect(updateHyperCatalog).not.toHaveBeenCalled();
         registry.connections.set('database', { ...registry.connections.get('database')!, connectionHealth: ConnectionHealth.ONLINE });
         registry = { ...registry };
-        await render();
+        await handRegistry();
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
         expect(updateHyperCatalog.mock.calls[0][13]).toEqual([ORDERS]);
         await settleUpdate(() => updates[0].resolve());
@@ -350,7 +350,7 @@ describe('CatalogLoaderService queue', () => {
     it('describes the catalog of a durable connection without one when it comes online', async () => {
         const connection = registry.connections.get('database')!;
         registry.connections.set('database', { ...connection, params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } }, connectionHealth: ConnectionHealth.ONLINE } as ConnectionState);
-        await render();
+        await handRegistry();
         await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(1));
     });
 });

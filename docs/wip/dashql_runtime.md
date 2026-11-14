@@ -437,3 +437,8 @@ Planned:
   the commands without Hyper may run; that is untested. Run the runtime's tests without Hyper under Bun as well, and the
   rest once JavaScriptCore has memory64.
 - **A plain-JSON link.** A workbook without results as JSON in the fragment of the link, for agents without the CLI.
+- **One check of the Wasm features.** `node/node_hyperdb.ts` and `packages/hyperdb-edge/src/node/runtime_check.ts`
+  both validate memory64, table64 and exnref and set the exnref flag; only the one of hyperdb-edge has tests. The
+  runtime could use it once it depends on hyperdb-edge.
+- **The Node of Bazel.** The tests run on the pinned Node 24.4.1. Pinning 24.15 or later would drop the exnref flag
+  from the tests, and a Node with Web Locks would let `node/node_locks.ts` go.
