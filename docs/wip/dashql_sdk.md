@@ -1,6 +1,6 @@
 # DashQL SDK
 
-Status: steps 1 and 2 are built, the rest is proposed.
+Status: steps 1 and 2 are built, step 3 is built for four services, the rest is proposed.
 
 `packages/dashql-sdk` (`@ankoh/dashql-sdk`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -11,7 +11,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
 |---|---|
 | Untangling in place (leaks, `Store` without React) | Done, step 1 |
 | `packages/dashql-sdk` with the clean modules, `//packages/dashql-sdk:boundary_test` | Done, step 2; their tests still run in the browser tests of the app |
-| Services in place of providers, one runtime | Planned, step 3 |
+| Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections are done |
+| The connector setups, the restore, one runtime | Step 4, with the seams of the platforms |
 | Node platform and the CLI on top | Planned, step 4 |
 | Editor state out of `ScriptData` | Later, step 5 |
 
@@ -233,13 +234,26 @@ Each step ships on its own and keeps the behavior.
    `react-dom`, `@codemirror/*`, a `.tsx` file or a `?url` asset. Done.
 2. **Draw the package line.** Move the clean set into `packages/dashql-sdk`, a Bazel `ts_project` with tests in
    Node. The app imports from `@ankoh/dashql-sdk`.
-3. **Services out of providers.** One at a time: `QueryExecutor` (from `query_executor.tsx`), `CatalogLoader`,
-   `WorkbookExecution`, `ConnectionPersistence`, the connector setups, the restore (from `app_state_loader.ts`). Each
-   provider turns into a field of the runtime until `RuntimeProvider` is the only one. `createRuntime` states the
-   startup order that the nesting implies today (the embedded Hyper needs the core, the Hyper setup needs the
-   embedded Hyper).
-4. **Node platform.** A storage backend over `node:fs` (`NativeStorageBackend` with the fs functions passed in), a
-   fetch client, `EmbeddedDatabase` over `hyperdb-wasm` `node`, Wasm from files, auth. The CLI on top: offline
+3. **Services out of providers.** Done for four services of the SDK, each a class with its dependencies passed in,
+   its state as a `Store`, and a provider that binds it to React:
+   - `QueryExecutorService` (`connections/query_executor_service.ts`), with the computations, the result cache, the
+     tracked execution and the profile layout of the query progress (`query/profile/`);
+   - `CatalogLoaderService` (`connections/catalog/catalog_loader_service.ts`), with the update of Hyper catalogs. The
+     provider passes each new registry, the loader reconsiders its queue in a microtask;
+   - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the engine of the runs and the
+     runs of single scripts;
+   - `ConnectionPersistenceService` (`connections/connection_persistence_service.ts`).
+
+   The rest waits for the seams of step 4. The setups of Salesforce and Trino authenticate in a popup window or
+   through the OAuth loopback of the Electron bridge, and the restore (`app_state_loader.ts`) reads the tokens of
+   Hyper links from the storage of the tab (`connections/hyper/hyper_link.ts`, `embedded_connection.ts` also binds
+   React). They move once the platform passes an auth flow and the tab state in. The runtime object that replaces the
+   nesting of providers comes with them: `createRuntime` states the startup order that the nesting implies today
+   (the embedded Hyper needs the core, the Hyper setup needs the embedded Hyper).
+4. **Platform seams and Node.** An auth flow (popup and redirect in the browser, loopback in Electron and Node) and the
+   tab state passed in, so the connector setups and the restore move; `createRuntime`. Then the Node platform: a
+   storage backend over `node:fs` (`NativeStorageBackend` with the fs functions passed in), a fetch client,
+   `EmbeddedDatabase` over `hyperdb-wasm` `node`, Wasm from files. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
 5. **Editor state.** Out of `ScriptData` into the app.
 
