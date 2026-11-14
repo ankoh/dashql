@@ -63,3 +63,45 @@ jobs:
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed
+
+    agent_integration:
+        name: Agent Integration
+        runs-on: ubuntu-26.04
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            # The sandbox of Claude Code on Linux, see docs/wip/agent_integration_tests.md.
+            # Ubuntu restricts the unprivileged user namespaces that bubblewrap needs.
+            - name: Install the sandbox of the harnesses
+              shell: bash
+              run: |
+                  sudo apt-get install -y bubblewrap socat
+                  if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+                      sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+                  fi
+
+            - name: Setup GitHub credentials
+              uses: ./.github/actions/setup-github-credentials
+
+            - name: Setup Bazel
+              uses: bazel-contrib/setup-bazel@0.19.1
+              with:
+                  bazelisk-cache: true
+                  repository-cache: true
+                  disk-cache: false
+                  bazelrc: |
+                      common --credential_helper=github.com=${{ runner.temp }}/bazel-github-credentials
+
+            - name: Test the agent integrations
+              shell: bash
+              run: |
+                bazel test --config=fastbuild \
+                    //tests/agents/... \
+                    --test_output=errors \
+                    --test_summary=detailed

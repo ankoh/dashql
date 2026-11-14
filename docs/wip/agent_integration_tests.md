@@ -14,7 +14,7 @@ they check those assumptions on every machine that runs them, without model call
 | `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox, and from hooks | Done |
 | Approvals by prefix, `session serve` from `SessionStart`, the `dashql` commands of the agent | Planned |
 | Codex with a fake Responses API, opencode | Planned |
-| A CI job | Planned |
+| The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added, not yet run on GitHub |
 
 ## How it works
 
@@ -56,8 +56,9 @@ below the temporary folder, which the sandbox may allow.
 - **Codex:** a fake of the Responses API (Codex takes a `model_provider` with a `base_url`), the sandbox modes
   (`read-only`, `workspace-write` with and without network), hooks, and prefix rules of its execution policy.
 - **opencode:** its plugins run in its process and see every event.
-- **CI:** a job on `ubuntu-26.04` that installs `bubblewrap` and `socat` and runs `bazel test //tests/agents:all`; on
-  macOS the sandbox of Claude Code uses `sandbox-exec`, which every Mac has.
+- **CI:** the job `agent_integration` installs `bubblewrap` and `socat` on `ubuntu-26.04`, lifts the restriction of
+  unprivileged user namespaces of Ubuntu, and runs `bazel test //tests/agents/...`. A macOS job could follow, the
+  sandbox of Claude Code uses `sandbox-exec` there, which every Mac has.
 - **Versions:** a newer harness is a new version and new integrity values in `//bazel:external_agent_harnesses.bzl`
   (`npm view @anthropic-ai/claude-code-<platform>@<version> dist.integrity`). Testing two versions side by side is a
   second repository per platform.
