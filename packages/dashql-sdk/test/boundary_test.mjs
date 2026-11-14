@@ -22,8 +22,6 @@ const SEAMS = [
 ];
 /// The modules that still use a seam, step 4 gives each another way to what it needs
 const KNOWN_SEAMS = new Map([
-    ['connections/catalog/prefetched_hyper_functions.ts', ['a bundler asset']],
-    ['connections/clfn/clfn_specs.ts', ['import.meta.glob']],
     ['platform/database/embedded_database.ts', ['the origin private file system']],
     ['platform/electron_fs.ts', ['the Electron bridge']],
     ['platform/native_globals.ts', ['the Electron bridge']],

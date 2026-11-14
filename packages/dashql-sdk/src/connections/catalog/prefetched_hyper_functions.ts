@@ -4,9 +4,9 @@ import { generateFunctionScriptHeader } from './catalog_function_sql_generator.j
 import { CatalogSource } from './catalog_sql_generator.js';
 import { publishCatalogBatchSync } from './catalog_batch.js';
 
-import prefetchedHyperFunctionsSql from './dashql-catalog-functions.sql?raw';
+import { PREFETCHED_HYPER_FUNCTIONS_SQL } from './prefetched_hyper_functions_sql.js';
 
-export const PREFETCHED_HYPER_FUNCTIONS_SQL = prefetchedHyperFunctionsSql;
+export { PREFETCHED_HYPER_FUNCTIONS_SQL };
 
 export function qualifyPrefetchedHyperFunctions(databaseName: string, updatedAt: Date = new Date()): string {
     const quotedDatabase = `"${databaseName.replace(/"/g, '""')}"`;

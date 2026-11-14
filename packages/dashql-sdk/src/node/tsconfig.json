@@ -13,7 +13,6 @@
     ]
   },
   "include": [
-    "../globals.d.ts",
     "./**/*.ts"
   ]
 }

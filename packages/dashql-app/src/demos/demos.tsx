@@ -18,6 +18,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
+import '../connections/clfn/bundled_clfn_specs.js';
 
 /// The pages of the demos, loaded when they are opened
 const PAGES = new Map(DEMOS.map(demo => [demo.id, React.lazy(demo.load)]));

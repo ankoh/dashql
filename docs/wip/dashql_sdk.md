@@ -125,11 +125,12 @@ Two properties of the source package hold:
   full reload, as it did before the move. An edit of a component of `dashql-ui` updates in place.
 
 `//packages/dashql-sdk:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
-`.tsx` module, and the seams that only a browser or a bundler provides are known by name. Step 4 removes them:
+`.tsx` module, and the seams that only a browser or a bundler provides are known by name. The SDK uses no feature
+of a bundler: the functions of Hyper are SQL text in a module (`connections/catalog/prefetched_hyper_functions_sql.ts`)
+and the platform provides the specs of the extensions (`provideClientFunctionSpecs` of `connections/clfn/clfn_specs.ts`;
+the app passes its `import.meta.glob` in `connections/clfn/bundled_clfn_specs.ts`, which its pages and the test frame
+import, the tests in Node in `test/setup_node.mjs`). Step 4 removes the others:
 
-- A bundler asset: `connections/catalog/prefetched_hyper_functions.ts` imports the functions of Hyper as SQL text with
-  Vite's `?raw` (`connections/catalog/dashql-catalog-functions.sql`, moved from `static/catalog/hyper/` of the app).
-- `import.meta.glob`: `connections/clfn/clfn_specs.ts` loads the specs of the extensions.
 - The origin private file system: `platform/opfs_root.ts`, `platform/database/embedded_database.ts`,
   `platform/hyperdb/hyperdb_parquet_export.ts`, `storage/migration/migration_folder.ts`, `storage/workbook_tree.ts`,
   `workbook/attachments/attachment_mounts.ts`.
@@ -287,8 +288,8 @@ Each step ships on its own and keeps the behavior.
    passes a storage backend, `fetch` (`WebHttpClient`, moved from the app) and the core from the Wasm file of its
    package (`node/node_core.ts`) to `createRuntime`; its OAuth flow refuses until `dashql auth` brings one. The SDK
    runs in Node under vitest, which resolves what a bundler resolves. Plain Node does not: the CLI compiles the SDK
-   with `tsc` like `packages/hyperdb-edge`, so the two bundler seams go first: the SQL of the functions of Hyper
-   (`?raw`) and the specs of the extensions (`import.meta.glob`) come from the platform. Then `EmbeddedDatabase` over
+   with `tsc` like `packages/hyperdb-edge`; the two bundler seams are gone for that (see The package). Then
+   `EmbeddedDatabase` over
    `hyperdb-wasm` `node`. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
 5. **Editor state.** Out of `ScriptData` into the app.

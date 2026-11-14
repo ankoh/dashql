@@ -13,7 +13,6 @@
     ]
   },
   "include": [
-    "src/globals.d.ts",
     "src/node/**/*.ts"
   ],
   "exclude": []

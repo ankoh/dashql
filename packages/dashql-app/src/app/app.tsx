@@ -51,6 +51,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
+import '../connections/clfn/bundled_clfn_specs.js';
 
 const LOG_CTX = 'app';
 
