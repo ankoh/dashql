@@ -238,10 +238,11 @@ async function testAppFeedScrollPosition(page, navigate) {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.wheel(0, 100);
 
-    // The feed stays at its end during the run, the rows at its start stay unmounted while their results arrive
-    const unpin = await rows.first().evaluateHandle(item => {
-        let list = item.parentElement;
-        while (getComputedStyle(list).overflowY !== 'auto') list = list.parentElement;
+    // The feed stays at its end during the run, the rows at its start stay unmounted while their results arrive.
+    // The scroll element is the list in the feed, a row may unmount between finding it and evaluating on it.
+    const feedList = page.getByTestId('feed-list');
+    const unpin = await feedList.evaluateHandle(container => {
+        const list = [...container.children].find(child => getComputedStyle(child).overflowY === 'auto');
         let pinned = true;
         const pin = () => {
             if (!pinned) return;
@@ -255,11 +256,10 @@ async function testAppFeedScrollPosition(page, navigate) {
     await page.locator('[data-testid="execution-status"][data-phase="succeeded"]').waitFor();
     await unpin.evaluate(stop => stop());
 
-    const { maxMoved, movedRow, anchored } = await rows.first().evaluate(async item => {
+    const { maxMoved, movedRow, anchored } = await feedList.evaluate(async container => {
         const STEP = 200;
         const FRAMES_PER_STEP = 3;
-        let list = item.parentElement;
-        while (getComputedStyle(list).overflowY !== 'auto') list = list.parentElement;
+        const list = [...container.children].find(child => getComputedStyle(child).overflowY === 'auto');
         const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
         // A task that a frame posts runs after its paint, it sees what the user saw
         const afterPaint = () => new Promise(resolve => {
