@@ -3,7 +3,8 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useConnectionReferences, useConnectionRegistry } from './connection_registry.js';
 import type { ConnectionState } from './connection_state.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
+import { connectionLabelParts, connectionLabelText } from './connection_label.js';
+import { connectionOrdinals } from './connection_registry_state.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';

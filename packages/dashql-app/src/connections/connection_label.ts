@@ -1,5 +1,4 @@
 import type { ConnectionState } from './connection_state.js';
-import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { getConnectorInfoForParams, HYPER_CONNECTOR } from './connector_info.js';
 import { embeddedCloudDatabases } from './hyper/local_cloud.js';
 import type { ConnectionParams } from './connection_params.js';
@@ -53,22 +52,6 @@ export function connectionLabel(database: ConnectionState, ordinal: number | nul
 /// The plain text of the parts of a label
 export function connectionLabelText(parts: ConnectionLabelParts): string {
     return `${parts.name} ${parts.detail}`;
-}
-
-/// The ordinals of the connections that share their connector with other connections, 1-based in
-/// registration order. Only listed connections are numbered, see `isListedConnection`, so the
-/// numbers don't depend on the current workbook.
-export function connectionOrdinals(
-    registry: Pick<ConnectionRegistry, 'connections' | 'connectionsByType'>,
-    references: ConnectionReferences,
-): Map<string, number> {
-    const ordinals = new Map<string, number>();
-    for (const connectionIds of registry.connectionsByType) {
-        const listed = connectionIds.filter(connectionId => isListedConnection(registry, references, connectionId));
-        if (listed.length < 2) continue;
-        listed.forEach((connectionId, index) => ordinals.set(connectionId, index + 1));
-    }
-    return ordinals;
 }
 
 /// A label for connection params, e.g. when the connection state is not restored.

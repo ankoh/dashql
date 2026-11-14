@@ -2,7 +2,8 @@ import * as React from 'react';
 
 import type { ConnectionState } from '../connections/connection_state.js';
 import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
-import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../connections/connection_label.js';
+import { connectionLabelParts, type ConnectionLabelParts } from '../connections/connection_label.js';
+import { connectionOrdinals } from '../connections/connection_registry_state.js';
 import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 
 const subscribeNever = () => () => {};

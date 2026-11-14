@@ -3,6 +3,7 @@ import { QueryMetadata } from "../query/query_execution_state.js";
 import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";
 import { TrinoChannelInterface } from "./trino/trino_channel.js";
 import type { buffers } from '@ankoh/dashql-core';
+import type * as arrow from 'apache-arrow';
 import type { ClientFunctionCallDescription } from "./clfn/clfn_spec.js";
 
 /// The query executor args
@@ -61,3 +62,8 @@ export type QueryExecutionChannelOverride =
     | { type: 'hyper'; channel: HyperDatabaseChannel }
     | { type: 'salesforce'; channel: SalesforceDatabaseChannel }
     | { type: 'trino'; channel: TrinoChannelInterface };
+
+/// The query executor function: returns the id of the query and its result
+export type QueryExecutor = (connectionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
+/// Cancel a query of a connection
+export type CancelQuery = (connectionId: string, queryId: number) => Promise<void>;

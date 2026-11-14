@@ -1,14 +1,12 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import type { EditorView } from '@codemirror/view';
-
 import type { ScriptData } from './workbook_scripts.js';
-import type { AppSettings } from '../../config/app_config.js';
+import type { AppSettings } from '../../config/app_settings.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 
-const DEFAULT_FORMAT_WIDTH = 80;
+export const DEFAULT_FORMAT_WIDTH = 80;
 const DEFAULT_FORMAT_INDENTATION = 4;
-const MIN_FORMAT_WIDTH = 24;
+export const MIN_FORMAT_WIDTH = 24;
 
 export function formattingDialectForConnector(connectorType?: ConnectorType): dashql.buffers.formatting.FormattingDialect {
     return connectorType === ConnectorType.TRINO
@@ -58,15 +56,6 @@ export function formatSqlText(core: dashql.DashQL, text: string, config: dashql.
     }
 }
 
-export function measureScriptFormatWidth(editorView: Pick<EditorView, 'defaultCharacterWidth' | 'scrollDOM'>): number {
-    const charWidth = editorView.defaultCharacterWidth;
-    const availableWidth = editorView.scrollDOM.clientWidth;
-    if (!(charWidth > 0) || !(availableWidth > 0)) {
-        return DEFAULT_FORMAT_WIDTH;
-    }
-    return Math.max(MIN_FORMAT_WIDTH, Math.floor(availableWidth / charWidth));
-}
-
 export function isScriptFormattable(
     scriptData: ScriptData | null,
     dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
@@ -80,35 +69,5 @@ export function isScriptFormattable(
         );
     } catch {
         return false;
-    }
-}
-
-export function formatScriptEditor(
-    editorView: EditorView | null,
-    scriptData: ScriptData | null,
-    mode: dashql.buffers.formatting.FormattingMode,
-    onFormattedText: (text: string) => void,
-    debugMode: boolean = false,
-    keywordCase: dashql.buffers.formatting.KeywordCase = dashql.buffers.formatting.KeywordCase.LOWER,
-    dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
-): boolean {
-    if (editorView == null || scriptData == null) return false;
-
-    let formattedScript: dashql.DashQLScript | null = null;
-    try {
-        const maxWidth = measureScriptFormatWidth(editorView);
-        formattedScript = scriptData.scriptSession.format(
-            createScriptFormatConfig(mode, debugMode, maxWidth, keywordCase, dialect),
-            null,
-        );
-        const formattedText = formattedScript.toString();
-        if (formattedText === editorView.state.doc.toString()) return false;
-        onFormattedText(formattedText);
-        editorView.focus();
-        return true;
-    } catch {
-        return false;
-    } finally {
-        formattedScript?.destroy();
     }
 }

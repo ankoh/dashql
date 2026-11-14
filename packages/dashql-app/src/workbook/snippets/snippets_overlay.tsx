@@ -14,7 +14,8 @@ import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_datab
 import { ConnectorType } from '../../connections/connector_info.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { ReadonlySqlView, useProjectedSqlText } from '../editor/readonly_sql_view.js';
-import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase, measureScriptFormatWidth } from '../scripts/script_format.js';
+import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../scripts/script_format.js';
+import { measureScriptFormatWidth } from '../editor/script_format_editor.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { SNIPPET_DATASETS_FOLDER, type Snippet } from './snippet.js';
 import { getBundledSnippets, snippetText, snippetsForConnector, type SnippetRegistry } from './snippet_registry.js';

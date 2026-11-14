@@ -1,6 +1,6 @@
 # DashQL SDK
 
-Status: proposed. Nothing here is built.
+Status: step 1 is built, the rest is proposed.
 
 `packages/dashql-sdk` (`@ankoh/dashql-sdk`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -9,7 +9,7 @@ Node command line tool share it. An agent then works on workbooks with the same 
 
 | Part | State |
 |---|---|
-| Untangling in place (leaks, `Store` without React) | Planned, step 1 |
+| Untangling in place (leaks, `Store` without React), `//packages/dashql-app:sdk_boundary_test` | Done, step 1 |
 | `packages/dashql-sdk` with the clean modules | Planned, step 2 |
 | Services in place of providers, one runtime | Planned, step 3 |
 | Node platform and the CLI on top | Planned, step 4 |
@@ -46,19 +46,29 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
   (`salesforce/`, `trino/`, `hyper/`)
 - `query/query_execution_state.ts`, `compute/computation_state.ts`
 
-### Three imports pull UI code into the domain
+### Imports that pulled UI code into the domain
 
-The transitive closure of the value imports of these modules reaches React, CodeMirror or a `.tsx` file only here:
+The transitive closure of the imports of these modules reached React, CodeMirror or a `.tsx` file here. Step 1 cut
+them, `//packages/dashql-app:sdk_boundary_test` keeps them cut:
 
 | Leak | Fix |
 |---|---|
 | `connections/catalog/catalog_update_state.tsx` has no React and no JSX | Rename to `.ts` |
 | `connections/connection_label.ts` imports `isListedConnection` from `connection_registry.tsx`, which mixes pure functions (`registerConnection`, `isListedConnection`, `applyConnectionAction`, …) with providers | Move the pure part into its own `.ts` module |
-| `workbook_scripts.ts` imports `DashQLCompletionState`, `DashQLPendingDiff` and `DashQLProcessorUpdateOut` from `workbook/editor/dashql_processor.ts`, which imports `@codemirror/state` | The types hold only core buffers and patches; move them into a module without CodeMirror |
+| `workbook_scripts.ts` imports `DashQLCompletionState`, `DashQLPendingDiff` and `DashQLProcessorUpdateOut` from `workbook/editor/dashql_processor.ts`, which imports `@codemirror/state` | The types hold only core buffers and patches; they moved to `workbook/scripts/script_editor_state.ts` |
+| `workbook/scripts/script_format.ts` imports `EditorView` (for `measureScriptFormatWidth` and `formatScriptEditor`) and `AppSettings` from `config/app_config.tsx` | The two editor functions moved to `workbook/editor/script_format_editor.ts`, `AppSettings` to `config/app_settings.ts` |
+| `connections/trino/trino_catalogs.ts` and `connections/catalog/catalog_query_information_schema.ts` import `QueryExecutor` from `query_executor.tsx` and `DynamicConnectionDispatch` from `connection_registry.tsx` | `QueryExecutor` and `CancelQuery` moved to `query_execution_args.ts`, the dispatch types to `connection_registry_state.ts` |
 
-Clean today: the workbook format, the storage writer and the query state (`storage/workbook_tables.ts`,
-`storage/storage_writer.ts`, `query/query_execution_state.ts`): 36 files, about 5,500 lines, no `.tsx`. After the
-three cuts, `workbook_scripts.ts` (about 67 reachable files) and `connection_state.ts` (about 44) follow.
+The pure parts of the registries are `connections/connection_registry_state.ts` (with `applyConnectionAction` and
+`connectionOrdinals`) and `workbook/scripts/workbook_scripts_registry_state.ts` (with `dispatchWorkbookScriptsAction`
+and `applyConnectionWorkbookScriptsAction`). `connection_registry.tsx` and `workbook_scripts_registry.tsx` bind them to
+React and re-export them, so their importers didn't change; step 2 points the importers at the package. The React
+hooks of the store are in `utils/store_hooks.ts`, `UpdateQueue` takes an `UpdateScheduler` (frames in the browser,
+`TASK_UPDATE_SCHEDULER` without frames).
+
+After step 1 the roots of the test (the store, the workbook scripts and their registry state, the connection state and
+its registry state, the query state, the workbook tables, the storage writer) reach about 95 modules and 20,700 lines,
+none of them `.tsx`, React or CodeMirror.
 
 ### The effects live in hooks, their logic doesn't need React
 
@@ -85,6 +95,14 @@ on core buffers only, not on an editor library, so they can move with the reduce
 - `NativeStorageBackend` implements `StorageBackend`; it calls `platform/electron_fs.js` directly.
 - `@ankoh/dashql-core` loads its Wasm with `fetch(new URL('./wasm/…', import.meta.url))`. Node's `fetch` doesn't read
   `file:` URLs, and the batch worker uses `new Worker`.
+
+What the closure still reaches that only a browser or the bundler provides, for steps 2 and 4:
+
+- `connections/catalog/prefetched_hyper_functions.ts` imports the functions of Hyper as SQL text with Vite's `?raw`
+  (`static/catalog/hyper/dashql-catalog-functions.sql`). The test lists it as a known asset import.
+- `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`.
+- `storage/storage_backend.ts` and `workbook/attachments/attachment_mounts.ts` import `platform/opfs_root.ts`
+  (`navigator.storage`).
 
 ## Layout
 
@@ -167,7 +185,7 @@ Each step ships on its own and keeps the behavior.
 1. **Untangle in place.** Rename `catalog_update_state.tsx`, split the pure part of `connection_registry.tsx` and
    `workbook_scripts_registry.tsx` into `.ts` modules, move the editor data types out of `dashql_processor.ts`, make
    `Store` free of React with a `Scheduler`. Add a test that fails when a module of the SDK set imports `react`,
-   `react-dom`, `@codemirror/*`, a `.tsx` file or a `?url` asset.
+   `react-dom`, `@codemirror/*`, a `.tsx` file or a `?url` asset. Done.
 2. **Draw the package line.** Move the clean set into `packages/dashql-sdk`, a Bazel `ts_project` with tests in
    Node. The app imports from `@ankoh/dashql-sdk`.
 3. **Services out of providers.** One at a time: `QueryExecutor` (from `query_executor.tsx`), `CatalogLoader`,
@@ -187,6 +205,28 @@ Each step ships on its own and keeps the behavior.
   prefix (`dashql run`), never through `node` or `npx`.
 - **Results stay in files.** Harness telemetry records tool output, so `run` prints the error with its position, the
   schema, the row count and a few rows, and writes the result as Parquet into the workbook.
+
+## Testing both platforms
+
+The browser and Node must offer the same: every feature of the SDK runs, and is tested, on both.
+
+- **Compile time.** The SDK compiles without the DOM and without the types of Node (`lib` ES only, plus the few
+  globals both have: `fetch`, `URL`, `TextEncoder`, `queueMicrotask`, `setTimeout`). An API of only one platform fails
+  the type check of the SDK. The platforms compile in their own subpaths with their own `lib`.
+- **One suite per seam.** The SDK defines a contract suite per interface (`defineStorageBackendContract(create)`, the
+  same for `HttpClient`, `EmbeddedDatabase`, `UpdateScheduler`, `WasmSource`), and each implementation runs it: OPFS
+  and IndexedDB in the browser tests, `node:fs` in the Node tests, an in-memory fake in both.
+- **Scenarios against the runtime, written once.** The tests of the SDK import only the SDK and a
+  `createTestRuntime()` of their platform: open a workbook, edit and check scripts, run queries on the embedded Hyper,
+  update catalogs, pack and unpack, links. The Node target runs them with the Node platform, the browser targets with
+  the browser platform. A test fails when a scenario file isn't part of both targets.
+- **Connectors offline.** Recorded HTTP exchanges (the Trino recordings of `snapshots/profiles/trino/recordings/`,
+  the Salesforce mocks) answer through the `HttpClient` seam on both platforms.
+- **Artifacts across platforms.** `pack` writes byte for byte the same `.dashql` on both (fixed ZIP times, the same
+  Parquet settings), a checked-in file reads back the same rows on both, and a file packed in Node imports in the
+  browser.
+- **Capabilities.** The runtime lists what it can do. A test compares the lists of both platforms and allows only the
+  differences that this document names (owning OPFS, the limits of CORS).
 
 ## Costs and risks
 

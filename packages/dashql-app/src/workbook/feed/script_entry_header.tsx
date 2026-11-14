@@ -16,7 +16,8 @@ import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry
 import { runWorkbookScript } from '../scripts/rerun_query.js';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import { formatScriptEditor, formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '../scripts/script_format.js';
+import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '../scripts/script_format.js';
+import { formatScriptEditor } from '../editor/script_format_editor.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import { scriptConnectionView, usePickScriptConnection } from '../scripts/script_connection_picker.js';
 import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';

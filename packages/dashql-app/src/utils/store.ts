@@ -1,4 +1,5 @@
-import * as React from 'react';
+/// The next state of a store, or a function that derives it from the current one
+export type StoreAction<T> = T | ((prev: T) => T);
 
 /// A state container outside of React.
 ///
@@ -6,6 +7,7 @@ import * as React from 'react';
 /// double-invokes them in strict mode. The registries free Wasm objects and schedule storage writes
 /// while they reduce, so their updates must run exactly once. A store applies every update right
 /// away, synchronously and in call order, and notifies its subscribers afterwards.
+/// The hooks that bind a store to React are in store_hooks.ts.
 export class Store<T> {
     /// The current state
     current: T;
@@ -27,7 +29,7 @@ export class Store<T> {
     get = (): T => this.current;
 
     /// Replace the state or derive it from the current one. The updater runs exactly once.
-    update = (action: React.SetStateAction<T>): void => {
+    update = (action: StoreAction<T>): void => {
         const next = typeof action === 'function'
             ? (action as (prev: T) => T)(this.current)
             : action;
@@ -39,6 +41,23 @@ export class Store<T> {
     };
 }
 
+/// Decides when an update queue applies its updates
+export interface UpdateScheduler {
+    /// Run the callback at the end of the current task
+    afterTask(callback: () => void): void;
+    /// Run the callback once before the next frame, returns the handle that cancels it
+    beforeFrame(callback: () => void): unknown;
+    /// Cancel a callback of beforeFrame
+    cancelFrame(handle: unknown): void;
+}
+
+/// Schedules without frames, where nothing renders: updates that may wait for a frame wait for the next task
+export const TASK_UPDATE_SCHEDULER: UpdateScheduler = {
+    afterTask: callback => queueMicrotask(callback),
+    beforeFrame: callback => setTimeout(callback, 0),
+    cancelFrame: handle => clearTimeout(handle as ReturnType<typeof setTimeout>),
+};
+
 /// Batches the updates of a store and applies them in a single store update, in the order they were pushed.
 ///
 /// Updates are applied at the end of the current task. Updates that may wait for the next frame, e.g.
@@ -47,13 +66,16 @@ export class Store<T> {
 export class UpdateQueue<T> {
     /// The store
     private readonly store: Store<T>;
+    /// The scheduler
+    private readonly scheduler: UpdateScheduler;
     /// The pending updates
     private pending: Array<(state: T) => T>;
     /// The scheduled flush
-    private scheduled: { type: 'microtask' } | { type: 'frame'; handle: number } | null;
+    private scheduled: { type: 'task' } | { type: 'frame'; handle: unknown } | null;
 
-    constructor(store: Store<T>) {
+    constructor(store: Store<T>, scheduler: UpdateScheduler) {
         this.store = store;
+        this.scheduler = scheduler;
         this.pending = [];
         this.scheduled = null;
     }
@@ -63,14 +85,14 @@ export class UpdateQueue<T> {
         this.pending.push(update);
         if (waitForFrame) {
             if (this.scheduled == null) {
-                this.scheduled = { type: 'frame', handle: requestAnimationFrame(this.flush) };
+                this.scheduled = { type: 'frame', handle: this.scheduler.beforeFrame(this.flush) };
             }
         } else if (this.scheduled?.type === 'frame') {
-            cancelAnimationFrame(this.scheduled.handle);
+            this.scheduler.cancelFrame(this.scheduled.handle);
             this.flush();
         } else if (this.scheduled == null) {
-            this.scheduled = { type: 'microtask' };
-            queueMicrotask(this.flush);
+            this.scheduled = { type: 'task' };
+            this.scheduler.afterTask(this.flush);
         }
     }
 
@@ -93,27 +115,9 @@ export class UpdateQueue<T> {
     /// Drop the pending updates
     dispose(): void {
         if (this.scheduled?.type === 'frame') {
-            cancelAnimationFrame(this.scheduled.handle);
+            this.scheduler.cancelFrame(this.scheduled.handle);
         }
         this.scheduled = null;
         this.pending = [];
     }
-}
-
-/// Create the update queue of a store that lives as long as the component
-export function useUpdateQueue<T>(store: Store<T>): UpdateQueue<T> {
-    const [queue] = React.useState(() => new UpdateQueue(store));
-    React.useEffect(() => () => queue.dispose(), [queue]);
-    return queue;
-}
-
-/// Create a store that lives as long as the component
-export function useStore<T>(initial: () => T): Store<T> {
-    const [store] = React.useState(() => new Store(initial()));
-    return store;
-}
-
-/// Subscribe to the state of a store
-export function useStoreState<T>(store: Store<T>): T {
-    return React.useSyncExternalStore(store.subscribe, store.get);
 }

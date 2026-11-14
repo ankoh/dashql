@@ -3,79 +3,13 @@ import * as dashql from '@ankoh/dashql-core';
 import { EditorState, Facet, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '../scripts/focus.js';
-import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
+import { computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
+import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '../scripts/script_editor_state.js';
+export { DashQLCompletionStatus, type DashQLCompletionState, type DashQLPendingDiff, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '../scripts/script_editor_state.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 const LOG_PREFIX = '[workbook-editor-debug]';
 
-/// A script key
-export type DashQLScriptKey = number;
-/// A collection of FlatBuffers for a script
-export interface DashQLScriptBuffers {
-    /// The parsed script
-    parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
-    /// The analyzed script
-    analyzed: dashql.FlatBufferPtr<dashql.buffers.analyzer.AnalyzedScript> | null;
-}
-
-/// A completion status
-export enum DashQLCompletionStatus {
-    AVAILABLE,
-    SELECTED_CANDIDATE,
-    SELECTED_CATALOG_OBJECT,
-}
-
-/// A pending, staged formatting rewrite shown as an in-place diff.
-///
-/// The editor already holds the *new* (target) text; `priorText` is the verbatim text that was in
-/// the script before the rewrite, restored on reject. `diffBuffer` is the statement-level semantic
-/// diff (source = prior, target = new) used to highlight the changed statements and sub-ranges.
-/// Whole-suggestion accept/reject: accept keeps the new text, reject restores `priorText`, and any
-/// genuine user edit auto-accepts.
-export interface DashQLPendingDiff {
-    /// The verbatim text before the rewrite (restored on reject)
-    priorText: string;
-    /// The semantic diff from the prior text (source) to the new text (target)
-    diffBuffer: dashql.FlatBufferPtr<dashql.buffers.diff.ScriptDiff>;
-}
-
-/// A completion state
-export interface DashQLCompletionState {
-    /// The status
-    status: DashQLCompletionStatus;
-    /// Show as a passive inline hint only, without the dropdown list or candidate navigation.
-    passiveHint: boolean;
-    /// The completion buffer
-    buffer: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
-    /// The currently selected candidate id.
-    /// 0 if there are no candidates.
-    candidateId: number;
-    /// The patches to apply the candidate
-    candidatePatch: CompletionPatch[];
-    /// The currently selected catalog object id.
-    /// 0 if there are no objects.
-    catalogObjectId: number;
-    /// The patches to apply the catalog object
-    catalogObjectPatch: CompletionPatch[];
-    /// Override cursor position after applying qualification/function-call patches.
-    catalogObjectCursorOffset: number | null;
-}
-
-/// A state that is pushed from the processor to the outside
-export interface DashQLProcessorUpdateOut {
-    /// The key of the currently active script
-    scriptKey: DashQLScriptKey;
-    /// The currently active editor workbook
-    scriptSession?: dashql.DashQLScriptSession | null;
-    /// The latest plain editor-workbook snapshot.
-    editorUpdate?: dashql.buffers.editor.EditorUpdateT | null;
-    /// The previous processed script buffers (if any)
-    scriptBuffers: DashQLScriptBuffers | null;
-    /// The completion candidate state (if any)
-    scriptCompletion: DashQLCompletionState | null;
-    /// The pending staged rewrite shown as an in-place diff (if any)
-    scriptPendingDiff: DashQLPendingDiff | null;
-};
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     keywordCase?: dashql.buffers.formatting.KeywordCase;

@@ -1,9 +1,9 @@
 import * as arrow from "apache-arrow";
 import * as dashql from '@ankoh/dashql-core';
 
-import { QueryExecutor } from '../query_executor.js';
+import type { QueryExecutor } from '../query_execution_args.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
-import { DynamicConnectionDispatch } from "../connection_registry.js";
+import type { DynamicConnectionDispatch } from "../connection_registry_state.js";
 import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
 import { QueryType } from "../../query/query_execution_state.js";
 import { catalogTablesOfSchema, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, quoteLiteral, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';

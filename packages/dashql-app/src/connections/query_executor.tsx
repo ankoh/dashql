@@ -29,7 +29,8 @@ import { computeQueryResultCacheKey } from '../query/query_result_cache_key.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
-import { QueryExecutionArgs } from './query_execution_args.js';
+import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from './query_execution_args.js';
+export type { CancelQuery, QueryExecutor } from './query_execution_args.js';
 import { LoggableException, stringifyError, type TracedLogger } from '../platform/logger/logger.js';
 import type { LogRecord } from '../platform/logger/log_buffer.js';
 import { allocateQueryId, executeTrackedQuery } from '../query/tracked_query_execution.js';
@@ -81,9 +82,6 @@ export async function computeQueryCacheKeyForConnection(
     }
 }
 
-/// The query executor function
-export type QueryExecutor = (connectionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
-export type CancelQuery = (connectionId: string, queryId: number) => Promise<void>;
 interface QueryExecutionRuntime {
     /// Aborted by cancel() and by the abort signal of the caller, both stop the query at the backend
     cancellation: AbortController;

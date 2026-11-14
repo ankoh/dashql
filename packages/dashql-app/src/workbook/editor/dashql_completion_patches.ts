@@ -2,46 +2,8 @@ import * as dashql from '@ankoh/dashql-core';
 import { DEFAULT_DATABASE_NAME } from '../../connections/catalog/catalog_sql_generator.js';
 
 import { ChangeSpec, Text } from '@codemirror/state';
-import { VariantKind } from '../../utils/variant.js';
-import { DashQLCompletionState } from './dashql_processor.js';
-
-export const PATCH_INSERT_TEXT = Symbol("INSERT_TEXT");
-export const PATCH_DELETE_TEXT = Symbol("REMOVE_TEXT");
-
-export enum CompletionPatchTarget {
-    Candidate = 1,
-    CatalogObject = 2,
-}
-
-export type CompletionPatchVariant =
-    | VariantKind<typeof PATCH_INSERT_TEXT, InsertTextPatch>
-    | VariantKind<typeof PATCH_DELETE_TEXT, RemoveTextPatch>;
-
-export type CompletionPatch = CompletionPatchVariant & {
-    /// The patch target
-    target: CompletionPatchTarget;
-};
-
-export enum TextAnchor {
-    Right = -1,
-    Left = 1,
-}
-
-interface InsertTextPatch {
-    /// The location
-    at: number;
-    /// The completion text
-    text: string;
-    /// The text anchor of the hint
-    textAnchor: TextAnchor;
-}
-
-interface RemoveTextPatch {
-    /// Remove text at a location
-    at: number;
-    /// Remove `length` characters
-    length: number;
-}
+import { type CompletionPatch, CompletionPatchTarget, type DashQLCompletionState, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from '../scripts/script_editor_state.js';
+export { type CompletionPatch, CompletionPatchTarget, type CompletionPatchVariant, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from '../scripts/script_editor_state.js';
 
 /// Given two strings, derive the required patches to get from `have` to `want`.
 /// If `have` is a proper substring of `want`, emit before/after inserts around it.

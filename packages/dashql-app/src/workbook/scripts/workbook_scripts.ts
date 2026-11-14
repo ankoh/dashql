@@ -3,7 +3,7 @@ import * as core from '@ankoh/dashql-core';
 import { catalogNameDefaults } from '../../connections/connector_descriptor.js';
 import * as Immutable from 'immutable';
 
-import { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from '../editor/dashql_processor.js';
+import type { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from './script_editor_state.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo, ConnectorType } from '../../connections/connector_info.js';
 import { VariantKind } from '../../utils/variant.js';

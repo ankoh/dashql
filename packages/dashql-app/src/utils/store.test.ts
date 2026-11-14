@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Store, UpdateQueue } from './store.js';
+import { Store, TASK_UPDATE_SCHEDULER, UpdateQueue } from './store.js';
+import { FRAME_UPDATE_SCHEDULER } from './store_hooks.js';
 
 describe('store', () => {
     it('runs every updater exactly once and notifies after changes', () => {
@@ -22,7 +23,7 @@ describe('update queue', () => {
         const store = new Store<string[]>([]);
         const listener = vi.fn();
         store.subscribe(listener);
-        const queue = new UpdateQueue(store);
+        const queue = new UpdateQueue(store, FRAME_UPDATE_SCHEDULER);
         queue.push(values => [...values, 'a']);
         queue.push(values => [...values, 'b']);
         expect(store.current).toEqual([]);
@@ -33,7 +34,7 @@ describe('update queue', () => {
 
     it('applies updates that wait for a frame before an update that does not wait', () => {
         const store = new Store<string[]>([]);
-        const queue = new UpdateQueue(store);
+        const queue = new UpdateQueue(store, FRAME_UPDATE_SCHEDULER);
         queue.push(values => [...values, 'progress'], true);
         expect(store.current).toEqual([]);
         queue.push(values => [...values, 'finished']);
@@ -43,10 +44,20 @@ describe('update queue', () => {
 
     it('drops pending updates when disposed', async () => {
         const store = new Store<string[]>([]);
-        const queue = new UpdateQueue(store);
+        const queue = new UpdateQueue(store, FRAME_UPDATE_SCHEDULER);
         queue.push(values => [...values, 'progress'], true);
         queue.dispose();
         await new Promise(resolve => requestAnimationFrame(resolve));
         expect(store.current).toEqual([]);
+    });
+
+    it('applies updates that may wait for a frame with the next task without frames', async () => {
+        const store = new Store<string[]>([]);
+        const queue = new UpdateQueue(store, TASK_UPDATE_SCHEDULER);
+        queue.push(values => [...values, 'progress'], true);
+        await Promise.resolve();
+        expect(store.current).toEqual([]);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(store.current).toEqual(['progress']);
     });
 });

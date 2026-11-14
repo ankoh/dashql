@@ -20,7 +20,8 @@ import {
 import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from './workbook_scripts.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
+import { connectionLabelParts, connectionLabelText, type ConnectionLabelParts } from '../../connections/connection_label.js';
+import { connectionOrdinals } from '../../connections/connection_registry_state.js';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';

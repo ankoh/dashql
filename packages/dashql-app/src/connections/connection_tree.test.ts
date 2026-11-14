@@ -1,6 +1,7 @@
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { type ConnectionState } from './connection_state.js';
-import { connectionLabel, connectionLabelParts, connectionOrdinals } from './connection_label.js';
+import { connectionLabel, connectionLabelParts } from './connection_label.js';
+import { connectionOrdinals } from './connection_registry_state.js';
 import type { ConnectionRegistry } from './connection_registry.js';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 import {

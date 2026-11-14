@@ -2,9 +2,8 @@ import type * as arrow from 'apache-arrow';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { InformationSchemaScope } from '../catalog/catalog_query_information_schema.js';
-import type { QueryExecutor } from '../query_executor.js';
-import type { QueryExecutionArgs } from '../query_execution_args.js';
-import type { DynamicConnectionDispatch } from '../connection_registry.js';
+import type { QueryExecutionArgs, QueryExecutor } from '../query_execution_args.js';
+import type { DynamicConnectionDispatch } from '../connection_registry_state.js';
 import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { QueryType } from '../../query/query_execution_state.js';
 

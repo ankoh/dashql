@@ -28,7 +28,8 @@ import { CachedResultBean, QueryResultRerunButton } from '../persistence/query_r
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import { ScriptStatisticsBar } from '../scripts/script_statistics_bar.js';
-import { formatScriptEditor, formattingDialectForConnector, isScriptFormattable } from '../scripts/script_format.js';
+import { formattingDialectForConnector, isScriptFormattable } from '../scripts/script_format.js';
+import { formatScriptEditor } from '../editor/script_format_editor.js';
 import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import { displayPath } from '../../storage/workbook_locator.js';
