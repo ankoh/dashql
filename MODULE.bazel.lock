@@ -386,6 +386,35 @@
         }
       }
     },
+    "//bazel:external_agent_harnesses.bzl%agent_harnesses_ext": {
+      "general": {
+        "bzlTransitiveDigest": "Kh8ax4A7FstL8LgLkXH782qbUcusoPjjpcsbY+kMDnE=",
+        "usagesDigest": "ELz8dWmY4DNWIfNHdsXePKlxjZwQRgTUMJ1DNJFOzd8=",
+        "recordedInputs": [
+          "REPO_MAPPING:,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "claude_code_linux_x86_64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.325.tgz",
+              "integrity": "sha512-BqZzMvP/zgLLL34S+7OzbG+cyoFp7gwWHU5koVwsyMlTAz+0zZAmbY+UkzvtN2RXxp6AcMenbYIjQJxoXfUY3w==",
+              "strip_prefix": "package",
+              "build_file_content": "package(default_visibility = [\"//visibility:public\"])\n\nexports_files([\"claude\"])\n\nfilegroup(\n    name = \"licenses\",\n    srcs = [\"LICENSE.md\"],\n)\n"
+            }
+          },
+          "claude_code_macos_arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-darwin-arm64/-/claude-code-darwin-arm64-2.1.325.tgz",
+              "integrity": "sha512-Ds1f1B+qy2BWDI+VnmDHwkNyTbXCwFrBtrinPD95RBmUubFJu9nCzMgn+wrg5VwwF6vtkkzGexogneZIYZKb6A==",
+              "strip_prefix": "package",
+              "build_file_content": "package(default_visibility = [\"//visibility:public\"])\n\nexports_files([\"claude\"])\n\nfilegroup(\n    name = \"licenses\",\n    srcs = [\"LICENSE.md\"],\n)\n"
+            }
+          }
+        }
+      }
+    },
     "//bazel:external_tableauhyperapi.bzl%tableauhyperapi_ext": {
       "general": {
         "bzlTransitiveDigest": "pmSm3dvlpzGY+bk0AxY0YpK3W/yiUz9m/AkwjWkKttU=",

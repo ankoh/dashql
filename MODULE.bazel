@@ -204,6 +204,14 @@ use_repo(
     "tableauhyperapi_cxx_macos_x86_64",
 )
 
+# The agent harnesses of the agent integration tests in //tests/agents, fetched on first use.
+agent_harnesses = use_extension("//bazel:external_agent_harnesses.bzl", "agent_harnesses_ext")
+use_repo(
+    agent_harnesses,
+    "claude_code_linux_x86_64",
+    "claude_code_macos_arm64",
+)
+
 # Trino server (core + tpch plugin) and a Java runtime for //packages/trino-testing.
 # Only the Trino integration tests depend on them, so they are fetched on first use.
 trino = use_extension("//bazel:external_trino.bzl", "trino_ext")
