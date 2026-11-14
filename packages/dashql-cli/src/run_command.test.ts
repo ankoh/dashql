@@ -48,10 +48,18 @@ class FakeTrino {
             this.pending.set(id, text);
             return [200, { id, nextUri: `${this.endpoint}/v1/statement/executing/${id}/1`, stats: { state: 'QUEUED' } }];
         }
-        const executing = url.pathname.match(/^\/v1\/statement\/executing\/(q\d+)\/1$/);
+        const executing = url.pathname.match(/^\/v1\/statement\/executing\/(q\d+)\/(\d)$/);
         if (request.method === 'GET' && executing != null) {
             const id = executing[1];
             const text = this.pending.get(id) ?? '';
+            // A slow query reports its progress first and sends its rows after a while
+            if (/\bslow\b/.test(text) && executing[2] === '1') {
+                return [200, {
+                    id, nextUri: `${this.endpoint}/v1/statement/executing/${id}/2`,
+                    stats: { state: 'RUNNING', progressPercentage: 50, processedRows: 1000, elapsedTimeMillis: 10 },
+                }];
+            }
+            if (executing[2] === '2') await new Promise(resolve => setTimeout(resolve, 1500));
             if (/\bfail\b/.test(text)) {
                 return [200, {
                     id, stats: { state: 'FAILED' },
@@ -112,7 +120,7 @@ const PASSWORD: Partial<RunEnvironment> = { trinoPassword: 'pw' };
 /// A folder for the files of DashQL
 const tempHome = () => mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
 
-const run = (dir: string, args: string[], env: Partial<RunEnvironment> = PASSWORD, home = tempHome()) =>
+const run = (dir: string, args: string[], env: Partial<RunEnvironment> = PASSWORD, home: string | null = tempHome()) =>
     runWith((runArgs, cli) => runRun(runArgs, cli, { home, ...env }), dir, args);
 
 /// The Parquet files of the query result cache of a home
@@ -223,6 +231,45 @@ describe('dashql run', () => {
         expect(output.code).toBe(0);
         expect(output.stdout).toContain('  pear\n');
         expect(readdirSync(path.join(home, 'workbooks', WORKBOOK_ID, 'attachments'))).toEqual(['fruits.parquet']);
+    });
+
+    it('appends the files of the folder and every result to the journal of a session', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
+        // `dashql session serve` creates the journal in the folder of its session
+        mkdirSync(path.join(dir, '.dashql'));
+        writeFileSync(path.join(dir, '.dashql', 'journal.jsonl'), '');
+        // Without DASHQL_HOME the files of DashQL go into the .dashql/ of the session
+        expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(1);
+        const home = path.join(dir, '.dashql');
+        expect(readdirSync(home).sort()).toEqual(['cache', 'instances', 'journal.jsonl', 'logs', 'workbooks']);
+        const records = readFileSync(path.join(dir, '.dashql', 'journal.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line));
+        // The log of the run, at info and above, with the markers of what changed
+        expect(records.every(record => record.level >= 3)).toBe(true);
+        expect(records.some(record => record.target !== 'workbook_journal')).toBe(true);
+        const markers = records.filter(record => record.target === 'workbook_journal')
+            .map(record => [record.message, record.keyValues.script ?? null, record.keyValues]);
+        expect(markers.map(([message, script]) => [message, script])).toEqual([
+            ['Workbook files', null],
+            ['Script started', '01_orders.sql'],
+            ['Script result', '01_orders.sql'],
+            ['Script started', '02_broken.sql'],
+            ['Script result', '02_broken.sql'],
+        ]);
+        const [cached] = cacheFiles(home);
+        expect(markers[0][2]).toMatchObject({ workbook: '.', workbook_id: WORKBOOK_ID, files: ['dashql-workbook.json', 'scripts/01_orders.sql', 'scripts/02_broken.sql'] });
+        expect(markers[2][2]).toMatchObject({ key: cached.split('.')[0], result_rows: '3', error: '', cached: 'false' });
+        expect(markers[4][2]).toMatchObject({ key: '', result_rows: '', error: "line 1:8: Column 'fail' cannot be resolved" });
+    });
+
+    it('reports the progress of a running script to the journal', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
+        mkdirSync(path.join(dir, '.dashql'));
+        writeFileSync(path.join(dir, '.dashql', 'journal.jsonl'), '');
+        expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(0);
+        const progress = readFileSync(path.join(dir, '.dashql', 'journal.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line))
+            .filter(record => record.target === 'workbook_journal' && record.message === 'Script progress');
+        expect(progress.length).toBeGreaterThanOrEqual(1);
+        expect(progress[0].keyValues).toMatchObject({ script: 'slow.sql', phase: 'RUNNING', percent: '50', rows: '1000' });
     });
 
     it('fails before the scripts when the connection rejects the password', async () => {

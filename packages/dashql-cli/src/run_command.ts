@@ -35,6 +35,17 @@ import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/wor
 import { ensureWorkbookScriptAnalyzed } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
+import { openSessionJournal, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import {
+    JOURNAL_FILES,
+    JOURNAL_KEYS,
+    JOURNAL_SCRIPT_PROGRESS,
+    JOURNAL_SCRIPT_RESULT,
+    JOURNAL_SCRIPT_STARTED,
+    JOURNAL_TARGET,
+    SESSION_JOURNAL_FOLDER,
+} from '@ankoh/dashql-runtime/session/workbook_journal';
+import type { LogKeyValues } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 
 export const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--verbose] <workbook-dir> [<script>...]
 
@@ -43,8 +54,9 @@ script runs like the Run of the script in DashQL: with the scripts it references
 that fails. Prints the schema, the row count and the first rows of every result (--rows, 10 by default), and the
 Parquet file of the result in the query result cache.
 
-The files of DashQL are in DASHQL_HOME (~/.dashql), with the layout of the storage of the app: the query result cache
-in cache/, the attachments of the workbooks in workbooks/<id>/attachments. A script whose result is cached is not run
+The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
+attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the nearest .dashql/ above the
+workbook folder, which dashql session serve creates in the folder of its session, or ~/.dashql. A script whose result is cached is not run
 again unless a script it follows runs, --refresh runs every script.
 
 Connections: Trino with basic auth. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the user and the password
@@ -59,15 +71,16 @@ const MAX_CELL_LENGTH = 40;
 
 /// The files and the credentials of the process
 export interface RunEnvironment {
-    /// The folder of the files of DashQL, the root of the storage of the app
-    home: string;
+    /// The folder of the files of DashQL (DASHQL_HOME), null to find it: the nearest `.dashql/` above the workbook
+    /// folder, which `dashql session serve` creates in the folder of its session, or `~/.dashql`
+    home: string | null;
     trinoUser?: string;
     trinoPassword?: string;
 }
 
 export function processRunEnvironment(): RunEnvironment {
     return {
-        home: process.env.DASHQL_HOME || path.join(homedir(), '.dashql'),
+        home: process.env.DASHQL_HOME || null,
         trinoUser: process.env.DASHQL_TRINO_USER || undefined,
         trinoPassword: process.env.DASHQL_TRINO_PASSWORD,
     };
@@ -110,6 +123,9 @@ function parseRunArgs(args: string[]): RunArgs | string {
 
 /// The logger of a run, prints the records with --verbose
 class RunLogger extends Logger {
+    /// The journal of the session of the workbook folder, it gets the records from info on
+    journal: SessionJournal | null = null;
+
     constructor(private readonly print: ((record: LogRecord) => void) | null) {
         super();
     }
@@ -122,9 +138,13 @@ class RunLogger extends Logger {
         for (const record of pending) {
             this.outputBuffer.push(record);
             this.print?.(record);
+            if (record.level >= LogLevel.Info) this.journal?.write(record);
         }
     }
 }
+
+/// How often a running script reports its progress to the journal at most
+const PROGRESS_INTERVAL_MS = 1000;
 
 /// A log record in one line
 function logLine(record: LogRecord): string {
@@ -251,6 +271,19 @@ function count(n: number, noun: string): string {
     return `${n} ${noun}${n === 1 ? '' : 's'}`;
 }
 
+/// The root of the files of DashQL for a workbook folder: the nearest `.dashql/` in the folder or above it, the one of
+/// the session that the folder is in, or `~/.dashql`
+export function findDashQLRoot(workbookFolder: string): string {
+    let dir = path.resolve(workbookFolder);
+    while (true) {
+        const root = path.join(dir, SESSION_JOURNAL_FOLDER);
+        if (existsSync(root)) return root;
+        const parent = path.dirname(dir);
+        if (parent === dir) return path.join(homedir(), SESSION_JOURNAL_FOLDER);
+        dir = parent;
+    }
+}
+
 /// The connections that the plan of a script runs statements on: its own and those of the scripts it materializes. A
 /// script that can't be planned needs its own, its run reports why. The scripts are analyzed and published into the
 /// catalogs first, like a run does, the planner refuses stale analyses.
@@ -271,7 +304,7 @@ async function plannedConnections(workbook: WorkbookScripts, file: string): Prom
 
 /// The file of the result of a script in the query result cache, null if its result is not cached. A file that is older
 /// than the run served the result.
-async function resultFile(rt: Runtime, hyper: NodeComputeDatabase, workbook: WorkbookScripts, scriptKey: number, startedAt: number): Promise<{ path: string; served: boolean } | null> {
+async function resultFile(rt: Runtime, hyper: NodeComputeDatabase, workbook: WorkbookScripts, scriptKey: number, startedAt: number): Promise<{ key: string; path: string; served: boolean } | null> {
     // The executor writes the result after the query resolved
     await rt.executor.flushCacheWrites();
     const script = workbook.scripts[scriptKey];
@@ -279,7 +312,7 @@ async function resultFile(rt: Runtime, hyper: NodeComputeDatabase, workbook: Wor
     const key = await computeScriptResultCacheKey(rt.execution.scriptRunServices, workbook, script);
     const entry = key == null ? null : await hyper.resultCache.lookup(key);
     if (entry == null) return null;
-    return { path: path.join(hyper.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name), served: entry.cachedAtMs < startedAt };
+    return { key: entry.key, path: path.join(hyper.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name), served: entry.cachedAtMs < startedAt };
 }
 
 /// Load the workbook of a folder into the runtime
@@ -315,7 +348,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     // connections and the attachments. Without it the scripts still run, nothing is written.
     let hyper: NodeComputeDatabase | null = null;
     try {
-        hyper = await openNodeComputeDatabase(env.home);
+        hyper = await openNodeComputeDatabase(env.home ?? findDashQLRoot(dir));
     } catch (error) {
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
@@ -338,6 +371,21 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         const { workbookId } = workbook;
         // The embedded Hyper reads the attachments from the root, like the app reads them from its storage
         if (hyper != null) await mirrorWorkbookAttachments(storage, workbookId);
+        // A session below the folder learns the files of the folder, the agent may have changed them, and every result
+        // In a session the log of the run goes into its journal, with markers of what changed
+        logger.journal = openSessionJournal(dir);
+        const mark = (message: string, keyValues: LogKeyValues) => {
+            if (logger.journal == null) return;
+            logger.info(message, { [JOURNAL_KEYS.workbook]: logger.journal.workbook, [JOURNAL_KEYS.workbookId]: workbookId, ...keyValues }, JOURNAL_TARGET);
+        };
+        const markResult = (script: string, result: { key?: string | null; rows?: number | null; error?: string | null; cached?: boolean }) => mark(JOURNAL_SCRIPT_RESULT, {
+            [JOURNAL_KEYS.script]: script,
+            [JOURNAL_KEYS.key]: result.key ?? '',
+            [JOURNAL_KEYS.resultRows]: result.rows == null ? '' : String(result.rows),
+            [JOURNAL_KEYS.error]: result.error ?? '',
+            [JOURNAL_KEYS.cached]: String(result.cached ?? false),
+        });
+        mark(JOURNAL_FILES, { [JOURNAL_KEYS.files]: await workbookFolderPaths(storage) });
 
         // The scripts by their file names, `scripts/a.sql` names `a.sql`
         const files = [...workbook.scriptOrder];
@@ -353,7 +401,30 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         // The connections are set up once, when a plan first runs statements on them
         const ready = new Set<string>();
         // The results are printed, the run doesn't analyze them
-        const execute: QueryExecutor = (connectionId, queryArgs) => rt.executor.execute(connectionId, { ...queryArgs, analyzeResults: false });
+        // The queries of the script that runs, their progress goes into the journal
+        const running = new Map<number, string>();
+        const execute: QueryExecutor = (connectionId, queryArgs) => {
+            const [queryId, execution] = rt.executor.execute(connectionId, { ...queryArgs, analyzeResults: false });
+            running.set(queryId, connectionId);
+            return [queryId, execution];
+        };
+        /// The latest progress of the queries of the script that runs, logged when it changed
+        let lastProgress = '';
+        const reportProgress = (script: string) => {
+            for (const [queryId, connectionId] of running) {
+                const progress = rt.connections.store.current.connections.get(connectionId)?.queriesActive.get(queryId)?.latestProgressUpdate;
+                if (progress == null) continue;
+                const values = {
+                    [JOURNAL_KEYS.script]: script,
+                    [JOURNAL_KEYS.phase]: progress.phase ?? '',
+                    [JOURNAL_KEYS.percent]: progress.progressPercent == null ? '' : String(Math.round(progress.progressPercent)),
+                    [JOURNAL_KEYS.rows]: progress.rowsProcessed == null ? '' : String(progress.rowsProcessed),
+                };
+                const text = JSON.stringify(values);
+                if (text !== lastProgress) mark(JOURNAL_SCRIPT_PROGRESS, values);
+                lastProgress = text;
+            }
+        };
         const modify = (action: Parameters<Runtime['workbooks']['dispatch']>[1]) => rt.workbooks.dispatch(workbookId, action);
         const current = () => rt.workbooks.store.current.workbookScriptsMap.get(workbookId)!;
         let succeeded = 0;
@@ -370,13 +441,23 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
                     if (conn == null) throw new Error(`the workbook has no connection ${connectionId}`);
                     const failure = await setupConnection(rt, conn, env, hyper);
                     if (failure != null) {
+                        markResult(file, { error: `${connectionLabel(conn)}: ${failure}` });
                         cli.stdout(`${connectionLabel(conn)}  failed\n  ${failure}\n`);
                         return EXIT_FAILED;
                     }
                     ready.add(connectionId);
                 }
-                table = await runPlannedScript(rt.execution.scriptRunServices, current(), script, execute, modify, { logger, refresh: parsed.refresh });
+                running.clear();
+                lastProgress = '';
+                mark(JOURNAL_SCRIPT_STARTED, { [JOURNAL_KEYS.script]: file });
+                const progressTimer = logger.journal == null ? null : setInterval(() => reportProgress(file), PROGRESS_INTERVAL_MS);
+                try {
+                    table = await runPlannedScript(rt.execution.scriptRunServices, current(), script, execute, modify, { logger, refresh: parsed.refresh });
+                } finally {
+                    if (progressTimer != null) clearInterval(progressTimer);
+                }
             } catch (error) {
+                markResult(file, { error: describeError(error) });
                 cli.stdout(`${file}  failed\n  ${describeError(error).replace(/\n/g, '\n  ')}\n`);
                 const skipped = selected.length - succeeded - 1;
                 if (skipped > 0) cli.stdout(`\n${count(skipped, 'script')} not run\n`);
@@ -391,6 +472,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
                 cli.stdout(`${file}  ok  ${count(table.numRows, 'row')}  ${seconds} s${from}\n${describeTable(table, parsed.rows)}`);
             }
             if (cached != null) cli.stdout(`  ${cached.path}\n`);
+            markResult(file, { key: cached?.key, rows: table?.numRows ?? null, cached: cached?.served ?? false });
             ++succeeded;
         }
         return EXIT_OK;

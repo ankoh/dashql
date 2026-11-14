@@ -331,7 +331,7 @@ Electron's Node (`ELECTRON_RUN_AS_NODE`).
   - Tested against a fake Trino in `//packages/dashql-cli:test`, the bundle in `:binary_test`, by hand against
     `bazel run //:trino`.
 - **The root of Node.** The CLI brings its own root, a folder with the layout of the origin private file system
-  (`DASHQL_HOME`, `~/.dashql`; `docs/design/storage_layout.md`), so the modules of the runtime that keep files in the
+  (`DASHQL_HOME`, else the `.dashql/` of the session, else `~/.dashql`; `docs/design/storage_layout.md`), so the modules of the runtime that keep files in the
   root run unchanged: `setOPFSRootProvider` (`platform/opfs_root.ts`) hands them `NodeDirectoryHandle`s
   (`node/node_directory_handle.ts`), the handles of the File System Access API over `node:fs` that the modules use, with
   the path of the host. `openNodeComputeDatabase` (`node/node_hyperdb.ts`) starts the build of `hyperdb-wasm` for Node

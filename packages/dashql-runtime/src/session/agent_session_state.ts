@@ -1,3 +1,6 @@
+import type { LogRecord } from '../platform/logger/log_buffer.js';
+import { isJournalMarker, reduceJournalMarker, type JournalFile, type SessionWorkbook } from './workbook_journal.js';
+
 /// The events of a harness that its hooks send to `dashql session serve`, docs/wip/agent_session.md
 export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PostToolUse' | 'Stop' | 'SessionEnd';
 
@@ -42,15 +45,21 @@ export interface AgentSessionState {
     ended: boolean;
     /// The turns, oldest first
     turns: AgentSessionTurn[];
-    /// Counts the events, a page tells a new state by it
+    /// The workbook folders that dashql commands changed, from the markers of the journal (workbook_journal.ts)
+    workbooks: SessionWorkbook[];
+    /// The latest other log records of the dashql commands of the session, oldest first
+    log: LogRecord[];
+    /// Counts the events and the lines of the journal, a page tells a new state by it
     version: number;
 }
 
 /// The turns that a session keeps, the oldest go first
 export const MAX_AGENT_SESSION_TURNS = 50;
+/// The log records of the commands that a session keeps, the oldest go first
+export const MAX_AGENT_SESSION_LOG = 100;
 
 export function createAgentSessionState(harness: string, folder: string): AgentSessionState {
-    return { harness, folder, ended: false, turns: [], version: 0 };
+    return { harness, folder, ended: false, turns: [], workbooks: [], log: [], version: 0 };
 }
 
 /// A turn of a question
@@ -93,6 +102,17 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
         folder: event.folder || state.folder,
         ended: event.event === 'SessionEnd' ? true : event.event === 'SessionStart' ? false : state.ended,
         turns: turns.slice(-MAX_AGENT_SESSION_TURNS),
+        workbooks: state.workbooks,
+        log: state.log,
         version: state.version + 1,
     };
+}
+
+/// Apply a record of the journal of the session: a marker changes the workbooks, the files of a Workbook files marker
+/// come with the stamps that the caller read. Every other record joins the log.
+export function reduceAgentSessionJournal(state: AgentSessionState, record: LogRecord, files: JournalFile[] = []): AgentSessionState {
+    if (isJournalMarker(record)) {
+        return { ...state, workbooks: reduceJournalMarker(state.workbooks, record, files), version: state.version + 1 };
+    }
+    return { ...state, log: [...state.log, record].slice(-MAX_AGENT_SESSION_LOG), version: state.version + 1 };
 }

@@ -111,10 +111,13 @@ broken.sql  failed
 Every result shows its schema, its row count, its first rows (`--rows`, 10 by default) and its Parquet file in the
 query result cache. `--verbose` prints the log of the runtime to stderr.
 
-- **The files of DashQL.** `DASHQL_HOME` (`~/.dashql`) has the layout of the storage of the app
-  (`docs/design/storage_layout.md`): the query result cache in `cache/`, the attachments of a workbook in
-  `workbooks/<id>/attachments/`, mirrored from the folder before the run, and a folder per run of the embedded Hyper
-  in `instances/`, removed at its end. It is a root of its own, the app keeps its files in the storage of the browser.
+- **The files of DashQL.** A root with the layout of the storage of the app (`docs/design/storage_layout.md`): the
+  query result cache in `cache/`, the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the
+  folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end. The root is
+  `DASHQL_HOME`, else the nearest `.dashql/` above the workbook folder, the one that `dashql session serve` creates in
+  the folder of its session, else `~/.dashql`. In a session, everything of a project is in its `.dashql/`, which
+  commands in the sandbox of a harness may write. It is a root of its own, the app keeps its files in the storage of
+  the browser.
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
   app; the result then says `from the cache`. `--refresh` runs every script. The workbook folder is not written.
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
@@ -127,6 +130,8 @@ query result cache. `--verbose` prints the log of the runtime to stderr.
   can filter, so `run` runs in a child process whose descriptor 1 goes nowhere and writes its output to the stdout of
   the parent.
 - **Not yet.** The catalog of a connection is not described.
+- **Sessions.** In the folder of a session (`dashql session`), `run` appends the files of the workbook folder and every
+  result to the journal of the session.
 - **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
 
 The exit code is 0 if all scripts ran, 1 if a script or a connection failed and 2 on usage errors or a folder without a
@@ -145,8 +150,13 @@ The hooks of a harness send its events to the server of the session, DashQL foll
 (`session serve`, detached, on `127.0.0.1` with a token) if it has none, and sends the event to it. `SessionStart`
 prints the link, the harness hands it to the agent. A hook never fails the harness. The server keeps the question,
 the status lines, the files that the tools touched and the final message of every turn, and stops when the harness
-ends the session. `DASHQL_SESSION_HOME` is the folder of the running sessions (`~/.dashql/sessions`), `DASHQL_APP_URL`
+ends the session. `DASHQL_SERVERS` is the folder of the running servers (`~/.dashql/servers`), one file per server with its
+port and token; `DASHQL_APP_URL`
 the page of the links (`https://dashql.app`).
+
+The server also creates the journal of the session, `.dashql/journal.jsonl` in its folder. `dashql run` appends the
+files of a workbook folder below it and every result, the server folds them into its state and hands out the files of
+the workbook folders and the results of its `.dashql/cache` to the page (`docs/wip/agent_session.md`).
 
 Claude Code, in its settings (`.claude/settings.json`):
 

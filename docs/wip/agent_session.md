@@ -20,6 +20,37 @@ access per workbook and no prompt in natural language.
   offline. The page follows the folder.
 - **The page watches.** The questions come from the terminal, and the terminal stops the agent.
 
+## The journal
+
+The files of the agent reach the page through a journal, not through the hooks: every agent interaction with a workbook
+goes through a `dashql` command, so the commands tell what they changed.
+
+- **The server creates it.** `dashql session serve` creates `.dashql/journal.jsonl` in the folder of the session, empty
+  for every session; the folder ignores itself (`.dashql/.gitignore` is `*`). A folder it can't write to has no
+  journal.
+- **Commands append their log to it.** A command of a workbook folder walks up to the nearest `.dashql/journal.jsonl`
+  and appends its log records from `info` on, one JSON line each, the `LogRecord`s of the log of the app. Records of
+  the target `workbook_journal` are markers of what changed (`session/workbook_journal.ts` of the runtime), with the
+  workbook folder relative to the folder of the session and the workbook id in their values:
+  - `Workbook files`: the paths of all files of the folder (`files` is a list, log values are texts or lists of texts);
+    the stamps of the whole folder make the edits of the harness's own tools show up with the next command
+  - `Script started`, `Script progress` (the phase, percent and rows of its query, at most once a second while it
+    changes) and `Script result` (the key in the query result cache, the rows, the error, whether the cache served it).
+
+  A command writes its files first and the marker after. Without a journal it appends nothing. `dashql run` writes
+  today.
+- **The server follows it.** It reads what was appended every 200 ms. It folds the markers into the `workbooks` of the
+  state, reading the stamps of the files of a `Workbook files` marker itself, and keeps the latest 100 other records as
+  the `log` of the commands. The markers are the contract, the other records are for display.
+- **The page pulls.** The server hands out the files of a workbook folder at
+  `/v1/workbooks/<token>/<workbook id>/<path>` (the files of a published workbook, `workbook_publishing.md`) and the
+  newest result of a key at `/v1/results/<token>/<key>` from `.dashql/cache`, where the commands of the session keep
+  their files (or `DASHQL_HOME/cache`). The token is part of the path, so the
+  relative paths of a workbook folder keep it. The page fetches what it lacks and keeps it in its OPFS, results through
+  `QueryResultCache.importFile`; it doesn't do that yet.
+- **The hooks stay** for the conversation: `SessionStart` starts the server, `UserPromptSubmit` and `Stop` carry the
+  question and the final message. The journal can replace `PostToolUse`.
+
 ## The page
 
 - **The server** (`packages/dashql-cli/src/session_server.ts`) keeps the state that the runtime reduces from the events

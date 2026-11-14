@@ -151,15 +151,15 @@ test('dashql lint runs in the sandbox', async () => {
 
 test('the hooks show the session in DashQL: the question, what the agent ran and its answer', async () => {
     const dir = caseDir('dashql_session');
-    const sessions = join(dir, 'sessions');
+    const servers = join(dir, 'servers');
     const { output } = await runClaude(dir, {
         command: 'echo hello from scripts/orders.sql',
         hook: `${DASHQL} session hook {event} --harness claude`,
         hookEvents: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop'],
-        env: { DASHQL_SESSION_HOME: sessions },
+        env: { DASHQL_SERVERS: servers },
     });
     assert.equal(output, 'hello from scripts/orders.sql');
-    const { files, state } = await readDashQLSession(sessions);
+    const { files, state } = await readDashQLSession(servers);
     assert.equal(files.length, 1, JSON.stringify(files));
     assert.equal(state.harness, 'claude');
     assert.deepEqual(state.turns.map(turn => ({ ...turn })), [{
