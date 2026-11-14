@@ -24,7 +24,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
   loopback, listening and DNS inside its sandbox). Commands that need the network (`run`, catalog refreshes) are
   separate subcommands that a user can allow once by prefix.
 - **Node is where agents run.** The CLI is an npm package with a real `dashql` command, so an approval rule can name
-  `dashql run` and never `node`. `hyperdb-wasm` requires Node 24 or later; the core alone runs on older versions.
+  `dashql run` and never `node`. The embedded Hyper needs Node 24.15 or later (see
+  [Runtimes for the embedded Hyper](#runtimes-for-the-embedded-hyper)); the core alone runs on older versions.
 - **Tests without a browser.** The SDK's tests run in Node.
 
 ## Findings
@@ -103,6 +104,36 @@ What the closure still reaches that only a browser or the bundler provides, for 
 - `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`.
 - `storage/storage_backend.ts` and `workbook/attachments/attachment_mounts.ts` import `platform/opfs_root.ts`
   (`navigator.storage`).
+
+### Runtimes for the embedded Hyper
+
+`hyperdb-wasm` is a wasm64 build: 64-bit memory, 64-bit tables (table64) and Wasm exceptions with `exnref`. A runtime
+must support all three.
+
+| Runtime | Embedded Hyper |
+|---|---|
+| Node 22 | No. V8 12.4 rejects the tables (`invalid table elements limits flags`), and no flag helps |
+| Node 24.0 to 24.14 | Only as `node --experimental-wasm-exnref …`, otherwise `invalid value type 'exn'` |
+| Node 24.15 and later | Yes, without flags. 24.15.0 cherry-picks V8's "Enable exnref" (nodejs/node#62567) |
+| Electron 45 (`ELECTRON_RUN_AS_NODE`) | Should, its V8 is the one of Chromium, which has all three; not tried |
+| Bun | No. JavaScriptCore has no memory64 yet (WebKit bug 300538 is open), and no Safari has it either |
+
+On Node 24.22.0 the `node` build of `hyperdb-wasm` creates a database and runs a query without flags, and fails with
+`--no-experimental-wasm-exnref`. Node 22.23 and 24.4.1 were tested on the side of Hyper. The same gap in
+JavaScriptCore means that the embedded Hyper of the app doesn't load in Safari.
+
+For agents this means:
+
+- **No flag.** Node refuses V8 flags in `NODE_OPTIONS` (`--experimental-wasm-exnref is not allowed in NODE_OPTIONS`),
+  and a flag on the command line breaks approval by prefix and launches through `npx`. The CLI declares
+  `engines: node >=24.15` and runs without flags. `hyperdb-wasm` should declare the same instead of `>=24`. Where
+  an older Node 24 must work, the package can call `v8.setFlagsFromString('--experimental-wasm-exnref')` before it
+  compiles the engine; that works on a Node started without exnref.
+- **The `node` of a harness may not be the one of the shell.** MCP servers and hooks start without the login shell,
+  and other tools put their own older Node on `PATH`. The CLI validates a tiny module per feature at startup
+  (`WebAssembly.validate`) and names `process.execPath` and the missing feature, instead of failing in V8.
+- **Hyper only where it's needed.** The CLI loads `hyperdb-wasm` lazily, in commands that query the embedded Hyper.
+  `check`, `pack`, `unpack`, `link`, `lint` and `format` need only the core, so they run on older Node too.
 
 ## Layout
 
@@ -244,5 +275,7 @@ The browser and Node must offer the same: every feature of the SDK runs, and is 
 - **The Rust CLI.** `lint` and `format` are core functions and move into the SDK; the agent server could move to
   Node. DashQL.app can run the Node CLI with Electron's Node (`ELECTRON_RUN_AS_NODE`). Replace the Rust `dashql` once
   step 4 works, or keep it for native-only parts.
-- **Bun.** AI Suite ships Bun 1.3.5; run the SDK's tests under Bun as well.
+- **Bun.** AI Suite ships Bun 1.3.5. It can't load the embedded Hyper until JavaScriptCore has memory64. The core and
+  the commands without Hyper may run; that is untested. Run the SDK's tests without Hyper under Bun as well, and the
+  rest once JavaScriptCore has memory64.
 - **A plain-JSON link.** A workbook without results as JSON in the fragment of the link, for agents without the CLI.
