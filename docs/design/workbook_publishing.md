@@ -15,7 +15,7 @@ scripts/
   01_setup.sql
   02_report.sql
 attachments/
-  sales.csv
+  sales.parquet
 connections/<connection-id>/
   dashql-catalog-relations.sql
   dashql-catalog-functions.sql
@@ -26,7 +26,7 @@ Static HTTP servers cannot enumerate folders, so `dashql-workbook.json` lists th
 
 ```json
 {
-  "formatVersion": 10,
+  "formatVersion": 11,
   "workbookId": "…",
   "connections": [
     { "connectionId": "22bdfa32-…", "params": { "…": "…" } },
@@ -137,7 +137,7 @@ OPFS and registered native workbooks both participate in the UUID check.
 ## Imported Connections
 
 Exports give every connection a fresh id, so an import finds the connections of the app by their params
-(`planConnectionImport`, `packages/dashql-app/src/workbook/persistence/workbook_connection_import.ts`):
+(`planConnectionImport`, `packages/dashql-runtime/src/workbook/persistence/workbook_connection_import.ts`):
 
 - A connection that the app knows under the same id and the same params (ignoring secrets) is used silently.
 - A server connection whose params match connections of the app asks the user whether to use one of them or
@@ -147,7 +147,7 @@ Exports give every connection a fresh id, so an import finds the connections of 
 - An embedded database (`"protocol": "WASM"`) always uses the embedded database of the app, without a question.
   Its id is rewritten in `connections`, in the `connectionId` of every script and in the names of its catalogs.
   The restoration of the app does the same for an embedded database with an unknown id
-  (`resolveWorkbookConnection`, `packages/dashql-app/src/workbook/persistence/app_state_loader.ts`).
+  (`resolveWorkbookConnection`, `packages/dashql-runtime/src/workbook/persistence/app_state_loader.ts`).
 
 **Open problem: attached databases of the embedded database.** The params of an embedded database may list
 `attachedDatabases` (e.g. `tpch.hyper`). An imported workbook takes the params of the embedded database of the

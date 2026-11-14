@@ -8,15 +8,15 @@ into the core, and why we decided against it for now.
 | Area | State |
 |---|---|
 | Plan-shape guarantees in the planner | Possible small step, not started |
-| Graph executor in `dashql-core-workbook` | Deferred |
+| Graph executor in `dashql-core-session` | Deferred |
 
 ## Background
 
-Every run of a workbook executes a plan. The planner (`packages/dashql-core-workbook/src/planner.rs`)
+Every run of a workbook executes a plan. The planner (`packages/dashql-core-session/src/planner.rs`)
 turns the scripts of a workbook, or one target script and the scripts it references, into an
 `ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines. Edges
 order conflicting accesses. The app's
-`packages/dashql-app/src/workbook/scripts/workbook_execution.ts` (`runExecutionGraph`) executes
+`packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts` (`runExecutionGraph`) executes
 that graph in TypeScript, for a run of the workbook (`runWorkbookExecution`) and for a run of one
 script (`runPlannedScript` in `script_run.ts`).
 
@@ -24,7 +24,7 @@ The scheduling lives outside the core, the core owns the order (the edges).
 
 ## The proposal
 
-Add a graph execution state machine to `dashql-core-workbook`, next to `planner.rs` (for example
+Add a graph execution state machine to `dashql-core-session`, next to `planner.rs` (for example
 `graph_execution.rs`), exported through the core wasm with a protocol of steps:
 
 - `start` returns the nodes that are ready to run.
@@ -85,8 +85,8 @@ This is a small, independent change.
 
 ## Files
 
-- `packages/dashql-core-workbook/src/planner.rs`
-- `packages/dashql-app/src/workbook/scripts/script_run.ts`
-- `packages/dashql-app/src/workbook/scripts/workbook_execution.ts`
+- `packages/dashql-core-session/src/planner.rs`
+- `packages/dashql-runtime/src/workbook/scripts/script_run.ts`
+- `packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts`
 - `proto/fb/dashql/execution_graph.fbs`
 - `docs/design/core_analysis_catalog.md` (catalog changes in planned execution)

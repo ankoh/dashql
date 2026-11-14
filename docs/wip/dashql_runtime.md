@@ -1,6 +1,8 @@
 # DashQL runtime
 
-Status: steps 1 and 2 are built, step 3 is built for four services, step 4 has the OAuth flow, the restore and the runtime object, the rest is proposed.
+Status: steps 1 to 3 are built. Step 4 has the OAuth flow, the restore, the runtime object, the Node platform with the
+embedded Hyper, and the CLI with `lint`, `format`, `run` and `session serve`. Open: the `RuntimeProvider` of the app,
+`dashql auth`, `workbook check`/`pack`/`link`, and step 5.
 
 `packages/dashql-runtime` (`@ankoh/dashql-runtime`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -10,13 +12,13 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | Part | State |
 |---|---|
 | Untangling in place (leaks, `Store` without React) | Done, step 1 |
-| `packages/dashql-runtime` with the clean modules, `//packages/dashql-runtime:boundary_test` | Done, step 2; their tests still run in the browser tests of the app |
-| Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections are done |
+| `packages/dashql-runtime` with the clean modules, `//packages/dashql-runtime:boundary_test` | Done, step 2; their tests run in Node and in the browser tests of the app |
+| Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections, done |
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
 | One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
 | Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper over a root folder with the layout of OPFS, done |
-| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth and the embedded Hyper, results in the query result cache, done; `workbook check`, `pack`, `link`, `auth` follow |
+| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth and the embedded Hyper, results in the query result cache, done; `session serve` with the journal of a workspace, done; `workbook check`, `pack`, `link`, `auth` follow |
 | Editor state out of `ScriptData` | Later, step 5 |
 
 ## Why
@@ -28,15 +30,17 @@ Node command line tool share it. An agent then works on workbooks with the same 
   loopback, listening and DNS inside its sandbox). Commands that need the network (`run`, catalog refreshes) are
   separate subcommands that a user can allow once by prefix.
 - **Node is where agents run.** The CLI is an npm package with a real `dashql` command, so an approval rule can name
-  `dashql run` and never `node`. The embedded Hyper needs Node 24.15 or later (see
+  `dashql run` and never `node`. The embedded Hyper needs Node 24 or later (see
   [Runtimes for the embedded Hyper](#runtimes-for-the-embedded-hyper)); the core alone runs on older versions.
 - **Tests without a browser.** The runtime's tests run in Node.
 
 ## Findings
 
+What the app looked like before step 1, with the paths of then.
+
 ### The state already lives outside React
 
-`utils/store.ts` has `Store<T>` (`current`, `subscribe`, `update`) and `UpdateQueue<T>`. The registries free Wasm
+`utils/store.ts` (now `store/store.ts` of the runtime) has `Store<T>` (`current`, `subscribe`, `update`) and `UpdateQueue<T>`. The registries free Wasm
 objects and schedule storage writes while they reduce, so an update must run exactly once, which React's state hooks
 don't promise. Components read the stores through `useSyncExternalStore`. React appears only in:
 
@@ -129,13 +133,13 @@ Two properties of the source package hold:
 of a bundler: the functions of Hyper are SQL text in a module (`connections/catalog/prefetched_hyper_functions_sql.ts`)
 and the platform provides the specs of the extensions (`provideClientFunctionSpecs` of `connections/clfn/clfn_specs.ts`;
 the app passes its `import.meta.glob` in `connections/clfn/bundled_clfn_specs.ts`, which its pages and the test frame
-import, the tests in Node in `test/setup_node.mjs`). Step 4 removes the others:
+import, the tests in Node in `test/setup_node.mjs`). The seams that remain are listed in `KNOWN_SEAMS` of the test:
 
-- The origin private file system: `platform/opfs_root.ts`, `platform/database/embedded_database.ts`,
-  `platform/hyperdb/hyperdb_parquet_export.ts`, `storage/migration/migration_folder.ts`, `storage/workbook_tree.ts`,
-  `workbook/attachments/attachment_mounts.ts`.
+- The origin private file system: only `platform/opfs_root.ts` reads `navigator.storage`. The other modules that keep
+  files ask it for the root (`getOPFSRoot()`), and Node hands them a folder of the host (`setOPFSRootProvider`).
 - The Electron bridge: `platform/electron_fs.ts`, `platform/native_globals.ts`.
-- `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`.
+- A Web Worker: `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`; its tests run only
+  in the browsers.
 
 ### Runtimes for the embedded Hyper
 
@@ -157,51 +161,55 @@ JavaScriptCore means that the embedded Hyper of the app doesn't load in Safari.
 For agents this means:
 
 - **No flag.** Node refuses V8 flags in `NODE_OPTIONS` (`--experimental-wasm-exnref is not allowed in NODE_OPTIONS`),
-  and a flag on the command line breaks approval by prefix and launches through `npx`. The CLI declares
-  `engines: node >=24.15` and runs without flags. `hyperdb-wasm` should declare the same instead of `>=24`. Where
-  an older Node 24 must work, the package can call `v8.setFlagsFromString('--experimental-wasm-exnref')` before it
-  compiles the engine; that works on a Node started without exnref.
+  and a flag on the command line breaks approval by prefix and launches through `npx`. Before it compiles the engine,
+  `node/node_hyperdb.ts` calls `v8.setFlagsFromString('--experimental-wasm-exnref')` when exnref is missing, so every
+  Node 24 runs it without flags. The CLI declares `engines: node >=22`, for the commands without Hyper.
 - **The `node` of a harness may not be the one of the shell.** MCP servers and hooks start without the login shell,
-  and other tools put their own older Node on `PATH`. The CLI validates a tiny module per feature at startup
-  (`WebAssembly.validate`) and names `process.execPath` and the missing feature, instead of failing in V8.
+  and other tools put their own older Node on `PATH`. Before the engine starts, the runtime validates a tiny module per
+  feature (`WebAssembly.validate`) and names `process.execPath` and the missing feature, instead of failing in V8.
 - **Hyper only where it's needed.** The CLI loads `hyperdb-wasm` lazily, in commands that query the embedded Hyper.
   `check`, `pack`, `unpack`, `link`, `lint` and `format` need only the core, so they run on older Node too.
 
 ## Layout
 
 ```
-packages/dashql-runtime                 @ankoh/dashql-runtime: TypeScript and Wasm, no React, no CodeMirror, no Vite ?url imports
-  src/platform/                     interfaces: HttpClient, StorageBackend (+ fs), EmbeddedDatabase, OAuthFlow, Scheduler,
-                                    LogSink, WasmSource
-  src/store/                        Store, UpdateQueue
-  src/workbook/                     workbook_scripts reducer, script analysis, attachments, inputs
-  src/connections/                  connection_state, connector states and setups, catalog updates, clients
-  src/query/                        query execution state, QueryExecutor, result cache
-  src/compute/                      computation state and scheduler
-  src/storage/                      workbook tables, link encoding, storage writer, import and export
+packages/dashql-runtime             @ankoh/dashql-runtime, a source package: `@ankoh/dashql-runtime/<path>` is src/<path>.ts
+  src/platform/                     the seams: HttpClient, StorageBackend, FileSystem, EmbeddedDatabase, the OPFS root,
+                                    the logger, HyperDB over hyperdb-wasm, the instance folders
+  src/store/                        Store, UpdateQueue, UpdateScheduler
+  src/workbook/                     workbook scripts and their registry service, script runs, execution, attachments,
+                                    inputs, persistence and the restore
+  src/connections/                  connection state and registry service, connector setups and clients, the catalog
+                                    loader, the query executor service, client functions
+  src/query/, src/compute/          query execution state and profiles, computations and data frames
+  src/storage/                      workbook tables, the storage writer, the query result cache, migrations
+  src/session/                      the journal of an agent session and its state
+  src/oauth/, src/sql/              the OAuth flow; lint, format and reports of SQL files
   src/runtime.ts                    createRuntime(platform) → Runtime
-  src/node/                         @ankoh/dashql-runtime/node: fs storage, fetch HTTP, hyperdb-wasm node, Wasm from files,
-                                    loopback OAuth
-packages/dashql-app                 createBrowserRuntime(): OPFS, native proxy, hyperdb web worker, oauth.html
-                                    <RuntimeProvider>, UI-only state: CodeMirror, focus, view modes, overlays, ownership
-the dashql CLI                      createRuntime(nodePlatform): workbook check/pack/unpack/link, run, catalog refresh,
-                                    session serve
+  src/node/                         the only modules that import node:, e.g. @ankoh/dashql-runtime/node/node_platform:
+                                    the platform of Node, node:fs handles of the OPFS root, the embedded Hyper of Node,
+                                    the core from its file, the locks of the process
+  src/testing/                      helpers of the tests on both platforms
+packages/dashql-app                 its providers create the services (see React after the move), UI-only state:
+                                    CodeMirror, focus, view modes, overlays, ownership
+packages/dashql-cli                 the dashql command: lint, format, run, session
 ```
 
 ```ts
 interface Runtime {
-    core: DashQL;
+    platform: RuntimePlatform;
+    core: core.DashQL;
     logger: Logger;
-    storage: { reader: StorageReader; writer: StorageWriter };
-    hyper: EmbeddedDatabase;
-    connections: RegistryStore<ConnectionRegistry, ConnectionAction>;
-    workbooks: RegistryStore<WorkbookScriptsRegistry, WorkbookScriptsAction>;
-    computations: Store<ComputationRegistry>;
-    executor: QueryExecutor;
-    catalogLoader: CatalogLoader;
-    execution: WorkbookExecution;
-    connectors: { salesforce: SalesforceConnector; trino: TrinoConnector; hyper: HyperConnector };
-    restore(): Promise<RestoredAppState>;
+    storageWriter: StorageWriter;
+    workbooks: WorkbookScriptsRegistryService;
+    connections: ConnectionRegistryService;
+    computations: RuntimeComputations;
+    executor: QueryExecutorService;
+    catalogLoader: CatalogLoaderService;
+    execution: WorkbookExecutionService;
+    persistence: ConnectionPersistenceService;
+    restore(progress?: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
+    destroy(): Promise<void>;
 }
 ```
 
@@ -213,10 +221,14 @@ interface Runtime {
 | Storage | OPFS | files over IPC | files (`node:fs`) |
 | Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated | the same | `hyperdb-wasm` `node` |
 | Core Wasm | URL from the bundler | the same | file next to the package |
-| Auth | redirect through `oauth.html` | loopback (`oauth_loopback.ts`) | loopback with PKCE, or the token of a logged-in `sf` |
+| Auth | redirect through `oauth.html` | loopback (`oauth_loopback.ts`) | refused for now; planned: loopback with PKCE (`dashql auth`) |
 | Scheduler | microtask, `requestAnimationFrame` | the same | microtask, `setImmediate` |
 
 ## React after the move
+
+Planned. Today the providers of the app create the services of the runtime themselves, one per provider, in the order
+that `createRuntime` writes down a second time. Each new service has to be wired in both places, and a test of the
+runtime doesn't cover the wiring of the app. One `RuntimeProvider` over `createRuntime` ends that:
 
 - **Stores.** They move into the runtime unchanged. `Store` loses the React type, `UpdateQueue` takes a `Scheduler`.
   `createRuntime` creates them once, not a provider.
@@ -249,8 +261,8 @@ Each step ships on its own and keeps the behavior.
    `workbook_scripts_registry.tsx` into `.ts` modules, move the editor data types out of `dashql_processor.ts`, make
    `Store` free of React with a `Scheduler`. Add a test that fails when a module of the runtime set imports `react`,
    `react-dom`, `@codemirror/*`, a `.tsx` file or a `?url` asset. Done.
-2. **Draw the package line.** Move the clean set into `packages/dashql-runtime`, a Bazel `ts_project` with tests in
-   Node. The app imports from `@ankoh/dashql-runtime`.
+2. **Draw the package line.** Move the clean set into `packages/dashql-runtime`, a source package with tests in
+   Node. The app imports from `@ankoh/dashql-runtime`. Done.
 3. **Services out of providers.** Done for four services of the runtime, each a class with its dependencies passed in,
    its state as a `Store`, and a provider that binds it to React:
    - `QueryExecutorService` (`connections/query_executor_service.ts`), with the computations, the result cache, the
@@ -280,19 +292,16 @@ Each step ships on its own and keeps the behavior.
    registries, the computations and the four services of step 3 in the order of the providers, `restore()` loads the
    stored state into the registries and `destroy()` writes what is pending. `runtime.test.ts` writes a workbook with
    one runtime and restores it with a second one in Node. The app keeps its providers until a `RuntimeProvider`
-   replaces them. The Node platform, begun: `NativeStorageBackend` (one workbook in a folder) moved into the runtime and
+   replaces them. The Node platform, done: `NativeStorageBackend` (one workbook in a folder) moved into the runtime and
    takes a `FileSystem` (`platform/file_system.ts`); the app passes `ELECTRON_FILE_SYSTEM`, Node passes
    `NODE_FILE_SYSTEM` (`node/node_file_system.ts`). The modules of Node live in `src/node`, the only place that
    imports `node:` (the boundary test checks it), with a type check of their own against the types of Node
    (`tsconfig.bazel.node.json`, `src/node/tsconfig.json` for editors). `createNodePlatform` (`node/node_platform.ts`)
    passes a storage backend, `fetch` (`WebHttpClient`, moved from the app) and the core from the Wasm file of its
-   package (`node/node_core.ts`) to `createRuntime`; its OAuth flow refuses until `dashql auth` brings one. The runtime
-   runs in Node under vitest, which resolves what a bundler resolves. Plain Node does not: the CLI compiles the runtime
-   with `tsc` like `packages/hyperdb-edge`; the two bundler seams are gone for that (see The package). Then
-   `EmbeddedDatabase` over
-   `hyperdb-wasm` `node`. The CLI on top: offline
-   `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`. `run` came first after all,
-   on Trino with basic auth (see The CLI on the SDK).
+   package (`node/node_core.ts`) to `createRuntime`; its OAuth flow refuses until `dashql auth` brings one. The
+   embedded Hyper of Node runs over a root folder with the layout of OPFS (see The CLI on the runtime). The CLI on
+   top: `run` and `session serve` are built, the offline `workbook check`, `pack`, `unpack` and `link` and
+   `catalog refresh` follow.
 5. **Editor state.** Out of `ScriptData` into the app.
 
 ## The CLI on the runtime
@@ -301,8 +310,8 @@ Everything the CLI does goes through the runtime. `packages/dashql-cli` is a Nod
 `dashql` command, bundled with Vite's server build into one module (`dist/dashql.js`); the core stays a package next
 to it, its Wasm file is read from there. `lint` and `format` run on `sql/sql_lint.ts`, `sql/sql_format.ts` and
 `sql/sql_report.ts` of the runtime; the Rust `dashql` is gone. The agent bridge and its server are gone too, an agent in
-the terminal reaches the page through `dashql session serve` (`docs/wip/agent_session.md`). DashQL.app runs the Node CLI with
-Electron's Node (`ELECTRON_RUN_AS_NODE`).
+the terminal reaches the page through `dashql session serve` (`docs/wip/agent_session.md`). Planned: DashQL.app ships
+the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
 - **Offline by default.** `check`, `pack`, `unpack` and `link` read and write files in the workspace, nothing else.
 - **`dashql auth`.** The Node platform passes an `OAuthFlow` with a loopback server on `127.0.0.1` and the browser of
@@ -314,24 +323,29 @@ Electron's Node (`ELECTRON_RUN_AS_NODE`).
   prefix (`dashql run`), never through `node` or `npx`.
 - **Results stay in files.** Harness telemetry records tool output, so `run` prints the error with its position, the
   schema, the row count and a few rows, and writes the result as Parquet into the workbook.
-- **`dashql run`, built.** `dashql run <workbook-dir> [<script>...]` (`packages/dashql-cli/src/run_command.ts`) loads
-  the folder with `restoreSingleWorkbook` over a `NativeStorageBackend` and runs the scripts in the order of the
-  workbook, each like the Run of the script in the app: `ensureWorkbookScriptAnalyzed`, then `runPlannedScript` with the
-  scripts it references. It stops at the first failure. What is built:
+- **`dashql run`, built.** `dashql run [--workspace <dir>] <workbook-dir> [<script>...]`
+  (`packages/dashql-cli/src/run_command.ts`) loads the folder with `restoreSingleWorkbook` over a
+  `NativeStorageBackend` and runs the scripts in the order of the workbook, each like the Run of the script in the app:
+  `ensureWorkbookScriptAnalyzed`, then `runPlannedScript` with the scripts it references. It stops at the first
+  failure. The first interrupt cancels the running queries and reports the scripts that didn't run, the second ends the
+  process. What is built:
   - Trino with basic auth. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the password of
     the workbook; the connection keeps the params of the workbook, so the credentials of the environment are never
     written (a successful setup otherwise saves the params it was set up with into every workbook of the connection).
   - The embedded Hyper, see below. Its connection is a session of the `hyper` database of the instance in an
     `EmbeddedHyperDatabaseChannel` (`connections/embedded/`, moved from the app) like in the app.
   - The setups are the app's (`setupTrinoConnection`, then `performHealthCheck`, in the runtime, rethrowing the error
-    of the probe, e.g. a rejected login). A connection is set up when the plan of a script first runs statements on it.
+    of the probe, e.g. a rejected login; `connectEmbeddedHyper` for the embedded Hyper). The run of a plan asks for the
+    connections of the scripts it will run (`prepareConnection` of `runWorkbookPlan`), so a result that the cache
+    serves needs none.
   - It prints the schema, the row count and the first rows (`--rows`), the file of the result in the query result
     cache, and the message of Trino on a failure. A cached result is served like in the app, `--refresh` runs again.
   - The results are not analyzed (the summaries of the app), the catalog loader is stopped; `catalog refresh` follows.
   - Tested against a fake Trino in `//packages/dashql-cli:test`, the bundle in `:binary_test`, by hand against
     `bazel run //:trino`.
 - **The root of Node.** The CLI brings its own root, a folder with the layout of the origin private file system
-  (`DASHQL_HOME`, else the `.dashql/` of the session, else `~/.dashql`; `docs/design/storage_layout.md`), so the modules of the runtime that keep files in the
+  (`DASHQL_HOME`, else the `.dashql/` of the workspace that `session serve` created, else `~/.dashql`;
+  `docs/design/storage_layout.md`), so the modules of the runtime that keep files in the
   root run unchanged: `setOPFSRootProvider` (`platform/opfs_root.ts`) hands them `NodeDirectoryHandle`s
   (`node/node_directory_handle.ts`), the handles of the File System Access API over `node:fs` that the modules use, with
   the path of the host. `openNodeComputeDatabase` (`node/node_hyperdb.ts`) starts the build of `hyperdb-wasm` for Node
@@ -342,30 +356,31 @@ Electron's Node (`ELECTRON_RUN_AS_NODE`).
   handle of the host, and a `mountFile` option writes the files that statements mount (the Arrow IPC of an insert) into
   the instance folder first, the build of Node mounts only files of the host. `mirrorWorkbookAttachments`
   (`workbook/attachments/attachment_mirror.ts`) copies the attachments of a workbook folder into the root.
-  The app's `hyperdb_wasm.ts` re-exports the runtime's and the engine class of the browser build.
+  The instance folders are one module for both (`platform/hyperdb/hyperdb_opfs_instance.ts`): a window of the app
+  holds a Web Lock per instance, a process of Node a pid file (`node/node_instance_locks.ts`), and the folders of
+  instances whose holder is gone are removed at the start.
 - **What differs in Node.** The root is not the one of the app: a viewer mirrors what it needs into its OPFS, e.g. the
   connection of a live view. The Web Locks of the cache are those of the process (`node/node_locks.ts`), a root that
-  two processes use at once is not protected. Its worker writes a LogFile line to the descriptor 1 of the process, so
-  `dashql run` runs in a child process that writes its output to descriptor 3.
+  two processes use at once is not protected.
 
 ## Testing both platforms
 
 The browser and Node must offer the same: every feature of the runtime runs, and is tested, on both.
 
-- **Now.** `//packages/dashql-runtime:test_node` runs the tests of the runtime in Node with vitest (`vitest.config.mjs`,
-  `test/setup_node.mjs` sets the precompiled core like the browser test frame of the app). The tests live next to the
-  modules, their helpers in `src/testing/`, and a type check of their own (`tsconfig.bazel.test.json`) gives them the globals
-  of vitest while the modules stay checked without them. 32 test files moved from the app. The browser tests of the
-  app run the tests of the runtime as well (`runtime/src/<path>` in their list), so each one runs in Node and in the browsers.
-  A test of Node is named `*.node.test.ts` and runs only in Node, like `node/node_file_system.node.test.ts`.
-  A test that needs a browser is named `*.browser.test.ts`, like `connections/catalog/catalog_batch.browser.test.ts`
-  (a Web Worker), and runs only in the browsers. Tests of the app that need parts of the app stay in the app until those
-  parts move.
-- **Moved so far.** About 70 test files of runtime logic moved from the app, the suite in Node has about 1000 tests:
-  the workbook scripts, script runs and workbook execution, the storage writer, native storage, bundles and the query
-  result cache, the connection state, client functions, the Trino, Salesforce and Hyper HTTP clients, the catalog
-  queries and updates, the computations and data frames. The tests of the HyperDB adapter over the browser build of
-  hyperdb-wasm (`hyperdb_wasm.browser.test.ts`, a fake worker client) stay in the browsers.
+- **Where they run.** `//packages/dashql-runtime:test_node` runs the tests of the runtime in Node with vitest
+  (`vitest.config.mjs`, `test/setup_node.mjs` sets the precompiled core like the browser test frame of the app). The
+  tests live next to the modules, their helpers in `src/testing/`, and a type check of their own
+  (`tsconfig.bazel.test.json`) gives them the globals of vitest while the modules stay checked without them. The
+  browser tests of the app run the tests of the runtime as well (`runtime/src/<path>` in their list), so each one runs
+  in Node and in the browsers. A test of Node is named `*.node.test.ts` and runs only in Node, like
+  `node/node_file_system.node.test.ts`. A test that needs a browser is named `*.browser.test.ts` and runs only in the
+  browsers: `connections/catalog/catalog_batch.browser.test.ts` (a Web Worker) and `hyperdb_wasm.browser.test.ts` (the
+  HyperDB adapter over the browser build of hyperdb-wasm with a fake worker client).
+- **What they cover.** 99 test files, about 1100 tests in Node: the workbook scripts, script runs and workbook
+  execution, the storage writer, native storage, bundles and the query result cache, the connection state, client
+  functions, the Trino, Salesforce and Hyper HTTP clients, the catalog queries and updates, the computations and data
+  frames, the services, the embedded Hyper of Node and the journal of a session. Tests of the app that need parts of
+  the app stay in the app until those parts move.
 - **The embedded Hyper in tests.** `openTestHyperDB(context)` (`src/testing/test_hyperdb.ts`) returns a HyperDB with
   databases of its own on the engine that the tests of a platform share. The browser tests of the app install it over
   their engine worker (`tests/hyperdb_pool.ts`), `test/setup_node.mjs` over the embedded Hyper of Node: one engine per
@@ -385,9 +400,12 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   storage backends; the connector setups, which need a fake `OAuthFlow`; the snippets and the local cloud.
 - **Compile time.** The runtime compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
   APIs it uses there, like `fetch`, `URL`, `TextEncoder`, `crypto` and `Blob`, Node has as well. The browser-only ones
-  that remain are the named seams of the boundary test. Once step 4 removed them, the lib can shrink to ES plus a few
-  declared globals. The platforms compile in their own subpaths with their own `lib`.
-- **One suite per seam.** The runtime defines a contract suite per interface (`defineStorageBackendContract(create)`, the
+  that remain are the named seams of the boundary test. Once they are gone, the lib can shrink to ES plus a few
+  declared globals. `src/node` compiles with the types of Node.
+
+Planned:
+
+- **One suite per seam.** The runtime would define a contract suite per interface (`defineStorageBackendContract(create)`, the
   same for `HttpClient`, `EmbeddedDatabase`, `UpdateScheduler`, `WasmSource`), and each implementation runs it: OPFS
   and IndexedDB in the browser tests, `node:fs` in the Node tests, an in-memory fake in both.
 - **Scenarios against the runtime, written once.** The tests of the runtime import only the runtime and a

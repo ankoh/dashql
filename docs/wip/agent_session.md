@@ -16,8 +16,8 @@ access per workbook and no prompt in natural language.
   "token"}}`; the harness hands the output of the hook to the agent, which tells the user.
   Hooks run outside the sandbox of both harnesses, the commands of the agent inside it don't need the server:
   `//tests/agents` checks both (`docs/wip/agent_integration_tests.md`).
-- **The agent works on files.** Its commands (`dashql workbook check`, `lint`, …) read and write the workbook folder
-  offline. The page follows the folder.
+- **The agent works on files.** Its commands (`dashql lint`, `format`, `run`) read and write the workbook folder
+  The page follows the folder.
 - **The page watches.** The questions come from the terminal, and the terminal stops the agent.
 
 ## The journal
@@ -38,8 +38,8 @@ goes through a `dashql` command, so the commands tell what they changed.
   - `Script started`, `Script progress` (the phase, percent and rows of its query, at most once a second while it
     changes) and `Script result` (the key in the query result cache, the rows, the error, whether the cache served it).
 
-  A command writes its files first and the marker after. Without a journal it appends nothing. `dashql run` writes
-  today.
+  A command writes its files first and the marker after. Without a journal it appends nothing. `dashql run` is the
+  only command that writes one today. When the server stops, it removes the journal.
 - **The server follows it.** It reads what was appended every 200 ms. It folds the markers into the `workbooks` of the
   state, reading the stamps of the files of a `Workbook files` marker itself, and keeps the latest 100 other records as
   the `log` of the commands. The markers are the contract, the other records are for display.
@@ -84,14 +84,18 @@ goes through a `dashql` command, so the commands tell what they changed.
 
 - `//tests/agents`: Claude Code and Codex run a turn with the hooks of `dashql session hook`, the server holds the
   question, the command with its SQL file and the final message.
-- `//packages/dashql-cli:test`: the server (token, origins, preflight), the payloads of both harnesses, a session that
-  a hook starts.
+- `//packages/dashql-cli:test`: the server (token, origins, preflight, malformed paths), the payloads of both
+  harnesses, a session that a hook starts; the journal: the server creates it, follows partial lines, folds the
+  markers and hands out the files and results they name, and removes it when it stops; `dashql run` appends the files,
+  the progress and the results of a workbook in the workspace it is given.
+- `//packages/dashql-runtime:test_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
+  a session with the log of the commands.
 - The page test `app_agent_session`: the app with a link to a server, the bar, the log, the closed prompt and its
   reopening once the session ended.
 
 ## Next
 
-- The workbook of a session: the agent works on a workbook folder with the `dashql workbook` commands, the page shows
+- The workbook of a session: the agent works on a workbook folder with the `dashql` commands, the page shows
   that workbook and its changes.
 - The browser reaches `127.0.0.1` from `https://dashql.app` only with the permission for the local network of the
   browser (Chrome asks), Safari doesn't; the desktop app reaches it directly.

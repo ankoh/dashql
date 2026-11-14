@@ -68,9 +68,9 @@ nothing, `script-src` overrides it there.
   compile their null check with `new Function`. App code assembles vectors from their buffers with
   `packages/dashql-runtime/src/utils/arrow_vectors.ts` instead.
 - **Test fixtures** build Arrow data with `vectorFromArray` and `tableFromArrays` of
-  `src/tests/arrow_fixtures.ts`, which take the arguments of the Arrow functions and evaluate nothing. They
+  `packages/dashql-runtime/src/testing/arrow_fixtures.ts`, which take the arguments of the Arrow functions and evaluate nothing. They
   rely on internals of the builders, which is fine for tests but not for app code.
-- **A test for eval-free code** runs it with `forbidEval` (`src/tests/forbid_eval.ts`), which makes
+- **A test for eval-free code** runs it with `forbidEval` (`packages/dashql-runtime/src/testing/forbid_eval.ts`), which makes
   `Function` throw like the policy does.
 
 ## Build checks

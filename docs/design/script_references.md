@@ -1,6 +1,6 @@
 # Script References
 
-The scripts of a session reference each other by name. `bar.sql` can read the result of `foo.sql` with the
+The scripts of a workbook reference each other by name. `bar.sql` can read the result of `foo.sql` with the
 table parameter `:foo`:
 
 ```sql
@@ -8,14 +8,14 @@ select region, count(*) from :foo group by region;
 ```
 
 A script that is referenced is a single SELECT, its result is the result of the query. A reference reads the query
-like a view: it never runs commands, neither in a run of the session nor in a run of the consumer. A script that is a
+like a view: it never runs commands, neither in a run of the workbook nor in a run of the consumer. A script that is a
 single call of a client function that reads is referenced too, but only scanned, see [Client Function Calls](#client-function-calls). A script with
 commands, e.g. `create table t as ...; select * from t`, is split into a script with the commands and one with the
 query; the planner orders the query after the commands by the relations it reads (`planner_dependencies.md`).
 
 ## Connections
 
-Every script runs on a connection, the connection of its entry in the script list of `dashql-session.json`.
+Every script runs on a connection, the connection of its entry in the script list of `dashql-workbook.json`.
 The planner gets the connection of every script and its kind from the host: LOCAL is the embedded Hyper
 (hyperdb-wasm), every other connection (Trino, Salesforce Data Cloud, a remote Hyper) is REMOTE.
 
@@ -80,8 +80,8 @@ select id, region, amount from orders;
 select sum(amount) from :orders_all where region = 'west';
 ```
 
-A run of the whole session and the run of an input change leave the script out, a run of the script itself runs it.
-The scripts of its connection inline it with their own filters, so a run of the session runs `west.sql` with the query of
+A run of the whole workbook and the run of an input change leave the script out, a run of the script itself runs it.
+The scripts of its connection inline it with their own filters, so a run of the workbook runs `west.sql` with the query of
 `orders_all.sql` inlined. Scripts of other connections cannot reference it: a scan would run it in full, the reference
 is an error ("orders_all.sql runs only on request (@manual), the scripts of the connection trino inline it but west.sql
 of the connection local cannot read it"). The analyzer sets `AnalyzedScript.manual`, the editor update carries it as
@@ -90,7 +90,7 @@ The feed marks the script as manual.
 
 ## Attachments
 
-A table parameter also reads the attachments of a session, which are Parquet files only: `sales.parquet` is `:sales`. Scripts and
+A table parameter also reads the attachments of a workbook, which are Parquet files only: `sales.parquet` is `:sales`. Scripts and
 attachments share one namespace, a name that a script and an attachment share is ambiguous: every table parameter
 with the name is an error ("the table parameter :sales matches sales.sql and sales.parquet") and the check lists
 the names that collide (`table_parameter_collisions`, `ScriptReferenceCheck.collisions`).
@@ -101,17 +101,17 @@ the names that collide (`table_parameter_collisions`, `ScriptReferenceCheck.coll
 | REMOTE | an error, only the embedded Hyper reads attachments |
 
 ```sql
-with sales as (select * from external('/mnt/external/attachments/<session>/sales.parquet', format => 'parquet'))
+with sales as (select * from external('/mnt/external/attachments/<workbook>/sales.parquet', format => 'parquet'))
 select region, sum(amount) from sales group by region
 ```
 
-The app lists the attachments of a session when it loads the session, after the feed adds or removes one, and when a
-native folder changed (`SessionScripts.attachments`, `SET_SESSION_ATTACHMENTS`). The stamp of an attachment is the
+The app lists the attachments of a workbook when it loads the workbook, after the feed adds or removes one, and when a
+native folder changed (`WorkbookScripts.attachments`, `SET_WORKBOOK_ATTACHMENTS`). The stamp of an attachment is the
 size and the modification time of its file. The app reads the columns of a new or changed Parquet attachment with the
 embedded Hyper (`readAttachmentColumns`, `SET_ATTACHMENT_COLUMNS`). Until then completion doesn't offer it and its
 columns stay unresolved, a plan scans it all the same.
-The plan requests of a session hold its Parquet attachments and the mount of its attachments as prefix
-(`/mnt/external/attachments/<session>`, `storage_layout.md`), a run mounts them before a statement scans one.
+The plan requests of a workbook hold its Parquet attachments and the mount of its attachments as prefix
+(`/mnt/external/attachments/<workbook>`, `storage_layout.md`), a run mounts them before a statement scans one.
 
 An attachment is a file, not a query: it is no single SELECT and no part of a cycle, and a view may read it since the
 file outlives the statement. An inlined query that reads an attachment brings its common table expression along,
@@ -121,20 +121,20 @@ before the ones of the scripts. The signature of a script covers the stamps of t
 ## Planning
 
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
-into the SQL of the nodes and orders the statements across connections. A run of the whole session plans every
+into the SQL of the nodes and orders the statements across connections. A run of the whole workbook plans every
 script whose result the cache doesn't provide, except the scripts that run on request. A run of one script plans the script and the queries of the scripts it materializes, unless the host
 already has their results; the queries it inlines are part of its statements.
 
-## Running a Session
+## Running a Workbook
 
-A run of the session (`runSessionExecution`) and a run of a script run a plan the same way (`runSessionPlan`): they
+A run of the workbook (`runWorkbookExecution`) and a run of a script run a plan the same way (`runWorkbookPlan`): they
 analyze every script, publish the declarations into the catalogs of their connections and plan every script, or the
 target with what it needs. The plan checks the scripts and gives the result keys. A script with a reusable cached
 result doesn't run unless it follows a script that runs: a script whose nodes follow a node of a script that runs, by
 an edge of the plan, runs too, whether its result is cached or not. Otherwise its result is served from the cache and
-the run plans the other scripts again with the served scripts as `materialized`: a plan of the session leaves them
+the run plans the other scripts again with the served scripts as `materialized`: a plan of the workbook leaves them
 out, a plan of targets drops the served targets. A script that inlines a served script still runs its query, a script
-that scans it reads the cached file. A refresh (`refresh` of `runSessionExecution`, `ScriptRunOptions.refresh`)
+that scans it reads the cached file. A refresh (`refresh` of `runWorkbookExecution`, `ScriptRunOptions.refresh`)
 reads no cached results and runs every script of the plan. `runExecutionGraph` starts a node once its predecessors are done,
 at most `maxConcurrentQueries` nodes of a connection run at once, and nodes of different connections run side by
 side. The files of a run (`ExecutionMounts`, `createExecutionMounts`) are files of the query result cache of the app
@@ -150,7 +150,7 @@ newest file of its key.
 
 ## Running a Script
 
-A run of one script (`runSessionScript` in `rerun_query.ts`, `runPlannedScript` in `script_run.ts`) analyzes every script, publishes the
+A run of one script (`runWorkbookScript` in `rerun_query.ts`, `runPlannedScript` in `script_run.ts`) analyzes every script, publishes the
 declarations and plans the script as the target: the plan holds the statements of the script, with the queries it
 inlines spliced in, and the queries of the scripts it materializes. The scripts that write the relations these queries
 read are no part of the plan, the run reads the relations as the backend has them. A script that references no
@@ -158,7 +158,7 @@ script is a plan of its own statements. The statements run in their order and ke
 the last output of the script is its result and a query with `@vis` tags runs as written. An invalid plan fails the
 run with its errors, e.g. an unknown script, and so does a script without statements. The script records them as a
 failed query (`ScriptPlanError`, `QueryExecutionArgs.failure`), so they show where its result would be, like the
-error of a failed statement. The session execution provider registers the services of the runs for its core
+error of a failed statement. The workbook execution service registers the services of the runs for its core
 (`registerScriptRunServices`): the mounts of the compute database and the query result cache. Without the provider, a
 run mounts no results of other connections and caches nothing. A script connection knows whether it is the embedded
 Hyper (`ScriptConnection.local`).
@@ -179,7 +179,7 @@ The editor checks, completes and renames script references while the scripts cha
 ### Checking
 
 `check_script_references` (`script_references.rs`, `DashQL.checkScriptReferences`) checks the references of every
-script whose analysis is current with its text, like a plan of the session would: the name lookup, the connections,
+script whose analysis is current with its text, like a plan of the workbook would: the name lookup, the connections,
 a referenced script that is no single SELECT, a reference outside of a query, the common table expressions of a
 inlined query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a
 referenced script without a current analysis is read as a single SELECT. It reports every table parameter with what
@@ -187,8 +187,8 @@ it reads, `INLINE`, `SCAN`, `ATTACHMENT` or `INVALID`, the referenced script or 
 spans in the offset unit of the session of the script (`ScriptReferenceCheck` in `execution_graph.fbs`). The
 planner snapshots list the check under `checked-references`.
 
-The app checks the session whenever a name, a connection or an analysis of a script changes
-(`checkSessionScriptReferences`). The editor underlines the errors, shows them at the cursor and in the diagnostics
+The app checks the workbook whenever a name, a connection or an analysis of a script changes
+(`checkWorkbookScriptReferences`). The editor underlines the errors, shows them at the cursor and in the diagnostics
 of the script (`dashql_script_references.ts`). A table parameter that reads a script with a result is a table
 reference of the analysis that resolves to the result: the cursor on it, on its alias or on a column of it highlights
 the reference and the columns like those of a table. The planner and the check of the script references skip these
@@ -197,10 +197,10 @@ table references, they read the script through the script reference.
 ### Table Parameters and Completion
 
 `TableParameters` (`dashql-core/src/table_parameters.rs`) holds the tables that table parameters read: the output
-columns of every script of a session that is a single SELECT, in session order, then the columns of the attachments
-of the session, as table declarations of the reserved catalog entry `TABLE_PARAMETERS_ENTRY_ID`.
+columns of every script of a workbook that is a single SELECT, in workbook order, then the columns of the attachments
+of the workbook, as table declarations of the reserved catalog entry `TABLE_PARAMETERS_ENTRY_ID`.
 Scripts on a cycle of references have no result, an attachment whose columns the host didn't read has no table.
-Every script session of the session holds the same table parameters (`DashQLTableParameters.publish`): the analyzer
+Every script session of the workbook holds the same table parameters (`DashQLTableParameters.publish`): the analyzer
 resolves a named table parameter that finds a table as a FROM source with its columns, named by its alias or the
 parameter name. The source yields its name to the other FROM items, like the planner renames its common table
 expression. A table parameter that is the target of a write, positional, ambiguous or names nothing with a table
@@ -226,12 +226,11 @@ another script or the prompt of the composer (`useLastFocusedEditor`). The card 
 of the feed inserts its table parameter the same way, it shows the name and warns when a script has the name too. SQL reads `:name` quoted if it has to be,
 `:"foo-2"` (`DashQL.quoteIdentifier`).
 
-A rename of a script rewrites the references to it in the other scripts of the session: the references of the check
+A rename of a script rewrites the references to it in the other scripts of the workbook: the references of the check
 that read the script, with the names before the rename. A mounted editor applies the rewrite as changes, it keeps its
 cursor and undoes the rewrite as one step (`ScriptData.externalChanges`). Once the rename is applied, the feed asks the
 composer to rename the references in its draft. The SQL draft follows the rename through its own analysis: the table parameters that find the script among the names before the rename
-(`DashQLScriptSession.findScriptReferences`), never the text of string literals or comments. A question in natural
-language has no syntax tree, its `:foo` mentions follow by name.
+(`DashQLScriptSession.findScriptReferences`), never the text of string literals or comments.
 
 An attachment renames the same way (`renameAttachment`, `RENAME_ATTACHMENT`): the tag of its card turns into the
 input of the name, the file moves first, then the scripts whose table parameters read the attachment and the draft

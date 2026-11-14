@@ -24,6 +24,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 │   ├── dashql-catalog-functions.sql
 │   ├── dashql-catalog-state.json              open questions and relations that are gone, see catalog_updates.md
 │   └── monitoring.hyper                       extract of the Hyper log of the connection
+├── clouds/local.hyper                          the database of the local cloud, see cloud.md
 ├── shell/                                     files of the standalone shell
 │   └── salesforce-login-history.json
 ├── instances/<instance-id>/                   embedded database of one app window
@@ -42,6 +43,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 | `workbooks/<id>/` | `OPFSStorageBackend` | until the workbook is deleted | yes |
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
+| `clouds/` | the embedded Hyper, when a local cloud attaches its database | until the connection of the local cloud is deleted | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
 | `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as result tables (`query_cache.md`, `workbook_tables.md`) |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
@@ -68,7 +70,7 @@ Writers hold the Web Lock of the manifest, which all tabs of the app share.
 folder, the directory name is the folder name, and holds a `dashql-folder.json` (schema
 `proto/json/dashql/app_folder.json`) with `workbooks`, one entry per workbook of the folder in the order of the sidebar:
 `path` (the workbook id), `storageType` and, for native workbooks, `nativePath`. The sidebar lists the subfolders of a
-folder before its sessions, in the natural order of their names.
+folder before its workbooks, in the natural order of their names.
 
 A storage without a workbook tree starts with the folder `My Workbooks`, an ordinary folder that the user may rename or
 delete. The tree is only created once, a deleted `My Workbooks` folder is not created again. New workbooks are
@@ -78,7 +80,7 @@ registered at the end of the root, except for a workbook created from the menu o
   one first, so an interruption duplicates a workbook instead of losing it. A workbook that the tree lists twice
   counts where it comes first in the order of the sidebar, and the next change drops the duplicate.
 - Renaming or moving a folder copies its directory and then removes the original, the tree holds small folder files
-  only. Deleting a folder moves its sessions and the workbooks of its subfolders to its parent, no workbook is deleted.
+  only. Deleting a folder moves its workbooks and the workbooks of its subfolders to its parent, no workbook is deleted.
 - Folder names are not empty, contain no `/` or `\`, are not `.` or `..`, and differ from the names of their
   sibling folders ignoring case.
 

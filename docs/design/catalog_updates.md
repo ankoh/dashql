@@ -32,7 +32,7 @@ generated or parsed. The columns keep the order of the connection.
 
 ## After a statement
 
-1. **The parser names the relations** (`touched_relations`, `packages/dashql-core-workbook/src/touched_relations.rs`).
+1. **The parser names the relations** (`touched_relations`, `packages/dashql-core-session/src/touched_relations.rs`).
 2. **The query executor records them** for every statement of the user that reached the backend, from a script or a shell,
    also if it failed or was cancelled: a statement of many may have run, and a cancelled one may have run all the same.
    Results from the cache and the queries of the app record nothing, and neither does Salesforce, where nothing that runs

@@ -278,10 +278,10 @@ bazel build //packages/dashql-native:compile
 ## Implementation References
 
 - Check coordinator: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
-- Stamps and refused script writes: `packages/dashql-app/src/storage/native_storage_backend.ts`
+- Stamps and refused script writes: `packages/dashql-runtime/src/storage/native_storage_backend.ts`
 - Held writes: `packages/dashql-runtime/src/storage/storage_writer.ts`
 - Workbook scripts reconciliation: `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Stamp tests: `packages/dashql-app/src/storage/native_storage_backend.test.ts`
-- Writer tests: `packages/dashql-app/src/storage/storage_writer.test.ts`
-- Workbook scripts reconciliation tests: `packages/dashql-app/src/workbook/scripts/workbook_scripts.test.ts`
+- Stamp tests: `packages/dashql-runtime/src/storage/native_storage_backend.test.ts`
+- Writer tests: `packages/dashql-runtime/src/storage/storage_writer.test.ts`
+- Workbook scripts reconciliation tests: `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.test.ts`

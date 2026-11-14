@@ -405,8 +405,8 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 **Consumers that must change:**
 - `parser/context.rs`: panics on an unknown statement root.
 - `dashql-core/src/formatter/`: an unknown node renders as `'<OBJECT_...>'`, which fails the round-trip test.
-- `dashql-core-workbook/src/planner.rs`: see [Running calls](#running-calls).
-- `dashql-core-workbook/src/compiler.rs` and `dashql-core/src/pack.rs`, plus the labels in `dashql_story_decorations.ts`.
+- `dashql-core-session/src/planner.rs`: see [Running calls](#running-calls).
+- `dashql-core-session/src/compiler.rs` and `dashql-core/src/pack.rs`, plus the labels in `dashql_story_decorations.ts`.
 - `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
 
 ## Running calls
@@ -440,7 +440,6 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 
 **The shell of a connection** has no plan. `resolveClientFunctionCall` (`workbook/shell/workbook_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse, `EXPLAIN (analyze) CALL` included, also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
 
-**An agent** checks a call with `dashql lint` and shows its request with `EXPLAIN CALL`.
 
 **Other behavior:**
 - **Waiting on a job is explicit.** Polling a job means calling its status function. There is no `AWAIT`. [Pending results](#pending-results) cover the different case where the HTTP response itself says it isn't finished.
@@ -479,10 +478,8 @@ CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake p
 | The shell of the connection | Runs, the statement is typed there |
 | Execute All, a run of the workbook | Left out (`runs_on_request` of the planner) |
 | A changed input | Left out, the dataflow marks the script `manual` |
-| An agent's `run` command | Runs |
-| A script that an agent wrote and didn't run | Runs when the answer ends, like any script of an agent |
 
-An agent runs a write for now, and its guide says that a write takes effect as soon as its script runs. An approval step is planned.
+Agents run no calls: `dashql run` reaches Trino and the embedded Hyper only, a call needs a Salesforce connection.
 
 - **No script reads its result,** see [Running calls](#running-calls).
 - **Its result is never cached.** A script with a call isn't cacheable, and the shell runs nothing from the cache.
@@ -676,11 +673,11 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Specs | `packages/dashql-core/src/catalog/clfn.rs` | `ClientFunctionSpec` reads the generic part of a document and ignores what only the runtime needs. `Catalog::register_client_functions` and `drop_client_functions` bump the catalog version |
 | Checks | `packages/dashql-core/src/analyzer/clfn_calls.rs` | A pass after the others walks every call against its signature. `AnalyzedScript::client_function_calls` lists the calls in a namespace with a spec |
 | Result columns | `ClientFunctionSpec::result_columns`, `packages/dashql-core/src/table_parameters.rs` | The columns of a function and the standard columns, the table of a script that is a single call that reads |
-| Script references | `packages/dashql-core-workbook/src/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
+| Script references | `packages/dashql-core-session/src/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
 | Description | `AnalyzedScript::describe_client_function_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.client_function_calls` in the packed analysis carries it, so the app needs no second call |
 | Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql-core-js/src/api.ts`. A binding registers the spec on the catalog of its connection |
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
-| Planner | `packages/dashql-core-workbook/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
+| Planner | `packages/dashql-core-session/src/planner.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
 **Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
 

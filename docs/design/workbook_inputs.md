@@ -16,7 +16,7 @@ affects.
 
 ## Inputs
 
-`session_inputs::collect_workbook_inputs` (`dashql-core-workbook`, core-js `collectSessionInputs`) collects the inputs of
+`session_inputs::collect_session_inputs` (`dashql-core-session`, core-js `collectSessionInputs`) collects the inputs of
 the scripts of a workbook whose analysis is current with their text, one per name, in the order of their first use. A
 table parameter (`from :foo`, `script_references.md`) and a positional parameter (`$1`, `?`) are no inputs. A scalar
 parameter `:foo` is an input also if a script `foo.sql` exists.
@@ -99,7 +99,8 @@ workbook is free, with the inputs of every change since.
 
 ## The App
 
-`useWorkbookInputs` collects the inputs of a workbook when a script or its analysis changes. `WorkbookInputCard` shows an
+`deriveWorkbookInputs` (`workbook/inputs/workbook_inputs.ts` of the runtime) collects the inputs of a workbook, the app
+derives them again when a script or its analysis changes. `WorkbookInputCard` shows an
 input: the name, the type and a control that follows the type, a number field, a boolean select, a date or a datetime
 field, a number field with a unit select for an interval, and text otherwise. The control shows the value without its
 SQL, `3` and `day` for `interval '3' day` and `EU` for `'EU'`. The control owns its draft: a typed draft that rests

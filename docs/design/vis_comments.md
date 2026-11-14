@@ -197,13 +197,13 @@ with warnings (`INVALID_VIS_TAG`, `INVALID_DASHBOARD_LAYOUT`) whose spans point 
 
 A renderer with an invalid body leaves the query a plain query.
 
-The position of the script is `AnalyzedScript::flow`, the editor workbook passes it to the app as
+The position of the script is `AnalyzedScript::flow`, the editor session passes it to the app as
 `flow_position` of the script annotations. The dashboard placement of the script is `AnalyzedScript::board`, the
 `@board` of the last statement with or without a renderer, passed as `board_position`.
 
 ## Compilation and rendering
 
-The compiler (`dashql-core-workbook/src/compiler.rs`) describes a terminal query with a visualization as
+The compiler (`dashql-core-session/src/compiler.rs`) describes a terminal query with a visualization as
 `VISUALIZE` for the editor, the planner attaches the visualization to the node of any visualized query, and
 runs execute the plan. The executed SQL is the statement as written, the tags are comments. In the shell,
 the tags are plain comments.

@@ -29,15 +29,29 @@ Please consult relevant docs in that directory before making changes.
 - Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 
-- Agent sessions (proposed: an agent in the terminal works with the Node `dashql`, its hooks send the events of the
-  session to `dashql session serve`, the page only watches; the agent bridge is removed)
+- The runtime (`packages/dashql-runtime`: the logic of DashQL without React, shared by the app and the Node `dashql`;
+  `createRuntime(platform)` and its services, the platform of Node with a root folder in the layout of OPFS and the
+  embedded Hyper of Node; where tests go: `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers)
+    - `docs/wip/dashql_runtime.md`
+
+- The command line tool (`packages/dashql-cli`: the Node `dashql` with `lint`, `format`, `run` on Trino and the
+  embedded Hyper, and `session`)
+    - `packages/dashql-cli/README.md`
+
+- Storage layout (the origin private file system of the app, the root of Node, native workbook folders, migrations)
+    - `docs/design/storage_layout.md`
+
+- Agent sessions (built: the hooks of Claude Code and Codex send the events of a session to `dashql session serve`,
+  `dashql run` appends its log to the journal `.dashql/journal.jsonl` of the session, the page follows through a link)
     - `docs/wip/agent_session.md`
+    - `docs/wip/agent_integration_tests.md` (Claude Code and Codex with fake models in their sandboxes, `//tests/agents`)
 
 - Client functions (core and runtime implemented, Salesforce connections get checks and completion, calls run, a script with a call that writes runs only on request: `CALL` is generic, declarative client functions shadow a namespace on a connection and reach a REST API, any other call goes to the backend)
     - `docs/design/client_functions.md` (the statement, spec format, connector binding, checks, completion, paging, pending results, results, security, the core, the runtime)
     - `docs/design/extensions/api_survey.md` (the format measured against Snowflake, GitHub and Stripe, similar formats)
 
-- CDP SQL (proposed, not implemented: the first extension, `CALL cdp.*` over the Salesforce Data 360 API)
+- CDP SQL (the first extension, `CALL cdp.*` over the Salesforce Data 360 API: the spec and the calls that read are
+  built, calls that write fail before anything is sent, not tested against an org)
     - `extensions/d360-api/clfn/docs/overview.md` (the Salesforce binding, how Data 360 fits the format, naming, where attributes come from)
     - `extensions/d360-api/clfn/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `extensions/d360-api/clfn/spec/*.yaml`, the source of the spec as well)
     - `extensions/d360-api/clfn/docs/api_notes.md` (API quirks, usage order, source conflicts, checks to run on an org)

@@ -463,17 +463,17 @@ the connection, the statements it follows, the files on disk and when a full ref
 
 A failed analysis stays on the script as an update without available analysis, and the script is no
 longer flagged: the same text against the same catalog fails again. A reducer that throws anyway is
-logged and dropped by the session-scripts dispatch, and `UpdateQueue.flush` skips a throwing update
+logged and dropped by the workbook-scripts dispatch, and `UpdateQueue.flush` skips a throwing update
 so the rest of the batch applies.
 
-**Lazy analysis.** Restoring a session loads script text only; scripts stay outdated until first
-use. Connection catalogs are restored and published before sessions open. Executions (feed, details,
-commands) go through `ensureSessionScriptAnalyzed` (`session_scripts_registry.tsx`), and mounted editors
+**Lazy analysis.** Restoring a workbook loads script text only; scripts stay outdated until first
+use. Connection catalogs are restored and published before workbooks open. Executions (feed, details,
+commands) go through `ensureWorkbookScriptAnalyzed` (`workbook_scripts_registry_state.ts`), and mounted editors
 analyze as in step 4. Passive rendering never analyzes. `CATALOG_DID_UPDATE` marks the scripts of that
 connection outdated; a native reload that adds, removes, moves or changes any script marks every script
-of the session outdated.
+of the workbook outdated.
 
-**Planning and execution** (`session_execution.ts`, and `script_run.ts` for a run of one script)
+**Planning and execution** (`workbook_execution.ts`, and `script_run.ts` for a run of one script)
 analyzes and publishes every script, re-analyzes them at the final catalog version, then calls
 `planSession()`. The planner reads the published declarations and the inputs, and flags a relation whose
 published kind (`TableDeclaration.is_view`) differs from the input. A connection of the plan names its default

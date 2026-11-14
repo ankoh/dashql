@@ -6,20 +6,20 @@ wasm boundary are tricky.
 **Conclusion: only about 1k of the 100k non-test TS lines is a clear win today, and up to about 2.5k more is
 conditional.** The hard logic has already moved: parser, analyzer, planner, completion, diff, profile parsing and
 layout, dataflow layout. What remains is mostly React views, reducers that hold live wasm handles, browser I/O, and
-thin glue over core results. The session reducers don't hide logic either: `analyzeScriptData`, `computePendingDiff`
+thin glue over core results. The workbook reducers don't hide logic either: `analyzeScriptData`, `computePendingDiff`
 and `rewriteRenamedReferences` orchestrate core calls and contain little decision logic.
 
 Evidence: code reading, plus a few type-parser checks through the `dashql lint` CLI. No performance numbers were
 measured, and the bugs listed at the end were not reproduced in a running app.
 
-Paths without a package are under `packages/dashql-app/src/`.
+Paths without a package are under `packages/dashql-app/src/` or `packages/dashql-runtime/src/`.
 
 | Area | State |
 |---|---|
 | Hyper progress adapter | Proposed, not started |
 | Query profile geometry | Proposed, not started |
 | Conditional candidates | Waiting for their triggers |
-| Headless CLI sessions | Open decision |
+| Headless CLI workbooks | Decided: the CLI runs the TypeScript runtime in Node |
 
 ## Ranking
 
@@ -35,18 +35,17 @@ Paths without a package are under `packages/dashql-app/src/`.
 | Candidate | Lines | Trigger |
 |---|---|---|
 | Trino rows to Arrow (`connections/trino/arrow_conversion.ts`) | 489 | A benchmark on a 32 MB page shows real gain. No Rust core module links the Arrow crates (the shell dropped them because of their size, about 23% of the core Wasm in brotli), so this needs a module decision and hands results to arrow-js as IPC. |
-| Dataflow edge geometry (`orthogonalPath`, `crossesBox`, `routeBadgeAt`, `routeEdge` in `session/dataflow/dataflow_scene.ts`) | ~160 | Visual tuning settles: 12 commits touched this file, against 5 for `profile_scene.ts`. It runs per drag update, lives in a separate wasm module from the profile code, and every tweak would need a wasm rebuild. |
-| Natural-language identifier matching (`agent/catalog_name_index.ts`, `agent/script_references.ts`) | 255 | A Rust consumer appears, or the JS index becomes slow on large catalogs. It rebuilds an index from a catalog snapshot, but offsets must be UTF-16 and it would cross per keystroke. |
-| Focus span join (`session/editor/dashql_decorations.ts:126,155`) | ~20 | `spans.find` in a loop shows up in a profile. Then have core send resolved spans. |
+| Dataflow edge geometry (`orthogonalPath`, `crossesBox`, `routeBadgeAt`, `routeEdge` in `workbook/dataflow/dataflow_scene.ts`) | ~160 | Visual tuning settles: 12 commits touched this file, against 5 for `profile_scene.ts`. It runs per drag update, lives in a separate wasm module from the profile code, and every tweak would need a wasm rebuild. |
+| Focus span join (`workbook/editor/dashql_decorations.ts:126,155`) | ~20 | `spans.find` in a loop shows up in a profile. Then have core send resolved spans. |
 | SQL builders (`compute/sql/sqlframe_builder.ts`, `compute/sql/query_result_search_sql.ts`) | 562 | The CLI or shell needs the same summaries. Pure and well tested, but no second consumer today. |
-| Session format (`storage/session_bundle.ts`, `storage/session_files.ts`, `storage/session_validation.ts`, `session/persistence/session_export.ts`) | ~980 | The CLI must read sessions, see the open decision. |
+| Workbook format (`storage/workbook_bundle.ts`, `storage/workbook_files.ts`, `storage/workbook_validation.ts`, `workbook/persistence/workbook_export.ts`) | ~980 | A consumer outside JavaScript must read workbooks. The CLI reads them through the runtime in Node. |
 
 ### Keep in TS
 
-- **Reducers and schedulers** (`session/scripts/session_scripts.ts`, `compute/computation_state.ts`,
+- **Reducers and schedulers** (`workbook/scripts/workbook_scripts.ts`, `compute/computation_state.ts`,
   `query/query_execution_state.ts`, `connections/connection_state.ts`): they hold wasm handles, free them while
   reducing, and rely on object identity. A port needs handle tables and a crossing per state read.
-- **Graph scheduler** (`session/scripts/session_execution.ts`): already decided in
+- **Graph scheduler** (`workbook/scripts/workbook_execution.ts`): already decided in
   [workbook_graph_execution.md](../design/workbook_graph_execution.md).
 - **Cell formatting** (`compute/arrow_formatter.ts`): depends on `Intl` and would cross per visible cell.
 - **Catalog DDL generation** (`connections/catalog/catalog_sql_generator.ts`): structured input gains nothing, because
@@ -55,12 +54,11 @@ Paths without a package are under `packages/dashql-app/src/`.
 - **Browser I/O**: fetch, gRPC, OAuth, OPFS, migrations, CodeMirror integration, Vega specs, React scene assembly.
 - **One-line SQL quoting**: not worth a crossing, and `platform/hyperdb` runs without a core instance.
 
-## Open decision
+## Decided: the CLI runs workbooks on the runtime
 
-**Should the CLI ever run sessions headlessly?** This is the one answer that changes the ranking. If yes, the session
-format, session inputs, the scheduler and eventually connectors flip to "port", which also meets the revisit trigger in
-[workbook_graph_execution.md](../design/workbook_graph_execution.md). It would be a separate, much larger project. This
-document assumes no.
+The CLI runs workbooks headlessly, but on the TypeScript runtime in Node (`docs/wip/dashql_runtime.md`), not on a
+port. The workbook format, inputs, the scheduler and the connectors stay in TypeScript and keep one implementation;
+the ranking above stands.
 
 ## Boundary rules for any port
 
