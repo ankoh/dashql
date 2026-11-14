@@ -26,7 +26,8 @@ async function openWorkbookWithQuery(page, navigate) {
     await page.keyboard.type('select 42 as answer');
     await page.getByTestId('composer-send').click();
     await page.getByText('Statement executed successfully').waitFor();
-    await page.getByText('1 row').waitFor();
+    // The result card counts the rows, the bar of Wobble tells them too
+    await page.getByText('1 row, 4 bytes').waitFor();
     await page.getByText('42', { exact: true }).last().waitFor();
 }
 
@@ -488,7 +489,7 @@ async function testDemos(page, navigate) {
     await page.getByText('UI Design System', { exact: true }).waitFor();
     await page.goBack();
 
-    await page.getByRole('link', { name: /Wobble/ }).click();
+    await page.getByRole('link', { name: /^Wobble Wobble glances/ }).click();
     await page.getByRole('heading', { name: 'Wobble' }).waitFor();
     await page.getByRole('button', { name: 'Dark' }).click();
     await page.getByRole('button', { name: 'Logo' }).click();
