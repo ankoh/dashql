@@ -6,7 +6,7 @@ import {
     HyperDB,
     HyperDBConnection,
 } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {

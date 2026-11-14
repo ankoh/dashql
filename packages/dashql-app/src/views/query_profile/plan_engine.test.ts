@@ -1,4 +1,4 @@
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import * as dashql from '@ankoh/dashql-core';
 import { detectPlanEngine } from './plan_engine.js';
 import { peekFormat } from '../query_result/format_peek.js';

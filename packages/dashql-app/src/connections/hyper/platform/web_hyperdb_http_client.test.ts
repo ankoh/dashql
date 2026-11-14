@@ -9,7 +9,7 @@ import { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/htt
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 import { QueryExecutionProgress } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { tableFromArrays } from '../../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const ENDPOINT = 'https://hyper.mock.local';
 

@@ -20,7 +20,7 @@ import { SET_CROSS_FILTERS } from '@ankoh/dashql-sdk/compute/computation_state';
 import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const dependencies = {
     QueryResultToolbar: () => null,

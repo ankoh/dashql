@@ -21,7 +21,7 @@ import { mockTableComputation, recordingDispatch } from '../../tests/mocks/compu
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { type CrossFilterController, useCrossFilters } from './use_cross_filters.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const SCORE = {
     inputFieldName: 'score',

@@ -38,7 +38,7 @@ import { ComputationRegistry, useComputationRegistry } from './computation_regis
 import { ComputeQueryExecutionProvider } from './compute_query_execution.js';
 import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from '@ankoh/dashql-sdk/compute/computation_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

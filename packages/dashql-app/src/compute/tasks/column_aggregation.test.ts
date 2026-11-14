@@ -18,7 +18,7 @@ import {
 } from '@ankoh/dashql-sdk/compute/computation_types';
 import { executeReturning, mockDataFrame as frame } from '../../tests/mocks/compute_query.js';
 import { computeFilteredColumnAggregates } from './column_aggregation.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 /// The table aggregate with the stats of the string column name (_0) and the ordinal column score (_1)
 const statsTable = tableFromArrays({

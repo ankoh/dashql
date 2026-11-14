@@ -6,7 +6,7 @@ import { createTableComputationState } from '@ankoh/dashql-sdk/compute/computati
 import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
-import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function createTableState() {
     const table = tableFromArrays({

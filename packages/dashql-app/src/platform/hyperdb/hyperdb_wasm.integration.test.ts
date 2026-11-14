@@ -14,7 +14,7 @@ import { createExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbo
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
 import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-sdk/workbook/attachments/attachment_mounts';
-import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

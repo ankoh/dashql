@@ -22,7 +22,7 @@ import {
     type QueryExecutionState,
 } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
-import { vectorFromArray } from '../tests/arrow_fixtures.js';
+import { vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';

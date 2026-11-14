@@ -15,7 +15,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { vectorFromArray } from '../../tests/arrow_fixtures.js';
+import { vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS } from '../query_result/data_table_colors.js';
 import { ColumnAggregationBar } from './column_aggregation_bar.js';

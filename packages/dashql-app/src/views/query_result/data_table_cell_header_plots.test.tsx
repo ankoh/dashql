@@ -24,7 +24,7 @@ import {
 import { computeColumnAggregates } from '../../compute/tasks/column_aggregation.js';
 import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { HeaderPlotsCell, type HeaderPlotsCellProps } from './data_table_cell_header_plots.js';

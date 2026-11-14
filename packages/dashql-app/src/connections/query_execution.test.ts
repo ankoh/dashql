@@ -14,7 +14,7 @@ import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
 import { HyperHttpError } from './hyper/hyperdb_http_client.js';
 import { logQueryFailure } from './query_executor.js';
 import { consumeQueryResponseStream } from '@ankoh/dashql-sdk/connections/query_execution';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function createStream(table: arrow.Table): QueryExecutionResponseStream {
     const metrics = {

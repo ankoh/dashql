@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { formatResultSlice, sliceResult } from './agent_result_format.js';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 describe('agent result format', () => {
     const table = tableFromArrays({

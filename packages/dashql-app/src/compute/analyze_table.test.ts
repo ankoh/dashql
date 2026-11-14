@@ -9,7 +9,7 @@ import { computeTableAggregates } from './tasks/table_aggregation.js';
 import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from '@ankoh/dashql-sdk/compute/computation_types';
 import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 describe('analyzeTable', () => {
     it('ignores results without columns', async () => {

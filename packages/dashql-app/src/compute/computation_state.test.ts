@@ -11,7 +11,7 @@ import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { mockDataFrame } from '../tests/mocks/compute_query.js';
 import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function createOrdinalAggregate(
     columnEntry: OrdinalGridColumnGroup,

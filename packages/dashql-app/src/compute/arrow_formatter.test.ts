@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, dataTypeToString, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { tableFromArrays, vectorFromArray } from '../tests/arrow_fixtures.js';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 describe('TableFormatter', () => {
     it("can be constructed from a single column", () => {

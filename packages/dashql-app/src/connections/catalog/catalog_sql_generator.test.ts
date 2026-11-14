@@ -18,7 +18,7 @@ import {
     type CatalogTable,
     type ColumnMetadata,
 } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
-import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

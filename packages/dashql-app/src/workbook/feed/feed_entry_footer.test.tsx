@@ -12,7 +12,7 @@ import type { ResolvedVisualizeQuery } from '@ankoh/dashql-sdk/workbook/scripts/
 import * as dashql from '@ankoh/dashql-core';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { QueryProgressModels, type QueryProfileProgress } from '@ankoh/dashql-sdk/query/query_progress_model';
 import { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 

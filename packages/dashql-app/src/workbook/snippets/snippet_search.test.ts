@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { forbidEval } from '../../tests/forbid_eval.js';
+import { forbidEval } from '@ankoh/dashql-sdk/testing/forbid_eval';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';

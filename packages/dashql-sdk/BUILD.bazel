@@ -3,6 +3,7 @@ load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 # The logic of DashQL without React, shared by the app (//packages/dashql-app) and the command line tool, see
 # docs/wip/dashql_sdk.md. A source package, nothing is compiled: the app bundles the TypeScript itself.
@@ -11,6 +12,12 @@ load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 package(default_visibility = ["//visibility:public"])
 
 _SOURCES = glob(["src/**/*.ts"])
+
+# The modules without their tests and test helpers
+_MODULES = glob(
+    ["src/**/*.ts"],
+    exclude = ["src/**/*.test.ts", "src/testing/**"],
+)
 
 _ASSETS = glob(["src/**/*.sql"])
 
@@ -35,10 +42,32 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
+# The specs of the extensions for the @dashql/extensions alias of the tests
+copy_to_directory(
+    name = "dep_extensions",
+    srcs = ["//extensions/d360-api:files"],
+    out = "./dependencies/extensions",
+    replace_prefixes = {
+        "extensions": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
 copy_to_bin(
     name = "typecheck_inputs",
-    srcs = _SOURCES + _ASSETS + ["package.json", "tsconfig.json"],
+    srcs = _SOURCES + _ASSETS + ["package.json", "tsconfig.json", "tsconfig.test.json"],
 )
+
+_TEST_DEPENDENCIES = [
+    ":dep_jsonschema",
+    ":dep_protobuf",
+    "//:node_modules/@ankoh/dashql-core",
+    "//:node_modules/@bufbuild/protobuf",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/flatbuffers",
+    "//:node_modules/immutable",
+    "//:node_modules/vega-lite",
+]
 
 # Against the WebWorker lib, without the DOM and without the types of Node: an API of only one platform fails here
 typescript_bin.tsc_test(
@@ -46,17 +75,38 @@ typescript_bin.tsc_test(
     size = "small",
     args = ["--project", "tsconfig.json"],
     chdir = "packages/dashql-sdk",
+    data = [":typecheck_inputs"] + _TEST_DEPENDENCIES,
+)
+
+# The tests and their helpers, with the globals of vitest
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_tests_test",
+    size = "small",
+    args = ["--project", "tsconfig.test.json"],
+    chdir = "packages/dashql-sdk",
     data = [
-        ":dep_jsonschema",
-        ":dep_protobuf",
         ":typecheck_inputs",
-        "//:node_modules/@ankoh/dashql-core",
-        "//:node_modules/@bufbuild/protobuf",
-        "//:node_modules/apache-arrow",
-        "//:node_modules/flatbuffers",
-        "//:node_modules/immutable",
-        "//:node_modules/vega-lite",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
+)
+
+# The tests of the SDK in Node. Tests that need a browser, e.g. a Web Worker, still run in the browser tests of the app.
+vitest_bin.vitest_test(
+    name = "test_node",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
     ],
+    chdir = "packages/dashql-sdk",
+    data = _SOURCES + _ASSETS + [
+        "package.json",
+        "test/setup_node.mjs",
+        "vitest.config.mjs",
+        ":dep_extensions",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
 )
 
 # The SDK reaches no code of the app and no user interface, and uses only the known seams of a browser or a bundler

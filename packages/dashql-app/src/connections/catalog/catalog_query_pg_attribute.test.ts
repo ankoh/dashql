@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { CATALOG_QUERY_READ_TIMEOUT_MS, catalogTablesFromPgAttribute, pgAttributeQuery, queryPgAttribute } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_attribute';
 import type { QueryExecutor } from '../query_executor.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 describe('queryPgAttribute', () => {
     it('safely qualifies an attached database alias', async () => {

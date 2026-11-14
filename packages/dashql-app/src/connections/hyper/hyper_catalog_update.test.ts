@@ -8,7 +8,7 @@ import type { QueryExecutor } from '../query_executor.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_attribute';
-import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

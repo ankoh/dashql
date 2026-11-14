@@ -13,7 +13,7 @@ import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 

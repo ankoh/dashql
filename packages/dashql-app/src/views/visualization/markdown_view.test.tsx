@@ -9,7 +9,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { buffers } from '@ankoh/dashql-core';
 import { MarkdownView, type MarkdownViewDependencies } from './markdown_view.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const Node = buffers.visualization.MarkdownNodeT;
 const NodeType = buffers.visualization.MarkdownNodeType;

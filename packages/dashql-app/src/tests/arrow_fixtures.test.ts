@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { tableFromArrays, vectorFromArray } from './arrow_fixtures.js';
-import { forbidEval } from './forbid_eval.js';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { forbidEval } from '@ankoh/dashql-sdk/testing/forbid_eval';
 
 describe('Arrow fixtures', () => {
     it('infers the types of vectorFromArray of Arrow without evaluating code', async () => {

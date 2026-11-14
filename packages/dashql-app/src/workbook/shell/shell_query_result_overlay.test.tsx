@@ -12,7 +12,7 @@ import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,
 } from './shell_query_result_overlay.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,

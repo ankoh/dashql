@@ -5,7 +5,7 @@ import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import type { EmbeddedConnection, EmbeddedResultStream } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { QueryExecutionStatus, type QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 /// A result stream over the batches of a table, onDone runs when it is read to the end or cancelled.
 async function readTable(table: arrow.Table, onDone: () => void = () => {}): Promise<EmbeddedResultStream> {

@@ -7,7 +7,7 @@ import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computatio
 import { DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
 import { searchData } from './data_search.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const TASK: DataSearchTask = {
     tableId: 1,

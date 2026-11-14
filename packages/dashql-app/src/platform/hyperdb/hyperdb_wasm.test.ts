@@ -10,7 +10,7 @@ import {
     type HyperDBResult,
     type HyperDBSettings,
 } from './hyperdb_wasm.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 type MountSource = Parameters<HyperDBClient['mount']>[0];
 /// A scripted poll result, hold answers pending while the client holds queries

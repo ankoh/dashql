@@ -19,7 +19,7 @@ import {
 } from '@ankoh/dashql-sdk/compute/computation_types';
 import { computeColumnAggregates, computeFilteredColumnAggregates } from '../../compute/tasks/column_aggregation.js';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
 import { HistogramCell, type HistogramFilterCallback } from './histogram_cell.js';

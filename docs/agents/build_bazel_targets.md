@@ -123,6 +123,8 @@ bazel test //...
 | `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint`, `format` |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK against the WebWorker lib, without the DOM and without the types of Node |
+| `//packages/dashql-sdk:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the SDK (`src/testing/`), with the globals of vitest |
+| `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest). Tests that need a browser, e.g. a Web Worker, still run in the browser tests of the app |
 | `//packages/dashql-sdk:boundary_test` | The SDK reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |

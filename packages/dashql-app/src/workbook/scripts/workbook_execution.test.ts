@@ -5,7 +5,7 @@ import type { CancelQuery, QueryExecutor } from '../../connections/query_executo
 import { runWorkbookExecution, type WorkbookExecutionState } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
 import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;

@@ -61,6 +61,8 @@ for (const file of modules('')) {
             violations.push(`${file}: ${specifier} imports the package by its name, use a relative import`);
         }
     }
+    // Tests may stand in for a platform, e.g. set a fake Electron bridge, the seams are checked in the modules
+    if (/\.test\.ts$/.test(file)) continue;
     const known = KNOWN_SEAMS.get(file) ?? [];
     for (const seam of SEAMS) {
         const uses = seam.test(text);

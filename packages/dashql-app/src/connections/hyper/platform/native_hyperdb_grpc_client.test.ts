@@ -8,7 +8,7 @@ import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../../tests/mocks/native_proxy.js';
 import type { HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
-import { tableFromArrays } from '../../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 const hyper = pb.salesforce_hyperdb_grpc_v1.pb;
 const PROXY = { proxyEndpoint: new URL('dashql-native://localhost') };

@@ -5,7 +5,7 @@ import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { DataFrame, DataFrameRegistry, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
-import { tableFromArrays } from '../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {

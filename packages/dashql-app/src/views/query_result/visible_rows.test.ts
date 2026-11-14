@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolveSearchedRowIndices } from './visible_rows.js';
-import { tableFromArrays } from '../../tests/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
 
 describe('resolveSearchedRowIndices', () => {
     it('intersects Data matches with cross-filtered rows', () => {
