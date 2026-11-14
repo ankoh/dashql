@@ -8,7 +8,7 @@ import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { QueryCacheMissError } from '@ankoh/dashql-runtime/query/query_result_cache';
-import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
+import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
 import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import {
     APPLY_PLANNER_ANALYSIS,

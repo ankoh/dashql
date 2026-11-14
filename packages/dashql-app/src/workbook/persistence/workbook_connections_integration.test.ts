@@ -10,7 +10,7 @@ import { writePortableWorkbookFresh } from '../../storage/workbook_import_transa
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
+import { makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
 import { ANALYZE_OUTDATED_SCRIPT, analyzeScriptData, reduceWorkbookScripts, REORDER_SCRIPTS, scriptConnectionOf, workbookConnectionIds, SET_SCRIPT_CONNECTION, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';

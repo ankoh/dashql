@@ -23,7 +23,7 @@ import {
 } from '@ankoh/dashql-runtime/compute/computation_types';
 import { computeColumnAggregates } from '../../compute/tasks/column_aggregation.js';
 import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
-import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
+import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';

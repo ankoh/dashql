@@ -8,7 +8,7 @@ import {
     QueryType,
 } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { LoggableException } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from './query_execution.js';
+import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
 
 function createExecution(queryId: number, queryText: string) {
     return createQueryExecutionState(

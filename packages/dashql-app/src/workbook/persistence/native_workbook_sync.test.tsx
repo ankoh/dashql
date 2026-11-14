@@ -14,7 +14,7 @@ import { WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-runtime/testin
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
 import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { fsStore, makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
+import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { NativeWorkbookSync, readStoredWorkbookScripts } from './native_workbook_sync_react.js';

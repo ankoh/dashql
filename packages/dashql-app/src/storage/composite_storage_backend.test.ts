@@ -6,7 +6,7 @@ import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_stora
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
+import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import {
     findWorkbookImportConflict,
     prepareNativeWorkbookImport,

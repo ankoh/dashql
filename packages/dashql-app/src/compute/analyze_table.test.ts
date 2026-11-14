@@ -8,7 +8,7 @@ import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
 import { computeTableAggregates } from './tasks/table_aggregation.js';
 import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from '@ankoh/dashql-runtime/compute/computation_types';
 import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
-import { mockDataFrame } from '../tests/mocks/compute_query.js';
+import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 describe('analyzeTable', () => {

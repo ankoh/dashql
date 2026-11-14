@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
-import type { ShellQueryExecutionTracker } from '../shell/query_execution.js';
+import type { ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
 
 /// The result that the overlay of the shell shows. Closing the overlay keeps the result so that it can open again, the
 /// computation of a result is released once another result replaces it.

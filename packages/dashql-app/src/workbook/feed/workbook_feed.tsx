@@ -39,7 +39,7 @@ import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_fo
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { runWorkbookScript } from '../scripts/rerun_query.js';
+import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { computeScriptResultCacheKey, scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';

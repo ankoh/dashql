@@ -4,7 +4,7 @@ import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type 
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
-import { runWorkbookScript } from '../scripts/rerun_query.js';
+import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
 import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';

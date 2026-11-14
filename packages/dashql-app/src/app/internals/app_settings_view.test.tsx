@@ -14,7 +14,7 @@ import { APP_RESTART_CTX } from '../../platform/crosstab/app_hand_over.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
+import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
 import { applyFlavorToDocument } from '../../config/flavor_resolution.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { type RouteContext } from '../router/router.js';

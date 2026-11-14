@@ -11,7 +11,7 @@ import { useQueryExecutor } from '../../connections/query_executor.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useWorkbookScripts } from './workbook_scripts_registry.js';
 import { isCatalogRefreshRunning } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
-import { runWorkbookScript } from './rerun_query.js';
+import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 

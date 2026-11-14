@@ -5,7 +5,7 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { ComputationStateVersion, type DataSearchTask } from '@ankoh/dashql-runtime/compute/computation_types';
 import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-runtime/compute/sql/query_result_search_sql';
-import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
+import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { searchData } from './data_search.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 

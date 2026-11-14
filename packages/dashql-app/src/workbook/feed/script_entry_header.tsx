@@ -13,7 +13,7 @@ import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_ba
 import { useConnectionLabeler } from '../connection_labels.js';
 import { DELETE_SCRIPT, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { runWorkbookScript } from '../scripts/rerun_query.js';
+import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '@ankoh/dashql-runtime/workbook/scripts/script_format';

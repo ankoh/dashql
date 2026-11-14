@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
-import { fsStore, makeFsMock, resetFsStore } from '../test_fs_mock.js';
+import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';
 import { WORKBOOK_FORMAT_VERSION, STORAGE_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
 import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';

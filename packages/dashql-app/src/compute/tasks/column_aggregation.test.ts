@@ -16,7 +16,7 @@ import {
     STRING_COLUMN,
     WithFilter,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { executeReturning, mockDataFrame as frame } from '../../tests/mocks/compute_query.js';
+import { executeReturning, mockDataFrame as frame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { computeFilteredColumnAggregates } from './column_aggregation.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
