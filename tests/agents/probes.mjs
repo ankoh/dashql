@@ -1,13 +1,25 @@
 // The probes of the agent integration tests: a server on loopback, a script that tries to reach it, and a hook that
 // runs the script and logs what it saw.
 import { spawn } from 'node:child_process';
-import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { join, resolve } from 'node:path';
 
 /// The Node binary itself: in a js_test of Bazel, process.execPath is a wrapper that needs the environment of the test,
 /// which a harness doesn't pass to its hooks
 const NODE = process.env.JS_BINARY__NODE_BINARY ? resolve(process.env.JS_BINARY__NODE_BINARY) : process.execPath;
+
+/// The command `dashql` as an installation has it: Node runs the bundle of //packages/dashql-cli:bundle. The launcher
+/// of a js_binary needs the environment of Bazel, which a harness doesn't pass to the commands of the agent.
+export function writeDashQLCommand(dir) {
+    mkdirSync(join(dir, 'bin'), { recursive: true });
+    const command = join(dir, 'bin', 'dashql');
+    writeFileSync(command, `#!/bin/bash
+exec ${JSON.stringify(NODE)} ${JSON.stringify(resolve(process.env.DASHQL_BUNDLE))} "$@"
+`);
+    chmodSync(command, 0o755);
+    return command;
+}
 
 /// A server on loopback that the probes connect to
 export async function startLoopbackTarget() {

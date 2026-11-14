@@ -86,7 +86,7 @@ The scripts of its connection inline it with their own filters, so a run of the 
 is an error ("orders_all.sql runs only on request (@manual), the scripts of the connection trino inline it but west.sql
 of the connection local cannot read it"). The analyzer sets `AnalyzedScript.manual`, the editor update carries it as
 `EditorScriptAnnotations.manual` (`ScriptAnnotations.manual` in the app) and the dataflow as `DataflowScript.manual`.
-The feed marks the script as manual. `dashql agent run` refuses it without `--force`.
+The feed marks the script as manual.
 
 ## Attachments
 

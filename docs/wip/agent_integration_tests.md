@@ -6,7 +6,6 @@ lint`), the rest is proposed.
 The integrations with agent harnesses rest on assumptions about their sandboxes: what a command of the agent can
 reach, where hooks run, what an approval by prefix allows. These tests run the real harnesses with a fake model, so
 they check those assumptions on every machine that runs them, without model calls and in CI.
-`//packages/dashql-cli:bridge_harness_test` stays for the behavior of real models (manual, costs model calls).
 
 | Part | State |
 |---|---|
@@ -84,8 +83,8 @@ rule for the command (the "always" of an approval), Codex without a request and 
 
 **A session server.** A `SessionStart` hook that starts a server on loopback (in the background, its output
 redirected) keeps it for the session in both harnesses: the `PostToolUse` and `Stop` hooks reach it, a command of the
-agent in the sandbox doesn't. That is the transport of the live view without a menu bar app. **`dashql lint`** (the
-native binary) runs in both sandboxes.
+agent in the sandbox doesn't. That is the transport of the live view without a menu bar app. **`dashql lint`** (Node running
+the bundle of `//packages/dashql-cli:bundle`, as an installation does) runs in both sandboxes.
 
 Hooks run outside the sandbox in both harnesses, so they are the way out of it for the live view: a hook starts `dashql session serve`
 and carries the events of the agent to it, while the commands of the agent work on files. The test checks loopback;

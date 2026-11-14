@@ -3,7 +3,7 @@
 The coverage workflow (`.github/workflows/coverage.yml`) covers the Rust core and the Rust tools: it runs
 `bazel coverage` over the core crates (`//packages/dashql-core/...` and its `-session`, `-shell` and `-profile`
 siblings), `//packages/dashql-dataflow/...`, `//packages/dashql-parser/...`, `//packages/dashql-snapshots/...` and the
-unit tests of `dashql-cli`, `dashql-native-proxy` and `dashql-pack`, instruments those crates except
+unit tests of `dashql-native-proxy` and `dashql-pack`, instruments those crates except
 `dashql-snapshots`, and uploads Bazel's combined report (`_coverage_report.dat`) to Coveralls. It uploads the LCOV of
 the app's browser tests (`//packages/dashql-app:coverage_chromium`, see `docs/reports/dashql_app_coverage_report.md`)
 with it. It also renders both with `genhtml` and deploys the result to [coverage.dashql.app](https://coverage.dashql.app),
@@ -16,8 +16,7 @@ latest push to main.
 `bazel coverage` does not instrument test targets, only the libraries and binaries they test. A `rust_test` with its own
 `srcs` passes but reports nothing (`There was no coverage found.`), so a crate's unit tests take `crate = ":<target>"`.
 
-The end-to-end tests of `dashql-cli` (`:bridge_test`, `:bridge_harness_test`, `:lint_test`) run the `dashql` binary in a subprocess and
-report nothing either, so the coverage of `dashql-cli` is a lower bound and `src/main.rs` shows as uncovered.
+A test that runs a binary in a subprocess reports nothing either.
 
 ## Empty tracefiles under Bazel 8/9
 

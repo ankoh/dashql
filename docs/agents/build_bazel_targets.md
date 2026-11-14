@@ -64,7 +64,7 @@ bazel build //...
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool: `agent` commands and the local agent server (`agent serve`), `lint` and `format` for SQL files |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-sdk`, bundled for Node with Vite: `lint` and `format` for SQL files |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -120,7 +120,8 @@ bazel test //...
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint`, `format` |
+| `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes |
+| `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql-sdk:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the SDK (`src/testing/`), with the globals of vitest |
@@ -391,7 +392,7 @@ bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefo
 
 ```bash
 # Build and test (type checking happens automatically)
-bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test //packages/dashql-cli:tests
+bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-workbook:all \
@@ -440,8 +441,8 @@ git diff tests/snapshots/parser/
 
 ### Checking SQL Scripts
 
-`dashql lint` (`//packages/dashql-cli:dashql`) scans, parses and analyzes SQL scripts with the native dashql-core and
-prints their errors and warnings. Use it to check scripts you write, see `packages/dashql-cli/README.md`.
+`dashql lint` (`//packages/dashql-cli:dashql`) scans, parses and analyzes SQL scripts with dashql-core and prints
+their errors and warnings. Use it to check scripts you write, see `packages/dashql-cli/README.md`.
 
 ```bash
 bazel run //packages/dashql-cli:dashql -- lint path/to/script.sql path/to/dir
@@ -478,7 +479,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-workbook`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm`, `dashql-cli` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-workbook`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

@@ -4,9 +4,6 @@ package(default_visibility = ["//visibility:public"])
 
 load("//bazel/jsonschema:jsonschema_typescript.bzl", "jsonschema_typescript")
 
-# The tests of the agent server check its messages against the schema
-exports_files(["dashql/agent_bridge.json"])
-
 # All JSON Schema files
 filegroup(
     name = "all_json_schema_srcs",
@@ -17,7 +14,6 @@ filegroup(
 jsonschema_typescript(
     name = "ts_gen",
     srcs = [
-        "dashql/agent_bridge.json",
         "dashql/auth.json",
         "dashql/connection.json",
         "dashql/app_event.json",

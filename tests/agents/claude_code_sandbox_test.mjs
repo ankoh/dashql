@@ -15,6 +15,7 @@ import {
     startLoopbackTarget,
     stopSessionServer,
     writeBrokenScript,
+    writeDashQLCommand,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -22,8 +23,8 @@ import {
 } from './probes.mjs';
 
 const CLAUDE = resolve(process.env.CLAUDE_BINARY);
-const DASHQL = resolve(process.env.DASHQL_BINARY);
 const ROOT = mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'claude-code-'));
+const DASHQL = writeDashQLCommand(ROOT);
 const HOOK_EVENTS = ['SessionStart', 'PostToolUse', 'Stop'];
 
 let target;

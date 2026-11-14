@@ -1,0 +1,16 @@
+// The modules and tests with the types of Node, the SDK and the core come from the node_modules of Bazel
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node", "vitest/globals"],
+    "strict": true,
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

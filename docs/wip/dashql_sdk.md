@@ -16,13 +16,13 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
 | One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
 | Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper follows |
-| The CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
+| The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `workbook check`, `pack`, `link`, `auth`, `run` follow |
 | Editor state out of `ScriptData` | Later, step 5 |
 
 ## Why
 
 - **One implementation.** `workbook check`, `pack`, `link` and `run` in the CLI must give the answers of the app. A
-  second implementation (the Rust CLI writing workbook tables) would drift from `storage/workbook_tables.ts`.
+  second implementation would drift from `storage/workbook_tables.ts`.
 - **Agents iterate over SQL.** The agent writes scripts, checks them against the catalog, runs them where it may
   and fixes them. The commands it runs most work offline on files, so they work in sandboxed harnesses (Codex blocks
   loopback, listening and DNS inside its sandbox). Commands that need the network (`run`, catalog refreshes) are
@@ -296,10 +296,11 @@ Each step ships on its own and keeps the behavior.
 
 ## The CLI on the SDK
 
-Everything the CLI does goes through the SDK. `packages/dashql-cli` becomes a Node package on `@ankoh/dashql-sdk` with
-the `dashql` command, and the Rust `dashql` (`lint`, `format`) stays only until the Node one has them: they are calls
-of the core. The agent bridge and its server are gone, an agent in the terminal reaches the page through
-`dashql session serve` (`docs/wip/agent_session.md`). DashQL.app runs the Node CLI with
+Everything the CLI does goes through the SDK. `packages/dashql-cli` is a Node package on `@ankoh/dashql-sdk` with the
+`dashql` command, bundled with Vite's server build into one module (`dist/dashql.js`); the core stays a package next
+to it, its Wasm file is read from there. `lint` and `format` run on `sql/sql_lint.ts`, `sql/sql_format.ts` and
+`sql/sql_report.ts` of the SDK; the Rust `dashql` is gone. The agent bridge and its server are gone too, an agent in
+the terminal reaches the page through `dashql session serve` (`docs/wip/agent_session.md`). DashQL.app runs the Node CLI with
 Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
 - **Offline by default.** `check`, `pack`, `unpack` and `link` read and write files in the workspace, nothing else.
