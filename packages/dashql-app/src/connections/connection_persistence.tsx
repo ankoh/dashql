@@ -7,8 +7,8 @@ import {
     PATCH_WORKBOOK_CONNECTION,
     WRITE_CONNECTION_ENTRY,
     type StorageWriteResult,
-} from '../storage/storage_writer.js';
-import { COMMIT_CONNECTION_PARAMS, type ConnectionState } from './connection_state.js';
+} from '@ankoh/dashql-sdk/storage/storage_writer';
+import { COMMIT_CONNECTION_PARAMS, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import {
     connectionEntryFromState,
     useConnectionReferences,
@@ -16,8 +16,8 @@ import {
     useConnectionDispatch,
     useConnectionRegistryStore,
 } from './connection_registry.js';
-import { connectionParamsWithoutDraftRows, type ConnectionParams } from './connection_params.js';
-import type { WorkbookConnection } from '../storage/storage_backend.js';
+import { connectionParamsWithoutDraftRows, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import type { WorkbookConnection } from '@ankoh/dashql-sdk/storage/storage_backend';
 
 /// The copy of a connection with saved params that the workbooks store
 function workbookCopy(connection: ConnectionState, params: ConnectionParams): WorkbookConnection {

@@ -1,16 +1,16 @@
 import type * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createQueryResponseStreamMetrics } from '../../query/query_execution_state.js';
+import { createQueryResponseStreamMetrics } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { ChannelError } from '../../platform/channel_common.js';
-import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
-import type { TrinoApiClientInterface, TrinoQueryResult, TrinoQueryStage } from './trino_api_client.js';
-import { TrinoApiEndpoint } from './trino_api_client.js';
+import { ChannelError } from '@ankoh/dashql-sdk/platform/channel_common';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
+import type { TrinoApiClientInterface, TrinoQueryResult, TrinoQueryStage } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
+import { TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
 import { basicTrinoApi } from '../../tests/mocks/trino_api.js';
-import { TrinoChannel, TrinoQueryResultStream } from './trino_channel.js';
-import type { TrinoSessionDefaults } from './trino_catalogs.js';
-import * as proto from '../../proto.js';
+import { TrinoChannel, TrinoQueryResultStream } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
+import type { TrinoSessionDefaults } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
+import * as proto from '@ankoh/dashql-sdk/proto';
 import * as buf from '@bufbuild/protobuf';
 
 const COLUMNS = [{ name: 'customer_id', type: 'bigint' }];

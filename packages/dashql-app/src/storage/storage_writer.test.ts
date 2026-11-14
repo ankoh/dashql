@@ -24,11 +24,11 @@ import {
     WRITE_WORKBOOK_SCRIPTS,
     storageWriteChainKey,
     type StorageWriteTaskVariant,
-} from './storage_writer.js';
-import { ExternalScriptChangeError } from './storage_backend.js';
-import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
-import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
-import { CONNECTOR_INFOS } from '../connections/connector_info.js';
+} from '@ankoh/dashql-sdk/storage/storage_writer';
+import { ExternalScriptChangeError } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { CONNECTOR_INFOS } from '@ankoh/dashql-sdk/connections/connector_info';
 import { workbookConnectionFromState } from '../connections/connection_registry.js';
 import { testConnections, testWorkbook, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from './workbook_test_backend.js';
 

@@ -4,8 +4,8 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 
 import { useConnectionDispatch, useConnectionRegistryStore, useDynamicConnectionDispatch } from './connection_registry.js';
-import { RELATIONS_TOUCHED } from './connection_state.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
+import { RELATIONS_TOUCHED } from '@ankoh/dashql-sdk/connections/connection_state';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import {
     createQueryResponseStreamMetrics,
     QUERY_CACHE_RECORDED,
@@ -16,29 +16,29 @@ import {
     QUERY_RECEIVED_BATCH,
     QueryExecutionResponseStream,
     QueryExecutionTracker,
-} from '../query/query_execution_state.js';
+} from '@ankoh/dashql-sdk/query/query_execution_state';
 import { useComputationDispatch } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/analyze_table.js';
 import { DELETE_COMPUTATION } from '../compute/computation_state.js';
 import { ResultComputations } from './result_computations.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { QueryCacheMissError, type QueryResultCacheEntry } from '../query/query_result_cache.js';
-import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
-import { ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from '@ankoh/dashql-sdk/connections/connection_params';
+import { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
 import { computeQueryResultCacheKey } from '../query/query_result_cache_key.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
-import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from './query_execution_args.js';
-export type { CancelQuery, QueryExecutor } from './query_execution_args.js';
-import { LoggableException, stringifyError, type TracedLogger } from '../platform/logger/logger.js';
-import type { LogRecord } from '../platform/logger/log_buffer.js';
+import { createTrace, type TraceContext } from '@ankoh/dashql-sdk/platform/logger/trace_context';
+import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-sdk/connections/query_execution_args';
+export type { CancelQuery, QueryExecutor } from '@ankoh/dashql-sdk/connections/query_execution_args';
+import { LoggableException, stringifyError, type TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { allocateQueryId, executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { consumeQueryResponseStream, executeConnectionQuery } from './query_execution.js';
-import { yieldToBrowser } from '../utils/yield_to_browser.js';
-import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
+import { supportsParquet, type ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
-import { QueryProgressModels, type EngineProgressPayload } from '../query/query_progress_model.js';
+import { QueryProgressModels, type EngineProgressPayload } from '@ankoh/dashql-sdk/query/query_progress_model';
 import { createProgressLayoutConfig } from '../views/query_profile/profile_layout_config.js';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../runtime/core_provider.js';
 

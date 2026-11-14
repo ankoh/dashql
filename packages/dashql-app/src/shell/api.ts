@@ -1,6 +1,6 @@
 import { DashQL, DashQLCatalog, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 export enum DashQLShellStatus {
     OK = 0,

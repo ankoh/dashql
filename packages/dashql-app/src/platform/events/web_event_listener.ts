@@ -1,4 +1,4 @@
-import { Logger } from '../logger/logger.js';
+import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { PlatformEventListener } from "./event_listener.js";
 import { WebFile } from '../file/web_file.js';
 import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, OAUTH_BROADCAST_CHANNEL, PlatformDragEvent, PlatformDropEvent, isAppEventPostMessage } from './event.js';

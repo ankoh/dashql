@@ -1,7 +1,7 @@
 import { createBrowserClient } from 'hyperdb-wasm/raw';
 
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '../platform/hyperdb/hyperdb_opfs_instance.js';
-import { OPFS_TESTS_FOLDER } from '../platform/opfs_root.js';
+import { OPFS_TESTS_FOLDER } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';

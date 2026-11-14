@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { LoggableException } from '../../platform/logger/logger.js';
+import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { ComputationStateVersion, type DataSearchTask } from '../computation_types.js';
 import type { ComputeQueryExecution } from '../computation_tasks.js';

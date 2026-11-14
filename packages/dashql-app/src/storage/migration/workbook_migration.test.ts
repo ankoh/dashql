@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { MemoryFolder, OverlayFolder } from './migration_folder.js';
-import { migrateWorkbookFolder, WORKBOOK_MIGRATION_STEPS, WorkbookMigrationResult, type WorkbookMigrationStep } from './workbook_migration.js';
-import { WORKBOOK_FORMAT_VERSION } from './versions.js';
-import { scriptsInSessionFile } from './workbook/v5_scripts_in_session_file.js';
-import { sessionConnections } from './workbook/v6_session_connections.js';
-import { connectionsOfScripts } from './workbook/v8_connections_of_scripts.js';
-import { dbcomConnector } from './workbook/v10_dbcom_connector.js';
-import { validateWorkbookData } from '../workbook_validation.js';
+import { MemoryFolder, OverlayFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
+import { migrateWorkbookFolder, WORKBOOK_MIGRATION_STEPS, WorkbookMigrationResult, type WorkbookMigrationStep } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
+import { scriptsInSessionFile } from '@ankoh/dashql-sdk/storage/migration/workbook/v5_scripts_in_session_file';
+import { sessionConnections } from '@ankoh/dashql-sdk/storage/migration/workbook/v6_session_connections';
+import { connectionsOfScripts } from '@ankoh/dashql-sdk/storage/migration/workbook/v8_connections_of_scripts';
+import { dbcomConnector } from '@ankoh/dashql-sdk/storage/migration/workbook/v10_dbcom_connector';
+import { validateWorkbookData } from '@ankoh/dashql-sdk/storage/workbook_validation';
 
 const SESSION_ID = '11111111-2222-4333-8444-555555555555';
 

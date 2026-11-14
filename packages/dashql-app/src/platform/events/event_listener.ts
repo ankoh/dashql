@@ -1,9 +1,9 @@
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
-import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
-import { Logger } from '../logger/logger.js';
+import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
 import { parseHyperLinkTarget, type HyperLinkTarget } from './hyper_link_target.js';
 

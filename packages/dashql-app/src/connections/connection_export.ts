@@ -1,8 +1,8 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { ConnectionState } from "./connection_state.js";
-import { sanitizeConnectionParamsForSharing } from './connection_params.js';
-import { connectorOfDetails, connectorParams } from './connector_descriptor.js';
+import { ConnectionState } from "@ankoh/dashql-sdk/connections/connection_state";
+import { sanitizeConnectionParamsForSharing } from '@ankoh/dashql-sdk/connections/connection_params';
+import { connectorOfDetails, connectorParams } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 
 export function encodeConnectionAsProto(state: ConnectionState): connection.Connection {
     const connector = connectorOfDetails(state.details);

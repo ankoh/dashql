@@ -5,10 +5,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { WebHyperDatabaseClient } from './web_hyperdb_http_client.js';
 import { HyperHttpClientMock } from '../hyperdb_http_client_mock.js';
-import { HttpClient, HttpFetchResult } from '../../../platform/http/http_client.js';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
-import { HyperDatabaseConnectionContext, AttachedDatabase } from '../hyperdb_grpc_client.js';
-import { QueryExecutionProgress } from '../../../query/query_execution_state.js';
+import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+import { QueryExecutionProgress } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { tableFromArrays } from '../../../tests/arrow_fixtures.js';
 
 const ENDPOINT = 'https://hyper.mock.local';

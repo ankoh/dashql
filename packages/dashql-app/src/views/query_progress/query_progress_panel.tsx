@@ -2,11 +2,11 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './query_progress_panel.module.css';
 
-import { QueryExecutionState, QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
 import { useQueryProfileDetail } from '../../connections/query_executor.js';
-import { QueryProgressFollower, type QueryProfileProgress } from '../../query/query_progress_model.js';
+import { QueryProgressFollower, type QueryProfileProgress } from '@ankoh/dashql-sdk/query/query_progress_model';
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '../query_profile/profile_layout_config.js';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';

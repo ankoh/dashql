@@ -7,18 +7,18 @@ import {
     HYPER_CHANNEL_SETUP_FAILED,
     HYPER_CHANNEL_SETUP_STARTED,
     HyperConnectorAction,
-} from './hyper_connection_state.js';
-import { Logger, stringifyError } from '../../platform/logger/logger.js';
+} from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
+import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { HyperConnectorConfig } from '../connector_configs.js';
-import { Dispatch } from '../../utils/variant.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
-} from './hyperdb_grpc_client.js';
+} from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
-import { RESET_CONNECTION } from '../connection_state.js';
+import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
@@ -27,7 +27,7 @@ import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState, hyperLinkChannelParams } from './hyper_link.js';
 import { embeddedAttachedDatabasePath } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
-import { embeddedCloudDatabases } from './local_cloud.js';
+import { embeddedCloudDatabases } from '@ankoh/dashql-sdk/connections/hyper/local_cloud';
 
 const LOG_CTX = "hyper_setup";
 

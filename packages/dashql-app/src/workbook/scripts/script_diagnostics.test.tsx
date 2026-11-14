@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { act } from '@dashql/browser-test-act';
 import { createTestRoot } from '../../tests/react_root.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { collectScriptDiagnostics, ScriptDiagnosticsButton, SCRIPT_FORMATTING_WARNING } from './script_diagnostics.js';
-import type { ScriptData } from './workbook_scripts.js';
-import type { ScriptReferenceReport } from './script_reference_check.js';
+import type { ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import type { ScriptReferenceReport } from '@ankoh/dashql-sdk/workbook/scripts/script_reference_check';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

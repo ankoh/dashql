@@ -25,8 +25,8 @@ import {
     reduceQueryAction,
     type QueryExecutionHistoryState,
     type QueryMetadata,
-} from './query_execution_state.js';
-import { LoggableException } from '../platform/logger/logger.js';
+} from '@ankoh/dashql-sdk/query/query_execution_state';
+import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 function history(): QueryExecutionHistoryState {

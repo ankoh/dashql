@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
 import { buildHyperCloudCatalogQuery, catalogTablesFromHyperCloud, updateHyperCatalog } from './hyper_catalog_update.js';
-import { generateCatalogTablesSQL, generateRelationsFile } from '../catalog/catalog_sql_generator.js';
+import { generateCatalogTablesSQL, generateRelationsFile } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 import type { QueryExecutor } from '../query_executor.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';

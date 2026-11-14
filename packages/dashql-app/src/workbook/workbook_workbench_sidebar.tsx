@@ -50,7 +50,7 @@ import {
 import { classNames } from '../utils/classnames.js';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
-import { ConnectionState, RENAME_CONNECTION } from '../connections/connection_state.js';
+import { ConnectionState, RENAME_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
 import {
     findWorkbookQueries,
     useConnectionReferences,
@@ -62,21 +62,21 @@ import {
 import {
     createConnectionStateFromParams,
     createAttachedConnectionParamsForConnector,
-} from '../connections/connection_params.js';
+} from '@ankoh/dashql-sdk/connections/connection_params';
 import { useNewWorkbookConnection } from '../connections/embedded_connection.js';
 import { useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { CloudsFolder } from '../cloud/cloud_sidebar.js';
 import { useClouds } from '../cloud/cloud_state.js';
 import { useCloudWorkbooks } from '../cloud/cloud_workbooks.js';
 import { ATTACHABLE_CONNECTORS } from '../connections/attached_connection.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { ConnectionSettingsOverlay } from '../connections/connection_settings_overlay.js';
 import { renderWorkbookName } from './workbook_name.js';
 import { WorkbookConnectionAttentionContext } from './workbook_connection_attention.js';
 import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
 import { VerticalSplit } from '../ui/foundations/vertical_split.js';
 import { displayPath } from '../storage/workbook_locator.js';
-import { StorageBackendType } from '../storage/storage_backend.js';
+import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { WorkbookStorageOverlay } from './persistence/workbook_storage_overlay.js';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
 import { readWorkbookBundleFromBrowserFolder } from './persistence/browser_workbook_folder.js';
@@ -87,9 +87,9 @@ import {
     restoreSingleWorkbook,
 } from './persistence/app_state_loader.js';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
-import { describeWorkbookValidationError } from '../storage/workbook_validation.js';
-import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from './scripts/workbook_scripts.js';
-import { scriptDisplayName } from './scripts/script_types.js';
+import { describeWorkbookValidationError } from '@ankoh/dashql-sdk/storage/workbook_validation';
+import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { renameScript } from './scripts/script_rename.js';
 import {
     useInvalidWorkbooks,
@@ -116,8 +116,8 @@ import {
     freeFolderName,
     moveWorkbookInTree,
     upsertWorkbookInTree,
-} from '../storage/workbook_tree.js';
-import { RENAME_WORKBOOK } from './scripts/workbook_scripts.js';
+} from '@ankoh/dashql-sdk/storage/workbook_tree';
+import { RENAME_WORKBOOK } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { NameInput } from '../ui/foundations/name_input.js';
 import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
 import { useMergeConnections } from './workbook_connection_merge.js';
@@ -126,8 +126,8 @@ import { useDetachConnection } from './workbook_connection_detach.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../connections/connection_merge.js';
 import { connectionReplaceBlocker, connectionReplaceCandidates } from '../connections/connection_replace.js';
-import { connectionLabel, connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '../connections/connection_label.js';
-import { connectionOrdinals } from '../connections/connection_registry_state.js';
+import { connectionLabel, connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
+import { connectionOrdinals } from '@ankoh/dashql-sdk/connections/connection_registry_state';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { WorkbookURLShareOverlay } from './persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from './persistence/workbook_file_save_overlay.js';

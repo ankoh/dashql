@@ -1,11 +1,11 @@
 import * as dashql from '@ankoh/dashql-core';
-import { generateRelationsFile, packCatalogTable } from './catalog/catalog_sql_generator.js';
+import { generateRelationsFile, packCatalogTable } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
-import { CONNECTOR_INFOS } from './connector_info.js';
-import { DELETE_CONNECTION, SET_CONNECTION_DRAFT } from './connection_state.js';
+import { CONNECTOR_INFOS } from '@ankoh/dashql-sdk/connections/connector_info';
+import { DELETE_CONNECTION, SET_CONNECTION_DRAFT } from '@ankoh/dashql-sdk/connections/connection_state';
 import { ConnectionPersistenceProvider, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 
 import {
@@ -14,7 +14,7 @@ import {
     ConnectionHealth,
     UPDATE_CATALOG,
     type ConnectionState,
-} from './connection_state.js';
+} from '@ankoh/dashql-sdk/connections/connection_state';
 import {
     type ConnectionRegistry,
     type DynamicConnectionDispatch,
@@ -26,12 +26,12 @@ import {
     useConnectionRegistry,
     useDynamicConnectionDispatch,
 } from './connection_registry.js';
-import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog_update_state.js';
+import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../storage/workbook_test_backend.js';
-import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '../storage/storage_writer.js';
+import { groupConnectionFileWrites, StorageWriter, WRITE_CONNECTION_FILE } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { SET_WORKBOOK_INPUT, type WorkbookScripts } from '../scripts/workbook_scripts.js';
+import { SET_WORKBOOK_INPUT, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
-import { deriveWorkbookInputs, inputConsumerScripts, workbookInputLiteral, type SessionInput } from './workbook_inputs.js';
+import { deriveWorkbookInputs, inputConsumerScripts, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
 
 const NO_INPUTS: ReadonlySet<string> = new Set();
 

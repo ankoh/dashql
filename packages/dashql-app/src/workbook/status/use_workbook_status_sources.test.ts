@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConnectionHealth } from '../../connections/connection_state.js';
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import type { WorkbookExecutionState } from '../scripts/workbook_execution.js';
 import { diffConnections, diffExecution, diffPublish, diffScriptQueries, liveWorkbookStatuses, type ScriptQuery, type WorkbookConnectionStatus } from './use_workbook_status_sources.js';
 import { pickWorkbookStatus, WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';

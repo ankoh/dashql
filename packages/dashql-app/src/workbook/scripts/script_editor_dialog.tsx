@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { EditorView } from '@codemirror/view';
 import * as styles from './script_editor_dialog.module.css';
 
-import { type ConnectionState } from '../../connections/connection_state.js';
+import { type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useCancelQuery, useQueryState } from '../../connections/query_executor.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
@@ -14,12 +14,12 @@ import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
-import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
+import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { ScriptEditor } from './script_editor.js';
 import { checkWorkbookScriptReferences } from './script_reference_reports.js';
 import type { RenameDraftReferences } from './script_rename.js';
-import { scriptDisplayName } from './script_types.js';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { useWorkbookExecution } from './workbook_execution_provider.js';
 
 export interface ScriptEditorDialogProps {

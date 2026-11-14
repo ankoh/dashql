@@ -2,7 +2,7 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
@@ -423,16 +423,6 @@ sh_binary(
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],
-)
-
-# The modules that move into packages/dashql-sdk reach no code of the user interface, see docs/wip/dashql_sdk.md
-js_test(
-    name = "sdk_boundary_test",
-    data = glob(
-        ["src/**/*.ts", "src/**/*.tsx"],
-        exclude = ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    ),
-    entry_point = "test/sdk_boundary_test.mjs",
 )
 
 # Compares the experimental wasm backend of hyperdb-wasm with its default backend

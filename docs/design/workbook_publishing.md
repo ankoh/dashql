@@ -54,13 +54,13 @@ Static HTTP servers cannot enumerate folders, so `dashql-workbook.json` lists th
   of the name, and reordering scripts only rewrites the list.
 - The attachment list is kept in natural order.
 - `connections/<id>/` carries the relation and function catalogs of each connection of the workbook
-  (`bundleCatalogPath`, `packages/dashql-app/src/storage/workbook_bundle.ts`). Bundles of format 6 and older carry top-level catalog files, which
+  (`bundleCatalogPath`, `packages/dashql-sdk/src/storage/workbook_bundle.ts`). Bundles of format 6 and older carry top-level catalog files, which
   are read for the default connection of that format.
 
 ## Reconciling Lists and Files
 
 Every loader, local or remote, reconciles the lists with the files it finds
-(`packages/dashql-app/src/storage/workbook_files.ts`):
+(`packages/dashql-sdk/src/storage/workbook_files.ts`):
 
 - `sanitizeWorkbookFiles` drops entries with unsafe names (empty, longer than 255 characters, separators, NUL,
   `.` or `..`), non-`.sql` scripts, `dashql-draft.sql`, and invalid connection ids. Duplicates are detected

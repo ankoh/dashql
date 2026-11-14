@@ -1,4 +1,4 @@
-import { Logger } from '../logger/logger.js';
+import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { WebPlatformEventListener } from './web_event_listener.js';
 
 const LOG_CTX = "electron_event_listener";

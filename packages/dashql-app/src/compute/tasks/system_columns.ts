@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import { DataFrame, generateTableName } from '../data_frame.js';
 import { TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, SystemColumnComputationTask, ROWNUMBER_COLUMN } from '../computation_types.js';
-import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
+import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
 import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 import { getToNumericFn, isIntegerType, createUniqueColumnName } from '../arrow_columns.js';

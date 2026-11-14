@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
 import { readWorkbookBundleFromHttp } from './http_workbook_bundle.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
-import { WORKBOOK_FORMAT_VERSION } from '../../storage/migration/versions.js';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
 
 const URL = new globalThis.URL('https://example.com/workbook/dashql-workbook.json');
 

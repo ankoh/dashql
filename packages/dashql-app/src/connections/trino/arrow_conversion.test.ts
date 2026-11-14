@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { parseTrinoTimestampMs, translateAnyRowsToArrowBatch } from './arrow_conversion.js';
+import { parseTrinoTimestampMs, translateAnyRowsToArrowBatch } from '@ankoh/dashql-sdk/connections/trino/arrow_conversion';
 
 /// Translate the values of a single column
 function translateColumn(type: arrow.DataType, values: unknown[]): arrow.Vector {

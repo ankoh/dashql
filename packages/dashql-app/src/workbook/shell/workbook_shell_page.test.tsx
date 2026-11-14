@@ -11,14 +11,14 @@ import { ComputeConnectionProvider } from '../../compute/compute_connection_prov
 import { COMPUTATION_FROM_QUERY_RESULT } from '../../compute/computation_state.js';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
+import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/query_executor.js';
-import { SALESFORCE_CLIENT_FUNCTIONS } from '../../connections/salesforce/salesforce_client_functions.js';
+import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_client_functions';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { DashQLShell, type DashQLShellOptions } from '../../shell/api.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
@@ -29,7 +29,7 @@ import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode } from 
 import { resolveClientFunctionCall } from './workbook_shell_environment.js';
 import { WorkbookShellPage, type WorkbookShellPageDependencies } from './workbook_shell_page.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
-import { ProfileExecutionState } from '../../query/profile_execution_state.js';
+import { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 import * as completionListStyles from '../../views/completion_list/completion_list.module.css';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

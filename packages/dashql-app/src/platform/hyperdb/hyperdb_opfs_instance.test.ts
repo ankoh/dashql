@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from './hyperdb_opfs_instance.js';
-import { hyperOPFSRoot } from '../opfs_root.js';
+import { hyperOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 
 /// An OPFS root with an instances folder, the given folders directly in the root and an optional legacy logs folder
 function mockRoot(instances: string[], legacy: string[], removeEntry: (name: string) => Promise<void>, logs?: string[]) {

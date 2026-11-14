@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { LogRecord } from '../../platform/logger/log_buffer.js';
+import type { LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { findWorkbookQueries, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 

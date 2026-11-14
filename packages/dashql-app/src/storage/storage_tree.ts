@@ -1,8 +1,8 @@
-import { StorageBackendType } from './storage_backend.js';
+import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { type WorkbookLocation, displayPath } from './workbook_locator.js';
-import { join, readDir, stat } from '../platform/electron_fs.js';
-import { isDesktopHost } from '../platform/native_globals.js';
-import { getOPFSRoot } from '../platform/opfs_root.js';
+import { join, readDir, stat } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
+import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 
 /// The kind of a directory entry
 export enum StorageTreeEntryKind {

@@ -3,7 +3,7 @@ import type { DashQL } from '@ankoh/dashql-core';
 
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import type { ParquetExportDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import type { ParquetExportDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { supportsParquetRead, type ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 
 /// What writes the workbook tables of a `.dashql` file: the embedded database writes the Parquet files, the core reads

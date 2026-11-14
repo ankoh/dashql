@@ -1,6 +1,6 @@
 import { DataFrame, generateTableName } from '../data_frame.js';
 import { TableFilteringTask, FilterTable } from '../computation_types.js';
-import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
+import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
 import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 

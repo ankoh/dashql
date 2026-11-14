@@ -4,8 +4,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from './connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 
 describe('ConnectionInlineHeader', () => {

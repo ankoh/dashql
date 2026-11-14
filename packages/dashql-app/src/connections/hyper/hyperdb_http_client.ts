@@ -1,5 +1,5 @@
-import { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
-import { Logger, LoggableException } from '../../platform/logger/logger.js';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
+import { Logger, LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 const LOG_CTX = "hyperdb_http_client";
 

@@ -4,9 +4,9 @@ import {
     describeInvalidWorkbook,
     describeWorkbookValidationError,
     WorkbookValidationError,
-} from './workbook_validation.js';
-import type { WorkbookData, WorkbookEntry } from './storage_backend.js';
-import { ConnectorType } from '../connections/connector_info.js';
+} from '@ankoh/dashql-sdk/storage/workbook_validation';
+import type { WorkbookData, WorkbookEntry } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 
 const UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const CONNECTION_ID = '11111111-2222-3333-4444-555555555555';

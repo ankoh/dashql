@@ -5,7 +5,7 @@ import {
     PARENT_SPAN_ID_KEY,
     SPAN_ID_KEY,
     TRACE_ID_KEY,
-} from './trace_context.js';
+} from '@ankoh/dashql-sdk/platform/logger/trace_context';
 
 describe('trace_context', () => {
     describe('createTrace', () => {

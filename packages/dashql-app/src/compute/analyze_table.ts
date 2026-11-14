@@ -4,9 +4,9 @@ import { DataFrame, generateTableName } from './data_frame.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK } from './computation_types.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, CREATED_DATA_FRAME } from './computation_state.js';
 import { ColumnAggregationTask, TableAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, SystemColumnComputationTask, ROWNUMBER_COLUMN, ComputationStateVersion } from './computation_types.js';
-import { Dispatch } from '../utils/variant.js';
-import { LoggerLike } from '../platform/logger/logger.js';
-import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+import { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { scheduleTask } from './computation_tasks.js';
 import { createUniqueColumnName } from './arrow_columns.js';
 

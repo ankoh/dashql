@@ -2,22 +2,22 @@ import * as React from 'react';
 
 import { forgetWorkbookScriptReferences } from './script_reference_reports.js';
 import { forgetDataflowGraph } from '../dataflow/dataflow_graph.js';
-import { WorkbookScripts, WorkbookScriptsAction, destroyWorkbookScripts, newScriptConnection, workbookConnectionIds, workbookScriptListWrite } from './workbook_scripts.js';
-import { Dispatch } from '../../utils/variant.js';
+import { WorkbookScripts, WorkbookScriptsAction, destroyWorkbookScripts, newScriptConnection, workbookConnectionIds, workbookScriptListWrite } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
 import { useStore, useStoreState, useUpdateQueue } from '../../utils/store_hooks.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
 import { ConnectionReferencesProvider, type ConnectionReferences } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '../../platform/logger/logger.js';
-import type { InvalidWorkbook } from '../../storage/workbook_validation.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { InvalidWorkbook } from '@ankoh/dashql-sdk/storage/workbook_validation';
 import {
     REPLACE_WORKBOOK_SCRIPTS,
     DEBOUNCE_DURATION_WORKBOOK_WRITE,
     groupWorkbookScriptListWrites,
     groupWorkbookWrites,
     WRITE_WORKBOOK_SCRIPTS,
-} from "../../storage/storage_writer.js";
+} from "@ankoh/dashql-sdk/storage/storage_writer";
 import {
     addWorkbookScriptsForConnection,
     applyConnectionWorkbookScriptsAction,
@@ -30,7 +30,7 @@ import {
     type ModifyWorkbookScripts,
     type WorkbookScriptsAllocator,
     type WorkbookScriptsRegistry,
-} from './workbook_scripts_registry_state.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts_registry_state';
 
 // The state of the registry and its reducers are in workbook_scripts_registry_state.ts, this module binds them to React
 export {
@@ -49,7 +49,7 @@ export {
     type ModifyWorkbookScripts,
     type WorkbookScriptsAllocator,
     type WorkbookScriptsRegistry,
-} from './workbook_scripts_registry_state.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts_registry_state';
 
 const LOG_CTX = 'workbook_scripts_registry';
 

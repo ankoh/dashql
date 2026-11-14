@@ -3,7 +3,7 @@ import * as styles from './log_viewer.module.css';
 
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../foundations/symbol_icon.js';
 
-import { LogRecord } from '../../platform/logger/log_buffer.js';
+import { LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { OverlaySize } from '../foundations/overlay.js';

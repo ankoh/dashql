@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentClient, AgentCommandError, AgentConnectionStatus, type AgentSocket } from './agent_client.js';
 import { AGENT_FEATURES, AGENT_PROTOCOL_VERSION, type AgentCommandParams, type AgentCommandResult } from './agent_protocol.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { LogLevel, type LogRecord } from '../platform/logger/log_buffer.js';
+import { LogLevel, type LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 
 /// Run the pending promise callbacks, the commands answer asynchronously
 async function flush() {

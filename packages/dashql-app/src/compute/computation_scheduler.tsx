@@ -8,9 +8,9 @@ import { searchData } from './tasks/data_search.js';
 import { sortTable } from './tasks/table_ordering.js';
 
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
-import { Dispatch } from '../utils/variant.js';
-import { LoggableException, Logger, stringifyError } from '../platform/logger/logger.js';
-import { createTrace } from '../platform/logger/trace_context.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+import { LoggableException, Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
 import { TaskStatus, TaskProgress, TaskVariant, COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from "./computation_types.js";
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../platform/logger/logger_provider.js';

@@ -18,7 +18,7 @@ import type {
     ExternalDirectoryMode,
     EmbeddedTableImportConnection,
     EmbeddedTableInsertOptions,
-} from '../database/embedded_database.js';
+} from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
 
 export { HyperDBEngine };

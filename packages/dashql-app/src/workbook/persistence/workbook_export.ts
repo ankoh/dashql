@@ -1,19 +1,19 @@
-import type { StorageBackend, WorkbookData, ConnectionParams } from '../../storage/storage_backend.js';
-import { validateDataFileName } from '../../storage/storage_backend.js';
-import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { WORKBOOK_FORMAT_VERSION } from '../../storage/migration/versions.js';
-import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
+import type { StorageBackend, WorkbookData, ConnectionParams } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { validateDataFileName } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
+import { sanitizeConnectionParamsForSharing } from '@ankoh/dashql-sdk/connections/connection_params';
 import {
     pruneBundleConnections,
     readWorkbookBundle,
     regenerateBundleConnectionIds,
     type WorkbookBundle,
     type WorkbookBundleResult,
-} from '../../storage/workbook_bundle.js';
+} from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import type { DashQL } from '@ankoh/dashql-core';
-import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '../../storage/workbook_tables.js';
+import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { workbookTableFileName, writeWorkbookTableParquet } from '../../storage/workbook_tables_parquet.js';
-import { parseCatalogSql } from '../../connections/catalog/catalog_structure.js';
+import { parseCatalogSql } from '@ankoh/dashql-sdk/connections/catalog/catalog_structure';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
 import { ZIP_QUERY_PARAMETER } from '../../platform/events/event_listener.js';
 import { archiveError, BlobReader, BlobWriter, Uint8ArrayReader, ZipWriter } from './workbook_zip.js';

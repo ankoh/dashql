@@ -1,10 +1,10 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
-import { PREFETCHED_HYPER_FUNCTIONS_SQL } from '../catalog/prefetched_hyper_functions.js';
-import { updateSalesforceCatalog } from './salesforce_catalog_update.js';
-import { generateRelationsFile } from '../catalog/catalog_sql_generator.js';
-import type { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
+import { PREFETCHED_HYPER_FUNCTIONS_SQL } from '@ankoh/dashql-sdk/connections/catalog/prefetched_hyper_functions';
+import { updateSalesforceCatalog } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_catalog_update';
+import { generateRelationsFile } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
+import type { SalesforceConnectionStateDetails } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

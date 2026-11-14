@@ -1,5 +1,5 @@
-import type { Logger } from '../platform/logger/logger.js';
-import type { StorageBackend } from './storage_backend.js';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { StorageBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
 
 const LOG_CTX = 'workbook_transfer';
 

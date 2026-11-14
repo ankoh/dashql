@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { exportArrowTableAsParquet } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import { exportArrowTableAsParquet } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
-import type { WorkbookBundle } from '../storage/workbook_bundle.js';
+import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import { TEST_CONNECTION_ID, testWorkbook } from '../storage/workbook_test_backend.js';
 import {
     ATTACHMENTS_TABLE,
@@ -16,7 +16,7 @@ import {
     workbookTablesToBundle,
     type CatalogParser,
     type WorkbookTables,
-} from '../storage/workbook_tables.js';
+} from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { listCloudEntries, type CloudCursor, type CloudSearch } from './cloud_folders.js';
 import {

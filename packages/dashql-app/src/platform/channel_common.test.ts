@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ChannelError, getProxyErrorData } from './channel_common.js';
+import { ChannelError, getProxyErrorData } from '@ankoh/dashql-sdk/platform/channel_common';
 
 describe('proxy errors', () => {
     it('reads native proxy details', () => {

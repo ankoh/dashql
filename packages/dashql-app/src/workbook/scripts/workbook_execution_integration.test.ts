@@ -2,11 +2,11 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
-import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
+import type { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
+import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { QueryCacheMissError } from '../../query/query_result_cache.js';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from './workbook_execution.js';
@@ -23,9 +23,9 @@ import {
     SET_SCRIPT_EXECUTION_VISUALIZATION,
     SET_SCRIPT_TEXT,
     SET_WORKBOOK_ATTACHMENTS,
-} from './workbook_scripts.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/workbook_export.js';
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
@@ -35,7 +35,7 @@ import { importWorkbookQueryResults, retainWorkbookQueryResults } from '../persi
 import { TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../storage/workbook_test_backend.js';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
 import { decodeConnectionFromProto } from '../../connections/connection_import.js';
-import type { ConnectionParams } from '../../connections/connection_params.js';
+import type { ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

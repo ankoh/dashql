@@ -1,15 +1,26 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
     "types": [],
     "strict": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
+    "noImplicitAny": true,
+    "esModuleInterop": false,
+    "downlevelIteration": true,
     "isolatedModules": true,
-    "noEmit": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@ankoh/dashql-protobuf": ["./dependencies/dashql-protobuf"],
+      "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
+      "@ankoh/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
+      "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

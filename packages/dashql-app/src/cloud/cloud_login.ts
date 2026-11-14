@@ -2,11 +2,11 @@ import * as React from 'react';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { useConnectionById } from '../connections/connection_registry.js';
-import { connectionParamsWithoutDraftRows } from '../connections/connection_params.js';
-import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { connectionParamsWithoutDraftRows } from '@ankoh/dashql-sdk/connections/connection_params';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { isLocalCloud } from '../connections/cloud_connection.js';
 import { useConnectionSetup } from '../connections/connection_setup.js';
-import { ConnectorType } from '../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { performHealthCheck } from '../connections/health_check.js';
 import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from '../connections/query_executor.js';

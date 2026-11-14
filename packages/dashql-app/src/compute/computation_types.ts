@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 
 import { OrderByConstraint, ScalarFilter } from './sql/sqlframe_builder.js';
-import { VariantKind } from '../utils/variant.js';
+import { VariantKind } from '@ankoh/dashql-sdk/utils/variant';
 import { DataFrame } from './data_frame.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { LoggableException } from '../platform/logger/logger.js';
-import { AsyncValue } from '../utils/async_value.js';
+import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
 
 export const TASK_FAILED = Symbol("TASK_FAILED");
 export const TASK_RUNNING = Symbol("TASK_RUNNING");

@@ -1,24 +1,24 @@
 import type { DashQL } from '@ankoh/dashql-core';
-import type { Logger } from '../../platform/logger/logger.js';
-import { stringifyError } from '../../platform/logger/logger.js';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { ProgressCounter } from '../../utils/progress.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { registerConnection, workbookConnectionFromState, type ConnectionRegistry } from '../../connections/connection_registry.js';
-import type { WorkbookScripts, ScriptData } from '../scripts/workbook_scripts.js';
+import type { WorkbookScripts, ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { addWorkbookScriptsForConnection, copyWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
-import { createEmptyScriptData, destroyWorkbookScripts, isEphemeralWorkbook, replaceScriptSessionText, scriptConnectionOf, workbookConnectionIds } from '../scripts/workbook_scripts.js';
-import { readWorkbookAttachments, type WorkbookAttachment } from '../attachments/workbook_attachments.js';
+import { createEmptyScriptData, destroyWorkbookScripts, isEphemeralWorkbook, replaceScriptSessionText, scriptConnectionOf, workbookConnectionIds } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { readWorkbookAttachments, type WorkbookAttachment } from '@ankoh/dashql-sdk/workbook/attachments/workbook_attachments';
 import { connectionStateFromStorage, destroyUnregisteredConnection, restoreConnectionCatalog } from '../../connections/connection_restore.js';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '../../connections/connector_info.js';
-import type { StorageBackend, WorkbookEntry, WorkbookData, WorkbookRegistryBackend, ConnectionEntry, WorkbookConnection, WorkbookScript } from '../../storage/storage_backend.js';
-import { StorageBackendType, isWorkbookRegistryBackend } from '../../storage/storage_backend.js';
-import { connectionParamsEqual, createDefaultConnectionParamsForConnector } from '../../connections/connection_params.js';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import type { StorageBackend, WorkbookEntry, WorkbookData, WorkbookRegistryBackend, ConnectionEntry, WorkbookConnection, WorkbookScript } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { StorageBackendType, isWorkbookRegistryBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { connectionParamsEqual, createDefaultConnectionParamsForConnector } from '@ankoh/dashql-sdk/connections/connection_params';
 import { findEmbeddedConnection } from '../../connections/embedded_connection.js';
-import { patchWorkbookConnection, upsertConnectionEntry } from '../../storage/storage_writer.js';
-import { sanitizeWorkbookFiles, workbookConnectionIdsOf, withWorkbookScripts } from '../../storage/workbook_files.js';
+import { patchWorkbookConnection, upsertConnectionEntry } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { sanitizeWorkbookFiles, workbookConnectionIdsOf, withWorkbookScripts } from '@ankoh/dashql-sdk/storage/workbook_files';
 import { resolveWorkbookScripts, workbookScriptsResolutionChanged, type WorkbookConnectionResolver } from './workbook_script_connections.js';
-import { validateWorkbookData, describeInvalidWorkbook, isLocalHyperWasmParams, isValidUuid, WorkbookValidationError, type InvalidWorkbook } from '../../storage/workbook_validation.js';
-import type { BatchProcessor } from '../../connections/catalog/catalog_batch.js';
+import { validateWorkbookData, describeInvalidWorkbook, isLocalHyperWasmParams, isValidUuid, WorkbookValidationError, type InvalidWorkbook } from '@ankoh/dashql-sdk/storage/workbook_validation';
+import type { BatchProcessor } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
 
 const LOG_CTX = "app_state_loader";
 

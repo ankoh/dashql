@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { TEST_WORKBOOK_ID, testWorkbook } from './workbook_test_backend.js';
-import { ExternalScriptChangeError } from './storage_backend.js';
+import { ExternalScriptChangeError } from '@ankoh/dashql-sdk/storage/storage_backend';
 
 const DIR = '/tmp/v2-workbook';
 

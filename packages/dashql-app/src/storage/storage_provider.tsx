@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { StorageWriter } from './storage_writer.js';
-import { type StorageBackend, StorageBackendType } from './storage_backend.js';
+import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { type StorageBackend, StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { type WorkbookLocation } from './workbook_locator.js';
-import { type WorkbookTreeFolder, emptyWorkbookTree } from './workbook_tree.js';
+import { type WorkbookTreeFolder, emptyWorkbookTree } from '@ankoh/dashql-sdk/storage/workbook_tree';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { migrateStorage } from './migration/storage_migration.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';

@@ -4,13 +4,13 @@ import { act } from '@dashql/browser-test-act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFERENCES, useConnectionRegistry, type ConnectionReferences } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
 import { createTestRoot } from '../../tests/react_root.js';
-import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
+import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '../../query/query_result_cache.js';

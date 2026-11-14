@@ -1,4 +1,4 @@
-import type { ScriptData, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
+import type { ScriptData, WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { AgentFollowTarget, AgentQuestion } from './use_agent_questions.js';
 
 /// The feed that shows a workbook, it runs and follows the scripts that the agent writes

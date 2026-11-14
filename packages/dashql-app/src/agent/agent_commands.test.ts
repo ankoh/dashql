@@ -4,17 +4,17 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { runAgentCommand, findScript, type AgentCommandEnvironment } from './agent_commands.js';
 import { AgentCommandError } from './agent_client.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
-import { ConnectionHealth } from '../connections/connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
     CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, createEmptyScriptData, reduceWorkbookScripts, replaceScriptSessionText,
     type WorkbookScripts,
-} from '../workbook/scripts/workbook_scripts.js';
-import { createScriptRef } from '../workbook/scripts/script_types.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { acquireWorkbookExecution, isWorkbookExecutionRunning, releaseWorkbookExecution } from '../workbook/scripts/workbook_execution.js';
 import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
-import { StorageWriter } from '../storage/storage_writer.js';
+import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';
 
 /// A script with a text and the diagnostics of its analysis

@@ -11,19 +11,19 @@ import {
     type StorageManifest,
     StorageBackendType,
     validateDataFileName,
-} from './storage_backend.js';
+} from '@ankoh/dashql-sdk/storage/storage_backend';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
     flattenWorkbookTree,
     removeWorkbookFromTree,
     upsertWorkbookInTree,
-} from './workbook_tree.js';
-import { type FileStamp } from '../platform/electron_fs.js';
+} from '@ankoh/dashql-sdk/storage/workbook_tree';
+import { type FileStamp } from '@ankoh/dashql-sdk/platform/electron_fs';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import { validateWorkbookData, describeWorkbookValidationError } from './workbook_validation.js';
+import { validateWorkbookData, describeWorkbookValidationError } from '@ankoh/dashql-sdk/storage/workbook_validation';
 import {
     assembleWorkbookBundle,
     readWorkbookBundle,
@@ -33,10 +33,10 @@ import {
     writeWorkbookBundle,
     type WorkbookBundle,
     type WorkbookBundleWriteStep,
-} from './workbook_bundle.js';
-import type { Logger } from '../platform/logger/logger.js';
-import { NativeFolder, OverlayFolder } from './migration/migration_folder.js';
-import { migrateWorkbookFolder } from './migration/workbook_migration.js';
+} from '@ankoh/dashql-sdk/storage/workbook_bundle';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { NativeFolder, OverlayFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
+import { migrateWorkbookFolder } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
 
 const LOG_CTX = 'composite_storage_backend';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { openTestHyperDBWindow, type TestHyperDBWindow } from '../../../tests/hyperdb_test_client.js';
-import { getOPFSRoot, hyperOPFSRoot } from '../../opfs_root.js';
+import { getOPFSRoot, hyperOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import type { HyperDBConnection } from '../hyperdb_wasm.js';
 import { EXPERIMENTAL_REDO_LOG_SETTING } from '../hyperdb_settings.js';
 

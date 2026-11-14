@@ -7,8 +7,8 @@ import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/persistence/workbook_export_settings_view.js';
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
 import { exportConnectionAsUrl, WorkbookLinkTarget } from '../workbook/persistence/workbook_export.js';
-import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from './connection_params.js';
-import type { ConnectionState } from './connection_state.js';
+import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-sdk/connections/connection_params';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useWorkbookArchiveWriter } from '../workbook/persistence/workbook_archive_database.js';
 
 interface Props {

@@ -5,7 +5,7 @@ import {
     type QueryExecutionState,
     type QueryExecutionTracker,
     reduceQueryAction,
-} from '../query/query_execution_state.js';
+} from '@ankoh/dashql-sdk/query/query_execution_state';
 
 export const SHELL_QUERY_HISTORY_LIMIT = 100;
 

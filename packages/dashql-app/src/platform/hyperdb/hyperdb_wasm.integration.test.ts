@@ -9,11 +9,11 @@ import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_t
 import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hyperdb_opfs_instance.js';
 import { TestLogger } from '../logger/test_logger.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
-import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_parquet_export.js';
+import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { createExecutionMounts } from '../../workbook/scripts/workbook_execution.js';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
-import { getOPFSRoot } from '../opfs_root.js';
-import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '../../workbook/attachments/attachment_mounts.js';
+import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-sdk/workbook/attachments/attachment_mounts';
 import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {

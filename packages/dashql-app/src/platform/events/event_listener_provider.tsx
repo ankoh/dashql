@@ -6,7 +6,7 @@ import { PlatformEventListener, EVENT_QUERY_PARAMETER, WORKBOOK_QUERY_PARAMETER,
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS } from './legacy_links.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
-import { AppHost, getAppHost } from '../native_globals.js';
+import { AppHost, getAppHost } from '@ankoh/dashql-sdk/platform/native_globals';
 import { useLogger } from '../logger/logger_provider.js';
 
 export const SKIP_EVENT_LISTENER = Symbol("SKIP_EVENT_LISTENER");

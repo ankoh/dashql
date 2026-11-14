@@ -1,11 +1,11 @@
 import type * as arrow from 'apache-arrow';
 
-import { Logger } from '../platform/logger/logger.js';
+import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import type {
     EmbeddedClientContext,
     EmbeddedComputeDatabase,
     EmbeddedTableImportConnection,
-} from '../platform/database/embedded_database.js';
+} from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { OrderByConstraint, SQLFrame } from './sql/sqlframe_builder.js';
 
 const LOG_CTX = "data_frame";

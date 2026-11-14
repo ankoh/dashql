@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeConnectionParamsForSharing, createAttachedConnectionParamsForConnector, createConnectionParamsSignature, createDefaultConnectionParamsForConnector, ConnectionParams, DEFAULT_HYPER_ENDPOINT } from './connection_params.js';
-import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
+import { sanitizeConnectionParamsForSharing, createAttachedConnectionParamsForConnector, createConnectionParamsSignature, createDefaultConnectionParamsForConnector, ConnectionParams, DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql-sdk/connections/connection_params';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 
 describe('createDefaultConnectionParamsForConnector', () => {
     it('uses WASM for browser Hyper', () => {

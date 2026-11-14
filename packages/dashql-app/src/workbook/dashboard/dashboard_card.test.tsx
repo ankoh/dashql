@@ -4,8 +4,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
-import type { ScriptData } from '../scripts/workbook_scripts.js';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

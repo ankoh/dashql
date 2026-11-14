@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from '@ankoh/dashql-sdk/connections/connector_info';
 
 describe('connector list', () => {
     afterEach(() => {

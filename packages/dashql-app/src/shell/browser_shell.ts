@@ -3,7 +3,7 @@ import type { FitAddon } from '@xterm/addon-fit';
 import type { WebglAddon } from '@xterm/addon-webgl';
 
 import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { TerminalCompletionOverlay } from './completion_overlay.js';
 import { VT100 } from './vt100.js';
 

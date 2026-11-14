@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 
-import type { ConnectionParams } from '../connections/connection_params.js';
+import type { ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
 import { useQueryExecutor, type QueryExecutor } from '../connections/query_executor.js';
-import { SALESFORCE_CATALOG_DATABASE } from '../connections/salesforce/salesforce_catalog_update.js';
-import { QueryType } from '../query/query_execution_state.js';
+import { SALESFORCE_CATALOG_DATABASE } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_catalog_update';
+import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { CLOUD_DATABASE, type CloudQuery } from './cloud_store_schema.js';
 
 /// The database of DashQL in a cloud connection, by the alias that its sessions attach it as. Database.com attaches the

@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as styles from './cloud_connection_row.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import type { ConnectionState } from '../connections/connection_state.js';
-import { connectionLabel } from '../connections/connection_label.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { connectionLabel } from '@ankoh/dashql-sdk/connections/connection_label';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 

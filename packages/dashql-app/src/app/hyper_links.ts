@@ -2,16 +2,16 @@ import * as React from 'react';
 
 import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useConnectionSaver } from '../connections/connection_persistence.js';
-import { connectionLabel } from '../connections/connection_label.js';
+import { connectionLabel } from '@ankoh/dashql-sdk/connections/connection_label';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router/router.js';
-import { isEphemeralWorkbook, workbookConnectionIds, type WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
+import { isEphemeralWorkbook, workbookConnectionIds, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useWorkbookScriptsRegistryReader } from '../workbook/scripts/workbook_scripts_registry.js';
 import { useEphemeralWorkbook } from '../workbook/workbook_creation.js';
-import type { ConnectionState } from '../connections/connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { bindHyperLink, confirmHyperLink, getHyperLinkTabState, isHyperLinkParams, setHyperLinkToken, type HyperLinkTarget } from '../connections/hyper/hyper_link.js';
 
 const LOG_CTX = 'hyper_link';

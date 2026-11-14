@@ -9,12 +9,12 @@ import { ComputationRegistry, useComputationRegistry } from '../../compute/compu
 import { ComputationScheduler } from '../../compute/computation_scheduler.js';
 import type { ComputationAction, ComputationState } from '../../compute/computation_state.js';
 import { MOST_FREQUENT_FILTER } from '../../compute/cross_filters.js';
-import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import type { QueryExecutionState } from '../../query/query_execution_state.js';
-import type { Dispatch } from '../../utils/variant.js';
+import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { vectorFromArray } from '../../tests/arrow_fixtures.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS } from '../query_result/data_table_colors.js';

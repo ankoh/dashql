@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { reconcileWorkbookScripts, remapWorkbookScripts, sanitizeWorkbookFiles, workbookAttachments, withWorkbookScripts } from './workbook_files.js';
+import { reconcileWorkbookScripts, remapWorkbookScripts, sanitizeWorkbookFiles, workbookAttachments, withWorkbookScripts } from '@ankoh/dashql-sdk/storage/workbook_files';
 import { TEST_CONNECTION_ID, testWorkbook } from './workbook_test_backend.js';
 
 const OTHER_CONNECTION_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';

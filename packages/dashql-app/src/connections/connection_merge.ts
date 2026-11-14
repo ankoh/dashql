@@ -1,6 +1,6 @@
-import { connectionParamsShareEqual } from './connection_params.js';
+import { connectionParamsShareEqual } from '@ankoh/dashql-sdk/connections/connection_params';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
-import type { ConnectionState } from './connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 
 /// The connections that can be merged into a connection.
 ///

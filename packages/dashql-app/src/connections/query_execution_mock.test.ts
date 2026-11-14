@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueryExecutionResponseStreamMock } from './query_execution_mock.js';
 import { HyperDatabaseClientMock } from './hyper/hyperdb_grpc_client_mock.js';
 import { SalesforceAPIClientMock, type SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
-import { QueryExecutionStatus, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
-import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
+import { QueryExecutionStatus, type QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 
 /// Collect the batches that a stream produces
 function batchCollector(): [arrow.RecordBatch[], AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>] {

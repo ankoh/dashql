@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
+import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { workbookOnConnection } from './hyper_links.js';
 import { WebPlatformEventListener } from '../platform/events/web_event_listener.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { BASE64URL_CODEC } from '../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 
 const FIRST_RUN = { endpoint: 'http://127.0.0.1:1111', token: 'first' };
 const SECOND_RUN = { endpoint: 'http://127.0.0.1:2222', token: 'second' };

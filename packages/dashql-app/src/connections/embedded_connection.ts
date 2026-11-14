@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState } from './connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useConnectionAllocator, useConnectionRegistryStore, type ConnectionAllocator } from './connection_registry.js';
-import { createDefaultHyperWasmConnectionState } from './connection_params.js';
-import { isHyperWasmConnection } from './connection_label.js';
+import { createDefaultHyperWasmConnectionState } from '@ankoh/dashql-sdk/connections/connection_params';
+import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
 import { getHyperLinkTabState } from './hyper/hyper_link.js';
 
 /// The connection to the embedded Hyper of the app, if one is known

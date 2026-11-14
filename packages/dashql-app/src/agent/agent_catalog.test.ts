@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildSchemaContext } from './agent_catalog.js';
-import { packCatalogTable, type CatalogTable } from '../connections/catalog/catalog_sql_generator.js';
+import { packCatalogTable, type CatalogTable } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 import { isSystemSchema } from '../connections/catalog/system_schemas.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 

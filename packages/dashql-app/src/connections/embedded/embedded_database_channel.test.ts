@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
-import type { EmbeddedConnection, EmbeddedResultStream } from '../../platform/database/embedded_database.js';
-import { QueryExecutionStatus, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
+import type { EmbeddedConnection, EmbeddedResultStream } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import { QueryExecutionStatus, type QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 

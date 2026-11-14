@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { forbidEval } from '../tests/forbid_eval.js';
-import { binaryVector, boolVector, floatVector, intVector, utf8Vector } from './arrow_vectors.js';
+import { binaryVector, boolVector, floatVector, intVector, utf8Vector } from '@ankoh/dashql-sdk/utils/arrow_vectors';
 
 describe('Arrow vectors from buffers', () => {
     it('assembles vectors without evaluating code, the Content-Security-Policy of the app forbids it', async () => {

@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { QueryResultPanel, type QueryResultPanelDependencies } from './query_result_header.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 

@@ -16,9 +16,9 @@ import { findScriptReferences, renderScriptReference, SCRIPT_REFERENCE_PREFIX } 
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
-import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '../inputs/workbook_inputs.js';
-import { textChange } from '../scripts/workbook_scripts.js';
-import type { ConnectorType } from '../../connections/connector_info.js';
+import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
+import { textChange } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import type { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');

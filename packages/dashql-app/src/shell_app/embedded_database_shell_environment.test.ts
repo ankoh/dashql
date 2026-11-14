@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { QueryExecutionStatus } from '../query/query_execution_state.js';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';

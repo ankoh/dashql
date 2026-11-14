@@ -4,7 +4,7 @@ import {
     folderPathKey,
     isFolderPathWithin,
     sameFolderPath,
-} from '../storage/workbook_tree.js';
+} from '@ankoh/dashql-sdk/storage/workbook_tree';
 
 /// The id of the drop target at the end of the workbook list, a drop there moves to the end of the root
 export const TOP_LEVEL_DROP_ID = 'top-level';

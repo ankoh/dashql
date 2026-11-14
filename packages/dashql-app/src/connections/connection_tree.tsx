@@ -27,10 +27,10 @@ import {
     TrashIcon,
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
-import { ConnectionHealth, type ConnectionState } from './connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { useCatalogLoaderQueue } from './catalog/catalog_loader.js';
-import { isCatalogOutOfDate, isCatalogRefreshRunning } from './catalog/catalog_update_state.js';
+import { isCatalogOutOfDate, isCatalogRefreshRunning } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 import { canRefreshConnection } from './connection_refresh.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {
@@ -39,7 +39,7 @@ import {
     isHyperWasmConnection,
     supportsConnectionOverview,
     type ConnectionLabelParts,
-} from './connection_label.js';
+} from '@ankoh/dashql-sdk/connections/connection_label';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { ConnectionURLShareOverlay } from './connection_url_share_overlay.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';

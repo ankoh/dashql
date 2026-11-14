@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import { describe, expect, it } from 'vitest';
 
-import { affectedScriptIndices, readWorkbookInputType, workbookInputControl, WorkbookInputControl, type WorkbookInputType } from './workbook_inputs.js';
+import { affectedScriptIndices, readWorkbookInputType, workbookInputControl, WorkbookInputControl, type WorkbookInputType } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
 
 const Kind = core.buffers.analyzer.SqlTypeKind;
 const EdgeKind = core.buffers.execution.DataflowEdgeKind;

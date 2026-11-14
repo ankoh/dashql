@@ -2,15 +2,15 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { QueryExecutionResponseStream } from '../query/query_execution_state.js';
-import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
+import type { QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import { executeConnectionClientFunction, ensureConnectionClientFunctions } from './connection_client_functions.js';
-import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from './connection_state.js';
-import { createConnectionStateDetails } from './connection_state_details.js';
-import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
+import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
+import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { createConnectionStateDetails } from '@ankoh/dashql-sdk/connections/connection_state_details';
+import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { SALESFORCE_CLIENT_FUNCTIONS } from './salesforce/salesforce_client_functions.js';
+import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_client_functions';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

@@ -14,7 +14,7 @@ import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { computeProfileFitTransform, ProfileFitBounds } from './profile_fit.js';
 import { createProfileLayoutConfig, PROFILE_OPERATOR_ANNOTATION_WIDTH } from './profile_layout_config.js';
 import { ProfileExecutionController } from './profile_execution_controller.js';
-import { isStatReported, ProfileExecutionState, type ProfileEntityState } from '../../query/profile_execution_state.js';
+import { isStatReported, ProfileExecutionState, type ProfileEntityState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../query_progress/query_progress_model.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileNavigationDirection } from './profile_navigation.js';

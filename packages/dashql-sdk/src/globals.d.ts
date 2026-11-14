@@ -1,13 +1,15 @@
-// The SDK compiles without the DOM and without the types of Node, see docs/wip/dashql_sdk.md. These are the globals
-// that browsers and Node both have and that the SDK uses. An API of only one platform fails the type check.
+// The SDK compiles against the WebWorker lib of TypeScript: the APIs that browsers share with workers, most of which
+// Node has as well (fetch, AbortController, URL, TextEncoder, crypto, Blob, structuredClone). There is no window, no
+// document and no element. The bundler features that the SDK still uses are declared here, each is a known seam of
+// test/boundary_test.mjs that step 4 of docs/wip/dashql_sdk.md removes.
 
-declare function queueMicrotask(callback: () => void): void;
-declare function setTimeout(callback: () => void, delay?: number): unknown;
-declare function clearTimeout(handle: unknown): void;
+/// A text asset, e.g. `./functions.sql?raw`
+declare module '*?raw' {
+    const text: string;
+    export default text;
+}
 
-declare const console: {
-    debug(...data: unknown[]): void;
-    log(...data: unknown[]): void;
-    warn(...data: unknown[]): void;
-    error(...data: unknown[]): void;
-};
+interface ImportMeta {
+    /// The modules that match a pattern, each loaded on demand
+    glob<T = unknown>(pattern: string | string[], options?: { import?: string; query?: string }): Record<string, () => Promise<T>>;
+}

@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { EditorView } from '@codemirror/view';
 
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { buildSnippetRegistry } from '../snippets/snippet_registry.js';
 import { ComposerInputMode } from '../../agent/input_mode.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';

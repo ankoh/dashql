@@ -1,4 +1,6 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 
@@ -10,26 +12,64 @@ package(default_visibility = ["//visibility:public"])
 
 _SOURCES = glob(["src/**/*.ts"])
 
-copy_to_bin(
-    name = "typecheck_inputs",
-    srcs = _SOURCES + ["package.json", "tsconfig.json"],
+_ASSETS = glob(["src/**/*.sql"])
+
+# The generated packages, resolved through the paths of tsconfig.json like in the app
+copy_to_directory(
+    name = "dep_protobuf",
+    srcs = ["//proto/pb:ts_gen"],
+    out = "./dependencies/dashql-protobuf",
+    replace_prefixes = {
+        "proto/pb/ts_gen": "",
+    },
+    visibility = ["//visibility:private"],
 )
 
-# Without the DOM and without the types of Node: an API of only one platform fails here
+copy_to_directory(
+    name = "dep_jsonschema",
+    srcs = ["//proto/json:ts_gen"],
+    out = "./dependencies/dashql-jsonschema",
+    replace_prefixes = {
+        "proto/json": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + _ASSETS + ["package.json", "tsconfig.json"],
+)
+
+# Against the WebWorker lib, without the DOM and without the types of Node: an API of only one platform fails here
 typescript_bin.tsc_test(
     name = "tsc_typecheck_test",
     size = "small",
     args = ["--project", "tsconfig.json"],
     chdir = "packages/dashql-sdk",
     data = [
+        ":dep_jsonschema",
+        ":dep_protobuf",
         ":typecheck_inputs",
+        "//:node_modules/@ankoh/dashql-core",
+        "//:node_modules/@bufbuild/protobuf",
+        "//:node_modules/apache-arrow",
+        "//:node_modules/flatbuffers",
+        "//:node_modules/immutable",
+        "//:node_modules/vega-lite",
     ],
+)
+
+# The SDK reaches no code of the app and no user interface, and uses only the known seams of a browser or a bundler
+js_test(
+    name = "boundary_test",
+    data = _SOURCES,
+    entry_point = "test/boundary_test.mjs",
 )
 
 npm_package(
     name = "npm_package",
     package = "@ankoh/dashql-sdk",
-    srcs = ["package.json"] + _SOURCES,
+    srcs = ["package.json"] + _SOURCES + _ASSETS,
     include_transitive_sources = False,
     include_transitive_types = False,
 )

@@ -1,4 +1,4 @@
-import { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
 import {
     ColumnDefinition,
     CompletionStatus,

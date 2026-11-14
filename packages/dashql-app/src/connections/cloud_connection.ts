@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import type { ConnectionParams } from './connection_params.js';
-import type { ConnectionState } from './connection_state.js';
+import type { ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useConnectionRegistry } from './connection_registry.js';
 import { useAppConfig, useAppReconfigure, type AppSettings } from '../config/app_config.js';
-import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from './hyper/local_cloud.js';
+import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-sdk/connections/hyper/local_cloud';
 
 export { LOCAL_CLOUD_DATABASE };
 

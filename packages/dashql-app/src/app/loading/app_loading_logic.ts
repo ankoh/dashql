@@ -1,17 +1,17 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { TracedLogger } from '../../platform/logger/logger.js';
+import { TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import type { AppStateRestorationProgress, RestoredAppState } from '../../workbook/persistence/app_state_loader.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { SetConnectionRegistryAction } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
-import { Dispatch } from '../../utils/variant.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { SetWorkbookScriptsRegistryAction } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { ProgressCounter } from '../../utils/progress.js';
-import { InvalidWorkbook } from '../../storage/workbook_validation.js';
+import { InvalidWorkbook } from '@ankoh/dashql-sdk/storage/workbook_validation';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';
-import { isEphemeralWorkbook, type WorkbookScripts } from '../../workbook/scripts/workbook_scripts.js';
+import { isEphemeralWorkbook, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 
 export function canShowWorkbook(route: RouteContext, pauseAfterSetup: boolean): boolean {
     return route.appLoadingStatus === AppLoadingStatus.SETUP_DONE

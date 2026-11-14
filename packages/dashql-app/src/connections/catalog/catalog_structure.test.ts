@@ -1,8 +1,8 @@
 import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL, parseCatalogSql } from './catalog_structure.js';
-import { PREFETCHED_HYPER_FUNCTIONS_SQL } from './prefetched_hyper_functions.js';
+import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL, parseCatalogSql } from '@ankoh/dashql-sdk/connections/catalog/catalog_structure';
+import { PREFETCHED_HYPER_FUNCTIONS_SQL } from '@ankoh/dashql-sdk/connections/catalog/prefetched_hyper_functions';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

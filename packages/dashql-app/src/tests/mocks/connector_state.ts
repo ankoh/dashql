@@ -1,8 +1,8 @@
 import type * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import { expect, vi } from 'vitest';
 
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../../connections/connection_state.js';
-import type { DetailedError } from '../../utils/error.js';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { DetailedError } from '@ankoh/dashql-sdk/utils/error';
 
 /// A connection state with only the fields that the reducers of the connectors read: statuses and details
 export function connectorState(type: symbol, details: unknown): ConnectionState {

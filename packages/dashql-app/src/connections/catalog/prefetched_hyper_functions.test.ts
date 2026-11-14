@@ -6,7 +6,7 @@ import {
     loadPrefetchedHyperFunctions,
     PREFETCHED_HYPER_FUNCTIONS_SQL,
     qualifyPrefetchedHyperFunctions,
-} from './prefetched_hyper_functions.js';
+} from '@ankoh/dashql-sdk/connections/catalog/prefetched_hyper_functions';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

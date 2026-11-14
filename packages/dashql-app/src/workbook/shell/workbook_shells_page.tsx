@@ -3,7 +3,7 @@ import * as styles from './workbook_shells_page.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { connectionLabelParts } from '../../connections/connection_label.js';
+import { connectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';

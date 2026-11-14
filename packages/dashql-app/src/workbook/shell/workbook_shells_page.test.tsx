@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth } from '../../connections/connection_state.js';
+import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
 import { WorkbookShellsPage, type WorkbookShellsPageDependencies } from './workbook_shells_page.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

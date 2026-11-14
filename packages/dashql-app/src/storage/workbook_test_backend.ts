@@ -8,9 +8,9 @@ import type {
     ScriptData,
     StorageBackend,
     StorageManifest,
-} from './storage_backend.js';
-import { StorageBackendType, validateDataFileName } from './storage_backend.js';
-import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
+} from '@ankoh/dashql-sdk/storage/storage_backend';
+import { StorageBackendType, validateDataFileName } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
@@ -21,7 +21,7 @@ import {
     moveWorkbookInTree,
     removeWorkbookFromTree,
     upsertWorkbookInTree,
-} from './workbook_tree.js';
+} from '@ankoh/dashql-sdk/storage/workbook_tree';
 
 export class WorkbookTestBackend implements StorageBackend {
     readonly workbooks = new Map<string, WorkbookData>();

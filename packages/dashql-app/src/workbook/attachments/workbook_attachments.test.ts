@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attachmentParameterName, attachmentPrefix, planAttachments, readWorkbookAttachments, sameWorkbookAttachments, renamedAttachmentFileName, uniqueAttachmentFileName } from './workbook_attachments.js';
+import { attachmentParameterName, attachmentPrefix, planAttachments, readWorkbookAttachments, sameWorkbookAttachments, renamedAttachmentFileName, uniqueAttachmentFileName } from '@ankoh/dashql-sdk/workbook/attachments/workbook_attachments';
 
 describe('workbook attachments', () => {
     it('names the table parameter of a Parquet file after the file', () => {

@@ -2,10 +2,10 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { SNIPPET_DATASETS_FOLDER, SNIPPET_ROOT_CONNECTORS, snippetRootIsFolder } from './snippet.js';
 import { buildSnippetRegistry, bundledSnippetFiles, getBundledSnippets, snippetText, snippetsForConnector } from './snippet_registry.js';
-import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '../scripts/script_format.js';
+import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -1,6 +1,6 @@
 import { DataFrame, generateTableName } from '../data_frame.js';
 import { DataSearchTask, DataSearchTable } from '../computation_types.js';
-import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
+import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { buildDataSearchSQL, DATA_SEARCH_ROW_FIELD } from '../sql/query_result_search_sql.js';
 import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 

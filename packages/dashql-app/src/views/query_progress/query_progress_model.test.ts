@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import { QueryProgressFollower, QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '../../query/query_progress_model.js';
+import { QueryProgressFollower, QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '@ankoh/dashql-sdk/query/query_progress_model';
 import {
     formatCompactBytes,
     formatCompactCount,

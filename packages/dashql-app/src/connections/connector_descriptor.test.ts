@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { connectionCatalogIsDurable, getConnectionStateDetailsFromParams, type ConnectionParams } from './connection_params.js';
-import { catalogNameDefaults, connectionReadsAttachments, connectorOfDetails } from './connector_descriptor.js';
+import { connectionCatalogIsDurable, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import { catalogNameDefaults, connectionReadsAttachments, connectorOfDetails } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 
 const embedded: ConnectionParams = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
 const server: ConnectionParams = { hyper: { protocol: 'V3_GRPC', endpoint: 'http://localhost:7484', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams;

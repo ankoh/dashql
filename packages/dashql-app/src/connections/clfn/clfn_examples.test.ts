@@ -1,9 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { explainClientFunctionCall } from './clfn_runtime.js';
-import { jsonPointerSegments, type ClientFunctionCallDescription } from './clfn_spec.js';
-import { loadClientFunctionSpec } from './clfn_specs.js';
+import { explainClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
+import { jsonPointerSegments, type ClientFunctionCallDescription } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
+import { loadClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_specs';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

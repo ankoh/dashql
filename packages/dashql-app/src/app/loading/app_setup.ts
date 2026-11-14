@@ -6,7 +6,7 @@ import { useConnectionAllocator, useConnectionRegistrySetter } from '../../conne
 import { embeddedConnection, newWorkbookConnection } from '../../connections/embedded_connection.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { createTrace } from '../../platform/logger/trace_context.js';
+import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
@@ -15,11 +15,11 @@ import { useAppConfig } from '../../config/app_config.js';
 import { useStorage, useStorageWriter } from '../../storage/storage_provider.js';
 import { useWorkbookScriptsDeletion, useWorkbookScriptsRegistrySetter } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
-import { getAppHost } from '../../platform/native_globals.js';
+import { getAppHost } from '@ankoh/dashql-sdk/platform/native_globals';
 import { restoreAppState } from '../../workbook/persistence/app_state_loader.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
-import { stringifyError } from '../../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 const LOG_CTX = "app_loader";
 

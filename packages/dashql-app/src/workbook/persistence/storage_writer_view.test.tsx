@@ -9,7 +9,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '../../storage/workbook_test_backend.js';
-import { StorageWriter, type StorageWriterStatistics, type StorageWriteStatisticsMap, type StorageWriteStatisticsSubscriber } from '../../storage/storage_writer.js';
+import { StorageWriter, type StorageWriterStatistics, type StorageWriteStatisticsMap, type StorageWriteStatisticsSubscriber } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { StorageWriterView } from './storage_writer_view.js';
 import * as styles from './storage_writer_view.module.css';
 

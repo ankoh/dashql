@@ -122,8 +122,8 @@ bazel test //...
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint`, `format` |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
-| `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK without the DOM and without the types of Node |
-| `//packages/dashql-app:sdk_boundary_test` | The modules that move into the SDK reach no React, editor, `.tsx` module or bundler asset |
+| `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK against the WebWorker lib, without the DOM and without the types of Node |
+| `//packages/dashql-sdk:boundary_test` | The SDK reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |

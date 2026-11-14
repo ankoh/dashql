@@ -7,8 +7,8 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from './workbook_scripts.js';
-import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '../../storage/storage_writer.js';
+import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '@ankoh/dashql-sdk/storage/storage_writer';
 import {
     WorkbookScriptsRegistryProvider,
     useWorkbookScripts,

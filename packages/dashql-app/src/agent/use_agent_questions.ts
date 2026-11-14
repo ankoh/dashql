@@ -2,13 +2,13 @@ import * as React from 'react';
 
 import type { AgentBridge } from './agent_bridge.js';
 import { AgentConnectionStatus } from './agent_client.js';
-import { newScriptConnection, type WorkbookScripts, type ScriptData } from '../workbook/scripts/workbook_scripts.js';
-import { ConnectorType } from '../connections/connector_info.js';
+import { newScriptConnection, type WorkbookScripts, type ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { buildCatalogNameIndex, collectMentionedIdentifiers } from './catalog_name_index.js';
 import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
 import { collectReferencedScripts } from './script_references.js';
-import { scriptDisplayName } from '../workbook/scripts/script_types.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 
 const LOG_CTX = 'agent_questions';

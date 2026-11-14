@@ -2,13 +2,13 @@ import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import type { QueryExecutor } from '../../connections/query_executor.js';
-import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { QueryCacheMissError } from '../../query/query_result_cache.js';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
+import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';
 import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
 import { runWorkbookScript, runWorkbookScriptForResult } from './rerun_query.js';
@@ -16,9 +16,9 @@ import {
     ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createEmptyScriptData, reduceWorkbookScripts,
     scriptResultOwner,
     replaceScriptSessionText, SET_SCRIPT_CONNECTION, type WorkbookScripts, type WorkbookScriptsAction,
-} from './workbook_scripts.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

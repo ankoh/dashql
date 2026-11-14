@@ -1,8 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState, ConnectionStateWithoutId } from '../connection_state.js';
-import { createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from '../connection_params.js';
+import type { ConnectionState, ConnectionStateWithoutId } from '@ankoh/dashql-sdk/connections/connection_state';
+import { createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from '@ankoh/dashql-sdk/connections/connection_params';
 import {
     bindHyperLink,
     confirmHyperLink,

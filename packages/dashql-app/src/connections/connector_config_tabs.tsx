@@ -2,12 +2,12 @@ import * as React from 'react';
 import icons from '@ankoh/dashql-svg-symbols';
 
 import { VerticalTabs, VerticalTabVariant } from '../ui/foundations/vertical_tabs.js';
-import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from '@ankoh/dashql-sdk/connections/connector_info';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { useConnectionById } from './connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from './connection_state.js';
+import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useConnectorIcon } from './connector_icon.js';
 
 interface Props {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getLogLevelName, LogBuffer, LogLevel, parseLogLevel } from './log_buffer.js';
+import { getLogLevelName, LogBuffer, LogLevel, parseLogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { testLogRecord } from './test_logger.js';
 
 const traced = (traceId: number, message = `trace ${traceId}`) =>

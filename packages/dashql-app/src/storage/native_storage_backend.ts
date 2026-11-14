@@ -1,7 +1,7 @@
-import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
-import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
+import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql-sdk/storage/storage_backend';
 
-import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile, type FileStamp } from '../platform/electron_fs.js';
+import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile, type FileStamp } from '@ankoh/dashql-sdk/platform/electron_fs';
 
 /// The name of the workbook-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';

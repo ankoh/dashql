@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { CatalogLoaderProvider } from '../../connections/catalog/catalog_loader.js';
 import { useConnectionScriptsDispatch } from './workbook_scripts_registry.js';
-import { CATALOG_DID_UPDATE } from './workbook_scripts.js';
+import { CATALOG_DID_UPDATE } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 
 /// The catalog loader of the app, re-analyzes the scripts of every workbook that uses a connection
 /// whose catalog changed.

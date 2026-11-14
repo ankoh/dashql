@@ -1,6 +1,6 @@
 import { DashQL, type DashQLModuleOptions } from '@ankoh/dashql-core';
 
-import { resetCatalogBatchLifetime } from '../connections/catalog/catalog_batch.js';
+import { resetCatalogBatchLifetime } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
 
 declare global {
     var DASHQL_PRECOMPILED: Promise<Uint8Array> | undefined;

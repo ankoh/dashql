@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '../../query/query_execution_state.js';
+import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import type { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
-import type { Dispatch } from '../../utils/variant.js';
+import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
 import { forEachIntegerValue } from './visible_rows.js';

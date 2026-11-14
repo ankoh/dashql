@@ -5,7 +5,7 @@ import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { FileDirectoryIcon, FileIcon, PlusIcon, UnlinkIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import type { DashQLShellCommand } from './api.js';
-import type { ExternalDirectoryMode } from '../platform/database/embedded_database.js';
+import type { ExternalDirectoryMode } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import {
     createShellFilesCommand,

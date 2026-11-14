@@ -1,8 +1,8 @@
 import type { QueryResultCache } from '../../query/query_result_cache.js';
-import type { WorkbookBundleResult } from '../../storage/workbook_bundle.js';
-import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
+import type { WorkbookBundleResult } from '@ankoh/dashql-sdk/storage/workbook_bundle';
+import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { computeWorkbookResultCacheKeys, type ScriptRunServices } from '../scripts/script_run.js';
-import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 const LOG_CTX = 'workbook_query_results';
 

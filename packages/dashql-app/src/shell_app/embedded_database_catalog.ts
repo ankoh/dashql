@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
 import { catalogTablesFromPgAttribute, pgAttributeQuery, type PgAttributeColumnsTable } from '../connections/catalog/catalog_query_pg_attribute.js';
-import { DEFAULT_DATABASE_NAME, packCatalogTable, packRelationName, readRelationName } from '../connections/catalog/catalog_sql_generator.js';
+import { DEFAULT_DATABASE_NAME, packCatalogTable, packRelationName, readRelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 
 const LAYER = dashql.buffers.catalog.CatalogLayer.CONNECTION;
 

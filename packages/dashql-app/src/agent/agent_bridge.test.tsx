@@ -9,13 +9,13 @@ import { AppConfigProvider, useAppConfig, useAppReconfigure } from '../config/ap
 import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
 import { EXECUTOR_CTX } from '../connections/query_executor.js';
 import { DASHQL_AGENT_PORT } from '../globals.js';
-import { type Logger } from '../platform/logger/logger.js';
+import { type Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { restoreAppState, type RestoredAppState } from '../workbook/persistence/app_state_loader.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
 import { WorkbookTestBackend, testWorkbook } from '../storage/workbook_test_backend.js';
-import type { ConnectionEntry, WorkbookData } from '../storage/storage_backend.js';
+import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { AgentBridgeProvider, blocksLoopbackWebSockets, useAgentBridge, type AgentBridge, type AgentTurnListener } from './agent_bridge.js';
 import { AgentConnectionStatus } from './agent_client.js';

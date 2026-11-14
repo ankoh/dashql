@@ -6,8 +6,8 @@ import {
     QUERY_RECEIVED_ALL_BATCHES,
     createQueryResponseStreamMetrics,
     type QueryExecutionTracker,
-} from '../query/query_execution_state.js';
-import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
+} from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { EmbeddedConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { DashQLShellEnvironment } from '../shell/api.js';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';

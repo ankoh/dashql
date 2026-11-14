@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
-import { getOPFSRoot } from '../platform/opfs_root.js';
+import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
+import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { Crc32 } from '../utils/crc32.js';
 import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES } from './query_result_cache_eviction.js';
 import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';

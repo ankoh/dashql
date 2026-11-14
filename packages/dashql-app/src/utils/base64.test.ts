@@ -2,7 +2,7 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
 import type * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
-import { BASE64_CODEC, BASE64URL_CODEC } from "./base64.js";
+import { BASE64_CODEC, BASE64URL_CODEC } from "@ankoh/dashql-sdk/utils/base64";
 import { randomBuffer32 } from "./hash.js";
 import { DefaultHasher } from './hash_default.js';
 

@@ -1,15 +1,15 @@
 import type * as arrow from 'apache-arrow';
 import * as core from '@ankoh/dashql-core';
 
-import type { LoggerLike, Logger } from '../platform/logger/logger.js';
-import { stringifyError } from '../platform/logger/logger.js';
-import type { ClientFunctionSpec } from '../connections/clfn/clfn_spec.js';
-import { connectorOfDetails } from '../connections/connector_descriptor.js';
+import type { LoggerLike, Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { ClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
+import { connectorOfDetails } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 import type { AgentCommandParams, AgentCommandResult } from './agent_protocol.js';
 import { AgentCommandError } from './agent_client.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '../connections/connection_state.js';
-import { isHyperWasmConnection } from '../connections/connection_label.js';
+import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
 import { findEmbeddedConnection } from '../connections/embedded_connection.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
 import {
@@ -26,9 +26,9 @@ import {
     type ScriptData,
     type WorkbookScripts,
     type WorkbookScriptsAction,
-} from '../workbook/scripts/workbook_scripts.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { ensureWorkbookScriptAnalyzed, type ModifyWorkbookScripts } from '../workbook/scripts/workbook_scripts_registry.js';
-import { scriptDisplayName } from '../workbook/scripts/script_types.js';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { runWorkbookScriptForResult } from '../workbook/scripts/rerun_query.js';
 import { buildSchemaContext } from './agent_catalog.js';
 import { checkVegaLiteSpec } from '../ui/vegalite/vegalite_check.js';

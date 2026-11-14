@@ -5,16 +5,16 @@ import { DownloadIcon, FileIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
-import { WorkbookScripts } from '../scripts/workbook_scripts.js';
+import { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { classNames } from '../../utils/classnames.js';
 import { exportWorkbookAsSharedZip } from './workbook_export.js';
-import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connections/connection_params.js';
+import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-sdk/connections/connection_params';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { StorageBackend } from '../../storage/storage_backend.js';
+import { StorageBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { IconButton } from '../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
@@ -22,7 +22,7 @@ import { useQueryResultCache } from '../../storage/query_result_cache_provider.j
 import type { QueryResultCache } from '../../query/query_result_cache.js';
 import { scriptRunServices } from '../scripts/script_run.js';
 import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts } from './workbook_query_results.js';
-import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
 import { useWorkbookArchiveWriter, type WorkbookArchiveWriter } from './workbook_archive_database.js';

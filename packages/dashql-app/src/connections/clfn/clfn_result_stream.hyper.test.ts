@@ -9,8 +9,8 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { consumeQueryResponseStream } from '../query_execution.js';
 import { ClientFunctionResultStream } from './clfn_result_stream.js';
-import { runClientFunctionCall } from './clfn_runtime.js';
-import type { ClientFunctionSpec } from './clfn_spec.js';
+import { runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
+import type { ClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
 
 const logger = new TestLogger();
 

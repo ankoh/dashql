@@ -3,24 +3,24 @@ import type * as dashql from '@ankoh/dashql-core';
 import type { EditorView } from '@codemirror/view';
 
 import { useAppConfig } from '../../config/app_config.js';
-import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { useQueryExecutor, useQueryState } from '../../connections/query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { displayPath } from '../../storage/workbook_locator.js';
-import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
+import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { useConnectionLabeler } from '../connection_labels.js';
-import { DELETE_SCRIPT, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '../scripts/workbook_scripts.js';
+import { DELETE_SCRIPT, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { runWorkbookScript } from '../scripts/rerun_query.js';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '../scripts/script_format.js';
+import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import { scriptConnectionView, usePickScriptConnection } from '../scripts/script_connection_picker.js';
-import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
+import type { ScriptReferenceReport } from '@ankoh/dashql-sdk/workbook/scripts/script_reference_check';
 import { FeedEntryHeader } from './feed_entry_header.js';
 
 export interface ScriptEntryHeaderProps {

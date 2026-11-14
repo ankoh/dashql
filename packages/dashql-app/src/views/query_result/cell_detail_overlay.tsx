@@ -15,7 +15,7 @@ import { CopyToClipboardButton } from '../../ui/foundations/clipboard.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { getKeywordCase } from '../../workbook/scripts/script_format.js';
+import { getKeywordCase } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
 import { EngineProfileView } from '../query_profile/engine_profile_view.js';
 import { detectPlanEngine } from '../query_profile/plan_engine.js';
 

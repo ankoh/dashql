@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { SALESFORCE_CLIENT_FUNCTIONS } from './salesforce_client_functions.js';
-import type { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
+import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_client_functions';
+import type { SalesforceConnectionStateDetails } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
 
 const CONNECTED = {
     channel: {

@@ -6,16 +6,16 @@ import {
     ConnectionStateWithoutId,
     SET_CONNECTION_DRAFT,
     DISCARD_CONNECTION_DRAFT,
-} from './connection_state.js';
-import { QUERY_PROGRESS_UPDATED, QUERY_RECEIVED_BATCH } from '../query/query_execution_state.js';
-import { Dispatch } from '../utils/variant.js';
+} from '@ankoh/dashql-sdk/connections/connection_state';
+import { QUERY_PROGRESS_UPDATED, QUERY_RECEIVED_BATCH } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
 import { useStore, useStoreState, useUpdateQueue } from '../utils/store_hooks.js';
-import { CONNECTOR_TYPES } from './connector_info.js';
+import { CONNECTOR_TYPES } from '@ankoh/dashql-sdk/connections/connector_info';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { groupConnectionEntryWrites, WRITE_CONNECTION_ENTRY } from '../storage/storage_writer.js';
-import { connectionParamsEqual, type ConnectionParams } from './connection_params.js';
+import { groupConnectionEntryWrites, WRITE_CONNECTION_ENTRY } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
 import {
     applyConnectionAction,
     connectionEntryFromState,
@@ -26,7 +26,7 @@ import {
     type ConnectionReferences,
     type ConnectionRegistry as ConnectionRegistryState,
     type DynamicConnectionDispatch,
-} from './connection_registry_state.js';
+} from '@ankoh/dashql-sdk/connections/connection_registry_state';
 
 // The state of the registry and its reducer are in connection_registry_state.ts, this module binds them to React
 export {
@@ -45,7 +45,7 @@ export {
     type ConnectionDispatch,
     type ConnectionReferences,
     type DynamicConnectionDispatch,
-} from './connection_registry_state.js';
+} from '@ankoh/dashql-sdk/connections/connection_registry_state';
 /// The connection registry, see connection_registry_state.ts
 export type ConnectionRegistry = ConnectionRegistryState;
 

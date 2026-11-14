@@ -7,9 +7,9 @@ import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js'
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../../connections/connection_state.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
-import { createQueryExecutionState, QueryType, type QueryExecutionState } from '../../query/query_execution_state.js';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { createQueryExecutionState, QueryType, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';

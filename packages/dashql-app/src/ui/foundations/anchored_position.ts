@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { observeSize } from './size_observer.js';
-import { isDesktopHost } from '../../platform/native_globals.js';
+import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
 
 export enum AnchorAlignment {
     Start,

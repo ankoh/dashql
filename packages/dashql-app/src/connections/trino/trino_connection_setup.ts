@@ -16,18 +16,18 @@ import {
     RECEIVED_OAUTH_CODE,
     REQUESTING_ACCESS_TOKEN,
     RECEIVED_ACCESS_TOKEN,
-} from './trino_connection_state.js';
-import { Dispatch } from '../../utils/variant.js';
-import { LoggableException, Logger, stringifyError } from '../../platform/logger/logger.js';
-import { RESET_CONNECTION } from '../connection_state.js';
-import { requestTrinoAccessToken, TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
-import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
-import { trinoSessionDefaults } from './trino_catalogs.js';
+} from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+import { LoggableException, Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
+import { requestTrinoAccessToken, TrinoApiClientInterface, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
+import { TrinoChannel, TrinoChannelInterface } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
+import { trinoSessionDefaults } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
 import { TrinoConnectorConfig } from '../connector_configs.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { PlatformType } from '../../platform/platform_type.js';
-import { HttpClient } from '../../platform/http/http_client.js';
-import { dateToTimestamp } from '../proto_helper.js';
+import { HttpClient } from '@ankoh/dashql-sdk/platform/http/http_client';
+import { dateToTimestamp } from '@ankoh/dashql-sdk/connections/proto_helper';
 
 const LOG_CTX = "trino_setup";
 

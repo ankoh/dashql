@@ -1,4 +1,4 @@
-import type { LoggerLike } from '../platform/logger/logger.js';
+import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 import {
     AGENT_FEATURES,
     AGENT_PROTOCOL_VERSION,

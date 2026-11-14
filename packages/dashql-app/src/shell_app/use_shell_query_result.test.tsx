@@ -8,7 +8,7 @@ import {
     QUERY_SUCCEEDED,
     createQueryExecutionState,
     QueryType,
-} from '../query/query_execution_state.js';
+} from '@ankoh/dashql-sdk/query/query_execution_state';
 import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from '../shell/query_execution.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 

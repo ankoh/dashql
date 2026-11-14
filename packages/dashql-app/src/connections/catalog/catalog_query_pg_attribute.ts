@@ -1,11 +1,11 @@
 import * as arrow from "apache-arrow";
 
 import { QueryExecutor } from '../query_executor.js';
-import { QueryExecutionArgs } from '../query_execution_args.js';
+import { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
 import { DynamicConnectionDispatch } from '../connection_registry.js';
-import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
-import { QueryType } from '../../query/query_execution_state.js';
-import { catalogTablesOfSchema, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
+import { CATALOG_UPDATE_REGISTER_QUERY } from "@ankoh/dashql-sdk/connections/connection_state";
+import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { catalogTablesOfSchema, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 
 export const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
 

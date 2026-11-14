@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OPFSDirectoryMock, OPFSFileMock } from '../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
-import { StorageBackendType } from './storage_backend.js';
+import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
 import {
     StorageTreeEntryKind,
     StorageTreeStatCache,

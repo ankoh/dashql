@@ -6,11 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
     QueryExecutionProgress,
     QueryExecutionResponseStream,
-} from '../query/query_execution_state.js';
-import { QueryExecutionStatus } from '../query/query_execution_state.js';
-import { LogLevel } from '../platform/logger/log_buffer.js';
+} from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { createTrace } from '../platform/logger/trace_context.js';
+import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
 import { HyperHttpError } from './hyper/hyperdb_http_client.js';
 import { logQueryFailure } from './query_executor.js';
 import { consumeQueryResponseStream } from './query_execution.js';

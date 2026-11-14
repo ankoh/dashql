@@ -1,10 +1,10 @@
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, expect, it } from 'vitest';
 
-import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
+import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { connectorState, fakeChannel, reduceConnector, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../tests/mocks/connector_state.js';
-import type { SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import type { SalesforceDatabaseChannel } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import {
     createSalesforceConnectionStateDetails,
     GENERATED_PKCE_CHALLENGE,
@@ -28,7 +28,7 @@ import {
     SF_CHANNEL_SETUP_FAILED,
     SF_CHANNEL_SETUP_STARTED,
     type SalesforceConnectionStateAction,
-} from './salesforce_connection_state.js';
+} from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
 
 const PARAMS: connection.SalesforceConnectionParams = {
     instanceUrl: 'https://example.my.salesforce.com',

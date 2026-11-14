@@ -17,7 +17,7 @@ const mockState = {
 
 import { MOST_FREQUENT_FILTER, CrossFilters } from '../../compute/cross_filters.js';
 import { SET_CROSS_FILTERS } from '../../compute/computation_state.js';
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';

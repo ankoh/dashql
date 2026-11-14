@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
+import type { EmbeddedConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
@@ -26,13 +26,13 @@ import { createFormatCommand } from './commands/format.js';
 import { createPlanCommand } from './commands/plan.js';
 import { createShareCommand } from './commands/share.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
-import { SalesforceApiClient } from '../connections/salesforce/salesforce_api_client.js';
+import { SalesforceApiClient } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import { authenticateSalesforce } from '../connections/salesforce/salesforce_authentication.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { useAppConfig } from '../config/app_config.js';
-import { getKeywordCase } from '../workbook/scripts/script_format.js';
+import { getKeywordCase } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import { useFormatDialog } from './format_dialog.js';
 import { usePlanDialog } from './plan_dialog.js';
@@ -40,7 +40,7 @@ import { useShareDialog } from './share_dialog.js';
 import { useSnippetsDialog } from '../workbook/snippets/snippets_dialog.js';
 import { decodeShareScript, readShareScriptFromLocation } from './shell_share.js';
 import { splitShellScript } from '../shell/shell_script.js';
-import { ConnectorType } from '../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { getHyperDBWebSupportError } from '../platform/hyperdb/hyperdb_web_support.js';
 import * as styles from './shell_page.module.css';
 

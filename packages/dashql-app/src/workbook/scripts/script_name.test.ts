@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { randomScriptName } from './script_name.js';
+import { randomScriptName } from '@ankoh/dashql-sdk/workbook/scripts/script_name';
 
 describe('randomScriptName', () => {
     it('produces an underscore-joined two-word lowercase name', () => {

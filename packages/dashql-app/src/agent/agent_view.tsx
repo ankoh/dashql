@@ -11,7 +11,7 @@ import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmen
 import { TextInput, TextInputValidationStatus } from '../ui/foundations/text_input.js';
 import { AgentConnectionStatus } from './agent_client.js';
 import type { AgentServerInfo } from './agent_protocol.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { DASHQL_AGENT_PORT } from '../globals.js';
 import { useAgentBridge, type AgentBridge } from './agent_bridge.js';
 

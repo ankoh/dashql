@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
 
-import type { Logger } from '../../platform/logger/logger.js';
-import { createQueryResponseStreamMetrics, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionStatus } from '../../query/query_execution_state.js';
-import type { AsyncConsumer } from '../../utils/async_consumer.js';
-import { translateAnyRowsToArrowBatch } from '../trino/arrow_conversion.js';
-import type { ClientFunctionResult } from './clfn_runtime.js';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { createQueryResponseStreamMetrics, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { AsyncConsumer } from '@ankoh/dashql-sdk/utils/async_consumer';
+import { translateAnyRowsToArrowBatch } from '@ankoh/dashql-sdk/connections/trino/arrow_conversion';
+import type { ClientFunctionResult } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
 
 /// The result of a client function call as a query result. A call has finished once its table exists, so this holds one batch.
 export class ClientFunctionResultStream implements QueryExecutionResponseStream {

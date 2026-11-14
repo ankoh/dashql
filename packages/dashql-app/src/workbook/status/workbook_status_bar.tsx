@@ -11,7 +11,7 @@ import { SquareFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { IndicatorStatus, StatusDot } from '../../ui/foundations/status_indicator.js';
 import { WorkbookStatusSource, WorkbookStatusTone } from './workbook_status.js';
 import { useWorkbookLog } from './workbook_log.js';
-import { getLogLevelName, type LogRecord } from '../../platform/logger/log_buffer.js';
+import { getLogLevelName, type LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { formatLogTimestamp } from '../../ui/logs/log_viewer.js';
 import { LogJsonModal } from '../../ui/logs/log_json_modal.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';

@@ -4,7 +4,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { buildSnippetRegistry, type SnippetRegistry } from './snippet_registry.js';
 import { useSnippetsDialog, type SnippetsDialogController } from './snippets_dialog.js';

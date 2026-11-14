@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { PlatformFile } from '../platform/file/file.js';
-import type { WorkbookBundle } from '../storage/workbook_bundle.js';
+import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import { readWorkbookBundleFromZip } from '../workbook/persistence/workbook_import.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import { useWorkbookImport, type ConflictChoice, type PreparedPortableImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
@@ -10,7 +10,7 @@ import type { ImportedWorkbookQueryResults } from '../workbook/persistence/workb
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { OPEN_LINK_WORKBOOK, useRouterNavigate } from './router/router.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError, type LoggerLike } from '../platform/logger/logger.js';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 /// The stages of a file before the user decides
 type PreparationPhase = 'reading' | 'validating' | 'resolving';

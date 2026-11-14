@@ -5,15 +5,15 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import type { Logger } from '../../platform/logger/logger.js';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { NativeStorageBackend } from '../../storage/native_storage_backend.js';
 import { WorkbookTestRegistry, testWorkbook } from '../../storage/workbook_test_backend.js';
-import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '../../storage/storage_backend.js';
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
-import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '../../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { fsStore, makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { restoreAppState, type RestoredAppState } from './app_state_loader.js';

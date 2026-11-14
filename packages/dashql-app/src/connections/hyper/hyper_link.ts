@@ -1,9 +1,9 @@
 import * as React from 'react';
 import type * as dashql from '@ankoh/dashql-core';
 
-import { createConnectionStateFromParams, type ConnectionParams } from '../connection_params.js';
+import { createConnectionStateFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
 import type { ConnectionAllocator } from '../connection_registry.js';
-import type { ConnectionState } from '../connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { isLoopbackHyperLink, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
 
 export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';

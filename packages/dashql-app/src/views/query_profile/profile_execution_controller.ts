@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import type { ProfileExecutionState } from '../../query/profile_execution_state.js';
+import type { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 
 const view = dashql.buffers.profile;
 

@@ -1,9 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { bundleCatalogPath, filterInvalidWorkbookCatalogs, reconcileStoredWorkbookFiles, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleCatalog } from './workbook_bundle.js';
+import { bundleCatalogPath, filterInvalidWorkbookCatalogs, reconcileStoredWorkbookFiles, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleCatalog } from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from './workbook_test_backend.js';
-import type { WorkbookData } from './storage_backend.js';
+import type { WorkbookData } from '@ankoh/dashql-sdk/storage/storage_backend';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

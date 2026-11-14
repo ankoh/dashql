@@ -7,7 +7,7 @@ import * as styles from './storage_browser_view.module.css';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
-import { OPFS_TESTS_FOLDER } from '../../platform/opfs_root.js';
+import { OPFS_TESTS_FOLDER } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { createTestRoot } from '../../tests/react_root.js';
 

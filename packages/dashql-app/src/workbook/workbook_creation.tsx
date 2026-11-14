@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
 import { useConnectionAllocator, useConnectionRegistryStore, workbookConnectionFromState } from '../connections/connection_registry.js';
-import { ConnectionState } from '../connections/connection_state.js';
+import { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '../connections/embedded_connection.js';
 import { getHyperLinkTabState, isHyperLinkParams } from '../connections/hyper/hyper_link.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
-import { groupWorkbookManifestWrites, WRITE_WORKBOOK_MANIFEST } from '../storage/storage_writer.js';
+import { groupWorkbookManifestWrites, WRITE_WORKBOOK_MANIFEST } from '@ankoh/dashql-sdk/storage/storage_writer';
 import {
     EPHEMERAL_WORKBOOK_NAME,
     freeWorkbookName,
@@ -15,9 +15,9 @@ import {
     WorkbookScripts,
     SET_PENDING_CONNECTION,
     takenWorkbookNames,
-} from './scripts/workbook_scripts.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useWorkbookScriptsAllocator, useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from './scripts/workbook_scripts_registry.js';
-import { createEmptyMetadata } from './scripts/script_types.js';
+import { createEmptyMetadata } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 
 /// Create a workbook whose first script runs on a connection, a workbook without a name gets a free one

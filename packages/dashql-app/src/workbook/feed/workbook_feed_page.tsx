@@ -3,7 +3,7 @@ import * as styles from './workbook_feed_page.module.css';
 
 import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../ui/foundations/symbol_icon.js';
 
-import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import {
     isCloudPreview,
     isEphemeralWorkbook,
@@ -11,7 +11,7 @@ import {
     SELECT_SCRIPT,
     workbookConnectionIds,
     type WorkbookScripts,
-} from '../scripts/workbook_scripts.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';

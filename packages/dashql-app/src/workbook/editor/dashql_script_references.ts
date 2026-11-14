@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { EditorState, StateEffect, StateField, Transaction } from '@codemirror/state';
 
 import { DashQLProcessorPlugin } from './dashql_processor.js';
-import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
+import type { ScriptReferenceReport } from '@ankoh/dashql-sdk/workbook/scripts/script_reference_check';
 
 /// Set the checked script references of the script of the editor
 export const DashQLScriptReferencesEffect = StateEffect.define<ScriptReferenceReport | null>();

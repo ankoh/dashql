@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '../storage/workbook_test_backend.js';
-import { WORKBOOK_TABLE, workbookBundleToTables, type CatalogParser, type WorkbookTables } from '../storage/workbook_tables.js';
+import { WORKBOOK_TABLE, workbookBundleToTables, type CatalogParser, type WorkbookTables } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import {
     createCloudFolder,

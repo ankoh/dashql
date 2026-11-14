@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { decodeConnectionFromProto } from './connection_import.js';
-import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { LoggableException } from '../platform/logger/logger.js';
+import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 describe('decodeConnectionFromProto', () => {
     const cases = [

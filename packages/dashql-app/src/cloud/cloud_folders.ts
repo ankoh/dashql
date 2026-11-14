@@ -1,4 +1,4 @@
-import { SCRIPTS_TABLE } from '../storage/workbook_tables.js';
+import { SCRIPTS_TABLE } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { quoteLiteral } from './cloud_sql.js';
 import { CLOUD_FOLDER_DEPTH, latestVersionsSQL, versionFromRow, type CloudWorkbook } from './cloud_store.js';
 import {

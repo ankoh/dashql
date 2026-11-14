@@ -2,7 +2,7 @@ import * as flatbuffers from 'flatbuffers';
 import { describe, expect, it, vi } from 'vitest';
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { QueryExecutor } from '../query_executor.js';
-import { informationSchemaColumnsQuery, updateInformationSchemaCatalog, updateInformationSchemaRelations } from './catalog_query_information_schema.js';
+import { informationSchemaColumnsQuery, updateInformationSchemaCatalog, updateInformationSchemaRelations } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_information_schema';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 describe('information_schema batch refresh', () => {

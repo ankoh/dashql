@@ -7,8 +7,8 @@ import * as style from './connection_inline_header.module.css';
 import { PlugIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { ConnectionHealth, ConnectionState, isConnectionOpen } from './connection_state.js';
-import { ConnectorInfo } from './connector_info.js';
+import { ConnectionHealth, ConnectionState, isConnectionOpen } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectorInfo } from '@ankoh/dashql-sdk/connections/connector_info';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';

@@ -2,11 +2,11 @@ import * as arrow from 'apache-arrow';
 import * as buf from '@bufbuild/protobuf';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import * as pb from '../../../proto.js';
+import * as pb from '@ankoh/dashql-sdk/proto';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
-import { AsyncConsumerLambdas } from '../../../utils/async_consumer.js';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../../tests/mocks/native_proxy.js';
-import type { HyperDatabaseConnectionContext } from '../hyperdb_grpc_client.js';
+import type { HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
 import { tableFromArrays } from '../../../tests/arrow_fixtures.js';
 

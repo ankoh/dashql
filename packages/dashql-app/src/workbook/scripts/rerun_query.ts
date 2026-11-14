@@ -1,9 +1,9 @@
 import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutor } from '../../connections/query_executor.js';
-import { WorkbookScripts, ScriptData, isAnalysisOutdated, isCloudPreview } from './workbook_scripts.js';
+import { WorkbookScripts, ScriptData, isAnalysisOutdated, isCloudPreview } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { ensureWorkbookScriptAnalyzed, ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { isWorkbookExecutionRunning, releaseWorkbookExecution, waitForWorkbookExecution } from './workbook_execution.js';
 import { runPlannedScript, scriptRunServices, type ScriptRunOptions } from './script_run.js';
 

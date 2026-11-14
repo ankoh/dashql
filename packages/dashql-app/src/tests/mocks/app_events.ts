@@ -1,4 +1,4 @@
-import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 
 /// The base64url encoding of an app event that carries a workbook ZIP, under the legacy key `notebook`
 export function encodeWorkbookAppEvent(zip: Uint8Array): string {

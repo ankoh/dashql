@@ -4,11 +4,11 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import type { OAuthRedirectData, OAuthState } from '../../oauth/oauth_types.js';
 import { isDebugBuild } from '../../globals.js';
 import { PlatformEventListener } from '../../platform/events/event_listener.js';
-import { Logger, stringifyError } from '../../platform/logger/logger.js';
+import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { PlatformType } from '../../platform/platform_type.js';
-import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
-import { SalesforceApiClientInterface } from './salesforce_api_client.js';
+import { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 
 const LOG_CTX = 'salesforce_authentication';
 const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;

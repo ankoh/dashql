@@ -6,7 +6,7 @@ import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indic
 import { ChevronRightIcon, SquareFillIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { AgentConnectionStatus } from './agent_client.js';
 import type { AgentWorkbookContext } from './agent_protocol.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import type { AgentBridge } from './agent_bridge.js';
 import { isAgentAnswering, type AgentQuestion } from './use_agent_questions.js';

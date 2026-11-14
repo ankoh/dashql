@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadClientFunctionSpec } from './clfn_specs.js';
+import { loadClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_specs';
 
 describe('client function specs', () => {
     it('loads the generated spec of an extension', async () => {

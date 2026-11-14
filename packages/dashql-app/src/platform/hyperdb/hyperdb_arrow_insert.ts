@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import { binaryVector, boolVector, floatVector, intVector, utf8Vector } from '../../utils/arrow_vectors.js';
+import { binaryVector, boolVector, floatVector, intVector, utf8Vector } from '@ankoh/dashql-sdk/utils/arrow_vectors';
 
 /// An Arrow table that Hyper can read with external(format => 'arrowstream').
 export interface HyperArrowInsert {

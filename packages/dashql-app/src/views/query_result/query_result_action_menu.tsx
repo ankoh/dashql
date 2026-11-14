@@ -2,16 +2,16 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from '../../app/action_menu.module.css';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { SET_SCRIPT_TEXT, scriptResultOwner, type ScriptData, type WorkbookScripts } from '../../workbook/scripts/workbook_scripts.js';
+import { SET_SCRIPT_TEXT, scriptResultOwner, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from '../../workbook/scripts/workbook_scripts_registry.js';
-import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';
+import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');

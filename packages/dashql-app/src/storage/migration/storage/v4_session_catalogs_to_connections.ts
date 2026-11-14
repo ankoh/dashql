@@ -1,6 +1,6 @@
-import { stringifyError } from '../../../platform/logger/logger.js';
-import { OPFSFolder } from '../migration_folder.js';
-import { migrateWorkbookFolder } from '../workbook_migration.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { OPFSFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
+import { migrateWorkbookFolder } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { listSessionFolders, manifestSessionEntries, readManifestJson } from '../storage_root.js';
 

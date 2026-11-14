@@ -19,7 +19,7 @@ import type { PlatformEventListener } from '../platform/events/event_listener.js
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
-import { isEphemeralWorkbook, workbookConnectionIds } from '../workbook/scripts/workbook_scripts.js';
+import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 

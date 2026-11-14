@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from '@bufbuild/protobuf';
-import * as pb from '../proto.js';
+import * as pb from '@ankoh/dashql-sdk/proto';
 import * as style from './connection_settings.module.css';
 
 import { ChecklistIcon, DatabaseIcon, FileBadgeIcon, KeyIcon } from '../ui/foundations/symbol_icon.js';
@@ -17,20 +17,20 @@ import {
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
-import { Dispatch } from '../utils/variant.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { ConnectionHealth } from './connection_state.js';
+import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
 import { performHealthCheck } from './health_check.js';
 import { useHyperSetup } from './hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from './query_executor.js';
-import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
-import { isDesktopHost } from '../platform/native_globals.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
-import { DEFAULT_HYPER_ENDPOINT } from './connection_params.js';
-import { isHyperWasmConnection } from './connection_label.js';
+import { DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql-sdk/connections/connection_params';
+import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
 import { isLocalCloud } from './cloud_connection.js';
 
 const LOG_CTX = "hyper_connector";

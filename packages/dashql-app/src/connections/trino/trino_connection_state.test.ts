@@ -1,10 +1,10 @@
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, expect, it } from 'vitest';
 
-import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
-import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
+import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { connectorState, fakeChannel, reduceConnector, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../tests/mocks/connector_state.js';
-import type { TrinoChannelInterface } from './trino_channel.js';
+import type { TrinoChannelInterface } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
 import {
     createTrinoConnectionStateDetails,
     GENERATED_PKCE_CHALLENGE,
@@ -23,7 +23,7 @@ import {
     TRINO_CHANNEL_SETUP_FAILED,
     TRINO_CHANNEL_SETUP_STARTED,
     type TrinoConnectorAction,
-} from './trino_connection_state.js';
+} from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
 
 const PARAMS: connection.TrinoConnectionParams = {
     endpoint: 'https://trino.example.com',

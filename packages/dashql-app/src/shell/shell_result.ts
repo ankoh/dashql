@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import type { DashQLShellCommand } from './api.js';
-import { QueryType, type QueryMetadata } from '../query/query_execution_state.js';
+import { QueryType, type QueryMetadata } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { detectPlanEngine } from '../views/query_profile/plan_engine.js';
 
 /// The metadata of the queries that users enter in the shell

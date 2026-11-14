@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import { TrinoApiClient, TrinoApiEndpoint } from '../../connections/trino/trino_api_client.js';
+import { TrinoApiClient, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 
 /// A Trino endpoint with basic auth of `user` and an API client whose HTTP client answers every request with the response

@@ -1,6 +1,6 @@
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { readManifestJson, writeManifestJson } from '../storage_root.js';
-import { renameSidbConnections } from '../workbook/v10_dbcom_connector.js';
+import { renameSidbConnections } from '@ankoh/dashql-sdk/storage/migration/workbook/v10_dbcom_connector';
 
 /// The Database.com connector was called SIDB.
 ///

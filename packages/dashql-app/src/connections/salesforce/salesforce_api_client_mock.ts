@@ -2,8 +2,8 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { sleep } from '../../utils/sleep.js';
-import { QueryExecutionResponseStream } from '../../query/query_execution_state.js';
-import { SalesforceApiClientInterface, type SalesforceMetadataProgress } from './salesforce_api_client.js';
+import { QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { SalesforceApiClientInterface, type SalesforceMetadataProgress } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import { QueryExecutionResponseStreamMock } from '../query_execution_mock.js';
 
 export interface SalesforceConnectorMockConfig {

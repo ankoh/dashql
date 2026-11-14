@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { filterInvalidWorkbookCatalogs, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleWriteStep } from '../../storage/workbook_bundle.js';
+import { filterInvalidWorkbookCatalogs, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleWriteStep } from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import type { PreparedNativeWorkbook } from '../../storage/composite_storage_backend.js';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import {
@@ -17,9 +17,9 @@ import { useStorage } from '../../storage/storage_provider.js';
 import { restoreSingleWorkbook } from './app_state_loader.js';
 import { mergeRestoredWorkbookIntoConnections, mergeRestoredWorkbookIntoScripts } from './app_state_loader.js';
 import { connectionEntryFromState, findWorkbookQueries, useConnectionReferences, useConnectionRegistrySetter, useConnectionRegistryStore } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
-import { isHyperWasmConnection } from '../../connections/connection_label.js';
-import { getConnectorInfoForParams } from '../../connections/connector_info.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
+import { getConnectorInfoForParams } from '@ankoh/dashql-sdk/connections/connector_info';
 import { useWorkbookScriptsRegistrySetter } from '../scripts/workbook_scripts_registry.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -27,7 +27,7 @@ import { useCancelQuery } from '../../connections/query_executor.js';
 import type { WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { WorkbookImportConflictDialog } from './workbook_import_conflict_dialog.js';
 import { WorkbookConnectionImportDialog } from './workbook_connection_import_dialog.js';
-import { StorageBackendType, type ConnectionEntry } from '../../storage/storage_backend.js';
+import { StorageBackendType, type ConnectionEntry } from '@ankoh/dashql-sdk/storage/storage_backend';
 import {
     applyConnectionImportPlan,
     connectionImportQuestions,
@@ -36,10 +36,10 @@ import {
     type ConnectionImportChoice,
     type ConnectionImportPlanItem,
 } from './workbook_connection_import.js';
-import { AppHost, getAppHost } from '../../platform/native_globals.js';
+import { AppHost, getAppHost } from '@ankoh/dashql-sdk/platform/native_globals';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { failedWorkbookQueryResults, importWorkbookQueryResults, type ImportedWorkbookQueryResults } from './workbook_query_results.js';
-import { stringifyError } from '../../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 type ImportPresentation =
     | { mode: 'centered' }

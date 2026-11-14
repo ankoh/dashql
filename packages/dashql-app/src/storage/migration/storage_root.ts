@@ -1,5 +1,5 @@
-import { exists } from '../../platform/electron_fs.js';
-import { type MigrationFolder, NativeFolder, OPFSFolder } from './migration_folder.js';
+import { exists } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { type MigrationFolder, NativeFolder, OPFSFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
 
 /// The manifest of the storage root, it holds the storage version
 export const MANIFEST_FILE = 'dashql-manifest.json';

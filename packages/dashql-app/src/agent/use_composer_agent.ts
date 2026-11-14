@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import type { AgentBridge } from './agent_bridge.js';
 import { AgentConnectionStatus } from './agent_client.js';
-import type { ScriptData, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
-import { scriptDisplayName } from '../workbook/scripts/script_types.js';
+import type { ScriptData, WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { isAgentAnswering, useAgentQuestions, type AgentFollowTarget } from './use_agent_questions.js';
 import { useAgentWorkbookContext, type ComposerAgent, type ComposerAgentScript, type ComposerAgentTurn } from './agent_prompt_panel.js';
 

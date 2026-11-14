@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 
 import type { ComputeQueryExecution } from '../../compute/computation_tasks.js';
 import { DataFrame } from '../../compute/data_frame.js';
-import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 
 /// A data frame of a table name without a database
 export function mockDataFrame(tableName: string): DataFrame {

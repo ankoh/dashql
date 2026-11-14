@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { createSalesforceSetup, setupSalesforceConnection } from './salesforce_connection_setup.js';
-import type { SalesforceApiClientInterface } from './salesforce_api_client.js';
-import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
+import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
+import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { PlatformType } from '../../platform/platform_type.js';
-import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from './salesforce_connection_state.js';
-import { RESET_CONNECTION } from '../connection_state.js';
-import { ConnectorType } from '../connector_info.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
+import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
+import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 
 afterEach(() => vi.unstubAllGlobals());
 

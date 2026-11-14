@@ -5,8 +5,8 @@ import { useLocation } from 'react-router-dom';
 
 import { useWorkbookScripts } from './scripts/workbook_scripts_registry.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
-import type { ConnectionState } from '../connections/connection_state.js';
-import { isEphemeralWorkbook, newScriptConnection, workbookConnectionIds } from './scripts/workbook_scripts.js';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { isEphemeralWorkbook, newScriptConnection, workbookConnectionIds } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 

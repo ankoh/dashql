@@ -3,7 +3,7 @@ import type * as core from '@ankoh/dashql-core';
 
 import type { QueryExecutor } from '../../connections/query_executor.js';
 import type { QueryResultCache } from '../../query/query_result_cache.js';
-import { QueryType } from '../../query/query_execution_state.js';
+import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import {
     ScriptPlanError,
     acquireWorkbookExecution,
@@ -15,10 +15,10 @@ import {
     type ExecutionMounts,
     type RunQueries,
 } from './workbook_execution.js';
-import { REGISTER_QUERY, scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
+import { REGISTER_QUERY, scriptResultOwner, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { yieldToBrowser } from '../../utils/yield_to_browser.js';
-import type { LoggerLike } from '../../platform/logger/logger.js';
+import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
+import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 /// The services of the run of a script
 export interface ScriptRunServices {

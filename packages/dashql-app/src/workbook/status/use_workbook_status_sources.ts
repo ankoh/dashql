@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
-import type { ConnectionLabelParts } from '../../connections/connection_label.js';
-import { QueryExecutionStatus, queryIsDone } from '../../query/query_execution_state.js';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { ConnectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
+import { QueryExecutionStatus, queryIsDone } from '@ankoh/dashql-sdk/query/query_execution_state';
 import type { WorkbookExecutionState } from '../scripts/workbook_execution.js';
-import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
-import { scriptDisplayName } from '../scripts/script_types.js';
+import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { formatMilliseconds } from '../../utils/format.js';
 import { getQueryStatusText } from '../entry_status_model.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';

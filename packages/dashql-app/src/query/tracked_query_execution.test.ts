@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { QUERY_STATEMENT_STARTED, QUERY_STATEMENT_SUCCEEDED, QueryExecutionStatus, QueryType } from './query_execution_state.js';
+import { QUERY_STATEMENT_STARTED, QUERY_STATEMENT_SUCCEEDED, QueryExecutionStatus, QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
-import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from './query_execution_state.js';
+import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from '@ankoh/dashql-sdk/query/query_execution_state';
 
 const metadata = {
     queryType: QueryType.INTERNAL_SQLFRAME,

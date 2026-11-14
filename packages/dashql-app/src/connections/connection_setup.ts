@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useSaveBeforeConnect } from './connection_persistence.js';
-import { cancelConnectionSetup, registerConnectionSetup } from './connection_setup_cancellation.js';
+import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-sdk/connections/connection_setup_cancellation';
 
 /// The setup of a connection from its settings
 export interface ConnectionSetup {

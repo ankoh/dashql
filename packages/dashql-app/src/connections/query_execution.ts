@@ -1,12 +1,12 @@
 import * as arrow from 'apache-arrow';
 
-import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
-import type { TracedLogger } from '../platform/logger/logger.js';
-import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
+import type { TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { QueryExecutionProgress, QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { executeConnectionClientFunction, type ClientFunctionServices } from './connection_client_functions.js';
-import { connectorOfDetails } from './connector_descriptor.js';
-import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import type { QueryExecutionArgs } from './query_execution_args.js';
+import { connectorOfDetails } from '@ankoh/dashql-sdk/connections/connector_descriptor';
+import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
+import type { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
 
 /// Execute a query on the channel of a connection, a client function call as requests to its service
 export function executeConnectionQuery(

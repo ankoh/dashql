@@ -1,11 +1,11 @@
-import { StorageBackendType, type WorkbookEntry } from './storage_backend.js';
+import { StorageBackendType, type WorkbookEntry } from '@ankoh/dashql-sdk/storage/storage_backend';
 import {
     assembleWorkbookBundle,
     describeWorkbookBundleDifference,
     seedConnectionCatalogs,
     type WorkbookBundle,
     type WorkbookBundleWriteStep,
-} from './workbook_bundle.js';
+} from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import {
     type CompositeStorageBackend,
     type WorkbookImportConflict,

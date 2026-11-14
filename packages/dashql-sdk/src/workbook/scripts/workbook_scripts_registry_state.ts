@@ -10,7 +10,7 @@ import {
     type WorkbookScripts,
     type WorkbookScriptsAction,
 } from './workbook_scripts.js';
-import type { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
+import type { UpdateQueue } from '../../store/store.js';
 import type { ConnectionReferences } from '../../connections/connection_registry_state.js';
 import { stringifyError, type Logger } from '../../platform/logger/logger.js';
 import type { InvalidWorkbook } from '../../storage/workbook_validation.js';

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
 import type { ComputeQueryExecution } from '../compute/computation_tasks.js';
 import { computationTaskTitle, type TaskVariant } from '../compute/computation_types.js';
-import { QueryType } from '../query/query_execution_state.js';
+import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { useShellQueryHistory } from './shell_query_history.js';
 

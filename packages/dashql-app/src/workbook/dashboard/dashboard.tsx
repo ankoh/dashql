@@ -2,13 +2,13 @@ import * as React from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter } from '@dnd-kit/core';
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { runWorkbookScript } from '../scripts/rerun_query.js';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
-import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '../scripts/workbook_scripts.js';
+import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import type { DashboardSpec } from '../scripts/script_types.js';
+import type { DashboardSpec } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';

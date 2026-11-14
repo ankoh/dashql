@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../logger/test_logger.js';
-import { LogLevel } from '../logger/log_buffer.js';
+import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { NativeHttpClient } from './native_http_client.js';
 import { installNativeProxy } from '../../tests/mocks/native_proxy.js';
 

@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
 import { WorkbookTestRegistry } from '../storage/workbook_test_backend.js';
-import { StorageBackendType } from '../storage/storage_backend.js';
-import { RENAME_SCRIPT, SELECT_SCRIPT } from './scripts/workbook_scripts.js';
+import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { RENAME_SCRIPT, SELECT_SCRIPT } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });

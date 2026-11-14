@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '../../compute/computation_state.js';
 import { CrossFilters } from '../../compute/cross_filters.js';
-import { Dispatch } from '../../utils/variant.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { FILTERED_COLUMN_AGGREGATION_TASK, TABLE_FILTERING_TASK, ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask, DataSearchTable, FilterTable } from '../../compute/computation_types.js';
 import { ScalarFilter } from '../../compute/sql/sqlframe_builder.js';
 import { HistogramFilterCallback } from './histogram_cell.js';

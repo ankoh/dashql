@@ -1,23 +1,23 @@
 import * as React from 'react';
 
-import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '../../connections/connection_state.js';
-import { connectorOfDetails } from '../../connections/connector_descriptor.js';
+import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { connectorOfDetails } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistry, useWorkbookScriptsRegistryReader, type ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { createExecutionMounts, isWorkbookExecutionRunning, runWorkbookExecution, subscribeWorkbookExecutions, type WorkbookExecutionState } from './workbook_execution.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { supportsParquet } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import { supportsParquet } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { registerScriptRunServices, type ScriptRunServices } from './script_run.js';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { isCloudPreview, scriptConnectionIds, SET_ATTACHMENT_COLUMNS } from './workbook_scripts.js';
-import { isHyperWasmConnection } from '../../connections/connection_label.js';
-import { QueryType } from '../../query/query_execution_state.js';
+import { isCloudPreview, scriptConnectionIds, SET_ATTACHMENT_COLUMNS } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
+import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { mountWorkbookAttachments, readAttachmentColumns } from '../attachments/attachment_mounts.js';
-import { attachmentStamp } from '../attachments/workbook_attachments.js';
-import { stringifyError } from '../../platform/logger/logger.js';
+import { mountWorkbookAttachments, readAttachmentColumns } from '@ankoh/dashql-sdk/workbook/attachments/attachment_mounts';
+import { attachmentStamp } from '@ankoh/dashql-sdk/workbook/attachments/workbook_attachments';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 const LOG_CTX = 'workbook_execution';
 

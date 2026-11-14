@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
 import { runWorkbookExecution, type WorkbookExecutionState } from './workbook_execution.js';
-import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type WorkbookScripts } from './workbook_scripts.js';
+import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 

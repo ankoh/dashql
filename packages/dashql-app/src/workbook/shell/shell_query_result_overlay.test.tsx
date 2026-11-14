@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus } from '../../query/query_execution_state.js';
-import { ProfileExecutionState } from '../../query/profile_execution_state.js';
+import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,

@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { getSelectedScriptRef, newScriptConnection, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
-import type { ScriptRef } from './script_types.js';
+import { getSelectedScriptRef, newScriptConnection, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import type { ScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import { useCatalogLoaderQueue } from '../../connections/catalog/catalog_loader.js';
 import { useConnectionRegistryStore, useWorkbookConnections, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useWorkbookScripts } from './workbook_scripts_registry.js';
-import { isCatalogRefreshRunning } from '../../connections/catalog/catalog_update_state.js';
+import { isCatalogRefreshRunning } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 import { runWorkbookScript } from './rerun_query.js';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';

@@ -2,15 +2,15 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { TrinoApiClient, TrinoApiEndpoint } from './trino_api_client.js';
-import { TrinoChannel } from './trino_channel.js';
+import { TrinoApiClient, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
+import { TrinoChannel } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
 import { createTrinoSetup, setupTrinoConnection } from './trino_connection_setup.js';
-import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from './trino_connection_state.js';
-import { RESET_CONNECTION } from '../connection_state.js';
-import type { Dispatch } from '../../utils/variant.js';
+import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
+import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 
 const OAUTH_PARAMS: connection.TrinoConnectionParams = {
     endpoint: 'https://trino.example.com',

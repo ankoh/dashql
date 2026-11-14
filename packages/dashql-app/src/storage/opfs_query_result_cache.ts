@@ -1,8 +1,8 @@
 import type * as arrow from 'apache-arrow';
 
 import type { QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
-import { copyArrowTableAsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
-import { getOPFSRoot } from '../platform/opfs_root.js';
+import { copyArrowTableAsParquet, type ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
+import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { crc32CheckStream } from '../utils/crc32.js';
 import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES, evictToFit, type CacheFileStat, type QueryResultCacheStore } from './query_result_cache_eviction.js';
 

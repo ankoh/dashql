@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LogLevel } from '../../platform/logger/log_buffer.js';
+import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
 import { testLogRecord } from '../../platform/logger/test_logger.js';
 import { shouldShowLoggerToast } from './logger_toast.js';
 

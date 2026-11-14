@@ -1,4 +1,4 @@
-import { ConnectionHealth, type ConnectionState } from './connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { canRefreshConnection } from './connection_refresh.js';
 
 function database(overrides: Partial<ConnectionState> = {}): ConnectionState {

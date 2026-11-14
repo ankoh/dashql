@@ -4,7 +4,7 @@ import { ComputeQueryExecutionProvider } from '../compute/compute_query_executio
 import type { ComputeQueryExecution } from '../compute/computation_tasks.js';
 import { useComputationStore } from '../compute/computation_registry.js';
 import { computationTaskTitle, type TaskVariant } from '../compute/computation_types.js';
-import { QueryType } from '../query/query_execution_state.js';
+import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { useConnectionDispatch } from '../connections/connection_registry.js';
 import { sqlframeClientContext } from '../connections/hyper/hyper_log_metrics.js';

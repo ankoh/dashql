@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { QueryExecutor } from '../query_executor.js';
-import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogScopes, trinoSessionDefaults, withTrinoCatalogFields } from './trino_catalogs.js';
-import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
+import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogScopes, trinoSessionDefaults, withTrinoCatalogFields } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
+import { CATALOG_UPDATE_REGISTER_QUERY } from '@ankoh/dashql-sdk/connections/connection_state';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 
 const params = (fields: Partial<connection.TrinoConnectionParams>): connection.TrinoConnectionParams => ({

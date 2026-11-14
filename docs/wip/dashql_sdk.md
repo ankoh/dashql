@@ -1,6 +1,6 @@
 # DashQL SDK
 
-Status: step 1 is built, the rest is proposed.
+Status: steps 1 and 2 are built, the rest is proposed.
 
 `packages/dashql-sdk` (`@ankoh/dashql-sdk`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -9,8 +9,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
 
 | Part | State |
 |---|---|
-| Untangling in place (leaks, `Store` without React), `//packages/dashql-app:sdk_boundary_test` | Done, step 1 |
-| `packages/dashql-sdk` with the clean modules | Planned, step 2 |
+| Untangling in place (leaks, `Store` without React) | Done, step 1 |
+| `packages/dashql-sdk` with the clean modules, `//packages/dashql-sdk:boundary_test` | Done, step 2; their tests still run in the browser tests of the app |
 | Services in place of providers, one runtime | Planned, step 3 |
 | Node platform and the CLI on top | Planned, step 4 |
 | Editor state out of `ScriptData` | Later, step 5 |
@@ -50,7 +50,7 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 ### Imports that pulled UI code into the domain
 
 The transitive closure of the imports of these modules reached React, CodeMirror or a `.tsx` file here. Step 1 cut
-them, `//packages/dashql-app:sdk_boundary_test` keeps them cut:
+them, `//packages/dashql-sdk:boundary_test` keeps them cut:
 
 | Leak | Fix |
 |---|---|
@@ -97,13 +97,27 @@ on core buffers only, not on an editor library, so they can move with the reduce
 - `@ankoh/dashql-core` loads its Wasm with `fetch(new URL('./wasm/…', import.meta.url))`. Node's `fetch` doesn't read
   `file:` URLs, and the batch worker uses `new Worker`.
 
-What the closure still reaches that only a browser or the bundler provides, for steps 2 and 4:
+### The package
 
-- `connections/catalog/prefetched_hyper_functions.ts` imports the functions of Hyper as SQL text with Vite's `?raw`
-  (`static/catalog/hyper/dashql-catalog-functions.sql`). The test lists it as a known asset import.
+Step 2 moved the 94 modules into `packages/dashql-sdk/src` with the folders they had in the app (`connections/`,
+`workbook/`, `storage/`, `query/`, `platform/`, …), so their relative imports stayed, and the app imports them as
+`@ankoh/dashql-sdk/<path>`. A source package like `@ankoh/dashql-ui`: linked as `//:node_modules/@ankoh/dashql-sdk`,
+mapped in the root `tsconfig.json` and the Vite config. The SDK type-checks against the `WebWorker` lib of TypeScript
+(no `window`, no `document`, no elements) with its own copies of the generated `@ankoh/dashql-protobuf` and
+`@ankoh/dashql-jsonschema`. `platform/electron_fs.ts` owns the type of the file system of the Electron bridge, the
+global declaration of the app (`types/electron.d.ts`) refers to it.
+
+`//packages/dashql-sdk:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
+`.tsx` module, and the seams that only a browser or a bundler provides are known by name. Step 4 removes them:
+
+- A bundler asset: `connections/catalog/prefetched_hyper_functions.ts` imports the functions of Hyper as SQL text with
+  Vite's `?raw` (`connections/catalog/dashql-catalog-functions.sql`, moved from `static/catalog/hyper/` of the app).
+- `import.meta.glob`: `connections/clfn/clfn_specs.ts` loads the specs of the extensions.
+- The origin private file system: `platform/opfs_root.ts`, `platform/database/embedded_database.ts`,
+  `platform/hyperdb/hyperdb_parquet_export.ts`, `storage/migration/migration_folder.ts`, `storage/workbook_tree.ts`,
+  `workbook/attachments/attachment_mounts.ts`.
+- The Electron bridge: `platform/electron_fs.ts`, `platform/native_globals.ts`.
 - `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`.
-- `storage/storage_backend.ts` and `workbook/attachments/attachment_mounts.ts` import `platform/opfs_root.ts`
-  (`navigator.storage`).
 
 ### Runtimes for the embedded Hyper
 
@@ -241,9 +255,10 @@ Each step ships on its own and keeps the behavior.
 
 The browser and Node must offer the same: every feature of the SDK runs, and is tested, on both.
 
-- **Compile time.** The SDK compiles without the DOM and without the types of Node (`lib` ES only, plus the few
-  globals both have: `fetch`, `URL`, `TextEncoder`, `queueMicrotask`, `setTimeout`). An API of only one platform fails
-  the type check of the SDK. The platforms compile in their own subpaths with their own `lib`.
+- **Compile time.** The SDK compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
+  APIs it uses there, like `fetch`, `URL`, `TextEncoder`, `crypto` and `Blob`, Node has as well. The browser-only ones
+  that remain are the named seams of the boundary test. Once step 4 removed them, the lib can shrink to ES plus a few
+  declared globals. The platforms compile in their own subpaths with their own `lib`.
 - **One suite per seam.** The SDK defines a contract suite per interface (`defineStorageBackendContract(create)`, the
   same for `HttpClient`, `EmbeddedDatabase`, `UpdateScheduler`, `WasmSource`), and each implementation runs it: OPFS
   and IndexedDB in the browser tests, `node:fs` in the Node tests, an in-memory fake in both.

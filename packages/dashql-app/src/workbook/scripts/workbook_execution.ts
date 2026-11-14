@@ -2,18 +2,18 @@ import * as core from '@ankoh/dashql-core';
 import type * as arrow from 'apache-arrow';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
-import type { QueryExecutionArgs } from '../../connections/query_execution_args.js';
-import type { ClientFunctionCallDescription } from '../../connections/clfn/clfn_spec.js';
-import { QueryType, type PlannedStatement } from '../../query/query_execution_state.js';
-import type { LoggerLike } from '../../platform/logger/logger.js';
-import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
-import { resolveCompiledVisualization } from './script_compilation.js';
-import { scriptDisplayName } from './script_types.js';
+import type { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
+import type { ClientFunctionCallDescription } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
+import { QueryType, type PlannedStatement } from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { resolveCompiledVisualization } from '@ankoh/dashql-sdk/workbook/scripts/script_compilation';
+import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { yieldToBrowser } from '../../utils/yield_to_browser.js';
-import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
+import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
 import { isQueryCacheMiss, type QueryResultCache } from '../../query/query_result_cache.js';
-import { affectedScriptIndices, workbookPlanRequest } from '../inputs/workbook_inputs.js';
+import { affectedScriptIndices, workbookPlanRequest } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
 
 /// The run that holds a workbook, a run of the whole workbook or of one of its scripts
 type WorkbookRunKind = 'workbook' | 'script';

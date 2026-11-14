@@ -2,8 +2,8 @@ import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
-import type { EmbeddedClientContext } from '../../platform/database/embedded_database.js';
-import { stringifyError } from '../../platform/logger/logger.js';
+import type { EmbeddedClientContext } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';

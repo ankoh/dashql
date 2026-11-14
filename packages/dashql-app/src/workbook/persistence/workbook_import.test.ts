@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 
 import { importWorkbookFromZip as importZip, readWorkbookBundleFromZip as readZip } from './workbook_import.js';
-import { STORAGE_WORKBOOK_FILE } from '../../storage/storage_backend.js';
+import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../../storage/workbook_test_backend.js';
 
 // The archives of older versions hold the files of a workbook folder, they are read without the database

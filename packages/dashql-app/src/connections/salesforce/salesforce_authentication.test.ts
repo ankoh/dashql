@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { OAuthState } from '../../oauth/oauth_types.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { PlatformType } from '../../platform/platform_type.js';
-import { BASE64URL_CODEC } from '../../utils/base64.js';
-import type { SalesforceApiClientInterface } from './salesforce_api_client.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
+import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import {
     authenticateSalesforce,
     buildSalesforceAuthorizationUrl,

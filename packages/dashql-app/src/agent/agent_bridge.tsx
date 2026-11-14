@@ -8,7 +8,7 @@ import {
     type AgentWorkbookContext,
     type AgentTurnState,
 } from './agent_protocol.js';
-import { isDesktopHost } from '../platform/native_globals.js';
+import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { DASHQL_AGENT_PORT } from '../globals.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';

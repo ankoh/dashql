@@ -1,9 +1,9 @@
 import * as core from '@ankoh/dashql-core';
 
-import type { Logger } from '../platform/logger/logger.js';
-import type { ConnectionState } from '../connections/connection_state.js';
-import type { WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
-import { catalogTablesOfDescriptor, generateCatalogTablesSQL, quoteIdentifier } from '../connections/catalog/catalog_sql_generator.js';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { catalogTablesOfDescriptor, generateCatalogTablesSQL, quoteIdentifier } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 import { isSystemSchema } from '../connections/catalog/system_schemas.js';
 
 const LOG_CTX = 'agent_catalog';

@@ -267,7 +267,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 ## Connector binding
 
-A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-app/src/connections/connector_descriptor.ts`):
+A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-sdk/src/connections/connector_descriptor.ts`):
 
 ```ts
 interface ClientFunctionBinding<Details> {

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import { useDynamicConnectionDispatch } from '../connection_registry.js';
-import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from './catalog_update_state.js';
+import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 import { useSalesforceAPI } from '../salesforce/salesforce_connector.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import {
     ConnectionHealth,
     CATALOG_UPDATE_CANCELLED,
@@ -11,18 +11,18 @@ import {
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
     UPDATE_CATALOG,
-} from '../connection_state.js';
-import { getHyperCloudAttachedDatabase, updateSalesforceCatalog } from '../salesforce/salesforce_catalog_update.js';
+} from '@ankoh/dashql-sdk/connections/connection_state';
+import { getHyperCloudAttachedDatabase, updateSalesforceCatalog } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_catalog_update';
 import { useQueryExecutor } from '../query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { createTrace } from '../../platform/logger/trace_context.js';
-import { updateInformationSchemaCatalog, updateInformationSchemaRelations } from './catalog_query_information_schema.js';
-import type { RelationName } from './catalog_sql_generator.js';
-import { queryTrinoCatalogScopes, trinoCatalogScopes } from '../trino/trino_catalogs.js';
+import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
+import { updateInformationSchemaCatalog, updateInformationSchemaRelations } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_information_schema';
+import type { RelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
+import { queryTrinoCatalogScopes, trinoCatalogScopes } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
 import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
-import { connectionCatalogIsDurable } from '../connection_params.js';
+import { connectionCatalogIsDurable } from '@ankoh/dashql-sdk/connections/connection_params';
 import { ensureConnectionClientFunctions } from '../connection_client_functions.js';
-import { connectorOfDetails } from '../connector_descriptor.js';
+import { connectorOfDetails } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 
 const LOG_CTX = 'catalog_loader';
 

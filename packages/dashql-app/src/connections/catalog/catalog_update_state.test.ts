@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogRefreshRunning, reduceCatalogAction, type CatalogUpdateTaskState } from './catalog_update_state.js';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogRefreshRunning, reduceCatalogAction, type CatalogUpdateTaskState } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -9,7 +9,7 @@ import {
     UPDATE_CATALOG,
     type ConnectionState,
     type CatalogAction,
-} from '../connection_state.js';
+} from '@ankoh/dashql-sdk/connections/connection_state';
 
 function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): ConnectionState {
     return {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { type ConnectionState } from '../connections/connection_state.js';
+import { type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { Tooltip } from '../ui/foundations/tooltip.js';
 
 export const CONNECTION_ATTENTION_DURATION_MS = 900;

@@ -4,7 +4,7 @@ import { TestLogger } from '../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { StorageBackendType } from './storage_backend.js';
+import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from './workbook_test_backend.js';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import {
@@ -15,7 +15,7 @@ import {
     replaceWorkbookWithPortableBundle,
     writePortableWorkbookFresh,
 } from './workbook_import_transaction.js';
-import { getOPFSRoot } from '../platform/opfs_root.js';
+import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 
 const OTHER_WORKBOOK_ID = '22222222-3333-4444-8555-666666666666';
 

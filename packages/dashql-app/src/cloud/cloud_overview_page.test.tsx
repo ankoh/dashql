@@ -22,15 +22,15 @@ import { quoteLiteral } from './cloud_sql.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../connections/connection_state.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { EXECUTOR_CTX, type QueryExecutor } from '../connections/query_executor.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '../storage/workbook_test_backend.js';
-import { workbookBundleToTables, type CatalogParser } from '../storage/workbook_tables.js';
+import { workbookBundleToTables, type CatalogParser } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '../tests/react_root.js';
 

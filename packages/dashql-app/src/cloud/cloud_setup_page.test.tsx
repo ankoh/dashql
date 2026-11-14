@@ -11,8 +11,8 @@ import { isCloudLink, useCloudSetupGate } from '../app/loading/cloud_setup_gate.
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../connections/connection_state.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { EXECUTOR_CTX, type QueryExecutor } from '../connections/query_executor.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';

@@ -1,16 +1,16 @@
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQL } from '@ankoh/dashql-core';
-import type { Logger } from '../platform/logger/logger.js';
-import { stringifyError } from '../platform/logger/logger.js';
-import type { ConnectionState } from './connection_state.js';
+import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { decodeConnectionFromProto, restoreConnectionState } from './connection_import.js';
-import { connectionCatalogIsDurable } from './connection_params.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
-import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog/catalog_batch.js';
-import type { WorkbookConnection, WorkbookRegistryBackend } from '../storage/storage_backend.js';
-import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE } from '../storage/storage_backend.js';
-import { packRelationName, parseCatalogStateFile, readRelationName } from './catalog/catalog_sql_generator.js';
-import { mergeRelationNames } from './catalog/catalog_update_state.js';
+import { connectionCatalogIsDurable } from '@ankoh/dashql-sdk/connections/connection_params';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
+import type { WorkbookConnection, WorkbookRegistryBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { packRelationName, parseCatalogStateFile, readRelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
+import { mergeRelationNames } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
 
 const LOG_CTX = "connection_restore";
 

@@ -2,10 +2,10 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { EditorState, Facet, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
-import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '../scripts/focus.js';
+import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '@ankoh/dashql-sdk/workbook/scripts/focus';
 import { computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
-import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '../scripts/script_editor_state.js';
-export { DashQLCompletionStatus, type DashQLCompletionState, type DashQLPendingDiff, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '../scripts/script_editor_state.js';
+import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '@ankoh/dashql-sdk/workbook/scripts/script_editor_state';
+export { DashQLCompletionStatus, type DashQLCompletionState, type DashQLPendingDiff, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '@ankoh/dashql-sdk/workbook/scripts/script_editor_state';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 const LOG_PREFIX = '[workbook-editor-debug]';

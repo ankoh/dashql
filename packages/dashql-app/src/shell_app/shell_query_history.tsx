@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { QueryType, type QueryExecutionState } from '../query/query_execution_state.js';
+import { QueryType, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../query/query_history_viewer.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
 

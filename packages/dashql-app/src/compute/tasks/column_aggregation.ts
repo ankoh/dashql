@@ -1,7 +1,7 @@
 import { ArrowTableFormatter } from '../arrow_formatter.js';
 import { DataFrame, generateTableName } from '../data_frame.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ROWNUMBER_COLUMN, getGridColumnTypeName, WithFilter, WithFilterEpoch } from '../computation_types.js';
-import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
+import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { OrderByConstraint, SQLFrame } from '../sql/sqlframe_builder.js';
 import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 import { getToNumericFn, isIntegerType } from '../arrow_columns.js';

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
-import { BASE64URL_CODEC } from '../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import { RedirectPage } from './oauth_redirect.js';
 import type { AppEventData, OAuthState } from './oauth_types.js';
 

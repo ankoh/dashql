@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import { buffers } from '@ankoh/dashql-core';
 import { ArrowTableFormatter } from '../../compute/arrow_formatter.js';
-import type { LoggerLike } from '../../platform/logger/logger.js';
+import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { QueryExecutionStatus, type QueryExecutionState } from '../../query/query_execution_state.js';
+import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
 import * as styles from './markdown_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 

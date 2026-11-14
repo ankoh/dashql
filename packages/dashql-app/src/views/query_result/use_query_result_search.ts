@@ -12,9 +12,9 @@ import {
     collectSearchableResultColumns,
     parseColumnSearchMatches,
 } from '../../compute/sql/query_result_search_sql.js';
-import type { Dispatch } from '../../utils/variant.js';
+import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '../../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useDataFrameRegistry } from '../../compute/computation_registry.js';
 import { scheduleTask } from '../../compute/computation_tasks.js';
 import { DATA_SEARCH_TASK } from '../../compute/computation_types.js';

@@ -8,7 +8,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { AgentConnectionStatus } from './agent_client.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '../platform/logger/logger.js';
+import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useAgentBridge, type AgentBridge } from './agent_bridge.js';
 
 const LOG_CTX = 'agent_workbook_menu';

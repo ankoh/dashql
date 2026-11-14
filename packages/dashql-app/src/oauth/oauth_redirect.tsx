@@ -8,13 +8,13 @@ import type { OAuthState, AppEventData } from './oauth_types.js';
 import { useSearchParams } from 'react-router-dom';
 
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { BASE64URL_CODEC } from '../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
 import { LogsOverlay } from '../ui/logs/logs_overlay.js';
-import { Logger, stringifyError } from '../platform/logger/logger.js';
+import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '../ui/foundations/text_field.js';

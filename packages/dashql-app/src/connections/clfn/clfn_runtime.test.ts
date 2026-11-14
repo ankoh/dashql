@@ -2,10 +2,10 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
 import { ClientFunctionResultStream } from './clfn_result_stream.js';
-import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from './clfn_runtime.js';
-import { ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSpec } from './clfn_spec.js';
+import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
+import { ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
 
 const BASE = 'https://svc.example.com';
 

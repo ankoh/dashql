@@ -4,10 +4,10 @@ import * as Immutable from 'immutable';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
-import { PATCH_WORKBOOK_CONNECTION, StorageWriter, WRITE_WORKBOOK_PROPERTIES, WRITE_WORKBOOK_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import { PATCH_WORKBOOK_CONNECTION, StorageWriter, WRITE_WORKBOOK_PROPERTIES, WRITE_WORKBOOK_SCRIPTS, type StorageWriteTaskVariant } from '@ankoh/dashql-sdk/storage/storage_writer';
+import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import {
     ANALYZE_OUTDATED_SCRIPT,
     CATALOG_DID_UPDATE,
@@ -40,9 +40,9 @@ import {
     ACCEPT_PENDING_DIFF,
     REJECT_PENDING_DIFF,
     replaceScriptSessionText,
-} from './workbook_scripts.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { runWorkbookScript } from './rerun_query.js';
-import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

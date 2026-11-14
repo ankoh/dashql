@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
-import { AsyncValue } from '../utils/async_value.js';
-import { LoggableException } from '../platform/logger/logger.js';
+import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
+import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { TaskStatus, ComputationStateVersion } from './computation_types.js';
 import {
@@ -29,7 +29,7 @@ import {
     FILTERED_COLUMN_AGGREGATION_TASK,
 } from './computation_types.js';
 const computationLogic = COMPUTATION_OPERATIONS;
-import { Dispatch } from '../utils/variant.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import type { ComputeQueryExecution } from './computation_tasks.js';
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';

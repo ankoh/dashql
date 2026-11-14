@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ComputationAction, ComputationState, createComputationState, reduceComputationState } from "./computation_state.js";
-import { Dispatch } from '../utils/variant.js';
+import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { Store } from '@ankoh/dashql-sdk/store/store';
 import { useStore, useStoreState } from '../utils/store_hooks.js';
 import { useLogger } from '../platform/logger/logger_provider.js';

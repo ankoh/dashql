@@ -1,6 +1,6 @@
 import {afterEach, describe, expect, it} from 'vitest';
 
-import {AppHost, getAppHost, isDesktopHost} from './native_globals.js';
+import {AppHost, getAppHost, isDesktopHost} from '@ankoh/dashql-sdk/platform/native_globals';
 
 describe('application host detection', () => {
     afterEach(() => {

@@ -3,10 +3,10 @@ import * as Immutable from 'immutable';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
-import { deriveFocusFromEditorUpdate } from './focus.js';
+import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-sdk/workbook/scripts/focus';
 import { DashQLCompletionStatus } from '../editor/dashql_processor.js';
 import {
     APPLY_PLANNER_ANALYSIS,
@@ -14,8 +14,8 @@ import {
     type WorkbookScripts,
     reduceWorkbookScripts,
     replaceScriptSessionText,
-} from './workbook_scripts.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -2,7 +2,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { analyzeTable } from './analyze_table.js';
 import { computeTableAggregates } from './tasks/table_aggregation.js';

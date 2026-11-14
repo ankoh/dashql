@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
-import { VariantKind } from "../../utils/variant.js";
+import { VariantKind } from "@ankoh/dashql-sdk/utils/variant";
 import { AppLoadingStatus } from '../loading/app_loading_status.js';
 import { WorkbookSetupStatus } from '../loading/workbook_setup_status.js';
-import { LoggableException } from '../../platform/logger/logger.js';
+import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
 
 export interface RouteContext {
     /// The app loading status

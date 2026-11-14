@@ -4,7 +4,7 @@ import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
-import { REPLACE_CONNECTION } from './scripts/workbook_scripts.js';
+import { REPLACE_CONNECTION } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useConnectionScriptsDispatch } from './scripts/workbook_scripts_registry.js';
 
 const LOG_CTX = 'connection_replace';

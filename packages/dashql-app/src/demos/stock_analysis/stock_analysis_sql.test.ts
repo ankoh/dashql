@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../../platform/database/embedded_database.js';
+import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { bindSqlTemplate } from '../shared/sql_template.js';

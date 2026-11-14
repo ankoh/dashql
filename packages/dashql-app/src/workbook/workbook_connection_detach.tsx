@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 
 import { useEmbeddedConnection } from '../connections/embedded_connection.js';
-import { DETACH_CONNECTION, scriptConnectionOf } from './scripts/workbook_scripts.js';
+import { DETACH_CONNECTION, scriptConnectionOf } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { useConnectionScriptsDispatch } from './scripts/workbook_scripts_registry.js';
 
 /// Detach a connection from the workbooks

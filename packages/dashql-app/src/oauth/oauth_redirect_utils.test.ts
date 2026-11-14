@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { OAuthState } from './oauth_types.js';
 import { getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
-import { BASE64URL_CODEC } from '../utils/base64.js';
+import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 
 function makeState(expiresAt = 2_000): OAuthState {
     return {

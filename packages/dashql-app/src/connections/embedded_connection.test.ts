@@ -1,12 +1,12 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState, ConnectionStateWithoutId } from './connection_state.js';
-import { createAttachedConnectionParamsForConnector, createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from './connection_params.js';
-import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
+import type { ConnectionState, ConnectionStateWithoutId } from '@ankoh/dashql-sdk/connections/connection_state';
+import { createAttachedConnectionParamsForConnector, createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from '@ankoh/dashql-sdk/connections/connection_params';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
-import { isHyperWasmConnection } from './connection_label.js';
+import { isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as dashql from '@ankoh/dashql-core';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { ProfileExecutionState } from '../../query/profile_execution_state.js';
+import { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 import { createProfileLayoutConfig, QueryProfileView } from './query_profile_view.js';
 import { rotateProfileLayoutOrientation } from './profile_layout_config.js';
 

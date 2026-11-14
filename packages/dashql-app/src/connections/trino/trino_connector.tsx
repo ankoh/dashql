@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { TrinoApiClient, TrinoApiClientInterface } from "./trino_api_client.js";
+import { TrinoApiClient, TrinoApiClientInterface } from "@ankoh/dashql-sdk/connections/trino/trino_api_client";
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';

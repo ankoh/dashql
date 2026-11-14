@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { SalesforceApiClient, SalesforceApiClientInterface } from './salesforce_api_client.js';
+import { SalesforceApiClient, SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import { SalesforceAPIClientMock } from './salesforce_api_client_mock.js';
 import { mockSalesforceAuthFlow as mockSalesforceSetup } from './salesforce_connection_setup_mock.js';
 import { SalesforceSetupApi, createSalesforceSetup } from './salesforce_connection_setup.js';

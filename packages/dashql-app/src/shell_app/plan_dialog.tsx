@@ -8,7 +8,7 @@ import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view
 
 import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
 import { rotateProfileLayoutOrientation } from '../views/query_profile/profile_layout_config.js';
-import { ProfileExecutionState } from '../query/profile_execution_state.js';
+import { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
 import { CodeMirror } from '../workbook/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
