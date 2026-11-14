@@ -13,4 +13,6 @@ import.meta.glob([
 // The tests of the SDK, see test_modules.ts
 import.meta.glob([
     '../../../dashql-sdk/src/**/*.test.ts',
+    // The tests of Node, see //packages/dashql-sdk:test_node
+    '!../../../dashql-sdk/src/**/*.node.test.ts',
 ], { eager: true });

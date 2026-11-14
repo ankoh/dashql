@@ -20,7 +20,7 @@ import {
     upsertWorkbookInTree,
 } from '@ankoh/dashql-sdk/storage/workbook_tree';
 import { type FileStamp } from '@ankoh/dashql-sdk/platform/electron_fs';
-import { NativeStorageBackend } from './native_storage_backend.js';
+import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
 import { validateWorkbookData, describeWorkbookValidationError } from '@ankoh/dashql-sdk/storage/workbook_validation';
@@ -37,6 +37,7 @@ import {
 import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { NativeFolder, OverlayFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
 import { migrateWorkbookFolder } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
 
 const LOG_CTX = 'composite_storage_backend';
 
@@ -126,7 +127,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         }
         let native = this.nativeCache.get(workbookId);
         if (!native) {
-            native = new NativeStorageBackend(loc.nativePath);
+            native = new NativeStorageBackend(loc.nativePath, ELECTRON_FILE_SYSTEM);
             this.nativeCache.set(workbookId, native);
         }
         return native;
@@ -386,7 +387,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         try {
             // Native reads do not require initialize(); avoiding it keeps a missing selected folder
             // from being created as a side effect of validation.
-            const native = new NativeStorageBackend(dir);
+            const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
             const scripts = await native.loadScripts(dir);
             const data = await Promise.all((await native.listDataFiles(dir))
                 .map(async file => ({ name: file.name, bytes: await native.loadDataFile(dir, file.name) })));
@@ -452,7 +453,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         // them afterwards, and the migration removes the catalog copy of older folders.
         await seedConnectionCatalogs(this.opfs, prepared.bundle, workbookId);
         await migrateWorkbookFolder(new NativeFolder(prepared.dir));
-        const native = new NativeStorageBackend(prepared.dir);
+        const native = new NativeStorageBackend(prepared.dir, ELECTRON_FILE_SYSTEM);
         await reconcileStoredWorkbookFiles(native, workbookId);
         await this.upsertWorkbookEntry({
             path: workbookId,
@@ -478,7 +479,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             throw new Error(`Workbook ${uuid} is not an OPFS workbook`);
         }
 
-        const native = new NativeStorageBackend(dir);
+        const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await native.initialize();
 
         // 2. Copy. Stamp the workbook manifest with its new physical location as we write it.

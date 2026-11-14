@@ -1,6 +1,7 @@
 // The SDK reaches no code of the app and no user interface, see docs/wip/dashql_sdk.md. Reads every module of src/
 // and fails with each import that leaves the package, reaches React, an editor, a .tsx module or a bundler asset, and
-// with each use of a seam that only a browser or a bundler provides, unless the seam is a known one below.
+// with each use of a seam that only a browser or a bundler provides, unless the seam is a known one below. Only the
+// modules of Node in src/node import node:, and the other modules don't import them.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,9 +52,12 @@ for (const file of modules('')) {
     for (const match of [...text.matchAll(IMPORT), ...text.matchAll(DYNAMIC_IMPORT)]) {
         const specifier = match[1];
         if (ASSET.test(specifier)) continue;
+        const ofNode = file.startsWith('node/');
+        if (specifier.startsWith('node:') && !ofNode) violations.push(`${file}: ${specifier} is a module of Node, only src/node imports it`);
         if (specifier.startsWith('.')) {
             const target = normalize(join(dirname(file), specifier));
             if (target.startsWith('..')) violations.push(`${file}: ${specifier} leaves the package`);
+            else if (!ofNode && target.startsWith('node/')) violations.push(`${file}: ${specifier} is a module of Node`);
             else if (/\.tsx$/.test(target) || existsSync(join(SRC, target.replace(/\.js$/, '.tsx')))) violations.push(`${file}: ${specifier} is a .tsx module`);
         } else if (FORBIDDEN_PACKAGE.test(specifier)) {
             violations.push(`${file}: ${specifier}`);

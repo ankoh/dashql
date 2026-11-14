@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { NativeStorageBackend } from './native_storage_backend.js';
+import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
@@ -16,6 +16,7 @@ import {
     writePortableWorkbookFresh,
 } from './workbook_import_transaction.js';
 import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
 
 const OTHER_WORKBOOK_ID = '22222222-3333-4444-8555-666666666666';
 
@@ -61,7 +62,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         const opfs = new OPFSStorageBackend();
         const composite = new CompositeStorageBackend(opfs, new TestLogger());
         await composite.initialize();
-        const native = new NativeStorageBackend('/tmp/native-attachments');
+        const native = new NativeStorageBackend('/tmp/native-attachments', ELECTRON_FILE_SYSTEM);
         const bytes = new Uint8Array([0, 128, 255, 10]);
         await native.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await native.saveDataFile(TEST_WORKBOOK_ID, 'data.parquet', bytes);
@@ -81,7 +82,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     });
 
     it('refreshes the complete native attachment mirror and removes stale files without native writes', async () => {
-        const native = new NativeStorageBackend('/tmp/native-refresh');
+        const native = new NativeStorageBackend('/tmp/native-refresh', ELECTRON_FILE_SYSTEM);
         await native.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await native.saveDataFile(TEST_WORKBOOK_ID, 'first.parquet', new Uint8Array([1]));
         await native.saveDataFile(TEST_WORKBOOK_ID, 'second.parquet', new Uint8Array([2]));
@@ -101,7 +102,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     });
 
     it('copies only the native attachments that changed since they were mirrored', async () => {
-        const native = new NativeStorageBackend('/tmp/native-unchanged');
+        const native = new NativeStorageBackend('/tmp/native-unchanged', ELECTRON_FILE_SYSTEM);
         await native.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await native.saveDataFile(TEST_WORKBOOK_ID, 'first.parquet', new Uint8Array([1]));
         await native.saveDataFile(TEST_WORKBOOK_ID, 'second.parquet', new Uint8Array([2]));
@@ -125,7 +126,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     });
 
     it('mirrors native attachment deletes through the composite backend', async () => {
-        const native = new NativeStorageBackend('/tmp/native-delete');
+        const native = new NativeStorageBackend('/tmp/native-delete', ELECTRON_FILE_SYSTEM);
         await native.saveDataFile(TEST_WORKBOOK_ID, 'deleted.parquet', new Uint8Array([1]));
         await registry.saveDataFile(TEST_WORKBOOK_ID, 'deleted.parquet', new Uint8Array([1]));
         await backend.upsertWorkbookEntry({ path: TEST_WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
@@ -135,7 +136,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     });
 
     it('mirrors native attachment renames even when the source has not been mirrored', async () => {
-        const native = new NativeStorageBackend('/tmp/native-rename');
+        const native = new NativeStorageBackend('/tmp/native-rename', ELECTRON_FILE_SYSTEM);
         const bytes = new Uint8Array([128, 255]);
         await native.saveDataFile(TEST_WORKBOOK_ID, 'old.parquet', bytes);
         await registry.saveDataFile(TEST_WORKBOOK_ID, 'new.parquet', new Uint8Array([0]));
@@ -233,7 +234,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
 
     it('replaces an OPFS workbook with a selected native folder of the same workbook', async () => {
         const dir = '/tmp/selected';
-        const native = new NativeStorageBackend(dir);
+        const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await native.initialize();
         await native.saveWorkbookManifest(TEST_WORKBOOK_ID, { ...testWorkbook(), storageType: StorageBackendType.Native, nativePath: dir });
         await native.saveScript(TEST_WORKBOOK_ID, '02_native.sql', 'SELECT 2');
@@ -291,7 +292,7 @@ describe('workbook import transactions', () => {
 
     /// A native workbook folder that is ready for import
     async function nativeFolder(dir: string, workbookId = TEST_WORKBOOK_ID) {
-        const native = new NativeStorageBackend(dir);
+        const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await native.initialize();
         await native.saveWorkbookManifest(workbookId, { ...testWorkbook({ workbookId }), storageType: StorageBackendType.Native, nativePath: dir });
         await native.saveScript(workbookId, '02_native.sql', 'SELECT 2');

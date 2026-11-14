@@ -10,7 +10,7 @@ import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { useStorage } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { WorkbookScriptsStorageSnapshot, WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import type { NamedFileStamp } from '../../storage/native_storage_backend.js';
+import type { NamedFileStamp } from '@ankoh/dashql-sdk/storage/native_storage_backend';
 import { connectionStateFromStorage, destroyUnregisteredConnection } from '@ankoh/dashql-sdk/connections/connection_restore';
 import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from '@ankoh/dashql-sdk/workbook/persistence/workbook_script_connections';
 import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';

@@ -124,7 +124,8 @@ bazel test //...
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql-sdk:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the SDK (`src/testing/`), with the globals of vitest |
-| `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all of them |
+| `//packages/dashql-sdk:tsc_typecheck_node_test` | Type check of the modules of Node in `src/node` and their tests, with the types of Node |
+| `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
 | `//packages/hyperdb-edge:test` | The tests of hyperdb-edge in Node (vitest): the library against the embedded Hyper, every SQL example of the `describe` topics, and the compiled command run as separate processes, see `docs/wip/hyperdb_edge.md` |
 | `//packages/hyperdb-edge:tsc_typecheck_test` | Type check of the library of hyperdb-edge without its Node part, against the WebWorker lib |
 | `//packages/hyperdb-edge:tsc_typecheck_node_test` | Type check of every module and test of hyperdb-edge with the types of Node |

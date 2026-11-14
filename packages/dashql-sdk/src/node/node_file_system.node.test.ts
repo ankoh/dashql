@@ -1,0 +1,44 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { NODE_FILE_SYSTEM } from './node_file_system.js';
+import { NativeStorageBackend } from '../storage/native_storage_backend.js';
+import { TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
+
+let dir: string;
+
+beforeEach(async () => {
+    dir = await mkdtemp(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-workbook-'));
+});
+
+afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+});
+
+describe('a workbook folder on the file system of Node', () => {
+    it('keeps what one backend writes for the next one', async () => {
+        const writer = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
+        await writer.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await writer.saveScript(TEST_WORKBOOK_ID, '2_second.sql', 'select 2');
+        await writer.saveScript(TEST_WORKBOOK_ID, '10_tenth.sql', 'select 10');
+
+        const reader = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
+        expect(await reader.loadWorkbook(TEST_WORKBOOK_ID)).toEqual(testWorkbook());
+        expect(await reader.loadScripts(TEST_WORKBOOK_ID)).toEqual([
+            { name: '2_second.sql', sql: 'select 2' },
+            { name: '10_tenth.sql', sql: 'select 10' },
+        ]);
+        expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('cache/\n*.hyper\n');
+    });
+
+    it('stamps files and lists them', async () => {
+        const path = join(dir, 'a.sql');
+        expect(await NODE_FILE_SYSTEM.fileStamp(path)).toBeNull();
+        const stamp = await NODE_FILE_SYSTEM.writeTextFile(path, 'select 1');
+        expect(stamp.size).toBe(8);
+        expect(await NODE_FILE_SYSTEM.fileStamp(path)).toEqual(stamp);
+        expect(await NODE_FILE_SYSTEM.listFiles(dir)).toEqual([{ name: 'a.sql', ...stamp }]);
+        expect(await NODE_FILE_SYSTEM.listFiles(join(dir, 'missing'))).toEqual([]);
+    });
+});

@@ -1,5 +1,5 @@
 // For editors: the paths of the root tsconfig.json, which point into bazel-bin for the core and the generated packages.
-// Bazel checks the SDK with tsconfig.bazel.json and its tests with tsconfig.bazel.test.json.
+// Bazel checks the SDK with tsconfig.bazel.json and its tests with tsconfig.bazel.test.json, src/node has its own.
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
@@ -14,5 +14,7 @@
   "include": [
     "src/**/*.ts"
   ],
-  "exclude": []
+  "exclude": [
+    "src/node/**"
+  ]
 }

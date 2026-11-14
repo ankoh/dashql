@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
-import { NativeStorageBackend } from './native_storage_backend.js';
+import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
 import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { ExternalScriptChangeError } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
 
 const DIR = '/tmp/v2-workbook';
 
@@ -13,7 +14,7 @@ describe('NativeStorageBackend V2 flat storage', () => {
     beforeEach(async () => {
         resetFsStore();
         globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
-        backend = new NativeStorageBackend(DIR);
+        backend = new NativeStorageBackend(DIR, ELECTRON_FILE_SYSTEM);
         await backend.initialize();
     });
 
@@ -103,7 +104,7 @@ describe('NativeStorageBackend external script changes', () => {
     beforeEach(async () => {
         resetFsStore();
         globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
-        backend = new NativeStorageBackend(DIR);
+        backend = new NativeStorageBackend(DIR, ELECTRON_FILE_SYSTEM);
         await backend.initialize();
         await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 1');
         await backend.saveScript(TEST_WORKBOOK_ID, 'b.sql', 'select 2');

@@ -15,7 +15,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
 | One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
-| Node platform and the CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
+| Node platform | Step 4: the storage of a workbook folder over `node:fs` is done; fetch, Wasm from files and the embedded Hyper follow |
+| The CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
 | Editor state out of `ScriptData` | Later, step 5 |
 
 ## Why
@@ -278,9 +279,12 @@ Each step ships on its own and keeps the behavior.
    registries, the computations and the four services of step 3 in the order of the providers, `restore()` loads the
    stored state into the registries and `destroy()` writes what is pending. `runtime.test.ts` writes a workbook with
    one runtime and restores it with a second one in Node. The app keeps its providers until a `RuntimeProvider`
-   replaces them. Then the Node platform: a
-   storage backend over `node:fs` (`NativeStorageBackend` with the fs functions passed in), a fetch client,
-   `EmbeddedDatabase` over `hyperdb-wasm` `node`, Wasm from files. The CLI on top: offline
+   replaces them. The Node platform, begun: `NativeStorageBackend` (one workbook in a folder) moved into the SDK and
+   takes a `FileSystem` (`platform/file_system.ts`); the app passes `ELECTRON_FILE_SYSTEM`, Node passes
+   `NODE_FILE_SYSTEM` (`node/node_file_system.ts`). The modules of Node live in `src/node`, the only place that
+   imports `node:` (the boundary test checks it), with a type check of their own against the types of Node
+   (`tsconfig.bazel.node.json`, `src/node/tsconfig.json` for editors). Next a fetch client, `EmbeddedDatabase` over
+   `hyperdb-wasm` `node` and Wasm from files. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
 5. **Editor state.** Out of `ScriptData` into the app.
 
@@ -311,6 +315,7 @@ The browser and Node must offer the same: every feature of the SDK runs, and is 
   modules, their helpers in `src/testing/`, and a type check of their own (`tsconfig.bazel.test.json`) gives them the globals
   of vitest while the modules stay checked without them. 32 test files moved from the app. The browser tests of the
   app run the tests of the SDK as well (`sdk/src/<path>` in their list), so each one runs in Node and in the browsers.
+  A test of Node is named `*.node.test.ts` and runs only in Node, like `node/node_file_system.node.test.ts`.
   A test that needs a browser is named `*.browser.test.ts`, like `connections/catalog/catalog_batch.browser.test.ts`
   (a Web Worker), and runs only in the browsers. Tests of the app that need parts of the app, like the embedded Hyper
   of `hyperdb_provider_web.ts`, stay in the app until step 4 moves those parts.

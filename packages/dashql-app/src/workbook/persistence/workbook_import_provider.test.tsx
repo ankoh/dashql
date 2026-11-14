@@ -10,7 +10,7 @@ import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { NativeStorageBackend } from '../../storage/native_storage_backend.js';
+import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
 import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
 import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
@@ -19,6 +19,7 @@ import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { fsStore, makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookImportProvider, useWorkbookImport } from './workbook_import_provider.js';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {
@@ -612,7 +613,7 @@ describe('WorkbookImportProvider', () => {
     describe('a native folder', () => {
         beforeEach(async () => {
             globalThis.dashqlElectron = { fs: makeFsMock(), onFlush: () => () => { } } as unknown as DashQLElectronBridge;
-            const native = new NativeStorageBackend(NATIVE_DIR);
+            const native = new NativeStorageBackend(NATIVE_DIR, ELECTRON_FILE_SYSTEM);
             await native.saveWorkbookManifest(WORKBOOK_ID, bundleOf({ name: 'From folder' }).workbook);
             await native.saveScript(WORKBOOK_ID, 'query.sql', 'select folder');
         });
@@ -638,7 +639,7 @@ describe('WorkbookImportProvider', () => {
 
         it('writes the consolidated connections into the folder', async () => {
             knowTrinoConnection();
-            const native = new NativeStorageBackend(NATIVE_DIR);
+            const native = new NativeStorageBackend(NATIVE_DIR, ELECTRON_FILE_SYSTEM);
             await native.saveWorkbookManifest(WORKBOOK_ID, trinoSession().workbook);
             await renderProvider();
             let result!: Promise<string | null>;
@@ -654,7 +655,7 @@ describe('WorkbookImportProvider', () => {
 
         it('imports nothing when the connections are cancelled', async () => {
             knowTrinoConnection();
-            const native = new NativeStorageBackend(NATIVE_DIR);
+            const native = new NativeStorageBackend(NATIVE_DIR, ELECTRON_FILE_SYSTEM);
             await native.saveWorkbookManifest(WORKBOOK_ID, trinoSession().workbook);
             await renderProvider();
             let result!: Promise<string | null>;
@@ -690,7 +691,7 @@ describe('WorkbookImportProvider', () => {
 
             it('writes the consolidated connections when it replaces the workbook', async () => {
                 knowTrinoConnection();
-                const native = new NativeStorageBackend(NATIVE_DIR);
+                const native = new NativeStorageBackend(NATIVE_DIR, ELECTRON_FILE_SYSTEM);
                 await native.saveWorkbookManifest(WORKBOOK_ID, trinoSession().workbook);
                 await renderProvider();
                 const { result } = await askConflict(() => api.importer.importNativeFolder(NATIVE_DIR, CENTERED.presentation));

@@ -9,7 +9,7 @@ import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { NativeStorageBackend } from '../../storage/native_storage_backend.js';
+import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
 import { WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
@@ -18,6 +18,7 @@ import { fsStore, makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
 import { NativeWorkbookSync, readStoredWorkbookScripts } from './native_workbook_sync_react.js';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -100,7 +101,7 @@ describe('NativeWorkbookSync', () => {
         ...overrides,
     });
     async function seedFolder(): Promise<void> {
-        const native = new NativeStorageBackend(DIR);
+        const native = new NativeStorageBackend(DIR, ELECTRON_FILE_SYSTEM);
         await native.saveWorkbookManifest(WORKBOOK_ID, workbookFile());
         await native.saveScript(WORKBOOK_ID, 'query.sql', 'select app');
         await backend.upsertWorkbookEntry({ path: WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: DIR });
@@ -299,7 +300,7 @@ describe('NativeWorkbookSync', () => {
 
         it('drops a script file that disappeared', async () => {
             await seedFolder();
-            await new NativeStorageBackend(DIR).saveScript(WORKBOOK_ID, 'second.sql', 'select second');
+            await new NativeStorageBackend(DIR, ELECTRON_FILE_SYSTEM).saveScript(WORKBOOK_ID, 'second.sql', 'select second');
             await renderApp();
             fsStore.files.delete(`${DIR}/${STORAGE_SCRIPTS_FOLDER}/second.sql`);
             fsStore.mtimes.delete(`${DIR}/${STORAGE_SCRIPTS_FOLDER}/second.sql`);

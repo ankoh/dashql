@@ -12,6 +12,8 @@ function normalizePath(path: string): string {
 /// The tests of the SDK run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-sdk:test_node)
 export const SDK_TEST_MODULES = import.meta.glob([
     '../../../dashql-sdk/src/**/*.test.ts',
+    // The tests of Node, see //packages/dashql-sdk:test_node
+    '!../../../dashql-sdk/src/**/*.node.test.ts',
 ]);
 
 /// The tests of the SDK are named sdk/src/<path>

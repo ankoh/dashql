@@ -1,7 +1,7 @@
-import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
+import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
 
-import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, writeFile, writeTextFile, type FileStamp } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { joinPath, type FileStamp, type FileSystem } from '../platform/file_system.js';
 
 /// The name of the workbook-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';
@@ -21,7 +21,7 @@ function sameStamp(a: FileStamp | null, b: FileStamp | null): boolean {
     return a == null || b == null ? a == b : a.size === b.size && a.mtimeMs === b.mtimeMs;
 }
 
-/// Native filesystem storage backend for a single Electron workbook.
+/// A storage backend for a single workbook in a folder of a file system, the one of the desktop app or of Node.
 ///
 /// One directory holds exactly one workbook. Unlike OPFS, there is no `workbooks/<uuid>` nesting and
 /// no manifest file in the directory: the workbook's files (`dashql-workbook.json`,
@@ -43,7 +43,7 @@ export class NativeStorageBackend implements StorageBackend {
     /// script writes fail with an `ExternalScriptChangeError` when the stamp on disk differs.
     private scriptsAcknowledged = false;
 
-    constructor(dir: string) {
+    constructor(dir: string, protected readonly fs: FileSystem) {
         this.dir = dir;
     }
 
@@ -57,22 +57,22 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     async initialize(): Promise<void> {
-        if (!(await exists(this.dir))) {
-            await mkdir(this.dir, { recursive: true });
+        if (!(await this.fs.exists(this.dir))) {
+            await this.fs.mkdir(this.dir, { recursive: true });
         }
     }
 
     /// Resolve a relative storage path against the absolute directory using OS-correct separators
     private async abs(relative: string): Promise<string> {
         const parts = relative.split('/').filter(p => p.length > 0);
-        return await join(this.dir, ...parts);
+        return await joinPath(this.dir, ...parts);
     }
 
     /// Ensure a directory (given as a relative path) exists
     private async ensureDir(relative: string): Promise<void> {
         const dir = relative.length > 0 ? await this.abs(relative) : this.dir;
-        if (!(await exists(dir))) {
-            await mkdir(dir, { recursive: true });
+        if (!(await this.fs.exists(dir))) {
+            await this.fs.mkdir(dir, { recursive: true });
         }
     }
 
@@ -101,7 +101,7 @@ export class NativeStorageBackend implements StorageBackend {
     /// Read a file of the workbook folder, null if it does not exist
     private async readWorkbookFile(fileName: string): Promise<string | null> {
         const path = await this.abs(fileName);
-        return await exists(path) ? await readTextFile(path) : null;
+        return await this.fs.exists(path) ? await this.fs.readTextFile(path) : null;
     }
 
     async loadWorkbook(workbookId: string): Promise<WorkbookData> {
@@ -117,12 +117,12 @@ export class NativeStorageBackend implements StorageBackend {
     private async ensureGitignore(): Promise<void> {
         if (this.gitignoreChecked) return;
         const file = await this.abs(GITIGNORE_FILE);
-        const existing = (await exists(file)) ? await readTextFile(file) : '';
+        const existing = (await this.fs.exists(file)) ? await this.fs.readTextFile(file) : '';
         const lines = new Set(existing.split(/\r?\n/).map(line => line.trim()));
         const missing = GITIGNORE_ENTRIES.filter(entry => !lines.has(entry));
         if (missing.length > 0) {
             const separator = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
-            await writeTextFile(file, `${existing}${separator}${missing.join('\n')}\n`);
+            await this.fs.writeTextFile(file, `${existing}${separator}${missing.join('\n')}\n`);
         }
         this.gitignoreChecked = true;
     }
@@ -132,7 +132,7 @@ export class NativeStorageBackend implements StorageBackend {
         // Keep generated files out of version control as soon as the workbook folder is written
         await this.ensureGitignore();
         const metaFile = await this.abs(STORAGE_WORKBOOK_FILE);
-        await writeTextFile(metaFile, JSON.stringify(data, null, 2));
+        await this.fs.writeTextFile(metaFile, JSON.stringify(data, null, 2));
     }
 
 
@@ -146,11 +146,11 @@ export class NativeStorageBackend implements StorageBackend {
 
     async loadScripts(_workbookId: string): Promise<ScriptData[]> {
         const scriptsDir = await this.abs(STORAGE_SCRIPTS_FOLDER);
-        if (!(await exists(scriptsDir))) {
+        if (!(await this.fs.exists(scriptsDir))) {
             return [];
         }
 
-        const entries = await readDir(scriptsDir);
+        const entries = await this.fs.readDir(scriptsDir);
         const scripts: ScriptData[] = [];
         for (const entry of entries) {
             if (entry.isDirectory) {
@@ -160,7 +160,7 @@ export class NativeStorageBackend implements StorageBackend {
                 throw new Error('Invalid V2 workbook layout: dashql-draft.sql is not supported');
             }
             if (entry.isFile && entry.name.toLowerCase().endsWith('.sql')) {
-                const sql = await readTextFile(await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`));
+                const sql = await this.fs.readTextFile(await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`));
                 scripts.push({ name: entry.name, sql });
             }
         }
@@ -170,10 +170,10 @@ export class NativeStorageBackend implements StorageBackend {
 
     async loadScript(workbookId: string, scriptName: string): Promise<ScriptData> {
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
-        if (!(await exists(scriptFile))) {
+        if (!(await this.fs.exists(scriptFile))) {
             throw new Error(`Script not found: workbook ${workbookId}, script ${scriptName}`);
         }
-        const sql = await readTextFile(scriptFile);
+        const sql = await this.fs.readTextFile(scriptFile);
         return { name: scriptName, sql };
     }
 
@@ -185,14 +185,14 @@ export class NativeStorageBackend implements StorageBackend {
         await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
         await this.checkScriptUnchanged(workbookId, scriptName, scriptFile);
-        this.scriptStamps.set(scriptName, await writeTextFile(scriptFile, sql));
+        this.scriptStamps.set(scriptName, await this.fs.writeTextFile(scriptFile, sql));
     }
 
     async deleteScript(workbookId: string, scriptName: string): Promise<void> {
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
         await this.checkScriptUnchanged(workbookId, scriptName, scriptFile);
-        if (await exists(scriptFile)) {
-            await remove(scriptFile);
+        if (await this.fs.exists(scriptFile)) {
+            await this.fs.remove(scriptFile);
         }
         this.scriptStamps.set(scriptName, null);
     }
@@ -208,12 +208,12 @@ export class NativeStorageBackend implements StorageBackend {
         await this.checkScriptUnchanged(workbookId, newScriptName, newFile);
         // A missing source means the script hasn't been flushed yet; the pending write under the new
         // name will create it, so there is nothing to move here.
-        if (!(await exists(oldFile))) {
+        if (!(await this.fs.exists(oldFile))) {
             return;
         }
         // Atomic file rename. The new clean base is disambiguated unique within the folder, so the
         // destination is free. The file keeps its stamp.
-        await rename(oldFile, newFile);
+        await this.fs.rename(oldFile, newFile);
         this.scriptStamps.set(newScriptName, this.scriptStamps.get(oldScriptName) ?? null);
         this.scriptStamps.set(oldScriptName, null);
     }
@@ -221,8 +221,8 @@ export class NativeStorageBackend implements StorageBackend {
     /// The stamps of the scripts and attachments, read from two directory listings without reading a file
     async stampFolder(): Promise<WorkbookFolderStamps> {
         const [scripts, attachments] = await Promise.all([
-            listFiles(await this.abs(STORAGE_SCRIPTS_FOLDER)),
-            listFiles(await this.abs(STORAGE_ATTACHMENTS_FOLDER)),
+            this.fs.listFiles(await this.abs(STORAGE_SCRIPTS_FOLDER)),
+            this.fs.listFiles(await this.abs(STORAGE_ATTACHMENTS_FOLDER)),
         ]);
         return { scripts: scripts.filter(file => file.name.toLowerCase().endsWith('.sql')), attachments: attachments.filter(file => isAttachmentFileName(file.name)) };
     }
@@ -252,21 +252,21 @@ export class NativeStorageBackend implements StorageBackend {
 
     /// Fail with an `ExternalScriptChangeError` when an acknowledged script changed on disk
     private async checkScriptUnchanged(workbookId: string, scriptName: string, scriptFile: string): Promise<void> {
-        if (this.scriptsAcknowledged && !sameStamp(await fileStamp(scriptFile), this.scriptStamps.get(scriptName) ?? null)) {
+        if (this.scriptsAcknowledged && !sameStamp(await this.fs.fileStamp(scriptFile), this.scriptStamps.get(scriptName) ?? null)) {
             throw new ExternalScriptChangeError(workbookId, scriptName);
         }
     }
 
     async listDataFiles(_workbookId: string): Promise<DataFile[]> {
         const dir = await this.abs(STORAGE_ATTACHMENTS_FOLDER);
-        if (!(await exists(dir))) return [];
+        if (!(await this.fs.exists(dir))) return [];
         const files: DataFile[] = [];
-        for (const entry of await readDir(dir)) {
+        for (const entry of await this.fs.readDir(dir)) {
             if (entry.isDirectory) throw new Error(`Invalid workbook layout: nested data directory ${entry.name}`);
             // Other files in the folder are no attachments
             if (entry.isFile && isAttachmentFileName(entry.name)) {
                 validateDataFileName(entry.name);
-                const stamp = await fileStamp(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${entry.name}`));
+                const stamp = await this.fs.fileStamp(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${entry.name}`));
                 if (stamp != null) files.push({ name: entry.name, sizeBytes: stamp.size, mtimeMs: stamp.mtimeMs });
             }
         }
@@ -275,21 +275,21 @@ export class NativeStorageBackend implements StorageBackend {
 
     async loadDataFile(_workbookId: string, name: string): Promise<Uint8Array> {
         validateDataFileName(name);
-        return await readFile(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${name}`));
+        return await this.fs.readFile(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${name}`));
     }
 
     async saveDataFile(workbookId: string, name: string, content: DataFileContent): Promise<void> {
         validateDataFileName(name);
         await this.ensureDir(STORAGE_ATTACHMENTS_FOLDER);
         const bytes = content instanceof Blob ? new Uint8Array(await content.arrayBuffer()) : content;
-        await writeFile(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${name}`), bytes);
+        await this.fs.writeFile(await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${name}`), bytes);
     }
 
     async deleteDataFile(workbookId: string, name: string): Promise<void> {
         validateDataFileName(name);
         const path = await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${name}`);
-        if (!(await exists(path))) return;
-        await remove(path);
+        if (!(await this.fs.exists(path))) return;
+        await this.fs.remove(path);
     }
 
     async renameDataFile(workbookId: string, oldName: string, newName: string): Promise<void> {
@@ -297,8 +297,8 @@ export class NativeStorageBackend implements StorageBackend {
         validateDataFileName(newName);
         if (oldName === newName) return;
         const oldPath = await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${oldName}`);
-        if (!(await exists(oldPath))) return;
-        await rename(oldPath, await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${newName}`));
+        if (!(await this.fs.exists(oldPath))) return;
+        await this.fs.rename(oldPath, await this.abs(`${STORAGE_ATTACHMENTS_FOLDER}/${newName}`));
     }
 
     async clearAllStorage(): Promise<void> {
