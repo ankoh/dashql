@@ -9,22 +9,13 @@ import {
 } from '@openai/agents';
 
 import { setupOnce, type HyperDatabase, type SqlRunner } from './hyper_database.js';
-import { count, integer, json, text, timestamp, toNumber } from './sql.js';
+import { canonical, count, integer, json, text, timestamp, toNumber } from './sql.js';
 
 export interface HyperAgentSessionOptions {
     /// The session, a random UUID by default
     readonly sessionId?: string;
     /// The prefix of the table names, `openai_` by default
     readonly tablePrefix?: string;
-}
-
-
-/// A JSON text with the keys of objects in order, to compare values structurally
-function canonical(value: unknown): string {
-    return JSON.stringify(value, (_key, inner: unknown) => {
-        if (inner == null || typeof inner !== 'object' || Array.isArray(inner)) return inner;
-        return Object.fromEntries(Object.entries(inner).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
-    });
 }
 
 /// The history of one session of the OpenAI Agents SDK in a Hyper database. The sessions of a database share its

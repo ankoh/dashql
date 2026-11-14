@@ -22,7 +22,7 @@ import {
 } from '@langchain/langgraph-checkpoint';
 
 import { setupOnce, type HyperDatabase, type Row } from './hyper_database.js';
-import { bytes, count, integer, nullableText, text, timestamp } from './sql.js';
+import { bytes, canonical, count, integer, nullableText, text, timestamp } from './sql.js';
 
 export interface HyperCheckpointSaverOptions {
     /// The prefix of the table names, `langgraph_` by default
@@ -43,14 +43,6 @@ function metadataJson(type: string, serialized: Uint8Array): string | null {
     } catch {
         return null;
     }
-}
-
-/// A JSON text with the keys of objects in order, to compare values structurally
-function canonical(value: unknown): string | undefined {
-    return JSON.stringify(value, (_key, inner: unknown) => {
-        if (inner == null || typeof inner !== 'object' || Array.isArray(inner)) return inner;
-        return Object.fromEntries(Object.entries(inner).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
-    });
 }
 
 /// Writes in the order live execution applies them: by task path, task id and index

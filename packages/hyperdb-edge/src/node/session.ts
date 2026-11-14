@@ -149,8 +149,8 @@ interface PendingRun {
 }
 
 /// A session of the embedded Hyper: one engine for many calls, which run one after another.
-/// The engine runs in a child process (src/node/engine_process.ts), which keeps its log line off the stdout of this
-/// process, and its memory and a crash out of it. The session holds the lock of its database from open to close.
+/// The engine runs in a child process (src/node/engine_process.ts), which keeps its memory and a crash out of this
+/// process. The session holds the lock of its database from open to close.
 export class EdgeSession {
     private nextId = 1;
     private readonly pending = new Map<number, PendingRun>();

@@ -34,6 +34,14 @@ export function nullableText(value: string | null | undefined): string {
     return value == null ? 'CAST(NULL AS text)' : text(value);
 }
 
+/// A JSON text with the keys of objects in order, to compare values structurally
+export function canonical(value: unknown): string | undefined {
+    return JSON.stringify(value, (_key, inner: unknown) => {
+        if (inner == null || typeof inner !== 'object' || Array.isArray(inner)) return inner;
+        return Object.fromEntries(Object.entries(inner).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+    });
+}
+
 /// A json literal of a value that JSON.stringify takes. Hyper keeps the text as it is, so JSON.parse of the stored
 /// text returns an equal value.
 export function json(value: unknown): string {
