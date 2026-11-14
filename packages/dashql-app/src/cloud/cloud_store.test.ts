@@ -18,19 +18,19 @@ import {
     type WorkbookTables,
 } from '../storage/workbook_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
+import { listCloudEntries, type CloudCursor, type CloudSearch } from './cloud_folders.js';
 import {
     cleanupCloud,
     CloudPublishTooLargeError,
     CLOUD_MERGED_TABLE_NAMES,
     deleteCloudWorkbook,
-    listCloudWorkbooks,
     listCloudWorkbookVersions,
     newVersionId,
     publishCloudWorkbook,
     readCloudWorkbook,
     readParquetAsText,
     restoreCloudWorkbook,
-    searchCloudWorkbooks,
+    type CloudWorkbook,
     type CloudWorkbookVersion,
 } from './cloud_store.js';
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudMigration, type CloudQuery } from './cloud_store_schema.js';
@@ -148,6 +148,22 @@ async function insertRows({ workbookId, versionId, tableName }: TestVersion): Pr
     await connection.execute(`CREATE TABLE "dashql"."dashql"."${tableName}" (x integer)`);
 }
 
+/// The workbooks that a listing of the top or a search finds, page by page
+async function listWorkbooks(search: CloudSearch | null = null): Promise<CloudWorkbook[]> {
+    const workbooks: CloudWorkbook[] = [];
+    let after: CloudCursor | null = null;
+    do {
+        const page = await listCloudEntries(query, { folderId: null, search, after });
+        for (const entry of page.entries) if (entry.kind === 'workbook') workbooks.push(entry.workbook);
+        after = page.next;
+    } while (after != null);
+    return workbooks;
+}
+
+async function searchWorkbooks(text: string): Promise<CloudWorkbook[]> {
+    return await listWorkbooks({ text });
+}
+
 /// The rows of the versions table and the merged tables
 async function rowCount(): Promise<number> {
     let count = 0;
@@ -159,7 +175,7 @@ async function rowCount(): Promise<number> {
 
 describe('cloud store', () => {
     it('reads the tables that the installer created', async () => {
-        expect(await listCloudWorkbooks(query)).toEqual([]);
+        expect(await listWorkbooks()).toEqual([]);
     });
 
     it('keeps publishing to tables that a newer client migrated', async () => {
@@ -193,7 +209,7 @@ describe('cloud store', () => {
     it('lists nothing in a cloud without the tables of DashQL', async () => {
         await connection.execute(`DROP SCHEMA "${CLOUD_DATABASE}"."dashql" CASCADE`);
         statements = [];
-        expect(await listCloudWorkbooks(query)).toEqual([]);
+        expect(await listWorkbooks()).toEqual([]);
         await expect(readCloudWorkbook(query, database, crypto.randomUUID())).rejects.toThrow('The cloud holds no workbook');
         await expect(publishCloudWorkbook(query, database, await testTables())).rejects.toThrow('DashQL is not installed in the cloud connection');
         expect(statements.every(sql => sql.startsWith('SELECT'))).toBe(true);
@@ -209,7 +225,7 @@ describe('cloud store', () => {
     it('refuses to read a version of a newer format', async () => {
         const published = await publishCloudWorkbook(query, database, await testTables());
         await connection.execute(`UPDATE "dashql"."dashql"."workbook_versions" SET format_version = 1000`);
-        expect((await listCloudWorkbooks(query))[0].formatVersion).toBe(1000);
+        expect((await listWorkbooks())[0].formatVersion).toBe(1000);
         await expect(readCloudWorkbook(query, database, published.workbookId)).rejects.toThrow('published by a newer DashQL');
     });
 
@@ -224,7 +240,7 @@ describe('cloud store', () => {
         expect(published.name).toBe("Bob's workbook");
         expect(published.workbookId).not.toBe(tables[WORKBOOK_TABLE][0].workbook_id);
         expect(published.versionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-        expect(await listCloudWorkbooks(query)).toEqual([{ ...published, folderId: null }]);
+        expect(await listWorkbooks()).toEqual([{ ...published, folderId: null }]);
         // The workbook row comes first, then the version row, which turns ready last. A data table is named by a row
         // before it is created.
         const inserts = statements.filter(sql => sql.startsWith('INSERT'));
@@ -238,7 +254,7 @@ describe('cloud store', () => {
         }
         expect(dataTables).not.toContain(tables[ATTACHMENTS_TABLE][0].table_name);
         const ready = statements.findIndex(sql => sql.startsWith('UPDATE') && sql.includes("'ready'"));
-        expect(statements.slice(ready + 1).every(sql => sql.startsWith('SELECT'))).toBe(true);
+        expect(statements.slice(ready + 1).every(sql => sql.startsWith('SELECT') || sql.startsWith('WITH'))).toBe(true);
 
         const { version, tables: read } = await readCloudWorkbook(query, database, published.workbookId);
         expect(version).toEqual(published);
@@ -265,7 +281,7 @@ describe('cloud store', () => {
         const first = await publishCloudWorkbook(query, database, await testTables());
         const second = await publishCloudWorkbook(query, database, await testTables());
         expect(first.workbookId).not.toBe(second.workbookId);
-        expect((await listCloudWorkbooks(query)).map(row => row.workbookId).sort()).toEqual([first.workbookId, second.workbookId].sort());
+        expect((await listWorkbooks()).map(row => row.workbookId).sort()).toEqual([first.workbookId, second.workbookId].sort());
     });
 
     it('updates a workbook with a new version and keeps the earlier ones readable', async () => {
@@ -276,7 +292,7 @@ describe('cloud store', () => {
         expect(second.workbookId).toBe(first.workbookId);
         expect(second.version).toBe(2);
         expect(second.versionId).not.toBe(first.versionId);
-        expect(await listCloudWorkbooks(query)).toEqual([{ ...second, folderId: null }]);
+        expect(await listWorkbooks()).toEqual([{ ...second, folderId: null }]);
         expect(await listCloudWorkbookVersions(query, first.workbookId)).toEqual([second, first]);
 
         const latest = await readCloudWorkbook(query, database, first.workbookId);
@@ -303,7 +319,7 @@ describe('cloud store', () => {
         const mine = await publishCloudWorkbook(racing, database, await testTables(), { workbookId: first.workbookId });
         const theirs = await other!;
         expect([first.version, theirs.version, mine.version]).toEqual([1, 2, 3]);
-        expect(await listCloudWorkbooks(query)).toEqual([{ ...mine, folderId: null }]);
+        expect(await listWorkbooks()).toEqual([{ ...mine, folderId: null }]);
         expect(await listCloudWorkbookVersions(query, first.workbookId)).toEqual([mine, theirs, first]);
     });
 
@@ -382,7 +398,7 @@ describe('cloud store', () => {
         const second = await publishCloudWorkbook(query, database, await testTables(), { workbookId: first.workbookId });
         const rows = await rowCount();
         await deleteCloudWorkbook(query, first.workbookId);
-        expect(await listCloudWorkbooks(query)).toEqual([]);
+        expect(await listWorkbooks()).toEqual([]);
         expect(await listCloudWorkbookVersions(query, first.workbookId)).toEqual([]);
         await expect(readCloudWorkbook(query, database, first.workbookId, { versionId: first.versionId })).rejects.toThrow('The cloud holds no version');
         await expect(publishCloudWorkbook(query, database, await testTables(), { workbookId: first.workbookId })).rejects.toThrow('was deleted');
@@ -391,7 +407,7 @@ describe('cloud store', () => {
         await deleteCloudWorkbook(query, first.workbookId);
 
         await restoreCloudWorkbook(query, first.workbookId);
-        expect(await listCloudWorkbooks(query)).toEqual([{ ...second, folderId: null }]);
+        expect(await listWorkbooks()).toEqual([{ ...second, folderId: null }]);
 
         await deleteCloudWorkbook(query, first.workbookId);
         expect((await cleanupCloud(query)).workbooks).toEqual([]);
@@ -408,15 +424,15 @@ describe('cloud store', () => {
         sales[SCRIPTS_TABLE][0].text = 'select * from Orders';
         const first = await publishCloudWorkbook(query, database, sales);
         const other = await publishCloudWorkbook(query, database, await testTables());
-        expect((await searchCloudWorkbooks(query, 'q3')).map(workbook => workbook.workbookId)).toEqual([first.workbookId]);
-        expect((await searchCloudWorkbooks(query, 'ORDERS')).map(workbook => workbook.workbookId)).toEqual([first.workbookId]);
-        expect((await searchCloudWorkbooks(query, "'IT''s'")).map(workbook => workbook.workbookId)).toEqual([other.workbookId]);
-        expect(await searchCloudWorkbooks(query, '%')).toEqual([]);
-        expect(await searchCloudWorkbooks(query, ' ')).toHaveLength(2);
+        expect((await searchWorkbooks('q3')).map(workbook => workbook.workbookId)).toEqual([first.workbookId]);
+        expect((await searchWorkbooks('ORDERS')).map(workbook => workbook.workbookId)).toEqual([first.workbookId]);
+        expect((await searchWorkbooks("'IT''s'")).map(workbook => workbook.workbookId)).toEqual([other.workbookId]);
+        expect(await searchWorkbooks('%')).toEqual([]);
+        expect(await searchWorkbooks(' ')).toHaveLength(2);
         // Only the latest version counts
         const renamed = await testTables();
         await publishCloudWorkbook(query, database, renamed, { workbookId: first.workbookId });
-        expect(await searchCloudWorkbooks(query, 'orders')).toEqual([]);
+        expect(await searchWorkbooks('orders')).toEqual([]);
     });
 
     it('cleans up abandoned uploads, unfinished deletes and rows without a version, leaves young uploads alone', async () => {
@@ -448,7 +464,7 @@ describe('cloud store', () => {
         for (const { tableName } of [young, ready]) expect(await tableExists(tableName)).toBe(true);
         expect(await tableExists('workbook_versions')).toBe(true);
         expect(await rowCount()).toBe(2 * 3 + 1);
-        expect((await listCloudWorkbooks(query)).map(row => row.versionId)).toEqual([ready.versionId]);
+        expect((await listWorkbooks()).map(row => row.versionId)).toEqual([ready.versionId]);
     });
 
     it('rejects tables that do not hold one workbook', async () => {

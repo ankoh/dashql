@@ -12,7 +12,7 @@ hold exactly one workbook, so no row names its workbook.
 | `.dashql` file | the workbook tables as Parquet entries of a ZIP, the query results on request | this document |
 | Link, `?zip=` | the same ZIP inline, without query results and by default without catalogs | Links below |
 | Hosted folder, `?workbook=` | a workbook folder on a static host, read over HTTP | `workbook_publishing.md` |
-| Cloud | the rows of the workbook tables in the tables of the cloud connection, the store only so far | `cloud.md` |
+| Cloud | the rows of the workbook tables in the tables of a cloud connection | `cloud.md` |
 
 Every way imports through the portable import (`workbook_import_provider.tsx`): the connections of the workbook are
 matched with the registered ones, and a workbook whose id is registered already asks to be replaced or copied.

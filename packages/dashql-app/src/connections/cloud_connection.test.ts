@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createLocalCloudParams, findCloudConnection, isCloudCapable, isLocalCloud, LOCAL_CLOUD_DATABASE } from './cloud_connection.js';
+import { cloudConnectionIdsOf, createLocalCloudParams, findCloudConnections, isCloudCapable, isLocalCloud, LOCAL_CLOUD_DATABASE } from './cloud_connection.js';
 import { isHyperWasmConnection } from './connection_label.js';
 import { getConnectionStateDetailsFromParams } from './connection_params.js';
 import { isLocalHyperWasmParams } from '../storage/workbook_validation.js';
@@ -25,12 +25,18 @@ describe('cloud connection', () => {
         expect(isCloudCapable(null)).toBe(false);
     });
 
-    it('is found by its id among the connections', () => {
-        const connection = { connectionId: 'c1' } as ConnectionState;
-        const connections = new Map([['c1', connection]]);
-        expect(findCloudConnection(connections, 'c1')).toBe(connection);
-        expect(findCloudConnection(connections, 'gone')).toBeNull();
-        expect(findCloudConnection(connections, null)).toBeNull();
+    it('are found by their ids among the connections', () => {
+        const c1 = { connectionId: 'c1' } as ConnectionState;
+        const c2 = { connectionId: 'c2' } as ConnectionState;
+        const connections = new Map([['c1', c1], ['c2', c2]]);
+        expect(findCloudConnections(connections, ['c2', 'gone', 'c1'])).toEqual([c2, c1]);
+        expect(findCloudConnections(connections, [])).toEqual([]);
+    });
+
+    it('reads the single cloud connection of earlier versions as the first cloud', () => {
+        expect(cloudConnectionIdsOf(undefined)).toEqual([]);
+        expect(cloudConnectionIdsOf({ cloudConnectionIds: ['a', 'b'] })).toEqual(['a', 'b']);
+        expect(cloudConnectionIdsOf({ cloudConnectionIds: ['b', 'a', 'b'] })).toEqual(['b', 'a']);
     });
 
     it('makes the local cloud a connection of its own, not the embedded Hyper', () => {

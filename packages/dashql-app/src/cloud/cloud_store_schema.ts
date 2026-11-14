@@ -22,7 +22,7 @@ export const CLOUD_STORE_TABLE = 'cloud_store';
 export const CLOUD_VERSIONS_TABLE = 'workbook_versions';
 /// The published workbooks, one row per workbook: its folder and whether it was deleted
 export const CLOUD_WORKBOOKS_TABLE = 'workbooks';
-/// The folders of the published workbooks, they don't nest
+/// The folders of the published workbooks, a folder names its parent
 export const CLOUD_FOLDERS_TABLE = 'workbook_folders';
 
 /// The text of a UUID as Hyper writes it: lowercase, with dashes
@@ -103,7 +103,7 @@ const TABLES_1: Record<string, CloudColumn[]> = {
         column('updated_at', 'timestamptz'), column('deleted_at', 'timestamptz', true),
     ],
     workbook_folders: [
-        column('folder_id', 'uuid'), column('name', 'text'), column('created_at', 'timestamptz'),
+        column('folder_id', 'uuid'), column('parent_id', 'uuid', true), column('name', 'text'), column('created_at', 'timestamptz'),
         column('created_by', 'text', true), column('updated_at', 'timestamptz'), column('deleted_at', 'timestamptz', true),
     ],
 };

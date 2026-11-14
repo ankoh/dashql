@@ -5,7 +5,6 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { CloudOverlay } from '../cloud/cloud_overlay.js';
 import { AgentViewOverlay } from '../agent/agent_view.js';
 import { useAgentBridge } from '../agent/agent_bridge.js';
 import { PlatformType, isMacDesktopHost, usePlatformType } from '../platform/platform_type.js';
@@ -64,33 +63,6 @@ const InternalsButton = (props: { workbookId: string | null }) => {
                             </svg>
                         )}
                         onClick={() => setInternalsViewerOverlay(true)}
-                    />
-                )}
-                {...OVERLAY_POSITION}
-            />
-        </div>
-    );
-};
-
-const CloudButton = () => {
-    const [showCloudOverlay, setCloudOverlay] = React.useState<boolean>(false);
-
-    return (
-        <div className={styles.tab}>
-            <CloudOverlay
-                isOpen={showCloudOverlay}
-                onClose={() => setCloudOverlay(false)}
-                renderAnchor={(p: object) => (
-                    <NavBarItem
-                        anchor={p}
-                        label="Cloud"
-                        icon={(
-                            <svg width="14px" height="14px" aria-hidden="true">
-                                <use xlinkHref={`${symbols}#cloud`} />
-                            </svg>
-                        )}
-                        onClick={() => setCloudOverlay(true)}
-                        data-testid="cloud-button"
                     />
                 )}
                 {...OVERLAY_POSITION}
@@ -271,7 +243,6 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
                 <div className={styles.top_bar_actions}>
                     <AgentButton />
                     <InternalsButton workbookId={route.workbookId} />
-                    <CloudButton />
                     <VersionButton iconSize={14} />
                     <ColorSchemeButton />
                 </div>

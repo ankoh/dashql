@@ -46,7 +46,8 @@ export interface EmbeddedConnectionOptions {
     /// The database of the instance that the session attaches first, the compute database by default, none with null
     defaultDatabase?: EmbeddedDatabaseAlias | null;
     /// Databases that the session attaches after its default database. Unlike the databases of the instance they
-    /// outlive it: a database is created when a session first attaches it, unless it exists, and never dropped. Hyper
+    /// outlive it: a database is created when a session first attaches it, unless it exists, and only dropped on request
+    /// (EmbeddedAttachedDatabases). Hyper
     /// resolves unqualified names only in a session with a single database, a session that attaches one has no default
     /// database.
     attachedDatabases?: readonly EmbeddedAttachedDatabase[];
@@ -70,6 +71,17 @@ export interface EmbeddedExternalFileDatabase {
 }
 
 export type ExternalDirectoryMode = 'read' | 'readwrite';
+
+/// Drop a database that sessions attached, e.g. of a local cloud that is deleted
+export interface EmbeddedAttachedDatabases {
+    /// Drop the database file, unless it doesn't exist. Fails while a session attaches it.
+    dropAttachedDatabase(path: string): Promise<void>;
+}
+
+/// Can the database drop the databases that its sessions attached?
+export function dropsAttachedDatabases(database: object): database is EmbeddedAttachedDatabases {
+    return typeof (database as Partial<EmbeddedAttachedDatabases>).dropAttachedDatabase === 'function';
+}
 
 /** Optional browser directory registration capability. */
 export interface EmbeddedExternalDirectoryDatabase {

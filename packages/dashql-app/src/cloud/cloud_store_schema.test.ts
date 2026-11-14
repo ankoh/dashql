@@ -17,6 +17,9 @@ import {
     type CloudQuery,
 } from './cloud_store_schema.js';
 
+/// The number of migrations that this client knows, a test adds its own after them
+const KNOWN = CLOUD_MIGRATIONS.length;
+
 let database: HyperDB;
 let dispose: () => Promise<void>;
 /// Two clients of the cloud, each with a connection of its own
@@ -103,8 +106,8 @@ describe('cloud store schema', () => {
         await new Promise(resolve => setTimeout(resolve, 100));
         expect((await storeRow()).lock_owner).not.toBeNull();
         finish();
-        expect((await first).version).toBe(2);
-        expect((await second).version).toBe(2);
+        expect((await first).version).toBe(KNOWN + 1);
+        expect((await second).version).toBe(KNOWN + 1);
         expect(additions('slow')).toBe(1);
         expect((await storeRow()).lock_owner).toBeNull();
     });
@@ -121,7 +124,7 @@ describe('cloud store schema', () => {
     it('takes over a lock that expired', async () => {
         await installCloudStore(clients[0]);
         await connections[0].execute(`UPDATE "dashql"."dashql"."cloud_store" SET lock_owner = '00000000-0000-4000-8000-000000000001', lock_expires_at = now() - INTERVAL '1 minute'`);
-        expect((await installCloudStore(clients[0], { migrations: [...CLOUD_MIGRATIONS, adding('a')] })).version).toBe(2);
+        expect((await installCloudStore(clients[0], { migrations: [...CLOUD_MIGRATIONS, adding('a')] })).version).toBe(KNOWN + 1);
         expect(additions('a')).toBe(1);
         expect((await storeRow()).lock_owner).toBeNull();
     });
@@ -133,8 +136,8 @@ describe('cloud store schema', () => {
         };
         const migrations = [...CLOUD_MIGRATIONS, adding('a'), adding('b')];
         await expect(installCloudStore(failing, { migrations })).rejects.toThrow('broken');
-        expect(await storeRow()).toMatchObject({ version: 2, lock_owner: null });
-        expect((await installCloudStore(clients[1], { migrations })).version).toBe(3);
+        expect(await storeRow()).toMatchObject({ version: KNOWN + 1, lock_owner: null });
+        expect((await installCloudStore(clients[1], { migrations })).version).toBe(KNOWN + 2);
         expect(additions('a')).toBe(1);
         expect(additions('b')).toBe(1);
     });
@@ -143,7 +146,7 @@ describe('cloud store schema', () => {
         await installCloudStore(clients[0]);
         await connections[0].execute(`ALTER TABLE "dashql"."dashql"."workbook_scripts" ADD COLUMN "a" text`);
         const migrations = [...CLOUD_MIGRATIONS, { description: 'Add a and b', columns: { workbook_scripts: adding('a').columns!.workbook_scripts.concat(adding('b').columns!.workbook_scripts) } }];
-        expect((await installCloudStore(clients[0], { migrations })).version).toBe(2);
+        expect((await installCloudStore(clients[0], { migrations })).version).toBe(KNOWN + 1);
         expect(additions('a')).toBe(0);
         expect(additions('b')).toBe(1);
         const required: CloudMigration = { description: 'Add c', columns: { workbook_scripts: [{ name: 'c', type: 'text', nullable: false }] } };
@@ -154,15 +157,15 @@ describe('cloud store schema', () => {
         const two = [...CLOUD_MIGRATIONS, adding('a')];
         await installCloudStore(clients[0], { migrations: two });
         // An older client uses tables that a newer one migrated
-        expect((await openCloudStore(clients[1], 'write')).version).toBe(2);
+        expect((await openCloudStore(clients[1], 'write')).version).toBe(KNOWN + 1);
 
         const three = [...two, adding('b', 'writers')];
-        expect(await installCloudStore(clients[0], { migrations: three })).toMatchObject({ version: 3, minReader: 0, minWriter: 3 });
+        expect(await installCloudStore(clients[0], { migrations: three })).toMatchObject({ version: KNOWN + 2, minReader: 0, minWriter: KNOWN + 2 });
         await expect(openCloudStore(clients[1], 'write', { migrations: two })).rejects.toThrow(CloudStoreVersionError);
         await openCloudStore(clients[1], 'read', { migrations: two });
 
         const four = [...three, adding('c', 'readers')];
-        expect(await installCloudStore(clients[0], { migrations: four })).toMatchObject({ version: 4, minReader: 4, minWriter: 4 });
+        expect(await installCloudStore(clients[0], { migrations: four })).toMatchObject({ version: KNOWN + 3, minReader: KNOWN + 3, minWriter: KNOWN + 3 });
         await expect(openCloudStore(clients[1], 'read', { migrations: three })).rejects.toThrow('update DashQL to read');
     });
 
@@ -187,9 +190,9 @@ describe('cloud store schema', () => {
     it('derives the columns from the migrations that ran', () => {
         const migrations = [...CLOUD_MIGRATIONS, adding('a'), adding('b')];
         expect(cloudColumnsAfter(migrations, 0)).toEqual(new Map());
-        expect(cloudColumnsAfter(migrations, 2).get('workbook_scripts')!.has('a')).toBe(true);
-        expect(cloudColumnsAfter(migrations, 2).get('workbook_scripts')!.has('b')).toBe(false);
-        expect(cloudColumnsAfter(migrations, 3).get('workbook_scripts')!.has('b')).toBe(true);
+        expect(cloudColumnsAfter(migrations, KNOWN + 1).get('workbook_scripts')!.has('a')).toBe(true);
+        expect(cloudColumnsAfter(migrations, KNOWN + 1).get('workbook_scripts')!.has('b')).toBe(false);
+        expect(cloudColumnsAfter(migrations, KNOWN + 2).get('workbook_scripts')!.has('b')).toBe(true);
     });
 
     it('leaves creating and updating the tables to the installer', async () => {
@@ -217,7 +220,7 @@ describe('cloud store schema', () => {
         const migrations = [...CLOUD_MIGRATIONS, adding('a'), adding('b', 'writers')];
         const outdated = await inspectCloudStore(clients[0], { migrations });
         expect(outdated).toMatchObject({ state: 'outdated', store: { version: CLOUD_MIGRATIONS.length } });
-        expect(outdated.pending.map(pending => [pending.version, pending.migration.description])).toEqual([[2, 'Add a'], [3, 'Add b']]);
+        expect(outdated.pending.map(pending => [pending.version, pending.migration.description])).toEqual([[KNOWN + 1, 'Add a'], [KNOWN + 2, 'Add b']]);
 
         await connections[0].execute(`UPDATE "dashql"."dashql"."cloud_store" SET lock_owner = '7c9e6679-7425-40de-944b-e07fc1f90ae7', lock_expires_at = now() + INTERVAL '1 hour'`);
         expect(await inspectCloudStore(clients[0], { migrations })).toMatchObject({ state: 'outdated', locked: true });
@@ -236,7 +239,7 @@ describe('cloud store schema', () => {
         ]);
         progress.length = 0;
         await installCloudStore(clients[0], { migrations: [...CLOUD_MIGRATIONS, adding('a')], onProgress: step => progress.push(step) });
-        expect(progress).toEqual([{ type: 'migrating', version: 2 }, { type: 'migrated', version: 2 }]);
+        expect(progress).toEqual([{ type: 'migrating', version: KNOWN + 1 }, { type: 'migrated', version: KNOWN + 1 }]);
     });
 
     it('lets the installer of a client wait for the installer of another', async () => {
@@ -247,7 +250,7 @@ describe('cloud store schema', () => {
         await new Promise(resolve => setTimeout(resolve, 50));
         expect(progress).toEqual([{ type: 'waiting' }]);
         await connections[0].execute(`UPDATE "dashql"."dashql"."cloud_store" SET lock_owner = NULL, lock_expires_at = NULL`);
-        expect((await waiting).version).toBe(2);
-        expect(progress).toEqual([{ type: 'waiting' }, { type: 'migrating', version: 2 }, { type: 'migrated', version: 2 }]);
+        expect((await waiting).version).toBe(KNOWN + 1);
+        expect(progress).toEqual([{ type: 'waiting' }, { type: 'migrating', version: KNOWN + 1 }, { type: 'migrated', version: KNOWN + 1 }]);
     });
 });

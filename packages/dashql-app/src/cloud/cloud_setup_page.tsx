@@ -8,26 +8,27 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations
 import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
-import { useConnectionAllocator, useConnectionRegistry } from '../connections/connection_registry.js';
+import { useConnectionAllocator, useConnectionById, useConnectionRegistry } from '../connections/connection_registry.js';
 import { createConnectionStateFromParams } from '../connections/connection_params.js';
 import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
 import { useConnectionAttach } from '../connections/attached_connection.js';
 import { ConnectorType } from '../connections/connector_info.js';
-import { createLocalCloudParams, isCloudCapable, isLocalCloud, useCloudConnection, useSetCloudConnection } from '../connections/cloud_connection.js';
+import { createLocalCloudParams, isCloudCapable, isLocalCloud, useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { HyperConnectorSettings } from '../connections/hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from '../connections/salesforce_connection_settings.js';
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
 import { connectionError, useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
 import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
+import { useCloudRemoval } from './cloud_deletion.js';
 import type { CloudInstallation } from './cloud_store_schema.js';
 
 // The page that sets up the cloud, a card like the one of the app loader, shown before the workbench. See
 // docs/design/cloud.md.
 //
-// It walks through the steps that the cloud still needs: choose the cloud connection or add one, log in to it,
-// install or update DashQL in it. The workbooks of the cloud are listed once the tables can be read. At the start of the
-// app it shows only when a step is missing, and every step can be skipped: the app then goes on without the cloud.
+// It walks through the steps that a cloud still needs: choose the cloud or add one, log in to it, install or update
+// DashQL in it. The number of workbooks of the cloud shows once the tables can be read. At the start of the app it
+// closes itself when nothing is missing, and every step can be skipped: the app then goes on without the cloud.
 
 /// The name of a new local cloud
 const LOCAL_CLOUD_NAME = 'Local Cloud';
@@ -35,7 +36,7 @@ const LOCAL_CLOUD_NAME = 'Local Cloud';
 /// The step of the cloud setup that the page shows
 export type CloudSetupStep = 'choose' | 'configure' | 'login' | 'install';
 
-/// The step of a cloud connection
+/// The step of a cloud, null to choose one
 export function cloudSetupStep(cloud: ConnectionState | null, configuring: boolean): CloudSetupStep {
     if (cloud == null) return 'choose';
     if (cloud.connectionHealth === ConnectionHealth.ONLINE) return 'install';
@@ -57,6 +58,10 @@ const DEFAULT_DEPENDENCIES: CloudSetupPageDependencies = { useCloudLogin, Compac
 export interface CloudSetupPageProps {
     /// Shown at the start of the app: it closes itself once the cloud needs nothing, and skipping goes on without it
     startup: boolean;
+    /// The cloud that the page sets up, null to choose or add one
+    connectionId: string | null;
+    /// Set up another cloud, null to choose again
+    onChoose: (connectionId: string | null) => void;
     /// Close the page
     onDone: () => void;
     dependencies?: CloudSetupPageDependencies;
@@ -65,9 +70,12 @@ export interface CloudSetupPageProps {
 export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const { CompactNavBar: NavBar } = dependencies;
-    const cloud = useCloudConnection();
-    const cloudState = useCloudState();
-    const setCloud = useSetCloudConnection();
+    const cloudConnectionIds = useCloudConnectionIds();
+    const [found] = useConnectionById(props.connectionId != null && cloudConnectionIds.includes(props.connectionId) ? props.connectionId : null);
+    const cloud = found ?? null;
+    const cloudState = useCloudState(cloud?.connectionId);
+    const { onChoose } = props;
+    const removal = useCloudRemoval(cloud?.connectionId ?? '', cloud?.params, () => onChoose(null));
     const [configuring, setConfiguring] = React.useState(false);
     const step = cloudSetupStep(cloud, configuring);
     const login = dependencies.useCloudLogin(cloud?.connectionId ?? null);
@@ -87,7 +95,7 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
     let content: React.ReactNode;
     switch (step) {
         case 'choose':
-            content = <ChooseCloudConnection onConfigure={() => setConfiguring(true)} />;
+            content = <ChooseCloudConnection onChoose={(connectionId, configure) => { onChoose(connectionId); setConfiguring(configure); }} />;
             break;
         case 'configure':
             content = (
@@ -123,8 +131,7 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
             break;
         }
         case 'install': {
-            const tree = cloudState.tree;
-            const workbooks = tree == null ? 0 : tree.workbooks.length + tree.folders.reduce((sum, node) => sum + node.workbooks.length, 0);
+            const stats = cloudState?.stats ?? null;
             content = (
                 <>
                     <div className={styles.section}>
@@ -133,9 +140,9 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
                     <div className={styles.section} data-testid="cloud-installation">
                         <div className={styles.label}>Installation</div>
                         <CloudConnectionInstaller cloud={cloud!} onInspected={onInspected} />
-                        {tree != null && (
+                        {stats != null && (
                             <p className={styles.workbooks} data-testid="cloud-setup-workbooks">
-                                {countOf(workbooks, 'workbook')}{tree.folders.length > 0 ? `, ${countOf(tree.folders.length, 'folder')}` : ''}
+                                {countOf(stats.workbooks, 'workbook')}{stats.folders > 0 ? `, ${countOf(stats.folders, 'folder')}` : ''}
                             </p>
                         )}
                     </div>
@@ -170,8 +177,9 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
                             <div className={baseStyles.card_actions}>
                                 <div className={baseStyles.card_actions_left}>
                                     {cloud != null && step !== 'configure' && (
-                                        <Button variant={ButtonVariant.Invisible} onClick={() => setCloud(null)} data-testid="cloud-setup-stop-using">
-                                            Stop Using as Cloud
+                                        <Button variant={ButtonVariant.Invisible} onClick={removal.run}
+                                            data-testid={removal.deletes ? 'cloud-setup-delete' : 'cloud-setup-stop-using'}>
+                                            {removal.deletes ? 'Delete Local Cloud' : 'Stop Using as Cloud'}
                                         </Button>
                                     )}
                                     {step === 'configure' && (
@@ -192,32 +200,51 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
     );
 }
 
-/// Choose the cloud connection among the connections that can be one, or add a new one
-function ChooseCloudConnection(props: { onConfigure: () => void }): React.ReactElement {
+/// Choose a cloud, make a connection that can be one a cloud, or add a new one
+function ChooseCloudConnection(props: { onChoose: (connectionId: string, configure: boolean) => void }): React.ReactElement {
     const [registry] = useConnectionRegistry();
+    const cloudConnectionIds = useCloudConnectionIds();
     const setCloud = useSetCloudConnection();
     const attach = useConnectionAttach();
     const allocate = useConnectionAllocator();
     const setupCore = useDashQLCoreSetup();
     const capable = [...registry.connections.values()].filter(connection => isCloudCapable(connection.params));
+    const clouds = capable.filter(connection => cloudConnectionIds.includes(connection.connectionId));
+    const others = capable.filter(connection => !cloudConnectionIds.includes(connection.connectionId));
+    const use = (connectionId: string, configure: boolean) => {
+        setCloud(connectionId, true);
+        props.onChoose(connectionId, configure);
+    };
     const add = async (connector: ConnectorType) => {
         const connection = attach(await setupCore('cloud_setup'), connector);
-        setCloud(connection.connectionId);
-        props.onConfigure();
+        use(connection.connectionId, true);
     };
     // There is one local cloud, a connection of the embedded Hyper to the database of the local cloud
     const hasLocalCloud = capable.some(connection => isLocalCloud(connection.params));
     const addLocalCloud = async () => {
         const state = createConnectionStateFromParams(await setupCore('cloud_setup'), createLocalCloudParams());
         const connection = allocate({ ...state, name: LOCAL_CLOUD_NAME, active: true });
-        setCloud(connection.connectionId);
+        use(connection.connectionId, false);
     };
     return (
         <div className={styles.section} data-testid="cloud-setup-choose">
+            {clouds.length > 0 && (
+                <>
+                    <div className={styles.label}>Clouds</div>
+                    {clouds.map(connection => (
+                        <CloudConnectionRow key={connection.connectionId} connection={connection}>
+                            <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => props.onChoose(connection.connectionId, false)}
+                                data-testid="cloud-set-up-connection">
+                                Set Up
+                            </Button>
+                        </CloudConnectionRow>
+                    ))}
+                </>
+            )}
             <div className={styles.label}>Where DashQL keeps published workbooks</div>
-            {capable.map(connection => (
+            {others.map(connection => (
                 <CloudConnectionRow key={connection.connectionId} connection={connection}>
-                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => setCloud(connection.connectionId)}
+                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => use(connection.connectionId, false)}
                         data-testid="cloud-use-connection">
                         Use
                     </Button>

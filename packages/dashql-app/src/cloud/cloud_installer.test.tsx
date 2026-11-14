@@ -16,10 +16,12 @@ let connection: HyperDBConnection;
 let query: CloudQuery;
 let root: ReturnType<typeof createTestRoot>;
 
-/// The migrations of a newer DashQL, the second adds a column
+/// The migrations of a newer DashQL, the last adds a column
 const NEWER: CloudMigration[] = [...CLOUD_MIGRATIONS, { description: 'Add notes to scripts', columns: { workbook_scripts: [{ name: 'note', type: 'text', nullable: true }] } }];
-/// The migrations of a DashQL whose second migration breaks older writers
-const BREAKING: CloudMigration[] = [...CLOUD_MIGRATIONS, { ...NEWER[1], breaks: 'writers' }];
+/// The migrations of a DashQL whose last migration breaks older writers
+const BREAKING: CloudMigration[] = [...CLOUD_MIGRATIONS, { ...NEWER[CLOUD_MIGRATIONS.length], breaks: 'writers' }];
+/// The number of migrations of this DashQL
+const KNOWN = CLOUD_MIGRATIONS.length;
 
 beforeAll(async () => {
     const test = await createTestHyperDB('dashql-cloud-installer');
@@ -61,7 +63,7 @@ describe('cloud installer', () => {
         expect(summary()).toBe('Not installed');
         expect(steps()).toEqual([
             ['pending', 'Create the schema dashql'],
-            ['pending', 'Create the tables of the published workbooks'],
+            ...CLOUD_MIGRATIONS.map(migration => ['pending', migration.description]),
         ]);
         // What a step changes is its tooltip
         expect(stepDetails()[1]).toMatch(/^Creates workbook_versions, .*workbook_folders$/);
@@ -69,17 +71,17 @@ describe('cloud installer', () => {
 
         await act(async () => runButton()!.click());
         await settled('current');
-        expect(summary()).toBe('Installed, version 1');
-        expect(steps().map(([status]) => status)).toEqual(['done', 'done']);
+        expect(summary()).toBe(`Installed, version ${KNOWN}`);
+        expect(steps().map(([status]) => status)).toEqual(Array(KNOWN + 1).fill('done'));
         expect(runButton()).toBeNull();
-        expect(Number((await connection.query(`SELECT version FROM "dashql"."dashql"."cloud_store"`)).get(0)!.version)).toBe(1);
+        expect(Number((await connection.query(`SELECT version FROM "dashql"."dashql"."cloud_store"`)).get(0)!.version)).toBe(KNOWN);
     });
 
     it('updates the tables of an older DashQL', async () => {
         await installCloudStore(query);
         await render({ options: { migrations: NEWER } });
         await settled('outdated');
-        expect(summary()).toBe('Version 1, update to 2');
+        expect(summary()).toBe(`Version ${KNOWN}, update to ${KNOWN + 1}`);
         expect(steps()).toEqual([['pending', 'Add notes to scripts']]);
         expect(stepDetails()).toEqual(['Adds note to workbook_scripts']);
         expect(runButton()!.textContent).toBe('Update');
@@ -93,7 +95,7 @@ describe('cloud installer', () => {
     it('shows the step that failed and tries again', async () => {
         let fail = true;
         query = async (sql, signal) => {
-            if (fail && sql.includes('ADD COLUMN')) throw new Error('permission denied for table workbook_scripts');
+            if (fail && sql.includes('ADD COLUMN "note"')) throw new Error('permission denied for table workbook_scripts');
             return await connection.query(sql, signal);
         };
         await installCloudStore(query);
@@ -123,7 +125,7 @@ describe('cloud installer', () => {
         await installCloudStore(query, { migrations: BREAKING });
         await render();
         await settled('newer');
-        expect(summary()).toBe('Version 2, update DashQL to publish');
+        expect(summary()).toBe(`Version ${KNOWN + 1}, update DashQL to publish`);
         expect(runButton()).toBeNull();
     });
 });

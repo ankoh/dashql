@@ -118,6 +118,8 @@ const dependencies = {
     useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
     useNewWorkbookConnection: () => state.resolveNewWorkbookConnection,
     createConnectionStateFromParams: (...args: unknown[]) => state.createConnectionStateFromParams(...args),
+    useClouds: () => ({ clouds: [], openSetup: vi.fn(), setupRequest: null }),
+    CloudsFolder: () => null,
 } as unknown as WorkbookWorkbenchSidebarDependencies;
 
 /// The catalog of a connection without relations

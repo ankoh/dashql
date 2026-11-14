@@ -1,0 +1,15 @@
+/* A cloud: the logo of its connector, its name, its health and the number of its workbooks */
+.cloud_button {
+    grid-template-columns: 14px minmax(0, 1fr) max-content max-content;
+    padding-right: 4px;
+}
+
+/* The preview below its cloud: icon and name */
+.preview_button {
+    grid-template-columns: 14px minmax(0, 1fr);
+    padding-right: 4px;
+}
+
+.health {
+    flex-shrink: 0;
+}

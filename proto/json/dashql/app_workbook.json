@@ -174,9 +174,13 @@
         "preview": {
           "type": "boolean",
           "description": "Is this a read-only look at the version? The workbook is hidden from the local workbooks until it is imported"
+        },
+        "connectionId": {
+          "type": "string",
+          "description": "The cloud connection that holds the published workbook"
         }
       },
-      "required": ["workbookId", "versionId"],
+      "required": ["workbookId", "versionId", "connectionId"],
       "additionalProperties": false
     }
   }

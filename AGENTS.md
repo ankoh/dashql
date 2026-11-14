@@ -41,7 +41,7 @@ Please consult relevant docs in that directory before making changes.
 - Workbook tables (`.dashql` files and links: the tables of one workbook, Parquet entries of a ZIP, `?zip=` links, archives of older versions)
     - `docs/design/workbook_tables.md`
 
-- Cloud (a connection that new workbooks start on and that keeps published workbooks: the workbook tables of every version merged in its `dashql` database, keyed by workbook and version, a table per attachment and result; flat folders and soft deletes; the cloud setup before the workbench: login, installer, workbook list; migrations under a lock; what is done and what is planned)
+- Clouds (connections that keep published workbooks, several and equal: the workbook tables of every version merged in a `dashql` database, keyed by workbook and version, a table per attachment and result; nested folders and soft deletes; built for very many workbooks: paged keyset listings, search and counts in SQL, nothing reads all workbooks; Clouds in the sidebar, the overview of a cloud in place of the feed; the cloud setup before the workbench: login, installer; migrations under a lock; what is done and what is planned)
     - `docs/design/cloud.md`
 
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)

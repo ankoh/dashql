@@ -171,8 +171,8 @@ describe('ConnectionTree sections', () => {
             .map(row => row.closest('[data-connection-id]')!.getAttribute('data-connection-id'));
         const menuItem = () => document.querySelector<HTMLElement>('[data-testid="connection-menu-item"][data-action="cloud"]');
 
-        it('lists the cloud connection first with a badge', () => {
-            render({ databases: [hyper, trino, cloud], cloudConnectionId: 'hyper-cloud' });
+        it('lists the clouds first with a badge', () => {
+            render({ databases: [hyper, trino, cloud], cloudConnectionIds: ['hyper-cloud'] });
             expect(rowIds()).toEqual(['hyper-cloud', 'hyper-1', 'trino-1']);
             expect(query('hyper-cloud', 'connection-cloud-badge')).not.toBeNull();
             expect(query('hyper-1', 'connection-cloud-badge')).toBeNull();
@@ -184,7 +184,7 @@ describe('ConnectionTree sections', () => {
             act(() => query('hyper-cloud', 'connection-row-menu')!.click());
             expect(menuItem()!.textContent).toBe('Use as Cloud');
             act(() => menuItem()!.click());
-            expect(onSetCloud).toHaveBeenCalledWith('hyper-cloud');
+            expect(onSetCloud).toHaveBeenCalledWith('hyper-cloud', true);
 
             // Trino doesn't write, it can't be the cloud connection
             act(() => query('trino-1', 'connection-row-menu')!.click());
@@ -193,11 +193,11 @@ describe('ConnectionTree sections', () => {
 
         it('stops using the cloud connection from the row menu', () => {
             const onSetCloud = vi.fn();
-            render({ databases: [hyper, trino, cloud], cloudConnectionId: 'hyper-cloud', onSetCloud });
+            render({ databases: [hyper, trino, cloud], cloudConnectionIds: ['hyper-cloud'], onSetCloud });
             act(() => query('hyper-cloud', 'connection-row-menu')!.click());
             expect(menuItem()!.textContent).toBe('Stop Using as Cloud');
             act(() => menuItem()!.click());
-            expect(onSetCloud).toHaveBeenCalledWith(null);
+            expect(onSetCloud).toHaveBeenCalledWith('hyper-cloud', false);
         });
     });
 });

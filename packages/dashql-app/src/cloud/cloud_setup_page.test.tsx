@@ -4,8 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CloudSetupPage, cloudSetupStep, type CloudSetupPageDependencies } from './cloud_setup_page.js';
-import { CloudStateProvider, useCloudState } from './cloud_state.js';
-import { CLOUD_DATABASE, installCloudStore } from './cloud_store_schema.js';
+import { CloudStateProvider, useClouds, type CloudsApi } from './cloud_state.js';
+import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore } from './cloud_store_schema.js';
 import { createCloudFolder } from './cloud_folders.js';
 import { isCloudLink, useCloudSetupGate } from '../app/loading/cloud_setup_gate.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
@@ -79,14 +79,14 @@ describe('cloud setup page', () => {
     let registry: Registry | null;
     let config: AppConfig | null;
     let reconfigure: ReturnType<typeof useAppReconfigure> | null;
-    let cloudState: ReturnType<typeof useCloudState> | null;
+    let clouds: CloudsApi | null;
     let logins: string[];
 
     function Capture() {
         registry = useConnectionRegistry();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
-        cloudState = useCloudState();
+        clouds = useClouds();
         return null;
     }
 
@@ -124,7 +124,7 @@ describe('cloud setup page', () => {
         registry = null;
         config = null;
         reconfigure = null;
-        cloudState = null;
+        clouds = null;
         logins = [];
     });
     afterEach(async () => {
@@ -162,8 +162,14 @@ describe('cloud setup page', () => {
             return { ...reg };
         }));
         if (cloudConnectionId != null) {
-            await act(async () => reconfigure!(value => value == null ? null : { ...value, settings: { ...value.settings, cloudConnectionId } }));
+            await act(async () => reconfigure!(value => value == null ? null : { ...value, settings: { ...value.settings, cloudConnectionIds: [cloudConnectionId] } }));
         }
+    }
+
+    /// The page with the cloud it sets up, choosing a cloud sets up that one
+    function Page(props: { initial: string | null; startup: boolean; onDone: () => void }) {
+        const [target, setTarget] = React.useState(props.initial);
+        return <CloudSetupPage startup={props.startup} connectionId={target} onChoose={setTarget} onDone={props.onDone} dependencies={dependencies} />;
     }
 
     const page = () => root.container.querySelector<HTMLElement>('[data-testid="cloud-setup-page"]');
@@ -177,15 +183,16 @@ describe('cloud setup page', () => {
         expect(cloudSetupStep(hyperConnection('c', ConnectionHealth.ONLINE), true)).toBe('install');
     });
 
-    it('chooses the cloud connection, logs in, installs DashQL and lists the workbooks', async () => {
+    it('chooses the cloud connection, logs in, installs DashQL and counts the workbooks', async () => {
         await prepare([hyperConnection('server', ConnectionHealth.NOT_STARTED)], null);
         const onDone = vi.fn();
-        await root.render(tree(<CloudSetupPage startup={false} onDone={onDone} dependencies={dependencies} />));
+        await root.render(tree(<Page initial={null} startup={false} onDone={onDone} />));
         expect(page()!.dataset.step).toBe('choose');
         expect(root.container.textContent).toContain('Server Http');
 
         await act(async () => button('cloud-use-connection')!.click());
         await vi.waitFor(() => expect(page()!.dataset.step).toBe('login'));
+        expect(config!.settings?.cloudConnectionIds).toEqual(['server']);
         expect(button('cloud-setup-login')!.textContent).toContain('Server Http');
         expect(button('cloud-setup-done')!.textContent).toBe('Close');
 
@@ -195,8 +202,8 @@ describe('cloud setup page', () => {
         await act(async () => button('cloud-installer-run')!.click());
         await vi.waitFor(() => expect(installerState()).toBe('current'), { timeout: 10_000 });
         await vi.waitFor(() => expect(root.container.querySelector('[data-testid="cloud-setup-workbooks"]')?.textContent).toBe('0 workbooks'));
-        expect(cloudState!.installation?.state).toBe('current');
-        expect(cloudState!.tree).toEqual({ folders: [], workbooks: [] });
+        expect(clouds!.clouds[0].installation?.state).toBe('current');
+        expect(clouds!.clouds[0].stats).toEqual({ workbooks: 0, folders: 0, versions: 0, lastPublishedAt: null });
 
         expect(button('cloud-setup-done')!.textContent).toBe('Continue');
         await act(async () => button('cloud-setup-done')!.click());
@@ -205,40 +212,40 @@ describe('cloud setup page', () => {
 
     it('goes on by itself at the start of the app when the cloud needs nothing', async () => {
         await installCloudStore(async (sql, signal) => await connection.query(sql, signal));
-        await createCloudFolder(async (sql, signal) => await connection.query(sql, signal), 'Reports');
+        await createCloudFolder(async (sql, signal) => await connection.query(sql, signal), 'Reports', null);
         await prepare([hyperConnection('server', ConnectionHealth.ONLINE)], 'server');
         const onDone = vi.fn();
-        await root.render(tree(<CloudSetupPage startup onDone={onDone} dependencies={dependencies} />));
+        await root.render(tree(<Page initial="server" startup onDone={onDone} />));
         await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce(), { timeout: 10_000 });
-        await vi.waitFor(() => expect(cloudState!.tree?.folders.map(node => node.folder.name)).toEqual(['Reports']));
+        await vi.waitFor(() => expect(clouds!.clouds[0].stats?.folders).toBe(1));
     });
 
     it('skips the cloud at the start of the app', async () => {
         await prepare([hyperConnection('server', ConnectionHealth.FAILED, false, 'connection refused')], 'server');
         const onDone = vi.fn();
-        await root.render(tree(<CloudSetupPage startup onDone={onDone} dependencies={dependencies} />));
+        await root.render(tree(<Page initial="server" startup onDone={onDone} />));
         expect(page()!.dataset.step).toBe('login');
         expect(root.container.querySelector('[role="alert"]')!.textContent).toBe('connection refused');
         expect(button('cloud-setup-done')!.textContent).toBe('Continue Without Cloud');
         await act(async () => button('cloud-setup-done')!.click());
         expect(onDone).toHaveBeenCalledOnce();
         expect(logins).toEqual([]);
-        expect(config!.settings?.cloudConnectionId).toBe('server');
+        expect(config!.settings?.cloudConnectionIds).toEqual(['server']);
     });
 
     it('logs in to the local cloud without asking and installs DashQL in it', async () => {
         await prepare([hyperConnection('trial', ConnectionHealth.NOT_STARTED, true)], 'trial');
-        await root.render(tree(<CloudSetupPage startup={false} onDone={() => {}} dependencies={dependencies} />));
+        await root.render(tree(<Page initial="trial" startup={false} onDone={() => {}} />));
         await vi.waitFor(() => expect(logins).toEqual(['trial']));
         await vi.waitFor(() => expect(installerState()).toBe('missing'), { timeout: 10_000 });
         await act(async () => button('cloud-installer-run')!.click());
         await vi.waitFor(() => expect(installerState()).toBe('current'), { timeout: 10_000 });
         await statements;
-        expect(Number((await localCloud.query(`SELECT version FROM "dashql"."dashql"."cloud_store"`)).get(0)!.version)).toBe(1);
+        expect(Number((await localCloud.query(`SELECT version FROM "dashql"."dashql"."cloud_store"`)).get(0)!.version)).toBe(CLOUD_MIGRATIONS.length);
         await localCloud.execute(`DROP SCHEMA "dashql"."dashql" CASCADE`);
     });
 
-    it('shows when the overlay asks for it', async () => {
+    it('shows when the app asks for it', async () => {
         const setupDone = Promise.resolve();
         function Gate() {
             return useCloudSetupGate(setupDone, false, dependencies) ?? <div data-testid="workbench" />;
@@ -248,7 +255,7 @@ describe('cloud setup page', () => {
         await vi.waitFor(() => expect(button('workbench')).not.toBeNull());
         expect(page()).toBeNull();
 
-        await act(async () => cloudState!.openSetup());
+        await act(async () => clouds!.openSetup());
         await vi.waitFor(() => expect(page()).not.toBeNull());
         expect(page()!.dataset.step).toBe('choose');
         await act(async () => root.container.querySelector<HTMLButtonElement>('[aria-label="Close"]')!.click());

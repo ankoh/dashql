@@ -111,10 +111,10 @@ describe('connections of the same connector', () => {
         expect(listedConnections(registry, references, []).map(database => database.connectionId)).toEqual(['a']);
     });
 
-    it('always lists the cloud connection', () => {
+    it('always lists the clouds', () => {
         const registry = registryOf([hyper('a', { active: false }), hyper('b', { active: false })]);
         const references = fixedConnectionReferences({ workbook: ['a'] });
-        expect(listedConnections(registry, references, [], 'b').map(database => database.connectionId)).toEqual(['a', 'b']);
+        expect(listedConnections(registry, references, [], ['b']).map(database => database.connectionId)).toEqual(['a', 'b']);
     });
 
     it('sizes the group headings of the connection tree', () => {

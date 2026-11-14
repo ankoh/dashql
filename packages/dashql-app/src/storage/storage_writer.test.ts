@@ -95,7 +95,7 @@ describe('V2 storage writer flat mutations', () => {
             await writer.flush();
             return backend.loadWorkbook(TEST_WORKBOOK_ID);
         };
-        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002' };
+        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud' };
         const previewed = await write({ type: WRITE_WORKBOOK_PROPERTIES, value: [TEST_WORKBOOK_ID, { name: 'Published', cloud: { ...cloud, preview: true } }] });
         expect(previewed.metadata.cloud).toEqual({ ...cloud, preview: true });
         const imported = await write({ type: WRITE_WORKBOOK_PROPERTIES, value: [TEST_WORKBOOK_ID, { name: 'Published', cloud }] });

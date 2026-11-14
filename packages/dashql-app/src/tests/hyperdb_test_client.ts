@@ -4,7 +4,7 @@ import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '../
 import { OPFS_TESTS_FOLDER } from '../platform/opfs_root.js';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
 import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
 
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.
@@ -99,4 +99,38 @@ export function withoutTermination<T extends { terminate(): unknown }>(database:
             return typeof value === 'function' ? value.bind(target) : value;
         },
     });
+}
+
+/// A window of the app on an engine worker of its own, whose session attaches databases like a local cloud
+export interface TestHyperDBWindow {
+    database: HyperDB;
+    session: HyperDBConnection;
+    /// End the worker without closing the session, like a reload of the app
+    reload(): Promise<void>;
+    /// Close the session, which detaches the databases, and end the worker
+    close(): Promise<void>;
+}
+
+/// Open a window of the app: a worker of its own, the shared engine of the tests would outlive a reload
+export async function openTestHyperDBWindow(attachedDatabases: { path: string; alias: string }[], settings: HyperDBSettings = {}): Promise<TestHyperDBWindow> {
+    const client = await createTestHyperDBClient(undefined, settings);
+    try {
+        const database = await HyperDB.create(new HyperDBEngine(client), {
+            defaultDatabasePath: await testDatabasePath(`window-${crypto.randomUUID()}.hyper`),
+            terminateEngine: false,
+        });
+        const session = await database.connect({ defaultDatabase: null, attachedDatabases });
+        return {
+            database,
+            session,
+            reload: () => client.terminate(),
+            close: async () => {
+                await session.close();
+                await client.terminate();
+            },
+        };
+    } catch (error) {
+        await client.terminate();
+        throw error;
+    }
 }

@@ -11,7 +11,6 @@ import {
     newDataTableName,
     RESULT_TABLE_PREFIX,
     RESULTS_TABLE,
-    SCRIPTS_TABLE,
     WORKBOOK_TABLE,
     WORKBOOK_TABLE_COLUMNS,
     WORKBOOK_TABLE_NAMES,
@@ -155,7 +154,7 @@ export function cloudColumnsUsed(): Record<string, string[]> {
     };
     for (const tableName of CLOUD_MERGED_TABLE_NAMES) columns[tableName] = [...names(KEY_COLUMNS), ...names(workbookColumns(tableName))];
     columns[CLOUD_WORKBOOKS_TABLE] = ['workbook_id', 'folder_id', 'created_at', 'created_by', 'updated_at', 'deleted_at'];
-    columns[CLOUD_FOLDERS_TABLE] = ['folder_id', 'name', 'created_at', 'created_by', 'updated_at', 'deleted_at'];
+    columns[CLOUD_FOLDERS_TABLE] = ['folder_id', 'parent_id', 'name', 'created_at', 'created_by', 'updated_at', 'deleted_at'];
     return columns;
 }
 
@@ -210,13 +209,6 @@ function numberedVersions(rows: readonly CloudWorkbookVersion[]): CloudWorkbookV
         version = index > 0 && sorted[index - 1].workbookId === row.workbookId ? version + 1 : 1;
         return { ...row, version };
     });
-}
-
-/// The latest version of every workbook among ready rows, the latest published first
-function latestVersions(rows: readonly CloudWorkbookVersion[]): CloudWorkbookVersion[] {
-    const latest = new Map<string, CloudWorkbookVersion>();
-    for (const row of numberedVersions(rows)) latest.set(row.workbookId, row);
-    return [...latest.values()].sort((a, b) => (b.readyAt ?? 0) - (a.readyAt ?? 0) || a.workbookId.localeCompare(b.workbookId));
 }
 
 /// Publish the workbook of a set of tables as a version, the tables hold one workbook.
@@ -385,54 +377,78 @@ export async function readParquetAsText(local: ParquetReadDatabase, file: Blob, 
     }
 }
 
+/// A version from a row that selects the columns of a version, its ids as text. `version` is 0 unless the row has it.
+export function versionFromRow(row: Record<string, unknown>): CloudWorkbookVersion {
+    return {
+        workbookId: String(row.workbook_id),
+        versionId: String(row.version_id),
+        version: row.version == null ? 0 : Number(row.version),
+        state: String(row.state) as CloudVersionState,
+        name: row.name == null ? null : String(row.name),
+        publishedBy: row.published_by == null ? null : String(row.published_by),
+        appVersion: row.app_version == null ? null : String(row.app_version),
+        formatVersion: Number(row.format_version),
+        createdAt: Number(row.created_at),
+        readyAt: row.ready_at == null ? null : Number(row.ready_at),
+        updatedAt: Number(row.updated_at),
+    };
+}
+
 /// Read rows of the versions table, `where` is a condition on the row `v`
 async function readVersionRows(query: CloudQuery, where: string, options: CloudStoreOptions): Promise<CloudWorkbookVersion[]> {
     const table = await query(`SELECT ${selected('version_id')}, ${selected('workbook_id')}, state, name, format_version, created_at, ready_at, updated_at, `
         + `published_by, app_version `
         + `FROM ${versionsTable(options)} v WHERE ${where}`, options.signal);
-    const rows: CloudWorkbookVersion[] = [];
-    for (const row of table) {
-        rows.push({
-            workbookId: String(row.workbook_id),
-            versionId: String(row.version_id),
-            version: 0,
-            state: String(row.state) as CloudVersionState,
-            name: row.name == null ? null : String(row.name),
-            publishedBy: row.published_by == null ? null : String(row.published_by),
-            appVersion: row.app_version == null ? null : String(row.app_version),
-            formatVersion: Number(row.format_version),
-            createdAt: Number(row.created_at),
-            readyAt: row.ready_at == null ? null : Number(row.ready_at),
-            updatedAt: Number(row.updated_at),
-        });
-    }
-    return rows;
+    return [...table].map(row => versionFromRow(row as unknown as Record<string, unknown>));
 }
 
-/// The workbooks that weren't deleted by their latest versions, the latest published first
-export async function listCloudWorkbooks(query: CloudQuery, options: CloudStoreOptions = {}): Promise<CloudWorkbook[]> {
+/// A query of the published workbooks that weren't deleted by their latest versions, one row per workbook. The rows have
+/// the columns of a version, the ids as uuid, its number among the ready versions as `version` (like numberedVersions),
+/// and `folder_id`, the folder that the row of the workbook names. Of two rows of a workbook, which two clients that
+/// published its first version at the same time may have written, the one created first counts. A workbook without a
+/// row is at the top.
+export function latestVersionsSQL(options: CloudStoreOptions): string {
+    const firstRows = `SELECT workbook_id, folder_id FROM (SELECT workbook_id, folder_id, `
+        + `row_number() OVER (PARTITION BY workbook_id ORDER BY created_at, CAST(folder_id AS text)) AS row_rank FROM ${workbooksTable(options)}) r `
+        + `WHERE row_rank = 1`;
+    const ranked = `SELECT v.workbook_id, v.version_id, v.state, v.name, v.format_version, v.created_at, v.ready_at, v.updated_at, v.published_by, `
+        + `v.app_version, row_number() OVER (PARTITION BY v.workbook_id ORDER BY v.ready_at DESC, CAST(v.version_id AS text) DESC) AS version_rank, `
+        + `count(*) OVER (PARTITION BY v.workbook_id) AS version `
+        + `FROM ${versionsTable(options)} v WHERE v.state = 'ready' AND ${liveWorkbook(options)}`;
+    return `SELECT l.workbook_id, l.version_id, l.state, l.name, l.format_version, l.created_at, l.ready_at, l.updated_at, l.published_by, `
+        + `l.app_version, l.version, w.folder_id FROM (${ranked}) l LEFT JOIN (${firstRows}) w ON w.workbook_id = l.workbook_id `
+        + `WHERE l.version_rank = 1`;
+}
+
+/// What the cloud holds
+export interface CloudStats {
+    /// The workbooks that weren't deleted and have a ready version
+    workbooks: number;
+    /// The folders that weren't deleted
+    folders: number;
+    /// The ready versions of the workbooks that weren't deleted
+    versions: number;
+    /// Milliseconds since the epoch, when the last of these versions turned ready, null without one
+    lastPublishedAt: number | null;
+}
+
+/// Count what the cloud holds, with a single SELECT. A cloud without the tables of DashQL holds nothing.
+export async function readCloudStats(query: CloudQuery, options: CloudStoreOptions = {}): Promise<CloudStats> {
     const view = await openCloudStore(query, 'read', options);
-    if (!view.columns.has(CLOUD_VERSIONS_TABLE)) return [];
-    const latest = latestVersions(await readVersionRows(query, `state = 'ready' AND ${liveWorkbook(options)}`, options));
-    // Two clients that published the first version of a workbook with the same id at the same time may have written two
-    // rows, the one created first counts
-    const folders = new Map<string, string | null>();
-    const rows = await query(`SELECT CAST(workbook_id AS text) AS workbook_id, CAST(folder_id AS text) AS folder_id FROM ${workbooksTable(options)} `
-        + `ORDER BY created_at DESC, folder_id DESC`, options.signal);
-    for (const row of rows) folders.set(String(row.workbook_id), row.folder_id == null ? null : String(row.folder_id));
-    return latest.map(version => ({ ...version, folderId: folders.get(version.workbookId) ?? null }));
-}
-
-/// The workbooks whose latest versions have a text in their names or in the text of a script, like listCloudWorkbooks,
-/// ignoring case
-export async function searchCloudWorkbooks(query: CloudQuery, text: string, options: CloudStoreOptions = {}): Promise<CloudWorkbook[]> {
-    const workbooks = await listCloudWorkbooks(query, options);
-    const needle = text.trim().toLowerCase();
-    if (needle.length === 0 || workbooks.length === 0) return workbooks;
-    const scripts = await query(`SELECT DISTINCT CAST(workbook_id AS text) AS workbook_id, CAST(version_id AS text) AS version_id `
-        + `FROM ${cloudTable(SCRIPTS_TABLE, options)} WHERE strpos(lower(text), ${quoteLiteral(needle)}) > 0`, options.signal);
-    const matches = new Set([...scripts].map(row => `${row.workbook_id}/${row.version_id}`));
-    return workbooks.filter(workbook => (workbook.name ?? '').toLowerCase().includes(needle) || matches.has(`${workbook.workbookId}/${workbook.versionId}`));
+    const empty: CloudStats = { workbooks: 0, folders: 0, versions: 0, lastPublishedAt: null };
+    if (!view.columns.has(CLOUD_VERSIONS_TABLE) || !view.columns.has(CLOUD_FOLDERS_TABLE)) return empty;
+    const ready = `FROM ${versionsTable(options)} v WHERE v.state = 'ready' AND ${liveWorkbook(options)}`;
+    const table = await query(`SELECT (SELECT count(DISTINCT v.workbook_id) ${ready}) AS workbooks, `
+        + `(SELECT count(*) FROM ${cloudTable(CLOUD_FOLDERS_TABLE, options)} WHERE deleted_at IS NULL) AS folders, `
+        + `(SELECT count(*) ${ready}) AS versions, (SELECT max(v.ready_at) ${ready}) AS last_published_at`, options.signal);
+    const row = table.get(0);
+    if (row == null) return empty;
+    return {
+        workbooks: Number(row.workbooks),
+        folders: Number(row.folders),
+        versions: Number(row.versions),
+        lastPublishedAt: row.last_published_at == null ? null : Number(row.last_published_at),
+    };
 }
 
 /// The versions of a workbook, the latest first
@@ -559,6 +575,8 @@ export interface CloudCleanup {
     versions: CloudVersionKey[];
     workbooks: string[];
     folders: string[];
+    /// The folders in a loop of parents that the cleanup moved to the top
+    rerooted: string[];
 }
 
 /// Remove the workbooks and folders that were deleted long ago, the versions that are being deleted, the uploads that
@@ -569,6 +587,7 @@ export async function cleanupCloud(query: CloudQuery, options: CloudCleanupOptio
     const purgeAfter = Math.max(0, Math.floor(options.purgeAfterSeconds ?? 30 * 24 * 60 * 60));
     const workbooks = await purgeWorkbooks(query, staleAfter, purgeAfter, options);
     const folders = await purgeFolders(query, purgeAfter, options);
+    const rerooted = await rerootFolderLoops(query, options);
     const abandoned = await readVersionRows(query,
         `state = 'deleting' OR (state = 'uploading' AND updated_at < now() - INTERVAL '${staleAfter} seconds')`, options);
     const removed: CloudVersionKey[] = abandoned.map(({ workbookId, versionId }) => ({ workbookId, versionId }));
@@ -581,7 +600,7 @@ export async function cleanupCloud(query: CloudQuery, options: CloudCleanupOptio
     for (const key of removed) {
         await dropVersion(query, key, options);
     }
-    return { versions: [...workbooks.versions, ...removed], workbooks: workbooks.workbooks, folders };
+    return { versions: [...workbooks.versions, ...removed], workbooks: workbooks.workbooks, folders, rerooted };
 }
 
 /// Remove the workbooks that were deleted long ago with all their versions, their rows last, and the rows of workbooks
@@ -612,7 +631,8 @@ async function purgeWorkbooks(query: CloudQuery, staleAfter: number, purgeAfter:
     return { versions, workbooks };
 }
 
-/// Remove the folders that were deleted long ago. Their workbooks showed at the top already and move there first.
+/// Remove the folders that were deleted long ago. Deleting a folder moved its folders and workbooks to its parent, what
+/// still names it showed at the top already and moves there first.
 async function purgeFolders(query: CloudQuery, purgeAfter: number, options: CloudStoreOptions): Promise<string[]> {
     const table = cloudTable(CLOUD_FOLDERS_TABLE, options);
     const deleted = await query(`SELECT CAST(folder_id AS text) AS folder_id FROM ${table} `
@@ -620,9 +640,30 @@ async function purgeFolders(query: CloudQuery, purgeAfter: number, options: Clou
     const purged: string[] = [];
     for (const row of deleted) {
         const id = quoteLiteral(String(row.folder_id));
+        await query(`UPDATE ${table} SET parent_id = NULL, updated_at = now() WHERE parent_id = ${id}`, options.signal);
         await query(`UPDATE ${workbooksTable(options)} SET folder_id = NULL, updated_at = now() WHERE folder_id = ${id}`, options.signal);
         await query(`DELETE FROM ${table} WHERE folder_id = ${id}`, options.signal);
         purged.push(String(row.folder_id));
     }
     return purged;
+}
+
+/// The most parents that a walk up the folders follows
+export const CLOUD_FOLDER_DEPTH = 64;
+
+/// Move the folders that are their own ancestors to the top. Two clients that move two folders into each other at the
+/// same time make a loop that no reader reaches from the top, the folders of the loop show nowhere until then.
+async function rerootFolderLoops(query: CloudQuery, options: CloudStoreOptions): Promise<string[]> {
+    const table = cloudTable(CLOUD_FOLDERS_TABLE, options);
+    // Walk up from every folder that names a parent, a folder of a loop comes back to itself
+    const loops = await query(`WITH RECURSIVE up(start_id, folder_id, depth) AS (`
+        + `SELECT f.folder_id, f.parent_id, 1 FROM ${table} f WHERE f.deleted_at IS NULL AND f.parent_id IS NOT NULL `
+        + `UNION ALL SELECT u.start_id, p.parent_id, u.depth + 1 FROM up u JOIN ${table} p ON p.folder_id = u.folder_id `
+        + `WHERE p.deleted_at IS NULL AND p.parent_id IS NOT NULL AND u.folder_id <> u.start_id AND u.depth < ${CLOUD_FOLDER_DEPTH}) `
+        + `SELECT DISTINCT CAST(start_id AS text) AS folder_id FROM up WHERE folder_id = start_id`, options.signal);
+    const ids = [...loops].map(row => String(row.folder_id));
+    if (ids.length > 0) {
+        await query(`UPDATE ${table} SET parent_id = NULL, updated_at = now() WHERE folder_id IN (${ids.map(quoteLiteral).join(', ')})`, options.signal);
+    }
+    return ids;
 }

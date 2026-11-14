@@ -32,6 +32,7 @@ import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookCon
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
+import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import { useAgentBridge } from '../../agent/agent_bridge.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
@@ -58,6 +59,7 @@ export interface WorkbookFeedPageDependencies {
     WorkbookWorkbenchSidebar: typeof WorkbookWorkbenchSidebar;
     ConnectionOverviewPage: typeof ConnectionOverviewPage;
     WorkbookStatusBar: typeof WorkbookStatusBar;
+    CloudOverviewPage: typeof CloudOverviewPage;
     WorkbookNavigationDrawer: typeof WorkbookNavigationDrawer;
     ThreeBarsIcon: typeof ThreeBarsIcon;
     IconButton: typeof IconButton;
@@ -81,6 +83,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     WorkbookWorkbenchSidebar,
     ConnectionOverviewPage,
     WorkbookStatusBar,
+    CloudOverviewPage,
     WorkbookNavigationDrawer,
     ThreeBarsIcon,
     IconButton,
@@ -128,8 +131,19 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, [props.workbookScripts.scripts, props.workbookScripts.workbookId, props.modifyWorkbookScripts]);
     const closeDetails = React.useCallback(() => setDetails(null), []);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
-    const [overviewConnectionId, setOverviewConnectionId] = React.useState<string | null>(null);
-    const closeOverview = React.useCallback(() => setOverviewConnectionId(null), []);
+    // The overview of a connection or of a cloud that takes the place of the workbook
+    const [overview, setOverview] = React.useState<{ kind: 'connection' | 'cloud'; connectionId: string } | null>(null);
+    const overviewConnectionId = overview?.kind === 'connection' ? overview.connectionId : null;
+    const cloudOverviewId = overview?.kind === 'cloud' ? overview.connectionId : null;
+    /// Open the overview of a connection, null closes any overview
+    const setOverviewConnectionId = React.useCallback((connectionId: string | null) => {
+        setOverview(connectionId == null ? null : { kind: 'connection', connectionId });
+    }, []);
+    /// Open the overview of a cloud, null closes any overview
+    const setCloudOverviewId = React.useCallback((connectionId: string | null) => {
+        setOverview(connectionId == null ? null : { kind: 'cloud', connectionId });
+    }, []);
+    const closeOverview = React.useCallback(() => setOverview(null), []);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
     const shareTriggerRef = React.useRef<HTMLButtonElement>(null);
     const exportTriggerRef = React.useRef<HTMLButtonElement>(null);
@@ -150,7 +164,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const run = execution.state;
     const [executionDetailsOpen, setExecutionDetailsOpen] = React.useState(false);
     React.useEffect(() => setExecutionDetailsOpen(false), [props.workbookScripts.workbookId]);
-    React.useEffect(() => setOverviewConnectionId(null), [props.workbookScripts.workbookId]);
+    React.useEffect(() => setOverview(null), [props.workbookScripts.workbookId]);
     const executeRef = React.useRef<HTMLButtonElement>(null);
     const progress = run ? `${run.completedScripts}/${run.totalScripts}` : '';
     const skipped = run != null && run.skippedScripts > 0 ? ` · ${run.skippedScripts} need a connection` : '';
@@ -185,7 +199,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const dashboardActive = mode === WorkbookViewMode.Dashboard;
     const dataflowActive = mode === WorkbookViewMode.Dataflow;
     const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Workbook;
-    const overviewActive = overviewConnectionId != null;
+    const overviewActive = overview != null;
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
@@ -203,6 +217,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
             closeAfterSelection={closeAfterSelection ? () => setNavigationDrawerOpen(false) : undefined}
             openOverviewId={overviewConnectionId}
             onOpenOverview={setOverviewConnectionId}
+            openCloudId={cloudOverviewId}
+            onOpenCloud={setCloudOverviewId}
             onOpenScript={openScript}
         />
     );
@@ -235,6 +251,13 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     {overviewConnectionId != null && !cloudLoading && (
                         <dependencies.ConnectionOverviewPage
                             connectionId={overviewConnectionId}
+                            onClose={closeOverview}
+                        />
+                    )}
+                    {cloudOverviewId != null && !cloudLoading && (
+                        <dependencies.CloudOverviewPage
+                            key={cloudOverviewId}
+                            connectionId={cloudOverviewId}
                             onClose={closeOverview}
                         />
                     )}

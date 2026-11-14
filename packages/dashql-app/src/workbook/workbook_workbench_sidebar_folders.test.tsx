@@ -76,6 +76,8 @@ const dependencies = {
     useLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn() }),
     useNewWorkbookConnection: () => vi.fn(),
     createConnectionStateFromParams: vi.fn(),
+    useClouds: () => ({ clouds: [], openSetup: vi.fn(), setupRequest: null }),
+    CloudsFolder: () => null,
 } as unknown as WorkbookWorkbenchSidebarDependencies;
 
 /// Leave an input. blur() fires no event while the window lacks focus, as in a background window of the test dashboard.
@@ -107,12 +109,12 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         return button?.textContent ?? '';
     }
 
-    /// The rows of the workbook list as `<depth>:<label>`, the scripts of a workbook one level deeper
+    /// The rows of the workbook list below Local as `<depth>:<label>`, the scripts of a workbook one level deeper
     function rows(): string[] {
-        return Array.from(container.querySelectorAll('ul[aria-label="Workbooks"] > li:not([data-testid="workbook-top-level-drop"], [data-testid="workbook-ephemeral-row"])')).map(row => {
+        return Array.from(container.querySelectorAll('ul[aria-label="Workbooks"] > li:not([data-testid="workbook-top-level-drop"], [data-testid="workbook-ephemeral-row"], [data-testid="local-folder"])')).map(row => {
             // A script row starts below the icon of its workbook, after the caret column
             const script = row.getAttribute('data-testid') === 'workbook-script-row';
-            const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - (script ? 20 : 0)) / 16 + (script ? 1 : 0);
+            const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - (script ? 20 : 0)) / 16 + (script ? 1 : 0) - 1;
             return `${depth}:${rowLabel(row)}`;
         });
     }

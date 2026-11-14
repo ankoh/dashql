@@ -8,6 +8,7 @@ import {
 
 import type {
     EmbeddedAttachedDatabase,
+    EmbeddedAttachedDatabases,
     EmbeddedComputeDatabase,
     EmbeddedConnectionOptions,
     EmbeddedDatabaseAlias,
@@ -82,7 +83,7 @@ function poolKey(alias: string | null, attached: readonly EmbeddedAttachedDataba
     return clientContext == null ? databases : `${databases}:${clientContext}`;
 }
 
-export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDatabase, EmbeddedExternalDirectoryDatabase {
+export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDatabase, EmbeddedExternalDirectoryDatabase, EmbeddedAttachedDatabases {
     private readonly sessions = new Set<HyperDBSession>();
     /// The idle pooled sessions by default database alias and client context, see poolKey()
     private readonly idleSessions = new Map<string, HyperDBSession[]>();
@@ -160,7 +161,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         }
     }
 
-    /// Create an attached database unless it exists. It is never dropped, so its tables outlive the instance.
+    /// Create an attached database unless it exists. Only dropAttachedDatabase drops it, so its tables outlive the
+    /// instance.
     private async createAttachedDatabase(path: string): Promise<void> {
         let creation = this.attachedDatabaseCreations.get(path);
         if (creation == null) {
@@ -171,6 +173,15 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             creation.catch(() => this.attachedDatabaseCreations.delete(path));
         }
         await creation;
+    }
+
+    /// Drop a database that sessions attached, unless it doesn't exist. Hyper refuses while a session attaches it.
+    async dropAttachedDatabase(path: string): Promise<void> {
+        await this.attachedDatabaseCreations.get(path)?.catch(() => {});
+        await this.runDatabaseOperation(async () => {
+            await this.executeDatabaseStatement(`DROP DATABASE IF EXISTS ${quoteIdentifier(path)}`);
+            this.attachedDatabaseCreations.delete(path);
+        });
     }
 
     /// The paths of the databases that are created on startup and dropped on termination

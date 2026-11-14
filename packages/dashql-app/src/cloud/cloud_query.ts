@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as arrow from 'apache-arrow';
 
 import type { ConnectionParams } from '../connections/connection_params.js';
-import { useQueryExecutor } from '../connections/query_executor.js';
+import { useQueryExecutor, type QueryExecutor } from '../connections/query_executor.js';
 import { SALESFORCE_CATALOG_DATABASE } from '../connections/salesforce/salesforce_catalog_update.js';
 import { QueryType } from '../query/query_execution_state.js';
 import { CLOUD_DATABASE, type CloudQuery } from './cloud_store_schema.js';
@@ -13,11 +13,10 @@ export function cloudDatabaseOf(params: ConnectionParams | null | undefined): st
     return params != null && 'dbcom' in params ? SALESFORCE_CATALOG_DATABASE : CLOUD_DATABASE;
 }
 
-/// Run the statements of the cloud store on the cloud connection through the query executor, the queries viewer lists
+/// Run the statements of the cloud store on a cloud connection through the query executor, the queries viewer lists
 /// them. A statement without a result gives an empty table.
-export function useCloudQuery(connectionId: string | null): CloudQuery | null {
-    const executor = useQueryExecutor();
-    return React.useMemo(() => connectionId == null ? null : async (sql: string, signal?: AbortSignal) => {
+export function cloudQueryOf(executor: QueryExecutor, connectionId: string): CloudQuery {
+    return async (sql: string, signal?: AbortSignal) => {
         const [, execution] = executor(connectionId, {
             query: sql,
             abortSignal: signal,
@@ -32,5 +31,17 @@ export function useCloudQuery(connectionId: string | null): CloudQuery | null {
             },
         });
         return await execution ?? new arrow.Table();
-    }, [connectionId, executor]);
+    };
+}
+
+/// The statements of the cloud store on a cloud connection, see cloudQueryOf
+export function useCloudQuery(connectionId: string | null): CloudQuery | null {
+    const executor = useQueryExecutor();
+    return React.useMemo(() => connectionId == null ? null : cloudQueryOf(executor, connectionId), [connectionId, executor]);
+}
+
+/// The statements of the cloud store on any cloud connection, see cloudQueryOf
+export function useCloudQueries(): (connectionId: string) => CloudQuery {
+    const executor = useQueryExecutor();
+    return React.useCallback((connectionId: string) => cloudQueryOf(executor, connectionId), [executor]);
 }

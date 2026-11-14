@@ -440,7 +440,7 @@ describe('WorkbookExecutionProvider', () => {
     });
 
     it('runs a preview of a published workbook on the embedded Hyper only, its other connections are skipped', async () => {
-        const preview = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', preview: true };
+        const preview = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true };
         const [embedded, remote] = fixtures;
         for (const f of fixtures) Object.assign(f.workbook, { workbookMetadata: { cloud: preview } });
         // The second connection is a Hyper server, it is online but a preview doesn't run on it

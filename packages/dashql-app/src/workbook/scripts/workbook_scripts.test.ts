@@ -194,7 +194,7 @@ describe('V2 flat workbook script mutations', () => {
     it('runs no script of a preview of a published workbook', async () => {
         const workbook = state(['1_alpha.sql']);
         const current = { ...workbook, workbookMetadata: { ...workbook.workbookMetadata, cloud: {
-            workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', preview: true,
+            workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true,
         } } };
         const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
         const executeQuery = vi.fn(() => [11, Promise.resolve(null)] as [number, Promise<null>]);

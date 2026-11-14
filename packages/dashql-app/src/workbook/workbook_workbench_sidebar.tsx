@@ -64,8 +64,9 @@ import {
     createAttachedConnectionParamsForConnector,
 } from '../connections/connection_params.js';
 import { useNewWorkbookConnection } from '../connections/embedded_connection.js';
-import { useCloudConnectionId, useSetCloudConnection } from '../connections/cloud_connection.js';
-import { CloudWorkbookFolder } from '../cloud/cloud_workbook_folder.js';
+import { useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
+import { CloudsFolder } from '../cloud/cloud_sidebar.js';
+import { useClouds } from '../cloud/cloud_state.js';
 import { useCloudWorkbooks } from '../cloud/cloud_workbooks.js';
 import { ATTACHABLE_CONNECTORS } from '../connections/attached_connection.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
@@ -125,7 +126,7 @@ import { useDetachConnection } from './workbook_connection_detach.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../connections/connection_merge.js';
 import { connectionReplaceBlocker, connectionReplaceCandidates } from '../connections/connection_replace.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../connections/connection_label.js';
+import { connectionLabel, connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../connections/connection_label.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { WorkbookURLShareOverlay } from './persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from './persistence/workbook_file_save_overlay.js';
@@ -214,6 +215,10 @@ interface Props {
     openOverviewId?: string | null;
     /// Open the overview of a connection, or close it with null
     onOpenOverview?: (connectionId: string | null) => void;
+    /// The cloud whose overview is open
+    openCloudId?: string | null;
+    /// Open the overview of a cloud, or close it with null
+    onOpenCloud?: (connectionId: string | null) => void;
     /// Show a script of a workbook that was opened from the sidebar
     onOpenScript?: (workbookId: string, fileName: string) => void;
     dependencies?: WorkbookWorkbenchSidebarDependencies;
@@ -252,7 +257,8 @@ export interface WorkbookWorkbenchSidebarDependencies {
     WorkbookURLShareOverlay: typeof WorkbookURLShareOverlay;
     WorkbookFileSaveOverlay: typeof WorkbookFileSaveOverlay;
     useCloudWorkbooks: typeof useCloudWorkbooks;
-    CloudWorkbookFolder: typeof CloudWorkbookFolder;
+    useClouds: typeof useClouds;
+    CloudsFolder: typeof CloudsFolder;
 }
 
 const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarDependencies = {
@@ -288,7 +294,8 @@ const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarD
     WorkbookURLShareOverlay,
     WorkbookFileSaveOverlay,
     useCloudWorkbooks,
-    CloudWorkbookFolder,
+    useClouds,
+    CloudsFolder,
 };
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -312,7 +319,7 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
     const archiveExport = useAppFlavor().features.workbookArchiveExport;
     const [storageOpen, setStorageOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const cloudConnectionId = useCloudConnectionId();
+    const { clouds } = dependencies.useClouds();
 
     return (
         <AnchoredOverlay
@@ -409,7 +416,7 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
-                    <>{cloudConnectionId != null && (
+                    <>{clouds.length > 0 && (
                         <WorkbookPublishItems item={item} onRun={() => setOpen(false)} dependencies={dependencies} />
                     )}</>
                     <ActionList.ListItem data-testid="workbook-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
@@ -422,39 +429,45 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
     );
 };
 
-/// Publish a workbook to the cloud: a new version of the published workbook it is linked to, or a new published workbook
+/// Publish a workbook to a cloud: a new version of the published workbook it is linked to, or a new published workbook.
+/// With several clouds every item names its cloud.
 const WorkbookPublishItems: React.FC<{ item: WorkbookItem; onRun: () => void; dependencies: WorkbookWorkbenchSidebarDependencies }> = ({ item, onRun, dependencies }) => {
     const cloudWorkbooks = dependencies.useCloudWorkbooks();
+    const { clouds } = dependencies.useClouds();
     const logger = dependencies.useLogger();
-    const link = workbookCloudLink(item.scripts);
-    const publish = (asNew: boolean) => {
+    const linkedCloud = workbookCloudLink(item.scripts)?.connectionId ?? null;
+    const named = clouds.length > 1;
+    const publish = (cloudId: string, asNew: boolean) => {
         onRun();
-        cloudWorkbooks.publish(item.workbookId, { asNew }).catch(error => {
+        cloudWorkbooks.publish(item.workbookId, { cloudId, asNew }).catch(error => {
             logger.error(`Publishing "${item.label}" failed`, { workbookId: item.workbookId, error: String(error instanceof Error ? error.message : error) }, 'workbook_workbench');
         });
     };
+    const entries: { key: string; action: string; cloudId: string; asNew: boolean; text: string }[] = [];
+    for (const cloud of clouds) {
+        const name = connectionLabel(cloud.connection);
+        if (cloud.connectionId === linkedCloud) {
+            entries.unshift({ key: `${cloud.connectionId}:version`, action: 'publish', cloudId: cloud.connectionId, asNew: false, text: named ? `Publish new version to ${name}` : 'Publish new version' });
+            entries.push({ key: `${cloud.connectionId}:new`, action: 'publish-as-new', cloudId: cloud.connectionId, asNew: true, text: named ? `Publish as new workbook to ${name}` : 'Publish as new workbook' });
+        } else {
+            entries.push({ key: `${cloud.connectionId}:new`, action: 'publish', cloudId: cloud.connectionId, asNew: true, text: named ? `Publish to ${name}` : 'Publish to cloud' });
+        }
+    }
     return (
         <>
-            <ActionList.ListItem
-                data-testid="workbook-menu-item"
-                data-action="publish"
-                disabled={!cloudWorkbooks.ready}
-                onClick={() => publish(false)}
-            >
-                <ActionList.Leading><PaperAirplaneIcon size={16} /></ActionList.Leading>
-                <ActionList.ItemText>{link == null ? 'Publish to cloud' : 'Publish new version'}</ActionList.ItemText>
-            </ActionList.ListItem>
-            <>{link != null && (
+            {entries.map(entry => (
                 <ActionList.ListItem
+                    key={entry.key}
                     data-testid="workbook-menu-item"
-                    data-action="publish-as-new"
-                    disabled={!cloudWorkbooks.ready}
-                    onClick={() => publish(true)}
+                    data-action={entry.action}
+                    data-cloud={entry.cloudId}
+                    disabled={!cloudWorkbooks.isReady(entry.cloudId)}
+                    onClick={() => publish(entry.cloudId, entry.asNew)}
                 >
                     <ActionList.Leading><PaperAirplaneIcon size={16} /></ActionList.Leading>
-                    <ActionList.ItemText>Publish as new workbook</ActionList.ItemText>
+                    <ActionList.ItemText>{entry.text}</ActionList.ItemText>
                 </ActionList.ListItem>
-            )}</>
+            ))}
         </>
     );
 };
@@ -771,7 +784,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const openGreeterPage = dependencies.useOpenGreeter();
     const ensureEphemeralWorkbook = dependencies.useEnsureEphemeralWorkbook();
     const resolveNewWorkbookConnection = dependencies.useNewWorkbookConnection();
-    const cloudConnectionId = useCloudConnectionId();
+    const cloudConnectionIds = useCloudConnectionIds();
     const setCloudConnection = useSetCloudConnection();
     const mergeConnections = dependencies.useMergeConnections();
     const replaceConnection = dependencies.useReplaceConnection();
@@ -897,8 +910,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const workbookCount = workbooks.length + invalidItems.length;
     // The references follow the scripts registry
     const connectionRows = React.useMemo(
-        () => listedConnections(databaseRegistry, references, workbookConnectionRows, cloudConnectionId),
-        [databaseRegistry, references, scriptsRegistry, workbookConnectionRows, cloudConnectionId],
+        () => listedConnections(databaseRegistry, references, workbookConnectionRows, cloudConnectionIds),
+        [databaseRegistry, references, scriptsRegistry, workbookConnectionRows, cloudConnectionIds],
     );
     const workbookConnectionIds = React.useMemo(
         () => new Set(workbookConnectionRows.map(database => database.connectionId)),
@@ -1070,8 +1083,9 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         [scriptsRegistry],
     );
     const ephemeralWorkbookId = ephemeralWorkbook?.workbookId ?? null;
-    // An open connection overview replaces the workbook
-    const ephemeralWorkbookSelected = props.openOverviewId == null && ephemeralWorkbookId === props.workbookScripts.workbookId;
+    // An open overview of a connection or a cloud replaces the workbook
+    const overviewShown = props.openOverviewId != null || props.openCloudId != null;
+    const ephemeralWorkbookSelected = !overviewShown && ephemeralWorkbookId === props.workbookScripts.workbookId;
     const knownEphemeralWorkbookId = React.useRef(ephemeralWorkbookId);
     React.useEffect(() => {
         const known = knownEphemeralWorkbookId.current;
@@ -1260,15 +1274,20 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const workbookListRef = React.useRef<HTMLUListElement>(null);
     const getWorkbookScrollElement = React.useCallback(() => workbookListRef.current, []);
 
-    // With a cloud, the local workbooks are a folder of their own next to the folder of the cloud
-    const rootDepth = cloudConnectionId != null ? 1 : 0;
-    const localShown = rootDepth === 0 || localExpanded;
+    // The local workbooks are a folder of their own next to the folder of the clouds
+    const rootDepth = 1;
+    const localShown = localExpanded;
 
-    // A workbook that was opened from the cloud replaces an open connection overview
+    // A preview that was selected below its cloud replaces an open overview
     const openedFromCloud = React.useCallback(() => {
         onOpenOverview?.(null);
         closeAfterSelection?.();
     }, [onOpenOverview, closeAfterSelection]);
+    const onOpenCloud = props.onOpenCloud;
+    const openCloud = React.useCallback((connectionId: string) => {
+        onOpenCloud?.(connectionId);
+        closeAfterSelection?.();
+    }, [onOpenCloud, closeAfterSelection]);
 
     return (
         <nav className={styles.workbench} aria-label="Workbook workbench" data-electron-drag-region>
@@ -1350,20 +1369,18 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                             >
                                 <SortableContext items={localShown ? rows.map(row => row.id) : []} strategy={KEEP_ROWS_IN_PLACE}>
                                     <ul ref={workbookListRef} className={styles.workbook_list} aria-label="Workbooks" data-electron-drag-region="false">
-                                        {/* The published workbooks of the cloud, a folder above the local ones */}
-                                        {cloudConnectionId != null && (
-                                            <dependencies.CloudWorkbookFolder
-                                                currentWorkbookId={props.openOverviewId == null ? props.workbookScripts.workbookId : null}
-                                                onOpened={openedFromCloud}
-                                            />
-                                        )}
-                                        {rootDepth > 0 && (
-                                            <LocalWorkbookFolderRow
-                                                expanded={localExpanded}
-                                                count={workbookCount}
-                                                onToggle={() => setLocalExpanded(value => !value)}
-                                            />
-                                        )}
+                                        {/* The clouds, a folder above the local workbooks */}
+                                        <dependencies.CloudsFolder
+                                            openCloudId={props.openCloudId ?? null}
+                                            currentWorkbookId={overviewShown ? null : props.workbookScripts.workbookId}
+                                            onOpenCloud={openCloud}
+                                            onOpened={openedFromCloud}
+                                        />
+                                        <LocalWorkbookFolderRow
+                                            expanded={localExpanded}
+                                            count={workbookCount}
+                                            onToggle={() => setLocalExpanded(value => !value)}
+                                        />
                                         {localShown && rows.map(row => row.kind === 'folder' ? (
                                             <WorkbookFolderRow
                                                 key={row.id}
@@ -1387,7 +1404,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                                 item={row.item}
                                                 depth={row.depth + rootDepth}
                                                 // An open connection overview replaces the workbook
-                                                selected={props.openOverviewId == null && row.item.workbookId === props.workbookScripts.workbookId}
+                                                selected={!overviewShown && row.item.workbookId === props.workbookScripts.workbookId}
                                                 onOpen={() => openWorkbook(row.item)}
                                                 onDuplicate={() => { void duplicateWorkbook(row.item); }}
                                                 onDelete={() => { void deleteWorkbook(row.item); }}
@@ -1484,7 +1501,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                 attention={connectionAttention?.active === true}
                                 onOpenOverview={openOverview}
                                 openOverviewId={props.openOverviewId ?? null}
-                                cloudConnectionId={cloudConnectionId}
+                                cloudConnectionIds={cloudConnectionIds}
                                 onSetCloud={setCloudConnection}
                                 onOpenSettings={(connectionId, anchor) => {
                                     connectionSettingsAnchorRef.current = anchor;

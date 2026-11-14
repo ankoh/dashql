@@ -50,6 +50,8 @@ import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
+/// No clouds
+const NO_CLOUDS: readonly string[] = [];
 const ColumnsIcon = SymbolIcon('columns_16');
 const SettingsIcon = SymbolIcon('settings_16');
 const MergeIcon = SymbolIcon('git_merge_16');
@@ -368,10 +370,10 @@ interface ConnectionTreeRowProps {
     renamingId: string | null;
     /// Start or stop renaming a connection
     setRenamingId: (connectionId: string | null) => void;
-    /// The cloud connection, null if there is none
-    cloudConnectionId: string | null;
-    /// Use a connection as cloud connection or, with null, none
-    onSetCloud?: (connectionId: string | null) => void;
+    /// The cloud connections
+    cloudConnectionIds: readonly string[];
+    /// Make a connection a cloud or stop using it as one
+    onSetCloud?: (connectionId: string, isCloud: boolean) => void;
 }
 
 /// How workbooks use a connection
@@ -424,6 +426,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
         const label = connectionLabelText(labelParts);
         const usage = props.describeUsage?.(row.database.connectionId) ?? null;
         const connectionId = row.database.connectionId;
+        const isCloud = props.cloudConnectionIds.includes(connectionId);
         const onRename = props.onRename;
         const startRename = onRename == null ? undefined : () => props.setRenamingId(connectionId);
         return (
@@ -465,8 +468,8 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         </svg>
                     )}
                 >
-                    {props.cloudConnectionId === connectionId && (
-                        <span className={styles.cloud_badge} title="Cloud connection" aria-label="Cloud connection" role="img" data-testid="connection-cloud-badge">
+                    {isCloud && (
+                        <span className={styles.cloud_badge} title="Cloud" aria-label="Cloud" role="img" data-testid="connection-cloud-badge">
                             <svg width="14" height="14" aria-hidden="true">
                                 <use xlinkHref={`${symbols}#cloud`} />
                             </svg>
@@ -496,10 +499,10 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         replaceCandidates={props.replaceCandidates == null ? undefined : () => props.replaceCandidates!(connectionId)}
                         labelOf={props.labelOf}
                         workbookCount={usage?.blockingWorkbookCount}
-                        isCloud={props.cloudConnectionId === connectionId}
-                        onSetCloud={props.onSetCloud == null || (props.cloudConnectionId !== connectionId && !isCloudCapable(row.database.params))
+                        isCloud={isCloud}
+                        onSetCloud={props.onSetCloud == null || (!isCloud && !isCloudCapable(row.database.params))
                             ? undefined
-                            : cloud => props.onSetCloud!(cloud ? connectionId : null)}
+                            : cloud => props.onSetCloud!(connectionId, cloud)}
                     />
                 </ConnectionTreeEntry>
             </div>
@@ -593,10 +596,10 @@ interface ConnectionTreeProps {
     openOverviewId?: string | null;
     /// Rename a connection, a blank name restores the default label. Connections can't be renamed without it
     onRename?: (connectionId: string, name: string) => void;
-    /// The cloud connection, it is listed first in its group
-    cloudConnectionId?: string | null;
-    /// Use a connection as cloud connection or, with null, none. Connections can't become the cloud connection without it
-    onSetCloud?: (connectionId: string | null) => void;
+    /// The cloud connections, they are listed first in their group
+    cloudConnectionIds?: readonly string[];
+    /// Make a connection a cloud or stop using it as one. Connections can't become clouds without it
+    onSetCloud?: (connectionId: string, isCloud: boolean) => void;
 }
 
 const connectionKey = (connectionId: string) => `connection:${connectionId}`;
@@ -644,7 +647,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onOpenOverview,
     openOverviewId = null,
     onRename,
-    cloudConnectionId = null,
+    cloudConnectionIds = NO_CLOUDS,
     onSetCloud,
 }) => {
     // The database states change with every query event while the catalogs rarely change.
@@ -706,10 +709,12 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             next.push({ type: 'connection-catalog', key: catalogKey(database.connectionId), database });
             next.push(...catalogRows[i]);
         };
-        // The cloud connection comes first in its group
-        const order = databases.map((_, i) => i);
-        const cloudIndex = databases.findIndex(database => database.connectionId === cloudConnectionId);
-        if (cloudIndex > 0) order.unshift(...order.splice(cloudIndex, 1));
+        // The clouds come first in their group, in their order
+        const cloudRank = (i: number) => {
+            const rank = cloudConnectionIds.indexOf(databases[i].connectionId);
+            return rank < 0 ? cloudConnectionIds.length : rank;
+        };
+        const order = databases.map((_, i) => i).sort((a, b) => cloudRank(a) - cloudRank(b) || a - b);
         if (workbookConnectionIds == null) {
             for (const i of order) pushConnection(databases[i], i);
             return next;
@@ -727,7 +732,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             }
         }
         return next;
-    }, [databases, catalogRows, cloudConnectionId, describeUsage, expanded, onOpenOverview, workbookConnectionIds]);
+    }, [databases, catalogRows, cloudConnectionIds, describeUsage, expanded, onOpenOverview, workbookConnectionIds]);
     // The rows are virtualized, the tree remembers the renamed connection while its row scrolls out of view
     const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -761,9 +766,9 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         onRename,
         renamingId,
         setRenamingId,
-        cloudConnectionId,
+        cloudConnectionIds,
         onSetCloud,
-    }), [attention, cloudConnectionId, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, onRename, onReplace, onSetCloud, openOverviewId, renamingId, replaceBlocker, replaceCandidates, rows, toggle]);
+    }), [attention, cloudConnectionIds, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, onRename, onReplace, onSetCloud, openOverviewId, renamingId, replaceBlocker, replaceCandidates, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -781,17 +786,17 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
 
 /// The connections shown next to the workbooks.
 /// The connections of the current workbook come first, followed by the connections of other
-/// workbooks and active connections that no workbook uses. The cloud connection is always listed.
+/// workbooks and active connections that no workbook uses. The clouds are always listed.
 export function listedConnections(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
     currentWorkbookConnections: readonly ConnectionState[],
-    cloudConnectionId: string | null = null,
+    cloudConnectionIds: readonly string[] = NO_CLOUDS,
 ): ConnectionState[] {
     const listed = [...currentWorkbookConnections];
     const seen = new Set(listed.map(database => database.connectionId));
     for (const [connectionId, database] of registry.connections) {
-        if (!seen.has(connectionId) && (connectionId === cloudConnectionId || isListedConnection(registry, references, connectionId))) {
+        if (!seen.has(connectionId) && (cloudConnectionIds.includes(connectionId) || isListedConnection(registry, references, connectionId))) {
             listed.push(database);
         }
     }

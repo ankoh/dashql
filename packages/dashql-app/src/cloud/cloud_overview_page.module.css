@@ -1,0 +1,308 @@
+.container {
+    position: absolute;
+    inset: 0;
+    padding: 12px 16px 16px 16px;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+/* Spans the full width, like the notebook feed */
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.title {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.title_name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.title_separator {
+    color: var(--color_fg_muted);
+}
+
+.health {
+    flex-shrink: 0;
+}
+
+/* The counts of the cloud, a tile each */
+.facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.fact {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    border: 1px solid var(--color_border);
+    border-radius: 6px;
+    background: var(--color_bg_card);
+}
+
+.fact dt {
+    color: var(--color_fg_muted);
+    font-size: 11px;
+}
+
+.fact dd {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px;
+    border: 1px solid var(--color_border);
+    border-radius: 6px;
+    background: var(--color_bg_card);
+    font-size: 12px;
+}
+
+.label {
+    color: var(--color_fg_muted);
+    font-size: 11px;
+}
+
+.error {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    color: var(--color_danger_fg);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.note {
+    margin: 0;
+    color: var(--color_fg_muted);
+    font-size: 12px;
+}
+
+/* The folders and workbooks: the search, the path of the folder and the list */
+.browser {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search {
+    flex: 1;
+    min-width: 0;
+}
+
+.path {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 24px;
+    font-size: 12px;
+}
+
+.path_segment {
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--color_accent_fg);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.path_segment:hover {
+    background: var(--color_bg_hover);
+}
+
+.path_current {
+    color: var(--color_fg);
+    font-weight: 500;
+}
+
+.path_separator {
+    color: var(--color_fg_muted);
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--color_border);
+    border-radius: 6px;
+    background: var(--color_bg_card);
+    overflow: hidden;
+}
+
+.list:empty {
+    display: none;
+}
+
+/* A row: caret, icon, name, details and the menu */
+.entry,
+.version {
+    display: grid;
+    grid-template-columns: 12px 14px minmax(0, 1fr) minmax(0, max-content) minmax(72px, max-content) 28px;
+    align-items: center;
+    column-gap: 8px;
+    min-height: 30px;
+    padding: 0 4px 0 8px;
+    font-size: 12px;
+    border-top: 1px solid var(--color_border_muted);
+    background: var(--color_bg_card);
+}
+
+.entry:first-child {
+    border-top: 0;
+}
+
+.entry:hover,
+.version:hover {
+    background: var(--color_bg_hover);
+}
+
+.version {
+    padding-left: 28px;
+    background: var(--color_bg_subtle);
+}
+
+.version.note {
+    display: block;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.caret {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    color: var(--color_fg_muted);
+    background: transparent;
+    cursor: pointer;
+}
+
+.name_button {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.name_button:disabled {
+    cursor: progress;
+}
+
+/* The folder of a workbook that a search found */
+.name_folder {
+    color: var(--color_fg_muted);
+    font-size: 11px;
+}
+
+.rename_input {
+    min-width: 0;
+}
+
+.detail {
+    color: var(--color_fg_muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+}
+
+.opening {
+    opacity: 0.6;
+}
+
+.dragging {
+    position: relative;
+    z-index: 1;
+    box-shadow: var(--shadow_medium);
+}
+
+/* A folder that a dragged row would move into */
+.drop_into {
+    outline: 1px solid var(--color_focus);
+    outline-offset: -1px;
+    background: var(--color_accent_muted);
+}
+
+/* Where the next page is read */
+.end {
+    display: flex;
+    justify-content: center;
+    min-height: 24px;
+}
+
+@media only screen and (max-width: 700px) {
+    .container {
+        padding: 8px;
+    }
+
+    .entry,
+    .version {
+        grid-template-columns: 12px 14px minmax(0, 1fr) minmax(0, max-content) 28px;
+    }
+
+    /* The time of a row moves into its title */
+    .entry > :nth-child(5),
+    .version > :nth-child(5) {
+        display: none;
+    }
+}

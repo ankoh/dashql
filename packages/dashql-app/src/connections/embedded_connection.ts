@@ -6,7 +6,6 @@ import { useConnectionAllocator, useConnectionRegistryStore, type ConnectionAllo
 import { createDefaultHyperWasmConnectionState } from './connection_params.js';
 import { isHyperWasmConnection } from './connection_label.js';
 import { getHyperLinkTabState } from './hyper/hyper_link.js';
-import { findCloudConnection, useCloudConnectionId } from './cloud_connection.js';
 
 /// The connection to the embedded Hyper of the app, if one is known
 export function findEmbeddedConnection(connections: Iterable<ConnectionState>): ConnectionState | null {
@@ -22,27 +21,25 @@ export function embeddedConnection(connections: Iterable<ConnectionState>, alloc
     return findEmbeddedConnection(connections) ?? allocate({ ...createDefaultHyperWasmConnectionState(dql), active: true });
 }
 
-/// The connection that new workbooks start on: the connection of the latest Hyper link of the tab, otherwise the cloud
-/// connection, otherwise the embedded Hyper
+/// The connection that new workbooks start on: the connection of the latest Hyper link of the tab, otherwise the
+/// embedded Hyper. A cloud is no default, the app may have several (docs/design/cloud.md).
 export function newWorkbookConnection(
     connections: Map<string, ConnectionState>,
     allocate: ConnectionAllocator,
     dql: dashql.DashQL,
-    cloudConnectionId: string | null,
     linkConnectionId: string | null = getHyperLinkTabState().current,
 ): ConnectionState {
     const linked = linkConnectionId == null ? null : connections.get(linkConnectionId);
-    return linked ?? findCloudConnection(connections, cloudConnectionId) ?? embeddedConnection(connections.values(), allocate, dql);
+    return linked ?? embeddedConnection(connections.values(), allocate, dql);
 }
 
 /// Resolve the connection that new workbooks start on, see `newWorkbookConnection`
 export function useNewWorkbookConnection(): (dql: dashql.DashQL) => ConnectionState {
     const registryStore = useConnectionRegistryStore();
     const allocate = useConnectionAllocator();
-    const cloudConnectionId = useCloudConnectionId();
     return React.useCallback(
-        (dql: dashql.DashQL) => newWorkbookConnection(registryStore.current.connections, allocate, dql, cloudConnectionId),
-        [allocate, registryStore, cloudConnectionId],
+        (dql: dashql.DashQL) => newWorkbookConnection(registryStore.current.connections, allocate, dql),
+        [allocate, registryStore],
     );
 }
 

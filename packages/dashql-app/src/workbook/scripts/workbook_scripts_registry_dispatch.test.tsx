@@ -177,7 +177,7 @@ describe('useWorkbookScripts dispatch', () => {
 
     it('keeps a cloud preview unchanged until it is imported', async () => {
         const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
-        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002' };
+        const cloud = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud' };
         const preview = {
             ...fixture('preview'),
             name: 'Published',

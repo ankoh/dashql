@@ -39,6 +39,7 @@ const dependencies = {
         return null;
     },
     ConnectionOverviewPage: () => null,
+    CloudOverviewPage: () => null,
     WorkbookStatusBar: (props: any) => <div data-testid="workbook-status-bar" data-variant={props.variant} />,
     WorkbookNavigationDrawer: () => null,
     ThreeBarsIcon: () => null,

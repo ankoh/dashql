@@ -3,7 +3,6 @@ import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router
 import { useConnectionAllocator, useConnectionRegistryStore, workbookConnectionFromState } from '../connections/connection_registry.js';
 import { ConnectionState } from '../connections/connection_state.js';
 import { findEmbeddedConnection, newWorkbookConnection } from '../connections/embedded_connection.js';
-import { useCloudConnectionId } from '../connections/cloud_connection.js';
 import { getHyperLinkTabState, isHyperLinkParams } from '../connections/hyper/hyper_link.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { groupWorkbookManifestWrites, WRITE_WORKBOOK_MANIFEST } from '../storage/storage_writer.js';
@@ -87,13 +86,12 @@ export function useEnsureEphemeralWorkbook(): () => WorkbookScripts | null {
     const registryStore = useConnectionRegistryStore();
     const allocateConnection = useConnectionAllocator();
     const ephemeralWorkbook = useEphemeralWorkbook();
-    const cloudConnectionId = useCloudConnectionId();
     return React.useCallback(() => {
         const { connections } = registryStore.current;
         const embedded = findEmbeddedConnection(connections.values());
         if (embedded == null) return null;
-        return ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, embedded.instance, cloudConnectionId));
-    }, [allocateConnection, ephemeralWorkbook, registryStore, cloudConnectionId]);
+        return ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, embedded.instance));
+    }, [allocateConnection, ephemeralWorkbook, registryStore]);
 }
 
 /// Open the greeter, the feed of the ephemeral workbook at the root of the app
