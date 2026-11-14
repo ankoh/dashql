@@ -11,7 +11,7 @@ import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/co
 import { getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
 import { EXECUTOR_CTX, type QueryExecutor, type QueryExecutorContextValue } from './query_executor.js';
 import { SETUP_CTX as TRINO_SETUP_CTX } from './trino/trino_connector.js';
-import type { TrinoSetupApi } from './trino/trino_connection_setup.js';
+import type { TrinoSetupApi } from '@ankoh/dashql-sdk/connections/trino/trino_connection_setup';
 import type { TrinoChannelInterface } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
 import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';

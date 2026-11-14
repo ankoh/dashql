@@ -4,8 +4,10 @@ import { TrinoApiClient, TrinoApiClientInterface } from "@ankoh/dashql-sdk/conne
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
-import { createTrinoSetup, TrinoSetupApi } from './trino_connection_setup.js';
+import { createTrinoSetup, TrinoSetupApi } from '@ankoh/dashql-sdk/connections/trino/trino_connection_setup';
 import { usePlatformType } from '../../platform/platform_type.js';
+import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
+import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 
 const API_CTX = React.createContext<TrinoApiClientInterface | null>(null);
 export const SETUP_CTX = React.createContext<TrinoSetupApi | null>(null);
@@ -19,6 +21,7 @@ export const TrinoConnector: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     const httpClient = useHttpClient();
     const platformType = usePlatformType();
+    const appEvents = usePlatformEventListener();
     const connectorConfig = config?.connectors?.trino;
     const forceReLogin = config?.settings?.forceReLogin ?? false;
 
@@ -27,10 +30,10 @@ export const TrinoConnector: React.FC<Props> = (props: Props) => {
             return [null, null];
         } else {
             const api: TrinoApiClientInterface = new TrinoApiClient(logger, httpClient);
-            const setup = createTrinoSetup(api!, connectorConfig, logger, httpClient, platformType, forceReLogin);
+            const setup = createTrinoSetup(api!, connectorConfig, logger, httpClient, new AppOAuthFlow(appEvents, platformType), forceReLogin);
             return [api, setup];
         }
-    }, [connectorConfig, httpClient, platformType, forceReLogin]);
+    }, [connectorConfig, httpClient, platformType, appEvents, forceReLogin]);
 
     return (
         <API_CTX.Provider value={api}>

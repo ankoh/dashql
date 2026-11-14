@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectorConfigs, readConnectorConfigs } from '../connections/connector_configs.js';
+import { ConnectorConfigs, readConnectorConfigs } from '@ankoh/dashql-sdk/connections/connector_configs';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
 import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';

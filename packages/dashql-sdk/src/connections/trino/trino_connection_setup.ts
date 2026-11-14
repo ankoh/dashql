@@ -16,18 +16,18 @@ import {
     RECEIVED_OAUTH_CODE,
     REQUESTING_ACCESS_TOKEN,
     RECEIVED_ACCESS_TOKEN,
-} from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { LoggableException, Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
-import { requestTrinoAccessToken, TrinoApiClientInterface, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
-import { TrinoChannel, TrinoChannelInterface } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
-import { trinoSessionDefaults } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
+} from './trino_connection_state.js';
+import { Dispatch } from '../../utils/variant.js';
+import { LoggableException, Logger, stringifyError } from '../../platform/logger/logger.js';
+import { RESET_CONNECTION } from '../connection_state.js';
+import { requestTrinoAccessToken, TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
+import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
+import { trinoSessionDefaults } from './trino_catalogs.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
-import { PlatformType } from '../../platform/platform_type.js';
-import { HttpClient } from '@ankoh/dashql-sdk/platform/http/http_client';
-import { dateToTimestamp } from '@ankoh/dashql-sdk/connections/proto_helper';
+import type { OAuthFlow } from '../../oauth/oauth_flow.js';
+import { HttpClient } from '../../platform/http/http_client.js';
+import { dateToTimestamp } from '../proto_helper.js';
 
 const LOG_CTX = "trino_setup";
 
@@ -91,20 +91,6 @@ async function setupTrinoConnectionBasic(
     return channel;
 }
 
-/// Wait for the OAuth redirect to reach the native loopback server
-async function waitForOAuthCallback(bridge: DashQLElectronBridge, loopbackId: number, abortSignal: AbortSignal): Promise<DashQLOAuthLoopbackResult> {
-    const onAbort = () => void bridge.oauthLoopback.close(loopbackId);
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-    try {
-        return await bridge.oauthLoopback.wait(loopbackId);
-    } catch (e: any) {
-        abortSignal.throwIfAborted();
-        throw e;
-    } finally {
-        abortSignal.removeEventListener('abort', onAbort);
-    }
-}
-
 /// Setup Trino connection with OAuth
 async function setupTrinoConnectionOAuth(
     modifyState: Dispatch<TrinoConnectorAction>,
@@ -113,6 +99,7 @@ async function setupTrinoConnectionOAuth(
     _config: TrinoConnectorConfig,
     client: TrinoApiClientInterface,
     httpClient: HttpClient,
+    oauthFlow: OAuthFlow,
     forceReLogin: boolean,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
@@ -122,7 +109,6 @@ async function setupTrinoConnectionOAuth(
         throw new LoggableException("OAuth configuration is required for OAuth authentication", {}, LOG_CTX);
     }
     const oauthConfig = params.auth.oauth;
-    let loopbackId: number | null = null;
 
     try {
         // Start OAuth flow
@@ -137,14 +123,8 @@ async function setupTrinoConnectionOAuth(
         abortSignal.throwIfAborted();
         modifyState({ type: GENERATED_PKCE_CHALLENGE, value: pkceChallenge });
 
-        // The redirect is received by a loopback server of the desktop app
-        const bridge = globalThis.dashqlElectron;
-        if (!bridge) {
-            throw new LoggableException("Trino OAuth requires the DashQL desktop app", {}, LOG_CTX);
-        }
+        // The redirect goes to a loopback server of the platform
         const callbackUrl = oauthConfig.callbackUrl || DEFAULT_OAUTH_CALLBACK_URL;
-        loopbackId = await bridge.oauthLoopback.listen(callbackUrl);
-        abortSignal.throwIfAborted();
 
         // Build the authorization URL
         const state = crypto.randomUUID();
@@ -163,19 +143,18 @@ async function setupTrinoConnectionOAuth(
             // existing session cookie in the system browser.
             authURLParams.set('prompt', 'login');
         }
-        const authUrl = `${oauthConfig.authorizationUrl}?${authURLParams.toString()}`;
+        const authUrl = new URL(`${oauthConfig.authorizationUrl}?${authURLParams.toString()}`);
 
-        // Open the browser for OAuth
-        logger.debug("Opening OAuth URL", { url: authUrl }, LOG_CTX);
-        await bridge.openExternal(authUrl);
-        modifyState({
-            type: OAUTH_BROWSER_OPENED,
-            value: null,
+        // Open the browser for OAuth and wait for the callback
+        logger.debug("Opening OAuth URL", { url: authUrl.toString() }, LOG_CTX);
+        const callbackData = await oauthFlow.authorizeWithLoopback(authUrl, callbackUrl, abortSignal, event => {
+            if (event === 'EXTERNAL_BROWSER_OPENED') {
+                modifyState({
+                    type: OAUTH_BROWSER_OPENED,
+                    value: null,
+                });
+            }
         });
-        abortSignal.throwIfAborted();
-
-        // Wait for the OAuth callback
-        const callbackData = await waitForOAuthCallback(bridge, loopbackId, abortSignal);
         abortSignal.throwIfAborted();
 
         // Check for errors
@@ -265,10 +244,6 @@ async function setupTrinoConnectionOAuth(
             });
         }
         throw error;
-    } finally {
-        if (loopbackId !== null) {
-            void globalThis.dashqlElectron?.oauthLoopback.close(loopbackId).catch(() => { });
-        }
     }
 
     return channel;
@@ -282,7 +257,7 @@ export async function setupTrinoConnection(
     config: TrinoConnectorConfig,
     client: TrinoApiClientInterface,
     httpClient: HttpClient,
-    _platformType: PlatformType,
+    oauthFlow: OAuthFlow,
     forceReLogin: boolean,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
@@ -292,7 +267,7 @@ export async function setupTrinoConnection(
     const authType = params.auth?.authType ?? "AUTH_BASIC";
     switch (authType) {
         case "AUTH_OAUTH":
-            return await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, forceReLogin, abortSignal);
+            return await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, oauthFlow, forceReLogin, abortSignal);
         case "AUTH_BASIC":
         default:
             return await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
@@ -309,11 +284,11 @@ export function createTrinoSetup(
     config: TrinoConnectorConfig,
     logger: Logger,
     httpClient: HttpClient,
-    platformType: PlatformType,
+    oauthFlow: OAuthFlow,
     forceReLogin: boolean
 ): (TrinoSetupApi | null) {
     const setup = async (modifyState: Dispatch<TrinoConnectorAction>, params: connection.TrinoConnectionParams, abort: AbortSignal) => {
-        return await setupTrinoConnection(modifyState, logger, params, config, trinoClient, httpClient, platformType, forceReLogin, abort);
+        return await setupTrinoConnection(modifyState, logger, params, config, trinoClient, httpClient, oauthFlow, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<TrinoConnectorAction>) => {
         updateState({

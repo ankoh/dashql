@@ -2,16 +2,17 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { OAuthState } from '../../oauth/oauth_types.js';
+import type { OAuthState } from '@ankoh/dashql-sdk/oauth/oauth_types';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { PlatformType } from '../../platform/platform_type.js';
+import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import {
     authenticateSalesforce,
     buildSalesforceAuthorizationUrl,
     validateSalesforceOAuthCallbackState,
-} from './salesforce_authentication.js';
+} from '@ankoh/dashql-sdk/connections/salesforce/salesforce_authentication';
 
 const params: connection.SalesforceConnectionParams = {
     instanceUrl: 'https://example.my.salesforce.com',
@@ -137,9 +138,8 @@ describe('authenticateSalesforce', () => {
                 logger: new TestLogger(),
                 params,
                 authConfig,
-                platformType: PlatformType.WEB,
+                oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
                 apiClient,
-                appEvents: appEvents as any,
                 forceReLogin: false,
                 abortSignal: new AbortController().signal,
             });
@@ -173,9 +173,8 @@ describe('authenticateSalesforce', () => {
             logger,
             params,
             authConfig,
-            platformType: PlatformType.WEB,
+            oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
             apiClient,
-            appEvents: appEvents as any,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
             onProgress: progress => stages.push(progress.stage),
@@ -234,9 +233,8 @@ describe('authenticateSalesforce', () => {
             logger: new TestLogger(),
             params,
             authConfig,
-            platformType: PlatformType.DESKTOP,
+            oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.DESKTOP),
             apiClient,
-            appEvents: appEvents as any,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
             onProgress: progress => stages.push(progress.stage),
@@ -262,9 +260,8 @@ describe('authenticateSalesforce', () => {
             logger: new TestLogger(),
             params,
             authConfig,
-            platformType: PlatformType.WEB,
+            oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
             apiClient: {} as SalesforceApiClientInterface,
-            appEvents: appEvents as any,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
         })).rejects.toThrow('The user denied access');
@@ -292,8 +289,8 @@ describe('authenticateSalesforce', () => {
             })),
         };
         await expect(authenticateSalesforce({
-            logger: new TestLogger(), params, authConfig, platformType: PlatformType.WEB,
-            apiClient, appEvents: appEvents as any, forceReLogin: false,
+            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
+            apiClient, forceReLogin: false,
             abortSignal: abort.signal, onProgress: progress => stages.push(progress.stage),
         })).rejects.toThrow();
         expect(stages).toContain('REQUESTING_DATA_CLOUD_ACCESS_TOKEN');
@@ -316,9 +313,8 @@ describe('authenticateSalesforce', () => {
             logger: new TestLogger(),
             params,
             authConfig,
-            platformType: PlatformType.WEB,
+            oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
             apiClient: {} as SalesforceApiClientInterface,
-            appEvents: appEvents as any,
             forceReLogin: false,
             abortSignal: abort.signal,
         })).rejects.toMatchObject({ name: 'AbortError' });

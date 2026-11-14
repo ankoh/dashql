@@ -1,7 +1,7 @@
 import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from '@ankoh/dashql-sdk/storage/storage_backend';
 import { STORAGE_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { sleep } from '../utils/sleep.js';
+import { sleep } from '@ankoh/dashql-sdk/utils/sleep';
 import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import {
     INITIAL_WORKBOOK_FOLDER,

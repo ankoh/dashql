@@ -11,7 +11,7 @@ import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-sdk/connection
 import { performHealthCheck } from './health_check.js';
 import { useQueryExecutor } from './query_executor.js';
 import { useSalesforceSetup } from './salesforce/salesforce_connector.js';
-import type { SalesforceConnectorType } from './salesforce/salesforce_connection_setup.js';
+import type { SalesforceConnectorType } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
 import { getSalesforceConnectionDetails } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
 import {
     TextField,

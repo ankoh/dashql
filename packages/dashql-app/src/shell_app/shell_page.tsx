@@ -27,7 +27,8 @@ import { createPlanCommand } from './commands/plan.js';
 import { createShareCommand } from './commands/share.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
 import { SalesforceApiClient } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import { authenticateSalesforce } from '../connections/salesforce/salesforce_authentication.js';
+import { authenticateSalesforce } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_authentication';
+import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
@@ -157,12 +158,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         logger,
                         params,
                         authConfig: { oauthRedirect },
-                        platformType,
+                        oauthFlow: new AppOAuthFlow(appEvents, platformType, form.oauthPopup ?? null),
                         apiClient: new SalesforceApiClient(logger, httpClient),
-                        appEvents,
                         forceReLogin: appConfigRef.current?.settings?.forceReLogin ?? false,
                         abortSignal,
-                        oauthPopup: form.oauthPopup,
                         onProgress: progress => {
                             const messages: Partial<Record<typeof progress.stage, string>> = {
                                 GENERATING_PKCE_CHALLENGE: 'Preparing secure Salesforce login',

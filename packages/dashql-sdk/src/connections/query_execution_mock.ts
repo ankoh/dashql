@@ -4,9 +4,9 @@ import {
     QueryExecutionResponseStream, QueryExecutionMetrics,
     QueryExecutionStatus,
     createQueryResponseStreamMetrics,
-} from '@ankoh/dashql-sdk/query/query_execution_state';
+} from '../query/query_execution_state.js';
 import { sleep } from '../utils/sleep.js';
-import { AsyncConsumer } from '@ankoh/dashql-sdk/utils/async_consumer';
+import { AsyncConsumer } from '../utils/async_consumer.js';
 
 export class QueryExecutionResponseStreamMock implements QueryExecutionResponseStream {
     schema: arrow.Schema;

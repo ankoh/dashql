@@ -5,7 +5,7 @@ import * as styles from './workbook_url_share_overlay.module.css';
 import { CheckIcon, PaperclipIcon } from '../../ui/foundations/symbol_icon.js';
 import { IconButton } from '../../ui/foundations/button.js';
 import { TextInput } from '../../ui/foundations/text_input.js';
-import { sleep } from '../../utils/sleep.js';
+import { sleep } from '@ankoh/dashql-sdk/utils/sleep';
 
 const COPY_CHECKMARK_DURATION_MS = 1000;
 

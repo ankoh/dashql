@@ -14,15 +14,15 @@ import {
     SalesforceConnectionStateAction,
     SF_CHANNEL_READY,
     SF_CHANNEL_SETUP_STARTED,
-} from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
+} from './salesforce_connection_state.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { sleep } from '../../utils/sleep.js';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
+import { Dispatch } from '../../utils/variant.js';
+import { Logger, stringifyError } from '../../platform/logger/logger.js';
+import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { SalesforceConnectorType, SalesforceSetupApi } from './salesforce_connection_setup.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
+import { RESET_CONNECTION } from '../connection_state.js';
 import { HyperDatabaseChannelMock } from '../hyper/hyperdb_grpc_client_mock.js';
 
 

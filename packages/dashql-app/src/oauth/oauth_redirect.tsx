@@ -3,7 +3,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
-import type { OAuthState, AppEventData } from './oauth_types.js';
+import type { OAuthState, AppEventData } from '@ankoh/dashql-sdk/oauth/oauth_types';
 
 import { useSearchParams } from 'react-router-dom';
 

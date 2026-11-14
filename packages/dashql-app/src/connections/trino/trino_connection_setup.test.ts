@@ -4,10 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
+import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { TrinoApiClient, TrinoApiEndpoint } from '@ankoh/dashql-sdk/connections/trino/trino_api_client';
 import { TrinoChannel } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
-import { createTrinoSetup, setupTrinoConnection } from './trino_connection_setup.js';
+import { createTrinoSetup, setupTrinoConnection } from '@ankoh/dashql-sdk/connections/trino/trino_connection_setup';
 import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
 import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
 import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
@@ -66,7 +67,7 @@ async function setup(
     signal = new AbortController().signal,
 ) {
     const logger = new TestLogger();
-    return await setupTrinoConnection(dispatch, logger, params, {} as never, new TrinoApiClient(logger, httpClient), httpClient, PlatformType.WEB, false, signal);
+    return await setupTrinoConnection(dispatch, logger, params, {} as never, new TrinoApiClient(logger, httpClient), httpClient, new AppOAuthFlow({} as never, PlatformType.DESKTOP), false, signal);
 }
 
 describe('Trino OAuth setup', () => {
@@ -126,7 +127,7 @@ describe('Trino basic setup', () => {
     it('sets up and resets connections through the setup API', async () => {
         const http = new FakeHttpClient();
         const logger = new TestLogger();
-        const api = createTrinoSetup(new TrinoApiClient(logger, http), {} as never, logger, http, PlatformType.WEB, false)!;
+        const api = createTrinoSetup(new TrinoApiClient(logger, http), {} as never, logger, http, new AppOAuthFlow({} as never, PlatformType.DESKTOP), false)!;
         const dispatch = vi.fn();
         expect(await api.setup(dispatch, BASIC_PARAMS, new AbortController().signal)).toBeInstanceOf(TrinoChannel);
         await api.reset(dispatch);

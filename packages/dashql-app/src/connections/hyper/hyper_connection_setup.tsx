@@ -9,7 +9,7 @@ import {
     HyperConnectorAction,
 } from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
 import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { HyperConnectorConfig } from '../connector_configs.js';
+import { HyperConnectorConfig } from '@ankoh/dashql-sdk/connections/connector_configs';
 import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import {
     HyperDatabaseChannel,

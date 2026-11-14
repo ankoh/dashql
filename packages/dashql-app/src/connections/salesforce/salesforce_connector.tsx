@@ -1,15 +1,16 @@
 import * as React from 'react';
 
 import { SalesforceApiClient, SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import { SalesforceAPIClientMock } from './salesforce_api_client_mock.js';
-import { mockSalesforceAuthFlow as mockSalesforceSetup } from './salesforce_connection_setup_mock.js';
-import { SalesforceSetupApi, createSalesforceSetup } from './salesforce_connection_setup.js';
+import { SalesforceAPIClientMock } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client_mock';
+import { mockSalesforceAuthFlow as mockSalesforceSetup } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup_mock';
+import { SalesforceSetupApi, createSalesforceSetup } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';
 import { usePlatformType } from '../../platform/platform_type.js';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
+import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 
 const API_CTX = React.createContext<SalesforceApiClientInterface | null>(null);
 const SETUP_CTX = React.createContext<SalesforceSetupApi | null>(null);
@@ -40,7 +41,7 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
             return [null, null];
         } else {
             const api = new SalesforceApiClient(logger, httpClient);
-            const setup = createSalesforceSetup(hyperHttpClient, api, platformType, appEvents, connectorConfig, forceReLogin, logger);
+            const setup = createSalesforceSetup(hyperHttpClient, api, new AppOAuthFlow(appEvents, platformType), connectorConfig, forceReLogin, logger);
             return [api, setup];
         }
     }, [connectorConfig, httpClient, hyperHttpClient, platformType, appEvents, forceReLogin]);

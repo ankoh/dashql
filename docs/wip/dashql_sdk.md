@@ -1,6 +1,6 @@
 # DashQL SDK
 
-Status: steps 1 and 2 are built, step 3 is built for four services, the rest is proposed.
+Status: steps 1 and 2 are built, step 3 is built for four services, step 4 has the OAuth flow, the rest is proposed.
 
 `packages/dashql-sdk` (`@ankoh/dashql-sdk`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -12,8 +12,9 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | Untangling in place (leaks, `Store` without React) | Done, step 1 |
 | `packages/dashql-sdk` with the clean modules, `//packages/dashql-sdk:boundary_test` | Done, step 2; their tests still run in the browser tests of the app |
 | Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections are done |
-| The connector setups, the restore, one runtime | Step 4, with the seams of the platforms |
-| Node platform and the CLI on top | Planned, step 4 |
+| The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
+| The restore, one runtime | Step 4, with the tab state of the platform |
+| Node platform and the CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
 | Editor state out of `ScriptData` | Later, step 5 |
 
 ## Why
@@ -167,7 +168,7 @@ For agents this means:
 
 ```
 packages/dashql-sdk                 @ankoh/dashql-sdk: TypeScript and Wasm, no React, no CodeMirror, no Vite ?url imports
-  src/platform/                     interfaces: HttpClient, StorageBackend (+ fs), EmbeddedDatabase, AuthFlow, Scheduler,
+  src/platform/                     interfaces: HttpClient, StorageBackend (+ fs), EmbeddedDatabase, OAuthFlow, Scheduler,
                                     LogSink, WasmSource
   src/store/                        Store, UpdateQueue
   src/workbook/                     workbook_scripts reducer, script analysis, attachments, inputs
@@ -257,20 +258,28 @@ Each step ships on its own and keeps the behavior.
      runs of single scripts;
    - `ConnectionPersistenceService` (`connections/connection_persistence_service.ts`).
 
-   The rest waits for the seams of step 4. The setups of Salesforce and Trino authenticate in a popup window or
-   through the OAuth loopback of the Electron bridge, and the restore (`app_state_loader.ts`) reads the tokens of
-   Hyper links from the storage of the tab (`connections/hyper/hyper_link.ts`, `embedded_connection.ts` also binds
-   React). They move once the platform passes an auth flow and the tab state in. The runtime object that replaces the
+   The rest waits for the seams of step 4. The restore (`app_state_loader.ts`) reads the tokens of Hyper links from
+   the storage of the tab (`connections/hyper/hyper_link.ts`, `embedded_connection.ts` also binds React). It moves
+   once the platform passes the tab state in. The runtime object that replaces the
    nesting of providers comes with them: `createRuntime` states the startup order that the nesting implies today
    (the embedded Hyper needs the core, the Hyper setup needs the embedded Hyper).
-4. **Platform seams and Node.** An auth flow (popup and redirect in the browser, loopback in Electron and Node) and the
-   tab state passed in, so the connector setups and the restore move; `createRuntime`. Then the Node platform: a
+4. **Platform seams and Node.** An OAuth flow, done: `oauth/oauth_flow.ts` of the SDK opens the authorization page
+   and receives the redirect, through the redirect page (`oauth.html`, to the opener in a browser or as a link of the
+   desktop app) or a loopback server (Trino). A connector builds the URL and exchanges the code. The app implements it
+   in `oauth/app_oauth_flow.ts` (a popup that a dialog reserved during the click, the Electron bridge); the setups of
+   Salesforce and Trino, their mocks and `connector_configs.ts` moved into the SDK. Next the tab state passed in, so
+   the restore moves; `createRuntime`. Then the Node platform: a
    storage backend over `node:fs` (`NativeStorageBackend` with the fs functions passed in), a fetch client,
    `EmbeddedDatabase` over `hyperdb-wasm` `node`, Wasm from files. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.
 5. **Editor state.** Out of `ScriptData` into the app.
 
 ## The CLI on the SDK
+
+Everything the CLI does goes through the SDK. `packages/dashql-cli` becomes a Node package on `@ankoh/dashql-sdk` with
+the `dashql` command, and the Rust `dashql` (`lint`, `format`, the agent server) stays only until the Node one has its
+commands: `lint` and `format` are calls of the core, the agent server moves to Node. DashQL.app runs the Node CLI with
+Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
 - **Offline by default.** `check`, `pack`, `unpack` and `link` read and write files in the workspace, nothing else.
 - **Network in separate subcommands.** `run` and `catalog refresh` reach connections; a harness approves them by
@@ -322,9 +331,6 @@ The browser and Node must offer the same: every feature of the SDK runs, and is 
 
 ## Open
 
-- **The Rust CLI.** `lint` and `format` are core functions and move into the SDK; the agent server could move to
-  Node. DashQL.app can run the Node CLI with Electron's Node (`ELECTRON_RUN_AS_NODE`). Replace the Rust `dashql` once
-  step 4 works, or keep it for native-only parts.
 - **Bun.** AI Suite ships Bun 1.3.5. It can't load the embedded Hyper until JavaScriptCore has memory64. The core and
   the commands without Hyper may run; that is untested. Run the SDK's tests without Hyper under Bun as well, and the
   rest once JavaScriptCore has memory64.

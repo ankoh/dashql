@@ -8,7 +8,7 @@ import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import { RedirectPage } from './oauth_redirect.js';
-import type { AppEventData, OAuthState } from './oauth_types.js';
+import type { AppEventData, OAuthState } from '@ankoh/dashql-sdk/oauth/oauth_types';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

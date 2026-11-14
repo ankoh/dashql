@@ -1,6 +1,6 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { dateToTimestamp } from '@ankoh/dashql-sdk/connections/proto_helper';
+import { dateToTimestamp } from '../proto_helper.js';
 
 import {
     SETUP_CANCELLED,
@@ -20,18 +20,17 @@ import {
     SalesforceConnectionStateAction,
     SF_CHANNEL_READY,
     SF_CHANNEL_SETUP_STARTED,
-} from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
-import { PlatformType } from '../../platform/platform_type.js';
+} from './salesforce_connection_state.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { PlatformEventListener } from '../../platform/events/event_listener.js';
-import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
-import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { Dispatch } from '../../utils/variant.js';
+import { Logger, stringifyError } from '../../platform/logger/logger.js';
+import type { OAuthFlow } from '../../oauth/oauth_flow.js';
+import { RESET_CONNECTION } from '../connection_state.js';
+import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 import { authenticateSalesforce, SalesforceAuthenticationProgress } from './salesforce_authentication.js';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { getHyperCloudAttachedDatabase } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_catalog_update';
+import { ConnectorType } from '../connector_info.js';
+import { getHyperCloudAttachedDatabase } from './salesforce_catalog_update.js';
 
 const LOG_CTX = "salesforce_setup";
 
@@ -68,7 +67,7 @@ export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | Conn
 //  5. Client sends authorization_code and code_verifier to the token endpoint. (RFC 7636, Section 4.5)
 //  6. Server transforms the code_verifier using the code_challenge_method from the initial authorization request and checks the result against the code_challenge. If the value of both strings match, then the server has verified that the requests came from the same client and will issue an access_token. (RFC 7636, Section 4.6)
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, oauthFlow: OAuthFlow, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     params = structuredClone(params);
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
@@ -126,9 +125,8 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             logger,
             params,
             authConfig: config.auth,
-            platformType,
+            oauthFlow,
             apiClient,
-            appEvents,
             forceReLogin,
             abortSignal,
             onProgress: onAuthenticationProgress,
@@ -220,9 +218,9 @@ export interface SalesforceSetupApi {
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
-export function createSalesforceSetup(httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
+export function createSalesforceSetup(httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, oauthFlow: OAuthFlow, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
     const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
-        return setupSalesforceConnection(updateState, logger, connector, params, config, platformType, salesforceApi, httpClient, appEvents, forceReLogin, abort);
+        return setupSalesforceConnection(updateState, logger, connector, params, config, oauthFlow, salesforceApi, httpClient, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({

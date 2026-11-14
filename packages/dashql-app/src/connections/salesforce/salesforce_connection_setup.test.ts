@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { createSalesforceSetup, setupSalesforceConnection } from './salesforce_connection_setup.js';
+import { createSalesforceSetup, setupSalesforceConnection } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
 import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { PlatformType } from '../../platform/platform_type.js';
+import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
 import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
 import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
@@ -75,10 +76,9 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
             connector,
             params,
             { auth: { oauthRedirect: 'https://example.com/callback' } },
-            PlatformType.WEB,
+            new AppOAuthFlow(events as any, PlatformType.WEB),
             api,
             client,
-            events as any,
             false,
             new AbortController().signal,
         );
@@ -111,7 +111,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
 
 describe('createSalesforceSetup', () => {
     const params = { instanceUrl: 'https://example.my.salesforce.com', appConsumerKey: 'key' } as connection.SalesforceConnectionParams;
-    const create = (config: object) => createSalesforceSetup(null, {} as SalesforceApiClientInterface, PlatformType.WEB, {} as never, config as never, false, new TestLogger())!;
+    const create = (config: object) => createSalesforceSetup(null, {} as SalesforceApiClientInterface, new AppOAuthFlow({} as never, PlatformType.WEB), config as never, false, new TestLogger())!;
 
     it('resets the connection', async () => {
         const dispatch = vi.fn();
