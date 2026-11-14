@@ -186,10 +186,3 @@ export function makeFsMock() {
         },
     };
 }
-
-/// Build the path mock object. Tests use "/" separators for simplicity.
-export function makePathMock() {
-    return {
-        join: async (...parts: string[]) => parts.filter(p => p.length > 0).join('/'),
-    };
-}

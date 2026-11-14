@@ -17,7 +17,6 @@ import {
 
 // The runs of workbooks are a service of the runtime (packages/dashql-runtime/src/workbook/scripts/workbook_execution_service.ts),
 // this module binds it to React
-export { workbookExecutionIsBusy, type WorkbookExecutionOptions } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 
 interface ExecutionContext {
     states: Map<string, WorkbookExecutionState>;

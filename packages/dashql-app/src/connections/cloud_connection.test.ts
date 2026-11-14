@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { cloudConnectionIdsOf, createLocalCloudParams, findCloudConnections, isCloudCapable, isLocalCloud, LOCAL_CLOUD_DATABASE } from './cloud_connection.js';
+import { cloudConnectionIdsOf, createLocalCloudParams, findCloudConnections, isCloudCapable, isLocalCloud } from './cloud_connection.js';
+import { LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { getConnectionStateDetailsFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_validation';

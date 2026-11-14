@@ -24,13 +24,6 @@ export enum CatalogUpdateTaskStatus {
     CANCELLED = 3,
     PARTIALLY_SUCCEEDED = 4,
 }
-export const CATALOG_UPDATE_TASK_STATUS_NAMES: string[] = [
-    "Started",
-    "Succeeded",
-    "Failed",
-    "Cancelled",
-    "Partially Succeeded",
-];
 
 export interface CatalogUpdateTaskState {
     /// The task key

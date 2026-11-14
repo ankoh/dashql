@@ -7,7 +7,7 @@ import {
     formatPhase,
     monotonicFraction,
     workOf,
-} from './query_progress_model.js';
+} from './query_progress_format.js';
 import { createProfileLayoutConfig } from '@ankoh/dashql-runtime/query/profile/profile_layout_config';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

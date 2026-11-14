@@ -13,7 +13,6 @@ import { QueryExecutorService, type QueryExecutorDependencies, type WatchQueryPr
 // The executor is a service of the runtime (packages/dashql-runtime/src/connections/query_executor_service.ts), this module
 // binds it to React
 export type { CancelQuery, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
-export { computeQueryCacheKeyForConnection, logQueryFailure, type WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
 
 /// The React context to resolve the active query executor
 export interface QueryExecutorContextValue {

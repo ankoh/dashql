@@ -16,7 +16,8 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-r
 import { QueryExecutorProvider } from '../../connections/query_executor.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookExecutionProvider, workbookExecutionIsBusy, useWorkbookExecution } from './workbook_execution_provider.js';
+import { WorkbookExecutionProvider, useWorkbookExecution } from './workbook_execution_provider.js';
+import { workbookExecutionIsBusy } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { REGISTER_QUERY, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';

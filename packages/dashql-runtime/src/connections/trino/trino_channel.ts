@@ -45,8 +45,6 @@ function isFinalQueryInfo(info: TrinoQueryInfo): boolean {
     return info.state === 'FAILED' || (info.state === 'FINISHED' && info.finalQueryInfo === true);
 }
 
-export interface TrinoQueryExecutionProgress extends QueryExecutionProgress { }
-
 export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     /// The logger
     logger: Logger;

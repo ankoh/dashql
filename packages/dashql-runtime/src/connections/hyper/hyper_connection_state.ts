@@ -31,14 +31,6 @@ export function createHyperConnectionStateDetails(params: connection.HyperConnec
     };
 }
 
-export function getHyperConnectionDetails(state: ConnectionState | null): HyperConnectionDetails | null {
-    if (state == null) return null;
-    switch (state.details.type) {
-        case HYPER_CONNECTOR: return state.details.value;
-        default: return null;
-    }
-}
-
 export const HYPER_CHANNEL_SETUP_CANCELLED = Symbol('HYPER_CHANNEL_SETUP_CANCELLED');
 export const HYPER_CHANNEL_SETUP_FAILED = Symbol('HYPER_CHANNEL_SETUP_FAILED');
 export const HYPER_CHANNEL_SETUP_STARTED = Symbol('HYPER_CHANNEL_SETUP_STARTED');

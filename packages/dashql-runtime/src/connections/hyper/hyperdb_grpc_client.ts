@@ -3,7 +3,7 @@ import * as pb from "../../proto.js";
 
 import { ChannelMetadataProvider } from '../../platform/channel_common.js';
 import type { EmbeddedClientContext } from '../../platform/database/embedded_database.js';
-import { QueryExecutionProgress, QueryExecutionResponseStream } from "../../query/query_execution_state.js";
+import { QueryExecutionResponseStream } from "../../query/query_execution_state.js";
 
 export interface AttachedDatabase {
     path: string;
@@ -18,8 +18,6 @@ export interface HyperDatabaseConnectionContext extends ChannelMetadataProvider 
     /// Get the client context of every query, which Hyper logs as ctx.client of the query events
     getClientContext?(): EmbeddedClientContext | null;
 }
-
-export interface HyperQueryExecutionProgress extends QueryExecutionProgress { }
 
 export interface HyperQueryResultStream extends QueryExecutionResponseStream { }
 

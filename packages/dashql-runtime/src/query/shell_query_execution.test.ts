@@ -1,4 +1,3 @@
-// @vitest-environment node
 import {
     EXECUTE_QUERY,
     QUERY_FAILED,
@@ -6,9 +5,9 @@ import {
     createQueryExecutionState,
     QueryExecutionStatus,
     QueryType,
-} from '@ankoh/dashql-runtime/query/query_execution_state';
-import { LoggableException } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
+} from './query_execution_state.js';
+import { LoggableException } from '../platform/logger/logger.js';
+import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from './shell_query_execution.js';
 
 function createExecution(queryId: number, queryText: string) {
     return createQueryExecutionState(

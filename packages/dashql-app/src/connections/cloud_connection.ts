@@ -6,8 +6,6 @@ import { useConnectionRegistry } from './connection_registry.js';
 import { useAppConfig, useAppReconfigure, type AppSettings } from '../config/app_config.js';
 import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 
-export { LOCAL_CLOUD_DATABASE };
-
 // A cloud is a connection that keeps the workbooks that the user publishes to it in the tables of DashQL. The app may
 // have several clouds, all equal: new workbooks don't start on one, and publishing names the cloud. See
 // docs/design/cloud.md.

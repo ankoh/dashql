@@ -22,7 +22,7 @@ import {
     stat,
     workOf,
     type ProgressWork,
-} from './query_progress_model.js';
+} from './query_progress_format.js';
 
 const view = dashql.buffers.profile;
 

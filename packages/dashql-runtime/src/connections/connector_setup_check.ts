@@ -44,10 +44,3 @@ export function checkSalesforceConnectionSetup(
     }
     return ConnectionSetupCheck.UNKNOWN;
 }
-
-export function checkHyperConnectionSetup(
-    state: ConnectionState | null,
-    params: connection.HyperConnectionParams,
-): ConnectionSetupCheck {
-    return ConnectionSetupCheck.UNKNOWN;
-}

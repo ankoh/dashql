@@ -30,7 +30,6 @@ export const STORAGE_CATALOG_FUNCTIONS = 'dashql-catalog-functions.sql';
 export const STORAGE_CATALOG_STATE = 'dashql-catalog-state.json';
 /// Older versions of the app kept the changes of executed statements here, the file is cleared when it is found
 export const STORAGE_CATALOG_CHANGES = 'dashql-catalog-changes.sql';
-export const STORAGE_SCRIPT_EXTENSION = '.sql';
 
 export interface DataFile {
     name: string;

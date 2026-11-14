@@ -32,10 +32,9 @@ import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from 
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { computeQueryCacheKeyForConnection, logQueryFailure } from '@ankoh/dashql-runtime/connections/query_executor_service';
 import {
-    computeQueryCacheKeyForConnection,
     EXECUTOR_CTX,
-    logQueryFailure,
     QueryExecutorProvider,
     useQueryProfileDetail,
     useQueryState,

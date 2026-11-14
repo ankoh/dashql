@@ -9,7 +9,6 @@ import { AsyncValue } from '../utils/async_value.js';
 
 export const TASK_FAILED = Symbol("TASK_FAILED");
 export const TASK_RUNNING = Symbol("TASK_RUNNING");
-export const TASK_SUCCEDED = Symbol("TASK_SUCCEDED");
 export const ORDINAL_COLUMN = Symbol("ORDINAL_COLUMN");
 export const STRING_COLUMN = Symbol("STRING_COLUMN");
 export const LIST_COLUMN = Symbol("LIST_COLUMN");
@@ -97,8 +96,6 @@ export interface TableOrderingTask {
     /// The ordering constraints
     orderingConstraints: OrderByConstraint[];
 }
-
-export type ResultSearchKind = 'columns' | 'data';
 
 export interface ResultSearchState {
     /// The plain-text search requested by the user
@@ -246,11 +243,6 @@ export interface ColumnStatsFields {
     minAggregateFieldName: string | null;
     /// Minimum value
     maxAggregateFieldName: string | null;
-}
-
-export interface ColumnBinningFields {
-    /// The bin field
-    binFieldName: string;
 }
 
 export interface RowNumberGridColumnGroup {
@@ -421,13 +413,6 @@ export interface OrdinalColumnAnalysis {
     binPercentages: Float64Array;
     /// The bin lower bounds
     binLowerBounds: string[];
-}
-
-export interface OrdinalColumnFilterAnalysis {
-    /// The bin counts
-    binValueCounts: BigInt64Array;
-    /// The bin percentages
-    binPercentages: Float64Array;
 }
 
 export interface StringColumnAggregation {

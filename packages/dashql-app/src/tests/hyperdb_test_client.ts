@@ -6,6 +6,7 @@ import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provi
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_settings';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
 import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
+import { openTestHyperDB } from '@ankoh/dashql-runtime/testing/test_hyperdb';
 
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.
 /// Tests share the client between the frames of the test files, every frame wraps it in its own HyperDBEngine.
@@ -68,25 +69,11 @@ export async function testDatabasePath(name: string): Promise<string> {
     return `${await testDatabaseFolder}/${name}`;
 }
 
-/// The number of databases that createTestHyperDB() created in this frame, it names their files
-let nextTestDatabase = 0;
-
-/// A HyperDB on the engine client of the tests, with databases of its own.
-/// `dispose` terminates the database and, when the client is not shared, the client.
+/// A HyperDB with databases of its own on the engine of the tests, the one of the tests of the runtime
+/// (openTestHyperDB). `dispose` terminates it, which drops its databases.
 export async function createTestHyperDB(name: string): Promise<{ database: HyperDB; dispose(): Promise<void> }> {
-    const { client, shared } = await getTestHyperDBClient();
-    const database = await HyperDB.create(new HyperDBEngine(client), {
-        computeDatabasePath: await testDatabasePath(`${name}-${nextTestDatabase++}.hyper`),
-        defaultDatabasePath: await testDatabasePath(`${name}-${nextTestDatabase++}.hyper`),
-        terminateEngine: false,
-    });
-    return {
-        database,
-        async dispose() {
-            await database.terminate();
-            if (!shared) await client.terminate();
-        },
-    };
+    const database = await openTestHyperDB(name);
+    return { database, dispose: () => database.terminate() };
 }
 
 /// A view of a database that ignores `terminate`, for providers that terminate their database when they unmount while
