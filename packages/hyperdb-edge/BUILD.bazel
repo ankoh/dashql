@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
@@ -9,6 +10,9 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 # @ankoh/dashql-sdk, the command runs the JavaScript that :compile writes to dist/.
 
 package(default_visibility = ["//visibility:public"])
+
+# The dev dependencies of package.json: the agent libraries of the stores, not dependencies of the DashQL packages
+npm_link_all_packages(name = "node_modules")
 
 _SOURCES = glob(["src/**/*.ts"])
 
@@ -126,4 +130,85 @@ vitest_bin.vitest_test(
         ":skill_files",
         "//:node_modules/vitest",
     ] + _DEPENDENCIES,
+)
+
+# The stores of agent libraries in stores/, see docs/wip/hyperdb_edge_stores.md. Their libraries are the dev
+# dependencies of this package, linked as :node_modules; the library and the command of hyperdb-edge don't use them.
+_STORE_SOURCES = glob(["stores/**/*.ts"])
+
+_STORE_DEPENDENCIES = [
+    ":node_modules/@anthropic-ai/claude-agent-sdk",
+    ":node_modules/@langchain/core",
+    ":node_modules/@langchain/langgraph",
+    ":node_modules/@langchain/langgraph-checkpoint",
+    ":node_modules/@langchain/langgraph-checkpoint-validation",
+    ":node_modules/@modelcontextprotocol/sdk",
+    ":node_modules/@openai/agents",
+    ":node_modules/zod",
+]
+
+# The tests share these copies: the Claude Code test runs outside the sandbox, and copies of its own would be actions
+# that conflict with those of the other targets
+copy_to_bin(
+    name = "store_files",
+    srcs = _STORE_SOURCES + [
+        "stores/tsconfig.json",
+        "stores/vitest.claude_code.config.mjs",
+        "stores/vitest.config.mjs",
+    ],
+)
+
+# The stores and their tests with the types of Node, against the libraries
+typescript_bin.tsc_test(
+    name = "stores_typecheck_test",
+    size = "small",
+    args = ["--project", "stores/tsconfig.json"],
+    chdir = "packages/hyperdb-edge",
+    data = [
+        ":store_files",
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+    ] + _DEPENDENCIES + _STORE_DEPENDENCIES,
+)
+
+# Each store against the reference of its library, the conformance suite of LangGraph for checkpointers included, and
+# under the agent loop of the OpenAI Agents SDK and of LangGraph, with a fake model
+vitest_bin.vitest_test(
+    name = "stores_test",
+    size = "large",
+    args = [
+        "run",
+        "--config",
+        "stores/vitest.config.mjs",
+    ],
+    chdir = "packages/hyperdb-edge",
+    data = [
+        ":store_files",
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+    ] + _DEPENDENCIES + _STORE_DEPENDENCIES,
+)
+
+# The session store under query() of the Claude Agent SDK, which runs the pinned Claude Code against a fake Messages
+# API on loopback, so outside the sandbox of Bazel as the agent tests in tests/agents
+vitest_bin.vitest_test(
+    name = "stores_claude_code_test",
+    size = "large",
+    args = [
+        "run",
+        "--config",
+        "stores/vitest.claude_code.config.mjs",
+    ],
+    chdir = "packages/hyperdb-edge",
+    data = [
+        ":store_files",
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+        "//tests/agents:claude",
+    ] + _DEPENDENCIES + _STORE_DEPENDENCIES,
+    env = {
+        "CLAUDE_BINARY": "$(rlocationpath //tests/agents:claude)",
+    },
+    no_copy_to_bin = ["//tests/agents:claude"],
+    tags = ["no-sandbox"],
 )

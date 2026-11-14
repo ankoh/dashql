@@ -1,7 +1,7 @@
 # hyperdb-edge stores
 
-Status: drafts for four agent libraries, tested against the libraries and their reference stores outside the Bazel
-build; not wired into the package yet.
+Status: drafts for four agent libraries, tested in Bazel against the libraries, their reference stores and their agent
+loops; not exported by the package yet.
 
 The state stores of agent libraries on a hot embedded Hyper (`hyperdb-wasm`): an agent keeps its sessions, checkpoints
 and memories in one `.hyper` file, and the same file answers analytical SQL over all of them (tool calls per session,
@@ -160,10 +160,19 @@ Two kinds per store, vitest with globals, each ending with SQL over the stored s
 | `langgraph_checkpoint_usage` | A graph with LangChain messages: an approval by `interrupt()` in a subgraph resumed after a restart, the approved calls fanned out with `Send`, time travel to the approval and the other branch (`invoke(null, config)` forks; a resume at the old checkpoint reuses its answer, in `MemorySaver` too), ten threads at once |
 | `langgraph_store_usage` | A graph that remembers in one thread and recalls in another by meaning; 1,000 memories of 20 users with 384 dimensions, searched with a filter before and after a restart; a self-join of their embeddings in SQL (about 477,000 pairs) |
 
-The tests need the libraries, which the repository doesn't depend on, so they run in a copy of the package with the
-libraries installed next to it (`npm install` of the libraries, `hyperdb-wasm` as a `file:` dependency of the one in
-`node_modules`). The Claude Agent SDK runs `CLAUDE_BINARY` when set, its own Claude Code otherwise. 754 tests pass in
-about 30 s, among them the conformance suite of LangGraph.
+The libraries are dev dependencies of `packages/hyperdb-edge/package.json`, linked by `npm_link_all_packages` of the
+package as `//packages/hyperdb-edge:node_modules/…`. The DashQL packages and the root `package.json` don't depend on
+them, and the library and the command of hyperdb-edge don't import them.
+
+| Target | What it runs |
+|---|---|
+| `//packages/hyperdb-edge:stores_typecheck_test` | The stores and their tests against the types of the libraries (`stores/tsconfig.json`) |
+| `//packages/hyperdb-edge:stores_test` | Every test of the stores but the one with Claude Code: 750 tests, the conformance suite of LangGraph for checkpointers among them (`stores/vitest.config.mjs`) |
+| `//packages/hyperdb-edge:stores_claude_code_test` | `claude_agent_sdk_usage` with the pinned Claude Code of `//tests/agents:claude`, outside the sandbox of Bazel as the tests in `tests/agents` (`stores/vitest.claude_code.config.mjs`) |
+
+Outside Bazel the Claude Agent SDK runs `CLAUDE_BINARY` when set, its own Claude Code otherwise. The targets share the
+copies of the files in `bazel-bin` (`:store_files`, `:typecheck_inputs`): copies of the Claude Code target, which runs
+outside the sandbox, would conflict with those of the others.
 
 ## Next
 
@@ -177,6 +186,6 @@ about 30 s, among them the conformance suite of LangGraph.
   ([hyperdb_edge.md](hyperdb_edge.md#in-process-tools)) runs the engine in a child for that reason; the stores need
   rows from it, not text.
 - **Arrow instead of literals** for large batches, as `hyperdb_arrow_insert.ts` of the app does.
-- **The package.** Exports for `stores/`, the libraries as optional peer dependencies, and Bazel targets, once the
-  package moves to its own repository.
+- **The package.** Exports for `stores/` and the libraries as optional peer dependencies, once the package moves to
+  its own repository.
 - **Browser.** The same stores on OPFS in a worker, where hyperdb-wasm runs in DashQL.

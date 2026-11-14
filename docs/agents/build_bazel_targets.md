@@ -130,6 +130,9 @@ bazel test //...
 | `//packages/hyperdb-edge:test` | The tests of hyperdb-edge in Node (vitest): the library against the embedded Hyper, every SQL example of the `describe` topics, and the compiled command run as separate processes, see `docs/wip/hyperdb_edge.md` |
 | `//packages/hyperdb-edge:tsc_typecheck_test` | Type check of the library of hyperdb-edge without its Node part, against the WebWorker lib |
 | `//packages/hyperdb-edge:tsc_typecheck_node_test` | Type check of every module and test of hyperdb-edge with the types of Node |
+| `//packages/hyperdb-edge:stores_typecheck_test` | Type check of the stores of agent libraries in `packages/hyperdb-edge/stores/` and their tests, against the libraries, see `docs/wip/hyperdb_edge_stores.md` |
+| `//packages/hyperdb-edge:stores_test` | The stores of the Claude Agent SDK, the OpenAI Agents SDK and LangGraph on hyperdb-wasm: each against the reference of its library, the conformance suite of LangGraph for checkpointers, and the agent loops of the OpenAI Agents SDK and LangGraph with a fake model |
+| `//packages/hyperdb-edge:stores_claude_code_test` | The session store under `query()` of the Claude Agent SDK with the pinned Claude Code and a fake model, outside the sandbox: mirroring, resuming from the store alone, sessions at once |
 | `//packages/dashql-sdk:boundary_test` | The SDK reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
 | `//packages/dashql-sdk:editor_config_test` | Editors resolve every import of the SDK: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |

@@ -1,0 +1,6 @@
+// The stores of agent libraries and their tests, with the types of Node, for editors and
+// //packages/hyperdb-edge:stores_typecheck_test. Their libraries are dev dependencies of this package only.
+{
+  "extends": "../tsconfig.json",
+  "include": ["./**/*.ts"]
+}

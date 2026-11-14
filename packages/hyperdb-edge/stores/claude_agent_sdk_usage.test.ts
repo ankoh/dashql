@@ -1,6 +1,7 @@
 // HyperSessionStore under query() of the Claude Agent SDK, as an application uses it: Claude Code runs with a fake
 // model, an in-process tool and the store as `sessionStore`; the store mirrors the transcripts, survives a restart and
-// resumes a session without the transcript on disk. Runs CLAUDE_BINARY when set, the Claude Code of the SDK otherwise.
+// resumes a session without the transcript on disk. Runs CLAUDE_BINARY when set, the Claude Code of the SDK otherwise;
+// in Bazel, CLAUDE_BINARY is the path of the pinned Claude Code in the runfiles (JS_BINARY__RUNFILES).
 
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -14,6 +15,8 @@ import { HyperDatabase } from './hyper_database.js';
 import { messageTexts, startFakeAnthropic, text, toolUse, type FakeAnthropic, type FakeRequest } from './testing/fake_anthropic.js';
 
 const LOOKUP = 'mcp__sales__lookup_sales';
+const RUNFILES = process.env.JS_BINARY__RUNFILES;
+const CLAUDE_BINARY = process.env.CLAUDE_BINARY ? path.resolve(RUNFILES ?? '.', process.env.CLAUDE_BINARY) : undefined;
 const ROOT = mkdtempSync(path.join(tmpdir(), 'hyper-claude-usage-'));
 const WORKSPACE = path.join(ROOT, 'workspace');
 mkdirSync(WORKSPACE);
@@ -85,7 +88,7 @@ async function ask(model: FakeAnthropic, store: HyperSessionStore, prompt: strin
             allowedTools: [LOOKUP],
             sessionStore: store,
             cwd: WORKSPACE,
-            ...(process.env.CLAUDE_BINARY ? { pathToClaudeCodeExecutable: process.env.CLAUDE_BINARY } : {}),
+            ...(CLAUDE_BINARY ? { pathToClaudeCodeExecutable: CLAUDE_BINARY } : {}),
             env: {
                 PATH: '/usr/bin:/bin',
                 HOME: ROOT,

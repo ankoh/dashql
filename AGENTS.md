@@ -44,6 +44,7 @@ Please consult relevant docs in that directory before making changes.
 
 - hyperdb-edge (`packages/hyperdb-edge`: a command line tool and library for the embedded Hyper of hyperdb-wasm, derived from it, not part of it; `run` and `describe` only, no app logic; the same two as in-process tools for the Tool Runner and the Claude Agent SDK on a session with a warm engine; every SQL example of `describe` runs in the tests; harness and SDK tests in `tests/agents/`)
     - `docs/wip/hyperdb_edge.md`
+    - `docs/wip/hyperdb_edge_stores.md` (the stores of the Claude Agent SDK, the OpenAI Agents SDK and LangGraph on a hot embedded Hyper with the redo log, SQL over the state of agents, the libraries as dev dependencies of hyperdb-edge only, their tests in Bazel)
 
 - Workbook tables (`.dashql` files and links: the tables of one workbook, Parquet entries of a ZIP, `?zip=` links, archives of older versions)
     - `docs/design/workbook_tables.md`

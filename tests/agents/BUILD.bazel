@@ -46,6 +46,8 @@ alias(
         ":linux_x86_64": "@claude_code_linux_x86_64//:claude",
         ":macos_arm64": "@claude_code_macos_arm64//:claude",
     }),
+    # The stores of hyperdb-edge run Claude Code under the Claude Agent SDK as well
+    visibility = ["//packages/hyperdb-edge:__pkg__"],
 )
 
 js_test(
