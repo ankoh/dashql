@@ -53,11 +53,13 @@ export interface HyperLogClientColumn {
 /// An extract table with one row per finished query, with the metrics of its query-end event.
 /// The outcome is the event key, e.g. query-end or query-end-user-error. The times are in seconds.
 ///
-/// A query-hash like `bfe4.387e195b3a02.24573b` has three parts: the second hashes the text with normalized literals,
-/// the third hashes the literal values, and the first varies with the literals too. Queries that only differ in their
-/// literals or comments share the second part, the query_shape. Queries without a hash are shaped by their text.
+/// A query-hash like `{"env":"bfe4","sql":{"ast":"0493d60a3e0f","const":"2b8515"},"views":{…}}` hashes the text with
+/// normalized literals (sql.ast) and the literal values (sql.const). Queries that only differ in their literals or
+/// comments share sql.ast, the query_shape. Hyper before 0.0.27356 logs the hash as `bfe4.387e195b3a02.24573b`, whose
+/// second part is the shape. Queries without a hash are shaped by their text.
 export function hyperLogQueryEndsTable(clientColumns: readonly HyperLogClientColumn[] = []): HyperDBExtractTable {
     const hash = `v::json->>'query-hash'`;
+    const shape = hyperLogValue(['query-hash', 'sql', 'ast'], 'text');
     return {
         name: 'query_ends',
         query: `
@@ -72,7 +74,8 @@ export function hyperLogQueryEndsTable(clientColumns: readonly HyperLogClientCol
                 v::json->>'statement' AS statement,
                 v::json->>'query-trunc' AS query,
                 ${hash} AS query_hash,
-                CASE WHEN ${hash} LIKE '%.%.%' THEN split_part(${hash}, '.', 2)
+                CASE WHEN ${shape} IS NOT NULL THEN ${shape}
+                    WHEN ${hash} LIKE '%.%.%' THEN split_part(${hash}, '.', 2)
                     ELSE coalesce(${hash}, 'text:' || coalesce(v::json->>'query-trunc', '')) END AS query_shape,
                 ${hyperLogValue(['elapsed'], 'double precision')} AS elapsed,
                 ${phaseSum(['threads', 'thread-time'])} AS thread_time,
@@ -99,7 +102,7 @@ export const HYPER_LOG_QUERY_ENDS_TABLE: HyperDBExtractTable = hyperLogQueryEnds
 /// The process memory is the size of the Wasm memory, which never shrinks. The transaction memory is the memory that
 /// the running queries hold. The tracked memory is the sum of all memory trackers, e.g. the table data of the attached
 /// databases, temporary tables, the running queries and the plan cache, and shrinks again when they are freed. The
-/// loads are between 0 and 1.
+/// loads are between 0 and 1. Hyper before 0.0.27356 logs the scheduler counts under scheduler-thread-count.
 export const HYPER_LOG_RESOURCE_METRICS_TABLE: HyperDBExtractTable = {
     name: 'resource_metrics',
     query: `
@@ -112,8 +115,14 @@ export const HYPER_LOG_RESOURCE_METRICS_TABLE: HyperDBExtractTable = {
             ${hyperLogValue(['load', 'overall_load'], 'double precision')} AS overall_load,
             ${hyperLogValue(['load', 'scheduler_load'], 'double precision')} AS scheduler_load,
             ${hyperLogValue(['load', 'memory_load'], 'double precision')} AS memory_load,
-            ${hyperLogValue(['scheduler-thread-count', 'scheduler_thread_count', 'active'], 'integer')} AS active_threads,
-            ${hyperLogValue(['scheduler-thread-count', 'scheduler_waiting_jobs_count'], 'integer')} AS waiting_jobs
+            coalesce(
+                ${hyperLogValue(['scheduler', 'thread-count', 'active'], 'integer')},
+                ${hyperLogValue(['scheduler-thread-count', 'scheduler_thread_count', 'active'], 'integer')}
+            ) AS active_threads,
+            coalesce(
+                ${hyperLogValue(['scheduler', 'job-count', 'waiting'], 'integer')},
+                ${hyperLogValue(['scheduler-thread-count', 'scheduler_waiting_jobs_count'], 'integer')}
+            ) AS waiting_jobs
         FROM log
         WHERE k = 'resource-metrics'
     `,
