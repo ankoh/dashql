@@ -25,6 +25,22 @@ config_setting(
 )
 
 alias(
+    name = "codex",
+    actual = select({
+        ":linux_x86_64": "@codex_linux_x86_64//:vendor/x86_64-unknown-linux-musl/bin/codex",
+        ":macos_arm64": "@codex_macos_arm64//:vendor/aarch64-apple-darwin/bin/codex",
+    }),
+)
+
+alias(
+    name = "codex_files",
+    actual = select({
+        ":linux_x86_64": "@codex_linux_x86_64//:files",
+        ":macos_arm64": "@codex_macos_arm64//:files",
+    }),
+)
+
+alias(
     name = "claude",
     actual = select({
         ":linux_x86_64": "@claude_code_linux_x86_64//:claude",
@@ -37,11 +53,31 @@ js_test(
     size = "medium",
     data = [
         "fake_anthropic.mjs",
+        "probes.mjs",
         ":claude",
     ],
     entry_point = "claude_code_sandbox_test.mjs",
     env = {"CLAUDE_BINARY": "$(rootpath :claude)"},
     # The binary of the harness stays in its repository, js_test copies only sources of this package
     no_copy_to_bin = [":claude"],
+    tags = ["no-sandbox"],
+)
+
+js_test(
+    name = "codex_sandbox_test",
+    size = "medium",
+    data = [
+        "fake_openai.mjs",
+        "probes.mjs",
+        ":codex",
+        ":codex_files",
+    ],
+    entry_point = "codex_sandbox_test.mjs",
+    env = {"CODEX_BINARY": "$(rootpath :codex)"},
+    # The binary and the resources of the harness stay in its repository, js_test copies only sources of this package
+    no_copy_to_bin = [
+        ":codex",
+        ":codex_files",
+    ],
     tags = ["no-sandbox"],
 )

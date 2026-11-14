@@ -130,6 +130,7 @@ bazel test //...
 | `//packages/dashql-org:check` | `astro check` of the website |
 | `//packages/trino-testing:trino_assumptions_test` | Checks the Trino API assumptions of the query progress model against a live Trino (manual, local only) |
 | `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, see `docs/wip/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
+| `//tests/agents:codex_sandbox_test` | Codex with a fake model: its sandbox modes, its hooks, an `allow` rule and a request to escalate, see `docs/wip/agent_integration_tests.md`. Downloads the binary of Codex |
 
 ### Trino (manual, local only)
 

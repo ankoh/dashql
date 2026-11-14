@@ -210,6 +210,8 @@ use_repo(
     agent_harnesses,
     "claude_code_linux_x86_64",
     "claude_code_macos_arm64",
+    "codex_linux_x86_64",
+    "codex_macos_arm64",
 )
 
 # Trino server (core + tpch plugin) and a Java runtime for //packages/trino-testing.
