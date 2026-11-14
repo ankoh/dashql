@@ -7,20 +7,15 @@ import {
     SET_CONNECTION_DRAFT,
     DISCARD_CONNECTION_DRAFT,
 } from '@ankoh/dashql-sdk/connections/connection_state';
-import { QUERY_PROGRESS_UPDATED, QUERY_RECEIVED_BATCH } from '@ankoh/dashql-sdk/query/query_execution_state';
 import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
 import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
-import { useStore, useStoreState, useUpdateQueue } from '../utils/store_hooks.js';
-import { CONNECTOR_TYPES } from '@ankoh/dashql-sdk/connections/connector_info';
+import { FRAME_UPDATE_SCHEDULER, useStoreState } from '../utils/store_hooks.js';
+import { ConnectionRegistryService } from '@ankoh/dashql-sdk/connections/connection_registry_service';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { groupConnectionEntryWrites, WRITE_CONNECTION_ENTRY } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
 import {
-    applyConnectionAction,
-    connectionEntryFromState,
     NO_CONNECTION_REFERENCES,
-    registerConnection,
     resolveWorkbookConnections,
     type ConnectionAllocator,
     type ConnectionDispatch,
@@ -85,29 +80,39 @@ const CONNECTION_REGISTRY_CTX = React.createContext<ConnectionRegistry | null>(n
 const CONNECTION_REGISTRY_SETTER_CTX = React.createContext<Dispatch<SetConnectionRegistryAction> | null>(null);
 const CONNECTION_REGISTRY_STORE_CTX = React.createContext<ConnectionRegistryStore | null>(null);
 const CONNECTION_REGISTRY_QUEUE_CTX = React.createContext<UpdateQueue<ConnectionRegistry> | null>(null);
+const CONNECTION_REGISTRY_SERVICE_CTX = React.createContext<ConnectionRegistryService | null>(null);
+
+/// The service that holds the connections
+export function useConnectionRegistryService(): ConnectionRegistryService {
+    return React.useContext(CONNECTION_REGISTRY_SERVICE_CTX)!;
+}
 
 type Props = {
     children: React.ReactElement | React.ReactElement[];
 };
 
 export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
-    // Registry updates free Wasm objects and schedule storage writes, the store runs every update once
-    const store = useStore<ConnectionRegistry>(() => ({
-        connections: new Map(),
-        connectionsByType: CONNECTOR_TYPES.map(() => ([])),
-    }));
-    const queue = useUpdateQueue(store);
+    const logger = useLogger();
+    const storageWriter = useStorageWriter();
+    const references = useConnectionReferences();
+    const deps = { logger, storageWriter, references };
+    const [service] = React.useState(() => new ConnectionRegistryService(deps, FRAME_UPDATE_SCHEDULER));
+    service.setDependencies(deps);
+    React.useEffect(() => () => service.dispose(), [service]);
+    const store = service.store;
     const reg = useStoreState(store);
     return (
-        <CONNECTION_REGISTRY_STORE_CTX.Provider value={store}>
-            <CONNECTION_REGISTRY_QUEUE_CTX.Provider value={queue}>
-                <CONNECTION_REGISTRY_SETTER_CTX.Provider value={store.update}>
-                    <CONNECTION_REGISTRY_CTX.Provider value={reg}>
-                        {props.children}
-                    </CONNECTION_REGISTRY_CTX.Provider>
-                </CONNECTION_REGISTRY_SETTER_CTX.Provider>
-            </CONNECTION_REGISTRY_QUEUE_CTX.Provider>
-        </CONNECTION_REGISTRY_STORE_CTX.Provider>
+        <CONNECTION_REGISTRY_SERVICE_CTX.Provider value={service}>
+            <CONNECTION_REGISTRY_STORE_CTX.Provider value={store}>
+                <CONNECTION_REGISTRY_QUEUE_CTX.Provider value={service.queue}>
+                    <CONNECTION_REGISTRY_SETTER_CTX.Provider value={store.update}>
+                        <CONNECTION_REGISTRY_CTX.Provider value={reg}>
+                            {props.children}
+                        </CONNECTION_REGISTRY_CTX.Provider>
+                    </CONNECTION_REGISTRY_SETTER_CTX.Provider>
+                </CONNECTION_REGISTRY_QUEUE_CTX.Provider>
+            </CONNECTION_REGISTRY_STORE_CTX.Provider>
+        </CONNECTION_REGISTRY_SERVICE_CTX.Provider>
     );
 };
 
@@ -133,24 +138,11 @@ export function useConnectionRegistrySetter(): Dispatch<SetConnectionRegistryAct
 /// Allocate a new connection that no workbook references yet.
 /// A workbook references the connection once its scripts use it.
 /// Active connections are written into the app manifest right away.
+// The hooks resolve the service when their function is called, a test may render a component without the provider as
+// long as it doesn't call them
 export function useConnectionAllocator(): ConnectionAllocator {
-    const setReg = React.useContext(CONNECTION_REGISTRY_SETTER_CTX)!;
-    const storageWriter = useStorageWriter();
-    return React.useCallback((state: ConnectionStateWithoutId, fixedId?: string) => {
-        const connectionId = fixedId ?? crypto.randomUUID();
-        const database: ConnectionState = { ...state, connectionId };
-        setReg((reg) => {
-            registerConnection(reg, database);
-            return { ...reg };
-        });
-        if (database.active) {
-            void storageWriter.write(
-                groupConnectionEntryWrites(connectionId),
-                { type: WRITE_CONNECTION_ENTRY, value: { ...connectionEntryFromState(database), createdAt: new Date().toISOString() } },
-            );
-        }
-        return database;
-    }, [setReg, storageWriter]);
+    const service = useConnectionRegistryService();
+    return React.useCallback((state: ConnectionStateWithoutId, fixedId?: string) => service.allocate(state, fixedId), [service]);
 }
 
 export function useConnectionRegistry(): [ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] {
@@ -166,23 +158,8 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
 /// Dispatch actions to connections without subscribing to registry changes.
 /// The dispatches of all components are applied in order through the queue of the registry.
 export function useConnectionDispatch(): DynamicConnectionDispatch {
-    const queue = React.useContext(CONNECTION_REGISTRY_QUEUE_CTX)!;
-    const references = useConnectionReferences();
-    const storageWriter = useStorageWriter();
-    const logger = useLogger();
-    return React.useCallback((connectionId: string | null, action: ConnectionAction) => {
-        // No id provided? Then do nothing.
-        if (connectionId == null) {
-            return;
-        }
-        // Query execution may happen in a worker or remotely, but Arrow batch decoding and these
-        // state updates happen on the renderer thread. A fast result stream can therefore enqueue
-        // a microtask cascade that repeatedly rerenders the workbook before the browser gets a
-        // frame to paint. Publish only the latest streamed progress once per frame; lifecycle
-        // actions stay immediate and flush queued stream updates first to preserve action order.
-        const waitForFrame = action.type === QUERY_PROGRESS_UPDATED || action.type === QUERY_RECEIVED_BATCH;
-        queue.push(reg => applyConnectionAction(reg, references, connectionId, action, storageWriter, logger), waitForFrame);
-    }, [queue, references, storageWriter, logger]);
+    const service = useConnectionRegistryService();
+    return React.useCallback((connectionId: string | null, action: ConnectionAction) => service.dispatch(connectionId, action), [service]);
 }
 
 /// The connections that the scripts of a workbook use

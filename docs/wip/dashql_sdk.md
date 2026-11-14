@@ -1,6 +1,6 @@
 # DashQL SDK
 
-Status: steps 1 and 2 are built, step 3 is built for four services, step 4 has the OAuth flow and the restore, the rest is proposed.
+Status: steps 1 and 2 are built, step 3 is built for four services, step 4 has the OAuth flow, the restore and the runtime, the rest is proposed.
 
 `packages/dashql-sdk` (`@ankoh/dashql-sdk`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -14,7 +14,7 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections are done |
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
-| One runtime | Step 4, `createRuntime` |
+| One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
 | Node platform and the CLI on top | Planned, step 4; the Node `dashql` replaces the Rust one |
 | Editor state out of `ScriptData` | Later, step 5 |
 
@@ -271,7 +271,14 @@ Each step ships on its own and keeps the behavior.
    Hyper links (`connections/hyper/hyper_link.ts`). A `HyperLinkTabStore` keeps the links of a tab in a
    `KeyValueStorage` (`platform/key_value_storage.ts`) that the platform passes in; the app holds the one of its tab
    over `sessionStorage` in `connections/hyper/hyper_link_tab.ts`, with the hooks. The test helpers `TestLogger` and
-   `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. Next `createRuntime`. Then the Node platform: a
+   `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. The runtime, done: the registries of
+   the workbook scripts and the connections are services of the SDK (`workbook_scripts_registry_service.ts`,
+   `connection_registry_service.ts`) with the store, the queue, dispatch, allocation and the creation of a workbook;
+   the providers of the app create them and keep their hooks. `createRuntime(platform)` in `runtime.ts` wires the
+   registries, the computations and the four services of step 3 in the order of the providers, `restore()` loads the
+   stored state into the registries and `destroy()` writes what is pending. `runtime.test.ts` writes a workbook with
+   one runtime and restores it with a second one in Node. The app keeps its providers until a `RuntimeProvider`
+   replaces them. Then the Node platform: a
    storage backend over `node:fs` (`NativeStorageBackend` with the fs functions passed in), a fetch client,
    `EmbeddedDatabase` over `hyperdb-wasm` `node`, Wasm from files. The CLI on top: offline
    `workbook check`, `pack`, `unpack` and `link` first, then `run` and `catalog refresh`.

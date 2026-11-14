@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
-import { useConnectionAllocator, useConnectionRegistryStore, workbookConnectionFromState } from '../connections/connection_registry.js';
+import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
 import { isHyperLinkParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
-import { useStorageWriter } from '../storage/storage_provider.js';
-import { groupWorkbookManifestWrites, WRITE_WORKBOOK_MANIFEST } from '@ankoh/dashql-sdk/storage/storage_writer';
 import {
     EPHEMERAL_WORKBOOK_NAME,
     freeWorkbookName,
@@ -17,8 +15,7 @@ import {
     SET_PENDING_CONNECTION,
     takenWorkbookNames,
 } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsAllocator, useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from './scripts/workbook_scripts_registry.js';
-import { createEmptyMetadata } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader, useWorkbookScriptsRegistryService } from './scripts/workbook_scripts_registry.js';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 
 /// Create a workbook whose first script runs on a connection, a workbook without a name gets a free one
@@ -26,30 +23,8 @@ export type WorkbookCreation = (database: ConnectionState, name?: string) => Wor
 
 /// Allocate a workbook without scripts and write its first manifest
 function useWorkbookAllocation(): (database: ConnectionState, name: string, ephemeral: boolean) => WorkbookScripts {
-    const allocateWorkbookScripts = useWorkbookScriptsAllocator();
-    const storageWriter = useStorageWriter();
-
-    // New workbooks start without scripts; the feed greets them with the composer's landing prompt.
-    return React.useCallback((database: ConnectionState, name: string, ephemeral: boolean) => {
-        const workbookId = crypto.randomUUID();
-        const [_workbookId, workbookScripts] = allocateWorkbookScripts({
-            workbookMetadata: { ...createEmptyMetadata(), ...(ephemeral ? { ephemeral } : {}) },
-            instance: database.instance,
-            workbookId,
-            name,
-            pendingConnection: scriptConnectionOf(database),
-            scripts: {},
-            scriptRefs: {},
-            scriptOrder: [],
-            scriptFocus: { fileName: '' },
-            semanticUserFocus: null,
-        });
-        void storageWriter.write(
-            groupWorkbookManifestWrites(workbookId),
-            { type: WRITE_WORKBOOK_MANIFEST, value: [workbookId, [workbookConnectionFromState(database)], { ephemeral }] },
-        );
-        return workbookScripts;
-    }, [allocateWorkbookScripts, storageWriter]);
+    const service = useWorkbookScriptsRegistryService();
+    return React.useCallback((database: ConnectionState, name: string, ephemeral: boolean) => service.create(database, name, ephemeral), [service]);
 }
 
 export function useWorkbookCreation(): WorkbookCreation {
