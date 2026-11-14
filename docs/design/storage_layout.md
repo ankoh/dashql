@@ -30,6 +30,7 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 │   ├── compute.hyper                          data frames
 │   ├── user.hyper                             database of the embedded Hyper connector
 │   ├── snippets.hyper                         the snippets of the snippet search
+│   ├── <database>.hyper.dblog                 redo log of a database, see cloud.md
 │   └── logs/hyperd_<timestamp>.log            log files of its Hyper process
 └── exports/<export-id>/                       transient Parquet exports
 ```

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { getTestHyperDBClient, openTestHyperDBWindow, testDatabasePath } from '../tests/hyperdb_test_client.js';
-import { EXPERIMENTAL_REDO_LOG_SETTING } from '../platform/hyperdb/hyperdb_settings.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '../storage/workbook_test_backend.js';
 import { workbookBundleToTables } from '@ankoh/dashql-sdk/storage/workbook_tables';
 import { publishCloudWorkbook } from './cloud_store.js';
@@ -67,12 +66,11 @@ describe('local cloud', () => {
         }
     }, 60_000);
 
-    // The redo log replays the NULLs of `deleted_at`, the folders and workbooks stay alive, see
-    // platform/hyperdb/integration/redo_log.test.ts
-    it('keeps the published workbooks across a reload with the redo log', async () => {
+    // The settings of the app keep a redo log, its replay keeps the NULLs of `deleted_at` and the folders and workbooks
+    // stay alive, see platform/hyperdb/integration/redo_log.test.ts
+    it('keeps the published workbooks across a reload', async () => {
         const attachedDatabases = [{ path: await testDatabasePath(`dashql-local-cloud-${crypto.randomUUID()}.hyper`), alias: 'dashql' }];
-        const settings = { [EXPERIMENTAL_REDO_LOG_SETTING]: true };
-        const first = await openTestHyperDBWindow(attachedDatabases, settings);
+        const first = await openTestHyperDBWindow(attachedDatabases);
         const query: CloudQuery = async (sql, signal) => await first.session.query(sql, signal);
         await installCloudStore(query);
         const reports = await createCloudFolder(query, 'Reports', null);
@@ -85,7 +83,7 @@ describe('local cloud', () => {
         // A reload: the worker goes away while the session attaches the database
         await first.reload();
 
-        const second = await openTestHyperDBWindow(attachedDatabases, settings);
+        const second = await openTestHyperDBWindow(attachedDatabases);
         try {
             const queryAgain: CloudQuery = async (sql, signal) => await second.session.query(sql, signal);
             expect((await inspectCloudStore(queryAgain)).state).toBe('current');

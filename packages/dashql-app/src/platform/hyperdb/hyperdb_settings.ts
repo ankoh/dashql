@@ -20,11 +20,13 @@ export const HYPERDB_WASM_ENGINE_SETTINGS = Object.freeze({
     // An event has about 3KB, the log files then rotate about every 5 minutes.
     log_resource_usage_interval: '1s',
     log_resource_usage_always: 1,
+    // Log every commit next to the database file, so that the local cloud keeps its changes across a reload
+    experimental_redo_log: true,
 });
 
 /// The setting that keeps a redo log next to every database file, `<file>.dblog`. Hyper otherwise writes a database
 /// consistently only when no session attaches it anymore, and a reload ends the worker without that. With the log, the
-/// next attach replays what committed since. See platform/hyperdb/integration/redo_log.test.ts.
+/// next attach replays what committed since. The app sets it, see platform/hyperdb/integration/redo_log.test.ts.
 export const EXPERIMENTAL_REDO_LOG_SETTING = 'experimental_redo_log';
 
 /// The setting that runs the queries on the experimental execution backend of the wasm module.

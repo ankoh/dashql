@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { openTestHyperDBWindow, type TestHyperDBWindow } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, openTestHyperDBWindow, testDatabasePath, type TestHyperDBWindow } from '../../../tests/hyperdb_test_client.js';
 import { getOPFSRoot, hyperOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
-import type { HyperDBConnection } from '../hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, type HyperDBConnection } from '../hyperdb_wasm.js';
 import { EXPERIMENTAL_REDO_LOG_SETTING } from '../hyperdb_settings.js';
 
 // The redo log of Hyper across a reload of the app. Hyper writes a database consistently only when no session attaches
-// it anymore, a reload ends the engine worker without that. With the redo log, Hyper logs every commit next to the
-// database file and the next attach replays it. The local cloud keeps its tables in such a database.
+// it anymore, a reload ends the engine worker without that. With the redo log, which the settings of the app turn on,
+// Hyper logs every commit next to the database file and the next attach replays it. The local cloud keeps its tables
+// in such a database.
 //
 // A reload is a worker that is terminated while its session still attaches the database (openTestHyperDBWindow).
 
@@ -32,7 +33,7 @@ async function withDatabaseFolder(test: (path: string, files: () => Promise<Map<
 
 /// Open a window whose session attaches the database as "d"
 async function openWindow(path: string, redoLog: boolean): Promise<TestHyperDBWindow> {
-    return await openTestHyperDBWindow([{ path, alias: 'd' }], redoLog ? { [EXPERIMENTAL_REDO_LOG_SETTING]: true } : {});
+    return await openTestHyperDBWindow([{ path, alias: 'd' }], { [EXPERIMENTAL_REDO_LOG_SETTING]: redoLog });
 }
 
 async function rows(session: HyperDBConnection, sql: string): Promise<Record<string, unknown>[]> {
@@ -97,6 +98,35 @@ describe('HyperDB Wasm redo log', () => {
             const second = await openWindow(path, true);
             try {
                 expect(await rows(second.session, 'SELECT k, v FROM d.s.t ORDER BY k')).toEqual(CHANGED);
+            } finally {
+                await second.close();
+            }
+        });
+    }, 60_000);
+
+    // Deleting a local cloud drops its database, a local cloud created after that must not replay the old log
+    it('drops the redo log with the database', async () => {
+        await withDatabaseFolder(async (path, files) => {
+            const first = await openWindow(path, true);
+            await change(first.session);
+            await first.reload();
+            expect((await files()).get('data.hyper.dblog') ?? 0).toBeGreaterThan(1000);
+
+            const client = await createTestHyperDBClient(undefined, { [EXPERIMENTAL_REDO_LOG_SETTING]: true });
+            try {
+                const database = await HyperDB.create(new HyperDBEngine(client), {
+                    defaultDatabasePath: await testDatabasePath(`window-${crypto.randomUUID()}.hyper`),
+                    terminateEngine: false,
+                });
+                await database.dropAttachedDatabase(path);
+                expect([...(await files()).keys()]).toEqual([]);
+            } finally {
+                await client.terminate();
+            }
+
+            const second = await openWindow(path, true);
+            try {
+                await expect(second.session.query('SELECT * FROM d.s.t')).rejects.toThrow();
             } finally {
                 await second.close();
             }

@@ -30,7 +30,7 @@ a cloud come from a single statement.
 | Publishing into a cloud folder, the login as `published_by`, a way to tell published results from local ones in the cache | planned |
 | Restoring deleted workbooks and folders in the overview | planned |
 | The cloud link: log in to the connection, read the workbook, import it | planned |
-| The local cloud keeps its changes across reloads, with a redo log of Hyper | planned |
+| The local cloud keeps its changes across reloads, with a redo log of Hyper | done, tested against the embedded Hyper |
 
 ## The Clouds
 
@@ -59,15 +59,14 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
   workbooks that name the embedded Hyper never take the local cloud for it. The setup page offers a new Local Cloud,
   connects it without a click, and the reset of the installer drops its tables (`dropCloudStore`) to try the installer
   again.
-- **Reloads lose changes.** The embedded Hyper writes an attached database to its file only when a session detaches
-  it, and a reload ends the worker without that. So a reload loses what the local cloud changed since its session
-  attached the database, an install included. Changes are kept once the session closes, e.g. when the connection is
-  reset or deleted. The startup setting `experimental_redo_log` (`EXPERIMENTAL_REDO_LOG_SETTING`) makes Hyper log
-  every commit to `<file>.dblog` and replay it on the next attach, the log empties once the session detaches the
-  database. It costs about 15% of the written data and well under a millisecond per small write. The app doesn't
-  set it yet. Since hyperdb-wasm 0.0.27361 the replay keeps NULLs, earlier versions replayed a NULL as the zero value
-  of its type, so `deleted_at` read as 4714 BC and the cleanup purged every folder and workbook.
-  `platform/hyperdb/integration/redo_log.test.ts` and `cloud/local_cloud.test.ts` cover the reload, NULLs included.
+- **Reloads keep changes.** The embedded Hyper writes an attached database to its file only when a session detaches
+  it, and a reload ends the worker without that. So the app starts Hyper with `experimental_redo_log`
+  (`HYPERDB_WASM_ENGINE_SETTINGS`): Hyper logs every commit to `<file>.dblog` and replays it on the next attach, the log
+  empties once the session detaches the database and goes away when the database is dropped. It costs about 15% of the
+  written data and well under a millisecond per small write. The setting applies to the engine, so the databases of
+  the instance folder keep a log as well. The replay keeps NULLs since hyperdb-wasm 0.0.27361, earlier versions
+  replayed a NULL as the zero value of its type, so `deleted_at` read as 4714 BC and the cleanup purged every folder
+  and workbook. `platform/hyperdb/integration/redo_log.test.ts` and `cloud/local_cloud.test.ts` cover the reload.
 - **Deleting a local cloud.** A local cloud exists only to be one, so its menus delete it rather than stop using it:
   Delete Local Cloud in its row of Clouds, its overview and the setup page (`useCloudRemoval`). After a confirmation
   the workbooks that would only start new scripts on it fall back to the embedded Hyper, it leaves the list of clouds,
