@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
-import { Crc32 } from '../../utils/crc32.js';
+import { Crc32 } from '@ankoh/dashql-runtime/utils/crc32';
 import {
     createWorkbookZip,
     exportWorkbookAsSharedZip,

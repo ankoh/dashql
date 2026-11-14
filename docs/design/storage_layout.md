@@ -160,6 +160,16 @@ empty `logs/` folder at startup, before the instance settings apply.
 - `exports/<uuid>/` exists while one Arrow table is exported as Parquet. Hyper only writes to registered targets, so
   the export mounts the folder read-write as `/mnt/external/parquet-export-<uuid>` and removes it afterwards.
 
+## The root of Node
+
+The command line tool keeps its files in a folder of its own with the same layout, `DASHQL_HOME` (`~/.dashql`):
+`cache/`, `workbooks/<id>/attachments/` and `instances/<id>/`. The modules of the runtime reach it through the handles of
+`node/node_directory_handle.ts` instead of `navigator.storage`, and the Node build of hyperdb-wasm mounts it at `/mnt/fs`,
+so the Hyper paths are the ones of the browser. `dashql run` mirrors the attachments of a workbook folder into it and
+removes its instance folder when it ends. It is not the root of the app: a viewer that shows results of the command line
+tool copies them into its own storage. The Web Locks of its query result cache span one process, see
+`docs/wip/dashql_runtime.md`.
+
 ## Native workbooks
 
 The native app keeps a workbook in a directory that the user chose, the entry of the workbook tree has `storageType: native`

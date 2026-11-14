@@ -20,7 +20,7 @@ import { useAppConfig } from '../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
-import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
+import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';

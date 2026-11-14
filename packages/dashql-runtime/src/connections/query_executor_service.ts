@@ -121,6 +121,8 @@ export class QueryExecutorService {
     private readonly progressModels = new QueryProgressModels(createProgressLayoutConfig());
     private progressCore: core.DashQL | null = null;
     private progressCoreRequested = false;
+    /// The writes of results into the query result cache, they run after the query resolved
+    private readonly cacheWrites = new Set<Promise<void>>();
 
     constructor(deps: QueryExecutorDependencies) {
         this.deps = deps;
@@ -129,6 +131,11 @@ export class QueryExecutorService {
     /// Replace the dependencies, the running queries keep the ones they started with
     setDependencies(deps: QueryExecutorDependencies): void {
         this.deps = deps;
+    }
+
+    /// Wait for the results that are written into the query result cache, e.g. before a process ends
+    async flushCacheWrites(): Promise<void> {
+        while (this.cacheWrites.size > 0) await Promise.all([...this.cacheWrites]);
     }
 
     private applyEngineProgress(queryId: number, payload: EngineProgressPayload) {
@@ -385,7 +392,7 @@ export class QueryExecutorService {
                             await release();
                         }
                     };
-                    void write().then(() => {
+                    const written = write().then(() => {
                         // The write landed: record the key (but not servedFromCache — this run hit the
                         // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
                         // time is the write we just made; a later hit reads the precise mtime from disk.
@@ -396,6 +403,8 @@ export class QueryExecutorService {
                     }).catch((e: any) => {
                         traced.warn("Failed to write query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                     });
+                    this.cacheWrites.add(written);
+                    void written.finally(() => this.cacheWrites.delete(written));
                 };
 
                 // The statement may have changed relations, the catalog loader asks the connection about them. Also after

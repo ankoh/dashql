@@ -28,7 +28,7 @@ import { useQueryExecutor } from './query_executor.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_settings';
 import { DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql-runtime/connections/connection_params';
 import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { isLocalCloud } from './cloud_connection.js';

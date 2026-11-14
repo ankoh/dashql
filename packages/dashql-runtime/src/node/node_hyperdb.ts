@@ -1,0 +1,128 @@
+// The embedded Hyper of Node: the build of hyperdb-wasm for Node over a folder of the host with the layout of the origin
+// private file system (docs/design/storage_layout.md). The folder is the root of the files of the app and the storage of
+// the engine, so the engine sees it at `/mnt/fs` like the browser build sees the origin private file system, and the
+// query result cache, the instances and the attachments keep their paths.
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import v8 from 'node:v8';
+
+import { HyperDB, type HyperDBEngine, type MountFile } from '../platform/hyperdb/hyperdb_wasm.js';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
+import { hyperOPFSRoot, setOPFSRootProvider } from '../platform/opfs_root.js';
+import type { QueryResultCache } from '../query/query_result_cache.js';
+import { createOPFSQueryResultCache } from '../storage/opfs_query_result_cache.js';
+import { openNodeRoot } from './node_directory_handle.js';
+import { PROCESS_LOCKS } from './node_locks.js';
+
+/// The folder with one folder per instance of the embedded Hyper, like in the browser
+const INSTANCES_DIRECTORY = 'instances';
+/// The folder of the log files in an instance folder
+const INSTANCE_LOGS_DIRECTORY = 'logs';
+/// The folder of the files that statements of an instance mount, e.g. the Arrow IPC of an insert
+const INSTANCE_FILES_DIRECTORY = 'files';
+
+/// The build of Node mounts only files of the host: the file is written into a folder first and removed with its mount
+function mountHostFile(folder: string): MountFile {
+    return async (engine, file, mountPath) => {
+        await mkdir(folder, { recursive: true });
+        const hostPath = path.join(folder, `${crypto.randomUUID()}-${file.name.replace(/[^A-Za-z0-9._-]/g, '_')}`);
+        await writeFile(hostPath, new Uint8Array(await file.arrayBuffer()));
+        try {
+            const resource = await engine.mount(hostPath, { path: mountPath });
+            return {
+                path: resource.path,
+                refresh: () => resource.refresh(),
+                close: async () => {
+                    try {
+                        await resource.close();
+                    } finally {
+                        await rm(hostPath, { force: true });
+                    }
+                },
+            };
+        } catch (error) {
+            await rm(hostPath, { force: true });
+            throw error;
+        }
+    };
+}
+
+const WASM_HEADER = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+/// The smallest modules that use a feature of WebAssembly that the engine, a wasm64 build, needs
+const WASM_FEATURES = {
+    memory64: new Uint8Array([...WASM_HEADER, 0x05, 0x03, 0x01, 0x04, 0x01]),
+    table64: new Uint8Array([...WASM_HEADER, 0x04, 0x04, 0x01, 0x70, 0x04, 0x01]),
+    exnref: new Uint8Array([...WASM_HEADER, 0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x69]),
+};
+
+/// Can this Node run the engine? Node 24 before 24.15 has exnref behind a flag, it is set in V8 before the engine
+/// compiles: a flag on the command line would break the approval of a command by its prefix. Fails with the Node that
+/// runs, an agent harness may not run the one of the shell.
+export function checkNodeWasmFeatures(): void {
+    if (!WebAssembly.validate(WASM_FEATURES.exnref)) v8.setFlagsFromString('--experimental-wasm-exnref');
+    const missing = (Object.keys(WASM_FEATURES) as Array<keyof typeof WASM_FEATURES>).filter(feature => !WebAssembly.validate(WASM_FEATURES[feature]));
+    if (missing.length > 0) {
+        throw new Error(`${process.execPath} (Node ${process.version}) can't run the embedded Hyper, it lacks the WebAssembly feature `
+            + `${missing.join(', ')}. The embedded Hyper needs Node 24.15 or later.`);
+    }
+}
+
+/// Keep the files of the app in a folder of the host, for every module of this process that keeps files there
+export async function useNodeRoot(folder: string): Promise<FileSystemDirectoryHandle> {
+    const root = await openNodeRoot(folder);
+    setOPFSRootProvider(async () => root);
+    return root;
+}
+
+/// The embedded Hyper of Node with the query result cache of the root
+export interface NodeComputeDatabase {
+    /// The folder of the host that is the root of the files of the app
+    readonly root: string;
+    readonly database: HyperDB;
+    readonly resultCache: QueryResultCache;
+    /// Stop the engine and remove the folder of the instance
+    close(): Promise<void>;
+}
+
+/// Start the embedded Hyper in a folder of the host with an instance of its own, like a window of the app
+export async function openNodeComputeDatabase(folder: string): Promise<NodeComputeDatabase> {
+    checkNodeWasmFeatures();
+    const root = path.resolve(folder);
+    const handle = await useNodeRoot(root);
+    const id = crypto.randomUUID();
+    const instance = await (await handle.getDirectoryHandle(INSTANCES_DIRECTORY, { create: true })).getDirectoryHandle(id, { create: true });
+    await instance.getDirectoryHandle(INSTANCE_LOGS_DIRECTORY, { create: true });
+    const removeInstance = () => rm(path.join(root, INSTANCES_DIRECTORY, id), { recursive: true, force: true });
+    const instancePath = `${hyperOPFSRoot()}/${INSTANCES_DIRECTORY}/${id}`;
+
+    let database: HyperDB;
+    try {
+        // Loaded only here, the commands that don't query the embedded Hyper run without it
+        const { HyperDB: Engine } = await import('hyperdb-wasm');
+        const engine = await Engine.create({
+            storagePath: root,
+            settings: { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: `${instancePath}/${INSTANCE_LOGS_DIRECTORY}` },
+        }) as unknown as HyperDBEngine;
+        database = await HyperDB.create(engine, {
+            computeDatabasePath: `${instancePath}/compute.hyper`,
+            // The database of the embedded Hyper connector, scratch space of the instance like in a window of the app
+            defaultDatabasePath: `${instancePath}/user.hyper`,
+            mountFile: mountHostFile(path.join(root, INSTANCES_DIRECTORY, id, INSTANCE_FILES_DIRECTORY)),
+        });
+    } catch (error) {
+        await removeInstance();
+        throw error;
+    }
+    return {
+        root,
+        database,
+        resultCache: createOPFSQueryResultCache({ locks: PROCESS_LOCKS as unknown as LockManager }),
+        async close() {
+            try {
+                await database.terminate();
+            } finally {
+                await removeInstance();
+            }
+        },
+    };
+}

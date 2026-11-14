@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ParquetDatabase } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
-import { Crc32 } from '../utils/crc32.js';
-import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES } from './query_result_cache_eviction.js';
-import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
+import { Crc32 } from '@ankoh/dashql-runtime/utils/crc32';
+import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES } from '@ankoh/dashql-runtime/storage/query_result_cache_eviction';
+import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 
 const KEY_A = 'a'.repeat(64);
 const KEY_B = 'b'.repeat(64);

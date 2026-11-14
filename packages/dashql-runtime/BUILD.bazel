@@ -73,6 +73,7 @@ _TEST_DEPENDENCIES = [
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/apache-arrow",
     "//:node_modules/flatbuffers",
+    "//:node_modules/hyperdb-wasm",
     "//:node_modules/immutable",
     "//:node_modules/vega-lite",
 ]

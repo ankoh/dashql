@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
-import { EXPERIMENTAL_WASM_BACKEND_SETTING, isUnknownHyperDBSettingError } from '../hyperdb_settings.js';
+import { EXPERIMENTAL_WASM_BACKEND_SETTING, isUnknownHyperDBSettingError } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_settings';
 import { setupWebHyperDB } from '../hyperdb_provider_web.js';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 

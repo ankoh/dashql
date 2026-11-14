@@ -173,6 +173,8 @@ export async function createRuntime(platform: RuntimePlatform): Promise<Runtime>
             execution.stopAll();
             catalogLoader.stop();
             for (const instance of scriptRunInstances) registerScriptRunServices(instance, null);
+            // The results of the last queries may still be written into the query result cache
+            await executor.flushCacheWrites();
             await storageWriter.flush();
             workbooks.dispose();
             connections.dispose();

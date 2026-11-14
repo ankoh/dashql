@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { forbidEval } from '@ankoh/dashql-runtime/testing/forbid_eval';
+import { forbidEval } from '../../testing/forbid_eval.js';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
-import { vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { vectorFromArray } from '../../testing/arrow_fixtures.js';
 
 function tableOf(columns: Record<string, arrow.Vector>): arrow.Table {
     return new arrow.Table(columns);

@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AsyncConsumerLambdas } from '@ankoh/dashql-runtime/utils/async_consumer';
-import type { EmbeddedConnection, EmbeddedResultStream } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { QueryExecutionStatus, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
+import type { EmbeddedConnection, EmbeddedResultStream } from '../../platform/database/embedded_database.js';
+import { QueryExecutionStatus, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 /// A result stream over the batches of a table, onDone runs when it is read to the end or cancelled.
 async function readTable(table: arrow.Table, onDone: () => void = () => {}): Promise<EmbeddedResultStream> {

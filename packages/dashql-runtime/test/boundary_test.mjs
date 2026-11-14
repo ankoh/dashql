@@ -24,11 +24,17 @@ const SEAMS = [
 const KNOWN_SEAMS = new Map([
     ['platform/database/embedded_database.ts', ['the origin private file system']],
     ['platform/electron_fs.ts', ['the Electron bridge']],
+    // Node gives the modules of the origin private file system a folder of the host with its handles
+    ['node/node_directory_handle.ts', ['the origin private file system']],
+    ['node/node_hyperdb.ts', ['the origin private file system']],
     ['platform/native_globals.ts', ['the Electron bridge']],
     ['platform/hyperdb/hyperdb_parquet_export.ts', ['the origin private file system']],
+    ['platform/hyperdb/hyperdb_wasm.ts', ['the origin private file system']],
     ['platform/opfs_root.ts', ['the origin private file system']],
     ['storage/migration/migration_folder.ts', ['the origin private file system']],
+    ['storage/opfs_query_result_cache.ts', ['the origin private file system']],
     ['storage/workbook_tree.ts', ['the origin private file system']],
+    ['workbook/attachments/attachment_mirror.ts', ['the origin private file system']],
     ['workbook/attachments/attachment_mounts.ts', ['the origin private file system']],
 ]);
 

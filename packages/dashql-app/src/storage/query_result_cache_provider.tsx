@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
-import { createOPFSQueryResultCache } from './opfs_query_result_cache.js';
+import { createOPFSQueryResultCache } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 
 const CACHE_CTX = React.createContext<QueryResultCache | null>(null);
 

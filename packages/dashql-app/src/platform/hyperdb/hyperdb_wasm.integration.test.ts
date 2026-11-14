@@ -11,7 +11,7 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { createExecutionMounts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
-import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
+import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';

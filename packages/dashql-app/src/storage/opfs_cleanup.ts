@@ -21,7 +21,7 @@ import {
     isUuid,
 } from '../platform/hyperdb/hyperdb_opfs_instance.js';
 import { PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
-import { QUERY_RESULT_CACHE_DIRECTORY } from './opfs_query_result_cache.js';
+import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { OPFS_TESTS_FOLDER } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 /// An OPFS entry that the current app version doesn't use

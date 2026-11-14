@@ -14,9 +14,19 @@ export function setOPFSAppFolder(folder: string | null): void {
     appFolder = folder;
 }
 
+/// The root of a platform without an origin private file system, null for the one of the browser
+let rootProvider: (() => Promise<FileSystemDirectoryHandle>) | null = null;
+
+/// Keep the files of the app in another root with the layout of the origin private file system
+/// (docs/design/storage_layout.md), e.g. a folder on disk in Node (`node/node_directory_handle.ts`). The engine of the
+/// platform mounts that root at `/mnt/fs` too, so the Hyper paths stay the same.
+export function setOPFSRootProvider(provider: (() => Promise<FileSystemDirectoryHandle>) | null): void {
+    rootProvider = provider;
+}
+
 /// The OPFS directory with the files of the app
 export async function getOPFSRoot(): Promise<FileSystemDirectoryHandle> {
-    const root = await navigator.storage.getDirectory();
+    const root = rootProvider != null ? await rootProvider() : await navigator.storage.getDirectory();
     return appFolder == null ? root : await root.getDirectoryHandle(appFolder, { create: true });
 }
 

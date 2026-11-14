@@ -7,7 +7,7 @@ import {
     EXPERIMENTAL_WASM_BACKEND_SETTING,
     HYPERDB_WASM_ENGINE_SETTINGS,
     isUnknownHyperDBSettingError,
-} from './hyperdb_settings.js';
+} from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_settings';
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from './hyperdb_opfs_instance.js';
 import { getHyperDBWebSupportError } from './hyperdb_web_support.js';
 
