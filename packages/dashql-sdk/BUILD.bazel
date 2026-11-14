@@ -61,7 +61,7 @@ copy_to_directory(
 
 copy_to_bin(
     name = "typecheck_inputs",
-    srcs = _SOURCES + _ASSETS + ["package.json", "tsconfig.json", "tsconfig.test.json"],
+    srcs = _SOURCES + _ASSETS + ["package.json", "tsconfig.bazel.json", "tsconfig.bazel.test.json"],
 )
 
 _TEST_DEPENDENCIES = [
@@ -79,7 +79,7 @@ _TEST_DEPENDENCIES = [
 typescript_bin.tsc_test(
     name = "tsc_typecheck_test",
     size = "small",
-    args = ["--project", "tsconfig.json"],
+    args = ["--project", "tsconfig.bazel.json"],
     chdir = "packages/dashql-sdk",
     data = [":typecheck_inputs"] + _TEST_DEPENDENCIES,
 )
@@ -88,7 +88,7 @@ typescript_bin.tsc_test(
 typescript_bin.tsc_test(
     name = "tsc_typecheck_tests_test",
     size = "small",
-    args = ["--project", "tsconfig.test.json"],
+    args = ["--project", "tsconfig.bazel.test.json"],
     chdir = "packages/dashql-sdk",
     data = [
         ":typecheck_inputs",
@@ -120,6 +120,19 @@ js_test(
     name = "boundary_test",
     data = _SOURCES,
     entry_point = "test/boundary_test.mjs",
+)
+
+# Editors resolve every import of the SDK through the root tsconfig.json and package.json
+js_test(
+    name = "editor_config_test",
+    data = _SOURCES + [
+        "tsconfig.json",
+        "//:package.json",
+        "//:tsconfig_json",
+    ],
+    entry_point = "test/editor_config_test.mjs",
+    # The root package.json is only read
+    no_copy_to_bin = ["//:package.json"],
 )
 
 npm_package(

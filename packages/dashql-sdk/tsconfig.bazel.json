@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2022",
+      "WebWorker"
+    ],
+    "types": [],
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": false,
+    "downlevelIteration": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@ankoh/dashql-protobuf": [
+        "./dependencies/dashql-protobuf"
+      ],
+      "@ankoh/dashql-protobuf/*": [
+        "./dependencies/dashql-protobuf/*"
+      ],
+      "@ankoh/dashql-jsonschema": [
+        "./dependencies/dashql-jsonschema"
+      ],
+      "@ankoh/dashql-jsonschema/*": [
+        "./dependencies/dashql-jsonschema/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/testing/**"
+  ]
+}

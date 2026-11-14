@@ -103,9 +103,23 @@ on core buffers only, not on an editor library, so they can move with the reduce
 Step 2 moved the 94 modules into `packages/dashql-sdk/src` with the folders they had in the app (`connections/`,
 `workbook/`, `storage/`, `query/`, `platform/`, …), so their relative imports stayed, and the app imports them as
 `@ankoh/dashql-sdk/<path>`. A source package like `@ankoh/dashql-ui`: linked as `//:node_modules/@ankoh/dashql-sdk`,
-mapped in the root `tsconfig.json` and the Vite config. The SDK type-checks against the `WebWorker` lib of TypeScript
-(no `window`, no `document`, no elements) with its own copies of the generated `@ankoh/dashql-protobuf` and
-`@ankoh/dashql-jsonschema`. `platform/electron_fs.ts` owns the type of the file system of the Electron bridge, the
+mapped in the root `tsconfig.json` and the Vite config. Bazel type-checks the SDK against the `WebWorker` lib of
+TypeScript (no `window`, no `document`, no elements) with its own copies of the generated `@ankoh/dashql-protobuf` and
+`@ankoh/dashql-jsonschema` (`tsconfig.bazel.json`, `tsconfig.bazel.test.json` for the tests).
+
+Two properties of the source package stay guarded:
+
+- **Editors resolve everything.** An editor checks a module of the SDK with the `tsconfig.json` of the package, which
+  extends the root `tsconfig.json` and its paths into `bazel-bin` (the core, the generated packages), with the lib of
+  the SDK and the globals of vitest. `//packages/dashql-sdk:editor_config_test` fails when the config stops extending
+  the root, or when a module imports a package that is neither a path of the root `tsconfig.json` nor a dependency of
+  the root `package.json`.
+- **The dev server picks up edits.** The Vite alias points at the sources and `server.fs.allow` includes them, so the
+  dev server serves and watches them like the sources of the app. `bazel run //packages/dashql-app:check_dev_hmr`
+  starts the dev server, opens the app in headless Chromium and reports for a module of the SDK and of `dashql-ui`
+  that the page loaded it from the sources and that a change reached the page. An edit of a module of the SDK arrives
+  as hot updates; since the modules of the SDK export no components, the update climbs to the app and often ends in a
+  full reload, as it did before the move. An edit of a component of `dashql-ui` updates in place. `platform/electron_fs.ts` owns the type of the file system of the Electron bridge, the
 global declaration of the app (`types/electron.d.ts`) refers to it.
 
 `//packages/dashql-sdk:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
@@ -271,7 +285,7 @@ The browser and Node must offer the same: every feature of the SDK runs, and is 
 
 - **Now.** `//packages/dashql-sdk:test_node` runs the tests of the SDK in Node with vitest (`vitest.config.mjs`,
   `test/setup_node.mjs` sets the precompiled core like the browser test frame of the app). The tests live next to the
-  modules, their helpers in `src/testing/`, and a type check of their own (`tsconfig.test.json`) gives them the globals
+  modules, their helpers in `src/testing/`, and a type check of their own (`tsconfig.bazel.test.json`) gives them the globals
   of vitest while the modules stay checked without them. 30 test files moved from the app; the tests that use only
   the SDK and need a browser, like `connections/catalog/catalog_batch.test.ts` (a Web Worker), still run in the app.
   The browser tests of the app run the tests of the SDK as well (`sdk/src/<path>` in their list), so each one runs in

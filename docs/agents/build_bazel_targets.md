@@ -126,6 +126,7 @@ bazel test //...
 | `//packages/dashql-sdk:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the SDK (`src/testing/`), with the globals of vitest |
 | `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest). Tests that need a browser, e.g. a Web Worker, still run in the browser tests of the app |
 | `//packages/dashql-sdk:boundary_test` | The SDK reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
+| `//packages/dashql-sdk:editor_config_test` | Editors resolve every import of the SDK: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |
@@ -308,8 +309,14 @@ bazel run //packages/dashql-native:dev
 
 Run the last two commands in separate terminals for Electron development.
 
-The dev servers of the app and the website read `packages/dashql-ui` from its sources, an edit updates the page in place
-without a build or a restart.
+The dev servers of the app and the website read `packages/dashql-ui` from its sources, the dev server of the app reads
+`packages/dashql-sdk` from its sources too; an edit reaches the page without a build or a restart. To check that it
+still does, e.g. after a change to the Vite config or the aliases:
+
+```bash
+# Starts the dev server with headless Chromium, simulates an edit of the SDK and of dashql-ui, fails if one doesn't reach the page
+bazel run //packages/dashql-app:check_dev_hmr
+```
 
 The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
 Bazel builds the SVG symbols it reads from `bazel-bin`:
