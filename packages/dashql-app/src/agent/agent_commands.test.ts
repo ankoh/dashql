@@ -12,7 +12,7 @@ import {
     type WorkbookScripts,
 } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import { createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
-import { acquireWorkbookExecution, isWorkbookExecutionRunning, releaseWorkbookExecution } from '../workbook/scripts/workbook_execution.js';
+import { acquireWorkbookExecution, isWorkbookExecutionRunning, releaseWorkbookExecution } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
 import { WorkbookTestBackend } from '../storage/workbook_test_backend.js';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
 import { tableFromArrays } from '../tests/arrow_fixtures.js';

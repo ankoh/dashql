@@ -45,7 +45,7 @@ import { trackCloudPublish } from './cloud_publish_status.js';
 import { CloudPublishTooLargeError, deleteCloudWorkbook, listCloudWorkbookVersions, publishCloudWorkbook, readCloudWorkbook, type CloudWorkbookVersion } from './cloud_store.js';
 import type { CloudQuery } from './cloud_store_schema.js';
 import { retainWorkbookQueryResults } from '../workbook/persistence/workbook_query_results.js';
-import { scriptRunServices } from '../workbook/scripts/script_run.js';
+import { scriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import {
     createCloudFolder,

@@ -10,7 +10,7 @@ import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hype
 import { TestLogger } from '../logger/test_logger.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
-import { createExecutionMounts } from '../../workbook/scripts/workbook_execution.js';
+import { createExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
 import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
 import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-sdk/workbook/attachments/attachment_mounts';

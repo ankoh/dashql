@@ -15,7 +15,7 @@ import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
-import { registerScriptRunServices } from '../scripts/script_run.js';
+import { registerScriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';

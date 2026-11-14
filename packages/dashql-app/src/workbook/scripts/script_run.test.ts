@@ -9,8 +9,8 @@ import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js
 import { QueryCacheMissError } from '@ankoh/dashql-sdk/query/query_result_cache';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';
-import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
+import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
+import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
 import { runWorkbookScript, runWorkbookScriptForResult } from './rerun_query.js';
 import {
     ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createEmptyScriptData, reduceWorkbookScripts,

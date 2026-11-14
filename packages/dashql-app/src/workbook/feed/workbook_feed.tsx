@@ -40,7 +40,7 @@ import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { runWorkbookScript } from '../scripts/rerun_query.js';
-import { computeScriptResultCacheKey, scriptRunServices } from '../scripts/script_run.js';
+import { computeScriptResultCacheKey, scriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { groupWorkbookAttachmentListWrites, REFRESH_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-sdk/storage/storage_writer';

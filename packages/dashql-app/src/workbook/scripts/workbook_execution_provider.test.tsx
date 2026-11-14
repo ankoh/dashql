@@ -17,9 +17,9 @@ import { QueryExecutorProvider } from '../../connections/query_executor.js';
 import { WorkbookTestBackend } from '../../storage/workbook_test_backend.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookExecutionProvider, workbookExecutionIsBusy, useWorkbookExecution } from './workbook_execution_provider.js';
-import { isWorkbookExecutionRunning, type WorkbookExecutionState } from './workbook_execution.js';
+import { isWorkbookExecutionRunning, type WorkbookExecutionState } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
 import { REGISTER_QUERY, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { scriptRunServices } from './script_run.js';
+import { scriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
