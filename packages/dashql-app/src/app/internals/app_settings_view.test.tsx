@@ -8,12 +8,12 @@ import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/ap
 import { FlavorProvider, useAppFlavor } from '../../config/flavor_provider.js';
 import { DASHQL_FLAVOR, FLAVORS, type AppFlavor } from '../../config/flavors.js';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
-import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { LogLevel } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { APP_RESTART_CTX } from '../../platform/crosstab/app_hand_over.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { applyFlavorToDocument } from '../../config/flavor_resolution.js';
 import { createTestRoot } from '../../tests/react_root.js';

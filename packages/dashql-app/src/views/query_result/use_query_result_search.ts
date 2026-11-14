@@ -6,18 +6,18 @@ import {
     SET_RESULT_SEARCH_PATTERN,
     type ComputationAction,
     type TableComputationState,
-} from '@ankoh/dashql-sdk/compute/computation_state';
+} from '@ankoh/dashql-runtime/compute/computation_state';
 import {
     buildColumnSearchSQL,
     collectSearchableResultColumns,
     parseColumnSearchMatches,
-} from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
-import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+} from '@ankoh/dashql-runtime/compute/sql/query_result_search_sql';
+import type { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useDataFrameRegistry } from '../../compute/computation_registry.js';
-import { scheduleTask } from '@ankoh/dashql-sdk/compute/computation_tasks';
-import { DATA_SEARCH_TASK } from '@ankoh/dashql-sdk/compute/computation_types';
+import { scheduleTask } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { DATA_SEARCH_TASK } from '@ankoh/dashql-runtime/compute/computation_types';
 
 const LOG_CTX = 'query_result_search';
 

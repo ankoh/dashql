@@ -6,7 +6,7 @@ import { ProgressBar } from '../../ui/foundations/progress_bar.js';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { AlertIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { formatBytes } from '../../utils/format.js';
-import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
+import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { CompactNavBar } from '../../app/navbar.js';
 import { SetupSteps } from '../../app/setup_steps.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';

@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { createSalesforceSetup, setupSalesforceConnection } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
-import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { createSalesforceSetup, setupSalesforceConnection } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';
+import type { SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
+import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
-import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
-import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
+import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
+import { RESET_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 
 afterEach(() => vi.unstubAllGlobals());
 

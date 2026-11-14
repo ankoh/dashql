@@ -1,4 +1,4 @@
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 /// Relaunch the app, the desktop app installs a downloaded update on the way
 export async function relaunch(logger: Logger): Promise<void> {

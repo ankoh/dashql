@@ -1,12 +1,12 @@
-import type { ScriptData } from '@ankoh/dashql-sdk/storage/storage_backend';
+import type { ScriptData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
     STORAGE_ATTACHMENTS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
-} from '@ankoh/dashql-sdk/storage/storage_backend';
-import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { assembleWorkbookBundle, isBundleCatalogPath, readWorkbookBundleHead } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { MemoryFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
+} from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { assembleWorkbookBundle, isBundleCatalogPath, readWorkbookBundleHead } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { MemoryFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 
 interface BrowserFolderEntry {
     path: string;

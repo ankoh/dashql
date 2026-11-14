@@ -7,13 +7,13 @@ import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../runtime/core_provider.js';
-import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-sdk/connections/query_execution_args';
-import { QueryExecutorService, type QueryExecutorDependencies, type WatchQueryProfile } from '@ankoh/dashql-sdk/connections/query_executor_service';
+import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { QueryExecutorService, type QueryExecutorDependencies, type WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
 
-// The executor is a service of the SDK (packages/dashql-sdk/src/connections/query_executor_service.ts), this module
+// The executor is a service of the runtime (packages/dashql-runtime/src/connections/query_executor_service.ts), this module
 // binds it to React
-export type { CancelQuery, QueryExecutor } from '@ankoh/dashql-sdk/connections/query_execution_args';
-export { computeQueryCacheKeyForConnection, logQueryFailure, type WatchQueryProfile } from '@ankoh/dashql-sdk/connections/query_executor_service';
+export type { CancelQuery, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+export { computeQueryCacheKeyForConnection, logQueryFailure, type WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
 
 /// The React context to resolve the active query executor
 export interface QueryExecutorContextValue {

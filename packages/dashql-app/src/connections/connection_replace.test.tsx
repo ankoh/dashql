@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { connectionReplaceBlocker, connectionReplaceCandidates } from './connection_replace.js';
 import { NO_CONNECTION_REFERENCES, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

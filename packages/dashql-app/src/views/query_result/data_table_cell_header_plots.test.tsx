@@ -5,8 +5,8 @@ import { act } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as styles from './data_table.module.css';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
     type ColumnAggregationTask,
     type ColumnAggregationVariant,
@@ -20,11 +20,11 @@ import {
     TaskStatus,
     type WithFilter,
     type WithProgress,
-} from '@ankoh/dashql-sdk/compute/computation_types';
+} from '@ankoh/dashql-runtime/compute/computation_types';
 import { computeColumnAggregates } from '../../compute/tasks/column_aggregation.js';
-import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
+import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { HeaderPlotsCell, type HeaderPlotsCellProps } from './data_table_cell_header_plots.js';

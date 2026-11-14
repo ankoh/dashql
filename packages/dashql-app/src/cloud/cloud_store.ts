@@ -1,7 +1,7 @@
 import { DASHQL_VERSION } from '../globals.js';
-import { exportArrowTableAsParquet } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
+import { exportArrowTableAsParquet } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { prepareHyperArrowInsert } from '../platform/hyperdb/hyperdb_arrow_insert.js';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
 import type { ParquetReadDatabase } from '../storage/workbook_tables_parquet.js';
 import {
     ATTACHMENT_TABLE_PREFIX,
@@ -18,7 +18,7 @@ import {
     type AttachmentRow,
     type WorkbookTableName,
     type WorkbookTables,
-} from '@ankoh/dashql-sdk/storage/workbook_tables';
+} from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { createTableSQL, insertStatements, qualifiedName, quoteLiteral, type CloudColumn } from './cloud_sql.js';
 import {
     checkCloudId,

@@ -30,8 +30,8 @@
             "@ankoh/dashql-core/browser-worker": [
                 "./bazel-bin/packages/dashql-core-js/dist/browser_worker.d.ts"
             ],
-            "@ankoh/dashql-sdk/*": [
-                "./packages/dashql-sdk/src/*.ts"
+            "@ankoh/dashql-runtime/*": [
+                "./packages/dashql-runtime/src/*.ts"
             ],
             "@ankoh/dashql-ui/*": [
                 "./packages/dashql-ui/src/*.ts"

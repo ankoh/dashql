@@ -1,8 +1,8 @@
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { OPFS_MANIFEST_LOCK } from '../opfs_storage_backend.js';
 import { listSessionFolders, readManifestJson, writeManifestJson } from './storage_root.js';
-import { migrateWorkbookFolder, WorkbookMigrationResult } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
+import { migrateWorkbookFolder, WorkbookMigrationResult } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
 import { notebooksToSessions } from './storage/v2_notebooks_to_sessions.js';
 import { globalConnections } from './storage/v3_global_connections.js';
 import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_connections.js';
@@ -11,8 +11,8 @@ import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
 import { sessionTree } from './storage/v7_session_tree.js';
 import { dbcomConnector } from './storage/v8_dbcom_connector.js';
 import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';
-import { flattenWorkbookTree, readWorkbookTree } from '@ankoh/dashql-sdk/storage/workbook_tree';
-import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { flattenWorkbookTree, readWorkbookTree } from '@ankoh/dashql-runtime/storage/workbook_tree';
+import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 const LOG_CTX = 'storage_migration';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './connection_label_view.module.css';
 
-import type { ConnectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
+import type { ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { Tag } from '../ui/foundations/tag.js';
 import { classNames } from '../utils/classnames.js';
 

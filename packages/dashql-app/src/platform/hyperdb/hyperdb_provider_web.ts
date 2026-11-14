@@ -1,5 +1,5 @@
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import type { EmbeddedDatabaseOptions, SetupProgress } from '../database/embedded_database_provider.js';
 
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBSettings } from './hyperdb_wasm.js';

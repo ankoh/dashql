@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
-import { VariantKind } from '@ankoh/dashql-sdk/utils/variant';
+import { VariantKind } from '@ankoh/dashql-runtime/utils/variant';
 import { TextInput, TextInputValidationStatus } from './text_input.js';
 import { CopyToClipboardAction } from './text_input_action.js';
 

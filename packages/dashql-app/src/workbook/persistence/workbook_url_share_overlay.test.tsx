@@ -4,13 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFERENCES, useConnectionRegistry, type ConnectionReferences } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
-import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';

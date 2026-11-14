@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../logger/logger_provider.js';
 import { useAppHandOver } from '../crosstab/app_hand_over.js';
 

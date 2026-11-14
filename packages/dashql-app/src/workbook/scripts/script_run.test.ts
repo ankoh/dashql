@@ -1,25 +1,25 @@
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { QueryExecutor } from '../../connections/query_executor.js';
-import type { ParquetDatabase } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
+import type { ParquetDatabase } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
-import { QueryCacheMissError } from '@ankoh/dashql-sdk/query/query_result_cache';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
-import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
+import { QueryCacheMissError } from '@ankoh/dashql-runtime/query/query_result_cache';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { runWorkbookScript, runWorkbookScriptForResult } from './rerun_query.js';
 import {
     ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createEmptyScriptData, reduceWorkbookScripts,
     scriptResultOwner,
     replaceScriptSessionText, SET_SCRIPT_CONNECTION, type WorkbookScripts, type WorkbookScriptsAction,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

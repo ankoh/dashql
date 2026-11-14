@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { reconcileWorkbookScripts, remapWorkbookScripts, sanitizeWorkbookFiles, workbookAttachments, withWorkbookScripts } from '@ankoh/dashql-sdk/storage/workbook_files';
-import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { reconcileWorkbookScripts, remapWorkbookScripts, sanitizeWorkbookFiles, workbookAttachments, withWorkbookScripts } from '@ankoh/dashql-runtime/storage/workbook_files';
+import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 const OTHER_CONNECTION_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
 

@@ -1,6 +1,6 @@
-import type { OAuthState } from '@ankoh/dashql-sdk/oauth/oauth_types';
+import type { OAuthState } from '@ankoh/dashql-runtime/oauth/oauth_types';
 import { AppFlavor, findFlavor } from '../config/flavors.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
+import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
 
 const PUBLIC_OAUTH_ORIGINS = new Set(['https://dashql.app', 'https://stable.dashql.app', 'https://hyperdb.sh']);
 const DEVELOPMENT_OAUTH_HOSTS = new Set(['localhost', '127.0.0.1']);

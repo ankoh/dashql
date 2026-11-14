@@ -8,11 +8,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
-import { LoggableException, type Logger, type TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import { LoggableException, type Logger, type TracedLogger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
-import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '@ankoh/dashql-sdk/query/query_result_cache';
+import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '@ankoh/dashql-runtime/query/query_result_cache';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionStatus,
@@ -20,18 +20,18 @@ import {
     type QueryExecutionProgress,
     type QueryExecutionResponseStream,
     type QueryExecutionState,
-} from '@ankoh/dashql-sdk/query/query_execution_state';
+} from '@ankoh/dashql-runtime/query/query_execution_state';
 import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
-import { vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { AsyncConsumer } from '@ankoh/dashql-sdk/utils/async_consumer';
+import type { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
 import { ConnectionRegistry, useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
-import type { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
+import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import {
     computeQueryCacheKeyForConnection,
     EXECUTOR_CTX,

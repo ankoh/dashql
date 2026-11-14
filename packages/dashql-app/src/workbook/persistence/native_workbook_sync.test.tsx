@@ -5,20 +5,20 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
-import { WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
+import { WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
-import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { fsStore, makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
-import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-sdk/workbook/persistence/app_state_loader';
+import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { NativeWorkbookSync, readStoredWorkbookScripts } from './native_workbook_sync_react.js';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

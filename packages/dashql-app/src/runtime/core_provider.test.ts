@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashQLCoreProvider, useDashQLCoreSetup, type DashQLCoreSetupOptions, type DashQLSetupFn } from './core_provider.js';
 import { DashQL } from '@ankoh/dashql-core';
 import type { BatchWorkerRequest, BatchWorkerResponse } from '@ankoh/dashql-core/browser-worker';
-import { TracedLogger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { TracedLogger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { initializeCatalogBatchWorker } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
+import { initializeCatalogBatchWorker } from '@ankoh/dashql-runtime/connections/catalog/catalog_batch';
 
 class TestWorker extends EventTarget {
     readonly requests: BatchWorkerRequest[] = [];

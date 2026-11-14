@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import { TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
+import { TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
 
 /// Visit the values of an integer column as numbers, like `Number(column.get(i))` (nulls become 0).
 /// Integer chunks are read from their value buffers directly. A chunk's values are already narrowed

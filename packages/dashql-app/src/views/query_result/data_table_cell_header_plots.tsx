@@ -3,13 +3,13 @@ import * as styles from './data_table.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
-import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '@ankoh/dashql-sdk/compute/computation_types';
+import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
 import { RectangleWaveSpinner } from '../../ui/foundations/spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
-import { CrossFilters, HISTOGRAM_FILTER } from '@ankoh/dashql-sdk/compute/cross_filters';
+import { CrossFilters, HISTOGRAM_FILTER } from '@ankoh/dashql-runtime/compute/cross_filters';
 
 /// ---------------------------------------------------------------------------
 /// Header Plots Cell (row 1)

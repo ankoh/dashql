@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
-import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { FILTERED_COLUMN_AGGREGATION_TASK, TABLE_FILTERING_TASK, ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask, DataSearchTable, FilterTable } from '@ankoh/dashql-sdk/compute/computation_types';
-import { ScalarFilter } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
+import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
+import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+import { FILTERED_COLUMN_AGGREGATION_TASK, TABLE_FILTERING_TASK, ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask, DataSearchTable, FilterTable } from '@ankoh/dashql-runtime/compute/computation_types';
+import { ScalarFilter } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
-import { scheduleTask } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import { scheduleTask } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { forEachIntegerValue } from './visible_rows.js';
 
 /// Compare two scalar filter lists for equality.

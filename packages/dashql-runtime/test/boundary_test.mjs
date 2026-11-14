@@ -1,4 +1,4 @@
-// The SDK reaches no code of the app and no user interface, see docs/wip/dashql_sdk.md. Reads every module of src/
+// The runtime reaches no code of the app and no user interface, see docs/wip/dashql_runtime.md. Reads every module of src/
 // and fails with each import that leaves the package, reaches React, an editor, a .tsx module or a bundler asset, and
 // with each use of a seam that only a browser or a bundler provides, unless the seam is a known one below. Only the
 // modules of Node in src/node import node:, and the other modules don't import them.
@@ -59,7 +59,7 @@ for (const file of modules('')) {
             else if (/\.tsx$/.test(target) || existsSync(join(SRC, target.replace(/\.js$/, '.tsx')))) violations.push(`${file}: ${specifier} is a .tsx module`);
         } else if (FORBIDDEN_PACKAGE.test(specifier)) {
             violations.push(`${file}: ${specifier}`);
-        } else if (specifier.startsWith('@ankoh/dashql-sdk')) {
+        } else if (specifier.startsWith('@ankoh/dashql-runtime')) {
             violations.push(`${file}: ${specifier} imports the package by its name, use a relative import`);
         }
     }
@@ -77,8 +77,8 @@ for (const file of KNOWN_SEAMS.keys()) {
 }
 
 if (violations.length > 0) {
-    console.error(`The SDK crosses its boundary (${violations.length}):`);
+    console.error(`The runtime crosses its boundary (${violations.length}):`);
     for (const violation of violations) console.error(`  ${violation}`);
     process.exit(1);
 }
-console.log(`${modules('').length} modules of ${relative(process.cwd(), SRC) || 'src'} stay inside the SDK`);
+console.log(`${modules('').length} modules of ${relative(process.cwd(), SRC) || 'src'} stay inside the runtime`);

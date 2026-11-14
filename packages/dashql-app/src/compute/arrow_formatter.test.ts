@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
-import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, dataTypeToString, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, dataTypeToString, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import type { LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 describe('TableFormatter', () => {
     it("can be constructed from a single column", () => {

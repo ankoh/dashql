@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
 import { useConnectionAllocator, useConnectionRegistryStore } from './connection_registry.js';
 import { getHyperLinkTabState } from './hyper/hyper_link_tab.js';
 

@@ -7,14 +7,14 @@ import { filterTable } from './tasks/table_filtering.js';
 import { searchData } from './tasks/data_search.js';
 import { sortTable } from './tasks/table_ordering.js';
 
-import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from '@ankoh/dashql-sdk/compute/computation_state';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { LoggableException, Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
-import { TaskStatus, TaskProgress, TaskVariant, COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from "@ankoh/dashql-sdk/compute/computation_types";
+import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from '@ankoh/dashql-runtime/compute/computation_state';
+import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+import { LoggableException, Logger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
+import { TaskStatus, TaskProgress, TaskVariant, COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from "@ankoh/dashql-runtime/compute/computation_types";
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../platform/logger/logger_provider.js';
-import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { useCreateComputeQueryExecution } from './compute_query_execution.js';
 
 const LOG_CTX = 'scheduler';

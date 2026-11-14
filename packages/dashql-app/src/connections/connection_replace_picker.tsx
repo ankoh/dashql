@@ -3,9 +3,9 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import * as ActionList from '../ui/foundations/action_list.js';
 import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS } from './connection_status.js';
-import { connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
+import { connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { ConnectionLabelView } from './connection_label_view.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import * as styles from './connection_replace_picker.module.css';

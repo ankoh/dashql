@@ -1,4 +1,4 @@
-import { quoteIdentifier } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
+import { quoteIdentifier } from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
 
 // The statements that the cloud store sends to the cloud connection. See docs/design/cloud.md.
 

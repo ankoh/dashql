@@ -6,14 +6,14 @@ import {
     ConnectionStateWithoutId,
     SET_CONNECTION_DRAFT,
     DISCARD_CONNECTION_DRAFT,
-} from '@ankoh/dashql-sdk/connections/connection_state';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
+} from '@ankoh/dashql-runtime/connections/connection_state';
+import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+import { UpdateQueue } from '@ankoh/dashql-runtime/store/store';
 import { FRAME_UPDATE_SCHEDULER, useStoreState } from '../utils/store_hooks.js';
-import { ConnectionRegistryService } from '@ankoh/dashql-sdk/connections/connection_registry_service';
+import { ConnectionRegistryService } from '@ankoh/dashql-runtime/connections/connection_registry_service';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import {
     NO_CONNECTION_REFERENCES,
     resolveWorkbookConnections,
@@ -22,7 +22,7 @@ import {
     type ConnectionReferences,
     type ConnectionRegistry as ConnectionRegistryState,
     type DynamicConnectionDispatch,
-} from '@ankoh/dashql-sdk/connections/connection_registry_state';
+} from '@ankoh/dashql-runtime/connections/connection_registry_state';
 
 // The state of the registry and its reducer are in connection_registry_state.ts, this module binds them to React
 export {
@@ -42,7 +42,7 @@ export {
     type ConnectionDispatch,
     type ConnectionReferences,
     type DynamicConnectionDispatch,
-} from '@ankoh/dashql-sdk/connections/connection_registry_state';
+} from '@ankoh/dashql-runtime/connections/connection_registry_state';
 /// The connection registry, see connection_registry_state.ts
 export type ConnectionRegistry = ConnectionRegistryState;
 

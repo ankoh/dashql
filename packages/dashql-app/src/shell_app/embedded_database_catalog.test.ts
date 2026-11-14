@@ -2,8 +2,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import * as dashql from '@ankoh/dashql-core';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import type { EmbeddedConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import type { EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { EmbeddedDatabaseCatalog } from './embedded_database_catalog.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

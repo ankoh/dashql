@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as pb from "@ankoh/dashql-sdk/proto";
+import * as pb from "@ankoh/dashql-runtime/proto";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -7,7 +7,7 @@ import {
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
     HyperQueryResultStream,
-} from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+} from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import {
     HyperDatabaseHttpClient,
     HyperHttpAuthProvider,
@@ -22,12 +22,12 @@ import {
     QueryExecutionProgress,
     QueryExecutionResponseStream,
     QueryExecutionStatus,
-} from '@ankoh/dashql-sdk/query/query_execution_state';
-import { AsyncConsumer } from '@ankoh/dashql-sdk/utils/async_consumer';
-import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
-import { HttpClient } from '@ankoh/dashql-sdk/platform/http/http_client';
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
+} from '@ankoh/dashql-runtime/query/query_execution_state';
+import { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
+import { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';
+import { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';
+import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { yieldToBrowser } from '@ankoh/dashql-runtime/utils/yield_to_browser';
 
 const LOG_CTX = "web_hyperdb_http_client";
 

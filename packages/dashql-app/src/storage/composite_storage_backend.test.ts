@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
+import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { StorageBackendType } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import {
     findWorkbookImportConflict,
@@ -15,8 +15,8 @@ import {
     replaceWorkbookWithPortableBundle,
     writePortableWorkbookFresh,
 } from './workbook_import_transaction.js';
-import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 const OTHER_WORKBOOK_ID = '22222222-3333-4444-8555-666666666666';
 

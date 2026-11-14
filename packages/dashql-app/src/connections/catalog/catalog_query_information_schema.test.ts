@@ -2,8 +2,8 @@ import * as flatbuffers from 'flatbuffers';
 import { describe, expect, it, vi } from 'vitest';
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { QueryExecutor } from '../query_executor.js';
-import { informationSchemaColumnsQuery, updateInformationSchemaCatalog, updateInformationSchemaRelations } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_information_schema';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { informationSchemaColumnsQuery, updateInformationSchemaCatalog, updateInformationSchemaRelations } from '@ankoh/dashql-runtime/connections/catalog/catalog_query_information_schema';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 describe('information_schema batch refresh', () => {
     it('queries nothing when no catalog is configured', async () => {

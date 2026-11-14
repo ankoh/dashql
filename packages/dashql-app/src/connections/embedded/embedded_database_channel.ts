@@ -1,17 +1,17 @@
 import type * as arrow from 'apache-arrow';
-import type * as pb from '@ankoh/dashql-sdk/proto';
+import type * as pb from '@ankoh/dashql-runtime/proto';
 
-import type { EmbeddedConnection, EmbeddedResultStream } from '@ankoh/dashql-sdk/platform/database/embedded_database';
-import type { AsyncConsumer } from '@ankoh/dashql-sdk/utils/async_consumer';
+import type { EmbeddedConnection, EmbeddedResultStream } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import type { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
     QueryExecutionStatus,
     type QueryExecutionMetrics,
-} from '@ankoh/dashql-sdk/query/query_execution_state';
-import type { HyperDatabaseChannel } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
-import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
+} from '@ankoh/dashql-runtime/query/query_execution_state';
+import type { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+import { yieldToBrowser } from '@ankoh/dashql-runtime/utils/yield_to_browser';
 
 const STREAM_YIELD_INTERVAL = 8;
 

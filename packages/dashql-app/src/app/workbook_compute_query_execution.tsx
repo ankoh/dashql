@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
-import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
+import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { useComputationStore } from '../compute/computation_registry.js';
-import { computationTaskTitle, type TaskVariant } from '@ankoh/dashql-sdk/compute/computation_types';
-import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { executeTrackedQuery } from '@ankoh/dashql-sdk/query/tracked_query_execution';
+import { computationTaskTitle, type TaskVariant } from '@ankoh/dashql-runtime/compute/computation_types';
+import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { useConnectionDispatch } from '../connections/connection_registry.js';
 import { sqlframeClientContext } from '../connections/hyper/hyper_log_metrics.js';
 

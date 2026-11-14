@@ -3,7 +3,7 @@ import type { TopLevelSpec } from 'vega-lite';
 
 import * as styles from './visualization.module.css';
 import { createVegaLitePreviewConfig } from '../../ui/vegalite/vegalite_theme.js';
-import { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
 
 /// The inset of the chart in its box, the padding of the preview style

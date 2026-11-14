@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 
-import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
-import { TableAggregation, OrdinalColumnAnalysis, StringColumnAnalysis, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable } from '@ankoh/dashql-sdk/compute/computation_types';
+import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
+import { TableAggregation, OrdinalColumnAnalysis, StringColumnAnalysis, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable } from '@ankoh/dashql-runtime/compute/computation_types';
 import { assert } from '../utils/assert.js';
-import { isTemporalType } from '@ankoh/dashql-sdk/compute/arrow_columns';
+import { isTemporalType } from '@ankoh/dashql-runtime/compute/arrow_columns';
 
 export function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter, filteredTotalCount: number | null = null): OrdinalColumnAnalysis {
     const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;

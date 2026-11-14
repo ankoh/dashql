@@ -1,11 +1,11 @@
-import { StorageBackendType, type WorkbookEntry } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { StorageBackendType, type WorkbookEntry } from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
     assembleWorkbookBundle,
     describeWorkbookBundleDifference,
     seedConnectionCatalogs,
     type WorkbookBundle,
     type WorkbookBundleWriteStep,
-} from '@ankoh/dashql-sdk/storage/workbook_bundle';
+} from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import {
     type CompositeStorageBackend,
     type WorkbookImportConflict,

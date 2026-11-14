@@ -1,4 +1,4 @@
-// The modules and tests with the types of Node, the SDK and the core come from the node_modules of Bazel
+// The modules and tests with the types of Node, the runtime and the core come from the node_modules of Bazel
 {
   "compilerOptions": {
     "target": "ES2022",

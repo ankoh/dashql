@@ -1,15 +1,15 @@
 import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
-import type { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { QueryCacheMissError } from '@ankoh/dashql-sdk/query/query_result_cache';
+import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { QueryCacheMissError } from '@ankoh/dashql-runtime/query/query_result_cache';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
-import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
+import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import {
     APPLY_PLANNER_ANALYSIS,
     createEmptyScriptData,
@@ -23,19 +23,19 @@ import {
     SET_SCRIPT_EXECUTION_VISUALIZATION,
     SET_SCRIPT_TEXT,
     SET_WORKBOOK_ATTACHMENTS,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/workbook_export.js';
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { importWorkbookQueryResults, retainWorkbookQueryResults } from '../persistence/workbook_query_results.js';
-import { TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { computeQueryCacheKeyForConnection } from '../../connections/query_executor.js';
-import { decodeConnectionFromProto } from '@ankoh/dashql-sdk/connections/connection_import';
-import type { ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import { decodeConnectionFromProto } from '@ankoh/dashql-runtime/connections/connection_import';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

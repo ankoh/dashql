@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
 import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
-import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 /// A browsing context of the origin that stands in for a tab, it has its own locks and channels
 interface TestTab {

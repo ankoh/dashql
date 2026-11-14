@@ -1,6 +1,6 @@
-import { RENAME_SCRIPT, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { RENAME_SCRIPT, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 
 /// Renames the references to a script in a draft, by display names
 export type RenameDraftReferences = (from: string, to: string) => void;

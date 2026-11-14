@@ -117,7 +117,7 @@ coordination, and both state registries.
 ### Domain Reconciliation
 
 Workbook scripts reconciliation stays in
-`packages/dashql-sdk/src/workbook/scripts/workbook_scripts.ts`:
+`packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts`:
 
 - `WorkbookScriptsStorageSnapshot` is the storage-shaped boundary type.
 - `workbookScriptsMatchStorageSnapshot` detects differences in script order, connection and text.
@@ -279,8 +279,8 @@ bazel build //packages/dashql-native:compile
 
 - Check coordinator: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
 - Stamps and refused script writes: `packages/dashql-app/src/storage/native_storage_backend.ts`
-- Held writes: `packages/dashql-sdk/src/storage/storage_writer.ts`
-- Workbook scripts reconciliation: `packages/dashql-sdk/src/workbook/scripts/workbook_scripts.ts`
+- Held writes: `packages/dashql-runtime/src/storage/storage_writer.ts`
+- Workbook scripts reconciliation: `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
 - Stamp tests: `packages/dashql-app/src/storage/native_storage_backend.test.ts`
 - Writer tests: `packages/dashql-app/src/storage/storage_writer.test.ts`

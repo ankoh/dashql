@@ -1,8 +1,8 @@
 import type * as core from '@ankoh/dashql-core';
 
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 
 /// The placement of the `@flow` tag of a script, null without a tag
 function placementOf(flow: FlowPosition | null | undefined): core.DataflowPlacement | null {

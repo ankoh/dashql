@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 
-import { TableComputationState } from "@ankoh/dashql-sdk/compute/computation_state";
-import { ArrowTableFormatter } from "@ankoh/dashql-sdk/compute/arrow_formatter";
-import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@ankoh/dashql-sdk/compute/computation_types";
+import { TableComputationState } from "@ankoh/dashql-runtime/compute/computation_state";
+import { ArrowTableFormatter } from "@ankoh/dashql-runtime/compute/arrow_formatter";
+import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@ankoh/dashql-runtime/compute/computation_types";
 
 export interface DataTableLayout {
     columnCount: number;

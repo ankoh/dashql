@@ -1,5 +1,5 @@
 {
-  "name": "@ankoh/dashql-sdk",
+  "name": "@ankoh/dashql-runtime",
   "version": "0.0.0",
   "description": "The logic of DashQL without React, shared by the app and the command line tool",
   "private": true,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { markdownTemplate, persistDashboardPlacement, setDashboardRenderer } from './dashboard_source.js';
 
 describe('dashboard source persistence', () => {

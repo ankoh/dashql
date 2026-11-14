@@ -3,9 +3,9 @@ import * as React from 'react';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistry, useWorkbookScriptsRegistryReader, type ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { isWorkbookExecutionRunning, subscribeWorkbookExecutions, type WorkbookExecutionState } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
+import { isWorkbookExecutionRunning, subscribeWorkbookExecutions, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { registerScriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
+import { registerScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import {
@@ -13,11 +13,11 @@ import {
     workbookExecutionIsBusy,
     type WorkbookExecutionDependencies,
     type WorkbookExecutionOptions,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution_service';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 
-// The runs of workbooks are a service of the SDK (packages/dashql-sdk/src/workbook/scripts/workbook_execution_service.ts),
+// The runs of workbooks are a service of the runtime (packages/dashql-runtime/src/workbook/scripts/workbook_execution_service.ts),
 // this module binds it to React
-export { workbookExecutionIsBusy, type WorkbookExecutionOptions } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution_service';
+export { workbookExecutionIsBusy, type WorkbookExecutionOptions } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 
 interface ExecutionContext {
     states: Map<string, WorkbookExecutionState>;

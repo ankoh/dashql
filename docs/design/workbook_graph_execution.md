@@ -68,7 +68,7 @@ The app would keep the async loop around these calls.
 Leave the scheduler in the app for now. Revisit if one of these happens:
 
 - a second consumer of planned runs appears outside the app's TypeScript (the shell or a CLI). The Node `dashql` on
-  the SDK is the likely one (`docs/wip/dashql_sdk.md`).
+  the runtime is the likely one (`docs/wip/dashql_runtime.md`).
 - the scheduler grows features such as retries, partial reruns or resuming a failed run
 
 ## Possible small step

@@ -1,7 +1,7 @@
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { connectionLabel, connectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-sdk/connections/connection_registry_state';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectionLabel, connectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
+import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 import type { ConnectionRegistry } from './connection_registry.js';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 import {

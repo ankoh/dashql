@@ -8,8 +8,8 @@ import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../../ui/fou
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
-import type { ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import * as styles from './dashboard.module.css';
 
 /// The overlay that the board shows over its cards. The board owns it, a card that gets a renderer is rendered anew

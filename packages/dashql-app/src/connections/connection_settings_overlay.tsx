@@ -6,11 +6,11 @@ import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position
 import { OverlaySize } from '../ui/foundations/overlay.js';
 import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { useConnectionById, useConnectionDraft, useConnectionReferencesSelector } from './connection_registry.js';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { ConnectionHealth, connectionCachesQueryResults, SET_CONNECTION_QUERY_RESULT_CACHING, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { ConnectionHealth, connectionCachesQueryResults, SET_CONNECTION_QUERY_RESULT_CACHING, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';

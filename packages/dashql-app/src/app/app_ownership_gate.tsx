@@ -8,7 +8,7 @@ import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } f
 import { Button, ButtonVariant } from '../ui/foundations/button.js';
 import { CompactNavBar } from './navbar.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 const LOG_CTX = 'app_ownership';
 

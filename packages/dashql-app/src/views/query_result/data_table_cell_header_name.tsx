@@ -5,7 +5,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
+import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
 import { DataTableLayout } from './data_table_layout.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
 

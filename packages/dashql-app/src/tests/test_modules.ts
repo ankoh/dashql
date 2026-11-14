@@ -9,19 +9,19 @@ function normalizePath(path: string): string {
     return path.startsWith('./') ? `src/tests/${path.slice(2)}` : path.replace(/^\.\.\//, 'src/');
 }
 
-/// The tests of the SDK run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-sdk:test_node)
-export const SDK_TEST_MODULES = import.meta.glob([
-    '../../../dashql-sdk/src/**/*.test.ts',
-    // The tests of Node, see //packages/dashql-sdk:test_node
-    '!../../../dashql-sdk/src/**/*.node.test.ts',
+/// The tests of the runtime run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-runtime:test_node)
+export const RUNTIME_TEST_MODULES = import.meta.glob([
+    '../../../dashql-runtime/src/**/*.test.ts',
+    // The tests of Node, see //packages/dashql-runtime:test_node
+    '!../../../dashql-runtime/src/**/*.node.test.ts',
 ]);
 
-/// The tests of the SDK are named sdk/src/<path>
-const SDK_SOURCE_ROOT = '/dashql-sdk/src/';
-const SDK_TEST_KEYS = new Map(Object.keys(SDK_TEST_MODULES).map(key =>
-    [`sdk/src/${key.slice(key.lastIndexOf(SDK_SOURCE_ROOT) + SDK_SOURCE_ROOT.length)}`, key]));
+/// The tests of the runtime are named runtime/src/<path>
+const RUNTIME_SOURCE_ROOT = '/dashql-runtime/src/';
+const RUNTIME_TEST_KEYS = new Map(Object.keys(RUNTIME_TEST_MODULES).map(key =>
+    [`runtime/src/${key.slice(key.lastIndexOf(RUNTIME_SOURCE_ROOT) + RUNTIME_SOURCE_ROOT.length)}`, key]));
 
-export const BROWSER_TEST_FILES = [...Object.keys(BROWSER_TEST_MODULES).map(normalizePath), ...SDK_TEST_KEYS.keys()]
+export const BROWSER_TEST_FILES = [...Object.keys(BROWSER_TEST_MODULES).map(normalizePath), ...RUNTIME_TEST_KEYS.keys()]
     .sort();
 
 export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
@@ -63,9 +63,9 @@ export function getBrowserTestShard(index: number, count: number): string[] {
 }
 
 export function getBrowserTestModule(file: string): (() => Promise<unknown>) | null {
-    if (file.startsWith('sdk/')) {
-        const key = SDK_TEST_KEYS.get(file);
-        return key == null ? null : SDK_TEST_MODULES[key] ?? null;
+    if (file.startsWith('runtime/')) {
+        const key = RUNTIME_TEST_KEYS.get(file);
+        return key == null ? null : RUNTIME_TEST_MODULES[key] ?? null;
     }
     const key = file.startsWith('src/tests/') ? `./${file.slice('src/tests/'.length)}` : `../${file.replace(/^src\//, '')}`;
     return BROWSER_TEST_MODULES[key] ?? null;

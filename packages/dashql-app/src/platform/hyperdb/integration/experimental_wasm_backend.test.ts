@@ -5,7 +5,7 @@ import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperd
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
 import { EXPERIMENTAL_WASM_BACKEND_SETTING, isUnknownHyperDBSettingError } from '../hyperdb_settings.js';
 import { setupWebHyperDB } from '../hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

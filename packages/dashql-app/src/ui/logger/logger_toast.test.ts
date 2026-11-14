@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { LogLevel } from '@ankoh/dashql-sdk/platform/logger/log_buffer';
-import { testLogRecord } from '@ankoh/dashql-sdk/testing/test_logger';
+import { LogLevel } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
+import { testLogRecord } from '@ankoh/dashql-runtime/testing/test_logger';
 import { shouldShowLoggerToast } from './logger_toast.js';
 
 const record = (level: LogLevel) => testLogRecord({ level });

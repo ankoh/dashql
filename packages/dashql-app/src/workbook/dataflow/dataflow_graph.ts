@@ -1,8 +1,8 @@
 import * as core from '@ankoh/dashql-core';
 
-import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
-import { orderedWorkbookScripts, workbookAnalysisSignature, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { readWorkbookInputType, workbookPlanRequest, type WorkbookInputType } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
+import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import { orderedWorkbookScripts, workbookAnalysisSignature, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { readWorkbookInputType, workbookPlanRequest, type WorkbookInputType } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
 
 const StatementType = core.buffers.parser.StatementType;
 

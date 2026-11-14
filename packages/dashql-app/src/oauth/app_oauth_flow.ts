@@ -1,5 +1,5 @@
-import type { OAuthFlow, OAuthFlowEvent, OAuthLoopbackCallback } from '@ankoh/dashql-sdk/oauth/oauth_flow';
-import type { OAuthRedirectData } from '@ankoh/dashql-sdk/oauth/oauth_types';
+import type { OAuthFlow, OAuthFlowEvent, OAuthLoopbackCallback } from '@ankoh/dashql-runtime/oauth/oauth_flow';
+import type { OAuthRedirectData } from '@ankoh/dashql-runtime/oauth/oauth_types';
 import { isDebugBuild } from '../globals.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { PlatformType } from '../platform/platform_type.js';

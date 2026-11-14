@@ -1,7 +1,7 @@
 # dashql-cli
 
-`dashql`, the command line tool of DashQL on `@ankoh/dashql-sdk`. It runs the logic of the app in Node, so an agent in a
-harness gets the answers of the app (`docs/wip/dashql_sdk.md`):
+`dashql`, the command line tool of DashQL on `@ankoh/dashql-runtime`. It runs the logic of the app in Node, so an agent in a
+harness gets the answers of the app (`docs/wip/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
@@ -12,7 +12,7 @@ bazel run //packages/dashql-cli:dashql -- lint examples/snippets/hyper
 bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
 ```
 
-Vite bundles the command with the sources of the SDK into one module for Node (`dist/dashql.js`,
+Vite bundles the command with the sources of the runtime into one module for Node (`dist/dashql.js`,
 `//packages/dashql-cli:bundle`). The core stays a package next to it, the command reads its Wasm file from there.
 `lint` and `format` need Node 22 or later.
 
@@ -33,7 +33,7 @@ echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
 
 ### What it does
 
-Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the SDK), and only the scripts with
+Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the runtime), and only the scripts with
 diagnostics are printed. Scripts
 are not executed.
 
@@ -69,7 +69,7 @@ complete them. They are not reported.
 dashql format [--write|--check] [--dialect hyper|trino] <file.sql|dir|->...
 ```
 
-Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the SDK) in the
+Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the runtime) in the
 pretty mode with lowercase
 keywords, a width of 120 and an indentation of 4, and printed to stdout. `--write` rewrites the files that change and
 `--check` only names them. Both end with a summary. `--dialect` is `hyper` by default, Trino scripts need `trino`, where

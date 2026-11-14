@@ -2,14 +2,14 @@ import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputationRegistry } from '../../compute/computation_registry.js';
-import { COLUMN_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, SET_RESULT_SEARCH_PATTERN, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
-import { type ColumnGroup, DATA_SEARCH_TASK, type ResultSearchState, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
-import type { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
+import { COLUMN_SEARCH_SUCCEEDED, RESULT_SEARCH_FAILED, SET_RESULT_SEARCH_PATTERN, type ComputationAction, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import { type ColumnGroup, DATA_SEARCH_TASK, type ResultSearchState, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 const ROWNUM: ColumnGroup = { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } };
 const NAME: ColumnGroup = { type: STRING_COLUMN, value: { inputFieldName: 'name', inputFieldType: new arrow.Utf8(), inputFieldNullable: true, statsFields: null, valueIdFieldName: null } };

@@ -1,12 +1,12 @@
 # hyperdb-edge
 
 Status: the command, its tools for agent SDKs, their tests and the harness tests are built; moving the Hyper code of
-DashQL into the library and the SDK on top are not.
+DashQL into the library and the DashQL runtime on top are not.
 
 `hyperdb-edge` (`packages/hyperdb-edge`) is a command line tool for agents that use the embedded Hyper of
 `hyperdb-wasm`: it runs SQL on a database file and prints the result, and it describes Hyper for agents. It has no
 application logic. Everything beyond running SQL (listing tables, plans, reading files, writing results) is SQL, and
-`describe` says which SQL. Its library is the part of Hyper that the DashQL SDK and the command share.
+`describe` says which SQL. Its library is the part of Hyper that the DashQL runtime and the command share.
 
 | Part | State |
 |---|---|
@@ -17,7 +17,7 @@ application logic. Everything beyond running SQL (listing tables, plans, reading
 | Harness tests for Claude Code and Codex (`tests/agents/hyperdb_edge_*_test.mjs`) | Built |
 | A session with a warm engine and the tools `run_sql` and `describe` for the Tool Runner and the Claude Agent SDK, see [In-process tools](#in-process-tools) | Built, tested with both SDKs |
 | The Hyper code of DashQL in the library (Arrow tables, the log reader) | Planned |
-| The Node platform of the DashQL SDK on `@ankoh/hyperdb-edge/node` | Planned |
+| The Node platform of the DashQL runtime on `@ankoh/hyperdb-edge/node` | Planned |
 | Fixes in `hyperdb-wasm` (see [Findings](#findings)) | To raise upstream |
 
 ## Name
@@ -54,7 +54,7 @@ Exit codes: 0 ok, 1 a statement failed, 2 usage, an unsupported runtime or a dat
   and `describe` says how. Only what SQL can't do is an option: which database to open, the engine settings, the
   output.
 - **Statements, not queries.** `run` takes any statement, so nothing is named after queries. `run` is the name of
-  DuckDB's call for any statement and of the planned `dashql run` ([dashql_sdk.md](dashql_sdk.md)). `-c, --command`
+  DuckDB's call for any statement and of the planned `dashql run` ([dashql_runtime.md](dashql_runtime.md)). `-c, --command`
   and `-f, --file` are the options of `psql`, `-c` the one of DuckDB, the tools agents know best. ClickHouse and
   SnowSQL say `-q, --query` for any statement, mysql and Trino `--execute`.
 - **Several statements.** The engine runs one statement per call (`select 1; select 2` is a syntax error), so `run`
@@ -152,7 +152,7 @@ What the command works around, and `hyperdb-wasm` should fix:
 - apache-arrow returns a decimal as its unscaled digits, a timestamp as fractional milliseconds and an interval as
   four 32-bit integers; `src/values.ts` formats them.
 - `engines: node >=24`, but V8 has exnref without a flag only from Node 24.15 on (see
-  [Runtimes for the embedded Hyper](dashql_sdk.md#runtimes-for-the-embedded-hyper)). The runtime check sets the flag
+  [Runtimes for the embedded Hyper](dashql_runtime.md#runtimes-for-the-embedded-hyper)). The runtime check sets the flag
   itself, see below.
 
 ## The runtime check
@@ -299,16 +299,16 @@ Not built yet:
   `EXPLAIN (ANALYZE)` with parentheses, qualified names while a second database is attached). It checks the texts of
   `describe`, which no fake model can, and decides whether the tools return the table format or JSON lines.
 
-## With the DashQL SDK
+## With the DashQL runtime
 
-The SDK and the command sit side by side on `hyperdb-wasm`. The SDK depends on the library of `hyperdb-edge`,
+The runtime and the command sit side by side on `hyperdb-wasm`. The runtime depends on the library of `hyperdb-edge`,
 never the other way: the command would otherwise carry all of DashQL. Neither command calls the other, and they don't
 overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 
 ```
           dashql (Node CLI)          hyperdb-edge (command)
                  │                           │
-          @ankoh/dashql-sdk ───────► @ankoh/hyperdb-edge (library)
+          @ankoh/dashql-runtime ───────► @ankoh/hyperdb-edge (library)
                  │                           │
                  └────────► hyperdb-wasm ◄───┘
 ```
@@ -316,17 +316,17 @@ overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 | Code | Today | Goes to |
 |---|---|---|
 | One call for any statement, quoting | `@ankoh/hyperdb-edge` | Built |
-| Opening a database file with a lock, the runtime check | `@ankoh/hyperdb-edge/node` | Built, planned for the Node CLI in [dashql_sdk.md](dashql_sdk.md) |
+| Opening a database file with a lock, the runtime check | `@ankoh/hyperdb-edge/node` | Built, planned for the Node CLI in [dashql_runtime.md](dashql_runtime.md) |
 | Arrow tables that Hyper reads | `packages/dashql-app/src/platform/hyperdb/hyperdb_arrow_insert.ts` | `@ankoh/hyperdb-edge` |
 | The Hyper log: query hash, scheduler counts | `packages/dashql-app/src/platform/hyperdb/hyperdb_log_extract.ts`, `hyperdb_incremental_extract.ts` | `@ankoh/hyperdb-edge`, typed against the connection of `hyperdb-wasm` instead of `EmbeddedConnection` |
 | `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@ankoh/hyperdb-edge` |
-| `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql-app/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the SDK's view of Hyper |
+| `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql-app/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |
 | The engine settings of the app | `HYPERDB_WASM_ENGINE_SETTINGS` | Stays: the redo log is for the local cloud, the resource log every second for the connection overview, the HTTP allowlist is a choice of the app |
 | OPFS, the web worker, the Parquet export through OPFS | `hyperdb_opfs*.ts`, `hyperdb_provider_web.ts`, `hyperdb_parquet_export.ts` | Stays |
 
 The modules in `src/` import nothing of Node (`//packages/hyperdb-edge:tsc_typecheck_test` checks them against the
-WebWorker lib), so the SDK's boundary test can accept them; only the Node platform of the SDK would import
-`src/node/`. Both packages live in this repo and pin the same `hyperdb-wasm`. The SDK isn't linked to the package
+WebWorker lib), so the runtime's boundary test can accept them; only the Node platform of the runtime would import
+`src/node/`. Both packages live in this repo and pin the same `hyperdb-wasm`. The runtime isn't linked to the package
 yet: that needs an `npm_link_package` in the root `BUILD.bazel` and the paths of the root `tsconfig.json`.
 
 ## Layout

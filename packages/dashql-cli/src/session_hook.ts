@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import type { AgentSessionEvent, AgentSessionEventName } from '@ankoh/dashql-sdk/session/agent_session_state';
+import type { AgentSessionEvent, AgentSessionEventName } from '@ankoh/dashql-runtime/session/agent_session_state';
 
 const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop', 'SessionEnd']);
 

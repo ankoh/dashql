@@ -5,10 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { ConnectionRegistry } from '../../connections/connection_registry.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '@ankoh/dashql-runtime/storage/storage_writer';
 import {
     WorkbookScriptsRegistryProvider,
     useWorkbookScripts,

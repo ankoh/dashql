@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
 import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
-import { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { findEmbeddedConnection, newWorkbookConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
-import { isHyperLinkParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { findEmbeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
+import { isHyperLinkParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import {
     EPHEMERAL_WORKBOOK_NAME,
@@ -14,7 +14,7 @@ import {
     WorkbookScripts,
     SET_PENDING_CONNECTION,
     takenWorkbookNames,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader, useWorkbookScriptsRegistryService } from './scripts/workbook_scripts_registry.js';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 

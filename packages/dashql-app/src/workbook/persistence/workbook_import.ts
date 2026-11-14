@@ -1,10 +1,10 @@
-import type { ScriptData, StorageBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
+import type { ScriptData, StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
     STORAGE_ATTACHMENTS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
-} from '@ankoh/dashql-sdk/storage/storage_backend';
-import type { WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions } from '@ankoh/dashql-sdk/storage/workbook_bundle';
+} from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import {
     assembleWorkbookBundle,
     isBundleCatalogPath,
@@ -12,8 +12,8 @@ import {
     regenerateBundleConnectionIds,
     seedConnectionCatalogs,
     writeWorkbookBundle,
-} from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { MemoryFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
+} from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { MemoryFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import {
     emptyWorkbookTables,
     isDataTableName,
@@ -24,7 +24,7 @@ import {
     TABLE_FILE_EXTENSION,
     type WorkbookTableName,
     type WorkbookTables,
-} from '@ankoh/dashql-sdk/storage/workbook_tables';
+} from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { readWorkbookTableParquet, workbookTableFileName, type ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 import { WORKBOOK_RESULTS_FOLDER, workbookResultKey } from './workbook_query_results.js';
 import {

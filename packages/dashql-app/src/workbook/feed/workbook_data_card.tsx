@@ -1,17 +1,17 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { connectionReadsAttachments } from '@ankoh/dashql-sdk/connections/connector_descriptor';
-import type { DataFile } from '@ankoh/dashql-sdk/storage/storage_backend';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectionReadsAttachments } from '@ankoh/dashql-runtime/connections/connector_descriptor';
+import type { DataFile } from '@ankoh/dashql-runtime/storage/storage_backend';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { formatBytes } from '../../utils/format.js';
-import { attachmentParameterName } from '@ankoh/dashql-sdk/workbook/attachments/workbook_attachments';
+import { attachmentParameterName } from '@ankoh/dashql-runtime/workbook/attachments/workbook_attachments';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
 export interface WorkbookDataCardProps {

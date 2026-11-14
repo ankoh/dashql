@@ -1,6 +1,6 @@
 import type * as arrow from 'apache-arrow';
 
-import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import {
     HyperDBIncrementalExtract,
     HYPER_EXTRACT_ROW_COLUMN,
@@ -17,9 +17,9 @@ import {
     isHyperLogFlushTimeout,
 } from '../../platform/hyperdb/hyperdb_log_extract.js';
 import { quoteIdentifier } from '../../platform/hyperdb/hyperdb_wasm.js';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { Store } from '@ankoh/dashql-sdk/store/store';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { Store } from '@ankoh/dashql-runtime/store/store';
 
 const LOG_CTX = 'hyper_log_metrics';
 

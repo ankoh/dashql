@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
+import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { WorkbookImportCard, type WorkbookImportCardDependencies } from './workbook_import_card.js';
 
 const FILE_BUNDLE: WorkbookBundle = {

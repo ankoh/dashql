@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import type { DynamicConnectionDispatch } from '../../connections/connection_registry.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { HyperSetupApi } from '../../connections/hyper/hyper_connection_setup.js';
-import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-sdk/connections/connection_setup_cancellation';
-import { isHyperLinkParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-runtime/connections/connection_setup_cancellation';
+import { isHyperLinkParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
 import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 
 const startupAttempts = new Map<string, AbortController>();

@@ -3,8 +3,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { useCreateComputeQueryExecution } from '../compute/compute_query_execution.js';
-import { TABLE_AGGREGATION_TASK, type TaskVariant } from '@ankoh/dashql-sdk/compute/computation_types';
-import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { TABLE_AGGREGATION_TASK, type TaskVariant } from '@ankoh/dashql-runtime/compute/computation_types';
+import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ShellComputeQueryExecutionProvider } from './shell_compute_query_execution.js';
 import { ShellQueryHistoryProvider, useShellQueryHistory } from './shell_query_history.js';
 

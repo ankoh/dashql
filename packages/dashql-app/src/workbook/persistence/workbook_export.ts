@@ -1,19 +1,19 @@
-import type { StorageBackend, WorkbookData, ConnectionParams } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { validateDataFileName } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
-import { sanitizeConnectionParamsForSharing } from '@ankoh/dashql-sdk/connections/connection_params';
+import type { StorageBackend, WorkbookData, ConnectionParams } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { validateDataFileName } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
+import { sanitizeConnectionParamsForSharing } from '@ankoh/dashql-runtime/connections/connection_params';
 import {
     pruneBundleConnections,
     readWorkbookBundle,
     regenerateBundleConnectionIds,
     type WorkbookBundle,
     type WorkbookBundleResult,
-} from '@ankoh/dashql-sdk/storage/workbook_bundle';
+} from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import type { DashQL } from '@ankoh/dashql-core';
-import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '@ankoh/dashql-sdk/storage/workbook_tables';
+import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { workbookTableFileName, writeWorkbookTableParquet } from '../../storage/workbook_tables_parquet.js';
-import { parseCatalogSql } from '@ankoh/dashql-sdk/connections/catalog/catalog_structure';
+import { parseCatalogSql } from '@ankoh/dashql-runtime/connections/catalog/catalog_structure';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
 import { ZIP_QUERY_PARAMETER } from '../../platform/events/event_listener.js';
 import { archiveError, BlobReader, BlobWriter, Uint8ArrayReader, ZipWriter } from './workbook_zip.js';

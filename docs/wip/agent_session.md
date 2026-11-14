@@ -3,8 +3,8 @@
 Status: built. The hooks of Claude Code and Codex reach `dashql session serve`, the page follows the session through a
 link. The files of the agent are not yet the workbook of the page.
 
-An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the SDK
-(`docs/wip/dashql_sdk.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
+An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the runtime
+(`docs/wip/dashql_runtime.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
 access per workbook and no prompt in natural language.
 
 ## The session
@@ -22,7 +22,7 @@ access per workbook and no prompt in natural language.
 
 ## The page
 
-- **The server** (`packages/dashql-cli/src/session_server.ts`) keeps the state that the SDK reduces from the events
+- **The server** (`packages/dashql-cli/src/session_server.ts`) keeps the state that the runtime reduces from the events
   (`session/agent_session_state.ts`): per turn the question, the latest status line, the files the tools named, the
   final message. Hooks post to `/v1/events`, pages read `/v1/stream`, server-sent events with the state after every
   event. Every request carries the token, pages in the query; only the pages of DashQL get CORS headers, and a
@@ -30,7 +30,7 @@ access per workbook and no prompt in natural language.
 - **The final message** comes from the payload (`last_assistant_message` of Codex) or from the transcript (the last
   text of the assistant in the JSONL of Claude Code).
 - **The page** gets the link as an app event. `AgentSessionProvider` (`agent/agent_session_provider.tsx`) follows the
-  server with `followAgentSession` of the SDK (`fetch`, in the browser and in Node), tries a lost server again every
+  server with `followAgentSession` of the runtime (`fetch`, in the browser and in Node), tries a lost server again every
   2 s until it ended the session, and keeps the link in the storage of the tab for a reload. A session belongs to the
   page: every workbook shows it. `agentSessionOf` (`agent/agent_session.ts`) maps it onto the model of the bar, the
   files that the agent touched are the scripts of the workbook with the same file name.

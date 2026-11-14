@@ -1,5 +1,5 @@
-// The command of dashql as one module for Node. The SDK is bundled from its sources, the core stays a package: its Wasm
-// file lies next to it (@ankoh/dashql-sdk/node/node_core).
+// The command of dashql as one module for Node. The runtime is bundled from its sources, the core stays a package: its Wasm
+// file lies next to it (@ankoh/dashql-runtime/node/node_core).
 export default {
     build: {
         ssr: 'src/main.ts',

@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 
-import { createAgentSessionState, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from '@ankoh/dashql-sdk/session/agent_session_state';
+import { createAgentSessionState, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from '@ankoh/dashql-runtime/session/agent_session_state';
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
 export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];

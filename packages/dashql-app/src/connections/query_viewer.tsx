@@ -5,7 +5,7 @@ import {
     QueryHistoryViewer,
     type QueryEntry,
 } from '../query/query_history_viewer.js';
-import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useConnectionRegistry } from './connection_registry.js';
 
 export function QueryViewer(props: {

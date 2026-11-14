@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { QueryExecutor } from '../query_executor.js';
-import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogScopes, trinoSessionDefaults, withTrinoCatalogFields } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
-import { CATALOG_UPDATE_REGISTER_QUERY } from '@ankoh/dashql-sdk/connections/connection_state';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { parseTrinoCatalogEntry, queryTrinoCatalogScopes, TRINO_CATALOGS_QUERY, trinoCatalogScopes, trinoSessionDefaults, withTrinoCatalogFields } from '@ankoh/dashql-runtime/connections/trino/trino_catalogs';
+import { CATALOG_UPDATE_REGISTER_QUERY } from '@ankoh/dashql-runtime/connections/connection_state';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 const params = (fields: Partial<connection.TrinoConnectionParams>): connection.TrinoConnectionParams => ({
     endpoint: 'https://trino.example.com',

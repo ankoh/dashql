@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { useLogger } from '../logger/logger_provider.js';
 import { awaitAndSet, Result } from '../../utils/result.js';
-import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { createTrace } from '@ankoh/dashql-sdk/platform/logger/trace_context';
+import { Logger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
 import { DASHQL_LATEST_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
 import { LATEST_RELEASE_MANIFEST_CTX, LATEST_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, useVersionCheckRefreshState } from './version_check.js';
 

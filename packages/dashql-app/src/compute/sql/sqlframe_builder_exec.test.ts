@@ -1,12 +1,12 @@
 import * as arrow from 'apache-arrow';
-import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
+import { SQLFrame } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import {
     HyperDB,
     HyperDBConnection,
 } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -595,7 +595,7 @@ describe('SQLFrame execution', () => {
             `(2, 'Bob', 'Austin'), ` +
             `(3, 'Carol', 'Seattle')`,
         );
-        const { buildDataSearchSQL } = await import('@ankoh/dashql-sdk/compute/sql/query_result_search_sql');
+        const { buildDataSearchSQL } = await import('@ankoh/dashql-runtime/compute/sql/query_result_search_sql');
         const sql = buildDataSearchSQL('input', '_rownum', [
             { columnIdx: 0, columnGroupIdx: 1, fieldName: 'name' },
             { columnIdx: 1, columnGroupIdx: 2, fieldName: 'city' },

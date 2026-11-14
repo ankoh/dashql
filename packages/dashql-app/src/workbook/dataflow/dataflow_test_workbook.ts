@@ -1,8 +1,8 @@
 import * as core from '@ankoh/dashql-core';
 
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { createEmptyScriptData, replaceScriptSessionText, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createEmptyScriptData, replaceScriptSessionText, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 
 /// A workbook of analyzed scripts on one connection, the declarations of every script are in the catalog
 export function analyzedTestWorkbook(dql: core.DashQL, entries: Array<[string, string]>): WorkbookScripts {

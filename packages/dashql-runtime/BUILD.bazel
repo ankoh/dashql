@@ -6,8 +6,8 @@ load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 # The logic of DashQL without React, shared by the app (//packages/dashql-app) and the command line tool, see
-# docs/wip/dashql_sdk.md. A source package, nothing is compiled: the app bundles the TypeScript itself.
-# Linked as //:node_modules/@ankoh/dashql-sdk, the dev server of the app reads packages/dashql-sdk directly.
+# docs/wip/dashql_runtime.md. A source package, nothing is compiled: the app bundles the TypeScript itself.
+# Linked as //:node_modules/@ankoh/dashql-runtime, the dev server of the app reads packages/dashql-runtime directly.
 
 package(default_visibility = ["//visibility:public"])
 
@@ -82,7 +82,7 @@ typescript_bin.tsc_test(
     name = "tsc_typecheck_test",
     size = "small",
     args = ["--project", "tsconfig.bazel.json"],
-    chdir = "packages/dashql-sdk",
+    chdir = "packages/dashql-runtime",
     data = [":typecheck_inputs"] + _TEST_DEPENDENCIES,
 )
 
@@ -91,7 +91,7 @@ typescript_bin.tsc_test(
     name = "tsc_typecheck_tests_test",
     size = "small",
     args = ["--project", "tsconfig.bazel.test.json"],
-    chdir = "packages/dashql-sdk",
+    chdir = "packages/dashql-runtime",
     data = [
         ":typecheck_inputs",
         "//:node_modules/vitest",
@@ -103,7 +103,7 @@ typescript_bin.tsc_test(
     name = "tsc_typecheck_node_test",
     size = "small",
     args = ["--project", "tsconfig.bazel.node.json"],
-    chdir = "packages/dashql-sdk",
+    chdir = "packages/dashql-runtime",
     data = [
         ":typecheck_inputs",
         "//:node_modules/@types/node",
@@ -111,7 +111,7 @@ typescript_bin.tsc_test(
     ] + _TEST_DEPENDENCIES,
 )
 
-# The tests of the SDK in Node, without those that need a browser (*.browser.test.ts), e.g. a Web Worker
+# The tests of the runtime in Node, without those that need a browser (*.browser.test.ts), e.g. a Web Worker
 vitest_bin.vitest_test(
     name = "test_node",
     size = "medium",
@@ -120,7 +120,7 @@ vitest_bin.vitest_test(
         "--config",
         "vitest.config.mjs",
     ],
-    chdir = "packages/dashql-sdk",
+    chdir = "packages/dashql-runtime",
     data = _SOURCES + [
         "package.json",
         "test/setup_node.mjs",
@@ -130,14 +130,14 @@ vitest_bin.vitest_test(
     ] + _TEST_DEPENDENCIES,
 )
 
-# The SDK reaches no code of the app and no user interface, and uses only the known seams of a browser or a bundler
+# The runtime reaches no code of the app and no user interface, and uses only the known seams of a browser or a bundler
 js_test(
     name = "boundary_test",
     data = _SOURCES,
     entry_point = "test/boundary_test.mjs",
 )
 
-# Editors resolve every import of the SDK through the root tsconfig.json and package.json
+# Editors resolve every import of the runtime through the root tsconfig.json and package.json
 js_test(
     name = "editor_config_test",
     data = _SOURCES + [
@@ -152,7 +152,7 @@ js_test(
 
 npm_package(
     name = "npm_package",
-    package = "@ankoh/dashql-sdk",
+    package = "@ankoh/dashql-runtime",
     srcs = ["package.json"] + _SOURCES,
     include_transitive_sources = False,
     include_transitive_types = False,

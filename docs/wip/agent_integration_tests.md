@@ -15,7 +15,7 @@ they check those assumptions on every machine that runs them, without model call
 | `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server, `dashql lint` | Done |
 | `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](hyperdb_edge.md#harness-tests) | Done |
 | `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
-| `dashql session serve` itself and the other commands of the SDK once they exist | Planned |
+| `dashql session serve` itself and the other commands of the runtime once they exist | Planned |
 | opencode | Planned |
 | The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added, not yet run on GitHub |
 
@@ -95,7 +95,7 @@ below the temporary folder, which the sandbox may allow.
 ## Next
 
 - **The session server of DashQL:** `dashql session serve` started by `SessionStart`, a simulated page that receives the
-  events; the commands of the SDK offline inside the sandboxes once they exist.
+  events; the commands of the runtime offline inside the sandboxes once they exist.
 - **opencode:** its plugins run in its process and see every event.
 - **CI:** the job `agent_integration` installs `bubblewrap` and `socat` on `ubuntu-26.04`, lifts the restriction of
   unprivileged user namespaces of Ubuntu, and runs `bazel test //tests/agents/...`. A macOS job could follow, the

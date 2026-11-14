@@ -1,4 +1,4 @@
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { testDatabasePath } from './hyperdb_test_client.js';

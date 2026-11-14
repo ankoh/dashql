@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { planConnectionMigration, type MigratingSession } from './v3_global_connections.js';
-import type { ConnectionParams } from '@ankoh/dashql-sdk/storage/storage_backend';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/storage/storage_backend';
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';

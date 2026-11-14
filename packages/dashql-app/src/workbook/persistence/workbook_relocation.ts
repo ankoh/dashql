@@ -1,6 +1,6 @@
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
+import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 
 const LOG_CTX = 'workbook_relocation';
 

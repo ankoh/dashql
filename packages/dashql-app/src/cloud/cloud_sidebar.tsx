@@ -18,14 +18,14 @@ import {
 import { useRowContextMenu } from '../ui/foundations/row_context_menu.js';
 import { classNames } from '../utils/classnames.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
-import { connectionLabel } from '@ankoh/dashql-sdk/connections/connection_label';
+import { connectionLabel } from '@ankoh/dashql-runtime/connections/connection_label';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
-import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useWorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
-import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from '../workbook/workbook_folder_row.js';
 import * as sidebarStyles from '../workbook/workbook_workbench_sidebar.module.css';
 import * as styles from './cloud_sidebar.module.css';

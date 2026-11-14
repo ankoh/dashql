@@ -15,16 +15,16 @@ code from Salesforce, encodes it into an app event, and hands it back to the ori
 
 ## Shared setup (all paths)
 
-`authenticateSalesforce` (`connections/salesforce/salesforce_authentication.ts` of `@ankoh/dashql-sdk`) runs these
+`authenticateSalesforce` (`connections/salesforce/salesforce_authentication.ts` of `@ankoh/dashql-runtime`) runs these
 steps. It is called by the connection setup (`salesforce_connection_setup.ts`) and by the shell. The `OAuthFlow` that
-they pass in (`oauth/oauth_flow.ts` of the SDK, `oauth/app_oauth_flow.ts` in the app) opens the authorization page
+they pass in (`oauth/oauth_flow.ts` of the runtime, `oauth/app_oauth_flow.ts` in the app) opens the authorization page
 and waits for the redirect page.
 
 1. Generate a PKCE challenge (`code_verifier` + `code_challenge` via S256).
 2. Take `flowVariant` from the `OAuthFlow`, by platform type:
    - `WEB_OPENER_FLOW` — `PlatformType.WEB`, i.e. the web app, including the localhost dev server
    - `NATIVE_LINK_FLOW` — otherwise, i.e. the Electron desktop app
-3. Serialise the `OAuthState` (`oauth/oauth_types.ts` of the SDK) → JSON → base64url → `state` query param:
+3. Serialise the `OAuthState` (`oauth/oauth_types.ts` of the runtime) → JSON → base64url → `state` query param:
    ```
    OAuthState {
      flowId,                // random UUID of this flow

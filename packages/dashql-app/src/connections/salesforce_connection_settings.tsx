@@ -7,12 +7,12 @@ import { KeyIcon, PersonIcon } from '../ui/foundations/symbol_icon.js';
 import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-runtime/connections/connection_state';
 import { performHealthCheck } from './health_check.js';
 import { useQueryExecutor } from './query_executor.js';
 import { useSalesforceSetup } from './salesforce/salesforce_connector.js';
-import type { SalesforceConnectorType } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
-import { getSalesforceConnectionDetails } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
+import type { SalesforceConnectorType } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';
+import { getSalesforceConnectionDetails } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
 import {
     TextField,
     TextFieldValidationStatus,
@@ -21,14 +21,14 @@ import {
 } from '../ui/foundations/text_field.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { classNames } from '../utils/classnames.js';
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql-sdk/connections/connector_descriptor';
-import { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
-import type { DetailedError } from '@ankoh/dashql-sdk/utils/error';
+import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql-runtime/connections/connector_descriptor';
+import { ConnectionStateDetailsVariant } from '@ankoh/dashql-runtime/connections/connection_state_details';
+import type { DetailedError } from '@ankoh/dashql-runtime/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { collectSalesforceAuthInfo } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_catalog_update';
+import { collectSalesforceAuthInfo } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
+import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_catalog_update';
 
 const LOG_CTX = "sf_connector";
 

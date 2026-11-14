@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import { DELETE_COMPUTATION } from '@ankoh/dashql-sdk/compute/computation_state';
+import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
 import { useComputationDispatch } from '../compute/computation_registry.js';
 import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
-import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-sdk/storage/storage_backend';
+import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
-import { workbookTablesToBundle } from '@ankoh/dashql-sdk/storage/workbook_tables';
-import type { WorkbookBundle, WorkbookBundleResult } from '@ankoh/dashql-sdk/storage/workbook_bundle';
+import { workbookTablesToBundle } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import type { WorkbookBundle, WorkbookBundleResult } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import {
@@ -22,7 +22,7 @@ import {
 import type { WorkbookImportConnectionMapping, WorkbookImportProgressConsumer } from '../workbook/persistence/workbook_import_provider.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import { exportWorkbookAsSharedTables } from '../workbook/persistence/workbook_export.js';
@@ -32,7 +32,7 @@ import {
     SET_WORKBOOK_CLOUD_LINK,
     workbookCloudLink,
     type WorkbookScripts,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import {
     useWorkbookScriptsDeletion,
     useWorkbookScriptsDispatch,
@@ -45,7 +45,7 @@ import { trackCloudPublish } from './cloud_publish_status.js';
 import { CloudPublishTooLargeError, deleteCloudWorkbook, listCloudWorkbookVersions, publishCloudWorkbook, readCloudWorkbook, type CloudWorkbookVersion } from './cloud_store.js';
 import type { CloudQuery } from './cloud_store_schema.js';
 import { retainWorkbookQueryResults } from '../workbook/persistence/workbook_query_results.js';
-import { scriptRunServices } from '@ankoh/dashql-sdk/workbook/scripts/script_run';
+import { scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import {
     createCloudFolder,

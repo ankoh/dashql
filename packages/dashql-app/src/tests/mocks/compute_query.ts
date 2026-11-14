@@ -1,9 +1,9 @@
 import type * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
 
-import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
-import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 
 /// A data frame of a table name without a database
 export function mockDataFrame(tableName: string): DataFrame {

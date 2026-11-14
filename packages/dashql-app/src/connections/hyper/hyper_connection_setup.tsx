@@ -7,28 +7,28 @@ import {
     HYPER_CHANNEL_SETUP_FAILED,
     HYPER_CHANNEL_SETUP_STARTED,
     HyperConnectorAction,
-} from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
-import { Logger, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { HyperConnectorConfig } from '@ankoh/dashql-sdk/connections/connector_configs';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+} from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
+import { Logger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { HyperConnectorConfig } from '@ankoh/dashql-runtime/connections/connector_configs';
+import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
-} from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+} from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
-import { RESET_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
+import { RESET_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
-import { hyperLinkChannelParams } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { hyperLinkChannelParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
 import { embeddedAttachedDatabasePath } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
-import { embeddedCloudDatabases } from '@ankoh/dashql-sdk/connections/hyper/local_cloud';
+import { embeddedCloudDatabases } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 
 const LOG_CTX = "hyper_setup";
 

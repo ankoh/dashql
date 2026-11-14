@@ -3,10 +3,10 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/query_executor.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { flushContinuousUpdates } from '../../tests/react_act.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
@@ -19,7 +19,7 @@ import {
     SET_SCRIPT_VIS_SPEC,
     type ScriptData,
     type WorkbookScripts,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
 

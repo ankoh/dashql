@@ -1,4 +1,4 @@
-import { getOPFSRoot, hyperOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { getOPFSRoot, hyperOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 /// The OPFS folder with one folder per embedded database instance, e.g. `instances/<uuid>/compute.hyper`
 export const HYPER_INSTANCES_DIRECTORY = 'instances';

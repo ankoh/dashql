@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { EXECUTE_QUERY, QUERY_SUCCEEDED, QueryExecutionStatus, QueryType, createQueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { EXECUTE_QUERY, QUERY_SUCCEEDED, QueryExecutionStatus, QueryType, createQueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import {
     SHELL_DATABASE_ID,
     ShellQueryHistoryProvider,

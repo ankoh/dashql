@@ -11,10 +11,10 @@ import { DatabaseIcon, FileDirectoryIcon, FileIcon, LibraryIcon, SearchIcon, XIc
 import { TextInput } from '../../ui/foundations/text_input.js';
 import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { ReadonlySqlView, useProjectedSqlText } from '../editor/readonly_sql_view.js';
-import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
+import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { measureScriptFormatWidth } from '../editor/script_format_editor.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { SNIPPET_DATASETS_FOLDER, type Snippet } from './snippet.js';

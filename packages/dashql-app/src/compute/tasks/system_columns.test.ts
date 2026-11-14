@@ -1,13 +1,13 @@
 
-import { appendRowNumbers, buildGridColumnGroups } from '@ankoh/dashql-sdk/compute/analyze_table';
-import { ComputationStateVersion } from '@ankoh/dashql-sdk/compute/computation_types';
-import { DataFrame } from '@ankoh/dashql-sdk/compute/data_frame';
+import { appendRowNumbers, buildGridColumnGroups } from '@ankoh/dashql-runtime/compute/analyze_table';
+import { ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
+import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
 import { computeSystemColumns } from './system_columns.js';
 import { computeTableAggregates } from './table_aggregation.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 describe('computeSystemColumns', () => {
     let database: HyperDB | null = null;

@@ -4,12 +4,12 @@ import { useDynamicConnectionDispatch } from '../connection_registry.js';
 import { useSalesforceAPI } from '../salesforce/salesforce_connector.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { updateHyperCatalog } from '@ankoh/dashql-sdk/connections/hyper/hyper_catalog_update';
-import { CatalogLoaderService, type CatalogLoaderDependencies as CatalogLoaderServiceDependencies } from '@ankoh/dashql-sdk/connections/catalog/catalog_loader_service';
+import { updateHyperCatalog } from '@ankoh/dashql-runtime/connections/hyper/hyper_catalog_update';
+import { CatalogLoaderService, type CatalogLoaderDependencies as CatalogLoaderServiceDependencies } from '@ankoh/dashql-runtime/connections/catalog/catalog_loader_service';
 
-// The loader is a service of the SDK (packages/dashql-sdk/src/connections/catalog/catalog_loader_service.ts), this
+// The loader is a service of the runtime (packages/dashql-runtime/src/connections/catalog/catalog_loader_service.ts), this
 // module binds it to React
-export type { CatalogLoader } from '@ankoh/dashql-sdk/connections/catalog/catalog_loader_service';
+export type { CatalogLoader } from '@ankoh/dashql-runtime/connections/catalog/catalog_loader_service';
 
 /// A function to add a connection id to a catalog loader queue
 type RefreshCatalogFn = (connectionId: string, force: boolean) => void;

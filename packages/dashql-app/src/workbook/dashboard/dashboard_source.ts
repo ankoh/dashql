@@ -1,7 +1,7 @@
-import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { chartStatementId } from '@ankoh/dashql-sdk/workbook/scripts/script_compilation';
+import type { LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { chartStatementId } from '@ankoh/dashql-runtime/workbook/scripts/script_compilation';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { DashboardPlacement } from './dashboard_layout.js';
 
 const LOG_CTX = 'dashboard';

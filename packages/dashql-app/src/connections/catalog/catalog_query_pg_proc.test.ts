@@ -4,8 +4,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { queryPgProc, generateCatalogSQLFromPgProc } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_proc';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { queryPgProc, generateCatalogSQLFromPgProc } from '@ankoh/dashql-runtime/connections/catalog/catalog_query_pg_proc';
 import type { QueryExecutor } from '../query_executor.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

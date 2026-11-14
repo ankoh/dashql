@@ -2,10 +2,10 @@ import * as core from '@ankoh/dashql-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
-import { runWorkbookExecution, type WorkbookExecutionState } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
-import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { runWorkbookExecution, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;

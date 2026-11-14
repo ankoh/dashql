@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { CLEAR_TABLE_ORDERING, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
-import { scheduleTask } from '@ankoh/dashql-sdk/compute/computation_tasks';
-import type { TableOrderingTask } from '@ankoh/dashql-sdk/compute/computation_types';
-import { TABLE_ORDERING_TASK, TaskStatus } from '@ankoh/dashql-sdk/compute/computation_types';
-import type { OrderByConstraint } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
-import type { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+import { CLEAR_TABLE_ORDERING, type ComputationAction, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import { scheduleTask } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import type { TableOrderingTask } from '@ankoh/dashql-runtime/compute/computation_types';
+import { TABLE_ORDERING_TASK, TaskStatus } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { OrderByConstraint } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
+import type { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 
 export function getColumnSortDirection(field: string, ordering: OrderByConstraint[]): boolean | null {
     if (ordering.length !== 1 || ordering[0].field !== field) return null;

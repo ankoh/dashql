@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
-import type { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookInputCard } from './workbook_input_card.js';
 import { useApplyWorkbookInput } from './use_apply_workbook_input.js';
-import { deriveWorkbookInputs } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
+import { deriveWorkbookInputs } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
 
 import * as styles from './workbook_inputs.module.css';
 

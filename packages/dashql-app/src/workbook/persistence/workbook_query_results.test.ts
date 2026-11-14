@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { importWorkbookQueryResults, workbookResultKey, workbookResultPath } from './workbook_query_results.js';
 

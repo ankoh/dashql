@@ -7,8 +7,8 @@ import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.j
 import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '@ankoh/dashql-runtime/connections/connector_info';
 import { ATTACHABLE_CONNECTORS, useConnectionAttach } from '../../connections/attached_connection.js';
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
 import {
@@ -17,11 +17,11 @@ import {
     useConnectionRegistry,
     useConnectionRegistryStore,
 } from '../../connections/connection_registry.js';
-import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
-import { connectionLabelParts, connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-sdk/connections/connection_registry_state';
+import { connectionLabelParts, connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
+import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';

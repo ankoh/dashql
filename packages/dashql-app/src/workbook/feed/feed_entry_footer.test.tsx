@@ -4,17 +4,17 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ComputationRegistry } from '../../compute/computation_registry.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
-import type { ResolvedVisualizeQuery } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import type { ResolvedVisualizeQuery } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import * as dashql from '@ankoh/dashql-core';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
-import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
-import { QueryProgressModels, type QueryProfileProgress } from '@ankoh/dashql-sdk/query/query_progress_model';
-import { ProfileExecutionState } from '@ankoh/dashql-sdk/query/profile_execution_state';
+import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { QueryProgressModels, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
+import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

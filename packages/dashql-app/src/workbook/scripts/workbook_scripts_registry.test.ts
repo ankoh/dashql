@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { WorkbookScriptsRegistry, addWorkbookScriptsForConnection, removeWorkbookScriptsFromRegistry } from './workbook_scripts_registry.js';
-import { WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 // removeWorkbookScriptsFromRegistry only reads workbookScriptsMap and the connections of the scripts,
 // so a tiny stand-in WorkbookScripts is enough — no Wasm needed.

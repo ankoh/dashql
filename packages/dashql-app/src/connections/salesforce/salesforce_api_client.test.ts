@@ -1,8 +1,8 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import {
     DEFAULT_SALESFORCE_DATA_SPACE,
     formatSalesforceMetadataProgress,
@@ -11,7 +11,7 @@ import {
     collectSalesforceAuthInfo,
     parseCoreAccessToken,
     SalesforceApiClient,
-} from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
+} from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
 
 function makeResponse(body: unknown, status = 200): HttpFetchResult {
     const text = JSON.stringify(body);

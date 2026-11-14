@@ -1,4 +1,4 @@
-// For editors: the modules of Node see the types of Node, the rest of the SDK doesn't. Bazel checks them with
+// For editors: the modules of Node see the types of Node, the rest of the runtime doesn't. Bazel checks them with
 // tsconfig.bazel.node.json, which says why the WebWorker lib stays.
 {
   "extends": "../../tsconfig.json",

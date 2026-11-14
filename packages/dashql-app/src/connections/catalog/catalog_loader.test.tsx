@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CatalogLoaderProvider, useCatalogLoaderQueue, type CatalogLoaderDependencies } from './catalog_loader.js';
 import { type ConnectionRegistry, type DynamicConnectionDispatch } from '../connection_registry.js';
 import { CATALOG_UPDATE_CANCELLED, CATALOG_UPDATE_FAILED, CATALOG_UPDATE_SUCCEEDED,
-    UPDATE_CATALOG, ConnectionHealth, type ConnectionState, type CatalogAction } from '@ankoh/dashql-sdk/connections/connection_state';
-import { reduceCatalogAction, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+    UPDATE_CATALOG, ConnectionHealth, type ConnectionState, type CatalogAction } from '@ankoh/dashql-runtime/connections/connection_state';
+import { reduceCatalogAction, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

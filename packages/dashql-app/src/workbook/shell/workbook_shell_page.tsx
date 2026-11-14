@@ -5,7 +5,7 @@ import { useConnectionById } from '../../connections/connection_registry.js';
 import { useCancelQuery, useQueryExecutor, useQueryState } from '../../connections/query_executor.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import {
     DashQLShell,
 } from '../../shell/api.js';
@@ -17,12 +17,12 @@ import {
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellLastCommand } from '../../shell/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { getKeywordCase } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-sdk/connections/connection_label';
+import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useComputationDispatch } from '../../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '@ankoh/dashql-sdk/compute/computation_state';
+import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/shell_files.js';
 import { useShellFiles } from '../../shell/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/shell_examples.js';

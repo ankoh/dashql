@@ -1,7 +1,7 @@
 {
   "name": "@ankoh/dashql-cli",
   "version": "0.0.0",
-  "description": "dashql, the command line tool of DashQL on @ankoh/dashql-sdk",
+  "description": "dashql, the command line tool of DashQL on @ankoh/dashql-runtime",
   "private": true,
   "type": "module",
   "license": "MPL-2.0",

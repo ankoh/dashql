@@ -1,16 +1,16 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
+import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
 import { processTask } from '../../compute/computation_scheduler.js';
-import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-sdk/compute/computation_state';
+import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-runtime/compute/computation_state';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { consumeQueryResponseStream } from '@ankoh/dashql-sdk/connections/query_execution';
-import { ClientFunctionResultStream } from '@ankoh/dashql-sdk/connections/clfn/clfn_result_stream';
-import { runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
-import type { ClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
+import { consumeQueryResponseStream } from '@ankoh/dashql-runtime/connections/query_execution';
+import { ClientFunctionResultStream } from '@ankoh/dashql-runtime/connections/clfn/clfn_result_stream';
+import { runClientFunctionCall } from '@ankoh/dashql-runtime/connections/clfn/clfn_runtime';
+import type { ClientFunctionSpec } from '@ankoh/dashql-runtime/connections/clfn/clfn_spec';
 
 const logger = new TestLogger();
 

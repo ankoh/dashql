@@ -1,5 +1,5 @@
-import { computeScriptReferenceReports, type ScriptReferenceReport } from '@ankoh/dashql-sdk/workbook/scripts/script_reference_check';
-import { workbookAnalysisSignature, type WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { computeScriptReferenceReports, type ScriptReferenceReport } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
+import { workbookAnalysisSignature, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 function sameReport(l: ScriptReferenceReport, r: ScriptReferenceReport): boolean {
     return l.textVersion === r.textVersion

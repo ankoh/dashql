@@ -2,13 +2,13 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { analyzeTable } from '@ankoh/dashql-sdk/compute/analyze_table';
+import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
 import { processTask } from '../../compute/computation_scheduler.js';
-import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-sdk/compute/computation_state';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-runtime/compute/computation_state';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { SNIPPET_DATASETS_FOLDER } from './snippet.js';
 import { getBundledSnippets, snippetText } from './snippet_registry.js';
 

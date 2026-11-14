@@ -1,4 +1,4 @@
-import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
+import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
 
 export enum PlatformType {
     WEB = 0,

@@ -2,15 +2,15 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
-import { executeConnectionClientFunction, ensureConnectionClientFunctions } from '@ankoh/dashql-sdk/connections/connection_client_functions';
-import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-sdk/connections/connection_state_details';
-import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { createConnectionStateDetails } from '@ankoh/dashql-sdk/connections/connection_state_details';
-import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_client_functions';
+import type { QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-runtime/utils/async_consumer';
+import { executeConnectionClientFunction, ensureConnectionClientFunctions } from '@ankoh/dashql-runtime/connections/connection_client_functions';
+import type { ConnectionStateDetailsVariant } from '@ankoh/dashql-runtime/connections/connection_state_details';
+import { createConnectionState, reduceConnectionState, RESET_CONNECTION, SWITCH_CONNECTOR_TYPE, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { createConnectionStateDetails } from '@ankoh/dashql-runtime/connections/connection_state_details';
+import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_client_functions';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

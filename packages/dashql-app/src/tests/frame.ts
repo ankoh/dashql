@@ -5,7 +5,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
 import '../connections/clfn/bundled_clfn_specs.js';
-import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 import {
     BROWSER_TEST_MESSAGE_SOURCE,

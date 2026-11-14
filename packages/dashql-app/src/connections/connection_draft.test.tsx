@@ -6,25 +6,25 @@ import {
     ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, HEALTH_CHECK_FAILED,
     HEALTH_CHECK_CANCELLED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION, SET_CONNECTION_DRAFT,
     reduceConnectionState, type ConnectionState, type ConnectionAction,
-} from '@ankoh/dashql-sdk/connections/connection_state';
+} from '@ankoh/dashql-runtime/connections/connection_state';
 import {
     ConnectionRegistry as RegistryProvider, ConnectionReferencesProvider, useConnectionRegistry,
     useConnectionById, useConnectionDraftForm,
 } from './connection_registry.js';
-import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-sdk/connections/connector_info';
-import { createDefaultConnectionParamsForConnector, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
-import { HYPER_CHANNEL_SETUP_STARTED, HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
+import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createDefaultConnectionParamsForConnector, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { HYPER_CHANNEL_SETUP_STARTED, HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { buildHyperConnectionPageState, buildHyperConnectionSetupParams, type HyperConnectionPageState } from './hyper_connection_settings.js';
-import { TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
-import { SETUP_STARTED, SETUP_FAILED, SETUP_CANCELLED } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_state';
+import { TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
+import { SETUP_STARTED, SETUP_FAILED, SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
 import { encodeConnectionAsProto } from './connection_export.js';
-import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-sdk/connections/connection_setup_cancellation';
+import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-runtime/connections/connection_setup_cancellation';
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { fixedConnectionReferences } from '../tests/mocks/connection_references.js';
 
 /// The draft of the test connection in the app manifest

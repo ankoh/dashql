@@ -7,10 +7,10 @@ import {
     STORAGE_WORKBOOKS_FOLDER,
     STORAGE_SHELL_FOLDER,
     StorageBackendType,
-} from '@ankoh/dashql-sdk/storage/storage_backend';
+} from '@ankoh/dashql-runtime/storage/storage_backend';
 import { OPFS_MANIFEST_LOCK, OPFS_WORKBOOK_TREE_LOCK } from './opfs_storage_backend.js';
 import { type ManifestJson, readManifestJson } from './migration/storage_root.js';
-import { type WorkbookEntry, STORAGE_WORKBOOK_TREE_FOLDER, flattenWorkbookTree, readWorkbookTree } from '@ankoh/dashql-sdk/storage/workbook_tree';
+import { type WorkbookEntry, STORAGE_WORKBOOK_TREE_FOLDER, flattenWorkbookTree, readWorkbookTree } from '@ankoh/dashql-runtime/storage/workbook_tree';
 import { SHELL_FILES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs.js';
 import {
     HYPER_INSTANCE_LOCK_PREFIX,
@@ -20,9 +20,9 @@ import {
     HYPER_CLOUDS_DIRECTORY,
     isUuid,
 } from '../platform/hyperdb/hyperdb_opfs_instance.js';
-import { PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
+import { PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { QUERY_RESULT_CACHE_DIRECTORY } from './opfs_query_result_cache.js';
-import { OPFS_TESTS_FOLDER } from '@ankoh/dashql-sdk/platform/opfs_root';
+import { OPFS_TESTS_FOLDER } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 /// An OPFS entry that the current app version doesn't use
 export interface OPFSCleanupCandidate {

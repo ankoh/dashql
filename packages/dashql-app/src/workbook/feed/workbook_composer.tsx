@@ -14,9 +14,9 @@ import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
-import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
-import { textChange } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import type { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
+import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
+import { textChange } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 
 /// A composer without workbook scripts

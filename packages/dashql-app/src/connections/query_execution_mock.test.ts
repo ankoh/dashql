@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { QueryExecutionResponseStreamMock } from '@ankoh/dashql-sdk/connections/query_execution_mock';
-import { HyperDatabaseClientMock } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client_mock';
-import { SalesforceAPIClientMock, type SalesforceConnectorMockConfig } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client_mock';
-import { QueryExecutionStatus, type QueryExecutionResponseStream } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
+import { QueryExecutionResponseStreamMock } from '@ankoh/dashql-runtime/connections/query_execution_mock';
+import { HyperDatabaseClientMock } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client_mock';
+import { SalesforceAPIClientMock, type SalesforceConnectorMockConfig } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client_mock';
+import { QueryExecutionStatus, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-runtime/utils/async_consumer';
 
 /// Collect the batches that a stream produces
 function batchCollector(): [arrow.RecordBatch[], AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>] {

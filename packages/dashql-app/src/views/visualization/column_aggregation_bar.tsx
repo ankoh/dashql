@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import * as styles from './column_aggregation_bar.module.css';
-import { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
-import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import { computeTableLayout, DataTableLayout } from '../query_result/data_table_layout.js';
 import { HeaderPlotsCell } from '../query_result/data_table_cell.js';
 import { useCrossFilters } from '../query_result/use_cross_filters.js';

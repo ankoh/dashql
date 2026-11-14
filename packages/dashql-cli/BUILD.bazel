@@ -5,7 +5,7 @@ load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
-# dashql, the command line tool of DashQL on @ankoh/dashql-sdk, see README.md:
+# dashql, the command line tool of DashQL on @ankoh/dashql-runtime, see README.md:
 #
 # bazel run //packages/dashql-cli:dashql -- lint <file.sql|dir|->...
 # bazel run //packages/dashql-cli:dashql -- format [--write|--check] <file.sql|dir|->...
@@ -21,7 +21,7 @@ _MODULES = glob(
 
 _DEPENDENCIES = [
     "//:node_modules/@ankoh/dashql-core",
-    "//:node_modules/@ankoh/dashql-sdk",
+    "//:node_modules/@ankoh/dashql-runtime",
 ]
 
 # The command as one module for Node, the core stays a package next to it

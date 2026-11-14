@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { parseTrinoTimestampMs, translateAnyRowsToArrowBatch } from '@ankoh/dashql-sdk/connections/trino/arrow_conversion';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { parseTrinoTimestampMs, translateAnyRowsToArrowBatch } from '@ankoh/dashql-runtime/connections/trino/arrow_conversion';
 
 /// Translate the values of a single column
 function translateColumn(type: arrow.DataType, values: unknown[]): arrow.Vector {

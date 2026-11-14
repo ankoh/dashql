@@ -3,7 +3,7 @@ import * as React from 'react';
 import { classNames } from '../../utils/classnames.js';
 
 import * as styles from './status_indicator.module.css';
-import { ProgressCounter } from '@ankoh/dashql-sdk/utils/progress';
+import { ProgressCounter } from '@ankoh/dashql-runtime/utils/progress';
 
 export enum IndicatorStatus {
     None,

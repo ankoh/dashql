@@ -103,7 +103,7 @@ build on it; there are no operation-specific typed APIs.
 ## Platform APIs
 
 The app detects the host at runtime: `'dashqlElectron' in globalThis` selects `AppHost.ELECTRON`
-(`packages/dashql-sdk/src/platform/native_globals.ts`), and providers pick the HTTP, gRPC and event-listener
+(`packages/dashql-runtime/src/platform/native_globals.ts`), and providers pick the HTTP, gRPC and event-listener
 adapters accordingly. The bridge type is declared in `packages/dashql-app/types/electron.d.ts`.
 
 | Capability | Implementation |

@@ -34,7 +34,7 @@ Client functions ship in an [extension](extensions.md), the folder of a service 
 | Layer | Knows about | Doesn't know about |
 |---|---|---|
 | **Core** (Rust) | `CALL`, namespaces, functions, typed named arguments, nested schemas, result columns | HTTP, any service |
-| **Runtime** (TypeScript) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
+| **Runtime** (TypeScript, `connections/clfn/` of `@ankoh/dashql-runtime`) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
 | **Connector binding** (TypeScript) | Host URLs, which credentials go to which host, path variables such as the API version | Individual functions |
 | **Spec** (JSON) | Namespace, functions, API names, paging, schemas, effects | Credentials, absolute URLs |
 
@@ -267,7 +267,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 ## Connector binding
 
-A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-sdk/src/connections/connector_descriptor.ts`):
+A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-runtime/src/connections/connector_descriptor.ts`):
 
 ```ts
 interface ClientFunctionBinding<Details> {
@@ -686,7 +686,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 ## The runtime
 
-`packages/dashql-app/src/connections/clfn/` holds the generic client. It knows no service.
+`packages/dashql-runtime/src/connections/clfn/` holds the generic client. It knows no service.
 
 | File | What it does |
 |---|---|

@@ -1,11 +1,11 @@
 import { ConnectionDispatch } from './connection_registry.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED } from '@ankoh/dashql-sdk/connections/connection_state';
-import type { DetailedError } from '@ankoh/dashql-sdk/utils/error';
-import { HyperDatabaseChannel } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { DetailedError } from '@ankoh/dashql-runtime/utils/error';
+import { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { QueryExecutor } from './query_executor.js';
-import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { SalesforceDatabaseChannel } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import { TrinoChannelInterface } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
+import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { SalesforceDatabaseChannel } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
+import { TrinoChannelInterface } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
 
 export type HealthCheckChannel =
     | { type: 'hyper'; channel: HyperDatabaseChannel }

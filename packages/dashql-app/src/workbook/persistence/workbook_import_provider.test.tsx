@@ -4,22 +4,22 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { EXECUTOR_CTX } from '../../connections/query_executor.js';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
-import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend } from '@ankoh/dashql-sdk/storage/storage_backend';
+import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
+import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { fsStore, makeFsMock, resetFsStore } from '../../storage/test_fs_mock.js';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookImportProvider, useWorkbookImport } from './workbook_import_provider.js';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {

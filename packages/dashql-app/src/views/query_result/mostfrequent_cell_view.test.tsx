@@ -3,8 +3,8 @@ import * as arrow from 'apache-arrow';
 import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
     type ColumnAggregationTask,
     type ColumnAggregationVariant,
@@ -15,10 +15,10 @@ import {
     type TableAggregation,
     type WithFilter,
     type WithFilterEpoch,
-} from '@ankoh/dashql-sdk/compute/computation_types';
+} from '@ankoh/dashql-runtime/compute/computation_types';
 import { computeColumnAggregates, computeFilteredColumnAggregates } from '../../compute/tasks/column_aggregation.js';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
 import { MostFrequentCell, type MostFrequentValueFilterCallback } from './mostfrequent_cell.js';

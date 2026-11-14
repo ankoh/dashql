@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { createTestHyperDBClient, getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import type { HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import {
     connectionClientContext,

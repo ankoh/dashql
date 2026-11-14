@@ -5,7 +5,7 @@ import type {
     EmbeddedComputeDatabase,
     EmbeddedConnection,
     EmbeddedTableImportConnection,
-} from '@ankoh/dashql-sdk/platform/database/embedded_database';
+} from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { quoteIdentifier } from './hyperdb_wasm.js';
 
 /// A column of a query result or table.

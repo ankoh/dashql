@@ -5,22 +5,22 @@ import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } fro
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useQueryState } from '../../connections/query_executor.js';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
-import type { ScriptData, WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import type { ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { scriptDisplayName } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { checkWorkbookScriptReferences } from '../scripts/script_reference_reports.js';
-import type { ScriptReferenceReport } from '@ankoh/dashql-sdk/workbook/scripts/script_reference_check';
+import type { ScriptReferenceReport } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { useApplyWorkbookInput } from '../inputs/use_apply_workbook_input.js';
-import { deriveWorkbookInputs, type SessionInput } from '@ankoh/dashql-sdk/workbook/inputs/workbook_inputs';
+import { deriveWorkbookInputs, type SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
 import {
     buildDataflowScene,
     dataflowRouteKey,

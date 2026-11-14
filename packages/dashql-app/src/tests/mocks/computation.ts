@@ -1,10 +1,10 @@
 import { vi } from 'vitest';
 
-import { createTableComputationState, SCHEDULE_TASK, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
-import type { ColumnGroup, TaskVariant } from '@ankoh/dashql-sdk/compute/computation_types';
-import type { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
+import { createTableComputationState, SCHEDULE_TASK, type ComputationAction, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import type { ColumnGroup, TaskVariant } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';
 import { mockDataFrame } from './compute_query.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 /// Table 1 with the column groups, a data frame of a table without a database and the row number column `rownum`
 export function mockTableComputation(columnGroups: ColumnGroup[], fields: Partial<TableComputationState> = {}): TableComputationState {

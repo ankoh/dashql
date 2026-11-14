@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as core from '@ankoh/dashql-core';
 
-import { formatSqlScript } from '@ankoh/dashql-sdk/sql/sql_format';
+import { formatSqlScript } from '@ankoh/dashql-runtime/sql/sql_format';
 
 import { readInputs, STDIN, STDIN_ID } from './inputs.js';
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';

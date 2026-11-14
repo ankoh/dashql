@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { SET_CROSS_FILTERS, type ComputationAction, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
-import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
+import { SET_CROSS_FILTERS, type ComputationAction, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
 import {
     type ColumnAggregationVariant,
     type ColumnGroup,
@@ -15,13 +15,13 @@ import {
     type TableAggregation,
     TABLE_FILTERING_TASK,
     TaskStatus,
-} from '@ankoh/dashql-sdk/compute/computation_types';
-import type { ScalarFilter } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
+} from '@ankoh/dashql-runtime/compute/computation_types';
+import type { ScalarFilter } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { type CrossFilterController, useCrossFilters } from './use_cross_filters.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 const SCORE = {
     inputFieldName: 'score',

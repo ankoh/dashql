@@ -6,19 +6,19 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionRegistry, useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { createDefaultConnectionParamsForConnector, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createDefaultConnectionParamsForConnector, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { EXECUTOR_CTX, type QueryExecutor, type QueryExecutorContextValue } from './query_executor.js';
 import { SETUP_CTX as HYPER_SETUP_CTX, type HyperSetupApi } from './hyper/hyper_connection_setup.js';
-import { HYPER_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
+import { HYPER_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { HyperDatabaseClientProvider } from './hyper/hyperdb_grpc_client_provider.js';
-import type { HyperDatabaseChannel } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+import type { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { HYPERDB_WASM_ENGINE_SETTING_ELEMENTS, HyperConnectorSettings } from './hyper_connection_settings.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 const CONNECTION_ID = 'hyper-settings-test';
 

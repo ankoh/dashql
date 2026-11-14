@@ -1,4 +1,4 @@
-import { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
 import {
     ColumnDefinition,
     CompletionStatus,
@@ -9,7 +9,7 @@ import {
     QueryErrorResponse,
     QueryStatus,
 } from './hyperdb_http_client.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 
 const ARROW_CONTENT_TYPE = "application/vnd.apache.arrow.stream";
 

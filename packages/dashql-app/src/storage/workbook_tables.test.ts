@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
+import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import {
     ATTACHMENTS_TABLE,
     CATALOG_COLUMNS_TABLE,
@@ -18,9 +18,9 @@ import {
     workbookTableFromArrow,
     workbookTablesToBundle,
     workbookTableToArrow,
-} from '@ankoh/dashql-sdk/storage/workbook_tables';
-import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL, parseCatalogSql } from '@ankoh/dashql-sdk/connections/catalog/catalog_structure';
+} from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL, parseCatalogSql } from '@ankoh/dashql-runtime/connections/catalog/catalog_structure';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

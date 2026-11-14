@@ -1,4 +1,4 @@
-// The SDK compiles against the WebWorker lib of TypeScript: the APIs that browsers share with workers, most of which
+// The runtime compiles against the WebWorker lib of TypeScript: the APIs that browsers share with workers, most of which
 // Node has as well (fetch, AbortController, URL, TextEncoder, crypto, Blob, structuredClone). There is no window, no
 // document, no element and no feature of a bundler.
 {

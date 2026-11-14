@@ -16,13 +16,13 @@ import {
     UPDATE_CATALOG,
     connectionCachesQueryResults,
     type ConnectionState,
-} from '@ankoh/dashql-sdk/connections/connection_state';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { createConnectionStateDetails } from '@ankoh/dashql-sdk/connections/connection_state_details';
-import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogOutOfDate, MAX_TOUCHED_ATTEMPTS } from '@ankoh/dashql-sdk/connections/catalog/catalog_update_state';
-import { createQueryExecutionState, QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
+} from '@ankoh/dashql-runtime/connections/connection_state';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createConnectionStateDetails } from '@ankoh/dashql-runtime/connections/connection_state_details';
+import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from '@ankoh/dashql-runtime/connections/catalog/catalog_batch';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogOutOfDate, MAX_TOUCHED_ATTEMPTS } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
+import { createQueryExecutionState, QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

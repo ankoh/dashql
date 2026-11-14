@@ -1,11 +1,11 @@
-import { ArrowTableFormatter } from '@ankoh/dashql-sdk/compute/arrow_formatter';
-import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
-import { createArrowFieldIndex } from '@ankoh/dashql-sdk/compute/computation_state';
-import { TableAggregationTask, TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, ROWNUMBER_COLUMN } from '@ankoh/dashql-sdk/compute/computation_types';
-import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { SQLFrame } from '@ankoh/dashql-sdk/compute/sql/sqlframe_builder';
-import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-sdk/compute/computation_tasks';
-import { isIntegerType, getSmallIntegerDomainSize } from '@ankoh/dashql-sdk/compute/arrow_columns';
+import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
+import { DataFrame, generateTableName } from '@ankoh/dashql-runtime/compute/data_frame';
+import { createArrowFieldIndex } from '@ankoh/dashql-runtime/compute/computation_state';
+import { TableAggregationTask, TableAggregation, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, ROWNUMBER_COLUMN } from '@ankoh/dashql-runtime/compute/computation_types';
+import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { SQLFrame } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
+import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { isIntegerType, getSmallIntegerDomainSize } from '@ankoh/dashql-runtime/compute/arrow_columns';
 
 const LOG_CTX = "compute";
 

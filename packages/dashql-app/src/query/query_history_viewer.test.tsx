@@ -7,7 +7,7 @@ import { fakeReactWindowModule, ResizeObserverMock } from '../tests/mocks/view_m
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
-import { createQueryExecutionState, QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { createQueryExecutionState, QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import {
     getQueryTarget,
     QueryHistoryViewer,

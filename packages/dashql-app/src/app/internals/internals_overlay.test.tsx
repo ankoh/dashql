@@ -7,13 +7,13 @@ import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js'
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { createQueryExecutionState, QueryType, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createQueryExecutionState, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { memoryQueryResultCache } from '../../tests/memory_query_result_cache.js';
 import { createTestRoot } from '../../tests/react_root.js';

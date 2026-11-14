@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 import JSZip from 'jszip';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
+import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
 import { Crc32 } from '../../utils/crc32.js';
 import {
     createWorkbookZip,
@@ -13,13 +13,13 @@ import {
     WorkbookLinkTarget,
 } from './workbook_export.js';
 import { importWorkbookFromZip, readWorkbookBundleFromZip } from './workbook_import.js';
-import { workbookBundlesEqual, type WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { workbookBundlesEqual, type WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
 import { BlobReader, ZipReader } from './workbook_zip.js';
-import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '@ankoh/dashql-sdk/connections/catalog/catalog_structure';
+import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '@ankoh/dashql-runtime/connections/catalog/catalog_structure';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

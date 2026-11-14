@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useNearViewport, VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter = {

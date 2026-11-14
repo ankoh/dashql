@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { APP_EVENT_POST_MESSAGE_KIND, DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, SETUP_WORKBOOK, type PlatformDragDropEventVariant, type SetupEventVariant } from './event.js';
 import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
 import { WebPlatformEventListener } from './web_event_listener.js';

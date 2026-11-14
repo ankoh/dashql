@@ -8,8 +8,8 @@ import * as style from './connection_settings.module.css';
 import { BookIcon, KeyIcon, PlugIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant } from '../ui/foundations/button.js';
-import { ConnectionHealth } from '@ankoh/dashql-sdk/connections/connection_state';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
+import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
 import { TextField, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
 import { classNames } from '../utils/classnames.js';
@@ -20,12 +20,12 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from './query_executor.js';
 import { performHealthCheck } from './health_check.js';
 import { useTrinoSetup } from './trino/trino_connector.js';
-import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
-import { LoggableException, stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { withTrinoCatalogFields } from '@ankoh/dashql-sdk/connections/trino/trino_catalogs';
+import { LoggableException, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { withTrinoCatalogFields } from '@ankoh/dashql-runtime/connections/trino/trino_catalogs';
 
 const LOG_CTX = "trino_connector";
 

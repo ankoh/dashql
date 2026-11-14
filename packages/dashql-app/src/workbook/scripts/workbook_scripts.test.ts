@@ -3,11 +3,11 @@ import * as Immutable from 'immutable';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { PATCH_WORKBOOK_CONNECTION, StorageWriter, WRITE_WORKBOOK_PROPERTIES, WRITE_WORKBOOK_SCRIPTS, type StorageWriteTaskVariant } from '@ankoh/dashql-sdk/storage/storage_writer';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { PATCH_WORKBOOK_CONNECTION, StorageWriter, WRITE_WORKBOOK_PROPERTIES, WRITE_WORKBOOK_SCRIPTS, type StorageWriteTaskVariant } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import {
     ANALYZE_OUTDATED_SCRIPT,
     CATALOG_DID_UPDATE,
@@ -40,9 +40,9 @@ import {
     ACCEPT_PENDING_DIFF,
     REJECT_PENDING_DIFF,
     replaceScriptSessionText,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { runWorkbookScript } from './rerun_query.js';
-import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

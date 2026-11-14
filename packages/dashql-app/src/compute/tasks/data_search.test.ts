@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { LoggableException } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { ComputationStateVersion, type DataSearchTask } from '@ankoh/dashql-sdk/compute/computation_types';
-import type { ComputeQueryExecution } from '@ankoh/dashql-sdk/compute/computation_tasks';
-import { DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-sdk/compute/sql/query_result_search_sql';
+import { LoggableException } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { ComputationStateVersion, type DataSearchTask } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { DATA_SEARCH_ROW_FIELD } from '@ankoh/dashql-runtime/compute/sql/query_result_search_sql';
 import { executeReturning, mockDataFrame } from '../../tests/mocks/compute_query.js';
 import { searchData } from './data_search.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 const TASK: DataSearchTask = {
     tableId: 1,

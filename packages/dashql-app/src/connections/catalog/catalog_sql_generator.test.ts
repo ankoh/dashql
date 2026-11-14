@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 import * as arrow from 'apache-arrow';
 import * as flatbuffers from 'flatbuffers';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { generateCatalogSQLFromPgProc, queryPgProc } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_proc';
+import { generateCatalogSQLFromPgProc, queryPgProc } from '@ankoh/dashql-runtime/connections/catalog/catalog_query_pg_proc';
 import type { QueryExecutor } from '../query_executor.js';
 
 import {
@@ -17,8 +17,8 @@ import {
     packCatalogDescriptor,
     type CatalogTable,
     type ColumnMetadata,
-} from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+} from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

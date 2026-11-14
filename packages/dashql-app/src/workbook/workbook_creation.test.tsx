@@ -3,14 +3,14 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
-import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 

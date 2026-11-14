@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { TrinoApiClient, TrinoApiClientInterface } from "@ankoh/dashql-sdk/connections/trino/trino_api_client";
+import { TrinoApiClient, TrinoApiClientInterface } from "@ankoh/dashql-runtime/connections/trino/trino_api_client";
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
-import { createTrinoSetup, TrinoSetupApi } from '@ankoh/dashql-sdk/connections/trino/trino_connection_setup';
+import { createTrinoSetup, TrinoSetupApi } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
 import { usePlatformType } from '../../platform/platform_type.js';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';

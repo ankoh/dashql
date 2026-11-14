@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { SalesforceApiClient, SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
-import { SalesforceAPIClientMock } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client_mock';
-import { mockSalesforceAuthFlow as mockSalesforceSetup } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup_mock';
-import { SalesforceSetupApi, createSalesforceSetup } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_connection_setup';
+import { SalesforceApiClient, SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
+import { SalesforceAPIClientMock } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client_mock';
+import { mockSalesforceAuthFlow as mockSalesforceSetup } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup_mock';
+import { SalesforceSetupApi, createSalesforceSetup } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';

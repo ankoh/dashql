@@ -2,20 +2,20 @@ import * as React from 'react';
 
 import { connectionEntryFromState, registerConnection, useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import { replaceWorkbookScriptsInRegistry, useWorkbookScriptsDispatch, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
-import { workbookScriptsMatchStorageSnapshot, replaceWorkbookScriptsFromStorage, scriptConnectionOf, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-sdk/workbook/attachments/attachment_mounts';
-import { isDesktopHost } from '@ankoh/dashql-sdk/platform/native_globals';
+import { workbookScriptsMatchStorageSnapshot, replaceWorkbookScriptsFromStorage, scriptConnectionOf, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
+import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useStorage } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
-import type { WorkbookScriptsStorageSnapshot, WorkbookScripts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import type { NamedFileStamp } from '@ankoh/dashql-sdk/storage/native_storage_backend';
-import { connectionStateFromStorage, destroyUnregisteredConnection } from '@ankoh/dashql-sdk/connections/connection_restore';
-import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from '@ankoh/dashql-sdk/workbook/persistence/workbook_script_connections';
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { findEmbeddedConnection } from '@ankoh/dashql-sdk/connections/embedded_connection';
-import { isLocalHyperWasmParams } from '@ankoh/dashql-sdk/storage/workbook_validation';
+import type { WorkbookScriptsStorageSnapshot, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { NamedFileStamp } from '@ankoh/dashql-runtime/storage/native_storage_backend';
+import { connectionStateFromStorage, destroyUnregisteredConnection } from '@ankoh/dashql-runtime/connections/connection_restore';
+import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from '@ankoh/dashql-runtime/workbook/persistence/workbook_script_connections';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { findEmbeddedConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
+import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_WORKBOOK_WRITE,
@@ -28,12 +28,12 @@ import {
     WRITE_SCRIPT,
     WRITE_WORKBOOK_SCRIPTS,
     type StorageWriter,
-} from '@ankoh/dashql-sdk/storage/storage_writer';
+} from '@ankoh/dashql-runtime/storage/storage_writer';
 import {
     STORAGE_SCRIPTS_FOLDER,
     type ScriptData,
     type WorkbookData,
-} from '@ankoh/dashql-sdk/storage/storage_backend';
+} from '@ankoh/dashql-runtime/storage/storage_backend';
 
 const LOG_CTX = 'native_workbook_sync';
 

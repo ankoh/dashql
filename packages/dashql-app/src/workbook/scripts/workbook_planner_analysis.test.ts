@@ -2,11 +2,11 @@ import * as core from '@ankoh/dashql-core';
 import * as Immutable from 'immutable';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { StorageWriter } from '@ankoh/dashql-sdk/storage/storage_writer';
-import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-sdk/workbook/scripts/focus';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-runtime/workbook/scripts/focus';
 import { DashQLCompletionStatus } from '../editor/dashql_processor.js';
 import {
     APPLY_PLANNER_ANALYSIS,
@@ -14,8 +14,8 @@ import {
     type WorkbookScripts,
     reduceWorkbookScripts,
     replaceScriptSessionText,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-sdk/workbook/scripts/script_types';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

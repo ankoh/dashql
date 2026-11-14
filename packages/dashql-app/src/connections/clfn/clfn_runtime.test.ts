@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { AsyncConsumerLambdas } from '@ankoh/dashql-sdk/utils/async_consumer';
-import { ClientFunctionResultStream } from '@ankoh/dashql-sdk/connections/clfn/clfn_result_stream';
-import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from '@ankoh/dashql-sdk/connections/clfn/clfn_runtime';
-import { ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSpec } from '@ankoh/dashql-sdk/connections/clfn/clfn_spec';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { AsyncConsumerLambdas } from '@ankoh/dashql-runtime/utils/async_consumer';
+import { ClientFunctionResultStream } from '@ankoh/dashql-runtime/connections/clfn/clfn_result_stream';
+import { explainClientFunctionCall, ClientFunctionEnvironment, ClientFunctionResult, runClientFunctionCall } from '@ankoh/dashql-runtime/connections/clfn/clfn_runtime';
+import { ClientFunctionCallDescription, ClientFunctionError, ClientFunction, ClientFunctionSpec } from '@ankoh/dashql-runtime/connections/clfn/clfn_spec';
 
 const BASE = 'https://svc.example.com';
 

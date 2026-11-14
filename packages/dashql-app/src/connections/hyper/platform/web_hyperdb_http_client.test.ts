@@ -5,11 +5,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { WebHyperDatabaseClient } from './web_hyperdb_http_client.js';
 import { HyperHttpClientMock } from '../hyperdb_http_client_mock.js';
-import { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
-import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
-import { QueryExecutionProgress } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+import { QueryExecutionProgress } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 const ENDPOINT = 'https://hyper.mock.local';
 

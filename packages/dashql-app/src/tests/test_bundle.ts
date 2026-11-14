@@ -10,9 +10,9 @@ import.meta.glob([
     '!../platform/hyperdb/hyperdb_wasm.integration.test.ts',
     '!../platform/hyperdb/integration/iceberg.test.ts',
 ], { eager: true });
-// The tests of the SDK, see test_modules.ts
+// The tests of the runtime, see test_modules.ts
 import.meta.glob([
-    '../../../dashql-sdk/src/**/*.test.ts',
-    // The tests of Node, see //packages/dashql-sdk:test_node
-    '!../../../dashql-sdk/src/**/*.node.test.ts',
+    '../../../dashql-runtime/src/**/*.test.ts',
+    // The tests of Node, see //packages/dashql-runtime:test_node
+    '!../../../dashql-runtime/src/**/*.node.test.ts',
 ], { eager: true });

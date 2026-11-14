@@ -2,21 +2,21 @@ import * as React from 'react';
 
 import { forgetWorkbookScriptReferences } from './script_reference_reports.js';
 import { forgetDataflowGraph } from '../dataflow/dataflow_graph.js';
-import { WorkbookScripts, WorkbookScriptsAction } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
-import { Dispatch } from '@ankoh/dashql-sdk/utils/variant';
-import { UpdateQueue } from '@ankoh/dashql-sdk/store/store';
+import { WorkbookScripts, WorkbookScriptsAction } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+import { UpdateQueue } from '@ankoh/dashql-runtime/store/store';
 import { FRAME_UPDATE_SCHEDULER, useStoreState } from '../../utils/store_hooks.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
 import { ConnectionReferencesProvider } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import type { InvalidWorkbook } from '@ankoh/dashql-sdk/storage/workbook_validation';
+import type { InvalidWorkbook } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import {
     type ModifyConnectionWorkbookScripts,
     type ModifyWorkbookScripts,
     type WorkbookScriptsAllocator,
     type WorkbookScriptsRegistry,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts_registry_state';
-import { WorkbookScriptsRegistryService } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts_registry_service';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
+import { WorkbookScriptsRegistryService } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_service';
 
 // The state of the registry and its reducers are in workbook_scripts_registry_state.ts, this module binds them to React
 export {
@@ -35,7 +35,7 @@ export {
     type ModifyWorkbookScripts,
     type WorkbookScriptsAllocator,
     type WorkbookScriptsRegistry,
-} from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts_registry_state';
+} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
 
 export type SetWorkbookScriptsRegistryAction = React.SetStateAction<WorkbookScriptsRegistry>;
 

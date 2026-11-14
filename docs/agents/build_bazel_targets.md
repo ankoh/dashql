@@ -48,7 +48,7 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
 | `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
-| `//packages/dashql-sdk:npm_package` | `@ankoh/dashql-sdk`: the logic of DashQL without React, shared by the app and the command line tool, a source package with nothing compiled, see `docs/wip/dashql_sdk.md` |
+| `//packages/dashql-runtime:npm_package` | `@ankoh/dashql-runtime`: the logic of DashQL without React, shared by the app and the command line tool, a source package with nothing compiled, see `docs/wip/dashql_runtime.md` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
@@ -64,7 +64,7 @@ bazel build //...
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-sdk`, bundled for Node with Vite: `lint` and `format` for SQL files |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-runtime`, bundled for Node with Vite: `lint` and `format` for SQL files |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -123,18 +123,18 @@ bazel test //...
 | `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
-| `//packages/dashql-sdk:tsc_typecheck_test` | Type check of the SDK against the WebWorker lib, without the DOM and without the types of Node |
-| `//packages/dashql-sdk:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the SDK (`src/testing/`), with the globals of vitest |
-| `//packages/dashql-sdk:tsc_typecheck_node_test` | Type check of the modules of Node in `src/node` and their tests, with the types of Node |
-| `//packages/dashql-sdk:test_node` | The tests of the SDK in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
+| `//packages/dashql-runtime:tsc_typecheck_test` | Type check of the runtime against the WebWorker lib, without the DOM and without the types of Node |
+| `//packages/dashql-runtime:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime (`src/testing/`), with the globals of vitest |
+| `//packages/dashql-runtime:tsc_typecheck_node_test` | Type check of the modules of Node in `src/node` and their tests, with the types of Node |
+| `//packages/dashql-runtime:test_node` | The tests of the runtime in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
 | `//packages/hyperdb-edge:test` | The tests of hyperdb-edge in Node (vitest): the library against the embedded Hyper, every SQL example of the `describe` topics, and the compiled command run as separate processes, see `docs/wip/hyperdb_edge.md` |
 | `//packages/hyperdb-edge:tsc_typecheck_test` | Type check of the library of hyperdb-edge without its Node part, against the WebWorker lib |
 | `//packages/hyperdb-edge:tsc_typecheck_node_test` | Type check of every module and test of hyperdb-edge with the types of Node |
 | `//packages/hyperdb-edge:stores_typecheck_test` | Type check of the stores of agent libraries in `packages/hyperdb-edge/stores/` and their tests, against the libraries, see `docs/wip/hyperdb_edge_stores.md` |
 | `//packages/hyperdb-edge:stores_test` | The stores of the Claude Agent SDK, the OpenAI Agents SDK and LangGraph on hyperdb-wasm: each against the reference of its library, the conformance suite of LangGraph for checkpointers, and the agent loops of the OpenAI Agents SDK and LangGraph with a fake model |
 | `//packages/hyperdb-edge:stores_claude_code_test` | The session store under `query()` of the Claude Agent SDK with the pinned Claude Code and a fake model, outside the sandbox: mirroring, resuming from the store alone, sessions at once |
-| `//packages/dashql-sdk:boundary_test` | The SDK reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
-| `//packages/dashql-sdk:editor_config_test` | Editors resolve every import of the SDK: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
+| `//packages/dashql-runtime:boundary_test` | The runtime reaches no code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
+| `//packages/dashql-runtime:editor_config_test` | Editors resolve every import of the runtime: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), see `docs/reports/dashql_app_coverage_report.md` |
@@ -322,7 +322,7 @@ bazel run //packages/dashql-native:dev
 Run the last two commands in separate terminals for Electron development.
 
 The dev servers of the app and the website read `packages/dashql-ui` from its sources, the dev server of the app reads
-`packages/dashql-sdk` from its sources too; an edit reaches the page without a build or a restart.
+`packages/dashql-runtime` from its sources too; an edit reaches the page without a build or a restart.
 
 The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
 Bazel builds the SVG symbols it reads from `bazel-bin`:

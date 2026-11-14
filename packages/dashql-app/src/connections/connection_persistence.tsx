@@ -2,15 +2,15 @@ import * as React from 'react';
 
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { useConnectionReferences, useConnectionDispatch, useConnectionRegistryStore } from './connection_registry.js';
-import type { ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import {
     ConnectionPersistenceService,
     type ConnectionPersistenceDependencies,
     type ConnectionSaveResult,
     type ConnectionSaveState,
-} from '@ankoh/dashql-sdk/connections/connection_persistence_service';
+} from '@ankoh/dashql-runtime/connections/connection_persistence_service';
 
-// Saving connections is a service of the SDK (packages/dashql-sdk/src/connections/connection_persistence_service.ts),
+// Saving connections is a service of the runtime (packages/dashql-runtime/src/connections/connection_persistence_service.ts),
 // this module binds it to React
 export {
     connectionSaveSucceeded,
@@ -18,7 +18,7 @@ export {
     type ConnectionSaveResult,
     type ConnectionSaveState,
     type WorkbookCopySaveResult,
-} from '@ankoh/dashql-sdk/connections/connection_persistence_service';
+} from '@ankoh/dashql-runtime/connections/connection_persistence_service';
 
 /// The API to save connections
 interface ConnectionPersistence {

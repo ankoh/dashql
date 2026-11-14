@@ -11,19 +11,19 @@ import {
     type StorageManifest,
     StorageBackendType,
     validateDataFileName,
-} from '@ankoh/dashql-sdk/storage/storage_backend';
+} from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
     flattenWorkbookTree,
     removeWorkbookFromTree,
     upsertWorkbookInTree,
-} from '@ankoh/dashql-sdk/storage/workbook_tree';
-import { type FileStamp } from '@ankoh/dashql-sdk/platform/electron_fs';
-import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
+} from '@ankoh/dashql-runtime/storage/workbook_tree';
+import { type FileStamp } from '@ankoh/dashql-runtime/platform/electron_fs';
+import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import { validateWorkbookData, describeWorkbookValidationError } from '@ankoh/dashql-sdk/storage/workbook_validation';
+import { validateWorkbookData, describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import {
     assembleWorkbookBundle,
     readWorkbookBundle,
@@ -33,11 +33,11 @@ import {
     writeWorkbookBundle,
     type WorkbookBundle,
     type WorkbookBundleWriteStep,
-} from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import type { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { NativeFolder, OverlayFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
-import { migrateWorkbookFolder } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
+} from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { NativeFolder, OverlayFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
+import { migrateWorkbookFolder } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 const LOG_CTX = 'composite_storage_backend';
 

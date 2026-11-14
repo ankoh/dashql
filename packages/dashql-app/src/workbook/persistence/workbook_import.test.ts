@@ -2,8 +2,8 @@ import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 
 import { importWorkbookFromZip as importZip, readWorkbookBundleFromZip as readZip } from './workbook_import.js';
-import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 // The archives of older versions hold the files of a workbook folder, they are read without the database
 const readWorkbookBundleFromZip = (blob: Blob) => readZip(blob, null);

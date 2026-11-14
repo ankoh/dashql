@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '@ankoh/dashql-sdk/query/query_execution_state';
+import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { TabHeader, formatRowCountDetail } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
-import { SET_CROSS_FILTERS } from '@ankoh/dashql-sdk/compute/computation_state';
-import { CrossFilters } from '@ankoh/dashql-sdk/compute/cross_filters';
+import { SET_CROSS_FILTERS } from '@ankoh/dashql-runtime/compute/computation_state';
+import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';

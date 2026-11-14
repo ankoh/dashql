@@ -66,7 +66,7 @@ nothing, `script-src` overrides it there.
 - **No evaluated code.** No `eval`, `new Function`, or string timers, in the app and in what it depends on
   at runtime. The Arrow builders (`vectorFromArray`, `tableFromArrays` of plain arrays, `makeBuilder`)
   compile their null check with `new Function`. App code assembles vectors from their buffers with
-  `packages/dashql-sdk/src/utils/arrow_vectors.ts` instead.
+  `packages/dashql-runtime/src/utils/arrow_vectors.ts` instead.
 - **Test fixtures** build Arrow data with `vectorFromArray` and `tableFromArrays` of
   `src/tests/arrow_fixtures.ts`, which take the arguments of the Arrow functions and evaluate nothing. They
   rely on internals of the builders, which is fine for tests but not for app code.

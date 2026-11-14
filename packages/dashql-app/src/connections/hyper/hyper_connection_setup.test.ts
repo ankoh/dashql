@@ -2,9 +2,9 @@ import { vi } from 'vitest';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { setupHyperConnection } from './hyper_connection_setup.js';
-import { HYPER_CHANNEL_READY } from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
-import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { HYPER_CHANNEL_READY } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
+import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 
 describe('Hyper connection setup', () => {

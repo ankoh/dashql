@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
-import { NativeStorageBackend } from '@ankoh/dashql-sdk/storage/native_storage_backend';
-import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
-import { ExternalScriptChangeError } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-sdk/platform/electron_fs';
+import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
+import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { ExternalScriptChangeError } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 const DIR = '/tmp/v2-workbook';
 

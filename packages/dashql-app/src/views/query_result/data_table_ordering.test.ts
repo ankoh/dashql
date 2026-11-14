@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CLEAR_TABLE_ORDERING, type TableComputationState } from '@ankoh/dashql-sdk/compute/computation_state';
-import { TABLE_ORDERING_TASK, TaskStatus, type TableOrderingTask } from '@ankoh/dashql-sdk/compute/computation_types';
+import { CLEAR_TABLE_ORDERING, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import { TABLE_ORDERING_TASK, TaskStatus, type TableOrderingTask } from '@ankoh/dashql-runtime/compute/computation_types';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { createOrderingTask, getColumnSortDirection, getNextColumnSortDirection, useDataTableOrdering } from './data_table_ordering.js';

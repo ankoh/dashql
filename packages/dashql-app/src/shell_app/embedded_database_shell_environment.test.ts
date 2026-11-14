@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { QueryExecutionStatus } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;

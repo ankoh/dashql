@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { confirmHyperLink as confirmHyperLinkWith, HyperLinkTabStore, type HyperLinkTabState, type HyperLinkTarget } from '@ankoh/dashql-sdk/connections/hyper/hyper_link';
+import { confirmHyperLink as confirmHyperLinkWith, HyperLinkTabStore, type HyperLinkTabState, type HyperLinkTarget } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
 
 /// The storage of the tab, null if the browser refuses it
 function tabStorage(): Storage | null {

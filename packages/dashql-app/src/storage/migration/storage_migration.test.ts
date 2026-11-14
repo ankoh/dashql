@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '../test_fs_mock.js';
 import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';
-import { WORKBOOK_FORMAT_VERSION, STORAGE_VERSION } from '@ankoh/dashql-sdk/storage/migration/versions';
+import { WORKBOOK_FORMAT_VERSION, STORAGE_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
 import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';

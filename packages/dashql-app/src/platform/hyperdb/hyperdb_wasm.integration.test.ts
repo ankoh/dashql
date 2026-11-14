@@ -1,20 +1,20 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { DataFrame, generateTableName } from '@ankoh/dashql-sdk/compute/data_frame';
+import { DataFrame, generateTableName } from '@ankoh/dashql-runtime/compute/data_frame';
 import { WebFile } from '../file/web_file.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
 import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hyperdb_opfs_instance.js';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
-import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-sdk/platform/hyperdb/hyperdb_parquet_export';
-import { createExecutionMounts } from '@ankoh/dashql-sdk/workbook/scripts/workbook_execution';
+import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
+import { createExecutionMounts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '../../storage/opfs_query_result_cache.js';
-import { getOPFSRoot } from '@ankoh/dashql-sdk/platform/opfs_root';
-import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-sdk/workbook/attachments/attachment_mounts';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

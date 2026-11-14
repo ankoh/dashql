@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as buf from "@bufbuild/protobuf";
 import * as wkt from "@bufbuild/protobuf/wkt";
-import * as pb from "@ankoh/dashql-sdk/proto";
+import * as pb from "@ankoh/dashql-runtime/proto";
 
 import {
     decodeGrpcStatusDetails,

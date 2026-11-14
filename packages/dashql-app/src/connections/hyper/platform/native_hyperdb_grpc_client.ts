@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from "@ankoh/dashql-sdk/proto";
+import * as pb from "@ankoh/dashql-runtime/proto";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -9,7 +9,7 @@ import {
     HyperDatabaseConnectionContext,
     HyperQueryExecutionOptions,
     HyperQueryResultStream,
-} from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
+} from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import {
     NativeGrpcChannel,
     NativeGrpcClient,
@@ -22,13 +22,13 @@ import {
     QueryExecutionProgress,
     QueryExecutionResponseStream, QueryExecutionMetrics,
     QueryExecutionStatus,
-} from '@ankoh/dashql-sdk/query/query_execution_state';
-import { ChannelArgs, ChannelError } from '@ankoh/dashql-sdk/platform/channel_common';
+} from '@ankoh/dashql-runtime/query/query_execution_state';
+import { ChannelArgs, ChannelError } from '@ankoh/dashql-runtime/platform/channel_common';
 import { decodeGrpcErrorHeaders, HyperQueryError } from '../hyper_error_info.js';
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { AsyncConsumer } from '@ankoh/dashql-sdk/utils/async_consumer';
-import { AsyncValue } from '@ankoh/dashql-sdk/utils/async_value';
-import { yieldToBrowser } from '@ankoh/dashql-sdk/utils/yield_to_browser';
+import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
+import { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';
+import { yieldToBrowser } from '@ankoh/dashql-runtime/utils/yield_to_browser';
 
 const LOG_CTX = "native_hyperdb_grpc_client";
 const STREAM_YIELD_INTERVAL = 8;

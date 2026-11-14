@@ -1,4 +1,4 @@
-// Editors resolve every import of the SDK, see docs/wip/dashql_sdk.md. An editor checks a module of the SDK with the
+// Editors resolve every import of the runtime, see docs/wip/dashql_runtime.md. An editor checks a module of the runtime with the
 // tsconfig.json of the package, which extends the root tsconfig.json: every package that a module imports must be a
 // dependency of the root package.json or a path of the root tsconfig.json. Bazel checks with tsconfig.bazel.json.
 import { readdirSync, readFileSync } from 'node:fs';
@@ -49,8 +49,8 @@ for (const file of modules('src')) {
 }
 
 if (violations.length > 0) {
-    console.error(`Editors can't resolve everything of the SDK (${violations.length}):`);
+    console.error(`Editors can't resolve everything of the runtime (${violations.length}):`);
     for (const violation of violations) console.error(`  ${violation}`);
     process.exit(1);
 }
-console.log('editors resolve every import of the SDK');
+console.log('editors resolve every import of the runtime');

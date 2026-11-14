@@ -6,18 +6,18 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionRegistry, useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
-import { getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-sdk/connections/connection_params';
+import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { EXECUTOR_CTX, type QueryExecutor, type QueryExecutorContextValue } from './query_executor.js';
 import { SETUP_CTX as TRINO_SETUP_CTX } from './trino/trino_connector.js';
-import type { TrinoSetupApi } from '@ankoh/dashql-sdk/connections/trino/trino_connection_setup';
-import type { TrinoChannelInterface } from '@ankoh/dashql-sdk/connections/trino/trino_channel';
-import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-sdk/connections/trino/trino_connection_state';
+import type { TrinoSetupApi } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
+import type { TrinoChannelInterface } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
+import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-sdk/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 const CONNECTION_ID = 'trino-settings-test';
 

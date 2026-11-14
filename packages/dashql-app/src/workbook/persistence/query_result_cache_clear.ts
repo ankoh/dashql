@@ -1,4 +1,4 @@
-import { QUERY_CACHE_DELETED } from '@ankoh/dashql-sdk/query/query_execution_state';
+import { QUERY_CACHE_DELETED } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { ConnectionRegistry, DynamicConnectionDispatch } from '../../connections/connection_registry.js';
 
 /// Mark the finished queries whose cached results were deleted, their results no longer advertise a cache entry. The

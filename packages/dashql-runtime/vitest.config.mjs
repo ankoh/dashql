@@ -1,4 +1,4 @@
-// The tests of the SDK in Node, see docs/wip/dashql_sdk.md. The browser tests of the app run all tests of the SDK,
+// The tests of the runtime in Node, see docs/wip/dashql_runtime.md. The browser tests of the app run all tests of the runtime,
 // those that need a browser (*.browser.test.ts) only run there.
 import path from 'node:path';
 

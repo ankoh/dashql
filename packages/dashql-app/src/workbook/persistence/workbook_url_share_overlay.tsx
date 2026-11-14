@@ -7,7 +7,7 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
 import { exportWorkbookAsUrl, WorkbookLinkTarget } from './workbook_export.js';
-import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-sdk/connections/connection_params';
+import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-runtime/connections/connection_params';
 import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useWorkbookScripts } from '../scripts/workbook_scripts_registry.js';

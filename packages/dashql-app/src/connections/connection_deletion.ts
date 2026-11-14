@@ -1,17 +1,17 @@
 import * as React from 'react';
 
 import { useConnectionDispatch, useConnectionReferences, useConnectionRegistryStore } from './connection_registry.js';
-import { DELETE_CONNECTION } from '@ankoh/dashql-sdk/connections/connection_state';
-import { HYPER_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
-import { embeddedCloudDatabases } from '@ankoh/dashql-sdk/connections/hyper/local_cloud';
-import type { HyperConnectionDetails } from '@ankoh/dashql-sdk/connections/hyper/hyper_connection_state';
+import { DELETE_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
+import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { embeddedCloudDatabases } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
+import type { HyperConnectionDetails } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
 import { useCancelQuery } from './query_executor.js';
-import { dropsAttachedDatabases } from '@ankoh/dashql-sdk/platform/database/embedded_database';
+import { dropsAttachedDatabases } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { embeddedAttachedDatabasePath } from '../platform/hyperdb/hyperdb_opfs_instance.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 /// Delete a connection
 export type DeleteConnection = (connectionId: string) => Promise<void>;

@@ -1,9 +1,9 @@
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { connectionParamsEqual, connectionParamsKey, connectionParamsWithoutDraftRows } from '@ankoh/dashql-sdk/connections/connection_params';
-import type { ConnectionEntry, ConnectionParams } from '@ankoh/dashql-sdk/storage/storage_backend';
-import { isValidUuid } from '@ankoh/dashql-sdk/storage/workbook_validation';
-import type { MigrationFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
-import { migrateWorkbookFolder } from '@ankoh/dashql-sdk/storage/migration/workbook_migration';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { connectionParamsEqual, connectionParamsKey, connectionParamsWithoutDraftRows } from '@ankoh/dashql-runtime/connections/connection_params';
+import type { ConnectionEntry, ConnectionParams } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { isValidUuid } from '@ankoh/dashql-runtime/storage/workbook_validation';
+import type { MigrationFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
+import { migrateWorkbookFolder } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { listSessionFolders, manifestSessionEntries, readManifestJson, writeManifestJson } from '../storage_root.js';
 

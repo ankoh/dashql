@@ -3,8 +3,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
-import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-sdk/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 
 const refreshCatalog = vi.fn();
 

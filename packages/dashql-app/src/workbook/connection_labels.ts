@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import type { ConnectionState } from '@ankoh/dashql-sdk/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
-import { connectionLabelParts, type ConnectionLabelParts } from '@ankoh/dashql-sdk/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-sdk/connections/connection_registry_state';
+import { connectionLabelParts, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
+import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 
 const subscribeNever = () => () => {};

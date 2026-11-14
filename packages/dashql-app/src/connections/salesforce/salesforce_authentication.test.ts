@@ -2,17 +2,17 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { OAuthState } from '@ankoh/dashql-sdk/oauth/oauth_types';
-import { TestLogger } from '@ankoh/dashql-sdk/testing/test_logger';
+import type { OAuthState } from '@ankoh/dashql-runtime/oauth/oauth_types';
+import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-sdk/utils/base64';
-import type { SalesforceApiClientInterface } from '@ankoh/dashql-sdk/connections/salesforce/salesforce_api_client';
+import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
+import type { SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
 import {
     authenticateSalesforce,
     buildSalesforceAuthorizationUrl,
     validateSalesforceOAuthCallbackState,
-} from '@ankoh/dashql-sdk/connections/salesforce/salesforce_authentication';
+} from '@ankoh/dashql-runtime/connections/salesforce/salesforce_authentication';
 
 const params: connection.SalesforceConnectionParams = {
     instanceUrl: 'https://example.my.salesforce.com',

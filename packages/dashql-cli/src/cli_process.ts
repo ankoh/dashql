@@ -1,6 +1,6 @@
 import type * as core from '@ankoh/dashql-core';
 
-import { ReportStyle } from '@ankoh/dashql-sdk/sql/sql_report';
+import { ReportStyle } from '@ankoh/dashql-runtime/sql/sql_report';
 
 /// What a command takes from the process, the tests pass their own
 export interface CliProcess {

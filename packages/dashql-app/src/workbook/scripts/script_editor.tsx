@@ -6,14 +6,14 @@ import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } fr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, getSelectedScriptRef, isCloudPreview } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
+import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, getSelectedScriptRef, isCloudPreview } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ModifyWorkbookScripts, useWorkbookScripts } from './workbook_scripts_registry.js';
-import { Logger } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { getKeywordCase } from '@ankoh/dashql-sdk/workbook/scripts/script_format';
+import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { checkWorkbookScriptReferences } from './script_reference_reports.js';
-import { applyScriptTextChanges } from '@ankoh/dashql-sdk/workbook/scripts/script_reference_check';
+import { applyScriptTextChanges } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
 import { DashQLScriptReferencesEffect, shownScriptReferences } from '../editor/dashql_script_references.js';
 
 const LOG_CTX = "workbook_editor";

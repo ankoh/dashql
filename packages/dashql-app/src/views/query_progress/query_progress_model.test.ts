@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import { QueryProgressFollower, QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '@ankoh/dashql-sdk/query/query_progress_model';
+import { QueryProgressFollower, QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -8,7 +8,7 @@ import {
     monotonicFraction,
     workOf,
 } from './query_progress_model.js';
-import { createProfileLayoutConfig } from '@ankoh/dashql-sdk/query/profile/profile_layout_config';
+import { createProfileLayoutConfig } from '@ankoh/dashql-runtime/query/profile/profile_layout_config';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

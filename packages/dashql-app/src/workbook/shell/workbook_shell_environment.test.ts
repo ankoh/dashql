@@ -5,7 +5,7 @@ import { QueryExecutor } from '../../connections/query_executor.js';
 import {
     createWorkbookShellEnvironment,
 } from './workbook_shell_environment.js';
-import { tableFromArrays } from '@ankoh/dashql-sdk/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 describe('workbook shell environment', () => {
     it('reports a result with its query and row count', async () => {

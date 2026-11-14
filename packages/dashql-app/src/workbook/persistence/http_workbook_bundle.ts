@@ -1,13 +1,13 @@
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-sdk/platform/http/http_client';
-import type { DataFileData, ScriptData } from '@ankoh/dashql-sdk/storage/storage_backend';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
+import type { DataFileData, ScriptData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
     STORAGE_WORKBOOK_FILE,
     STORAGE_ATTACHMENTS_FOLDER,
     STORAGE_SCRIPTS_FOLDER,
-} from '@ankoh/dashql-sdk/storage/storage_backend';
-import type { WorkbookBundle } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { assembleWorkbookBundle, readWorkbookBundleHead } from '@ankoh/dashql-sdk/storage/workbook_bundle';
-import { type MigrationFolder, OverlayFolder } from '@ankoh/dashql-sdk/storage/migration/migration_folder';
+} from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { assembleWorkbookBundle, readWorkbookBundleHead } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import { type MigrationFolder, OverlayFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import { LEGACY_WORKBOOK_FILES } from '../../platform/events/legacy_links.js';
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;

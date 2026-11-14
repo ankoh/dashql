@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { Store, UpdateQueue, type UpdateScheduler } from '@ankoh/dashql-sdk/store/store';
+import { Store, UpdateQueue, type UpdateScheduler } from '@ankoh/dashql-runtime/store/store';
 
 /// Schedules with the frames of the browser
 export const FRAME_UPDATE_SCHEDULER: UpdateScheduler = {

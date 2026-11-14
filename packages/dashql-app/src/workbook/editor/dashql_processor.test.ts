@@ -16,7 +16,7 @@ import {
 } from './dashql_processor.js';
 import { applyCompletion, computePatches } from './dashql_completion_patches.js';
 import { DashQLDecorationPlugin } from './dashql_decorations.js';
-import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-sdk/workbook/scripts/focus';
+import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-runtime/workbook/scripts/focus';
 import { xcodeTheme } from './themes/xcode.js';
 import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
 import { editorProcessorState, ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';

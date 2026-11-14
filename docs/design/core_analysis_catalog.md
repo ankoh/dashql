@@ -449,7 +449,7 @@ the connection, the statements it follows, the files on disk and when a full ref
   An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of
   the editor compare the arrays they read, so a cursor move rebuilds only the focus decorations.
 
-**App flow per keystroke** (`packages/dashql-sdk/src/workbook/scripts/workbook_scripts.ts`)
+**App flow per keystroke** (`packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts`)
 1. The CodeMirror processor sends an `EditorEvent` with `analyze = true`; the session applies and
    analyzes.
 2. `UPDATE_FROM_PROCESSOR`: if the text or analysis changed, derive annotations (compile), then
@@ -520,5 +520,5 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Planner | `packages/dashql-core-session/src/planner.rs` |
 | Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
 | JS wrapper | `packages/dashql-core-js/src/api.ts` |
-| App script state | `packages/dashql-sdk/src/workbook/scripts/workbook_scripts.ts` |
+| App script state | `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts` |
 | Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-session/tests/script_session_test.rs` |

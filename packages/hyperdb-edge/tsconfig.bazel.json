@@ -1,5 +1,5 @@
 // The library without its Node part: against the WebWorker lib, without the DOM and without the types of Node, so the
-// DashQL SDK can import it in the browser. src/node/ and src/cli/ are checked with tsconfig.json.
+// DashQL runtime can import it in the browser. src/node/ and src/cli/ are checked with tsconfig.json.
 {
   "compilerOptions": {
     "target": "ES2022",
