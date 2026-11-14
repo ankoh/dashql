@@ -1,18 +1,18 @@
 import * as arrow from 'apache-arrow';
 import * as dashql from '@ankoh/dashql-core';
 
-import { CATALOG_UPDATE_REGISTER_QUERY } from '@ankoh/dashql-sdk/connections/connection_state';
-import { DynamicConnectionDispatch } from '../connection_registry.js';
-import { catalogTablesOfSchema, DEFAULT_DATABASE_NAME, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
+import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
+import type { DynamicConnectionDispatch } from '../connection_registry_state.js';
+import { catalogTablesOfSchema, DEFAULT_DATABASE_NAME, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '../catalog/catalog_sql_generator.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, catalogTablesFromPgAttribute } from '../catalog/catalog_query_pg_attribute.js';
-import { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
-import { QueryExecutor } from '../query_executor.js';
-import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
-import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
-import type { AttachedDatabase } from '@ankoh/dashql-sdk/connections/hyper/hyperdb_grpc_client';
-import { qualifyPrefetchedHyperFunctions } from '@ankoh/dashql-sdk/connections/catalog/prefetched_hyper_functions';
-import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '@ankoh/dashql-sdk/connections/catalog/catalog_batch';
-import { generateFunctionScriptHeaderForSource } from '@ankoh/dashql-sdk/connections/catalog/catalog_function_sql_generator';
+import { QueryExecutionArgs } from '../query_execution_args.js';
+import type { QueryExecutor } from '../query_execution_args.js';
+import { QueryType } from '../../query/query_execution_state.js';
+import type { LoggerLike } from '../../platform/logger/logger.js';
+import type { AttachedDatabase } from './hyperdb_grpc_client.js';
+import { qualifyPrefetchedHyperFunctions } from '../catalog/prefetched_hyper_functions.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog/catalog_batch.js';
+import { generateFunctionScriptHeaderForSource } from '../catalog/catalog_function_sql_generator.js';
 import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog/catalog_query_pg_proc.js';
 
 const LOG_CTX = 'hyper_catalog';

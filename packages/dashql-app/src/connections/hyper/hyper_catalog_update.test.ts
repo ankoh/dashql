@@ -2,12 +2,12 @@ import * as arrow from 'apache-arrow';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
-import { buildHyperCloudCatalogQuery, catalogTablesFromHyperCloud, updateHyperCatalog } from './hyper_catalog_update.js';
+import { buildHyperCloudCatalogQuery, catalogTablesFromHyperCloud, updateHyperCatalog } from '@ankoh/dashql-sdk/connections/hyper/hyper_catalog_update';
 import { generateCatalogTablesSQL, generateRelationsFile } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 import type { QueryExecutor } from '../query_executor.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { CATALOG_QUERY_READ_TIMEOUT_MS } from '../catalog/catalog_query_pg_attribute.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_attribute';
 import { tableFromArrays, vectorFromArray } from '../../tests/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

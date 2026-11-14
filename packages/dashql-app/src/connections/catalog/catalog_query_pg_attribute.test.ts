@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CATALOG_QUERY_READ_TIMEOUT_MS, catalogTablesFromPgAttribute, pgAttributeQuery, queryPgAttribute } from './catalog_query_pg_attribute.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS, catalogTablesFromPgAttribute, pgAttributeQuery, queryPgAttribute } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_attribute';
 import type { QueryExecutor } from '../query_executor.js';
 import { tableFromArrays } from '../../tests/arrow_fixtures.js';
 

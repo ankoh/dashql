@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 import * as arrow from 'apache-arrow';
 import * as flatbuffers from 'flatbuffers';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { generateCatalogSQLFromPgProc, queryPgProc } from './catalog_query_pg_proc.js';
+import { generateCatalogSQLFromPgProc, queryPgProc } from '@ankoh/dashql-sdk/connections/catalog/catalog_query_pg_proc';
 import type { QueryExecutor } from '../query_executor.js';
 
 import {

@@ -1,13 +1,13 @@
 import * as arrow from "apache-arrow";
 
-import { QueryExecutor } from '../query_executor.js';
-import { QueryExecutionArgs } from '@ankoh/dashql-sdk/connections/query_execution_args';
-import { DynamicConnectionDispatch } from '../connection_registry.js';
-import { CATALOG_UPDATE_REGISTER_QUERY } from "@ankoh/dashql-sdk/connections/connection_state";
-import { QueryType } from '@ankoh/dashql-sdk/query/query_execution_state';
-import { type FunctionMetadata, generateFunctionsSQL } from '@ankoh/dashql-sdk/connections/catalog/catalog_function_sql_generator';
-import { quoteIdentifier } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
-import type { LoggerLike } from '@ankoh/dashql-sdk/platform/logger/logger';
+import type { QueryExecutor } from '../query_execution_args.js';
+import { QueryExecutionArgs } from '../query_execution_args.js';
+import type { DynamicConnectionDispatch } from '../connection_registry_state.js';
+import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
+import { QueryType } from '../../query/query_execution_state.js';
+import { type FunctionMetadata, generateFunctionsSQL } from './catalog_function_sql_generator.js';
+import { quoteIdentifier } from './catalog_sql_generator.js';
+import type { LoggerLike } from '../../platform/logger/logger.js';
 
 const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
 

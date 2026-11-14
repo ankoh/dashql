@@ -4,7 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
 import type { EmbeddedConnection } from '@ankoh/dashql-sdk/platform/database/embedded_database';
 import { TestLogger } from '../../platform/logger/test_logger.js';
-import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
+import { updateHyperCatalog } from '@ankoh/dashql-sdk/connections/hyper/hyper_catalog_update';
 import type { QueryExecutor } from '../query_executor.js';
 import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from '@ankoh/dashql-sdk/connections/catalog/catalog_sql_generator';
 
