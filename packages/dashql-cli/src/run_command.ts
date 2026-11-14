@@ -128,14 +128,15 @@ class RunLogger extends Logger {
 
 /// A log record in one line
 function logLine(record: LogRecord): string {
-    const values = Object.entries(record.keyValues).map(([key, value]) => `${key}=${value}`).join(' ');
+    const values = Object.entries(record.keyValues).map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(',') : value}`).join(' ');
     return `${LogLevel[record.level].toLowerCase()} ${record.target}: ${record.message}${values.length > 0 ? ` ${values}` : ''}\n`;
 }
 
 /// The message of an error: what Trino says, the status of a failed request, or why a request failed
 export function describeError(error: unknown): string {
     if (error instanceof LoggableException) {
-        const { errorMessage, status, message } = error.keyValues;
+        const text = (value: unknown) => typeof value === 'string' && value.length > 0 ? value : null;
+        const [errorMessage, status, message] = [text(error.keyValues.errorMessage), text(error.keyValues.status), text(error.keyValues.message)];
         if (errorMessage) return errorMessage;
         if (status) return `${error.message} (${status}${message ? ` ${message}` : ''})`;
         return error.message;

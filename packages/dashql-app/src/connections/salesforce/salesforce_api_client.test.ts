@@ -343,7 +343,7 @@ describe('SalesforceApiClient Data Cloud token parsing', () => {
         )).rejects.toThrow('exchange denied');
         expect(warn).toHaveBeenCalledWith('Data Cloud token request failed', expect.objectContaining({ status: '400' }), 'salesforce_api');
         const diagnostics = warn.mock.calls[0][1];
-        expect(JSON.parse(diagnostics.oauthResponse!)).toEqual({
+        expect(JSON.parse(diagnostics.oauthResponse as string)).toEqual({
             access_token: '<redacted>', refresh_token: '<redacted>', id_token: '<redacted>', signature: '<redacted>',
             scope: 'api data_cloud_user_claims', token_format: 'jwt', token_type: 'Bearer', expires_in: 7200,
             error: 'invalid_grant', error_description: 'exchange denied',

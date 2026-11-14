@@ -38,6 +38,11 @@ export interface TraceInfo {
     parentSpanId: number | null;
 }
 
+/// The value of a key of a log record: text, or a list of texts, e.g. the files that a command changed
+export type LogValue = string | readonly string[] | null | undefined;
+/// The keys and values of a log record
+export type LogKeyValues = Record<string, LogValue>;
+
 /// A log record
 export interface LogRecord {
     /// The timestamp
@@ -53,7 +58,7 @@ export interface LogRecord {
     /// Tracing information (if present)
     tracing: TraceInfo | null;
     /// The log details
-    keyValues: Record<string, string | null | undefined>;
+    keyValues: LogKeyValues;
 }
 
 const TARGET_CHUNK_SIZE = 1024;

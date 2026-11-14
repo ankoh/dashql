@@ -1,4 +1,4 @@
-import { LogBuffer, LogLevel, LogRecord, TraceInfo } from "./log_buffer.js";
+import { LogBuffer, LogLevel, LogRecord, TraceInfo, type LogKeyValues, type LogValue } from "./log_buffer.js";
 import { createChildSpan, injectTraceContext, TraceContext, TRACE_ID_KEY, SPAN_ID_KEY, PARENT_SPAN_ID_KEY } from "./trace_context.js";
 
 /// A helper for log statistics
@@ -43,17 +43,17 @@ export function stringifyError(e: unknown): string {
 const CONTEXT_KEY = "context";
 
 /// Helper to parse string to number safely
-function parseNumberOrUndefined(value: string | null | undefined): number | undefined {
+function parseNumberOrUndefined(value: LogValue): number | undefined {
     if (typeof value !== 'string') return undefined;
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? undefined : parsed;
 }
 
 /// Helper to extract context and trace fields from keyValues
-function extractContextAndTraceFields(keyValues: Record<string, string | null | undefined>): {
+function extractContextAndTraceFields(keyValues: LogKeyValues): {
     context: string | null;
     tracing: TraceInfo | null;
-    filteredKeyValues: Record<string, string | null | undefined>;
+    filteredKeyValues: LogKeyValues;
 } {
     const context = typeof keyValues[CONTEXT_KEY] === 'string' ? keyValues[CONTEXT_KEY] : null;
     const traceId = parseNumberOrUndefined(keyValues[TRACE_ID_KEY]);
@@ -68,7 +68,7 @@ function extractContextAndTraceFields(keyValues: Record<string, string | null | 
     } : null;
 
     // Create a new object without context and trace fields
-    const filteredKeyValues: Record<string, string | null | undefined> = {};
+    const filteredKeyValues: LogKeyValues = {};
     for (const [key, value] of Object.entries(keyValues)) {
         if (key !== CONTEXT_KEY && key !== TRACE_ID_KEY && key !== SPAN_ID_KEY && key !== PARENT_SPAN_ID_KEY) {
             filteredKeyValues[key] = value;
@@ -82,28 +82,28 @@ function extractContextAndTraceFields(keyValues: Record<string, string | null | 
 /// Functions that just emit logs (and don't touch buffer/statistics/destroy)
 /// should accept this type so either a raw or traced logger can be passed in.
 export interface LoggerLike {
-    trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
-    debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
-    info(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
-    warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
-    error(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
+    trace(message: string, keyValues: LogKeyValues, target?: string): void;
+    debug(message: string, keyValues: LogKeyValues, target?: string): void;
+    info(message: string, keyValues: LogKeyValues, target?: string): void;
+    warn(message: string, keyValues: LogKeyValues, target?: string): void;
+    error(message: string, keyValues: LogKeyValues, target?: string): void;
     exception(error: any): void;
 }
 
 export class LoggableException extends Error {
     /// The keyValues
-    keyValues: Record<string, string | null | undefined>;
+    keyValues: LogKeyValues;
     /// The target
     target?: string;
 
-    constructor(message: string, keyValues: Record<string, string | null | undefined> = {}, target?: string) {
+    constructor(message: string, keyValues: LogKeyValues = {}, target?: string) {
         super(message);
         this.keyValues = keyValues;
         this.target = target;
     }
 }
 
-function buildRecord(level: LogLevel, message: string, target: string | undefined, keyValues: Record<string, string | null | undefined>): LogRecord {
+function buildRecord(level: LogLevel, message: string, target: string | undefined, keyValues: LogKeyValues): LogRecord {
     const { context, tracing, filteredKeyValues } = extractContextAndTraceFields(keyValues);
     return {
         timestamp: Date.now(),
@@ -153,35 +153,35 @@ export abstract class Logger {
         this.flushPendingRecords();
     }
     /// Log a trace message
-    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public trace(message: string, keyValues: LogKeyValues, target?: string): void {
         const entry = buildRecord(LogLevel.Trace, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
     }
     /// Log an debug message
-    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public debug(message: string, keyValues: LogKeyValues, target?: string): void {
         const entry = buildRecord(LogLevel.Debug, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
     }
     /// Log an info message
-    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public info(message: string, keyValues: LogKeyValues, target?: string): void {
         const entry = buildRecord(LogLevel.Info, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
     }
     /// Log a warning message
-    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public warn(message: string, keyValues: LogKeyValues, target?: string): void {
         const entry = buildRecord(LogLevel.Warn, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
     }
     /// Log an error message
-    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public error(message: string, keyValues: LogKeyValues, target?: string): void {
         const entry = buildRecord(LogLevel.Error, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
@@ -220,25 +220,25 @@ export class TracedLogger {
         return new TracedLogger(this.base, ctx);
     }
 
-    private tag(keyValues: Record<string, string | null | undefined>): Record<string, string | null | undefined> {
+    private tag(keyValues: LogKeyValues): LogKeyValues {
         const tagged = { ...keyValues };
         injectTraceContext(tagged, this.context);
         return tagged;
     }
 
-    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public trace(message: string, keyValues: LogKeyValues, target?: string): void {
         this.base.trace(message, this.tag(keyValues), target);
     }
-    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public debug(message: string, keyValues: LogKeyValues, target?: string): void {
         this.base.debug(message, this.tag(keyValues), target);
     }
-    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public info(message: string, keyValues: LogKeyValues, target?: string): void {
         this.base.info(message, this.tag(keyValues), target);
     }
-    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public warn(message: string, keyValues: LogKeyValues, target?: string): void {
         this.base.warn(message, this.tag(keyValues), target);
     }
-    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+    public error(message: string, keyValues: LogKeyValues, target?: string): void {
         this.base.error(message, this.tag(keyValues), target);
     }
     public exception(error: any) {

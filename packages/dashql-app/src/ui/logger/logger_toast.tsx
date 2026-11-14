@@ -49,7 +49,7 @@ function Toast({ item, onDismiss }: ToastProps) {
                     {Object.entries(item.record.keyValues).map(([k, v], i) => (
                         <React.Fragment key={i}>
                             <span key={i * 2 + 0} className={styles.toast_kv_key}>{k}</span>
-                            <span key={i * 2 + 1} className={styles.toast_kv_value}>{v}</span>
+                            <span key={i * 2 + 1} className={styles.toast_kv_value}>{Array.isArray(v) ? v.join(', ') : v}</span>
                         </React.Fragment>
                     ))}
                 </div>

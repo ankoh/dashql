@@ -188,7 +188,7 @@ describe('authenticateSalesforce', () => {
             authorizationParameters: expect.stringContaining('"client_id":"consumer+key"'),
             oauthState: expect.stringContaining('"flowId":"<redacted>"'),
         }), 'salesforce_authentication');
-        const authorizationParameters = JSON.parse(info.mock.calls[0][1].authorizationParameters!);
+        const authorizationParameters = JSON.parse(info.mock.calls[0][1].authorizationParameters as string);
         expect(authorizationParameters.redirect_uri).toBe('https://dashql.app/oauth.html');
         expect(authorizationParameters.code_challenge_method).toBe('S256');
         expect(authorizationParameters.response_type).toBe('code');

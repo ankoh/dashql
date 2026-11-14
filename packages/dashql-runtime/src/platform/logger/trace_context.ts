@@ -1,3 +1,5 @@
+import type { LogKeyValues } from "./log_buffer.js";
+
 export const TRACE_ID_KEY = "trace_id";
 export const SPAN_ID_KEY = "span_id";
 export const PARENT_SPAN_ID_KEY = "parent_span_id";
@@ -36,7 +38,7 @@ export function createChildSpan(parent: TraceContext): TraceContext {
 }
 
 export function injectTraceContext(
-    keyValues: Record<string, string | null | undefined>,
+    keyValues: LogKeyValues,
     ctx: TraceContext,
 ): void {
     keyValues[TRACE_ID_KEY] = ctx.traceId.toString();
