@@ -132,8 +132,9 @@ from web apps, and Ollama's menu bar app with its localhost API.
     `buildSchemaContext` (`agent/agent_catalog.ts`);
   - the command-shaped shell API (`shell/api.ts`).
 - **Question → SQL UX:** `ComposerInputMode.Ai` (`agent/input_mode.ts`) and
-  `useAgentQuestions` (`agent/use_agent_questions.ts`), with the agent on top of the composer
-  (`agent/agent_prompt_panel.tsx`). Without agent access the composer takes SQL only.
+  `useAgentQuestions` (`agent/use_agent_questions.ts`), with the agent on the bar of Wobble above the composer and its
+  questions in the log of Wobble (`workbook/status/workbook_status_bar.tsx`, `agent/agent_prompt_panel.tsx`). Without
+  agent access the composer takes SQL only.
 
 ## Design
 
@@ -268,11 +269,11 @@ The WebSocket client (`agent_client.ts`), the protocol types (`agent_protocol.ts
 (`agent_commands.ts`), the provider (`agent_bridge.tsx`), the agent view and the agent workbook menu live in
 `packages/dashql-app/src/agent/`.
 
-- **Agent access toggle** per workbook, off by default. Enable Agent in the header of a workbook turns it on
-  right away. The workbooks with access are an app setting (`agentWorkbooks`), so a shared workbook file never turns
-  access on. While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff.
-  After a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
-  in flight when the page goes away fails. The page counts as connected once the server answered its
+- **Agent access toggle** per workbook, off by default. Enable Agent on the bar of Wobble above the prompt
+  turns it on right away. The workbooks with access are an app setting (`agentWorkbooks`), so a shared workbook file
+  never turns access on. While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with
+  backoff. After a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call
+  that is in flight when the page goes away fails. The page counts as connected once the server answered its
   announcement. When the connection drops, the page fails the turns it follows, a new server does not know them.
   A server with another protocol version closes with 1008: the page shows that the versions differ (update
   DashQL or reload the page) and retries every 30 s.
@@ -386,8 +387,8 @@ absolute paths.
 ### Settings
 
 The Agent button in the top bar configures the bridge. It holds the connection open while
-it is shown, so it also works before any workbook has agent access. Once a workbook has agent access, its
-header shows Control Agent: Disable Agent turns the access off, Reset Agent forgets the agent
+it is shown, so it also works before any workbook has agent access. Once a workbook has agent access, the bar
+of Wobble above its prompt shows Control Agent: Disable Agent turns the access off, Reset Agent forgets the agent
 context, Continue in terminal copies the command that continues the harness session.
 
 - **Port** of the agent server, an app setting (`agentPort`); the build's default otherwise.
@@ -411,14 +412,25 @@ context, Continue in terminal copies the command that continues the harness sess
 ### Editor UI
 
 There is no separate agent panel, chat transcript or tool-call log. The scripts show what the agent edits; everything
-else the agent says is shown by the composer (`packages/dashql-app/src/agent/agent_prompt_panel.tsx`).
+else the agent says is shown by the bar of Wobble on the composer and the log in its bubble
+(`packages/dashql-app/src/workbook/status/workbook_status_bar.tsx`,
+`packages/dashql-app/src/agent/agent_prompt_panel.tsx`).
 
-- **With agent access** the composer takes a frame in the gradient of the agent colors of the flavor (`--agent_*` in
-  `packages/dashql-ui/styles/flavors/<flavor>.css`, green in `dbcom.css`) and shows the agent on top of the
-  prompt: the harness, whether the agent server is connected, whether the next question continues the harness
-  conversation, and the questions of the workbook. On the landing view of an empty workbook it takes the place of
-  "What do you want to know about your data today?". While a turn is going, the frame of the composer turns.
-- **A question** is a line in that panel. Asking creates no script: the agent writes a new script or edits an
+- **The bar of Wobble** is the header bar of the prompt of every workbook that can be edited, and a bar of its own at
+  the bottom of the dashboard, the dataflow and a read-only workbook. Wobble leads it and tells the status of the
+  workbook: what runs (the agent, Execute All, a query, attaching files, a publish, connecting, a catalog refresh), else
+  what needs the user (a connection that is not connected, the agent server it waits for), else what happened last.
+  The statuses of a workbook are kept per workbook for the session (`workbook/status/workbook_status_store.tsx`), the
+  feed feeds them and stays mounted while the other views show. On the right end of the bar are "Enable Agent" without
+  agent access, else "Agent" with its connection, a stop button while the agent works and the menu that controls it.
+- **Wobble** opens a dark bubble above the bar (dark in both color schemes, like the chrome) with the questions of the
+  agent and the log of the workbook: the runs, connections, files, publishes and answers, a line of a script shows the
+  script. A dot pulses at the top right of Wobble while anything runs. The bubble opens when the agent starts to work
+  and stays open until the user closes it. While a turn is going, the frame of the composer turns in the gradient of the
+  agent colors of the flavor (`--agent_*` in `packages/dashql-ui/styles/flavors/<flavor>.css`, green in `dbcom.css`).
+- **Landing view.** An empty workbook greets with the big Wobble above the centered prompt, the bar of the prompt
+  leaves out its own Wobble. The first question docks the prompt at the bottom, even before the agent writes a script.
+- **A question** is a line in that log. Asking creates no script: the agent writes a new script or edits an
   existing one through `dashql agent edit`, and every script it writes shows up as a chip on the question that
   scrolls the feed to the script.
 
@@ -434,9 +446,9 @@ else the agent says is shown by the composer (`packages/dashql-app/src/agent/age
 - **Entry point:** the composer through `useAgentQuestions`, which sends the question to the agent with
   the dialect and the catalog objects it mentions.
 - **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
-  and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
-- **Control Agent** in the header of a workbook: its menu offers "Disable Agent", "Reset Agent" (forget the stored
-  harness session id) and "Continue in terminal" (the harness's resume command).
+  and run and not to recap them. Harnesses still write recaps, so the log drops markdown markers and clamps it.
+- **Control Agent**, the menu on the bar of Wobble: "Disable Agent", "Reset Agent" (forget the stored harness session
+  id) and "Continue in terminal" (the harness's resume command).
 - **Not connected:** the agent view shows the `dashql agent serve` command.
 
 ### Data and security

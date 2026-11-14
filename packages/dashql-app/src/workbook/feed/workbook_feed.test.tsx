@@ -472,6 +472,10 @@ describe('Workbook feed composer', () => {
     const feedState = {
         keyHandlers: [] as any[],
         composerProps: null as WorkbookComposerProps | null,
+        /// The props of the bar of Wobble above the composer, null while the feed shows none
+        barProps: null as React.ComponentProps<WorkbookFeedDependencies['WorkbookStatusBar']> | null,
+        /// The bar that rendered the props last
+        barOwner: null as object | null,
         runWorkbookScript: vi.fn(),
         executeQuery: vi.fn(),
         agent: null as any,
@@ -499,7 +503,17 @@ describe('Workbook feed composer', () => {
             feedState.composerProps = props;
             if (props.submitRef) props.submitRef.current = feedState.submit;
             React.useEffect(() => props.setView?.(feedState.view), [props.setView]);
-            return <div data-testid="composer" />;
+            return <div data-testid="composer">{props.bar}</div>;
+        },
+        WorkbookStatusBar: (props) => {
+            // A new composer mounts its bar before the old one unmounts, only the latest bar clears the props
+            const owner = React.useRef({});
+            feedState.barProps = props;
+            feedState.barOwner = owner.current;
+            React.useEffect(() => () => {
+                if (feedState.barOwner === owner.current) feedState.barProps = null;
+            }, []);
+            return <div data-testid="workbook-status-bar" />;
         },
         ScriptFeedRow: (props: any) => {
             feedState.rowProps = props;
@@ -556,6 +570,7 @@ describe('Workbook feed composer', () => {
     beforeEach(() => {
         feedState.keyHandlers = [];
         feedState.composerProps = null;
+        feedState.barProps = null;
         feedState.runWorkbookScript.mockReset();
         feedState.submit.mockReset();
         feedState.agent = null;
@@ -578,6 +593,11 @@ describe('Workbook feed composer', () => {
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }
+
+    /// The agent of the workbook as the bar of Wobble above the composer shows it
+    const dockAgent = () => feedState.barProps!.agent!;
+    /// The questions of the workbook
+    const agentTurns = () => feedState.barProps?.agent?.turns ?? [];
 
     it('greets an empty workbook with the hero composer', () => {
         render(workbook(), vi.fn());
@@ -650,55 +670,50 @@ describe('Workbook feed composer', () => {
         };
     }
 
-    it('shows the agent on top of the composer below the greeting', async () => {
-        render(workbook(), vi.fn());
-        expect(feedState.composerProps?.agent).toBeNull();
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
-
-        feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), status: AgentConnectionStatus.Connecting };
-        render(workbook(), vi.fn());
-        expect(feedState.composerProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, turns: [] });
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
-
-        feedState.agent = connectedAgent(() => Promise.resolve('turn'));
-        render(workbook(), vi.fn());
-        expect(feedState.agent.context).toHaveBeenCalledWith('workbook');
-        await vi.waitFor(() => expect(feedState.composerProps?.agent).toMatchObject({ connected: true, context: { harness: 'claude' } }));
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
+    it('shows the bar of Wobble on the composer, with the agent of a workbook with agent access', async () => {
+        // Without the agent bridge the bar tells the status of the workbook without the agent
+        render(workbook(['1_alpha.sql']), vi.fn());
+        expect(feedState.barProps).toMatchObject({ workbookId: 'workbook', variant: 'prompt', bridge: null });
 
         feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), hasAccess: () => false };
-        render(workbook(), vi.fn());
-        expect(feedState.composerProps?.agent).toBeNull();
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
+        render(workbook(['1_alpha.sql']), vi.fn());
+        expect(container.querySelector('[data-testid="composer"] [data-testid="workbook-status-bar"]')).not.toBeNull();
+        expect(feedState.barProps).toMatchObject({ workbookId: 'workbook', agent: null, wobble: true });
+
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), status: AgentConnectionStatus.Connecting };
+        render(workbook(['1_alpha.sql']), vi.fn());
+        expect(feedState.barProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, turns: [] });
+
+        feedState.agent = connectedAgent(() => Promise.resolve('turn'));
+        render(workbook(['1_alpha.sql']), vi.fn());
+        expect(feedState.agent.context).toHaveBeenCalledWith('workbook');
+        await vi.waitFor(() => expect(feedState.barProps?.agent).toMatchObject({ connected: true, context: { harness: 'claude' } }));
+
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), hasAccess: () => false };
+        render(workbook(['1_alpha.sql']), vi.fn());
+        expect(feedState.barProps?.agent).toBeNull();
     });
 
-    it('keeps the greeting hidden while the composer shows an agent turn', async () => {
+    it('greets with the big Wobble until the agent works on a question, then docks the composer', async () => {
         feedState.agent = connectedAgent(() => new Promise<string>(() => {}));
         render(withCatalog(workbook(), emptyCatalog), vi.fn());
-        const title = () => container.querySelector('[data-testid="feed-landing-question"]')!.parentElement!;
-        expect(title().hasAttribute('data-hidden')).toBe(false);
+        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
+        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Hero);
+        expect(feedState.barProps?.wobble).toBe(false);
 
-        // The waiting turn hides the greeting
         await act(async () => {
             void feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai);
         });
-        expect(feedState.composerProps?.agent?.turns).toHaveLength(1);
-        expect(title().hasAttribute('data-hidden')).toBe(true);
+        expect(agentTurns()).toHaveLength(1);
+        expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
+        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
+        expect(feedState.composerProps?.agentWorking).toBe(true);
+        expect(feedState.barProps?.wobble).toBe(true);
 
-        await act(async () => feedState.composerProps!.agent!.onDismiss(1));
-        expect(title().hasAttribute('data-hidden')).toBe(false);
-    });
-
-    it('gives the composer the room for the inputs of its draft below the greeting, only on the landing view', async () => {
-        const onModify = vi.fn();
-        render(withCatalog(workbook(), emptyCatalog), onModify);
-        const slot = container.querySelector('[data-testid="feed-landing-inputs"]')!;
-        expect(feedState.composerProps?.inputsContainer).toBe(slot);
-        expect(slot.parentElement!.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
-        expect(slot.previousElementSibling!.hasAttribute('data-hidden')).toBe(false);
-        render(withCatalog(workbook(['a.sql']), emptyCatalog), onModify);
-        expect(container.querySelector('[data-testid="feed-landing-inputs"]')).toBeNull();
-        expect(feedState.composerProps?.inputsContainer).toBeNull();
+        await act(async () => dockAgent().onDismiss(1));
+        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
+        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Hero);
+        expect(feedState.barProps?.wobble).toBe(false);
     });
 
     it('offers AI only with agent access and a connected agent server', () => {
@@ -739,22 +754,22 @@ describe('Workbook feed composer', () => {
         expect(prompt).toContain('The connection speaks Tableau Hyper (PostgreSQL-compatible).');
         expect(prompt.endsWith('Question:\nhow many rows')).toBe(true);
         const waiting = { question: 'how many rows', status: 'waiting for agent...', error: null, note: null, scripts: [] };
-        expect(feedState.composerProps?.agent?.turns).toEqual([{ questionId: 1, question: waiting, scripts: [] }]);
+        expect(agentTurns()).toEqual([{ questionId: 1, question: waiting, scripts: [] }]);
         await act(async () => feedState.agentListener!.status('running', 'dashql agent catalog'));
-        expect(feedState.composerProps?.agent?.turns[0].question.status).toBe('dashql agent catalog');
+        expect(agentTurns()[0].question.status).toBe('dashql agent catalog');
 
         // The agent creates a script through the dashql command
         const created = withCatalog(workbook(['1_alpha.sql']), emptyCatalog);
         render(created, modify);
         await act(async () => feedState.agentListener!.edited(1));
         await act(async () => feedState.agentListener!.edited(1));
-        expect(feedState.composerProps?.agent?.turns[0].scripts).toEqual([{ scriptKey: 1, scriptName: '1_alpha' }]);
+        expect(agentTurns()[0].scripts).toEqual([{ scriptKey: 1, scriptName: '1_alpha' }]);
         await act(async () => feedState.agentListener!.done('There are 3 rows'));
         const answered = { question: 'how many rows', status: null, error: null, note: 'There are 3 rows', scripts: [1] };
-        expect(feedState.composerProps?.agent?.turns).toEqual([{ questionId: 1, question: answered, scripts: [{ scriptKey: 1, scriptName: '1_alpha' }] }]);
+        expect(agentTurns()).toEqual([{ questionId: 1, question: answered, scripts: [{ scriptKey: 1, scriptName: '1_alpha' }] }]);
         expect(feedState.runWorkbookScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything());
-        await act(async () => feedState.composerProps!.agent!.onDismiss(1));
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        await act(async () => dockAgent().onDismiss(1));
+        expect(agentTurns()).toEqual([]);
     });
 
     it('follows the agent to the scripts it edits and runs until the user takes over the feed', async () => {
@@ -949,7 +964,7 @@ describe('Workbook feed composer', () => {
         render(withCatalog(workbook(), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.agentListener!.done(''));
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(agentTurns()).toEqual([]);
         expect(feedState.runWorkbookScript).not.toHaveBeenCalled();
     });
 
@@ -960,11 +975,11 @@ describe('Workbook feed composer', () => {
         });
         render(withCatalog(workbook(), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
-        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        await act(async () => dockAgent().onStop(1));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('workbook', 'turn-1');
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(agentTurns()).toEqual([]);
         await act(async () => feedState.agentListener!.failed('Stopped', true));
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(agentTurns()).toEqual([]);
     });
 
     it('stops one question of the agent and keeps the others', async () => {
@@ -976,10 +991,10 @@ describe('Workbook feed composer', () => {
         render(withCatalog(workbook(), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.composerProps!.onSend('how many columns', ComposerInputMode.Ai));
-        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        await act(async () => dockAgent().onStop(1));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('workbook', 'turn-1');
         await act(async () => listeners[0].failed('Stopped', true));
-        expect(feedState.composerProps?.agent?.turns.map(t => t.question.question)).toEqual(['how many columns']);
+        expect(agentTurns().map(t => t.question.question)).toEqual(['how many columns']);
     });
 
     it('keeps the questions of a workbook while the feed shows another workbook', async () => {
@@ -991,19 +1006,19 @@ describe('Workbook feed composer', () => {
         const other = { ...withCatalog(workbook(['1_beta.sql']), emptyCatalog), workbookId: 'other' };
         render(first, vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
-        expect(feedState.composerProps?.agent?.turns.map(t => t.question.question)).toEqual(['how many rows']);
+        expect(agentTurns().map(t => t.question.question)).toEqual(['how many rows']);
 
         // The other workbook shows none of the questions, and the agent runs no script in it
         render(other, vi.fn());
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(agentTurns()).toEqual([]);
         await act(async () => feedState.agentListener!.edited(1));
         await act(async () => feedState.agentListener!.done('There are 3 rows'));
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(agentTurns()).toEqual([]);
         expect(feedState.runWorkbookScript).not.toHaveBeenCalled();
 
         // Back in the workbook, the question shows with its answer
         render(first, vi.fn());
-        expect(feedState.composerProps?.agent?.turns).toEqual([{
+        expect(agentTurns()).toEqual([{
             questionId: 1,
             question: { question: 'how many rows', status: null, error: null, note: 'There are 3 rows', scripts: [1] },
             scripts: [{ scriptKey: 1, scriptName: '1_alpha' }],
@@ -1017,9 +1032,9 @@ describe('Workbook feed composer', () => {
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         render({ ...first, workbookId: 'other' }, vi.fn());
         render(first, vi.fn());
-        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        await act(async () => dockAgent().onStop(1));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('workbook', 'turn-1');
-        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(agentTurns()).toEqual([]);
     });
 
     it('stops a question before the agent server queued its turn', async () => {
@@ -1028,7 +1043,7 @@ describe('Workbook feed composer', () => {
         render(withCatalog(workbook(), emptyCatalog), vi.fn());
         act(() => { void feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai); });
         await vi.waitFor(() => expect(feedState.agent.request).toHaveBeenCalledOnce());
-        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        await act(async () => dockAgent().onStop(1));
         expect(feedState.agent.cancel).not.toHaveBeenCalled();
         await act(async () => queued('turn-1'));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('workbook', 'turn-1');
@@ -1080,7 +1095,7 @@ describe('Workbook feed composer', () => {
         const modify = vi.fn();
         render(withCatalog(workbook(), emptyCatalog), modify);
         await act(async () => feedState.composerProps!.onSend('anything', ComposerInputMode.Ai));
-        await vi.waitFor(() => expect(feedState.composerProps?.agent?.turns[0].question.error).toBe('The agent server is not connected'));
+        await vi.waitFor(() => expect(agentTurns()[0].question.error).toBe('The agent server is not connected'));
         expect(modify).not.toHaveBeenCalled();
         expect(feedState.runWorkbookScript).not.toHaveBeenCalled();
     });

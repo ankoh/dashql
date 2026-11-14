@@ -32,7 +32,8 @@ import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookCon
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
-import { AgentWorkbookMenu } from '../../agent/agent_workbook_menu.js';
+import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
+import { useAgentBridge } from '../../agent/agent_bridge.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
@@ -56,6 +57,7 @@ export interface WorkbookFeedPageDependencies {
     ScriptEditorDialog: typeof ScriptEditorDialog;
     WorkbookWorkbenchSidebar: typeof WorkbookWorkbenchSidebar;
     ConnectionOverviewPage: typeof ConnectionOverviewPage;
+    WorkbookStatusBar: typeof WorkbookStatusBar;
     WorkbookNavigationDrawer: typeof WorkbookNavigationDrawer;
     ThreeBarsIcon: typeof ThreeBarsIcon;
     IconButton: typeof IconButton;
@@ -78,6 +80,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     ScriptEditorDialog,
     WorkbookWorkbenchSidebar,
     ConnectionOverviewPage,
+    WorkbookStatusBar,
     WorkbookNavigationDrawer,
     ThreeBarsIcon,
     IconButton,
@@ -175,6 +178,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const ephemeral = isEphemeralWorkbook(props.workbookScripts);
     // A read-only look at a published workbook is imported before it is shared
     const preview = isCloudPreview(props.workbookScripts);
+    const agentBridge = useAgentBridge();
     React.useEffect(() => {
         if ((ephemeral || preview) && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
     }, [ephemeral, preview, mode, setMode]);
@@ -241,6 +245,17 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             scriptConnections={scriptConnections}
                             draftRenameRef={draftRenameRef}
                         />
+                    )}
+                    {/* The bar of Wobble tells the status of the workbook in the views without the prompt */}
+                    {(dashboardActive || dataflowActive) && !overviewActive && !cloudLoading && (
+                        <div className={styles.status_bar_dock}>
+                            <dependencies.WorkbookStatusBar
+                                workbookId={props.workbookScripts.workbookId}
+                                variant={WorkbookStatusBarVariant.Standalone}
+                                bridge={preview ? null : agentBridge}
+                                paused={!props.active}
+                            />
+                        </div>
                     )}
                     {dataflowActive && !overviewActive && !cloudLoading && (
                         <div className={styles.dataflow_layout}>
@@ -348,7 +363,6 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                         {/* The connections of the workbook, the user sees which one is not connected */}
                         {/* A preview shows its connections locked, the import maps them */}
                         <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention.active} />
-                        {!preview && <AgentWorkbookMenu workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
                         {preview && <dependencies.CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
                         {!ephemeral && !preview && <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);

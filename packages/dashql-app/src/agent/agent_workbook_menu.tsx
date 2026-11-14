@@ -4,7 +4,7 @@ import * as styles from './agent_workbook_menu.module.css';
 import * as ActionList from '../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { AgentConnectionStatus } from './agent_client.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -17,6 +17,7 @@ const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 const PlugIcon = SymbolIcon('plug_16');
 const SyncIcon = SymbolIcon('sync_16');
 const CopyIcon = SymbolIcon('copy_16');
+const MoreIcon = SymbolIcon('kebab_horizontal');
 
 /// The state of the agent bridge of a workbook, as the menu shows it
 export enum AgentAccessState {
@@ -42,12 +43,10 @@ function quoteShellArg(arg: string): string {
 
 interface Props {
     workbookId: string;
-    /// The class of the button label, the header hides it on narrow screens
-    labelClassName?: string;
 }
 
-/// The agent access of a workbook: "Enable Agent" turns it on right away, "Control Agent" turns it off,
-/// forgets the agent context or continues in a terminal
+/// The agent access of a workbook in the bar of Wobble above the prompt: "Enable Agent" turns it on right away, the
+/// menu turns it off, forgets the agent context or continues in a terminal. The menu opens upwards.
 export const AgentWorkbookMenu: React.FC<Props> = (props: Props) => {
     const bridge = useAgentBridge();
     const logger = useLogger();
@@ -93,7 +92,7 @@ export const AgentWorkbookMenu: React.FC<Props> = (props: Props) => {
                 data-state={state}
                 onClick={() => bridge.setAccess(props.workbookId, true)}
             >
-                <span className={props.labelClassName}>Enable Agent</span>
+                Enable Agent
             </Button>
         );
     }
@@ -103,24 +102,24 @@ export const AgentWorkbookMenu: React.FC<Props> = (props: Props) => {
             open={open}
             onOpen={() => { setNotice(null); setOpen(true); }}
             onClose={close}
-            side={AnchorSide.OutsideBottom}
+            side={AnchorSide.OutsideTop}
             align={AnchorAlignment.End}
             anchorOffset={4}
             anchorRef={triggerRef}
             returnFocusRef={triggerRef}
             renderAnchor={(anchorProps) => (
-                <Button
+                <IconButton
                     {...anchorProps}
                     ref={triggerRef}
                     variant={ButtonVariant.Invisible}
                     size={ButtonSize.Small}
-                    leadingVisual={SparklesFillIcon}
                     aria-label="Control Agent"
+                    tooltipDirection="n"
                     data-testid="agent-access"
                     data-state={state}
                 >
-                    <span className={props.labelClassName}>Control Agent</span>
-                </Button>
+                    <MoreIcon size={16} />
+                </IconButton>
             )}
         >
             <div className={styles.menu} role="dialog" aria-label="Control agent">

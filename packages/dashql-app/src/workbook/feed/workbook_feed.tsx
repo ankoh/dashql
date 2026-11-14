@@ -54,6 +54,7 @@ import { stringifyError } from '../../platform/logger/logger.js';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
+import { observeSize } from '../../ui/foundations/size_observer.js';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
@@ -72,6 +73,15 @@ import { ComposerInputMode } from '../../agent/input_mode.js';
 import { useAgentBridge } from '../../agent/agent_bridge.js';
 import type { AgentFollowTarget } from '../../agent/use_agent_questions.js';
 import { useComposerAgent } from '../../agent/use_composer_agent.js';
+import { isAgentWorking } from '../../agent/agent_prompt_panel.js';
+import { agentLiveStatuses, diffAgentAccess, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
+import { agentAccessState } from '../../agent/agent_workbook_menu.js';
+import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
+import { useLiveWorkbookStatuses, useWorkbookLogTransitions, useWorkbookStatusStore } from '../status/workbook_status_store.js';
+import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
+import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
+import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
+import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;
@@ -108,6 +118,7 @@ export interface WorkbookFeedDependencies {
     runWorkbookScript: typeof runWorkbookScript;
     useAgentBridge: typeof useAgentBridge;
     WorkbookComposer: typeof WorkbookComposer;
+    WorkbookStatusBar: typeof WorkbookStatusBar;
     ScriptFeedRow: typeof ScriptFeedRow;
 }
 
@@ -122,6 +133,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     runWorkbookScript,
     useAgentBridge,
     WorkbookComposer,
+    WorkbookStatusBar,
     ScriptFeedRow,
 };
 
@@ -246,15 +258,23 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // A read-only workbook adds no scripts and no attachments
     const readOnly = useWorkbookReadOnly();
     const attachmentsEnabled = !readOnly && connectionReadsAttachments(props.conn?.details);
+    // The files that are being attached, the status of the workbook tells them
+    const [attaching, setAttaching] = React.useState<{ workbookId: string; files: number } | null>(null);
+    const statusStore = useWorkbookStatusStore();
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {
         setAttachmentError(null);
+        const logFiles = (tone: WorkbookStatusTone, text: string, detail: string | null = null) => statusStore.push(workbookId, [{
+            key: `files:${text}:${Date.now()}`, source: WorkbookStatusSource.Files, tone, text, detail, at: Date.now(),
+        }]);
         // A workbook attaches Parquet files only, they are table parameters of the scripts
         const parquet = [...files].filter(file => isAttachmentFileName(file.name));
         const refused = [...files].filter(file => !isAttachmentFileName(file.name));
         if (refused.length > 0) {
             setAttachmentError(`Only Parquet files can be attached: ${refused.map(file => file.name).join(', ')}`);
+            logFiles(WorkbookStatusTone.Failed, 'Only Parquet files can be attached', refused.map(file => file.name).join(', '));
         }
         if (parquet.length === 0) return;
+        setAttaching({ workbookId, files: parquet.length });
         try {
             // An attachment takes no name of a script or another attachment
             const scriptNames = latestScriptOrder.current.map(scriptDisplayName);
@@ -263,13 +283,36 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 const fileName = uniqueAttachmentFileName(file.name, scriptNames, attachments);
                 await storageReader.backend.saveDataFile(workbookId, fileName, file);
                 attachments.push(...readWorkbookAttachments([{ name: fileName, sizeBytes: file.size }]));
+                logFiles(WorkbookStatusTone.Success, `Attached ${fileName}`);
             }
             refreshDataFiles();
         } catch (e) {
             setAttachmentError('Adding attachment failed');
+            logFiles(WorkbookStatusTone.Failed, 'Adding an attachment failed', stringifyError(e));
             logger.error('Adding workbook attachment failed', { error: stringifyError(e) }, LOG_CTX);
+        } finally {
+            setAttaching(null);
         }
-    }, [logger, workbookId, refreshDataFiles, storageReader.backend]);
+    }, [logger, workbookId, refreshDataFiles, storageReader.backend, statusStore]);
+    const attachingFiles = attaching?.workbookId === workbookId ? attaching.files : 0;
+    const filesLive = React.useMemo<WorkbookStatus[]>(() => attachingFiles === 0 ? [] : [{
+        key: 'files:attaching', source: WorkbookStatusSource.Files, tone: WorkbookStatusTone.Progress,
+        text: attachingFiles === 1 ? 'Attaching a file' : `Attaching ${attachingFiles} files`, at: Date.now(),
+    }], [attachingFiles]);
+    useLiveWorkbookStatuses(workbookId, 'files', filesLive);
+
+    // The runs, the connections and the publishes of the workbook tell its status, the bars of Wobble show it in
+    // every view. The feed stays mounted while the other views show.
+    const execution = useWorkbookExecution(workbookId);
+    const publishStatus = useCloudPublishStatus(workbookId);
+    const statusLabeler = useConnectionLabeler();
+    useWorkbookStatusSources({
+        workbookScripts: props.workbookScripts,
+        connections: props.scriptConnections ?? defaultConnections,
+        label: statusLabeler,
+        execution: execution.state,
+        publish: publishStatus,
+    });
     const handleAttachmentInput = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (attachmentsEnabled && event.target.files != null) void saveAttachments(Array.from(event.target.files));
         event.target.value = '';
@@ -542,7 +585,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     ], [feedActive, composerView, handleAcceptDiff, handleRejectDiff]);
     dependencies.useKeyEvents(keyHandlers);
 
-    const feedLayout = useWorkbookFeedLayout(entries);
+    // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it
+    const composerSectionRef = React.useRef<HTMLDivElement>(null);
+    const composerSectionSize = observeSize(composerSectionRef);
+    const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
+    const feedLayout = useWorkbookFeedLayout(entries, bottomInset);
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
         editorViewsRef.current.set(scriptKey, view);
@@ -585,7 +632,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const [cardTop, bottom] = feedLayout.getEntrySpan(index);
         // The first script also shows the space above the feed, the add button above the script sits in it
         let top = index === 0 ? 0 : cardTop;
-        const viewportHeight = element.clientHeight;
+        // The part of the feed that the prompt leaves free
+        const viewportHeight = element.clientHeight - bottomInset;
         if (target === 'result' && bottom - cardTop > viewportHeight) {
             const item = element.querySelector(`[data-script-key="${scriptKey}"]`);
             const result = item?.querySelector('[data-feed-result]');
@@ -595,7 +643,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         }
         const offset = revealScrollOffset(top, bottom, element.scrollTop, viewportHeight);
         if (offset != null) element.scrollTo({ top: offset });
-    }, [entries, feedLayout.listRef, feedLayout.getEntrySpan]);
+    }, [entries, feedLayout.listRef, feedLayout.getEntrySpan, bottomInset]);
 
     // The feed follows the agent to the scripts it edits and runs in a question of the composer, also while the
     // agent still works. The followed script stays in view as it is measured and its results arrive.
@@ -673,6 +721,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         followScript: followAgentScript,
         showScript: handleShowAgentScript,
     });
+    // The agent tells what it works on and the server it waits for, its questions go to the log
+    const agentLive = React.useMemo(
+        () => agentLiveStatuses(agent, workbookId, composerAgent.agent, Date.now()),
+        [agent, workbookId, composerAgent.agent],
+    );
+    useLiveWorkbookStatuses(workbookId, 'agent', agentLive);
+    useWorkbookLogTransitions(workbookId, composerAgent.agent, (prev, next) => diffAgentQuestions(prev, next, Date.now()));
+    useWorkbookLogTransitions(workbookId, agent != null ? agentAccessState(agent, workbookId) : null, (prev, next) => diffAgentAccess(prev, next, Date.now()));
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
@@ -739,15 +795,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
-    // An empty workbook greets the user with the composer in place of the feed.
-    // The composer stays at the same position in the tree so it keeps focus when the first script lands.
-    const landing = entries.length === 0;
-    // The agent turns grow the composer, the greeting stays hidden while they are shown.
-    // Sending clears the draft before the agent writes the first script, the turn keeps the greeting away.
-    const greetingHidden = (composerAgent.agent?.turns.length ?? 0) > 0;
-    // The cards of the inputs of the draft stand below the greeting and lift it, the prompt stays in place.
-    // The workbook has no inputs yet on the landing view, later the strip shows the inputs of the scripts.
-    const [landingInputs, setLandingInputs] = React.useState<HTMLDivElement | null>(null);
+    // An empty workbook greets the user with the composer in place of the feed, until the agent works on a question.
+    // Sending clears the draft before the agent writes the first script, the turn docks the composer right away.
+    // The composer stays at the same position in the tree so it keeps focus when the view docks it.
+    const agentTurns = composerAgent.agent?.turns.length ?? 0;
+    const landing = entries.length === 0 && agentTurns === 0;
     // While the user writes, Wobble watches the caret of the composer
     const composerCaret = React.useCallback(() => {
         const head = composerView?.state?.selection?.main.head;
@@ -773,16 +825,36 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         className: styles.feed_landing_wobble,
         'data-testid': 'feed-landing-wobble',
         label: 'DashQL agent',
-        paused: greetingHidden,
+        paused: !props.active,
         tuning: LANDING_WOBBLE_TUNING,
         gaze: { pointer: true, target: composerCaret },
         lastInput: composerLastInput,
-    }), [greetingHidden, composerCaret, composerLastInput]);
+    }), [props.active, composerCaret, composerLastInput]);
+    const dockGaze = React.useMemo(() => ({ target: composerCaret }), [composerCaret]);
+
+    // The bar of Wobble on the prompt: the status of the workbook, the agent and the log. On the landing view the
+    // greeting is Wobble, the bar leaves it out. A read-only workbook has no prompt, the bar stands alone.
+    const statusBar = (variant: WorkbookStatusBarVariant) => (
+        <dependencies.WorkbookStatusBar
+            workbookId={workbookId}
+            variant={variant}
+            bridge={readOnly ? null : agent}
+            agent={composerAgent.agent}
+            wobble={!landing}
+            onShowScript={handleShowAgentScript}
+            gaze={dockGaze}
+            lastInput={composerLastInput}
+            paused={!props.active}
+        />
+    );
     return (
         <div
             className={styles.feed_body_container}
             data-landing={landing ? '' : undefined}
-            style={{ '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px` } as React.CSSProperties}
+            style={{
+                '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
+                '--feed-bottom-inset': `${bottomInset}px`,
+            } as React.CSSProperties}
         >
             {/* The inputs and the attachments sit on a bar above the feed */}
             <WorkbookInputStrip
@@ -832,13 +904,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             />
             {landing && (
                 <div className={styles.feed_landing_top}>
-                    <div className={styles.feed_landing_header} data-hidden={greetingHidden ? '' : undefined}>
+                    <div className={styles.feed_landing_header}>
                         <AgentGreeting
                             wobble={landingWobble}
                             questionClassName={styles.feed_landing_question}
                             questionTestId="feed-landing-question" />
                     </div>
-                    <div className={styles.feed_landing_inputs} ref={setLandingInputs} data-testid="feed-landing-inputs" />
                 </div>
             )}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}
@@ -879,7 +950,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                     />
                 )}
             </div>
-            {!readOnly && <div className={styles.feed_composer_section}>
+            {readOnly && !landing && (
+                <div className={styles.feed_composer_section} ref={composerSectionRef}>
+                    <div className={styles.feed_composer_body}>{statusBar(WorkbookStatusBarVariant.Standalone)}</div>
+                </div>
+            )}
+            {!readOnly && <div className={styles.feed_composer_section} ref={composerSectionRef}>
                 <div className={styles.feed_composer_body}>
                     {composerConnection != null && <dependencies.WorkbookComposer
                         key={props.workbookScripts.workbookId}
@@ -888,9 +964,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         variant={landing ? WorkbookComposerVariant.Hero : WorkbookComposerVariant.Docked}
                         keywordCase={keywordCase}
                         aiAvailable={composerAgent.available}
-                        agent={composerAgent.agent}
+                        agentWorking={composerAgent.agent != null && isAgentWorking(composerAgent.agent)}
                         onSend={handleComposerSend}
-                        inputsContainer={landingInputs}
+                        bar={statusBar(WorkbookStatusBarVariant.Prompt)}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
                         scriptNames={scriptNames}

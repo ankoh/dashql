@@ -39,6 +39,7 @@ const dependencies = {
         return null;
     },
     ConnectionOverviewPage: () => null,
+    WorkbookStatusBar: (props: any) => <div data-testid="workbook-status-bar" data-variant={props.variant} />,
     WorkbookNavigationDrawer: () => null,
     ThreeBarsIcon: () => null,
     IconButton: React.forwardRef((props: any, ref: React.ForwardedRef<HTMLButtonElement>) => <button {...props} ref={ref} />),
@@ -391,7 +392,7 @@ describe('WorkbookFeedPage', () => {
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
     });
 
-    it('keeps only the connections and the agent in the header while the workbook is ephemeral', () => {
+    it('keeps only the connections in the header while the workbook is ephemeral', () => {
         const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, scriptOrder: [], scripts: {}, scriptRefs: {} };
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
         const header = container.querySelector('header')!;
@@ -462,6 +463,8 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector('[data-testid="dashboard"]')).not.toBeNull();
         expect(state.dashboardProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps.active).toBe(false);
+        // The bar of Wobble stands alone below the dashboard, the feed has the bar on its prompt
+        expect(container.querySelector('[data-testid="workbook-status-bar"]')?.getAttribute('data-variant')).toBe('standalone');
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
         act(() => buttons[0]?.click());

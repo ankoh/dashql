@@ -186,11 +186,11 @@ function isTurnExpandedByDefault(turn: ComposerAgentTurn, index: number, turns: 
     return index === turns.length - 1 || isAgentAnswering(turn.question);
 }
 
-/// The agent on top of the composer: the harness, the connection to the agent server and the questions of the
-/// workbook with their status lines, final messages, errors and the scripts the agent wrote.
+/// The log of the agent in the bubble of Wobble: the harness, the connection to the agent server and the questions of
+/// the workbook with their status lines, final messages, errors and the scripts the agent wrote.
 /// The questions scroll within a fixed height, each one expands and collapses.
 /// The scripts only show the edits of the agent.
-export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) => {
+export const AgentPromptPanel: React.FC<{ agent: ComposerAgent; onClose?: () => void }> = ({ agent, onClose }) => {
     const working = isAgentWorking(agent);
     // The turns that the user expanded or collapsed
     const [toggled, setToggled] = React.useState<ReadonlyMap<number, boolean>>(() => new Map());
@@ -219,6 +219,17 @@ export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) 
                 <span className={styles.header_title}>{agent.context != null ? harnessLabel(agent.context.harness) : 'Agent'}</span>
                 <span className={styles.header_dot} data-connected={agent.connected ? '' : undefined} aria-hidden="true" />
                 <span className={styles.header_detail} data-testid="composer-agent-detail">{detail}</span>
+                {onClose != null && (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label="Close the agent log"
+                        data-testid="composer-agent-close"
+                        onClick={onClose}
+                    >
+                        <CrossIcon size={14} />
+                    </IconButton>
+                )}
             </div>
             {agent.turns.length > 0 && (
                 <ul ref={turnsRef} className={styles.turns} aria-label="Questions">

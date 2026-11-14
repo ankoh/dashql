@@ -234,6 +234,16 @@
     padding: 16px;
 }
 
+/* The bar of Wobble floats at the bottom of the dashboard and the dataflow, above their content */
+.status_bar_dock {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: 16px;
+    width: min(720px, calc(100% - 2 * var(--page_gutter)));
+    transform: translateX(-50%);
+}
+
 /* The canvas and the inspector of the selected script, side by side */
 .dataflow_layout {
     display: flex;

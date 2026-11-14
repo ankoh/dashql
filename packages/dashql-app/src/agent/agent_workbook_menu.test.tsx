@@ -87,7 +87,7 @@ describe('Agent workbook menu', () => {
     it('controls an enabled agent', async () => {
         const bridge = fakeBridge({ hasAccess: () => true });
         await render(bridge);
-        expect(trigger().textContent).toContain('Control Agent');
+        expect(trigger().getAttribute('aria-label')).toBe('Control Agent');
         expect(trigger().dataset.state).toBe('connected');
         const items = await openItems();
         expect(items.map(item => [item.dataset.action, item.textContent])).toEqual([

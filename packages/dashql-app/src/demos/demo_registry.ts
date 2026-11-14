@@ -33,6 +33,12 @@ export const DEMOS: readonly DemoEntry[] = [
         load: () => import('./wobble/wobble_page.js'),
     },
     {
+        id: 'wobble_bar',
+        title: 'Wobble Bar',
+        description: 'The status of a workbook next to Wobble, on the prompt and of its own: runs, connections, files and the agent.',
+        load: () => import('./wobble_bar/wobble_bar_page.js'),
+    },
+    {
         id: 'landing_backdrop',
         title: 'Landing Backdrop',
         description: 'A sphere of dots that turns into the brand mark, the backdrop of the landing pages of the app, with knobs to tune it.',

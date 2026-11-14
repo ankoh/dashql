@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { BinaryStatusIndicator, IndicatorStatus, StatusIndicator } from './status_indicator.js';
+import { BinaryStatusIndicator, IndicatorStatus, StatusDot, StatusIndicator } from './status_indicator.js';
 
 describe('StatusIndicator', () => {
     let container: HTMLDivElement;
@@ -50,5 +50,21 @@ describe('StatusIndicator', () => {
 
     it('allows an explicit color override', () => {
         expect(renderColor(<StatusIndicator status={IndicatorStatus.Failed} fill="purple" />)).toBe('purple');
+    });
+
+    it('draws a status as a dot in the colors of the indicator', () => {
+        const dot = (status: IndicatorStatus) => {
+            act(() => root.render(<StatusDot status={status} size={6} />));
+            return container.querySelector<HTMLElement>('span')!;
+        };
+        const svgColor = (status: IndicatorStatus) => renderColor(<StatusIndicator status={status} />);
+        for (const status of [IndicatorStatus.Running, IndicatorStatus.Succeeded, IndicatorStatus.Failed, IndicatorStatus.None]) {
+            expect(dot(status).style.backgroundColor).toBe(svgColor(status));
+        }
+        expect(dot(IndicatorStatus.Running).dataset.status).toBe('running');
+        expect(getComputedStyle(dot(IndicatorStatus.Running)).animationName).not.toBe('none');
+        expect(getComputedStyle(dot(IndicatorStatus.Succeeded)).animationName).toBe('none');
+        expect(getComputedStyle(dot(IndicatorStatus.None)).opacity).toBe('0.5');
+        expect(dot(IndicatorStatus.Failed).style.width).toBe('6px');
     });
 });

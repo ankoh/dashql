@@ -30,3 +30,31 @@
         transform: scale(2.4);
     }
 }
+
+.status_dot {
+    display: inline-block;
+    flex: none;
+    border-radius: 50%;
+}
+
+/* Like the dot of the indicator of a status that is no outcome */
+.status_dot[data-status="none"],
+.status_dot[data-status="blocked"],
+.status_dot[data-status="skip"] {
+    opacity: 0.5;
+}
+
+.status_dot[data-status="running"] {
+    animation: status_dot_pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes status_dot_pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status_dot[data-status="running"] {
+        animation: none;
+    }
+}

@@ -41,6 +41,7 @@ import {
 } from '../workbook/scripts/workbook_scripts_registry.js';
 import { useCloudState } from './cloud_state.js';
 import { useCloudQuery } from './cloud_query.js';
+import { trackCloudPublish } from './cloud_publish_status.js';
 import { CloudPublishTooLargeError, deleteCloudWorkbook, listCloudWorkbookVersions, publishCloudWorkbook, readCloudWorkbook, type CloudWorkbookVersion } from './cloud_store.js';
 import { retainWorkbookQueryResults } from '../workbook/persistence/workbook_query_results.js';
 import { scriptRunServices } from '../workbook/scripts/script_run.js';
@@ -321,7 +322,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         return imported;
     }, [discardPreview, dispatchScripts, importVersion, logger, navigate, readRegistry, readVersion]);
 
-    const publish = React.useCallback(async (workbookId: string, options: { asNew: boolean }) => {
+    const publishVersion = React.useCallback(async (workbookId: string, options: { asNew: boolean }) => {
         if (query == null) throw new Error('The cloud connection is not online');
         const scripts = readRegistry().workbookScriptsMap.get(workbookId);
         if (scripts == null) throw new Error(`Unknown workbook ${workbookId}`);
@@ -369,6 +370,11 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         await refresh();
         return version;
     }, [archiveDatabase, connectionStore, database, dispatchScripts, logger, query, queryResultCache, readRegistry, references, refresh, setupCore, storageReader, storageWriter]);
+    // The status of the workbook tells the publish
+    const publish = React.useCallback(
+        (workbookId: string, options: Parameters<typeof publishVersion>[1]) => trackCloudPublish(workbookId, publishVersion(workbookId, options)),
+        [publishVersion],
+    );
 
     const remove = React.useCallback(async (cloudWorkbookId: string) => {
         if (query == null) throw new Error('The cloud connection is not online');

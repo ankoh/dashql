@@ -14,7 +14,6 @@ import * as identifierStyles from '../../agent/nl_identifier_plugin.module.css';
 import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
-import type { ComposerAgent } from '../../agent/agent_prompt_panel.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -45,11 +44,8 @@ describe('Workbook composer', () => {
     let onSend: ReturnType<typeof vi.fn<(text: string, mode: ComposerInputMode) => void>>;
     let targetScript: React.RefObject<((name: string) => void) | null>;
     let attention: { workbookId: string; active: boolean; request: ReturnType<typeof vi.fn> };
-    let inputsContainer: HTMLDivElement;
 
     beforeEach(() => {
-        inputsContainer = document.createElement('div');
-        document.body.appendChild(inputsContainer);
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -62,21 +58,19 @@ describe('Workbook composer', () => {
     afterEach(() => {
         act(() => root.unmount());
         container.remove();
-        inputsContainer.remove();
         catalog.destroy();
         dql.resetUnsafe();
         document.getElementById('__dashqlPortalRoot__')?.remove();
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = WorkbookComposerVariant.Docked, aiAvailable = false, offlineWorkbookId: string | null = null, agent: ComposerAgent | null = null) {
+    async function render(variant = WorkbookComposerVariant.Docked, aiAvailable = false, offlineWorkbookId: string | null = null, agentWorking = false, bar: React.ReactNode = undefined) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention as any}>
                 <WorkbookComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
-                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agent={agent}
-                    inputsContainer={variant === WorkbookComposerVariant.Hero ? inputsContainer : null}
+                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentWorking={agentWorking} bar={bar}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
@@ -236,14 +230,30 @@ describe('Workbook composer', () => {
         expect(modeButton('ai').disabled).toBe(true);
     });
 
+    it('shows the bar above the prompt only with content and turns the frame while the agent works', async () => {
+        await render(WorkbookComposerVariant.Docked);
+        const bar = () => container.querySelector<HTMLElement>('[data-testid="composer-bar"]')!;
+        expect(bar().childElementCount).toBe(0);
+        expect(getComputedStyle(bar()).display).toBe('none');
+        expect(container.querySelector('[data-agent]')).toBeNull();
+        await render(WorkbookComposerVariant.Docked, false, null, true, <span data-testid="agent-bar">Agent</span>);
+        expect(bar().querySelector('[data-testid="agent-bar"]')).not.toBeNull();
+        expect(getComputedStyle(bar()).display).not.toBe('none');
+        expect(container.querySelector('[data-agent="working"]')).not.toBeNull();
+    });
+
+    it('keeps the editor when the bar appears', async () => {
+        const editor = await render(WorkbookComposerVariant.Docked);
+        act(() => type(editor, 'select 5'));
+        expect(await render(WorkbookComposerVariant.Docked, false, null, false, <span data-testid="agent-bar">Agent</span>)).toBe(editor);
+        expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
+        expect(editor.state.doc.toString()).toBe('select 5');
+    });
+
     describe('inputs of the draft', () => {
-        const card = (name: string) => inputsContainer.querySelector<HTMLInputElement>(`[data-workbook-input="${name}"] input`)!;
-        const inputNames = () => Array.from(inputsContainer.querySelectorAll('[data-testid="composer-inputs"] [data-workbook-input]'))
+        const card = (name: string) => container.querySelector<HTMLInputElement>(`[data-testid="composer-bar"] [data-workbook-input="${name}"] input`)!;
+        const inputNames = () => Array.from(container.querySelectorAll('[data-testid="composer-bar"] [data-testid="composer-inputs"] [data-workbook-input]'))
             .map(element => element.getAttribute('data-workbook-input'));
-        const idleAgent: ComposerAgent = {
-            connected: true, port: 47100, context: null, turns: [],
-            onStop: () => {}, onDismiss: () => {}, onShowScript: () => {},
-        };
         function typeValue(name: string, value: string) {
             const control = card(name);
             const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
@@ -257,21 +267,20 @@ describe('Workbook composer', () => {
             act(() => { card(name).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
         }
 
-        it('shows the scalar parameters of a draft in its container', async () => {
+        it('shows the scalar parameters of a draft on the bar of the prompt', async () => {
             const editor = await render(WorkbookComposerVariant.Hero);
-            expect(inputsContainer.childElementCount).toBe(0);
+            expect(inputNames()).toEqual([]);
             act(() => type(editor, 'select :min, :region from :revenue'));
             expect(inputNames()).toEqual(['min', 'region']);
-            expect(container.querySelector('[data-testid="composer-inputs"]')).toBeNull();
             // The cards go with the parameters
             act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: 'select 1' } }));
-            expect(inputsContainer.childElementCount).toBe(0);
+            expect(container.querySelector('[data-testid="composer-inputs"]')).toBeNull();
         });
 
-        it('shows no cards without a container', async () => {
+        it('shows the cards on the docked prompt too', async () => {
             const editor = await render(WorkbookComposerVariant.Docked);
             act(() => type(editor, 'select :min'));
-            expect(document.querySelector('[data-testid="composer-inputs"]')).toBeNull();
+            expect(inputNames()).toEqual(['min']);
         });
 
         it('writes a value into the draft as a tag, keeps the cursor and sends the tag along', async () => {
@@ -311,16 +320,13 @@ describe('Workbook composer', () => {
             expect(card('region').value).toBe('EU');
         });
 
-        it('keeps the agent on the prompt and shows cards only in SQL', async () => {
-            const editor = await render(WorkbookComposerVariant.Hero, true, null, idleAgent);
-            const panel = () => container.querySelector('[data-testid="composer-agent"]');
+        it('shows cards only in SQL', async () => {
+            const editor = await render(WorkbookComposerVariant.Hero, true);
             act(() => type(editor, 'select :min from orders '));
             expect(inputNames()).toEqual(['min']);
-            expect(panel()).not.toBeNull();
             // `:min` references a script in a question
             act(() => modeButton('ai').click());
             expect(inputNames()).toEqual([]);
-            expect(panel()).not.toBeNull();
         });
 
         it('stays in SQL when a value writes the tag of a detected draft', async () => {

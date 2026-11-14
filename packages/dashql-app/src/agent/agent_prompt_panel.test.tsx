@@ -193,4 +193,13 @@ describe('Agent prompt panel', () => {
         expect(harnessLabel('opencode')).toBe('opencode');
         expect(harnessLabel('my-harness')).toBe('my-harness');
     });
+
+    it('closes the log on the close button, only when it can be closed', () => {
+        act(() => root.render(<AgentPromptPanel agent={composerAgent()} />));
+        expect(container.querySelector('[data-testid="composer-agent-close"]')).toBeNull();
+        const onClose = vi.fn();
+        act(() => root.render(<AgentPromptPanel agent={composerAgent()} onClose={onClose} />));
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-agent-close"]')!.click());
+        expect(onClose).toHaveBeenCalledOnce();
+    });
 });

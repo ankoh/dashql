@@ -1,0 +1,264 @@
+/* The bar of Wobble. On the prompt it is not positioned: the bubble is positioned against the frame of the composer,
+   so it stands above the prompt. */
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 28px;
+    font-size: var(--font_size_small);
+}
+
+/* A bar of its own looks like the bar on the prompt without the prompt */
+.bar[data-variant="standalone"] {
+    position: relative;
+    box-sizing: border-box;
+    padding: 3px 6px 3px 12px;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_subtle);
+    box-shadow: var(--shadow_small);
+}
+
+/* Wobble at the start of the bar, only its face: the face is round already, the button brings no border */
+.wobble_button {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    margin-left: -4px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--agent_fg);
+    cursor: pointer;
+}
+
+.wobble_button:hover {
+    background-color: var(--color_bg_hover);
+}
+
+.wobble_button:focus-visible {
+    outline: 2px solid var(--agent_accent);
+    outline-offset: 2px;
+}
+
+.wobble_button[aria-expanded="true"] {
+    background-color: var(--color_bg_hover);
+}
+
+/* The face fills the middle of the drawing, the margins keep the rest of it from taking room */
+.wobble {
+    width: 30px;
+    height: 30px;
+    margin: -3px;
+}
+
+/* Pulses at the top right of Wobble while anything runs */
+.busy_dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--agent_accent);
+    box-shadow: 0 0 0 2px var(--color_bg_subtle);
+    animation: dot_pulse 1.2s ease-in-out infinite;
+}
+
+/* What Wobble tells */
+.status {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--color_fg);
+}
+
+.status_text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Nothing happened yet */
+.status:not([data-tone]) {
+    color: var(--color_fg_muted);
+}
+
+.status[data-tone="failed"] .status_text {
+    color: var(--color_danger_fg);
+}
+
+.detail {
+    color: var(--color_fg_subtle);
+}
+
+/* The dots of the statuses, in the colors of the indicators of the scripts and of Execute All */
+.indicator {
+    align-self: center;
+}
+
+@keyframes dot_pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+/* The agent at the right end */
+.agent_controls {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.agent {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+    color: var(--color_fg_muted);
+    font-weight: 500;
+    cursor: default;
+}
+
+/* The log above the bar at its left edge, over Wobble. Dark in both color schemes like the chrome: the tokens
+   resolve to their dark values inside. */
+.bubble {
+    color-scheme: dark;
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    bottom: calc(100% + 10px);
+    width: min(680px, 100%);
+    max-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color_border);
+    border-radius: 12px;
+    background-color: var(--chrome_bg_100);
+    color: var(--color_fg);
+    box-shadow: var(--shadow_large);
+    overflow: hidden;
+}
+
+.bubble_header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px 0 14px;
+}
+
+.bubble_title {
+    font-size: var(--font_size_small);
+    font-weight: 600;
+    color: var(--color_fg);
+}
+
+.log {
+    flex: 0 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 4px 6px 8px 6px;
+    list-style: none;
+    overflow-y: auto;
+    font-size: var(--font_size_small);
+}
+
+.log_line {
+    min-width: 0;
+}
+
+/* The time, the dot, the source and the text in a row, the detail below the text */
+.log_row,
+.log_button {
+    display: grid;
+    grid-template-columns: auto auto auto minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 2px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    border-radius: var(--border_radius);
+    color: var(--color_fg);
+    text-align: left;
+}
+
+.log_button {
+    appearance: none;
+    margin: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.log_button:hover {
+    background-color: var(--color_bg_hover);
+}
+
+/* The steps of what runs are quieter than how things ended */
+.log_line[data-step] .log_text {
+    color: var(--color_fg_muted);
+}
+
+.log_line[data-tone="failed"] .log_text {
+    color: var(--color_danger_fg);
+}
+
+.log_time {
+    color: var(--color_fg_subtle);
+    font-family: var(--font_family_mono);
+    font-size: var(--font_size_micro);
+    font-variant-numeric: tabular-nums;
+}
+
+.log_source {
+    color: var(--color_fg_subtle);
+    font-size: var(--font_size_micro);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.log_text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* The whole detail, e.g. an error, below the text */
+.log_detail {
+    grid-column: 4;
+    color: var(--color_fg_muted);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* An error keeps its layout, e.g. the caret under the position of the error */
+.log_line[data-tone="failed"] .log_detail {
+    font-family: var(--font_family_mono);
+    font-size: var(--font_size_caption);
+}
+
+.empty {
+    padding: 6px 14px 12px 14px;
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_small);
+    line-height: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .busy_dot {
+        animation: none;
+    }
+}

@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 import * as styles from './workbook_composer.module.css';
 
-import { createPortal } from 'react-dom';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
@@ -15,7 +14,6 @@ import { ComposerInputMode } from '../../agent/input_mode.js';
 import { useComposerInputMode } from '../../agent/use_composer_input_mode.js';
 import { findScriptReferences, renderScriptReference, SCRIPT_REFERENCE_PREFIX } from '../../agent/script_references.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
-import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../agent/agent_prompt_panel.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '../inputs/workbook_inputs.js';
@@ -53,14 +51,15 @@ export interface WorkbookComposerProps {
     keywordCase: core.buffers.formatting.KeywordCase;
     /// Can the workbook ask the agent? Without agent access, the composer only takes SQL.
     aiAvailable: boolean;
-    /// The agent of a workbook with agent access, shown on top of the prompt
-    agent?: ComposerAgent | null;
+    /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then.
+    agentWorking?: boolean;
     /// Called with the draft and its input mode when the user sends it, the draft is cleared before
     onSend: (text: string, mode: ComposerInputMode) => void;
     /// Called with whether the draft is blank, once on mount and whenever that changes
     onDraftEmptyChange?: (empty: boolean) => void;
-    /// The element that shows the cards of the inputs of a SQL draft, the composer shows no cards without it
-    inputsContainer?: HTMLElement | null;
+    /// The bar above the editor, e.g. the bar of Wobble. The inputs of a SQL draft follow it, the bar is hidden
+    /// while it is empty.
+    bar?: React.ReactNode;
     /// Receives the editor view once it is mounted
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
@@ -272,7 +271,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
 
     const naturalLanguage = input.mode === ComposerInputMode.Ai;
     // Only SQL has inputs, `:name` in a question references a script
-    const inputsContainer = naturalLanguage ? null : props.inputsContainer ?? null;
+    const showDraftInputs = !naturalLanguage && draftInputs.length > 0;
     const blockedWorkbookId = naturalLanguage ? null : offlineWorkbookId;
     const blocked = blockedWorkbookId != null;
     // A blocked button stays clickable, it pulses the connections that are not connected
@@ -282,6 +281,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             size={ButtonSize.Small}
             aria-label={naturalLanguage ? 'Ask the agent' : blocked ? 'Connect to run' : 'Run query'}
             data-testid="composer-send"
+            tooltipDirection="n"
             data-connect={blocked ? '' : undefined}
             disabled={empty && !blocked}
             onClick={handleSendClick}
@@ -289,7 +289,6 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             <PaperAirplaneIcon />
         </IconButton>
     );
-    const agent = props.agent ?? null;
     const placeholder = naturalLanguage
         ? 'Ask a question about your data, Shift+Enter for a new line'
         : (hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line');
@@ -297,17 +296,19 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         <div
             className={styles.composer}
             data-variant={hero ? 'hero' : 'docked'}
-            data-agent={agent == null ? undefined : (isAgentWorking(agent) ? 'working' : 'ready')}
+            data-agent={props.agentWorking ? 'working' : undefined}
         >
-            {inputsContainer != null && draftInputs.length > 0 && createPortal(
-                <div ref={inputsRef} className={styles.composer_inputs} role="group" aria-label="Inputs of the prompt" data-testid="composer-inputs">
-                    {draftInputs.map(draftInput => (
-                        <WorkbookInputCard key={draftInput.name} input={draftInput} literalOf={literalOfDraftInput} onCommit={commitDraftInput} />
-                    ))}
-                </div>,
-                inputsContainer,
-            )}
-            {agent != null && <AgentPromptPanel agent={agent} />}
+            {/* Empty without the bar of Wobble and inputs of the draft, the stylesheet hides it then */}
+            <div className={styles.composer_bar} data-testid="composer-bar">
+                {props.bar}
+                {showDraftInputs && (
+                    <div ref={inputsRef} className={styles.composer_inputs} role="group" aria-label="Inputs of the prompt" data-testid="composer-inputs">
+                        {draftInputs.map(draftInput => (
+                            <WorkbookInputCard key={draftInput.name} input={draftInput} literalOf={literalOfDraftInput} onCommit={commitDraftInput} />
+                        ))}
+                    </div>
+                )}
+            </div>
             <div className={styles.composer_prompt} onMouseDown={handlePromptMouseDown}>
                 <PromptEditor
                     className={styles.composer_editor}
@@ -331,7 +332,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                             disabled={!props.aiAvailable}
                             data-testid="composer-mode"
                             data-mode="ai"
-                            title={props.aiAvailable ? undefined : 'Enable the agent in the header and connect the agent server to ask questions'}
+                            title={props.aiAvailable ? undefined : 'Enable the agent above the prompt and connect the agent server to ask questions'}
                         >
                             AI
                         </SegmentedControl.Button>

@@ -25,6 +25,19 @@ describe('FeedRowHeightCache', () => {
         expect(heights.getEntrySpan(0)).toEqual([32, 154]);
     });
 
+    it('adds the prompt over the bottom of the feed to the end padding only', () => {
+        const heights = new FeedRowHeightCache([
+            { scriptId: 1, estimatedHeight: 122 },
+            { scriptId: 2, estimatedHeight: 202 },
+        ]);
+        expect(heights.setBottomInset(90)).toBe(true);
+        expect(heights.setBottomInset(90)).toBe(false);
+
+        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([32 + 122 + 32, 202 + 32 + 90]);
+        expect(heights.getAverageRowHeight()).toBe((32 + 122 + 32 + 202 + 32 + 90) / 2);
+        expect(heights.getEntrySpan(1)).toEqual([186, 388]);
+    });
+
     it('retains measured script heights by identity while entries update', () => {
         const onChange = vi.fn();
         const heights = new FeedRowHeightCache([

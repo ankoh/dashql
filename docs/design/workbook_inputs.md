@@ -110,11 +110,10 @@ doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not writte
 
 - **Feed and dashboard.** `WorkbookInputStrip` puts the cards on an opaque white bar at the top of the view. In the feed
   the bar is a row above the scrolling scripts and holds the chip of the attachments, their cards open in a drawer
-  within it. The strip of the
-  dashboard sticks to the top of the page.
-- **Landing prompt.** An empty workbook has no scripts and no strip, so the prompt shows the inputs of its SQL draft as
-  soon as it holds a parameter (`collectDraftInputs`). The cards stand between the greeting and the prompt, they lift the
-  greeting and the prompt stays in place. A value is written into the draft as `@param` tag like in a script and nothing
-  runs, the tag goes along when the draft is sent. The docked prompt shows no cards, the strip shows the inputs of a
-  script once it is sent.
+  within it. The strip of the dashboard sticks to the top of the page. The inputs belong to the scripts, not to the
+  prompt, so they stay apart from it.
+- **Draft inputs.** The prompt shows the inputs of its SQL draft on its header bar, below the bar of Wobble, as soon
+  as the draft holds a parameter (`collectDraftInputs`), on the landing view and on the docked prompt. A value is written
+  into the draft as `@param` tag like in a script and nothing runs, the tag goes along when the draft is sent. A
+  question has no inputs, `:name` references a script there.
 - **Dataflow.** Every input is a box with a header and the value in one row (`dataflow.md`).

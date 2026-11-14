@@ -194,6 +194,27 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
     return element;
 };
 
+export interface StatusDotProps {
+    className?: string;
+    status: IndicatorStatus;
+    /// The diameter in pixels
+    size?: number;
+}
+
+/// A status as a plain dot in the colors of the status indicator, for lines of text where the symbols are too much.
+/// A running status pulses, the other statuses that are no outcome are faint like the dot of the indicator.
+export const StatusDot: React.FC<StatusDotProps> = (props: StatusDotProps) => {
+    const size = props.size ?? 7;
+    return (
+        <span
+            className={classNames(styles.status_dot, props.className)}
+            style={{ width: size, height: size, backgroundColor: getIndicatorColor(props.status) }}
+            data-status={IndicatorStatus[props.status].toLowerCase()}
+            aria-hidden="true"
+        />
+    );
+};
+
 export interface BinaryStatusIndicatorProps {
     className?: string;
     online: boolean;

@@ -9,26 +9,26 @@
     background: var(--stage_background);
     overflow: hidden;
     display: grid;
-    /* The bar of the inputs, the feed, the docked composer */
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    /* The bar of the inputs, then the feed. The docked composer floats over the bottom edge of the feed. */
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     /* The scripts, the inputs and the composer keep the gutter of the page left and right */
     --workbook_input_strip_inline_padding: var(--page_gutter);
 }
 
-/* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above center */
+/* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above
+   center */
 .feed_body_container[data-landing] {
     grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1.3fr);
 }
 
 /* The rows are explicit, the strip of the inputs is absent without inputs and attachments.
-   The inputs and the composer sit on the stage like the scripts, borders and the scroll shadows of the feed mark its
-   edges. The inputs line up with the scripts and keep the room of the composer below the feed. */
+   The inputs sit on the stage like the scripts, borders and the scroll shadows of the feed mark its edges. */
 .feed_top_strip {
     grid-row: 1;
 }
 
-/* The greeting and the inputs of the draft stand on the prompt, the inputs lift the greeting */
+/* The greeting stands on the prompt */
 .feed_landing_top {
     grid-row: 2;
     align-self: end;
@@ -36,18 +36,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-
-/* Lines the cards up with the frame of the composer below */
-.feed_landing_inputs {
-    width: min(720px, 100%);
-    box-sizing: border-box;
-    margin-bottom: 10px;
-    padding: 0 16px;
-}
-
-.feed_landing_inputs:empty {
-    display: none;
 }
 
 .feed_landing_header {
@@ -61,12 +49,6 @@
     gap: 24px;
     padding: 32px 16px 24px 16px;
     transition: opacity 120ms ease-out;
-}
-
-/* Faded out while the composer shows agent turns, they grow the composer and would otherwise push the greeting up */
-.feed_landing_header[data-hidden] {
-    visibility: hidden;
-    opacity: 0;
 }
 
 .feed_landing_wobble {
@@ -87,22 +69,31 @@
     text-wrap: balance;
 }
 
-/* The docked composer sits on the stage below the feed, a card like the scripts */
+/* The docked composer floats over the bottom of the feed. The feed reserves the same space below its last script
+   (--feed-bottom-inset) and fades out over the top of the section, so the fade covers nothing that can't scroll free. */
 .feed_composer_section {
-    grid-row: 3;
-    border-top: 1px solid var(--color_border);
+    /* An explicit column, the auto placement would put it next to the feed in the same row */
+    grid-area: 2 / 1;
+    align-self: end;
+    z-index: 1;
+    padding-top: 32px;
+    /* Let clicks through the fade, only the composer itself is interactive */
+    pointer-events: none;
 }
 
 /* Lines the composer up with the scripts of the feed, which stop before the scrollbar */
 .feed_composer_body {
-    padding: 12px calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 12px var(--page_gutter);
+    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 16px var(--page_gutter);
+    pointer-events: auto;
 }
 
 .feed_body_container[data-landing] .feed_composer_section {
+    grid-area: 3 / 1;
+    align-self: auto;
     justify-self: center;
     width: min(720px, 100%);
     box-sizing: border-box;
-    border-top: none;
+    padding-top: 0;
 }
 
 .feed_body_container[data-landing] .feed_composer_body {
@@ -247,11 +238,18 @@
 }
 
 .feed_list_container {
-    grid-row: 2;
+    grid-area: 2 / 1;
     /* Holds the scroll shadows at the edges of the feed */
     position: relative;
     min-height: 0;
     overflow: hidden;
+    /* The scripts fade out over the top of the docked composer and stay hidden behind it, the stage shows through.
+       The scrollbar stays uncovered. Only the alpha of the mask counts, any opaque color does. */
+    --feed_fade_top: calc(100% - var(--feed-bottom-inset, 0px));
+    mask:
+        linear-gradient(to bottom, var(--color_fg) var(--feed_fade_top), transparent calc(var(--feed_fade_top) + 32px))
+            left top / calc(100% - var(--feed-scrollbar-inset, 0px)) 100% no-repeat,
+        linear-gradient(var(--color_fg), var(--color_fg)) right top / var(--feed-scrollbar-inset, 0px) 100% no-repeat;
 }
 
 .feed_list_container[hidden] {

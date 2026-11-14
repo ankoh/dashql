@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './button.module.css';
 
-import { Tooltip } from './tooltip.js';
+import { Tooltip, type TooltipDirection } from './tooltip.js';
 import { classNames } from '../../utils/classnames.js';
 
 const BUTTON_VARIANT_CLASSNAME = [
@@ -131,6 +131,9 @@ interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElem
     inactive?: boolean;
     children?: React.ReactNode;
     description?: string;
+    /// The side of the tooltip, below the button by default. A button at the bottom edge of the window, e.g. in a
+    /// prompt, shows it above.
+    tooltipDirection?: TooltipDirection;
     'aria-label': string;
 }
 
@@ -144,6 +147,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((
         description,
         disabled,
         inactive,
+        tooltipDirection,
         size: _size,
         variant: _variant,
         ['aria-label']: _ariaLabel,
@@ -153,6 +157,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((
         <Tooltip
             text={description ?? ariaLabel}
             type={description ? undefined : 'label'}
+            direction={tooltipDirection}
         >
             <button
                 {...rest}
