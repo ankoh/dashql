@@ -72,6 +72,8 @@ describe('AppSettingsSync', () => {
             experimental_dashboards: true,
             experimental_dataflow: false,
             agentWorkbooks: ['workbook-a'],
+            agentEnabled: true,
+            agentPort: 9010,
         } as NonNullable<AppConfig['settings']>;
         await render();
         expect(ready).toBe(false);
@@ -84,6 +86,8 @@ describe('AppSettingsSync', () => {
         expect(config!.settings).not.toHaveProperty('experimental_dashboards');
         expect(config!.settings).not.toHaveProperty('experimental_dataflow');
         expect(config!.settings).not.toHaveProperty('agentWorkbooks');
+        expect(config!.settings).not.toHaveProperty('agentEnabled');
+        expect(config!.settings).not.toHaveProperty('agentPort');
         expect(flavor.id).toBe(DBCOM_FLAVOR.id);
         expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(true);
     });

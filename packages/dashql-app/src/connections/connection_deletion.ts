@@ -11,7 +11,7 @@ import { dropsAttachedDatabases } from '@ankoh/dashql-runtime/platform/database/
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { embeddedAttachedDatabasePath } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_opfs_instance';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError, type Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 /// Delete a connection
 export type DeleteConnection = (connectionId: string) => Promise<void>;
@@ -48,16 +48,40 @@ export function useDeleteConnection(): DeleteConnection {
         const others = [...registryStore.current.connections.values()].filter(other => other.connectionId !== connectionId);
         const attachedElsewhere = new Set(others.flatMap(other => embeddedCloudDatabases(other.params != null && 'hyper' in other.params ? other.params.hyper : null)
             .map(database => database.path)));
-        const embedded = await setupEmbeddedDatabase('hyper_wasm_connector');
-        if (!dropsAttachedDatabases(embedded)) return;
-        for (const { path } of attached) {
-            if (attachedElsewhere.has(path)) continue;
-            try {
-                await embedded.dropAttachedDatabase(await embeddedAttachedDatabasePath(path));
-                logger.info('Dropped the database of a deleted connection', { connectionId, path }, 'connection_deletion');
-            } catch (error) {
-                logger.warn('Dropping the database of a deleted connection failed', { connectionId, path, error: stringifyError(error) }, 'connection_deletion');
-            }
-        }
+        await dropCloudDatabases(await setupEmbeddedDatabase('hyper_wasm_connector'), attached.map(database => database.path).filter(path => !attachedElsewhere.has(path)), logger);
     }, [cancelQuery, connectionDispatch, logMetrics, logger, references, registryStore, setupEmbeddedDatabase]);
+}
+
+/// Drop databases of the clouds folder through the embedded Hyper, the sessions that attach them must be closed
+async function dropCloudDatabases(embedded: object, paths: readonly string[], logger: Logger): Promise<void> {
+    if (!dropsAttachedDatabases(embedded)) return;
+    for (const path of paths) {
+        try {
+            await embedded.dropAttachedDatabase(await embeddedAttachedDatabasePath(path));
+            logger.info('Dropped a database of the clouds folder', { path }, 'connection_deletion');
+        } catch (error) {
+            logger.warn('Dropping a database of the clouds folder failed', { path, error: stringifyError(error) }, 'connection_deletion');
+        }
+    }
+}
+
+/// Drop the databases of all local clouds before all data is cleared: close the sessions that attach them, then drop
+/// them, the engine holds their files open until then.
+export function useDropAllCloudDatabases(): () => Promise<void> {
+    const registryStore = useConnectionRegistryStore();
+    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
+    const logger = useLogger();
+    return React.useCallback(async () => {
+        const paths = new Set<string>();
+        // Outside the providers of the connections, e.g. in a test of the settings, there are none
+        for (const connection of registryStore?.current.connections.values() ?? []) {
+            const attached = embeddedCloudDatabases(connection.params != null && 'hyper' in connection.params ? connection.params.hyper : null);
+            if (attached.length === 0) continue;
+            const hyper = connection.details.type === HYPER_CONNECTOR ? connection.details.value as HyperConnectionDetails : null;
+            await hyper?.channel?.close().catch(() => {});
+            for (const { path } of attached) paths.add(path);
+        }
+        if (paths.size === 0 || setupEmbeddedDatabase == null) return;
+        await dropCloudDatabases(await setupEmbeddedDatabase('hyper_wasm_connector'), [...paths], logger);
+    }, [logger, registryStore, setupEmbeddedDatabase]);
 }

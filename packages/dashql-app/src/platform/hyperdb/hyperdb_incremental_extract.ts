@@ -1,4 +1,5 @@
 import type * as arrow from 'apache-arrow';
+import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 import type {
     EmbeddedClientContext,
@@ -6,7 +7,6 @@ import type {
     EmbeddedConnection,
     EmbeddedTableImportConnection,
 } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { quoteIdentifier } from './hyperdb_wasm.js';
 
 /// A column of a query result or table.
 export interface HyperDBExtractColumn {
@@ -544,6 +544,3 @@ function castColumns(columns: readonly HyperDBExtractColumn[]): string {
     return columns.map(({ name, type }) => `${quoteIdentifier(name)}::${type} AS ${quoteIdentifier(name)}`).join(', ');
 }
 
-export function quoteLiteral(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`;
-}

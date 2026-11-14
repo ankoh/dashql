@@ -378,7 +378,7 @@ const CloudBrowser: React.FC<{ cloud: CloudState; useWorkbooks: typeof useCloudW
     };
     const remove = (workbook: CloudWorkbook) => {
         const name = workbook.name ?? 'Untitled';
-        if (!window.confirm(`Delete "${name}" from the cloud? It can be restored for 30 days.`)) return;
+        if (!window.confirm(`Delete "${name}" from the cloud? It disappears for everyone who uses the cloud.`)) return;
         void run(`Deleting "${name}"`, () => workbooks.remove(cloudId, workbook.workbookId));
     };
     const parentId = path.length > 1 ? path[path.length - 2].folderId : null;

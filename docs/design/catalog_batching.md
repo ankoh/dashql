@@ -133,5 +133,5 @@ batching does not reconstruct argument metadata the engine does not expose.
 - `packages/dashql-core-js/src/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker
   transport.
 - `packages/dashql-runtime/src/connections/catalog/catalog_batch.ts`: commit boundary.
-- `packages/dashql-app/src/connections/catalog/catalog_loader.tsx`: refresh queue and superworkbook.
+- `packages/dashql-runtime/src/connections/catalog/catalog_loader_service.ts`: refresh queue and supersession.
 - `packages/dashql-runtime/src/connections/connection_restore.ts`: catalog restoration.

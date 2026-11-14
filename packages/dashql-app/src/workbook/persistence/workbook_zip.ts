@@ -21,7 +21,7 @@ export type { Entry, FileEntry };
 
 /// Can the browser deflate and inflate the entries of an archive? zip.js uses CompressionStream with `deflate-raw`,
 /// Safari has it since 16.4.
-export function supportsArchiveCompression(): boolean {
+function supportsArchiveCompression(): boolean {
     try {
         new CompressionStream('deflate-raw' as CompressionFormat);
         new DecompressionStream('deflate-raw' as CompressionFormat);

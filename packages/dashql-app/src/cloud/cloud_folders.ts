@@ -1,6 +1,6 @@
 import { SCRIPTS_TABLE } from '@ankoh/dashql-runtime/storage/workbook_tables';
-import { quoteLiteral } from './cloud_sql.js';
 import { CLOUD_FOLDER_DEPTH, latestVersionsSQL, versionFromRow, type CloudWorkbook } from './cloud_store.js';
+import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 import {
     checkCloudId,
     CLOUD_FOLDERS_TABLE,

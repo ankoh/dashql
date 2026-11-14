@@ -1,5 +1,6 @@
 import * as flatbuffers from 'flatbuffers';
 import * as dashql from '@ankoh/dashql-core';
+import { quoteIdentifier, quoteLiteral } from '../../utils/sql_quote.js';
 
 export const DEFAULT_DATABASE_NAME = 'hyper';
 
@@ -10,21 +11,11 @@ export interface ColumnMetadata {
     dataType?: string | null;
 }
 
-export function quoteIdentifier(identifier: string): string {
-    const escaped = identifier.replace(/"/g, '""');
-    return `"${escaped}"`;
-}
-
 /// The type of a column of a generated CREATE TABLE.
 /// A backend can name any type, such as `USER-DEFINED` or `numeric(10,2)`, and some of those aren't SQL types.
 /// A quoted name always parses, and the catalog keeps its text.
 export function quoteDataType(sqlType: string | null | undefined): string {
     return quoteIdentifier(sqlType?.trim() || 'unknown');
-}
-
-/// Quote a string literal
-export function quoteLiteral(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`;
 }
 
 /// A relation of a connection

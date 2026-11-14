@@ -18,6 +18,7 @@ import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput
 import { textChange } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
+import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 /// A composer without workbook scripts
 const NO_SCRIPT_NAMES: readonly string[] = [];

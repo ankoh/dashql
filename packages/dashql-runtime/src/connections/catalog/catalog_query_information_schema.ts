@@ -6,8 +6,9 @@ import { QueryExecutionArgs } from '../query_execution_args.js';
 import type { DynamicConnectionDispatch } from "../connection_registry_state.js";
 import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
 import { QueryType } from "../../query/query_execution_state.js";
-import { catalogTablesOfSchema, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, quoteLiteral, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
+import { catalogTablesOfSchema, packCatalogDescriptor, packCatalogTable, packRelationName, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
 import { beginCatalogBatch, type CatalogBatchOptions } from './catalog_batch.js';
+import { quoteIdentifier, quoteLiteral } from '../../utils/sql_quote.js';
 
 export type InformationSchemaColumnsTable = arrow.Table<{
     table_catalog: arrow.Utf8;

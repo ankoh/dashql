@@ -52,7 +52,7 @@ export interface EmbeddedConnectionOptions {
     /// database.
     attachedDatabases?: readonly EmbeddedAttachedDatabase[];
     /// Reuse an idle connection and return it to a pool on close.
-    /// Only for callers that leave no workbook state behind, such as settings, transactions or temporary tables.
+    /// Only for callers that leave no session state behind, such as settings, transactions or temporary tables.
     pooled?: boolean;
     /// The client context of the queries of the connection, set when its session is connected.
     /// Hyper logs it as ctx.client of the query events, e.g. to attribute queries of pooled connections.

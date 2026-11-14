@@ -45,6 +45,7 @@ import { createFlowScript, deleteFlowScript, persistFlowPlacement, removeFlowPos
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
+import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 const FitIcon = SymbolIcon('graph_align');
 

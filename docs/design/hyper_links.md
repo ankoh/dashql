@@ -103,7 +103,7 @@ hyperd.
   1. confirms the host of a link to another machine, unless a connection to it exists (`confirmHyperLink`),
   2. binds the link to a connection (`bindHyperLink`): the connection to the endpoint of the link, otherwise the user
      may reuse the connection of the latest link, which is saved with the new endpoint, otherwise a new connection,
-  3. remembers the token of the connection in the workbook storage of the tab and makes it the connection of new
+  3. remembers the token of the connection in the session storage of the tab and makes it the connection of new
      workbooks (`setHyperLinkToken`), a reload keeps both and closing the tab ends them,
   4. opens the open workbook if it runs on the connection, otherwise the first workbook on it, otherwise the greeter on
      the connection. The first script of the greeter creates the workbook.

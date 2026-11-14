@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import type { DynamicConnectionDispatch } from '../connection_registry_state.js';
-import { catalogTablesOfSchema, DEFAULT_DATABASE_NAME, packCatalogDescriptor, packCatalogTable, packRelationName, quoteIdentifier, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '../catalog/catalog_sql_generator.js';
+import { catalogTablesOfSchema, DEFAULT_DATABASE_NAME, packCatalogDescriptor, packCatalogTable, packRelationName, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from '../catalog/catalog_sql_generator.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, catalogTablesFromPgAttribute } from '../catalog/catalog_query_pg_attribute.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import type { QueryExecutor } from '../query_execution_args.js';
@@ -14,6 +14,7 @@ import { qualifyPrefetchedHyperFunctions } from '../catalog/prefetched_hyper_fun
 import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog/catalog_batch.js';
 import { generateFunctionScriptHeaderForSource } from '../catalog/catalog_function_sql_generator.js';
 import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog/catalog_query_pg_proc.js';
+import { quoteIdentifier } from '../../utils/sql_quote.js';
 
 const LOG_CTX = 'hyper_catalog';
 

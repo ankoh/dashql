@@ -38,13 +38,18 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
                 logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
                 // Drop retired settings, the AI provider settings may hold credentials.
                 // The dashboards and the dataflow were experimental views and are always shown now.
-                // Agent access was a list of workbooks, now the agent is on or off for the visible workbook and starts off.
+                // The settings of the agent bridge went with it, agents reach the app through `dashql session serve`.
                 const {
                     lastOpenedWorkbookId: _lastOpenedWorkbookId,
                     aiProvider: _aiProvider,
                     experimental_dashboards: _experimentalDashboards,
                     experimental_dataflow: _experimentalDataflow,
                     agentWorkbooks: _agentWorkbooks,
+                    agentEnabled: _agentEnabled,
+                    agentPort: _agentPort,
+                    agentHarness: _agentHarness,
+                    agentModel: _agentModel,
+                    agentEffort: _agentEffort,
                     ...settings
                 } = stored as typeof stored & {
                     lastOpenedWorkbookId?: string;
@@ -52,6 +57,11 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
                     experimental_dashboards?: boolean;
                     experimental_dataflow?: boolean;
                     agentWorkbooks?: string[];
+                    agentEnabled?: boolean;
+                    agentPort?: number;
+                    agentHarness?: string;
+                    agentModel?: string;
+                    agentEffort?: string;
                 };
                 reconfigure(c => c == null ? null : {
                     ...c,

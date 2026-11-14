@@ -55,8 +55,6 @@ export interface SharedWorkbookExportOptions {
     signal?: AbortSignal;
 }
 
-type SharedWorkbookExportOptionsInput = SharedWorkbookExportOptions | boolean;
-
 /// The workbook tables of a bundle that leaves the app, in a `.dashql` file or in the cloud: the connection params are
 /// sanitized for sharing and the draft script stays behind. The link to a published workbook of the cloud stays as well,
 /// whoever imports the workbook links it again (docs/design/cloud.md). The core reads the catalog files of the
@@ -157,9 +155,8 @@ export async function exportWorkbookAsSharedZip(
     writer: WorkbookArchiveWriter,
     workbookId: string,
     connectionParams: ReadonlyMap<string, ConnectionParams>,
-    optionsInput: SharedWorkbookExportOptionsInput = {},
+    options: SharedWorkbookExportOptions = {},
 ): Promise<Blob> {
-    const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
     return await exportWorkbookAsZip(workbookId, backend, writer, sharedExportOptions(connectionParams, options));
 }
 
@@ -209,11 +206,10 @@ export async function exportWorkbookAsUrl(
     backend: StorageBackend,
     writer: WorkbookArchiveWriter,
     workbookId: string,
-    connectionParams: any,
+    connectionParams: ReadonlyMap<string, ConnectionParams>,
     target: WorkbookLinkTarget,
-    optionsInput: SharedWorkbookExportOptionsInput = {},
+    options: SharedWorkbookExportOptions = {},
 ): Promise<URL> {
-    const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
     const zipBlob = await exportWorkbookAsSharedZip(
         backend,
         writer,
@@ -250,7 +246,7 @@ export async function exportConnectionAsUrl(
 }
 
 /// Encode a workbook ZIP as a link that carries it inline, base64url-encoded once in the `zip` parameter
-export async function encodeWorkbookZipAsUrl(zipBlob: Blob, target: WorkbookLinkTarget): Promise<URL> {
+async function encodeWorkbookZipAsUrl(zipBlob: Blob, target: WorkbookLinkTarget): Promise<URL> {
     const zip = BASE64URL_CODEC.encode(await zipBlob.arrayBuffer());
     switch (target) {
         case WorkbookLinkTarget.WEB:

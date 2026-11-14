@@ -2,13 +2,15 @@ import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBConnection, type HyperDBClient } from '../hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, type HyperDBConnection, type HyperDBClient } from '../hyperdb_wasm.js';
+import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 import {
     HyperDBIncrementalExtract,
     type HyperDBIncrementalExtractOptions,
     type HyperDBIncrementalExtractSource,
     type HyperDBSourceDatabase,
 } from '../hyperdb_incremental_extract.js';
+
 import {
     HYPER_LOG_EVENTS_TABLE,
     HYPER_LOG_QUERY_ENDS_TABLE,

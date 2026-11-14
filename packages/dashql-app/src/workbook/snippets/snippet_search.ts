@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
 
 import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { quoteLiteral } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { utf8Vector } from '@ankoh/dashql-runtime/utils/arrow_vectors';
 import type { SnippetRegistry } from './snippet_registry.js';
+import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 /// The table of the snippets in the snippet database, one row per snippet and connector
 export const SNIPPET_SEARCH_TABLE = 'snippets';

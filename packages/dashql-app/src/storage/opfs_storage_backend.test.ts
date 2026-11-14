@@ -174,16 +174,20 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         await expect(backend.renameScript('ffffffff-0000-4000-8000-000000000000', 'a.sql', 'b.sql')).resolves.toBeUndefined();
     });
 
-    it('clears the app folders and the workbook tree but no other storage', async () => {
+    it('clears the app folders, the clouds and the workbook tree but no other storage', async () => {
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await backend.saveScript(TEST_WORKBOOK_ID, '01.sql', 'SELECT 1');
         await backend.createConnectionFolder('connection');
         files.set('other/file.txt', 'kept');
+        // The database of a local cloud
+        dirs.add('clouds');
+        files.set('clouds/local.hyper', 'db');
         await backend.clearAllStorage();
         expect(await backend.listWorkbooks()).toEqual([]);
         expect([...files.keys()].filter(path => path.startsWith('workbooktree/'))).toEqual([]);
         expect([...files.keys()].filter(path => path.startsWith('workbooks/') || path.startsWith('connections/'))).toEqual([]);
         expect(dirs.has('connections/connection')).toBe(false);
+        expect(files.has('clouds/local.hyper')).toBe(false);
         expect(files.get('other/file.txt')).toBe('kept');
     });
 
@@ -230,12 +234,6 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).appSettings.narrowScreenLayout).toBe(true);
         await backend.saveAppSettings({ narrowScreenLayout: false });
         expect(await backend.loadAppSettings()).toEqual({ narrowScreenLayout: false });
-    });
-
-    it('round-trips the agent toggle in the app manifest', async () => {
-        await backend.saveAppSettings({ agentEnabled: true });
-        expect(await backend.loadAppSettings()).toEqual({ agentEnabled: true });
-        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).appSettings.agentEnabled).toBe(true);
     });
 
     it('stamps the current storage version on every manifest write', async () => {

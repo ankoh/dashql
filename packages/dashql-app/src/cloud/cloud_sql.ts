@@ -1,11 +1,6 @@
-import { quoteIdentifier } from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
+import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 // The statements that the cloud store sends to the cloud connection. See docs/design/cloud.md.
-
-/// A string literal
-export function quoteLiteral(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`;
-}
 
 /// A qualified name, every part quoted
 export function qualifiedName(...parts: string[]): string {

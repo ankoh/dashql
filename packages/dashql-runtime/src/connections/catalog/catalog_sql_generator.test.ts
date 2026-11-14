@@ -5,20 +5,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { generateCatalogSQLFromPgProc, queryPgProc } from './catalog_query_pg_proc.js';
 import type { QueryExecutor } from '../query_execution_args.js';
 
-import {
-    quoteIdentifier,
-    quoteDataType,
-    generateQualifiedTableName,
-    generateCreateTableSQL,
-    relationFilter,
-    catalogTablesOfDescriptor,
-    generateCatalogTablesSQL,
-    generateRelationsFile,
-    packCatalogDescriptor,
-    type CatalogTable,
-    type ColumnMetadata,
-} from './catalog_sql_generator.js';
+import { quoteDataType, generateQualifiedTableName, generateCreateTableSQL, relationFilter, catalogTablesOfDescriptor, generateCatalogTablesSQL, generateRelationsFile, packCatalogDescriptor, type CatalogTable, type ColumnMetadata } from './catalog_sql_generator.js';
 import { tableFromArrays, vectorFromArray } from '../../testing/arrow_fixtures.js';
+import { quoteIdentifier } from '../../utils/sql_quote.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

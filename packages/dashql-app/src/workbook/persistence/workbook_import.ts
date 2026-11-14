@@ -44,8 +44,6 @@ export interface WorkbookZipImportOptions extends WorkbookBundleWriteOptions {
     regenerateConnectionIds?: boolean;
 }
 
-type WorkbookZipImportOptionsInput = WorkbookZipImportOptions | (() => string);
-
 interface ParsedZipEntry {
     path: string;
     file: FileEntry;
@@ -193,12 +191,9 @@ export async function importWorkbookFromZip(
     zipBlob: Blob,
     backend: StorageBackend,
     database: ParquetReadDatabase | null,
-    optionsInput: WorkbookZipImportOptionsInput = {},
+    { regenerateConnectionIds, ...options }: WorkbookZipImportOptions = {},
 ): Promise<string> {
     let bundle = await readWorkbookBundleFromZip(zipBlob, database);
-    const { regenerateConnectionIds, ...options }: WorkbookZipImportOptions = typeof optionsInput === 'function'
-        ? { targetWorkbookId: optionsInput(), targetIsFresh: true, regenerateConnectionIds: true }
-        : optionsInput;
     if (regenerateConnectionIds) bundle = regenerateBundleConnectionIds(bundle);
     const workbookId = await writeWorkbookBundle(bundle, backend, options);
     await seedConnectionCatalogs(backend, bundle, workbookId);

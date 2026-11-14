@@ -4,17 +4,17 @@ import { isValidUuid } from './workbook_validation.js';
 /// The draft script of the editor, never a script of a workbook
 const DRAFT_SCRIPT_FILE = 'dashql-draft.sql';
 /// The maximum number of scripts and the maximum number of attachments of a workbook
-export const MAX_WORKBOOK_FILES = 2048;
+const MAX_WORKBOOK_FILES = 2048;
 
 const NATURAL_SORT = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
 /// Compare file names in natural order ("2_a.sql" before "10_a.sql")
-export function compareFileNamesNaturally(a: string, b: string): number {
+function compareFileNamesNaturally(a: string, b: string): number {
     return NATURAL_SORT.compare(a, b);
 }
 
 /// Is the value a plain file name that can't escape its folder?
-export function isSafeFileName(value: unknown): value is string {
+function isSafeFileName(value: unknown): value is string {
     return typeof value === 'string'
         && value.length > 0
         && value.length <= 255
@@ -150,11 +150,6 @@ export function workbookConnectionIdsOf(scripts: readonly WorkbookScript[], empt
     return [...new Set(scripts.map(script => script.connectionId))];
 }
 
-/// The connection that the first script of a workbook without scripts runs on
-export function workbookEmptyConnectionId(workbook: WorkbookData): string | null {
-    return workbook.scripts.length === 0 ? workbook.connections[0]?.connectionId ?? null : null;
-}
-
 /// The workbook with a new script list.
 ///
 /// The connections of a workbook are derived from its scripts: the workbook holds a copy of every
@@ -178,11 +173,6 @@ export function withWorkbookScripts(workbook: WorkbookData, scripts: WorkbookScr
 /// Replace the connection ids of the scripts, ids without a replacement are kept
 export function remapWorkbookScripts(scripts: readonly WorkbookScript[], connectionIds: ReadonlyMap<string, string>): WorkbookScript[] {
     return scripts.map(script => ({ ...script, connectionId: connectionIds.get(script.connectionId) ?? script.connectionId }));
-}
-
-/// Do two script lists hold the same scripts in the same order?
-export function workbookScriptsEqual(a: readonly WorkbookScript[], b: readonly WorkbookScript[]): boolean {
-    return a.length === b.length && a.every((script, i) => script.name === b[i].name && script.connectionId === b[i].connectionId);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

@@ -22,6 +22,7 @@ import type {
     EmbeddedTableInsertOptions,
 } from '../database/embedded_database.js';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
+import { quoteIdentifier, quoteLiteral } from '../../utils/sql_quote.js';
 
 export type { HyperDBSettings } from 'hyperdb-wasm';
 /// The engine of hyperdb-wasm. The browser build mounts files and directory handles, the build of Node folders of the
@@ -97,7 +98,7 @@ function yieldToEventLoop(): Promise<void> {
 // ATTACH is expensive since Hyper loads the statistics of every table in the database, and the compute code
 // opens a connection per statement. Connections are only pooled when the caller opts in.
 // A session keeps the client context it was connected with, the sessions are pooled per client context.
-const MAX_IDLE_WORKBOOKS = 4;
+const MAX_IDLE_SESSIONS = 4;
 
 /// The key of the idle sessions with a default database, attached databases and a client context
 function poolKey(alias: string | null, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): string {
@@ -164,7 +165,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         }
 
         for (const database of attached) await this.createAttachedDatabase(database.path);
-        const opening = this.openWorkbook(alias == null ? null : this.databasePath(alias), alias ?? '', attached, clientContext);
+        const opening = this.openSession(alias == null ? null : this.databasePath(alias), alias ?? '', attached, clientContext);
         this.openingSessions.add(opening);
         try {
             return new HyperDBConnection(await opening, release);
@@ -215,7 +216,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
 
     /// Open an engine connection with the database attached under the alias.
     /// A termination waits for the opening sessions, they close themselves if it started while they were attaching.
-    private async openWorkbook(databasePath: string | null, alias: string, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): Promise<HyperDBSession> {
+    private async openSession(databasePath: string | null, alias: string, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): Promise<HyperDBSession> {
         // Hyper logs the client context as ctx.client of the query events of the session
         const connection = await this.engine.connect(clientContext == null
             ? undefined
@@ -252,7 +253,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
 
     private async releaseSession(session: HyperDBSession, pool: HyperDBSession[] | null): Promise<void> {
         if (pool != null && session.reusable && !this.termination && !this.terminated
-            && pool.length < MAX_IDLE_WORKBOOKS) {
+            && pool.length < MAX_IDLE_SESSIONS) {
             pool.push(session);
             return;
         }
@@ -727,10 +728,3 @@ class HyperDBSession {
     }
 }
 
-function quoteLiteral(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`;
-}
-
-export function quoteIdentifier(value: string): string {
-    return `"${value.replace(/"/g, '""')}"`;
-}

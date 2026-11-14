@@ -4,7 +4,6 @@ import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@ankoh/dashql-
 import {
     HyperDBIncrementalExtract,
     HYPER_EXTRACT_ROW_COLUMN,
-    quoteLiteral,
     type HyperDBExtractTable,
     type HyperDBExtractTransfer,
     type HyperDBSourceDatabase,
@@ -16,10 +15,10 @@ import {
     hyperLogQueryEndsTable,
     isHyperLogFlushTimeout,
 } from '../../platform/hyperdb/hyperdb_log_extract.js';
-import { quoteIdentifier } from '../../platform/hyperdb/hyperdb_wasm.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { Store } from '@ankoh/dashql-runtime/store/store';
+import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 const LOG_CTX = 'hyper_log_metrics';
 
@@ -43,7 +42,7 @@ const MAX_RESOURCE_SAMPLES = 7_200;
 /// A query that a Hyper session finished, from a row of the query ends of the extract.
 export interface HyperQueryEnd {
     /// The Hyper session that ran the query
-    workbookId: string;
+    sessionId: string;
     /// The end of the query in milliseconds since the epoch
     endedAt: number;
     /// Did the query succeed?
@@ -226,7 +225,7 @@ export function readQueryEnds(table: arrow.Table): HyperQueryEnd[] {
     const queries: { query: HyperQueryEnd, request: number }[] = [];
     for (const row of table) {
         queries.push({ request: Number(row.req ?? 0), query: {
-            workbookId: String(row.sess),
+            sessionId: String(row.sess),
             endedAt: Number(row.epoch_ms),
             succeeded: Boolean(row.succeeded),
             errorCode: nullableString(row.error_code),

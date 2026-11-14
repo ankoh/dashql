@@ -48,7 +48,8 @@ parameter `:a`, which the embedded Hyper reads from the mount of the attachments
 | `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as result tables (`query_cache.md`, `workbook_tables.md`) |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
-"Clear all data" removes `workbooktree/` first, resets the manifest, removes `workbooks/`, `connections/` and `shell/` and clears
+"Clear all data" drops the databases of the local clouds through the embedded Hyper, removes `workbooktree/`, resets the
+manifest, removes `workbooks/`, `connections/`, `shell/` and `clouds/` and clears
 `cache/`, except the files that other windows read right now. It keeps `instances/`, because the running window owns
 its instance.
 

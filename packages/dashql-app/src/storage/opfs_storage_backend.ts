@@ -3,6 +3,7 @@ import { STORAGE_VERSION } from '@ankoh/dashql-runtime/storage/migration/version
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { sleep } from '@ankoh/dashql-runtime/utils/sleep';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { HYPER_CLOUDS_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_opfs_instance';
 import {
     INITIAL_WORKBOOK_FOLDER,
     STORAGE_FOLDER_FILE,
@@ -410,7 +411,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         }
 
         // Step 2: Delete app-owned data folders while leaving unrelated origin storage untouched.
-        for (const folder of [STORAGE_WORKBOOKS_FOLDER, STORAGE_CONNECTIONS_FOLDER, STORAGE_SHELL_FOLDER]) {
+        for (const folder of [STORAGE_WORKBOOKS_FOLDER, STORAGE_CONNECTIONS_FOLDER, STORAGE_SHELL_FOLDER, HYPER_CLOUDS_DIRECTORY]) {
             try {
                 await root.removeEntry(folder, { recursive: true });
             } catch (error) {

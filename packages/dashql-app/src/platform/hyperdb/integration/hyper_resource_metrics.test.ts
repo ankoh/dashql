@@ -2,9 +2,11 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBConnection, type HyperDBSettings } from '../hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, type HyperDBConnection, type HyperDBSettings } from '../hyperdb_wasm.js';
 import { HyperDBIncrementalExtract } from '../hyperdb_incremental_extract.js';
+
 import { HYPER_LOG_RESOURCE_METRICS_TABLE, HyperDBLogSource } from '../hyperdb_log_extract.js';
+import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

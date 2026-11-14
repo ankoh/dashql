@@ -37,6 +37,7 @@ import { attachmentNames, attachmentParameterName, attachmentStamp, readWorkbook
 import { unmountWorkbookAttachments } from '../attachments/attachment_mounts.js';
 import type { DataFile } from '../../storage/storage_backend.js';
 import { applyScriptTextChanges, computeScriptReferenceReports, renameReferenceChanges, type ScriptTextChange, type TableParameterTarget } from './script_reference_check.js';
+import { quoteIdentifier } from '../../utils/sql_quote.js';
 
 const LOG_CTX = 'workbook_scripts';
 

@@ -149,7 +149,7 @@ export async function findOPFSCleanupCandidates(
             case STORAGE_SHELL_FOLDER:
             case SHELL_FILES_DIRECTORY:
             case STORAGE_WORKBOOK_TREE_FOLDER:
-            // The databases of clouds keep published workbooks, the Cloud overlay resets the local cloud
+            // The databases of clouds keep published workbooks, they go with the connection of their local cloud
             case HYPER_CLOUDS_DIRECTORY:
                 break;
             case HYPER_LEGACY_LOGS_DIRECTORY:

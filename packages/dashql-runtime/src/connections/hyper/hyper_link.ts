@@ -9,7 +9,7 @@ import { isLoopbackHyperLink, type HyperLinkTarget } from '../../platform/events
 export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
 
 /// The session storage key of the tokens of the Hyper links of a tab
-const HYPER_LINK_WORKBOOK_STORAGE_KEY = 'dashql.hyper_links';
+const HYPER_LINKS_STORAGE_KEY = 'dashql.hyper_links';
 
 /// Confirm a link before the app uses it.
 /// A link to another machine would receive the queries of the new workbooks, the user confirms its host first.
@@ -31,7 +31,7 @@ const NO_HYPER_LINKS: HyperLinkTabState = { tokens: {}, current: null };
 /// Read the Hyper links of a tab, a reload keeps them and closing the tab ends them
 export function readHyperLinkTabState(storage: KeyValueStorage | null): HyperLinkTabState {
     try {
-        const parsed = JSON.parse(storage?.getItem(HYPER_LINK_WORKBOOK_STORAGE_KEY) ?? 'null');
+        const parsed = JSON.parse(storage?.getItem(HYPER_LINKS_STORAGE_KEY) ?? 'null');
         if (parsed == null || typeof parsed !== 'object') return NO_HYPER_LINKS;
         const tokens = Object.fromEntries(Object.entries(parsed.tokens ?? {}).filter(([, token]) => typeof token === 'string')) as Record<string, string>;
         return { tokens, current: typeof parsed.current === 'string' ? parsed.current : null };
@@ -58,7 +58,7 @@ export class HyperLinkTabStore {
         const prev = this.get();
         this.state = { tokens: { ...prev.tokens, [connectionId]: token }, current: connectionId };
         try {
-            this.storage?.setItem(HYPER_LINK_WORKBOOK_STORAGE_KEY, JSON.stringify(this.state));
+            this.storage?.setItem(HYPER_LINKS_STORAGE_KEY, JSON.stringify(this.state));
         } catch {
             // Without storage, a reload forgets the links
         }

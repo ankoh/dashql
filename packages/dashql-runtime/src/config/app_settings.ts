@@ -26,15 +26,4 @@ export interface AppSettings {
     flavor?: string;
     /// The color scheme of the app, the one of the OS if unset
     colorScheme?: 'light' | 'dark';
-    /// Is the agent on? Then agents may read, edit and run the scripts of the visible workbook through the local agent
-    /// server, never those of another workbook.
-    agentEnabled?: boolean;
-    /// The port of the local agent server, the build's default if unset
-    agentPort?: number;
-    /// The harness that runs the requests of the agent, the default harness of the agent server if unset
-    agentHarness?: string;
-    /// The model of the harness's requests, one of the models of the harness, the harness's own default if unset
-    agentModel?: string;
-    /// The effort of the harness's requests, one of the efforts of the harness, the harness's own default if unset
-    agentEffort?: string;
 }

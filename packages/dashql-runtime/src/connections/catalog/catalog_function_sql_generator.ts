@@ -1,4 +1,5 @@
-import { quoteIdentifier, CatalogSource, DEFAULT_DATABASE_NAME } from './catalog_sql_generator.js';
+import { CatalogSource, DEFAULT_DATABASE_NAME } from './catalog_sql_generator.js';
+import { quoteIdentifier } from '../../utils/sql_quote.js';
 
 export interface FunctionMetadata {
     schemaName: string | null;

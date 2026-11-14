@@ -78,6 +78,7 @@ import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
 import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
 import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
+import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;

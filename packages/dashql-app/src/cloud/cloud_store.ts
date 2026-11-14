@@ -19,7 +19,8 @@ import {
     type WorkbookTableName,
     type WorkbookTables,
 } from '@ankoh/dashql-runtime/storage/workbook_tables';
-import { createTableSQL, insertStatements, qualifiedName, quoteLiteral, type CloudColumn } from './cloud_sql.js';
+import { createTableSQL, insertStatements, qualifiedName, type CloudColumn } from './cloud_sql.js';
+import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 import {
     checkCloudId,
     CLOUD_FOLDERS_TABLE,

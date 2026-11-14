@@ -2,7 +2,8 @@ import * as flatbuffers from 'flatbuffers';
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQL } from '@ankoh/dashql-core';
 
-import { catalogTablesOfDescriptor, generateCatalogTablesSQL, quoteIdentifier, type CatalogTable } from './catalog_sql_generator.js';
+import { catalogTablesOfDescriptor, generateCatalogTablesSQL, type CatalogTable } from './catalog_sql_generator.js';
+import { quoteIdentifier } from '../../utils/sql_quote.js';
 
 // The catalog files of a connection as structure: the tables with their columns and the functions with their parameters.
 // The core parses the SQL of the files into a catalog descriptor, the structure is read from the descriptor and renders

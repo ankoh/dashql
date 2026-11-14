@@ -18,7 +18,6 @@ import {
 } from './cloud_folders.js';
 import { listCloudWorkbookVersions, publishCloudWorkbook } from './cloud_store.js';
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
-import { quoteLiteral } from './cloud_sql.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
@@ -33,6 +32,7 @@ import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/da
 import { workbookBundleToTables, type CatalogParser } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '../tests/react_root.js';
+import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 
 // The overview of a local cloud on the embedded Hyper of the tests: the statements of the cloud state go through the
 // query executor to the session of the local cloud, the listings of the page run against the same tables

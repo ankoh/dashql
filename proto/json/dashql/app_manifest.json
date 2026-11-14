@@ -99,16 +99,6 @@
         "flavor": {
           "type": "string",
           "description": "The id of the app flavor, the flavor query parameter of the url wins"
-        },
-        "agentEnabled": {
-          "type": "boolean",
-          "description": "Is the agent on? Then agents may read, edit and run the scripts of the visible workbook through the local agent server, never those of another workbook"
-        },
-        "agentPort": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535,
-          "description": "The port of the local agent server, the build's default if unset"
         }
       },
       "additionalProperties": false

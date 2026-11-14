@@ -85,13 +85,11 @@ describe('workbook ZIP import of older versions', () => {
         expect(backend.calls).toEqual([]);
     });
 
-    it('strictly refuses V1 metadata before allocating or writing', async () => {
+    it('strictly refuses V1 metadata before writing', async () => {
         const backend = new WorkbookTestBackend();
-        const idFactory = vi.fn(() => crypto.randomUUID());
         await expect(importWorkbookFromZip(await zip({
             [STORAGE_WORKBOOK_FILE]: JSON.stringify({ ...testWorkbook(), formatVersion: 1 }),
-        }), backend, idFactory)).rejects.toThrow('Unsupported workbook format version');
-        expect(idFactory).not.toHaveBeenCalled();
+        }), backend, { targetWorkbookId: crypto.randomUUID(), targetIsFresh: true })).rejects.toThrow('Unsupported workbook format version');
         expect(backend.calls).toEqual([]);
     });
 

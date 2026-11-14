@@ -1,6 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { binaryVector, boolVector, floatVector, intVector, utf8Vector } from '../../utils/arrow_vectors.js';
+import { quoteIdentifier } from '../../utils/sql_quote.js';
 
 /// An Arrow table that Hyper can read with external(format => 'arrowstream').
 export interface HyperArrowInsert {
@@ -10,10 +11,6 @@ export interface HyperArrowInsert {
     columns: string;
     /// The Hyper types of the columns
     types: string[];
-}
-
-function quoteIdentifier(value: string): string {
-    return `"${value.replace(/"/g, '""')}"`;
 }
 
 /// The Hyper type that the metadata of a field names, e.g. of a json or varchar(n) column exported by Hyper.

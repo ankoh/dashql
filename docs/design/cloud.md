@@ -17,7 +17,7 @@ a cloud come from a single statement.
 | Part | State |
 |------|-------|
 | Clouds: a list of connections in the settings, sidebar badge, Use as Cloud | done |
-| The store: publish, update, read any version, delete, cleanup (`cloud/cloud_store.ts`) | done, tested against the embedded Hyper |
+| The store: publish, update, read any version, delete, cleanup (`cloud/cloud_store.ts`) | done, tested against the embedded Hyper; nothing runs the cleanup yet, see Open |
 | Nested folders, paged listings, search, counts (`cloud/cloud_folders.ts`, `cloud/cloud_store.ts`) | done, tested against the embedded Hyper |
 | Migrations of the tables, with a lock for the installer that runs them (`cloud/cloud_store_schema.ts`) | done, tested against the embedded Hyper |
 | The installer: finds what is missing, installs and updates the tables (`cloud/cloud_installer.tsx`) | done, tested against the embedded Hyper |
@@ -52,8 +52,8 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
   the embedded Hyper: its params are `{ protocol: 'WASM', attachedDatabases: [{ path: 'clouds/local.hyper', alias:
   'dashql' }] }` (`createLocalCloudParams`). Its session attaches only that database, created on first use unless it
   exists, in the `clouds` folder of the OPFS of the app that the OPFS cleanup leaves alone
-  (`embeddedAttachedDatabasePath`). The file stays until the local cloud is deleted, a local cloud created after
-  that starts empty. So everything runs as on a server: the statements of the store go through the query executor
+  (`embeddedAttachedDatabasePath`). The file stays until the local cloud is deleted or all data of the app is cleared,
+  a local cloud created after that starts empty. So everything runs as on a server: the statements of the store go through the query executor
   and show in the queries viewer, and the catalog lists the tables of DashQL. Only a database of the `clouds` folder makes a connection of the embedded Hyper a local cloud
   (`embeddedCloudDatabases`), the embedded Hyper of the app ignores its other attached databases as it always did, and
   workbooks that name the embedded Hyper never take the local cloud for it. The setup page offers a new Local Cloud,
@@ -433,5 +433,8 @@ finds one of five states:
   `CloudSearch`, and list the workbooks that it finds in the same pages.
 - **Links.** A cloud link will carry the sanitized params of the connection and the id of the workbook, and the id of
   a version to open that version instead of the latest one.
+- **Who runs the cleanup.** `cleanupCloud` removes what deleted and abandoned rows leave and repairs orphans and loops,
+  but no part of the app calls it yet, so deleted workbooks and folders stay hidden in the tables. It walks every folder
+  with a parent, so it suits a scheduled job of the cloud or the installer better than the overview.
 - **Atomic statements.** The store relies on a single-row `UPDATE` being atomic, its condition checked against the
   row it changes, which Hyper guarantees: the version that turns ready and the lock depend on it.

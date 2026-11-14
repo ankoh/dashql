@@ -66,7 +66,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     // Setup done and workbook selected? Show main interface
     const pauseAfterSetup = config?.settings?.pauseAfterAppSetup ?? false;
     if (canShowWorkbook(routeContext, pauseAfterSetup)) {
-        // The cloud setup shows before the workbench, at the start of the app with a cloud link and when the Cloud overlay asks for it
+        // The cloud setup shows before the workbench, at the start of the app with a cloud link and when the app asks for it
         return cloudSetupPage ?? props.children;
     } else {
         // Otherwise show the app loading page
