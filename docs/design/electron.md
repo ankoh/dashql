@@ -118,7 +118,6 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | OAuth loopback | Node HTTP server in main (`src/oauth_loopback.ts`), used by Trino; Salesforce uses the deep-link relay (`oauth_salesforce.md`) |
 | Drag and drop | Renderer DOM drop events, as on the web |
 | Updates | `electron-updater` in main (`src/updater.ts`) |
-| Agent server and menu bar | On macOS, main runs the bundled `dashql agent serve --exit-with-stdin` (`src/agent_host.ts`) and shows its status in a menu bar tray (`src/menu_bar.ts`, `src/menu_bar_template.ts`) with an Agent Access toggle, stored in `userData/menu_bar.json`. See `agent_bridge.md` |
 | Pending writes | Before a window closes and before the app quits, main sends `dashql:flush` and waits up to 5 s for `dashql:flushed`; the renderer flushes its storage writer through `onFlush` |
 
 ## Build and Packaging
@@ -130,8 +129,8 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
   `:electron_bundle`), with a relative base and without wasm precompression.
 - `electron-builder` packages one app per architecture: `//packages/dashql-native:mac_package_arm64` and
   `:mac_package_x86_64` (`scripts/package_macos.sh`, `electron-builder.yml`). Each produces
-  `DashQL-<version>-<arch>.{dmg,zip}`, blockmaps and `latest-mac.yml`. The renderer, the addon, the `dashql`
-  CLI (`bin/dashql`) and the menu bar icon ship as extra resources, the app uses the hardened runtime, and
+  `DashQL-<version>-<arch>.{dmg,zip}`, blockmaps and `latest-mac.yml`. The renderer and the addon ship as
+  extra resources, the app uses the hardened runtime, and
   `Entitlements.plist` allows JIT, unsigned executable memory, disabled library validation, network client
   access and user-selected file access.
 - The addon is built per architecture (`//packages/dashql-native-proxy:addon_aarch64`, `:addon_x86_64`).

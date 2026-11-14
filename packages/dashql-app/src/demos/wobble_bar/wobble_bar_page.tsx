@@ -6,90 +6,56 @@ import { LogLevel, type LogRecord } from '@ankoh/dashql-sdk/platform/logger/log_
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../../workbook/status/workbook_status.js';
 import { agentLiveStatuses } from '../../agent/agent_workbook_status.js';
-import type { ComposerAgent, ComposerAgentTurn } from '../../agent/agent_prompt_panel.js';
-import { AgentBridgeContext, type AgentBridge } from '../../agent/agent_bridge.js';
-import { AgentQuestionStore } from '../../agent/agent_question_store.js';
-import { AgentConnectionStatus } from '../../agent/agent_client.js';
+import type { AgentSession, AgentTurn } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { CodeIcon, PaperAirplaneIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { PaperAirplaneIcon } from '../../ui/foundations/symbol_icon.js';
 import * as composerStyles from '../../workbook/feed/workbook_composer.module.css';
 import * as styles from './wobble_bar_page.module.css';
 
-const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 const SURFACES = ['light', 'dark'] as const;
 const WORKBOOK_ID = 'demo';
 
-/// An agent bridge that only tells the bar its state
-function fakeBridge(state: { supported?: boolean; access?: boolean; status?: AgentConnectionStatus }): AgentBridge {
-    const noop = () => { };
+/// The session of Claude Code in the terminal as the feed hands it to the bar
+function fakeSession(turns: AgentTurn[], connected = true): AgentSession {
     return {
-        status: state.status ?? AgentConnectionStatus.Connected,
-        supported: state.supported ?? true,
-        port: 47100,
-        setPort: noop,
-        harness: null,
-        setHarness: noop,
-        model: null,
-        setModel: noop,
-        effort: null,
-        setEffort: noop,
-        enabled: state.access ?? true,
-        hasAccess: () => state.access ?? true,
-        setEnabled: noop,
-        request: () => Promise.reject(new Error('demo')),
-        cancel: () => Promise.resolve(),
-        reset: () => Promise.resolve(),
-        context: () => Promise.reject(new Error('demo')),
-        info: () => Promise.reject(new Error('demo')),
-        hold: () => noop,
-        questions: new AgentQuestionStore(),
-    };
-}
-
-/// The agent of the workbook as the feed hands it to the bar
-function fakeAgent(turns: ComposerAgentTurn[], connected = true): ComposerAgent {
-    return {
+        harness: 'claude',
+        folder: '~/data/sales',
         connected,
-        port: 47100,
-        context: connected ? { folder: '~/data/sales', harness: 'claude', harnessSession: turns.length > 0 ? 'session' : null, terminalCommand: null } : null,
         turns,
-        onStop: () => { },
         onDismiss: () => { },
         onShowScript: () => { },
     };
 }
 
 const SCRIPTS = [{ scriptKey: 2, scriptName: '2_region_growth' }];
-const WORKING: ComposerAgentTurn = {
+const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql agent run 2_region_growth', error: null, note: null, scripts: [2] },
+    question: { question: 'Which regions grew the most last quarter?', status: 'dashql workbook run 2_region_growth', error: null, note: null },
     scripts: SCRIPTS,
 };
-const ANSWERED: ComposerAgentTurn = {
+const ANSWERED: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Which regions grew the most last quarter?',
         status: null,
         error: null,
         note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
-        scripts: [2],
     },
     scripts: SCRIPTS,
 };
-const FAILED: ComposerAgentTurn = {
+const FAILED: AgentTurn = {
     questionId: 2,
-    question: { question: 'And by product?', status: null, error: 'The harness exited with code 1', note: null, scripts: [] },
+    question: { question: 'And by product?', status: null, error: 'The harness stopped with an error', note: null },
     scripts: [],
 };
-const LONG_STATUS: ComposerAgentTurn = {
+const LONG_STATUS: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Compare the revenue of every region and product over the last eight quarters',
-        status: 'dashql agent edit 4_revenue_by_region_and_product_over_the_last_eight_quarters --text …',
+        status: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql',
         error: null,
         note: null,
-        scripts: [],
     },
     scripts: [],
 };
@@ -106,7 +72,7 @@ function step(status: WorkbookStatus): DemoLine {
 
 /// The targets of the records of the steps
 const STEP_TARGETS: Record<WorkbookStatusSource, string> = {
-    [WorkbookStatusSource.Agent]: 'agent_bridge',
+    [WorkbookStatusSource.Agent]: 'agent_session',
     [WorkbookStatusSource.ExecuteAll]: 'workbook_execution',
     [WorkbookStatusSource.Query]: 'query_executor',
     [WorkbookStatusSource.Files]: 'workbook_feed',
@@ -154,8 +120,8 @@ interface Situation {
     id: string;
     title: string;
     description: string;
-    bridge: AgentBridge;
-    agent: ComposerAgent | null;
+    /// The session of an agent in the terminal that works on the workbook
+    session: AgentSession | null;
     /// What runs and what needs the user, besides the agent
     live?: WorkbookStatus[];
     /// What happened
@@ -168,22 +134,18 @@ interface Situation {
     width?: number;
 }
 
-const AGENT_OFF = fakeBridge({ access: false, status: AgentConnectionStatus.Off });
-
 const SITUATIONS: Situation[] = [
     {
         id: 'ready',
         title: 'Nothing happened yet',
-        description: 'A workbook that was just opened, the agent is off.',
-        bridge: AGENT_OFF,
-        agent: null,
+        description: 'A workbook that was just opened, no agent works on it.',
+        session: null,
     },
     {
         id: 'query',
         title: 'A query runs',
         description: 'The script and its statement. The dot on Wobble pulses while anything runs.',
-        bridge: AGENT_OFF,
-        agent: null,
+        session: null,
         live: [line('q', Q, T.Progress, 'Running 2_region_growth', 'statement 2/3', 0, 2)],
         log: LOG,
     },
@@ -191,24 +153,21 @@ const SITUATIONS: Situation[] = [
         id: 'ran',
         title: 'A query ran',
         description: 'Without anything running, Wobble tells what happened last.',
-        bridge: AGENT_OFF,
-        agent: null,
+        session: null,
         log: [...LOG, line('l6', Q, T.Success, '2_region_growth ran', 'in 1.24 s', 0, 2)],
     },
     {
         id: 'failed',
         title: 'A query failed',
         description: 'A failed line in red, the log jumps to the script.',
-        bridge: AGENT_OFF,
-        agent: null,
+        session: null,
         log: [...LOG, line('l6', Q, T.Failed, '2_region_growth failed', 'division by zero', 0, 2)],
     },
     {
         id: 'execute_all',
         title: 'Execute All',
         description: 'The progress of the run and the script it runs, instead of the queries of the run.',
-        bridge: fakeBridge({}),
-        agent: fakeAgent([]),
+        session: null,
         live: [line('e', WorkbookStatusSource.ExecuteAll, T.Progress, 'Running all scripts', '3/5 · 3_revenue')],
         log: LOG,
     },
@@ -216,8 +175,7 @@ const SITUATIONS: Situation[] = [
         id: 'connection',
         title: 'A connection is not connected',
         description: 'What needs the user comes after what runs and before what happened.',
-        bridge: AGENT_OFF,
-        agent: null,
+        session: null,
         live: [line('c', WorkbookStatusSource.Connection, T.Attention, 'Trino is not connected', 'the connection failed')],
         log: LOG,
     },
@@ -225,25 +183,29 @@ const SITUATIONS: Situation[] = [
         id: 'files',
         title: 'Files and publishing',
         description: 'Attaching files, publishing the workbook to a cloud.',
-        bridge: fakeBridge({}),
-        agent: fakeAgent([]),
+        session: null,
         live: [line('f', WorkbookStatusSource.Files, T.Progress, 'Attaching 2 files')],
         log: [...LOG, line('l6', WorkbookStatusSource.Cloud, T.Success, 'Published the workbook', null, 1)],
     },
     {
-        id: 'connecting',
-        title: 'Waiting for the agent server',
-        description: 'Agent access is on, the page looks for the agent server.',
-        bridge: fakeBridge({ status: AgentConnectionStatus.Connecting }),
-        agent: fakeAgent([], false),
+        id: 'session',
+        title: 'An agent in the terminal',
+        description: 'Claude Code works on the workbook in its folder, the page watches. The prompt is closed.',
+        session: fakeSession([]),
+        log: LOG,
+    },
+    {
+        id: 'lost',
+        title: 'The session is lost',
+        description: 'The page no longer reaches the session, e.g. after the harness quit.',
+        session: fakeSession([], false),
         log: LOG,
     },
     {
         id: 'working',
         title: 'The agent works',
-        description: 'The agent leads what runs. Stop at the right end, the log with its question opens by itself.',
-        bridge: fakeBridge({}),
-        agent: fakeAgent([WORKING]),
+        description: 'The agent leads what runs, the log with its question opens by itself.',
+        session: fakeSession([WORKING]),
         live: [line('q', Q, T.Progress, 'Running 2_region_growth', null, 0, 2)],
         log: LOG,
     },
@@ -251,32 +213,21 @@ const SITUATIONS: Situation[] = [
         id: 'answered',
         title: 'The agent answered',
         description: 'The answer is a line of the log, the log shows the questions above the lines.',
-        bridge: fakeBridge({}),
-        agent: fakeAgent([ANSWERED, FAILED]),
+        session: fakeSession([ANSWERED, FAILED]),
         log: [...LOG, line('l6', WorkbookStatusSource.Agent, T.Success, 'The agent answered', 'Which regions grew the most last quarter?', 0, 2)],
     },
     {
         id: 'narrow',
         title: 'Narrow',
         description: 'A long status is cut off with an ellipsis.',
-        bridge: fakeBridge({}),
-        agent: fakeAgent([LONG_STATUS]),
+        session: fakeSession([LONG_STATUS]),
         width: 440,
-    },
-    {
-        id: 'unsupported',
-        title: 'Not available in this browser',
-        description: 'Safari cannot reach the agent server on 127.0.0.1, Enable Agent is disabled.',
-        bridge: fakeBridge({ supported: false, access: false, status: AgentConnectionStatus.Off }),
-        agent: null,
-        log: LOG,
     },
     {
         id: 'standalone',
         title: 'Without the prompt',
         description: 'The bar of its own at the bottom of the dashboard, the dataflow and a read-only workbook.',
-        bridge: fakeBridge({}),
-        agent: null,
+        session: null,
         live: [line('e', WorkbookStatusSource.ExecuteAll, T.Progress, 'Running all scripts', '2/5 · 2_region_growth')],
         log: LOG,
         standalone: true,
@@ -285,8 +236,7 @@ const SITUATIONS: Situation[] = [
         id: 'landing',
         title: 'Landing view',
         description: 'The prompt of an empty workbook. The greeting is Wobble, the bar leaves its own Wobble out.',
-        bridge: AGENT_OFF,
-        agent: null,
+        session: null,
         landing: true,
     },
 ];
@@ -302,7 +252,7 @@ function useSituationStore(situation: Situation): WorkbookStatusStore {
         const store = new WorkbookStatusStore();
         const workbookId = situationWorkbookId(situation);
         store.setLive(workbookId, 'demo', situation.live ?? []);
-        store.setLive(workbookId, 'agent', agentLiveStatuses(situation.bridge, workbookId, situation.agent, Date.now()));
+        store.setLive(workbookId, 'agent', agentLiveStatuses(situation.session, Date.now()));
         const log = situation.log ?? [];
         if (!LOGGED.has(workbookId)) {
             LOGGED.add(workbookId);
@@ -322,45 +272,41 @@ function situationWorkbookId(situation: Situation): string {
 /// The prompt of the feed with the real bar of the agent, built from the classes of the composer
 function DemoPrompt(props: { situation: Situation }) {
     const { situation } = props;
-    const ai = situation.agent?.connected ?? false;
+    const session = situation.session;
     const store = useSituationStore(situation);
     if (situation.standalone) {
         return (
             <WorkbookStatusContext.Provider value={store}>
-                <AgentBridgeContext.Provider value={situation.bridge}>
-                    <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Standalone} bridge={situation.bridge} gaze={{ pointer: true }} />
-                </AgentBridgeContext.Provider>
+                <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Standalone} gaze={{ pointer: true }} />
             </WorkbookStatusContext.Provider>
         );
     }
     return (
         <WorkbookStatusContext.Provider value={store}>
-        <AgentBridgeContext.Provider value={situation.bridge}>
             <div className={composerStyles.composer} data-variant={situation.landing ? 'hero' : 'docked'}
-                data-agent={situation.agent?.turns.some(turn => turn.question.status != null) ? 'working' : undefined}>
+                data-agent={session?.turns.some(turn => turn.question.status != null) ? 'working' : undefined}>
                 <div className={composerStyles.composer_bar}>
-                    <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Prompt} bridge={situation.bridge}
-                        agent={situation.agent} wobble={!situation.landing} gaze={{ pointer: true }} />
+                    <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Prompt}
+                        session={session} wobble={!situation.landing} gaze={{ pointer: true }} />
                 </div>
-                <div className={composerStyles.composer_prompt}>
-                    <div className={`${composerStyles.composer_editor} ${styles.editor}`}>
-                        <span className={styles.editor_placeholder}>{ai ? 'Ask a question about your data, Shift+Enter for a new line' : 'Write a query, press Enter to run it and Shift+Enter for a new line'}</span>
-                    </div>
-                    <div className={composerStyles.composer_action_bar}>
-                        <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={() => { }}>
-                            <SegmentedControl.Button leadingVisual={CodeIcon} selected={!ai}>SQL</SegmentedControl.Button>
-                            <SegmentedControl.Button leadingVisual={SparklesFillIcon} selected={ai} disabled={!ai}>AI</SegmentedControl.Button>
-                        </SegmentedControl>
-                        <div className={composerStyles.composer_trailing_actions}>
-                            <span className={styles.connection}><span className={styles.connection_dot} />Hyper</span>
-                            <IconButton size={ButtonSize.Small} variant={ButtonVariant.Default} aria-label="Send" tooltipDirection="n">
-                                <PaperAirplaneIcon />
-                            </IconButton>
+                {session != null ? (
+                    <div className={composerStyles.composer_session}>Claude Code works on this workbook in the terminal</div>
+                ) : (
+                    <div className={composerStyles.composer_prompt}>
+                        <div className={`${composerStyles.composer_editor} ${styles.editor}`}>
+                            <span className={styles.editor_placeholder}>Write a query, press Enter to run it and Shift+Enter for a new line</span>
+                        </div>
+                        <div className={composerStyles.composer_action_bar}>
+                            <div className={composerStyles.composer_trailing_actions}>
+                                <span className={styles.connection}><span className={styles.connection_dot} />Hyper</span>
+                                <IconButton size={ButtonSize.Small} variant={ButtonVariant.Default} aria-label="Send" tooltipDirection="n">
+                                    <PaperAirplaneIcon />
+                                </IconButton>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
-        </AgentBridgeContext.Provider>
         </WorkbookStatusContext.Provider>
     );
 }
@@ -387,7 +333,7 @@ function WobbleBarPage(): React.ReactElement {
                         <h2 id={`situation-${situation.id}`} className={styles.situation_title}>{situation.title}</h2>
                         <p className={styles.situation_description}>{situation.description}</p>
                         {/* The log stands above the prompt, the stage keeps room for it */}
-                        <div className={styles.stage} data-log={(situation.agent?.turns.length ?? 0) > 0 ? '' : undefined} data-standalone={situation.standalone ? '' : undefined}>
+                        <div className={styles.stage} data-log={(situation.session?.turns.length ?? 0) > 0 ? '' : undefined} data-standalone={situation.standalone ? '' : undefined}>
                             <div className={styles.prompt_slot} style={situation.width != null ? { width: situation.width } : undefined}>
                                 <DemoPrompt situation={situation} />
                             </div>

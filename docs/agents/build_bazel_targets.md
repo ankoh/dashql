@@ -331,13 +331,6 @@ Without a terminal, for example when an agent starts it, Astro runs the dev serv
 Code and styles used by both the app and the website live in `packages/dashql-ui` and are imported as
 `@ankoh/dashql-ui/...`. Move code there instead of copying it between the two.
 
-For the agent bridge, run the agent server from the checkout next to the dev server. It uses the same port
-(47100) and state folder (`~/.dashql/agent`) as an installed DashQL.app, so quit the installed one first:
-
-```bash
-bazel run //packages/dashql-cli:dashql -- agent serve
-bazel run //packages/dashql-cli:dashql -- agent status
-```
 `//packages/dashql-native:dev` defaults to `http://localhost:9002`; set
 `DASHQL_ELECTRON_RENDERER_URL` to use another loopback HTTP origin.
 

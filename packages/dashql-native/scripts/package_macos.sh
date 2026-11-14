@@ -3,10 +3,9 @@ set -euo pipefail
 
 RUNFILES_ROOT="${RUNFILES_DIR:-$0.runfiles}"
 WORKSPACE_ROOT="${RUNFILES_ROOT}/_main"
-USAGE="usage: package_macos.sh <arm64|x64> <addon-path> <dashql-cli-path>"
+USAGE="usage: package_macos.sh <arm64|x64> <addon-path>"
 ARCH="${1:?${USAGE}}"
 ADDON_PATH="${2:?${USAGE}}"
-CLI_PATH="${3:?${USAGE}}"
 case "${ARCH}" in
     arm64|x64) ;;
     *) echo "unsupported macOS architecture: ${ARCH}" >&2; exit 1 ;;
@@ -14,7 +13,7 @@ esac
 STAGE="${TMPDIR:-/tmp}/dashql-native-package-$$"
 trap 'chmod -R u+w "${STAGE}" 2>/dev/null || true; rm -rf "${STAGE}"' EXIT
 
-mkdir -p "${STAGE}/dist" "${STAGE}/renderer" "${STAGE}/bin"
+mkdir -p "${STAGE}/dist" "${STAGE}/renderer"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-native/dist/." "${STAGE}/dist/"
 cp "${WORKSPACE_ROOT}/NOTICE" "${STAGE}/NOTICE"
 cp "${WORKSPACE_ROOT}/packages/dashql-native/src/preload.cjs" "${STAGE}/preload.cjs"
@@ -25,11 +24,8 @@ sed -e "s|\"version\": \"[^\"]*\"|\"version\": \"${VERSION}\"|" \
 cp "${WORKSPACE_ROOT}/packages/dashql-native/electron-builder.yml" "${STAGE}/electron-builder.yml"
 cp "${WORKSPACE_ROOT}/packages/dashql-native/Entitlements.plist" "${STAGE}/Entitlements.plist"
 cp "${WORKSPACE_ROOT}/misc/logo-dashql-glyphs/app_icons_mac.icns" "${STAGE}/icon.icns"
-cp "${WORKSPACE_ROOT}/packages/dashql-native/assets/trayTemplate.png" "${WORKSPACE_ROOT}/packages/dashql-native/assets/trayTemplate@2x.png" "${STAGE}/"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-app/electron_deploy/." "${STAGE}/renderer/"
 cp "${ADDON_PATH}" "${STAGE}/dashql_native_napi.node"
-cp "${CLI_PATH}" "${STAGE}/bin/dashql"
-chmod 755 "${STAGE}/bin/dashql"
 chmod -R u+w "${STAGE}"
 ln -s "${WORKSPACE_ROOT}/node_modules" "${STAGE}/node_modules"
 

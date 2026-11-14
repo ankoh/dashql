@@ -2,12 +2,10 @@ import * as React from 'react';
 import * as styles from './workbook_status_bar.module.css';
 
 import { Wobble, WobbleMode, type WobbleGaze } from '../../agent/wobble.js';
-import { AgentPromptPanel, harnessLabel, isAgentWorking, type ComposerAgent } from '../../agent/agent_prompt_panel.js';
-import { AgentAccessState, AgentWorkbookMenu, agentAccessState } from '../../agent/agent_workbook_menu.js';
-import type { AgentBridge } from '../../agent/agent_bridge.js';
-import { isAgentAnswering } from '../../agent/use_agent_questions.js';
+import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
+import { harnessLabel, isAgentWorking, type AgentSession } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { SquareFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { XIcon } from '../../ui/foundations/symbol_icon.js';
 import { IndicatorStatus, StatusDot } from '../../ui/foundations/status_indicator.js';
 import { WorkbookStatusSource, WorkbookStatusTone } from './workbook_status.js';
 import { useWorkbookLog } from './workbook_log.js';
@@ -28,11 +26,9 @@ export enum WorkbookStatusBarVariant {
 export interface WorkbookStatusBarProps {
     workbookId: string;
     variant: WorkbookStatusBarVariant;
-    /// The agent bridge, null without: the bar shows no agent then
-    bridge: AgentBridge | null;
-    /// The agent of the workbook with its questions, only the feed has it. Without, the log shows no questions and
-    /// the bar no stop button.
-    agent?: ComposerAgent | null;
+    /// The session of an agent that works on the workbook, only the feed has it. Without, the bar shows no agent and
+    /// the log no questions.
+    session?: AgentSession | null;
     /// Show Wobble with the log? The landing view greets with its own Wobble, the bar only tells the status then.
     wobble?: boolean;
     /// What the eyes of Wobble look at, e.g. the caret of the composer
@@ -43,42 +39,17 @@ export interface WorkbookStatusBarProps {
     paused?: boolean;
 }
 
-/// The agent at the right end of the bar: Enable Agent without agent access, else its state, stop and its menu
-function AgentControls(props: { workbookId: string; bridge: AgentBridge; agent: ComposerAgent | null; working: boolean }) {
-    const { agent, bridge } = props;
-    const state = agentAccessState(bridge, props.workbookId);
-    if (state === AgentAccessState.Unsupported || state === AgentAccessState.Off) {
-        return <AgentWorkbookMenu workbookId={props.workbookId} />;
-    }
-    let title: string;
-    if (state === AgentAccessState.Connecting) {
-        title = `Waiting for the agent server on port ${bridge.port}`;
-    } else if (agent?.context != null) {
-        title = `${harnessLabel(agent.context.harness)} in ${agent.context.folder}`;
-    } else {
-        title = 'Connected to the agent server';
-    }
-    const dot = props.working ? 'working' : state === AgentAccessState.Connecting ? 'connecting' : 'connected';
-    const stop = agent == null ? null : () => {
-        for (const turn of agent.turns) {
-            if (isAgentAnswering(turn.question)) agent.onStop(turn.questionId);
-        }
-    };
+/// The agent at the right end of the bar: the harness of the session and the folder it works in
+function AgentState(props: { session: AgentSession; working: boolean }) {
+    const { session } = props;
+    const dot = !session.connected ? 'lost' : props.working ? 'working' : 'connected';
     return (
-        <>
-            <span className={styles.agent} title={title} data-testid="workbook-agent-state" data-state={dot}>
-                <StatusDot className={styles.indicator} status={dot === 'working' ? IndicatorStatus.Running
-                    : dot === 'connected' ? IndicatorStatus.Succeeded : IndicatorStatus.None} />
-                Agent
-            </span>
-            {props.working && stop != null && (
-                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Stop the agent"
-                    tooltipDirection="n" data-testid="workbook-agent-stop" onClick={stop}>
-                    <SquareFillIcon size={12} />
-                </IconButton>
-            )}
-            <AgentWorkbookMenu workbookId={props.workbookId} />
-        </>
+        <span className={styles.agent} title={`${harnessLabel(session.harness)} in ${session.folder}`}
+            data-testid="workbook-agent-state" data-state={dot}>
+            <StatusDot className={styles.indicator} status={dot === 'working' ? IndicatorStatus.Running
+                : dot === 'connected' ? IndicatorStatus.Succeeded : IndicatorStatus.None} />
+            {harnessLabel(session.harness)}
+        </span>
     );
 }
 
@@ -107,11 +78,11 @@ function LogLine(props: { record: LogRecord; selected: boolean; onSelect: () => 
 /// It opens by itself when the agent starts to work and stays open until the user closes it. A dot pulses at the top
 /// right of Wobble while anything runs.
 export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactElement {
-    const agent = props.agent ?? null;
+    const session = props.session ?? null;
     const wobble = props.wobble ?? true;
     const { status, live, busy } = useWorkbookStatus(props.workbookId);
-    const agentWorking = agent != null
-        ? isAgentWorking(agent)
+    const agentWorking = session != null
+        ? isAgentWorking(session)
         : live.some(s => s.source === WorkbookStatusSource.Agent && s.tone === WorkbookStatusTone.Progress);
     const [open, setOpen] = React.useState(agentWorking);
     // The bubble opens when the agent starts to work, while rendering like a state that follows a prop
@@ -134,7 +105,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
         const list = logRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
     }, [newest, open]);
-    const agentTurns = agent != null && agent.turns.length > 0;
+    const agentTurns = session != null && session.turns.length > 0;
     return (
         <div className={styles.bar} data-variant={props.variant} data-testid="workbook-status-bar">
             {wobble && (
@@ -158,9 +129,9 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                     {status?.detail != null && <span className={styles.detail}> {status.detail}</span>}
                 </span>
             </span>
-            {props.bridge != null && (
+            {session != null && (
                 <div className={styles.agent_controls}>
-                    <AgentControls workbookId={props.workbookId} bridge={props.bridge} agent={agent} working={agentWorking} />
+                    <AgentState session={session} working={agentWorking} />
                 </div>
             )}
             {wobble && open && (
@@ -172,7 +143,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                             <XIcon size={14} />
                         </IconButton>
                     </div>
-                    {agentTurns && <AgentPromptPanel agent={agent} />}
+                    {agentTurns && <AgentPromptPanel session={session} />}
                     {log.length > 0 ? (
                         <ol ref={logRef} className={styles.log} aria-label="Log of the workbook">
                             {log.map((record, i) => <LogLine key={i} record={record} selected={i === selected && selectedRecord != null} onSelect={() => setSelected(i)} />)}

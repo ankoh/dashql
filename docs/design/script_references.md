@@ -217,15 +217,14 @@ Completion offers the names of the scripts with a result and of the attachments 
 table parameter in table position, where the parser takes a join after the parameter: `from :|` and `from :fo|`, not
 `where x = :|`. A candidate says whether it reads a script or an attachment (`CompletionCandidateObject.table_parameter`).
 The columns of a table parameter complete like the columns of a table, `from :foo f where f.|`. The prompt of the
-composer reads the table parameters too. In natural language, the prompt hints the rest of the name of a script
-after `:`.
+composer reads the table parameters too.
 
 ### Mentions and Renames
 
 A click on the `:name` tag of a script inserts the reference at the cursor of the editor that had the focus last,
 another script or the prompt of the composer (`useLastFocusedEditor`). The card of a Parquet attachment in the attachments drawer
 of the feed inserts its table parameter the same way, it shows the name and warns when a script has the name too. SQL reads `:name` quoted if it has to be,
-`:"foo-2"` (`DashQL.quoteIdentifier`). A question in natural language reads `:foo-2`.
+`:"foo-2"` (`DashQL.quoteIdentifier`).
 
 A rename of a script rewrites the references to it in the other scripts of the session: the references of the check
 that read the script, with the names before the rename. A mounted editor applies the rewrite as changes, it keeps its

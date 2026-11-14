@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
 
-import { renderScriptReference, SCRIPT_REFERENCE_PREFIX } from '../../agent/script_references.js';
+import { renderScriptReference, SCRIPT_REFERENCE_PREFIX } from './script_references.js';
 
 interface Props {
     /// The display name of the script

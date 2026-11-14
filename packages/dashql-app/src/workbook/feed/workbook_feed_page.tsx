@@ -34,7 +34,6 @@ import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
-import { useAgentBridge } from '../../agent/agent_bridge.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
@@ -192,7 +191,6 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const ephemeral = isEphemeralWorkbook(props.workbookScripts);
     // A read-only look at a published workbook is imported before it is shared
     const preview = isCloudPreview(props.workbookScripts);
-    const agentBridge = useAgentBridge();
     React.useEffect(() => {
         if ((ephemeral || preview) && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
     }, [ephemeral, preview, mode, setMode]);
@@ -275,7 +273,6 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             <dependencies.WorkbookStatusBar
                                 workbookId={props.workbookScripts.workbookId}
                                 variant={WorkbookStatusBarVariant.Standalone}
-                                bridge={preview ? null : agentBridge}
                                 paused={!props.active}
                             />
                         </div>

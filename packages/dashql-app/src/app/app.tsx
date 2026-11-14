@@ -44,7 +44,6 @@ import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync
 import { WorkbookComputeQueryExecutionProvider } from './workbook_compute_query_execution.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookExecutionProvider } from '../workbook/scripts/workbook_execution_provider.js';
-import { AgentBridgeProvider } from '../agent/agent_bridge.js';
 
 import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
@@ -74,22 +73,20 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                         <QueryExecutorProvider>
                                             <WorkbookExecutionProvider>
                                                 <NativeWorkbookSync />
-                                                <AgentBridgeProvider>
-                                                    <WorkbookCatalogLoaderProvider>
-                                                        <WorkbookImportProvider>
-                                                            <WorkbookViewModeProvider>
-                                                                <WorkbookCommands>
-                                                                    <CloudStateProvider>
-                                                                        <CloudPreviewCleanup />
-                                                                        <AppLoader>
-                                                                            {props.children}
-                                                                        </AppLoader>
-                                                                    </CloudStateProvider>
-                                                                </WorkbookCommands>
-                                                            </WorkbookViewModeProvider>
-                                                        </WorkbookImportProvider>
-                                                    </WorkbookCatalogLoaderProvider>
-                                                </AgentBridgeProvider>
+                                                <WorkbookCatalogLoaderProvider>
+                                                    <WorkbookImportProvider>
+                                                        <WorkbookViewModeProvider>
+                                                            <WorkbookCommands>
+                                                                <CloudStateProvider>
+                                                                    <CloudPreviewCleanup />
+                                                                    <AppLoader>
+                                                                        {props.children}
+                                                                    </AppLoader>
+                                                                </CloudStateProvider>
+                                                            </WorkbookCommands>
+                                                        </WorkbookViewModeProvider>
+                                                    </WorkbookImportProvider>
+                                                </WorkbookCatalogLoaderProvider>
                                             </WorkbookExecutionProvider>
                                         </QueryExecutorProvider>
                                     </WorkbookComputeQueryExecutionProvider>

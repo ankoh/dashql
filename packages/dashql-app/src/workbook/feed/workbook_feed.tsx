@@ -69,13 +69,8 @@ import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../ui/foundations/s
 import { connectionReadsAttachments } from '@ankoh/dashql-sdk/connections/connector_descriptor';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
-import { ComposerInputMode } from '../../agent/input_mode.js';
-import { useAgentBridge } from '../../agent/agent_bridge.js';
-import type { AgentFollowTarget } from '../../agent/use_agent_questions.js';
-import { useComposerAgent } from '../../agent/use_composer_agent.js';
-import { isAgentWorking } from '../../agent/agent_prompt_panel.js';
-import { agentLiveStatuses, diffAgentAccess, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
-import { agentAccessState } from '../../agent/agent_workbook_menu.js';
+import { isAgentWorking, useAgentSession, type AgentFollowTarget } from '../../agent/agent_session.js';
+import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
 import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
@@ -116,7 +111,7 @@ export interface WorkbookFeedDependencies {
     useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
     runWorkbookScript: typeof runWorkbookScript;
-    useAgentBridge: typeof useAgentBridge;
+    useAgentSession: typeof useAgentSession;
     WorkbookComposer: typeof WorkbookComposer;
     WorkbookStatusBar: typeof WorkbookStatusBar;
     ScriptFeedRow: typeof ScriptFeedRow;
@@ -131,7 +126,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useAttachPendingConnection,
     useKeyEvents,
     runWorkbookScript,
-    useAgentBridge,
+    useAgentSession,
     WorkbookComposer,
     WorkbookStatusBar,
     ScriptFeedRow,
@@ -645,8 +640,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         if (offset != null) element.scrollTo({ top: offset });
     }, [entries, feedLayout.listRef, feedLayout.getEntrySpan, bottomInset]);
 
-    // The feed follows the agent to the scripts it edits and runs in a question of the composer, also while the
-    // agent still works. The followed script stays in view as it is measured and its results arrive.
+    // The feed follows the agent of a session to the scripts it edits and runs for a question, also while the agent
+    // still works. The followed script stays in view as it is measured and its results arrive.
     // Following stops once the user scrolls, clicks or types in the feed, the user does not want to be yanked around.
     const followAgentRef = React.useRef(false);
     const followedRef = React.useRef<{ scriptKey: number; target: AgentFollowTarget } | null>(null);
@@ -706,43 +701,36 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         });
     }, [props.modifyWorkbookScripts]);
 
-    // The agent answers a question in the scripts of the workbook
-    const agent = dependencies.useAgentBridge();
+    // The agent of a session in the terminal answers questions in the scripts of the workbook, the page watches
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
         const scriptData = latest.current.workbookScripts.scripts[scriptKey];
         if (scriptData == null) return;
         handleFocus(scriptData.fileName);
         revealScript(scriptKey, 'script');
     }, [handleFocus, revealScript]);
-    const composerAgent = useComposerAgent({
-        agent,
+    const session = dependencies.useAgentSession({
         workbookScripts: props.workbookScripts,
-        runScript: runAppendedScript,
         followScript: followAgentScript,
         showScript: handleShowAgentScript,
     });
-    // The agent tells what it works on and the server it waits for, its questions go to the log
-    const agentLive = React.useMemo(
-        () => agentLiveStatuses(agent, workbookId, composerAgent.agent, Date.now()),
-        [agent, workbookId, composerAgent.agent],
-    );
+    // Every new question of the session follows the agent again
+    const latestQuestionId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
+    React.useEffect(() => {
+        if (latestQuestionId != null) followAgentRef.current = true;
+    }, [latestQuestionId]);
+    // The agent tells what it works on, its questions go to the log
+    const agentLive = React.useMemo(() => agentLiveStatuses(session, Date.now()), [session]);
     useLiveWorkbookStatuses(workbookId, 'agent', agentLive);
-    useWorkbookOutcomeTransitions(workbookId, composerAgent.agent, (prev, next) => diffAgentQuestions(prev, next, Date.now()));
-    useWorkbookOutcomeTransitions(workbookId, agent != null ? agentAccessState(agent, workbookId) : null, (prev, next) => diffAgentAccess(prev, next, Date.now()));
+    useWorkbookOutcomeTransitions(workbookId, session, (prev, next) => diffAgentQuestions(prev, next, Date.now()));
 
-    const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
-        if (mode === ComposerInputMode.Ai) {
-            followAgentRef.current = true;
-            void composerAgent.ask(text);
-            return;
-        }
+    const handleComposerSend = React.useCallback((text: string) => {
         // The appended script takes over the feed
         stopFollowingAgent();
-        logger.debug('Running the composer draft as SQL', { characters: String(text.length) }, LOG_CTX);
+        logger.debug('Running the composer draft', { characters: String(text.length) }, LOG_CTX);
         void appendScript(text).then(appended => {
             if (appended != null) runAppendedScript(appended.next, appended.scriptData);
         });
-    }, [composerAgent.ask, appendScript, runAppendedScript, stopFollowingAgent, logger]);
+    }, [appendScript, runAppendedScript, stopFollowingAgent, logger]);
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
@@ -795,10 +783,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
-    // An empty workbook greets the user with the composer in place of the feed, until the agent works on a question.
-    // Sending clears the draft before the agent writes the first script, the turn docks the composer right away.
-    // The composer stays at the same position in the tree so it keeps focus when the view docks it.
-    const agentTurns = composerAgent.agent?.turns.length ?? 0;
+    // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
+    // question. The composer stays at the same position in the tree so it keeps focus when the view docks it.
+    const agentTurns = session?.turns.length ?? 0;
     const landing = entries.length === 0 && agentTurns === 0;
     // While the user writes, Wobble watches the caret of the composer
     const composerCaret = React.useCallback(() => {
@@ -838,8 +825,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         <dependencies.WorkbookStatusBar
             workbookId={workbookId}
             variant={variant}
-            bridge={readOnly ? null : agent}
-            agent={composerAgent.agent}
+            session={readOnly ? null : session}
             wobble={!landing}
             gaze={dockGaze}
             lastInput={composerLastInput}
@@ -962,8 +948,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         catalog={composerConnection.catalog}
                         variant={landing ? WorkbookComposerVariant.Hero : WorkbookComposerVariant.Docked}
                         keywordCase={keywordCase}
-                        aiAvailable={composerAgent.available}
-                        agentWorking={composerAgent.agent != null && isAgentWorking(composerAgent.agent)}
+                        agentWorking={session != null && isAgentWorking(session)}
+                        session={session}
                         onSend={handleComposerSend}
                         bar={statusBar(WorkbookStatusBarVariant.Prompt)}
                         setView={setComposerView}

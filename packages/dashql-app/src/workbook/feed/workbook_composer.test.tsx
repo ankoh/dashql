@@ -8,9 +8,7 @@ import type { EditorView } from '@codemirror/view';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import { buildSnippetRegistry } from '../snippets/snippet_registry.js';
-import { ComposerInputMode } from '../../agent/input_mode.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import * as identifierStyles from '../../agent/nl_identifier_plugin.module.css';
 import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
@@ -41,7 +39,7 @@ describe('Workbook composer', () => {
     let root: Root;
     let catalog: core.DashQLCatalog;
     let view: EditorView | null;
-    let onSend: ReturnType<typeof vi.fn<(text: string, mode: ComposerInputMode) => void>>;
+    let onSend: ReturnType<typeof vi.fn<(text: string) => void>>;
     let targetScript: React.RefObject<((name: string) => void) | null>;
     let attention: { workbookId: string; active: boolean; request: ReturnType<typeof vi.fn> };
 
@@ -51,7 +49,7 @@ describe('Workbook composer', () => {
         root = createRoot(container);
         catalog = dql.createCatalog();
         view = null;
-        onSend = vi.fn<(text: string, mode: ComposerInputMode) => void>();
+        onSend = vi.fn<(text: string) => void>();
         targetScript = { current: null };
         attention = { workbookId: 'workbook', active: false, request: vi.fn() };
     });
@@ -64,11 +62,11 @@ describe('Workbook composer', () => {
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = WorkbookComposerVariant.Docked, aiAvailable = false, offlineWorkbookId: string | null = null, agentWorking = false, bar: React.ReactNode = undefined) {
+    async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentWorking = false, bar: React.ReactNode = undefined) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention as any}>
-                <WorkbookComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
+                <WorkbookComposer instance={dql} catalog={catalog} variant={variant}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
                     scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentWorking={agentWorking} bar={bar}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
@@ -78,7 +76,6 @@ describe('Workbook composer', () => {
         return view!;
     }
     const sendButton = () => container.querySelector<HTMLButtonElement>('[data-testid="composer-send"]')!;
-    const modeButton = (mode: 'sql' | 'ai') => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${mode}"]`)!;
 
     it('sends the draft on Enter and clears it', async () => {
         const editor = await render();
@@ -86,7 +83,7 @@ describe('Workbook composer', () => {
         act(() => type(editor, 'select 1'));
         expect(sendButton().disabled).toBe(false);
         act(() => press(editor, 'Enter'));
-        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1', ComposerInputMode.Sql);
+        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1');
         expect(editor.state.doc.toString()).toBe('');
         expect(sendButton().disabled).toBe(true);
     });
@@ -97,7 +94,7 @@ describe('Workbook composer', () => {
         act(() => editor.dispatch({ effects: DashQLCompletionStartEffect.of(null) }));
         expect(editor.state.field(DashQLProcessorPlugin).scriptCompletion).not.toBeNull();
         act(() => press(editor, 'Enter'));
-        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1 fr', ComposerInputMode.Sql);
+        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1 fr');
         expect(editor.state.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
     });
 
@@ -154,7 +151,6 @@ describe('Workbook composer', () => {
             expect(event.defaultPrevented).toBe(false);
             expect(document.activeElement).not.toBe(editor.contentDOM);
         };
-        notFocused(mouseDown(modeButton('sql')));
         notFocused(mouseDown(container.querySelector(`.${styles.composer_action_bar}`)!, 2));
         act(() => snippets.click());
         const overlay = document.querySelector('[data-testid="snippets-overlay"]')!;
@@ -169,7 +165,7 @@ describe('Workbook composer', () => {
         expect(onSend).not.toHaveBeenCalled();
         act(() => type(editor, 'select 2'));
         act(() => sendButton().click());
-        expect(onSend).toHaveBeenCalledExactlyOnceWith('  select 2', ComposerInputMode.Sql);
+        expect(onSend).toHaveBeenCalledExactlyOnceWith('  select 2');
         expect(editor.state.doc.toString()).toBe('');
     });
 
@@ -177,7 +173,7 @@ describe('Workbook composer', () => {
         ['landing', WorkbookComposerVariant.Hero],
         ['docked', WorkbookComposerVariant.Docked],
     ])('keeps a SQL draft on the %s composer while its connection is not connected and pulses the connections', async (_, variant) => {
-        const editor = await render(variant, false, 'workbook');
+        const editor = await render(variant, 'workbook');
         // The button is clickable even without a draft, it never sends
         expect(sendButton().disabled).toBe(false);
         expect(sendButton().getAttribute('aria-label')).toBe('Connect to run');
@@ -190,20 +186,10 @@ describe('Workbook composer', () => {
         expect(attention.request).toHaveBeenCalledWith('workbook');
         expect(editor.state.doc.toString()).toBe('select 1');
         // Once connected the draft is sent
-        await render(variant, false, null);
+        await render(variant, null);
         expect(sendButton().getAttribute('aria-label')).toBe('Run query');
         act(() => sendButton().click());
-        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1', ComposerInputMode.Sql);
-    });
-
-    it('asks the agent while the connection of the draft is not connected', async () => {
-        const editor = await render(WorkbookComposerVariant.Docked, true, 'workbook');
-        act(() => type(editor, 'how many rows'));
-        await vi.waitFor(() => expect(sendButton().getAttribute('aria-label')).toBe('Ask the agent'));
-        expect(container.querySelector('[data-execution-connection-blocked]')).toBeNull();
-        act(() => sendButton().click());
-        expect(onSend).toHaveBeenCalledExactlyOnceWith('how many rows', ComposerInputMode.Ai);
-        expect(attention.request).not.toHaveBeenCalled();
+        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1');
     });
 
     it.each([
@@ -220,14 +206,13 @@ describe('Workbook composer', () => {
         expect(document.querySelector('[data-testid="snippets-overlay"]')).toBeNull();
     });
 
-    it('keeps the draft across hero and docked variants and disables AI without a provider', async () => {
+    it('keeps the draft across hero and docked variants', async () => {
         const editor = await render(WorkbookComposerVariant.Hero);
         expect(container.querySelector('[data-variant="hero"]')).not.toBeNull();
         act(() => type(editor, 'select 3'));
         expect(await render(WorkbookComposerVariant.Docked)).toBe(editor);
         expect(container.querySelector('[data-variant="docked"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 3');
-        expect(modeButton('ai').disabled).toBe(true);
     });
 
     it('shows the bar above the prompt only with content and turns the frame while the agent works', async () => {
@@ -236,7 +221,7 @@ describe('Workbook composer', () => {
         expect(bar().childElementCount).toBe(0);
         expect(getComputedStyle(bar()).display).toBe('none');
         expect(container.querySelector('[data-agent]')).toBeNull();
-        await render(WorkbookComposerVariant.Docked, false, null, true, <span data-testid="agent-bar">Agent</span>);
+        await render(WorkbookComposerVariant.Docked, null, true, <span data-testid="agent-bar">Agent</span>);
         expect(bar().querySelector('[data-testid="agent-bar"]')).not.toBeNull();
         expect(getComputedStyle(bar()).display).not.toBe('none');
         expect(container.querySelector('[data-agent="working"]')).not.toBeNull();
@@ -245,7 +230,7 @@ describe('Workbook composer', () => {
     it('keeps the editor when the bar appears', async () => {
         const editor = await render(WorkbookComposerVariant.Docked);
         act(() => type(editor, 'select 5'));
-        expect(await render(WorkbookComposerVariant.Docked, false, null, false, <span data-testid="agent-bar">Agent</span>)).toBe(editor);
+        expect(await render(WorkbookComposerVariant.Docked, null, false, <span data-testid="agent-bar">Agent</span>)).toBe(editor);
         expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 5');
     });
@@ -298,7 +283,7 @@ describe('Workbook composer', () => {
             fillInput('min', '20');
             expect(editor.state.doc.toString()).toBe('/** @param :min = 20 */\nselect :min');
             act(() => sendButton().click());
-            expect(onSend).toHaveBeenCalledExactlyOnceWith('/** @param :min = 20 */\nselect :min', ComposerInputMode.Sql);
+            expect(onSend).toHaveBeenCalledExactlyOnceWith('/** @param :min = 20 */\nselect :min');
             expect(inputNames()).toEqual([]);
         });
 
@@ -311,7 +296,7 @@ describe('Workbook composer', () => {
             expect(mouseDown(sendButton()).defaultPrevented).toBe(true);
             expect(editor.state.doc.toString()).toBe('select :min');
             act(() => sendButton().click());
-            expect(onSend).toHaveBeenCalledExactlyOnceWith('/** @param :min = 10 */\nselect :min', ComposerInputMode.Sql);
+            expect(onSend).toHaveBeenCalledExactlyOnceWith('/** @param :min = 10 */\nselect :min');
         });
 
         it('shows the values of a snippet with tags', async () => {
@@ -320,17 +305,8 @@ describe('Workbook composer', () => {
             expect(card('region').value).toBe('EU');
         });
 
-        it('shows cards only in SQL', async () => {
-            const editor = await render(WorkbookComposerVariant.Hero, true);
-            act(() => type(editor, 'select :min from orders '));
-            expect(inputNames()).toEqual(['min']);
-            // `:min` references a script in a question
-            act(() => modeButton('ai').click());
-            expect(inputNames()).toEqual([]);
-        });
-
-        it('stays in SQL when a value writes the tag of a detected draft', async () => {
-            const editor = await render(WorkbookComposerVariant.Hero, true);
+        it('writes the tag of a value into the draft', async () => {
+            const editor = await render(WorkbookComposerVariant.Hero);
             act(() => type(editor, 'select :min from orders '));
             fillInput('min', '10');
             expect(editor.state.doc.toString()).toBe('/** @param :min = 10 */\nselect :min from orders ');
@@ -339,109 +315,32 @@ describe('Workbook composer', () => {
     });
 
     it('moves the draft to the catalog of a merged connection', async () => {
-        const editor = await render(WorkbookComposerVariant.Docked, true);
+        const editor = await render(WorkbookComposerVariant.Docked);
         act(() => type(editor, 'select 4'));
         // A merge deletes the connection, and destroys its catalog, before the workbook renders the target
         const merged = catalog;
         catalog = dql.createCatalog();
         merged.destroy();
-        expect(await render(WorkbookComposerVariant.Docked, true)).toBe(editor);
+        expect(await render(WorkbookComposerVariant.Docked)).toBe(editor);
         act(() => type(editor, ' '));
         await vi.waitFor(() => expect(editor.state.field(DashQLProcessorPlugin).scriptSession?.getText()).toBe('select 4 '));
     });
 
-    describe('with the agent available', () => {
-        const selectedMode = () => container.querySelector('[data-testid="composer-mode"][aria-current="true"]')?.getAttribute('data-mode');
-        const typeUser = (editor: EditorView, text: string) => editor.dispatch({
-            changes: { from: editor.state.doc.length, insert: text },
-            selection: { anchor: editor.state.doc.length + text.length },
-            userEvent: 'input.type',
-        });
+    it('references a targeted script as a table parameter', async () => {
+        const editor = await render(WorkbookComposerVariant.Docked);
+        act(() => type(editor, 'select * from '));
+        act(() => targetScript.current!('revenue-2'));
+        expect(editor.state.doc.toString()).toBe('select * from :"revenue-2" ');
+    });
 
-        it('starts in natural language without SQL completion', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            expect(selectedMode()).toBe('ai');
-            expect(modeButton('ai').disabled).toBe(false);
-            act(() => typeUser(editor, 'selec'));
-            expect(editor.state.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
-        });
-
-        it('switches to SQL once the draft is convincingly SQL and back for natural language', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            act(() => type(editor, 'select'));
-            expect(selectedMode()).toBe('ai');
-            act(() => type(editor, ' 1 '));
-            expect(selectedMode()).toBe('sql');
-            act(() => type(editor, 'the revenue of all customers '));
-            expect(selectedMode()).toBe('ai');
-        });
-
-        it('hesitates to leave SQL for a short invalid tail', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            act(() => type(editor, 'select a, b from orders where x = 1 '));
-            expect(selectedMode()).toBe('sql');
-            act(() => type(editor, 'oops '));
-            expect(selectedMode()).toBe('sql');
-        });
-
-        it('keeps a mode the user picked until the draft is cleared', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            act(() => modeButton('sql').click());
-            act(() => type(editor, 'what is the revenue of all customers '));
-            expect(selectedMode()).toBe('sql');
-            act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: '' } }));
-            expect(selectedMode()).toBe('ai');
-        });
-
-        it('sends a complete statement as SQL even while its last token is being typed', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            act(() => type(editor, 'select 1'));
-            expect(selectedMode()).toBe('ai');
-            act(() => press(editor, 'Enter'));
-            expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1', ComposerInputMode.Sql);
-            expect(editor.state.doc.toString()).toBe('');
-        });
-
-        it('highlights tables that workbook scripts load into the catalog later', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            catalog.flatten();
-            const workbook = dql.createScriptSession(catalog);
-            workbook.replaceText(workbook.getTextVersion(), 'create table orders (amount int)');
-            workbook.analyze();
-            workbook.loadIntoCatalog();
-            act(() => type(editor, 'total amount of orders '));
-            await vi.waitFor(() => expect(Array.from(editor.contentDOM.querySelectorAll(
-                `.${identifierStyles.identifier_table}, .${identifierStyles.identifier_column}`)).map(e => e.textContent))
-                .toEqual(['amount', 'orders']));
-            workbook.destroy();
-        });
-
-        it('references a targeted script once and turns the draft into a question', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            const highlightedScripts = () => Array.from(editor.contentDOM.querySelectorAll(`.${identifierStyles.identifier_script}`))
-                .map(e => e.textContent);
-            act(() => modeButton('sql').click());
-            act(() => type(editor, 'filter'));
-            act(() => targetScript.current!('revenue-2'));
-            expect(editor.state.doc.toString()).toBe('filter :revenue-2 ');
-            expect(editor.state.selection.main.head).toBe(editor.state.doc.length);
-            expect(selectedMode()).toBe('ai');
-            expect(highlightedScripts()).toEqual([':revenue-2']);
-            act(() => targetScript.current!('revenue-2'));
-            act(() => targetScript.current!('revenue'));
-            expect(editor.state.doc.toString()).toBe('filter :revenue-2 :revenue ');
-            expect(highlightedScripts()).toEqual([':revenue-2', ':revenue']);
-        });
-
-        it('sends a question and clears it right away', async () => {
-            const editor = await render(WorkbookComposerVariant.Docked, true);
-            act(() => type(editor, 'what is the revenue'));
-            expect(selectedMode()).toBe('ai');
-            expect(sendButton().disabled).toBe(false);
-            act(() => press(editor, 'Enter'));
-            expect(onSend).toHaveBeenCalledExactlyOnceWith('what is the revenue', ComposerInputMode.Ai);
-            expect(editor.state.doc.toString()).toBe('');
-            expect(selectedMode()).toBe('ai');
-        });
+    it('closes the prompt while an agent in the terminal works on the workbook', async () => {
+        const session = { harness: 'codex', folder: '/w', connected: true, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
+        act(() => root.render(<LoggerProvider>
+            <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session}
+                keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
+        </LoggerProvider>));
+        expect(container.querySelector('[data-testid="composer-session"]')!.textContent).toBe('Codex works on this workbook in the terminal');
+        expect(container.querySelector('[data-testid="composer-send"]')).toBeNull();
+        expect(view).toBeNull();
     });
 });

@@ -14,24 +14,8 @@ filegroup(
 )
 
 filegroup(
-    name = "tray_icon",
-    srcs = [
-        "assets/trayTemplate.png",
-        "assets/trayTemplate@2x.png",
-    ],
-)
-
-filegroup(
     name = "preload",
     srcs = ["src/preload.cjs"],
-)
-
-# The messages of the agent server, generated from proto/json/dashql/agent_bridge.json
-genrule(
-    name = "agent_bridge",
-    srcs = ["//proto/json:ts_gen_agent_bridge"],
-    outs = ["src/agent_bridge.ts"],
-    cmd = "cp $< $@",
 )
 
 typescript_bin.tsc_binary(
@@ -41,7 +25,6 @@ typescript_bin.tsc_binary(
 ts_project(
     name = "compile",
     srcs = [
-        ":agent_bridge",
         ":srcs",
     ],
     out_dir = "dist",
@@ -68,15 +51,11 @@ vitest_bin.vitest_test(
     args = ["run", "--config", "vitest.config.ts"],
     chdir = "packages/dashql-native",
     data = [
-        ":agent_bridge",
         ":srcs",
         "tsconfig.bazel.json",
         "vitest.config.ts",
         "//:node_modules/vitest",
-        "//packages/dashql-cli:dashql",
     ],
-    # agent_host.test.ts runs the agent server
-    env = {"DASHQL_CLI": "$(rootpath //packages/dashql-cli:dashql)"},
     visibility = ["//visibility:public"],
 )
 
@@ -88,11 +67,9 @@ sh_binary(
         ":compile",
         ":package.json",
         ":preload",
-        ":tray_icon",
         "@dashql_app_version//:version.env",
         "//:node_modules/electron",
         "//packages/dashql-app:electron_bundle",
-        "//packages/dashql-cli:dashql",
         "//packages/dashql-native-proxy:addon",
     ],
     visibility = ["//visibility:public"],
@@ -104,21 +81,18 @@ sh_binary(
     args = [
         "arm64",
         "$(location //packages/dashql-native-proxy:addon_aarch64)",
-        "$(location //packages/dashql-cli:dashql_aarch64)",
     ],
     data = [
         ":compile",
         ":package.json",
         ":preload",
         "@dashql_app_version//:version.env",
-        ":tray_icon",
         "Entitlements.plist",
         "electron-builder.yml",
         "//:NOTICE",
         "//:node_modules/electron-builder",
         "//:node_modules/electron-updater",
         "//packages/dashql-app:electron_bundle",
-        "//packages/dashql-cli:dashql_aarch64",
         "//packages/dashql-native-proxy:addon_aarch64",
         "//misc/logo-dashql-glyphs:icon_icns_source",
     ],
@@ -133,21 +107,18 @@ sh_binary(
     args = [
         "x64",
         "$(location //packages/dashql-native-proxy:addon_x86_64)",
-        "$(location //packages/dashql-cli:dashql_x86_64)",
     ],
     data = [
         ":compile",
         ":package.json",
         ":preload",
         "@dashql_app_version//:version.env",
-        ":tray_icon",
         "Entitlements.plist",
         "electron-builder.yml",
         "//:NOTICE",
         "//:node_modules/electron-builder",
         "//:node_modules/electron-updater",
         "//packages/dashql-app:electron_bundle",
-        "//packages/dashql-cli:dashql_x86_64",
         "//packages/dashql-native-proxy:addon_x86_64",
         "//misc/logo-dashql-glyphs:icon_icns_source",
     ],

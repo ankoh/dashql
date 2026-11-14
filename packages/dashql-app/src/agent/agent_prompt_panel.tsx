@@ -3,89 +3,11 @@ import * as styles from './agent_prompt_panel.module.css';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { ChevronRightIcon, SquareFillIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
-import { AgentConnectionStatus } from './agent_client.js';
-import type { AgentWorkbookContext } from './agent_protocol.js';
-import { stringifyError } from '@ankoh/dashql-sdk/platform/logger/logger';
-import { useLogger } from '../platform/logger/logger_provider.js';
-import type { AgentBridge } from './agent_bridge.js';
-import { isAgentAnswering, type AgentQuestion } from './use_agent_questions.js';
-
-const LOG_CTX = 'agent_prompt_panel';
+import { ChevronRightIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
+import { harnessLabel, isAgentAnswering, isAgentWorking, type AgentSession, type AgentTurn } from './agent_session.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 const CrossIcon = SymbolIcon('x_16');
-
-/// A script that the agent wrote
-export interface ComposerAgentScript {
-    scriptKey: number;
-    /// The display name of the script
-    scriptName: string;
-}
-
-/// A question of the workbook that the agent answers or answered
-export interface ComposerAgentTurn {
-    questionId: number;
-    /// The question with the status, the final message or the error of the agent
-    question: AgentQuestion;
-    /// The scripts of the workbook that the agent wrote
-    scripts: ComposerAgentScript[];
-}
-
-/// The agent of a workbook with agent access, as the composer shows it
-export interface ComposerAgent {
-    /// Is the agent server connected?
-    connected: boolean;
-    /// The port the page looks for the agent server on
-    port: number;
-    /// The harness context of the workbook, null while unknown
-    context: AgentWorkbookContext | null;
-    /// The questions of the workbook, oldest first
-    turns: ComposerAgentTurn[];
-    /// Stop the agent working on a question
-    onStop: (questionId: number) => void;
-    /// Dismiss the final message or the error of a question
-    onDismiss: (questionId: number) => void;
-    /// Scroll to a script that the agent wrote
-    onShowScript: (scriptKey: number) => void;
-}
-
-/// Is the agent working on a question of the workbook?
-export function isAgentWorking(agent: ComposerAgent): boolean {
-    return agent.turns.some(turn => isAgentAnswering(turn.question));
-}
-
-/// The name of a harness as users know it
-export function harnessLabel(harness: string): string {
-    switch (harness) {
-        case 'claude': return 'Claude Code';
-        case 'codex': return 'Codex';
-        case 'opencode': return 'opencode';
-        default: return harness;
-    }
-}
-
-/// Follow the harness context of a workbook while the agent server is connected.
-/// Fetched again when the refresh key changes, e.g. once a turn finished and the harness session is known.
-export function useAgentWorkbookContext(bridge: AgentBridge | null, workbookId: string, refreshKey: number): AgentWorkbookContext | null {
-    const logger = useLogger();
-    const [context, setContext] = React.useState<AgentWorkbookContext | null>(null);
-    const connected = bridge != null && bridge.hasAccess(workbookId) && bridge.status === AgentConnectionStatus.Connected;
-    const fetchContext = bridge?.context;
-    React.useEffect(() => {
-        if (!connected || fetchContext == null) {
-            setContext(null);
-            return;
-        }
-        let current = true;
-        fetchContext(workbookId).then(
-            next => { if (current) setContext(next); },
-            e => logger.warn('Reading the agent context failed', { error: stringifyError(e) }, LOG_CTX),
-        );
-        return () => { current = false; };
-    }, [connected, fetchContext, workbookId, refreshKey, logger]);
-    return context;
-}
 
 /// The final message of the agent as plain text, without the markers of the markdown that harnesses like to write
 export function plainAgentNote(note: string): string {
@@ -101,7 +23,7 @@ export function plainAgentNote(note: string): string {
 /// A question of the workbook with the answer of the agent.
 /// A collapsed turn shows the question in one line, an expanded turn shows the question, the status line, the final
 /// message and the error in full.
-const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent; expanded: boolean; onToggle: () => void }> = ({ turn, agent, expanded, onToggle }) => {
+const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
     const { questionId, question } = turn;
     const working = isAgentAnswering(question);
     const failed = !working && question.error != null;
@@ -147,28 +69,19 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent; e
                         className={styles.turn_script}
                         aria-label={`Show the script ${script.scriptName}`}
                         data-testid="composer-agent-script"
-                        onClick={() => agent.onShowScript(script.scriptKey)}
+                        onClick={() => session.onShowScript(script.scriptKey)}
                     >
                         {script.scriptName}
                     </button>
                 ))}
-                {working ? (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        aria-label="Stop the agent"
-                        data-testid="question-stop"
-                        onClick={() => agent.onStop(questionId)}
-                    >
-                        <SquareFillIcon size={12} />
-                    </IconButton>
-                ) : (
+                {/* The terminal stops the agent, the page only watches */}
+                {!working && (
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label={failed ? 'Dismiss the error' : 'Dismiss the answer'}
                         data-testid="question-dismiss"
-                        onClick={() => agent.onDismiss(questionId)}
+                        onClick={() => session.onDismiss(questionId)}
                     >
                         <CrossIcon size={14} />
                     </IconButton>
@@ -182,16 +95,16 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent; e
 };
 
 /// Is a turn expanded unless the user toggled it? The latest turn and the turns the agent works on are.
-function isTurnExpandedByDefault(turn: ComposerAgentTurn, index: number, turns: readonly ComposerAgentTurn[]): boolean {
+function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly AgentTurn[]): boolean {
     return index === turns.length - 1 || isAgentAnswering(turn.question);
 }
 
-/// The log of the agent in the bubble of Wobble: the harness, the connection to the agent server and the questions of
-/// the workbook with their status lines, final messages, errors and the scripts the agent wrote.
+/// The log of the agent in the bubble of Wobble: the harness, the folder it works in and the questions of the session
+/// with their status lines, final messages, errors and the scripts the agent wrote.
 /// The questions scroll within a fixed height, each one expands and collapses.
 /// The scripts only show the edits of the agent.
-export const AgentPromptPanel: React.FC<{ agent: ComposerAgent; onClose?: () => void }> = ({ agent, onClose }) => {
-    const working = isAgentWorking(agent);
+export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () => void }> = ({ session, onClose }) => {
+    const working = isAgentWorking(session);
     // The turns that the user expanded or collapsed
     const [toggled, setToggled] = React.useState<ReadonlyMap<number, boolean>>(() => new Map());
     const toggle = React.useCallback((questionId: number, expanded: boolean) => {
@@ -199,25 +112,18 @@ export const AgentPromptPanel: React.FC<{ agent: ComposerAgent; onClose?: () => 
     }, []);
     // The turns scroll within a fixed height, a new question scrolls them to the bottom
     const turnsRef = React.useRef<HTMLUListElement>(null);
-    const latestQuestionId = agent.turns.length > 0 ? agent.turns[agent.turns.length - 1].questionId : null;
+    const latestQuestionId = session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
     React.useLayoutEffect(() => {
         const list = turnsRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
     }, [latestQuestionId]);
-    let detail: string;
-    if (!agent.connected) {
-        detail = `looking for the agent server on port ${agent.port}`;
-    } else if (working) {
-        detail = 'working';
-    } else {
-        detail = agent.context?.harnessSession != null ? 'continues the conversation' : 'starts a new conversation';
-    }
+    const detail = !session.connected ? 'lost the session' : working ? 'working' : `in ${session.folder}`;
     return (
         <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
             <div className={styles.header}>
                 <SparklesFillIcon size={12} className={styles.header_icon} />
-                <span className={styles.header_title}>{agent.context != null ? harnessLabel(agent.context.harness) : 'Agent'}</span>
-                <span className={styles.header_dot} data-connected={agent.connected ? '' : undefined} aria-hidden="true" />
+                <span className={styles.header_title}>{harnessLabel(session.harness)}</span>
+                <span className={styles.header_dot} data-connected={session.connected ? '' : undefined} aria-hidden="true" />
                 <span className={styles.header_detail} data-testid="composer-agent-detail">{detail}</span>
                 {onClose != null && (
                     <IconButton
@@ -231,15 +137,15 @@ export const AgentPromptPanel: React.FC<{ agent: ComposerAgent; onClose?: () => 
                     </IconButton>
                 )}
             </div>
-            {agent.turns.length > 0 && (
+            {session.turns.length > 0 && (
                 <ul ref={turnsRef} className={styles.turns} aria-label="Questions">
-                    {agent.turns.map((turn, index, turns) => {
+                    {session.turns.map((turn, index, turns) => {
                         const expanded = toggled.get(turn.questionId) ?? isTurnExpandedByDefault(turn, index, turns);
                         return (
                             <AgentTurnItem
                                 key={turn.questionId}
                                 turn={turn}
-                                agent={agent}
+                                session={session}
                                 expanded={expanded}
                                 onToggle={() => toggle(turn.questionId, !expanded)}
                             />

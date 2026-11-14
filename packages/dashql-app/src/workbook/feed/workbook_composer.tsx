@@ -5,14 +5,12 @@ import * as styles from './workbook_composer.module.css';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { CodeIcon, PaperAirplaneIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { PaperAirplaneIcon } from '../../ui/foundations/symbol_icon.js';
 import { PromptEditor } from '../editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../editor/dashql_processor.js';
 import { insertMentionAtCursor } from '../editor/editor_focus.js';
-import { ComposerInputMode } from '../../agent/input_mode.js';
-import { useComposerInputMode } from '../../agent/use_composer_input_mode.js';
-import { findScriptReferences, renderScriptReference, SCRIPT_REFERENCE_PREFIX } from '../../agent/script_references.js';
+import { SCRIPT_REFERENCE_PREFIX } from './script_references.js';
+import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
@@ -20,8 +18,6 @@ import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput
 import { textChange } from '@ankoh/dashql-sdk/workbook/scripts/workbook_scripts';
 import type { ConnectorType } from '@ankoh/dashql-sdk/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
-
-const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 
 /// A composer without workbook scripts
 const NO_SCRIPT_NAMES: readonly string[] = [];
@@ -49,12 +45,13 @@ export interface WorkbookComposerProps {
     variant: WorkbookComposerVariant;
     /// The keyword case for completions
     keywordCase: core.buffers.formatting.KeywordCase;
-    /// Can the workbook ask the agent? Without agent access, the composer only takes SQL.
-    aiAvailable: boolean;
     /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then.
     agentWorking?: boolean;
-    /// Called with the draft and its input mode when the user sends it, the draft is cleared before
-    onSend: (text: string, mode: ComposerInputMode) => void;
+    /// The session of an agent in the terminal that works on the workbook. The agent writes the scripts, the prompt is
+    /// closed while it does, edits of the page would race its writes.
+    session?: AgentSession | null;
+    /// Called with the draft when the user sends it, the draft is cleared before
+    onSend: (text: string) => void;
     /// Called with whether the draft is blank, once on mount and whenever that changes
     onDraftEmptyChange?: (empty: boolean) => void;
     /// The bar above the editor, e.g. the bar of Wobble. The inputs of a SQL draft follow it, the bar is hidden
@@ -64,9 +61,9 @@ export interface WorkbookComposerProps {
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
     submitRef?: React.RefObject<(() => void) | null>;
-    /// The display names of the workbook scripts that a question can reference
+    /// The display names of the workbook scripts that the draft can reference
     scriptNames?: readonly string[];
-    /// Receives the function that references a workbook script in a question, by its display name
+    /// Receives the function that references a workbook script in the draft, by its display name
     targetScriptRef?: React.RefObject<((name: string) => void) | null>;
     /// The results of the workbook scripts, the table parameters of the draft read them
     tableParameters?: core.DashQLTableParameters | null;
@@ -99,11 +96,6 @@ export function renameSqlDraftReferences(workbook: core.DashQLScriptSession, nam
         .map(reference => ({ from: reference.from, to: reference.to, insert }));
 }
 
-/// The changes that rename the references to a script in a question, `:from` becomes `:to`
-export function renameQuestionReferences(text: string, from: string, to: string): DraftChange[] {
-    return findScriptReferences([from], text).map(reference => ({ from: reference.from, to: reference.to, insert: renderScriptReference(to) }));
-}
-
 /// Takes the draft out of a composer editor and clears it, returns null when the draft is blank
 export function takeComposerDraft(view: EditorView): string | null {
     const text = view.state.doc.toString();
@@ -118,10 +110,7 @@ export function takeComposerDraft(view: EditorView): string | null {
     return text;
 }
 
-/// A chat-like input that turns its draft into a new workbook script.
-///
-/// The draft is either SQL or a question in natural language that the agent answers in SQL,
-/// see useComposerInputMode.
+/// A chat-like input that turns its SQL draft into a new workbook script.
 ///
 /// The draft lives in its own script session on the connection catalog. It provides completion and tells SQL
 /// from natural language, but it is not a workbook script: it is neither persisted nor loaded into the catalog.
@@ -143,22 +132,18 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         props.setView?.(next);
     }, [props.setView]);
 
-    // The draft is SQL or natural language
     const scriptNames = props.scriptNames ?? NO_SCRIPT_NAMES;
-    const input = useComposerInputMode(props.catalog, props.aiAvailable, scriptNames);
     const handleTextChange = React.useCallback((text: string) => {
         setEmpty(text.trim().length === 0);
-        input.onTextChange(text);
-    }, [input.onTextChange]);
+    }, []);
     React.useEffect(() => props.onDraftEmptyChange?.(empty), [empty, props.onDraftEmptyChange]);
     // The inputs of the draft follow its analysis, a cursor move changes nothing
     const [draftInputs, setDraftInputs] = React.useState(NO_INPUTS);
     const handleEditorUpdate = React.useCallback((update: core.buffers.editor.EditorUpdateT) => {
-        input.onEditorUpdate(update);
         if (!update.analysisUpdated) return;
         const next = collectDraftInputs(props.instance, scriptSession, props.catalog);
         setDraftInputs(previous => sameInputs(previous, next) ? previous : next);
-    }, [input.onEditorUpdate, props.instance, props.catalog, scriptSession]);
+    }, [props.instance, props.catalog, scriptSession]);
     // The value of an input of the draft is a `@param` tag of the draft like in a script, it goes along when the draft
     // is sent. Nothing runs before that.
     const literalOfDraftInput = React.useCallback((draftInput: SessionInput, value: string) => workbookInputLiteral(props.instance, draftInput.type, value), [props.instance]);
@@ -175,9 +160,6 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (to === from) return;
         view.dispatch({ changes: textChange(from, to), effects: DashQLCompletionAbortEffect.of(null) });
     }, [view, scriptSession]);
-    const handleModeChange = React.useCallback((index: number) => {
-        input.pick(index === 0 ? ComposerInputMode.Sql : ComposerInputMode.Ai);
-    }, [input.pick]);
 
     // The connection of a SQL draft has to be connected first, the draft stays until it is
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
@@ -185,8 +167,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const inputsRef = React.useRef<HTMLDivElement>(null);
     const send = React.useCallback(() => {
         if (view == null) return;
-        const mode = input.resolveSendMode();
-        if (mode === ComposerInputMode.Sql && offlineWorkbookId != null) {
+        if (offlineWorkbookId != null) {
             connectionAttention?.request(offlineWorkbookId);
             return;
         }
@@ -195,9 +176,9 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (active instanceof HTMLElement && inputsRef.current?.contains(active)) active.blur();
         const text = takeComposerDraft(view);
         if (text != null) {
-            props.onSend(text, mode);
+            props.onSend(text);
         }
-    }, [props.onSend, view, input.resolveSendMode, offlineWorkbookId, connectionAttention]);
+    }, [props.onSend, view, offlineWorkbookId, connectionAttention]);
     // A snippet replaces the draft right away, there is no script yet whose text could be compared
     const applySnippet = React.useCallback((text: string) => {
         if (view == null) return;
@@ -231,34 +212,23 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     if (props.submitRef) {
         props.submitRef.current = send;
     }
-    // A script reference turns the draft into a question if the agent is available, a script that the question
-    // references already is not repeated. Without the agent, the reference goes into the SQL of the draft.
+    // A script reference goes into the SQL of the draft as a table parameter
     const targetScript = React.useCallback((name: string) => {
         if (view == null) return;
-        if (props.aiAvailable) {
-            input.pick(ComposerInputMode.Ai);
-            if (findScriptReferences([name], view.state.doc.toString()).length === 0) {
-                insertMentionAtCursor(view, renderScriptReference(name));
-            }
-        } else {
-            insertMentionAtCursor(view, `:${props.instance.quoteIdentifier(name)}`);
-        }
+        insertMentionAtCursor(view, `${SCRIPT_REFERENCE_PREFIX}${props.instance.quoteIdentifier(name)}`);
         view.focus();
-    }, [view, props.aiAvailable, props.instance, input.pick]);
+    }, [view, props.instance]);
     if (props.targetScriptRef) {
         props.targetScriptRef.current = targetScript;
     }
-    // The references of the draft follow a renamed script. A question has no syntax tree, SQL is renamed through its
-    // analysis.
+    // The references of the draft follow a renamed script, through its analysis
     const renameScript = React.useCallback((from: string, to: string) => {
         if (view == null) return;
-        const changes = input.mode === ComposerInputMode.Ai
-            ? renameQuestionReferences(view.state.doc.toString(), from, to)
-            : renameSqlDraftReferences(scriptSession, scriptNames, from, to, props.instance);
+        const changes = renameSqlDraftReferences(scriptSession, scriptNames, from, to, props.instance);
         if (changes.length > 0) {
             view.dispatch({ changes, effects: DashQLCompletionAbortEffect.of(null), userEvent: 'input' });
         }
-    }, [view, input.mode, scriptSession, scriptNames, props.instance]);
+    }, [view, scriptSession, scriptNames, props.instance]);
     if (props.renameScriptRef) {
         props.renameScriptRef.current = renameScript;
     }
@@ -269,17 +239,16 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (hero) view?.focus();
     }, [view]);
 
-    const naturalLanguage = input.mode === ComposerInputMode.Ai;
-    // Only SQL has inputs, `:name` in a question references a script
-    const showDraftInputs = !naturalLanguage && draftInputs.length > 0;
-    const blockedWorkbookId = naturalLanguage ? null : offlineWorkbookId;
+    const session = props.session ?? null;
+    const showDraftInputs = session == null && draftInputs.length > 0;
+    const blockedWorkbookId = offlineWorkbookId;
     const blocked = blockedWorkbookId != null;
     // A blocked button stays clickable, it pulses the connections that are not connected
     const sendButton = (
         <IconButton
             variant={hero && !blocked ? ButtonVariant.Primary : ButtonVariant.Default}
             size={ButtonSize.Small}
-            aria-label={naturalLanguage ? 'Ask the agent' : blocked ? 'Connect to run' : 'Run query'}
+            aria-label={blocked ? 'Connect to run' : 'Run query'}
             data-testid="composer-send"
             tooltipDirection="n"
             data-connect={blocked ? '' : undefined}
@@ -289,9 +258,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             <PaperAirplaneIcon />
         </IconButton>
     );
-    const placeholder = naturalLanguage
-        ? 'Ask a question about your data, Shift+Enter for a new line'
-        : (hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line');
+    const placeholder = hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line';
     return (
         <div
             className={styles.composer}
@@ -309,52 +276,42 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                     </div>
                 )}
             </div>
-            <div className={styles.composer_prompt} onMouseDown={handlePromptMouseDown}>
-                <PromptEditor
-                    className={styles.composer_editor}
-                    scriptSession={scriptSession}
-                    placeholder={placeholder}
-                    keywordCase={props.keywordCase}
-                    assist={input.assist}
-                    onSubmit={send}
-                    onTextChange={handleTextChange}
-                    onEditorUpdate={handleEditorUpdate}
-                    setView={handleView}
-                />
-                <div className={styles.composer_action_bar}>
-                    <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
-                        <SegmentedControl.Button leadingVisual={CodeIcon} selected={!naturalLanguage} data-testid="composer-mode" data-mode="sql">
-                            SQL
-                        </SegmentedControl.Button>
-                        <SegmentedControl.Button
-                            leadingVisual={SparklesFillIcon}
-                            selected={naturalLanguage}
-                            disabled={!props.aiAvailable}
-                            data-testid="composer-mode"
-                            data-mode="ai"
-                            title={props.aiAvailable ? undefined : 'Enable the agent above the prompt and connect the agent server to ask questions'}
-                        >
-                            AI
-                        </SegmentedControl.Button>
-                    </SegmentedControl>
-                    <div className={styles.composer_trailing_actions}>
-                        {props.connectionPicker}
-                        {props.snippetConnector != null && (
-                            <SnippetsOverlay
-                                scriptName="the prompt"
-                                connectorType={props.snippetConnector}
-                                disabled={view == null}
-                                onApply={applySnippet}
-                                registry={props.snippetRegistry}
-                                testId="composer-snippets"
-                            />
-                        )}
-                        {blockedWorkbookId != null
-                            ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
-                            : sendButton}
+            {session != null ? (
+                <div className={styles.composer_session} data-testid="composer-session">
+                    {harnessLabel(session.harness)} works on this workbook in the terminal
+                </div>
+            ) : (
+                <div className={styles.composer_prompt} onMouseDown={handlePromptMouseDown}>
+                    <PromptEditor
+                        className={styles.composer_editor}
+                        scriptSession={scriptSession}
+                        placeholder={placeholder}
+                        keywordCase={props.keywordCase}
+                        onSubmit={send}
+                        onTextChange={handleTextChange}
+                        onEditorUpdate={handleEditorUpdate}
+                        setView={handleView}
+                    />
+                    <div className={styles.composer_action_bar}>
+                        <div className={styles.composer_trailing_actions}>
+                            {props.connectionPicker}
+                            {props.snippetConnector != null && (
+                                <SnippetsOverlay
+                                    scriptName="the prompt"
+                                    connectorType={props.snippetConnector}
+                                    disabled={view == null}
+                                    onApply={applySnippet}
+                                    registry={props.snippetRegistry}
+                                    testId="composer-snippets"
+                                />
+                            )}
+                            {blockedWorkbookId != null
+                                ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
+                                : sendButton}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

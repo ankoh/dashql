@@ -152,10 +152,6 @@ async function testAppChrome(page, navigate) {
     await page.getByText('Current Version').waitFor();
     await page.keyboard.press('Escape');
 
-    await page.getByTestId('agent-settings').click();
-    await page.getByText('Looking for the server').waitFor();
-    await page.keyboard.press('Escape');
-
     const scheme = await page.locator('html').getAttribute('data-color-scheme');
     await page.getByTestId('color-scheme-toggle').click();
     await page.waitForFunction(previous => document.documentElement.dataset.colorScheme !== (previous ?? undefined), scheme);
@@ -554,8 +550,6 @@ export async function runPageTests(browser, origin, { collectCoverage, outputs }
             errors.push(`Unexpected request: ${route.request().url()}`);
             return route.abort();
         });
-        // The local agent server, a machine that runs the tests may have a real one. It is not there for the tests.
-        await context.routeWebSocket(/^ws:\/\/127\.0\.0\.1:47100\//, socket => socket.close());
         page.on('console', message => {
             if (message.type() === 'error') errors.push(message.text());
         });

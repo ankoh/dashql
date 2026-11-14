@@ -297,8 +297,9 @@ Each step ships on its own and keeps the behavior.
 ## The CLI on the SDK
 
 Everything the CLI does goes through the SDK. `packages/dashql-cli` becomes a Node package on `@ankoh/dashql-sdk` with
-the `dashql` command, and the Rust `dashql` (`lint`, `format`, the agent server) stays only until the Node one has its
-commands: `lint` and `format` are calls of the core, the agent server moves to Node. DashQL.app runs the Node CLI with
+the `dashql` command, and the Rust `dashql` (`lint`, `format`) stays only until the Node one has them: they are calls
+of the core. The agent bridge and its server are gone, an agent in the terminal reaches the page through
+`dashql session serve` (`docs/wip/agent_session.md`). DashQL.app runs the Node CLI with
 Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
 - **Offline by default.** `check`, `pack`, `unpack` and `link` read and write files in the workspace, nothing else.

@@ -5,8 +5,6 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { AgentViewOverlay } from '../agent/agent_view.js';
-import { useAgentBridge } from '../agent/agent_bridge.js';
 import { PlatformType, isMacDesktopHost, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from '../ui/version/version_viewer.js';
@@ -63,35 +61,6 @@ const InternalsButton = (props: { workbookId: string | null }) => {
                             </svg>
                         )}
                         onClick={() => setInternalsViewerOverlay(true)}
-                    />
-                )}
-                {...OVERLAY_POSITION}
-            />
-        </div>
-    );
-};
-
-const AgentButton = () => {
-    const bridge = useAgentBridge();
-    const [showAgentOverlay, setAgentOverlay] = React.useState<boolean>(false);
-    if (bridge == null) return null;
-
-    return (
-        <div className={styles.tab}>
-            <AgentViewOverlay
-                isOpen={showAgentOverlay}
-                onClose={() => setAgentOverlay(false)}
-                renderAnchor={(p: object) => (
-                    <NavBarItem
-                        anchor={p}
-                        label="Agent"
-                        icon={(
-                            <svg width="14px" height="14px" aria-hidden="true">
-                                <use xlinkHref={`${symbols}#sparkles_fill_16`} />
-                            </svg>
-                        )}
-                        onClick={() => setAgentOverlay(true)}
-                        data-testid="agent-settings"
                     />
                 )}
                 {...OVERLAY_POSITION}
@@ -241,7 +210,6 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
             <header key={2} className={isMac ? `${styles.top_bar} ${styles.top_bar_mac}` : styles.top_bar} data-electron-drag-region>
                 <TopBarBrand mac={isMac} showName={railWide} />
                 <div className={styles.top_bar_actions}>
-                    <AgentButton />
                     <InternalsButton workbookId={route.workbookId} />
                     <VersionButton iconSize={14} />
                     <ColorSchemeButton />

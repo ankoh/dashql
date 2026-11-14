@@ -79,6 +79,13 @@
     cursor: text;
 }
 
+/* The prompt of a workbook that an agent in the terminal works on */
+.composer_session {
+    padding: 12px;
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_compact);
+}
+
 .composer_editor {
     padding: 10px 12px 4px 12px;
 }
@@ -100,7 +107,7 @@
 .composer_action_bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 8px;
     padding: 4px 8px 8px 8px;
 }

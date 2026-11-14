@@ -6,60 +6,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from './workbook_status_bar.js';
 import { WorkbookStatusContext, WorkbookStatusStore } from './workbook_status_store.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
-import type { ComposerAgent, ComposerAgentTurn } from '../../agent/agent_prompt_panel.js';
-import { AgentBridgeContext, type AgentBridge } from '../../agent/agent_bridge.js';
-import { AgentQuestionStore } from '../../agent/agent_question_store.js';
-import { AgentConnectionStatus } from '../../agent/agent_client.js';
+import type { AgentSession, AgentTurn } from '../../agent/agent_session.js';
 import { getGlobalLogger, LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
+function agentSession(turns: AgentTurn[] = [], connected = true): AgentSession {
     return {
-        status: AgentConnectionStatus.Connected,
-        supported: true,
-        port: 47100,
-        setPort: vi.fn(),
-        harness: null,
-        setHarness: vi.fn(),
-        model: null,
-        setModel: vi.fn(),
-        effort: null,
-        setEffort: vi.fn(),
-        enabled: true,
-        hasAccess: () => true,
-        setEnabled: vi.fn(),
-        request: vi.fn(),
-        cancel: vi.fn(() => Promise.resolve()),
-        reset: vi.fn(() => Promise.resolve()),
-        context: vi.fn(),
-        info: vi.fn(),
-        hold: vi.fn(() => () => { }),
-        questions: new AgentQuestionStore(),
-        ...overrides,
-    };
-}
-
-function composerAgent(turns: ComposerAgentTurn[] = []): ComposerAgent {
-    return {
-        connected: true,
-        port: 47100,
-        context: { folder: '/agent', harness: 'claude', harnessSession: null, terminalCommand: null },
+        harness: 'claude',
+        folder: '/agent',
+        connected,
         turns,
-        onStop: vi.fn(),
         onDismiss: vi.fn(),
         onShowScript: vi.fn(),
     };
 }
 
-const working: ComposerAgentTurn = {
+const working: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: 'dashql agent catalog', error: null, note: null, scripts: [] },
+    question: { question: 'how many orders', status: 'dashql workbook check', error: null, note: null },
     scripts: [],
 };
-const answered: ComposerAgentTurn = {
+const answered: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] },
+    question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders' },
     scripts: [],
 };
 
@@ -82,13 +52,11 @@ describe('Workbook status bar', () => {
         container.remove();
     });
 
-    function render(props: Partial<React.ComponentProps<typeof WorkbookStatusBar>> = {}, bridge: AgentBridge | null = fakeBridge({ hasAccess: () => false })) {
+    function render(props: Partial<React.ComponentProps<typeof WorkbookStatusBar>> = {}) {
         act(() => root.render(
             <LoggerProvider>
                 <WorkbookStatusContext.Provider value={store}>
-                    <AgentBridgeContext.Provider value={bridge}>
-                        <WorkbookStatusBar workbookId="w1" variant={WorkbookStatusBarVariant.Prompt} bridge={bridge} paused {...props} />
-                    </AgentBridgeContext.Provider>
+                    <WorkbookStatusBar workbookId="w1" variant={WorkbookStatusBarVariant.Prompt} paused {...props} />
                 </WorkbookStatusContext.Provider>
             </LoggerProvider>,
         ));
@@ -98,14 +66,15 @@ describe('Workbook status bar', () => {
     const wobble = () => container.querySelector<HTMLButtonElement>('[data-testid="workbook-wobble"]')!;
     const bubble = () => container.querySelector('[data-testid="workbook-bubble"]');
     const busyDot = () => container.querySelector('[data-testid="workbook-wobble-dot"]');
-    const access = () => container.querySelector<HTMLButtonElement>('[data-testid="agent-access"]')!;
+    const agentState = () => container.querySelector<HTMLElement>('[data-testid="workbook-agent-state"]');
 
     it('leads with Wobble and is ready while nothing happened', () => {
         render();
         expect(container.querySelector('[data-testid="workbook-status-bar"]')!.firstElementChild).toBe(wobble());
         expect(statusLine().textContent).toBe('Ready');
         expect(busyDot()).toBeNull();
-        expect(access().textContent).toContain('Enable Agent');
+        // Without the session of an agent, the bar shows no agent
+        expect(agentState()).toBeNull();
     });
 
     it('tells what runs first, then what needs the user, then what happened last', () => {
@@ -155,33 +124,31 @@ describe('Workbook status bar', () => {
     });
 
     it('opens the bubble when the agent starts to work and keeps it open after the answer', () => {
-        const bridge = fakeBridge();
-        render({ agent: composerAgent() }, bridge);
+        render({ session: agentSession() });
         expect(bubble()).toBeNull();
-        expect(container.querySelector<HTMLElement>('[data-testid="workbook-agent-state"]')!.dataset.state).toBe('connected');
-        const agent = composerAgent([working]);
-        render({ agent }, bridge);
+        expect(agentState()!.dataset.state).toBe('connected');
+        expect(agentState()!.textContent).toBe('Claude Code');
+        expect(agentState()!.title).toBe('Claude Code in /agent');
+        render({ session: agentSession([working]) });
         expect(bubble()).not.toBeNull();
         expect(container.querySelector('[data-testid="composer-agent"]')).not.toBeNull();
-        expect(container.querySelector<HTMLElement>('[data-testid="workbook-agent-state"]')!.dataset.state).toBe('working');
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="workbook-agent-stop"]')!.click());
-        expect(agent.onStop).toHaveBeenCalledExactlyOnceWith(1);
-        render({ agent: composerAgent([answered]) }, bridge);
+        expect(agentState()!.dataset.state).toBe('working');
+        // The terminal stops the agent, the page only watches
+        expect(container.querySelector('[data-testid="workbook-agent-stop"]')).toBeNull();
+        render({ session: agentSession([answered]) });
         expect(bubble()).not.toBeNull();
     });
 
-    it('stands alone without the agent of the feed, the agent state comes from the bridge', () => {
-        render({ variant: WorkbookStatusBarVariant.Standalone }, fakeBridge({ status: AgentConnectionStatus.Connecting }));
+    it('tells that the page lost the session', () => {
+        render({ variant: WorkbookStatusBarVariant.Standalone, session: agentSession([], false) });
         expect(container.querySelector<HTMLElement>('[data-testid="workbook-status-bar"]')!.dataset.variant).toBe('standalone');
-        expect(container.querySelector<HTMLElement>('[data-testid="workbook-agent-state"]')!.dataset.state).toBe('connecting');
-        expect(access().getAttribute('aria-label')).toBe('Control Agent');
-        expect(container.querySelector('[data-testid="workbook-agent-stop"]')).toBeNull();
+        expect(agentState()!.dataset.state).toBe('lost');
     });
 
-    it('leaves Wobble out on the landing view and the agent out without a bridge', () => {
-        render({ wobble: false }, null);
+    it('leaves Wobble out on the landing view', () => {
+        render({ wobble: false });
         expect(container.querySelector('[data-testid="workbook-wobble"]')).toBeNull();
-        expect(container.querySelector('[data-testid="agent-access"]')).toBeNull();
+        expect(agentState()).toBeNull();
         expect(statusLine().textContent).toBe('Ready');
     });
 });
