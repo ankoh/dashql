@@ -14,9 +14,8 @@ export interface StatementResult {
     readonly info: QueryInfo;
 }
 
-/// Run any statement. The calls of hyperdb-wasm differ by whether a statement returns rows: query() fails on a
-/// statement without rows, after it ran, and execute() drops the rows. queryIPC() works for both, an empty buffer
-/// means no rows, and the info of the query says what the statement was.
+/// Run any statement. queryIPC() works for statements with and without rows, an empty buffer means no rows, and the
+/// info of the query says what the statement was.
 export async function runStatement(
     connection: Pick<HyperDBConnection, 'queryIPC'>,
     sql: string,
@@ -24,19 +23,8 @@ export async function runStatement(
 ): Promise<StatementResult> {
     const operation = connection.queryIPC(sql, options);
     // The info rejects as well when the statement fails, the error reaches the caller through the result
-    const settled = operation.info.then(
-        () => {},
-        () => {},
-    );
-    let bytes: Uint8Array;
-    try {
-        bytes = await operation;
-    } catch (e) {
-        // An aborted query rejects at once, while the connection stays busy until the engine cancelled it ("connection
-        // has an active operation"). The info settles then, so wait for it: the connection is free when this returns.
-        await settled;
-        throw e;
-    }
+    operation.info.catch(() => {});
+    const bytes = await operation;
     const info = await operation.info;
     const table = info.producesRows && bytes.byteLength > 0 ? tableFromIPC(bytes) : null;
     return {

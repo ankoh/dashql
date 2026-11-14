@@ -1,7 +1,8 @@
 // The process that runs the engine of a session (src/node/session.ts), also of `hyperdb-edge run`.
-// The engine prints a LogFile line with fs.writeSync(1) from its worker on every start, which no code in the process
-// can filter. So the session starts this process with its stdout going nowhere and talks to it over IPC. The process
-// opens the engine once and runs one request at a time until the session closes or goes away.
+// The process keeps the memory and a crash of the engine out of the application, a killed engine releases its
+// database, and Node's warnings about the file descriptors of the engine land on a stderr that the session filters.
+// The session talks to it over IPC. The process opens the engine once and runs one request at a time until the
+// session closes or goes away.
 
 import { HyperDBError } from 'hyperdb-wasm';
 

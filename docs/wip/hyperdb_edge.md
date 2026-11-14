@@ -18,7 +18,7 @@ application logic. Everything beyond running SQL (listing tables, plans, reading
 | A session with a warm engine and the tools `run_sql` and `describe` for the Tool Runner and the Claude Agent SDK, see [In-process tools](#in-process-tools) | Built, tested with both SDKs |
 | The Hyper code of DashQL in the library (Arrow tables, the log reader) | Planned |
 | The Node platform of the DashQL runtime on `@ankoh/hyperdb-edge/node` | Planned |
-| Fixes in `hyperdb-wasm` (see [Findings](#findings)) | To raise upstream |
+| Fixes in `hyperdb-wasm` (see [Findings](#findings)) | Raised; 0.0.27367 fixed the cancelled query, stdout, `query()` without rows and the storage path, the rest is open |
 
 ## Name
 
@@ -81,11 +81,10 @@ Exit codes: 0 ok, 1 a statement failed, 2 usage, an unsupported runtime or a dat
   that keep every digit (`src/values.ts`).
 - **Errors** print the message, the SQLSTATE, the detail (with the position in the statement) and the hint of
   `HyperDBError`.
-- **The engine runs in a child process** (the one of a [session](#the-session)). The engine prints `LogFile: …`
-  with `fs.writeSync(1)` from its worker on every start, which no code in the process can filter, and Node warns
-  `File descriptor N closed but not opened in unmanaged mode` now and then. Harnesses show stdout and stderr to the
-  model, and the log line would break `--format json`. So `run` forks `src/node/engine_process.ts` with its stdout
-  going nowhere, gets the output over IPC and passes on the stderr of the child without that warning.
+- **The engine runs in a child process** (the one of a [session](#the-session)). Node warns `File descriptor N
+  closed but not opened in unmanaged mode` on every run of the engine, and harnesses show stdout and stderr to the
+  model. So `run` forks `src/node/engine_process.ts`, gets the output over IPC and passes on the stderr of the child
+  without that warning.
 
 ## Describe
 
@@ -140,15 +139,12 @@ The process peaks at about 0.85 GB resident, and a second run on the same folder
 is fine, so `run` starts the engine on every call and needs no server. Codex blocks listening and loopback inside its
 sandbox, a server would not work there anyway.
 
-What the command works around, and `hyperdb-wasm` should fix:
+What the command works around, and `hyperdb-wasm` should fix (checked on 0.0.27367):
 
-- A `storagePath` that doesn't exist fails with `engine initialization failed: FS error`, without the path.
-- The engine prints `LogFile: /mnt/fs/logs/<id>/hyperd_<time>.log` with `fs.writeSync(1)` on every start and writes
-  `logs/` into the storage folder; `log_dir` is no setting it accepts.
-- Node warns `File descriptor N closed but not opened in unmanaged mode` in some runs.
-- `query()` fails on statements without rows with "query did not produce an Arrow schema", after they ran.
-- `pg_get_function_arguments()` returns null for every function, and selecting `pg_proc.proargtypes` fails with
-  "Encountered unsupported SQL type during conversion to Arrow".
+- The engine writes `logs/` into the storage folder, the folder of the database; `log_dir` is no setting it accepts.
+- Node warns `File descriptor N closed but not opened in unmanaged mode` on every run.
+- `pg_get_function_arguments()` returns null for every function, `pg_proc.proargtypes` is null, and there is no
+  `information_schema`.
 - apache-arrow returns a decimal as its unscaled digits, a timestamp as fractional milliseconds and an interval as
   four 32-bit integers; `src/values.ts` formats them.
 - `engines: node >=24`, but V8 has exnref without a flag only from Node 24.15 on (see
@@ -225,10 +221,10 @@ await session.close();
 How it works:
 
 - **The engine runs in a child process** (`src/node/engine_process.ts`) for the whole session, one request per
-  call over IPC. The `LogFile:` line of the engine would otherwise land on the stdout of the application, which for
-  a server on stdio, like MCP, breaks the protocol. The child also keeps the 0.85 GB and a crash of the engine out
-  of the application: when it dies, the running and later calls reject with `EngineEndedError` and the database is
-  released. `hyperdb-edge run` is a session with one call, so both share one path.
+  call over IPC. The child keeps the 0.85 GB and a crash of the engine out of the application: when it dies, the
+  running and later calls reject with `EngineEndedError` and the database is released. Node's warning about the file
+  descriptors of the engine stays on the stderr of the child, which the session filters. `hyperdb-edge run` is a
+  session with one call, so both share one path.
 - **One call at a time.** Models call tools in parallel, several `tool_use` blocks in one turn, and the Tool
   Runner starts them at once. The session queues the calls: the statements of a call run together, the next call
   starts after them, in the order the calls came in.
@@ -282,10 +278,9 @@ declare them as peer dependencies of the adapters.
 
 Findings from building them:
 
-- **A cancelled query leaves its connection busy.** `hyperdb-wasm` rejects the aborted query at once, while the next
-  statement on the connection fails with "connection has an active operation" until the engine cancelled it, about
-  10 to 20 ms later. The `info` of the query settles then, so `runStatement` waits for it before it rejects. The
-  query promise of `hyperdb-wasm` should settle only once the connection is free.
+- **A cancelled query left its connection busy** up to 0.0.27361: the next statement failed with "connection has an
+  active operation" for 10 to 20 ms. From 0.0.27367 on the aborted query rejects once the connection is free, and a
+  test of `runStatement` checks that the next statement runs at once.
 - **The Tool Runner uses message threads** by default: after the first request it sends only new messages and no
   `tools`, with `thread: { type: 'continue', previous_message_id }`. The fake Messages API follows a thread to tell
   the main conversation from side requests.

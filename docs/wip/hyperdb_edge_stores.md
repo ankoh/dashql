@@ -181,10 +181,11 @@ outside the sandbox, would conflict with those of the others.
   filter language). Both fit the same tables and `cosine_similarity`.
 - **Vercel AI SDK.** No store interface to implement: a helper to save and load the `UIMessage[]` of a chat would be
   an API of our own.
-- **The engine in a child process.** In the process of the application, the engine prints `LogFile: …` on stdout at
-  every start, which breaks a server on stdio such as MCP. The session of hyperdb-edge
-  ([hyperdb_edge.md](hyperdb_edge.md#in-process-tools)) runs the engine in a child for that reason; the stores need
-  rows from it, not text.
+- **The engine in a child process.** From hyperdb-wasm 0.0.27367 on the engine no longer prints on stdout, so the
+  stores can stay in the process of the application, even of a server on stdio such as MCP; Node's warning about
+  file descriptors still lands on its stderr. A child, as the session of hyperdb-edge has
+  ([hyperdb_edge.md](hyperdb_edge.md#in-process-tools)), would keep a crash out of the application, but the stores
+  would need rows from it, not text.
 - **Arrow instead of literals** for large batches, as `hyperdb_arrow_insert.ts` of the app does.
 - **The package.** Exports for `stores/` and the libraries as optional peer dependencies, once the package moves to
   its own repository.

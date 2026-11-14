@@ -82,7 +82,7 @@ describe('runStatement', () => {
         });
         setTimeout(() => cancel.abort(), 200);
         await expect(running).rejects.toThrow();
-        // At once, without waiting: the engine would otherwise answer "connection has an active operation"
+        // At once: hyperdb-wasm rejects an aborted query once the connection is free again
         const next = await runStatement(engine.connection, 'select 1 as a');
         expect(next.table!.numRows).toBe(1);
     });
