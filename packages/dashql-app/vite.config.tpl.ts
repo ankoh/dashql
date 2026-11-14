@@ -54,6 +54,11 @@ export default vite.defineConfig(({ mode, command }) => {
             .trim().split('\n').filter(Boolean).map(file => `../${file}`)
         : null;
     const browserTestPatterns = declaredTestInputs('browser_test_files.txt');
+    // The tests of the SDK, relative to src/tests/test_modules.ts like the glob they replace
+    const sdkTestPatterns = includesBrowserTests && command === 'build'
+        ? nodeFs.readFileSync(path.join(rootDir, 'sdk_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
+            .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(SDK_PATH, 'src', file)).split(path.sep).join('/'))
+        : null;
     const browserTestStylesheets = declaredTestInputs('browser_test_stylesheets.txt');
 
     // The pages deployment ships WebAssembly pre-compressed with Brotli, like hyperdb-wasm does: the bytes we deploy are
@@ -238,7 +243,9 @@ export default vite.defineConfig(({ mode, command }) => {
                     if (browserTestPatterns == null) return;
                     const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
                     if (!cleanId || !/\/src\/tests\/(test_modules|test_bundle)\.ts$/.test(cleanId)) return;
-                    return code.replace("'../**/*.test.{ts,tsx}'", browserTestPatterns.map(file => JSON.stringify(file)).join(',\n'));
+                    return code
+                        .replace("'../**/*.test.{ts,tsx}'", browserTestPatterns.map(file => JSON.stringify(file)).join(',\n'))
+                        .replace("'../../../dashql-sdk/src/**/*.test.ts'", (sdkTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
                 },
             }, {
                 name: 'bazel-browser-test-stylesheets',
@@ -254,9 +261,11 @@ export default vite.defineConfig(({ mode, command }) => {
                 transform(code: string, id: string): string | undefined {
                     const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
                     if (!cleanId || !/\.test\.(ts|tsx)$/.test(cleanId)) return;
+                    // The tests of the SDK are named sdk/src/<path>, see src/tests/test_modules.ts
+                    const sdkIndex = cleanId.lastIndexOf('/dashql-sdk/src/');
                     const sourceIndex = cleanId.lastIndexOf('/src/');
                     if (sourceIndex < 0) return;
-                    const file = cleanId.slice(sourceIndex + 1);
+                    const file = sdkIndex >= 0 ? `sdk/src/${cleanId.slice(sdkIndex + '/dashql-sdk/src/'.length)}` : cleanId.slice(sourceIndex + 1);
                     return `globalThis.__DASHQL_SET_CURRENT_TEST_FILE__(${JSON.stringify(file)});\n${code}`;
                 },
             }] : []),

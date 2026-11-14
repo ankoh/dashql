@@ -21,6 +21,12 @@ _MODULES = glob(
 
 _ASSETS = glob(["src/**/*.sql"])
 
+# The tests, the browser tests of the app run them as well
+filegroup(
+    name = "test_files",
+    srcs = glob(["src/**/*.test.ts"]),
+)
+
 # The generated packages, resolved through the paths of tsconfig.json like in the app
 copy_to_directory(
     name = "dep_protobuf",

@@ -9,8 +9,17 @@ function normalizePath(path: string): string {
     return path.startsWith('./') ? `src/tests/${path.slice(2)}` : path.replace(/^\.\.\//, 'src/');
 }
 
-export const BROWSER_TEST_FILES = Object.keys(BROWSER_TEST_MODULES)
-    .map(normalizePath)
+/// The tests of the SDK run in the browsers too, they also run in Node (//packages/dashql-sdk:test_node)
+export const SDK_TEST_MODULES = import.meta.glob([
+    '../../../dashql-sdk/src/**/*.test.ts',
+]);
+
+/// The tests of the SDK are named sdk/src/<path>
+const SDK_SOURCE_ROOT = '/dashql-sdk/src/';
+const SDK_TEST_KEYS = new Map(Object.keys(SDK_TEST_MODULES).map(key =>
+    [`sdk/src/${key.slice(key.lastIndexOf(SDK_SOURCE_ROOT) + SDK_SOURCE_ROOT.length)}`, key]));
+
+export const BROWSER_TEST_FILES = [...Object.keys(BROWSER_TEST_MODULES).map(normalizePath), ...SDK_TEST_KEYS.keys()]
     .sort();
 
 export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
@@ -52,6 +61,10 @@ export function getBrowserTestShard(index: number, count: number): string[] {
 }
 
 export function getBrowserTestModule(file: string): (() => Promise<unknown>) | null {
+    if (file.startsWith('sdk/')) {
+        const key = SDK_TEST_KEYS.get(file);
+        return key == null ? null : SDK_TEST_MODULES[key] ?? null;
+    }
     const key = file.startsWith('src/tests/') ? `./${file.slice('src/tests/'.length)}` : `../${file.replace(/^src\//, '')}`;
     return BROWSER_TEST_MODULES[key] ?? null;
 }

@@ -274,7 +274,8 @@ The browser and Node must offer the same: every feature of the SDK runs, and is 
   modules, their helpers in `src/testing/`, and a type check of their own (`tsconfig.test.json`) gives them the globals
   of vitest while the modules stay checked without them. 30 test files moved from the app; the tests that use only
   the SDK and need a browser, like `connections/catalog/catalog_batch.test.ts` (a Web Worker), still run in the app.
-  Next, the browser tests of the app also run the tests of the SDK, so each one runs on both platforms.
+  The browser tests of the app run the tests of the SDK as well (`sdk/src/<path>` in their list), so each one runs in
+  Node and in the browsers.
 - **Compile time.** The SDK compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
   APIs it uses there, like `fetch`, `URL`, `TextEncoder`, `crypto` and `Blob`, Node has as well. The browser-only ones
   that remain are the named seams of the boundary test. Once step 4 removed them, the lib can shrink to ES plus a few
