@@ -22,7 +22,7 @@ import { useConnectionById, useConnectionDraftForm } from './connection_registry
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import { performHealthCheck } from './health_check.js';
+import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
 import { useHyperSetup } from './hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from './query_executor.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';

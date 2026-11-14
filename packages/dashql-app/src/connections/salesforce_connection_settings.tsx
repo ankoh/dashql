@@ -8,7 +8,7 @@ import { useConnectionById, useConnectionDraftForm } from './connection_registry
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-runtime/connections/connection_state';
-import { performHealthCheck } from './health_check.js';
+import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
 import { useQueryExecutor } from './query_executor.js';
 import { useSalesforceSetup } from './salesforce/salesforce_connector.js';
 import type { SalesforceConnectorType } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';

@@ -219,7 +219,8 @@ export class QueryExecutorService {
     private async executeWithId(connectionId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime, trace: TraceContext): Promise<arrow.Table | null> {
         const { logger, http, dispatchConnection: connDispatch, dispatchComputation: computeDispatch, computeDatabase: computeDb, resultCache: queryResultCache } = this.deps;
         const traced = logger.withTrace(trace);
-        if (!computeDb) {
+        // The analysis of results computes on the compute database, a query without one runs without it
+        if (!computeDb && args.analyzeResults) {
             throw new Error(`Compute database is not yet ready`);
         }
         const conn = this.deps.readConnections().connections.get(connectionId);
@@ -348,7 +349,7 @@ export class QueryExecutorService {
                 };
                 // Compute all table summaries of the result
                 const analyzeResults = async (table: arrow.Table) => {
-                    if (!args.analyzeResults) return;
+                    if (!args.analyzeResults || computeDb == null) return;
                     queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
                     try {
                         await measurePostprocessing(async () => {

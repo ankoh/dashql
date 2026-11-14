@@ -18,7 +18,7 @@ import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from './query_executor.js';
-import { performHealthCheck } from './health_check.js';
+import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
 import { useTrinoSetup } from './trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.js';

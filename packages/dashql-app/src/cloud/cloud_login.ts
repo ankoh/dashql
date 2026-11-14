@@ -7,7 +7,7 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/co
 import { isLocalCloud } from '../connections/cloud_connection.js';
 import { useConnectionSetup } from '../connections/connection_setup.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { performHealthCheck } from '../connections/health_check.js';
+import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
 import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useSalesforceSetup } from '../connections/salesforce/salesforce_connector.js';

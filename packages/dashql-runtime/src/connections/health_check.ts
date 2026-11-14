@@ -1,11 +1,12 @@
-import { ConnectionDispatch } from './connection_registry.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { DetailedError } from '@ankoh/dashql-runtime/utils/error';
-import { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
-import { QueryExecutor } from './query_executor.js';
-import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { SalesforceDatabaseChannel } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import { TrinoChannelInterface } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
+import type { ConnectionDispatch } from './connection_registry_state.js';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED } from './connection_state.js';
+import type { DetailedError } from '../utils/error.js';
+import { LoggableException } from '../platform/logger/logger.js';
+import type { HyperDatabaseChannel } from './hyper/hyperdb_grpc_client.js';
+import type { QueryExecutor } from './query_execution_args.js';
+import { QueryType } from '../query/query_execution_state.js';
+import type { SalesforceDatabaseChannel } from './salesforce/salesforce_api_client.js';
+import type { TrinoChannelInterface } from './trino/trino_channel.js';
 
 export type HealthCheckChannel =
     | { type: 'hyper'; channel: HyperDatabaseChannel }
@@ -23,6 +24,11 @@ function pickProbeQuery(channel: HealthCheckChannel): string {
 }
 
 function toDetailedError(error: unknown): DetailedError {
+    // The status of a failed request or the message of the database
+    if (error instanceof LoggableException) {
+        const data = Object.fromEntries(Object.entries(error.keyValues).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
+        return Object.keys(data).length > 0 ? { message: error.message, data } : { message: error.message };
+    }
     if (error instanceof Error) {
         return { message: error.message };
     }
@@ -39,7 +45,8 @@ function toDetailedError(error: unknown): DetailedError {
 ///
 /// Dispatches HEALTH_CHECK_STARTED before the first await, then maps the outcome to
 /// HEALTH_CHECK_SUCCEEDED / FAILED / CANCELLED and rethrows on non-success so callers
-/// keep their existing try/catch semantics.
+/// keep their existing try/catch semantics. A failed probe rethrows the error of the query, e.g. the status of a
+/// rejected login.
 export async function performHealthCheck(
     executor: QueryExecutor,
     connectionId: string,
@@ -61,14 +68,25 @@ export async function performHealthCheck(
             userProvided: false,
         },
         channelOverride: channel,
+        throwOnError: true,
     });
-    const table = await execution;
-
-    if (abortSignal.aborted) {
+    const cancelled = () => {
         dispatch({ type: HEALTH_CHECK_CANCELLED, value: null });
         const abortError: Error & { name: string } = new Error('health check cancelled');
         abortError.name = 'AbortError';
-        throw abortError;
+        return abortError;
+    };
+    let table: Awaited<typeof execution>;
+    try {
+        table = await execution;
+    } catch (error) {
+        if (abortSignal.aborted) throw cancelled();
+        dispatch({ type: HEALTH_CHECK_FAILED, value: toDetailedError(error) });
+        throw error;
+    }
+
+    if (abortSignal.aborted) {
+        throw cancelled();
     }
     if (table == null) {
         const detailed: DetailedError = { message: 'health check failed' };
