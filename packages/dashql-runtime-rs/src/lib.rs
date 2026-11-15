@@ -3,5 +3,6 @@
 //! A spike: the TypeScript runtime (`packages/dashql-runtime`) still holds the state the app runs on. This crate ports
 //! the workbook scripts to decide whether the state moves to Rust, see `docs/wip/rust_runtime.md`.
 
+pub mod attachments;
 pub mod names;
 pub mod workbook;

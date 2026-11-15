@@ -1,8 +1,9 @@
 # The runtime in Rust
 
-Status: a spike. `packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the scripts of a workbook and the first
-actions on them, tested in Rust. The app still runs on the TypeScript runtime (`docs/wip/dashql_runtime.md`), nothing
-switches until the spike decides.
+Status: a spike. `packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the scripts of a workbook and every
+action of the reducer of the TypeScript runtime, tested in Rust (stages 1 and 2). The app still runs on the TypeScript
+runtime (`docs/wip/dashql_runtime.md`), nothing switches until the spike decides. The name of the package is
+provisional.
 
 ## Why
 
@@ -41,11 +42,12 @@ buffers in between. The boundary moves to what the UI reads.
 1. **Scripts and the core actions.** Done: create (with a base name made unique, at an index, on the connection of the
    neighbors), delete, rename, reorder, set the text, editor events, analysis of outdated scripts, catalog updates,
    query ids, renaming the workbook, the script list of the workbook file. `tests/workbook_test.rs`.
-2. **The rest of the reducer.** Staged rewrites (`pendingDiff`) with accept and reject, chart specs, inputs, moving
-   scripts between connections (catalogs that share entry ids), replacing and detaching connections, attachments,
-   table parameters, rewriting the references of renamed scripts and attachments, the annotations of a script
-   (tables, compiled visualization, flow and board positions), cloud previews, the promotion of the ephemeral
-   workbook, the replacement from storage.
+2. **The rest of the reducer.** Done: staged rewrites with accept and reject (a user edit accepts), chart specs,
+   inputs, moving scripts between connections (catalogs that share entry ids), picking, replacing and detaching
+   connections, attachments and their columns, table parameters, rewriting the references of renamed scripts and
+   attachments, the compiled visualization of a script and the one of a run, processing statistics, the analyses of
+   the planner, cloud previews and links, the promotion of the ephemeral workbook, the replacement from storage.
+   The other annotations (tables, flow and board positions, `@manual`) are in the editor update that the UI reads.
 3. **Bindings.** A `Workbook` class in the core module with `apply` for packed actions and snapshots per revision,
    and the TypeScript adapter behind `WorkbookScriptsRegistryService`.
 4. **The switch.** The reducer tests of the runtime (`workbook_scripts.test.ts`, the planner analysis, the registry
@@ -67,3 +69,8 @@ Otherwise the crate goes and [rust_logic.md](rust_logic.md) stands.
 - A script that publishes its own declarations changes its catalog, so a script that was just analyzed can look
   outdated once more. The TypeScript reducer behaves the same, a second analysis settles it.
 - The base name of a new script comes with the action, the random names stay in TypeScript for now.
+- A cloud preview refuses a change with an error, where the TypeScript reducer logs a warning and returns the state.
+- `ApplyPlannerAnalysis` exists because the engine of the runs is still TypeScript. Once the workbook plans its runs
+  itself, the analyses of the planner are its own and the action goes.
+- The promotion of the ephemeral workbook needs the names of the other workbooks, the host calls `promote` after an
+  action until a registry of workbooks moves too.

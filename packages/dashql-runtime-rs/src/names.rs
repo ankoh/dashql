@@ -50,9 +50,28 @@ pub fn script_file_name<'a>(
     format!("{}{SCRIPT_EXTENSION}", unique_script_base(base, script_files, "", taken_names))
 }
 
+/// The first of "Untitled", "Untitled 2", ... that no other workbook has, compared case-insensitively
+pub fn free_workbook_name<'a>(taken: impl IntoIterator<Item = &'a str>) -> String {
+    let taken: HashSet<String> = taken.into_iter().map(|name| name.trim().to_lowercase()).collect();
+    if !taken.contains("untitled") {
+        return "Untitled".into();
+    }
+    let mut n = 2;
+    while taken.contains(&format!("untitled {n}")) {
+        n += 1;
+    }
+    format!("Untitled {n}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn finds_a_free_workbook_name() {
+        assert_eq!(free_workbook_name([]), "Untitled");
+        assert_eq!(free_workbook_name(["untitled ", "Untitled 2", "Sales"]), "Untitled 3");
+    }
 
     #[test]
     fn strips_the_extension_in_any_case() {
