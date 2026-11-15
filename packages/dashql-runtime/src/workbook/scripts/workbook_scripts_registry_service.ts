@@ -13,7 +13,7 @@ import {
 } from '../../storage/storage_writer.js';
 import { workbookConnectionFromState, type ConnectionReferences } from '../../connections/connection_registry_state.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
-import { destroyWorkbookScripts, newScriptConnection, scriptConnectionOf, workbookConnectionIds, workbookScriptListWrite, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
+import { createWorkbookScripts, destroyWorkbookScripts, newScriptConnection, scriptConnectionOf, workbookConnectionIds, workbookScriptListWrite, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
 import { createEmptyMetadata } from './script_types.js';
 import {
     addWorkbookScriptsForConnection,
@@ -101,16 +101,14 @@ export class WorkbookScriptsRegistryService {
     /// scripts, the feed greets it with the landing prompt of the composer.
     create = (connection: ConnectionState, name: string, ephemeral: boolean): WorkbookScripts => {
         const workbookId = crypto.randomUUID();
-        const [, scripts] = this.allocate({
+        const [, scripts] = this.allocate(createWorkbookScripts({
             workbookMetadata: { ...createEmptyMetadata(), ...(ephemeral ? { ephemeral } : {}) },
             instance: connection.instance,
             workbookId,
             name,
             pendingConnection: scriptConnectionOf(connection),
-            scripts: {},
-            scriptRefs: {},
-            scriptOrder: [],
-        });
+            scripts: [],
+        }));
         void this.deps.storageWriter.write(
             groupWorkbookManifestWrites(workbookId),
             { type: WRITE_WORKBOOK_MANIFEST, value: [workbookId, [workbookConnectionFromState(connection)], { ephemeral }] },

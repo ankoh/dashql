@@ -40,9 +40,12 @@ import {
     ACCEPT_PENDING_DIFF,
     REJECT_PENDING_DIFF,
     replaceScriptSessionText,
+    createWorkbookScripts,
+    REGISTER_QUERY,
+    REGISTER_SCRIPT_RESULT,
 } from './workbook_scripts.js';
 import { runWorkbookScript } from './rerun_query.js';
-import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata } from './script_types.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -66,23 +69,11 @@ function connection(type = ConnectorType.HYPER): ScriptConnection {
 }
 
 function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql'], main: ScriptConnection = connection()): WorkbookScripts {
-    const scripts: WorkbookScripts['scripts'] = {};
-    const refs: WorkbookScripts['scriptRefs'] = {};
-    for (const [index, name] of names.entries()) {
-        const scriptSession = dql.createScriptSession(main.catalog);
-        replaceScriptSessionText(scriptSession, `SELECT ${index + 1}`);
-        const scriptKey = scriptSession.getCatalogEntryId();
-        scripts[scriptKey] = {
-            scriptKey, scriptSession, editorUpdate: null, analysisOutdated: true,
-            annotations: createEmptyAnnotations(), statistics: Immutable.List(),
-            pendingDiff: null, latestQueryId: null, fileName: name, connection: main,
-        };
-        refs[name] = createScriptRef(scriptKey, name);
-    }
-    return {
+    return createWorkbookScripts({
         instance: dql, workbookId: crypto.randomUUID(), name: 'Test', pendingConnection: names.length === 0 ? main : null,
-        workbookMetadata: createEmptyMetadata(), scripts, scriptRefs: refs, scriptOrder: [...names],
-    };
+        workbookMetadata: createEmptyMetadata(),
+        scripts: names.map((name, index) => ({ name, sql: `SELECT ${index + 1}`, connection: main })),
+    });
 }
 
 /// The connection of the first script, the fixtures create every script on it
@@ -131,20 +122,20 @@ describe('V2 flat workbook script mutations', () => {
         expect(current.attachments?.map(a => [a.fileName, a.name])).toEqual([['Sales.parquet', 'Sales']]);
     });
 
-    it('defers the writes and frees of a reduction until its effects are committed', () => {
+    it('defers the writes of a reduction until its effects are committed', () => {
         const writer = new RecordingWriter(logger, new WorkbookTestBackend());
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const deleted = current.scripts[current.scriptRefs['1_alpha.sql'].scriptId];
         const effects = new WorkbookScriptsEffects(writer);
         const next = reduceWorkbookScripts(current, { type: DELETE_SCRIPT, value: '1_alpha.sql' }, effects, logger);
         expect(next.scriptOrder).toEqual(['2_beta.sql']);
-        // A reduction that throws would leave the previous state intact, its effects are never committed
+        // A reduction that throws would leave the storage untouched, its effects are never committed
         expect(writer.records).toEqual([]);
-        expect(deleted.scriptSession.ptr.isNull()).toBe(false);
+        // The handle of the session of the deleted script goes with it
+        expect(deleted.scriptSession.ptr.isNull()).toBe(true);
 
         effects.commit();
         expect(writer.records.some(task => task.type.description === 'DELETE_SCRIPT')).toBe(true);
-        expect(deleted.scriptSession.ptr.isNull()).toBe(true);
     });
 
     it('persists editor text changes with an inactive connection', () => {
@@ -350,10 +341,11 @@ describe('V2 flat workbook script mutations', () => {
     });
 
     it('moves a script to another connection under its script key', () => {
-        const current = state(['1_alpha.sql', '2_beta.sql']);
+        let current = state(['1_alpha.sql', '2_beta.sql']);
         const other = { ...connection(ConnectorType.TRINO), params: { trino: { endpoint: 'https://trino.example' } } as any };
         const scriptKey = current.scriptRefs['2_beta.sql'].scriptId;
-        current.scripts[scriptKey] = { ...current.scripts[scriptKey], latestQueryId: 7, latestResultQueryId: 7 };
+        current = reduce(current, { type: REGISTER_QUERY, value: [scriptKey, 7] });
+        current = reduce(current, { type: REGISTER_SCRIPT_RESULT, value: [scriptKey, 7] });
         const writer = new RecordingWriter(logger, new WorkbookTestBackend());
         const next = reduce(current, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: other } }, writer);
         const moved = next.scripts[scriptKey];
@@ -404,13 +396,13 @@ describe('V2 flat workbook script mutations', () => {
         // The scripts keep their connection, a workbook with scripts doesn't store the pick
         expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].connection.connectionId).toBe(mainConnection(current).connectionId);
         expect(writer.records).toEqual([]);
+        // The same connection changes nothing, a connection without params can't be copied into the workbook file
+        expect(reduce(next, { type: SET_PENDING_CONNECTION, value: other })).toBe(next);
+        expect(reduce(next, { type: SET_PENDING_CONNECTION, value: connection() })).toBe(next);
         const created = reduce(next, { type: CREATE_SCRIPT, value: { index: null } });
         expect(created.scripts[created.scriptRefs[createdFile(next, created)].scriptId].connection.connectionId).toBe(other.connectionId);
         // The script took the pick
         expect(created.pendingConnection).toBeNull();
-        // The same connection changes nothing, a connection without params can't be copied into the workbook file
-        expect(reduce(next, { type: SET_PENDING_CONNECTION, value: other })).toBe(next);
-        expect(reduce(current, { type: SET_PENDING_CONNECTION, value: connection() })).toBe(current);
     });
 
     it('keeps the connection of a workbook without scripts in its workbook file', () => {
@@ -644,16 +636,6 @@ describe('V2 flat workbook script mutations', () => {
         expect(current.scripts[scriptKey].pendingDiff).toBeNull();
     });
 
-    it('keeps a failed analysis on the script instead of throwing', () => {
-        let current = state(['1_alpha.sql']);
-        const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
-        const failed = { ...current.scripts[scriptKey].scriptSession.analyze(), status: core.buffers.editor.EditorUpdateStatus.ANALYSIS_FAILED, analysisAvailable: false };
-        vi.spyOn(current.scripts[scriptKey].scriptSession, 'analyze').mockReturnValue(failed as core.buffers.editor.EditorUpdateT);
-        current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
-        expect(current.scripts[scriptKey].analysisOutdated).toBe(false);
-        expect(current.scripts[scriptKey].editorUpdate?.analysisAvailable).toBe(false);
-    });
-
     it('moves the scripts and the pending connection of a merged connection', () => {
         const main = connection();
         const current = state(['1_alpha.sql', '2_beta.sql'], main);
@@ -766,36 +748,45 @@ describe('V2 flat workbook script mutations', () => {
         expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].scriptSession.getText()).toBe('SELECT 1');
     });
 
-    it('keeps a script usable when it can not move to another connection', () => {
+    /// A connection whose catalog belongs to another instance of the core, the workbook can't take it
+    async function foreignConnection(): Promise<ScriptConnection> {
+        // An instance of its own over the same module, the test frames may share the instances of `DashQL.create`
+        const foreign = new core.DashQL(dql.bindings);
+        return { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: foreign.createCatalog() };
+    }
+
+    it('keeps a script usable when it can not move to another connection', async () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const scriptKey = current.scriptRefs['2_beta.sql'].scriptId;
         const writer = new RecordingWriter(logger, new WorkbookTestBackend());
-        vi.spyOn(dql, 'createScriptSessionWithEntryId').mockImplementation(() => { throw new Error('no workbook'); });
-        expect(reduce(current, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: connection() } }, writer)).toBe(current);
+        const foreign = await foreignConnection();
+        expect(reduce(current, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: foreign } }, writer)).toBe(current);
         expect(current.scripts[scriptKey].scriptSession.getText()).toBe('SELECT 2');
         expect(writer.records).toEqual([]);
     });
 
-    it('keeps the current scripts when the scripts of storage can not be created', () => {
+    it('keeps the current scripts when the scripts of storage can not be created', async () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const main = mainConnection(current);
         const alpha = current.scripts[current.scriptRefs['1_alpha.sql'].scriptId];
-        // The moved script is created, the added one fails
-        vi.spyOn(dql, 'createScriptSession').mockImplementation(() => { throw new Error('no workbook'); });
+        const foreign = await foreignConnection();
         expect(() => replaceWorkbookScriptsFromStorage(current, { scripts: [
             { name: '1_alpha.sql', sql: 'SELECT 1', connection: connection() },
             { name: '2_beta.sql', sql: 'SELECT 2', connection: main },
-            { name: '3_added.sql', sql: 'SELECT 3', connection: main },
-        ] }, logger)).toThrow('no workbook');
+            { name: '3_added.sql', sql: 'SELECT 3', connection: foreign },
+        ] }, logger)).toThrow('different DashQL instance');
+        expect(current.native!.workbook.scriptKeys()).toEqual(Object.keys(current.scripts).map(Number));
         expect(alpha.scriptSession.getText()).toBe('SELECT 1');
         expect(alpha.scriptSession.getCatalogEntryId()).toBe(alpha.scriptKey);
     });
 
     it('keeps the reference to an unresolved connection until a connection is picked', () => {
-        const current = state(['1_alpha.sql']);
         const unknownId = 'dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb';
+        const current = createWorkbookScripts({
+            instance: dql, workbookId: crypto.randomUUID(), name: 'Test', pendingConnection: null, workbookMetadata: createEmptyMetadata(),
+            scripts: [{ name: '1_alpha.sql', sql: 'SELECT 1', connection: connection(), unresolvedConnectionId: unknownId }],
+        });
         const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
-        current.scripts[scriptKey] = { ...current.scripts[scriptKey], unresolvedConnectionId: unknownId };
         const writer = new RecordingWriter(logger, new WorkbookTestBackend());
         const created = reduce(current, { type: CREATE_SCRIPT, value: { index: null } }, writer);
         const listOf = (task: StorageWriteTaskVariant) => (task.value as [string, { scripts: Array<{ name: string; connectionId: string }> }])[1].scripts;

@@ -22,30 +22,28 @@ describe('V2 app state loader', () => {
     let core: DashQL;
     let processor: BatchProcessor;
 
+    beforeAll(async () => {
+        core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    });
+    afterEach(() => {
+        vi.restoreAllMocks();
+        core.resetUnsafe();
+    });
+
     beforeEach(() => {
-        let scriptId = 0;
-        core = {
-            createCatalog: vi.fn(() => ({ allocateEntryId: () => 1000, replaceDescriptor: vi.fn(), destroy: vi.fn() })),
-            createScript: vi.fn(() => {
-                let text = '';
-                return {
-                    catalog_entry_id: ++scriptId,
-                    replaceText: vi.fn((next: string) => { text = next; }),
-                    toString: () => text, destroy: vi.fn(),
-                };
-            }),
-            createScriptSession: vi.fn(() => {
-                let text = '';
-                let textVersion = 0n;
-                return {
-                    getCatalogEntryId: () => ++scriptId,
-                    getTextVersion: () => textVersion,
-                    replaceText: (_expectedTextVersion: bigint, next: string) => { text = next; textVersion += 1n; return { status: 0 }; },
-                    getText: () => text,
-                    destroy: vi.fn(),
-                };
-            }),
-        } as any;
+        // The real core, the tests watch what reaches the catalogs and the catalog scripts of the connections
+        const createCatalog = core.createCatalog.bind(core);
+        vi.spyOn(core, 'createCatalog').mockImplementation(() => {
+            const catalog = createCatalog();
+            vi.spyOn(catalog, 'replaceDescriptor');
+            return catalog;
+        });
+        const createScript = core.createScript.bind(core);
+        vi.spyOn(core, 'createScript').mockImplementation((catalog: dashql.DashQLCatalog) => {
+            const script = createScript(catalog);
+            vi.spyOn(script, 'replaceText');
+            return script;
+        });
         const builder = new flatbuffers.Builder();
         builder.finish(new buffers.catalog.CatalogDescriptorT().pack(builder));
         const descriptor = builder.asUint8Array();
@@ -226,9 +224,12 @@ describe('V2 app state loader', () => {
         connectionFiles.set(functionsFile, 'CREATE FUNCTION restored_fn() RETURNS int;');
         const replaceDescriptor = vi.fn<dashql.DashQLCatalog['replaceDescriptor']>(() => { throw new Error('publication failed'); });
         if (source === 'functions') replaceDescriptor.mockImplementationOnce(() => {});
-        vi.mocked(core.createCatalog).mockImplementation(() => ({
-            allocateEntryId: () => 1000, replaceDescriptor, destroy: vi.fn(),
-        }) as any);
+        const createCatalog = vi.mocked(core.createCatalog).getMockImplementation()!;
+        vi.mocked(core.createCatalog).mockImplementation(() => {
+            const catalog = createCatalog();
+            vi.mocked(catalog.replaceDescriptor).mockImplementation(replaceDescriptor);
+            return catalog;
+        });
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).toHaveBeenCalledTimes(source === 'relations' ? 1 : 2);

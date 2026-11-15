@@ -8,12 +8,13 @@ import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
 import {
     APPLY_PLANNER_ANALYSIS,
-    createEmptyScriptData,
+    REGISTER_QUERY,
+    createWorkbookScripts,
     type WorkbookScripts,
     reduceWorkbookScripts,
     replaceScriptSessionText,
 } from './workbook_scripts.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata } from './script_types.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -26,23 +27,16 @@ afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 function fixture() {
     const catalog = dql.createCatalog();
     const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog };
-    const scripts: WorkbookScripts['scripts'] = {};
-    const scriptRefs: WorkbookScripts['scriptRefs'] = {};
-    for (const [fileName, text] of [
-        ['1_items.sql', 'create table items (id int);'],
-        ['2_query.sql', 'select id from items;'],
-        ['3_other.sql', 'select 3;'],
-    ]) {
-        const [scriptKey, script] = createEmptyScriptData(dql, connection, fileName);
-        replaceScriptSessionText(script.scriptSession, text);
-        scripts[scriptKey] = script;
-        scriptRefs[fileName] = createScriptRef(scriptKey, fileName);
-    }
-    const state: WorkbookScripts = {
+    const state: WorkbookScripts = createWorkbookScripts({
         instance: dql, workbookId: crypto.randomUUID(), name: 'Test', pendingConnection: null,
-        workbookMetadata: createEmptyMetadata(), scripts, scriptRefs, scriptOrder: ['1_items.sql', '2_query.sql', '3_other.sql'],
-    };
-    const [definition, query, other] = Object.values(scripts);
+        workbookMetadata: createEmptyMetadata(),
+        scripts: [
+            ['1_items.sql', 'create table items (id int);'],
+            ['2_query.sql', 'select id from items;'],
+            ['3_other.sql', 'select 3;'],
+        ].map(([name, sql]) => ({ name, sql, connection })),
+    });
+    const [definition, query, other] = state.scriptOrder.map(name => state.scripts[state.scriptRefs[name].scriptId]);
     // Publish before capturing snapshots, matching the planner's final catalog revision.
     for (const script of [definition, query, other]) {
         script.scriptSession.analyze();
@@ -122,10 +116,9 @@ describe('planner analysis projection', () => {
     it('preserves the query history and the staged diff', () => {
         const f = fixture();
         f.query.scriptSession.setCursor(f.query.scriptSession.getTextVersion(), 8n);
-        const query = { ...f.query, latestQueryId: 42 };
-        const current = { ...f.state, scripts: { ...f.state.scripts, [query.scriptKey]: query } };
+        const current = reduceWorkbookScripts(f.state, { type: REGISTER_QUERY, value: [f.query.scriptKey, 42] }, new StorageWriter(logger, new WorkbookTestBackend()), logger);
         const next = f.apply(f.updates, current);
-        expect(next.scripts[query.scriptKey].pendingDiff).toBe(query.pendingDiff);
-        expect(next.scripts[query.scriptKey].latestQueryId).toBe(42);
+        expect(next.scripts[f.query.scriptKey].pendingDiff).toBeNull();
+        expect(next.scripts[f.query.scriptKey].latestQueryId).toBe(42);
     });
 });

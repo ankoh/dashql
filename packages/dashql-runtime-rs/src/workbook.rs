@@ -94,6 +94,12 @@ pub struct StoredScript {
     pub unresolved_connection_id: Option<String>,
 }
 
+impl Drop for WorkbookScript {
+    fn drop(&mut self) {
+        self.leave_catalog();
+    }
+}
+
 /// A staged rewrite of a script, shown as a diff to accept or reject. The script already holds the new text.
 #[derive(Debug, Clone)]
 pub struct PendingDiff {
@@ -164,6 +170,13 @@ fn chart_compilation_config() -> FormattingConfigT {
 
 /// A statement id that the compiler returns for none
 const NO_STATEMENT: u32 = u32::MAX;
+
+/// The next revision. Revisions of all workbooks and scripts come from one counter: a script that replaces another
+/// under its key, e.g. one that moved to another connection, never shows a revision of the script it replaced.
+fn next_revision() -> u64 {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
 
 /// The visualization of a script: its last statement is a query with a renderer tag (`@vis`)
 #[derive(Debug, Clone, PartialEq)]
@@ -283,6 +296,14 @@ impl WorkbookScript {
     }
     pub fn revision(&self) -> u64 {
         self.revision
+    }
+
+    /// Remove the declarations of the script from the catalog of its connection. Idempotent, a dropped script leaves
+    /// its catalog as well. A borrowed catalog or session is left as it is instead of panicking.
+    fn leave_catalog(&self) {
+        if let (Ok(session), Ok(mut catalog)) = (self.session.try_borrow(), self.connection.catalog.try_borrow_mut()) {
+            session.drop_from_catalog(&mut catalog);
+        }
     }
 
     /// The text of the script
@@ -555,7 +576,7 @@ impl Workbook {
             table_parameters: None,
             cloud: None,
             offset_unit,
-            revision: 0,
+            revision: next_revision(),
         }
     }
 
@@ -573,13 +594,13 @@ impl Workbook {
     /// scripts
     pub fn set_stored_pending_connection(&mut self, connection: Option<Rc<ScriptConnection>>) {
         self.pending_connection = connection;
-        self.revision += 1;
+        self.revision = next_revision();
     }
 
     /// Set the link to a cloud that storage holds when a workbook is restored
     pub fn set_stored_cloud_link(&mut self, link: Option<CloudLink>) {
         self.cloud = link;
-        self.revision += 1;
+        self.revision = next_revision();
     }
 
     /// Promote an ephemeral workbook with scripts to a full workbook: it drops the marker and takes a name that no
@@ -590,7 +611,7 @@ impl Workbook {
         }
         self.ephemeral = false;
         self.name = Some(free_workbook_name(taken_names));
-        self.revision += 1;
+        self.revision = next_revision();
         Some(self.properties_write())
     }
 
@@ -646,9 +667,8 @@ impl Workbook {
             let existing = existing.and_then(|position| previous[position].take());
             let mut script = match (created, existing) {
                 (Some(created), existing) => {
-                    if let Some(existing) = existing {
-                        existing.session.borrow_mut().drop_from_catalog(&mut existing.connection.catalog.borrow_mut());
-                    }
+                    // A replaced script leaves its catalog when it drops
+                    drop(existing);
                     changed = true;
                     created
                 }
@@ -659,7 +679,7 @@ impl Workbook {
                         }
                         existing.pending_diff = None;
                         existing.analysis_outdated = true;
-                        existing.revision += 1;
+                        existing.revision = next_revision();
                         changed = true;
                     }
                     existing
@@ -668,24 +688,24 @@ impl Workbook {
             };
             if script.unresolved_connection_id != entry.unresolved_connection_id {
                 script.unresolved_connection_id = entry.unresolved_connection_id;
-                script.revision += 1;
+                script.revision = next_revision();
                 changed = true;
             }
             self.scripts.push(script);
         }
-        // Files that storage no longer holds leave their catalogs
-        for removed in previous.into_iter().flatten() {
-            removed.session.borrow_mut().drop_from_catalog(&mut removed.connection.catalog.borrow_mut());
+        // Files that storage no longer holds leave their catalogs when they drop
+        if previous.iter().any(Option::is_some) {
             changed = true;
         }
+        drop(previous);
         if changed {
             // Any added, removed or changed script can change what the others read, they analyze again on use
             for script in self.scripts.iter_mut() {
                 script.analysis_outdated = true;
-                script.revision += 1;
+                script.revision = next_revision();
             }
             self.publish_table_parameters();
-            self.revision += 1;
+            self.revision = next_revision();
         }
         match failure {
             Some(error) => Err(error),
@@ -801,9 +821,22 @@ impl Workbook {
             drop(session);
             if !current && !script.analysis_outdated {
                 script.analysis_outdated = true;
-                script.revision += 1;
+                script.revision = next_revision();
             }
         }
+    }
+
+    /// Give the table parameters of the workbook to a session that is no script of it, e.g. the draft of the composer.
+    /// Returns whether the analysis of the session is outdated by them.
+    pub fn attach_table_parameters(&self, session: &mut ScriptSession) -> bool {
+        let Some(results) = &self.table_parameters else {
+            return false;
+        };
+        if session.script().table_parameters.as_ref().is_some_and(|attached| Arc::ptr_eq(attached, results)) {
+            return false;
+        }
+        session.set_table_parameters(Some(results.clone()));
+        !session.script().table_parameters_current()
     }
 
     /// Rewrite the table parameters that read a renamed script or attachment to read `name`. The references are those
@@ -867,7 +900,7 @@ impl Workbook {
             script.analyze();
             script.pending_diff = None;
             script.external_changes = Some(ExternalChanges { from_text, changes });
-            script.revision += 1;
+            script.revision = next_revision();
             rewritten.push(script.key);
         }
         Ok(rewritten)
@@ -921,7 +954,7 @@ impl Workbook {
         let key = script.key;
         self.scripts.push(script);
         self.publish_table_parameters();
-        self.revision += 1;
+        self.revision = next_revision();
         Ok(key)
     }
 
@@ -929,7 +962,7 @@ impl Workbook {
     pub fn set_stored_attachments(&mut self, files: &[DataFile]) {
         self.attachments = Some(read_workbook_attachments(files, &[]));
         self.publish_table_parameters();
-        self.revision += 1;
+        self.revision = next_revision();
     }
 
     /// The connection that a new script runs on: a script inserted at an index takes the connection of the script
@@ -998,7 +1031,7 @@ impl Workbook {
                         script.session.borrow_mut().analyze(&script.connection.catalog.borrow())
                     };
                     script.take_analysis(update);
-                    script.revision += 1;
+                    script.revision = next_revision();
                     outcome.changed = true;
                 }
             }
@@ -1013,7 +1046,7 @@ impl Workbook {
                 if let Some(script) = self.script_mut(key).filter(|script| script.pending_diff.is_some()) {
                     // The script holds the new text already
                     script.pending_diff = None;
-                    script.revision += 1;
+                    script.revision = next_revision();
                     outcome.changed = true;
                 }
             }
@@ -1036,7 +1069,7 @@ impl Workbook {
                 for script in self.scripts.iter_mut().filter(|script| script.connection.connection_id == connection_id) {
                     if !script.analysis_outdated {
                         script.analysis_outdated = true;
-                        script.revision += 1;
+                        script.revision = next_revision();
                         outcome.changed = true;
                     }
                 }
@@ -1044,14 +1077,14 @@ impl Workbook {
             WorkbookAction::SetExecutionVisualization { key, visualization } => {
                 if let Some(script) = self.script_mut(key).filter(|script| script.visualization != visualization) {
                     script.visualization = visualization;
-                    script.revision += 1;
+                    script.revision = next_revision();
                     outcome.changed = true;
                 }
             }
             WorkbookAction::RegisterQuery { key, query_id } => {
                 if let Some(script) = self.script_mut(key) {
                     script.latest_query_id = Some(query_id);
-                    script.revision += 1;
+                    script.revision = next_revision();
                     outcome.changed = true;
                 }
             }
@@ -1060,7 +1093,7 @@ impl Workbook {
                     // Query ids grow, an older overlapping query must not replace a newer result
                     if script.latest_result_query_id.is_none_or(|latest| latest < query_id) {
                         script.latest_result_query_id = Some(query_id);
-                        script.revision += 1;
+                        script.revision = next_revision();
                         outcome.changed = true;
                     }
                 }
@@ -1110,7 +1143,7 @@ impl Workbook {
         if outcome.changed {
             // The table parameters read the results of the scripts and the attachments, which follow every change
             self.publish_table_parameters();
-            self.revision += 1;
+            self.revision = next_revision();
         }
         Ok(outcome)
     }
@@ -1177,7 +1210,7 @@ impl Workbook {
             latest_query_id: None,
             latest_result_query_id: None,
             unresolved_connection_id: None,
-            revision: 0,
+            revision: next_revision(),
         })
     }
 
@@ -1187,7 +1220,7 @@ impl Workbook {
         for script in self.scripts.iter_mut() {
             if script.key != changed && !script.analysis_outdated && Rc::ptr_eq(&script.connection.catalog, catalog) {
                 script.analysis_outdated = true;
-                script.revision += 1;
+                script.revision = next_revision();
             }
         }
     }
@@ -1236,8 +1269,9 @@ impl Workbook {
         let Some(position) = self.scripts.iter().position(|script| script.file_name == file_name) else {
             return;
         };
+        // The script leaves its catalog when it drops, at the end of the action
         let deleted = self.scripts.remove(position);
-        deleted.session.borrow_mut().drop_from_catalog(&mut deleted.connection.catalog.borrow_mut());
+        deleted.leave_catalog();
         // A workbook without scripts keeps the connection of its last script for the next one
         if self.scripts.is_empty() && self.pending_connection.is_none() {
             self.pending_connection = Some(deleted.connection.clone());
@@ -1274,7 +1308,7 @@ impl Workbook {
         let rewritten = self.rewrite_renamed_references(ReferenceTarget::Script(file_name), &base, Some(key))?;
         let script = &mut self.scripts[position];
         script.file_name = new_file_name.clone();
-        script.revision += 1;
+        script.revision = next_revision();
         // The other scripts read the script by its name
         script.analyze();
         let catalog = script.connection.catalog.clone();
@@ -1334,7 +1368,7 @@ impl Workbook {
         script.analyze();
         script.pending_diff = pending_diff;
         script.external_changes = None;
-        script.revision += 1;
+        script.revision = next_revision();
         let (catalog, effect) = (script.connection.catalog.clone(), Self::write_script(script));
         // The text was published into the catalog, the other scripts resolve against it again
         self.mark_others_outdated(key, &catalog);
@@ -1393,7 +1427,7 @@ impl Workbook {
             script.pending_diff = None;
             // A mounted editor applies the change and keeps its cursor
             script.external_changes = Some(ExternalChanges { changes: vec![text_change(&from_text, &text, unit)], from_text });
-            script.revision += 1;
+            script.revision = next_revision();
             outcome.effects.push(Self::write_script(script));
             rewritten.push((*key, script.connection.catalog.clone()));
         }
@@ -1463,7 +1497,7 @@ impl Workbook {
         if accepts_diff {
             script.pending_diff = None;
         }
-        script.revision += 1;
+        script.revision = next_revision();
         let catalog = script.connection.catalog.clone();
         // Only a changed text is written, moving the cursor doesn't rewrite the file
         let write = text_changed.then(|| Self::write_script(script));
@@ -1490,7 +1524,7 @@ impl Workbook {
     /// Replace the script at a position with a moved one, the previous script leaves its catalog
     fn replace_moved(&mut self, position: usize, moved: WorkbookScript) -> WorkbookScript {
         let previous = std::mem::replace(&mut self.scripts[position], moved);
-        previous.session.borrow_mut().drop_from_catalog(&mut previous.connection.catalog.borrow_mut());
+        previous.leave_catalog();
         previous
     }
 
@@ -1502,7 +1536,7 @@ impl Workbook {
         if script.connection.connection_id == connection.connection_id {
             // Picking the connection the script runs on replaces the unresolved reference
             if script.unresolved_connection_id.take().is_some() {
-                script.revision += 1;
+                script.revision = next_revision();
                 outcome.changed = true;
                 outcome.effects.push(WorkbookEffect::WriteScriptList(self.script_list()));
             }
@@ -1559,7 +1593,7 @@ impl Workbook {
         for script in self.scripts.iter_mut().filter(|script| Rc::ptr_eq(&script.connection.catalog, &into.catalog)) {
             if !script.analysis_outdated {
                 script.analysis_outdated = true;
-                script.revision += 1;
+                script.revision = next_revision();
             }
         }
         outcome.changed = true;
@@ -1583,7 +1617,7 @@ impl Workbook {
         let catalog = script.connection.catalog.clone();
         let version = catalog.borrow().version();
         script.analyze();
-        script.revision += 1;
+        script.revision = next_revision();
         // The analysis ran against a newer catalog and may publish different declarations, e.g. a view over a table
         // of another script. The scripts that resolve against them are outdated then, too.
         if catalog.borrow().version() != version {

@@ -11,7 +11,7 @@ import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.
 import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from './workbook_execution.js';
 import {
     APPLY_PLANNER_ANALYSIS,
-    createEmptyScriptData,
+    createWorkbookScripts,
     type WorkbookScripts,
     type WorkbookScriptsAction,
     reduceWorkbookScripts,
@@ -24,7 +24,7 @@ import {
     SET_WORKBOOK_ATTACHMENTS,
 } from './workbook_scripts.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata } from './script_types.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/workbook_export.js';
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
@@ -60,19 +60,12 @@ afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 function fixture(entries: Array<[string, string]>) {
     const catalog = dql.createCatalog();
     const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog, local: true };
-    const scripts: WorkbookScripts['scripts'] = {};
-    const scriptRefs: WorkbookScripts['scriptRefs'] = {};
-    for (const [fileName, text] of entries) {
-        const [scriptKey, script] = createEmptyScriptData(dql, connection, fileName);
-        replaceScriptSessionText(script.scriptSession, text);
-        scripts[scriptKey] = script;
-        scriptRefs[fileName] = createScriptRef(scriptKey, fileName);
-    }
-    let live: WorkbookScripts = {
+    const sorted = [...entries].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+    let live: WorkbookScripts = createWorkbookScripts({
         instance: dql, workbookId: crypto.randomUUID(), name: 'Execution integration',
         pendingConnection: entries.length === 0 ? connection : null, workbookMetadata: createEmptyMetadata(),
-        scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
-    };
+        scripts: sorted.map(([name, sql]) => ({ name, sql, connection })),
+    });
     const writer = new StorageWriter(logger, new WorkbookTestBackend());
     const write = vi.spyOn(writer, 'write');
     const apply = (action: WorkbookScriptsAction) => {
@@ -779,13 +772,13 @@ call clfn.item_get (id => :id, size => 2);`]]);
         const previous = f.script('1_query.sql');
         const analyze = vi.spyOn(previous.scriptSession, 'analyze');
         const publish = vi.spyOn(previous.scriptSession, 'loadIntoCatalog');
-        const visualization = { renderer: 'table' as const, sql: 'select 1', statementId: 0 };
-        f.apply({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [previous.scriptKey, visualization] });
+        const compiled = new core.buffers.execution.CompiledVisualizationT('table');
+        f.apply({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [previous.scriptKey, { sql: 'select 1', statementId: 0, visualization: compiled }] });
 
         const next = f.script('1_query.sql');
-        expect(next).toEqual({ ...previous, annotations: { ...previous.annotations, visualizeQuery: visualization } });
-        expect(next.annotations.visualizeQuery).toBe(visualization);
-        expect(next.annotations.tableDefs).toBe(previous.annotations.tableDefs);
+        const visualizeQuery = { renderer: 'table', sql: 'select 1', statementId: 0, dashboardSpec: null };
+        expect(next).toEqual({ ...previous, annotations: { ...previous.annotations, visualizeQuery } });
+        expect(next.annotations.tableDefs).toEqual(previous.annotations.tableDefs);
         expect(analyze).not.toHaveBeenCalled();
         expect(publish).not.toHaveBeenCalled();
         expect(f.write).not.toHaveBeenCalled();

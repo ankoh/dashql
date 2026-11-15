@@ -13,12 +13,12 @@ import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWo
 import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
 import { runWorkbookScript, runWorkbookScriptForResult } from './rerun_query.js';
 import {
-    ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createEmptyScriptData, reduceWorkbookScripts,
+    ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createWorkbookScripts, reduceWorkbookScripts,
     scriptResultOwner,
     replaceScriptSessionText, SET_SCRIPT_CONNECTION, type WorkbookScripts, type WorkbookScriptsAction,
 } from './workbook_scripts.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
-import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { createEmptyMetadata } from './script_types.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -35,19 +35,11 @@ function fixture(entries: Array<[string, string]>, remote: string[] = [], cachin
     const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog(), local: true };
     const trino = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
     if (clientFunctions !== undefined) trino.catalog.registerClientFunctions(clientFunctions);
-    const scripts: WorkbookScripts['scripts'] = {};
-    const scriptRefs: WorkbookScripts['scriptRefs'] = {};
-    for (const [fileName, text] of entries) {
-        const [scriptKey, script] = createEmptyScriptData(dql, connection, fileName);
-        replaceScriptSessionText(script.scriptSession, text);
-        scripts[scriptKey] = script;
-        scriptRefs[fileName] = createScriptRef(scriptKey, fileName);
-    }
-    let live: WorkbookScripts = {
+    let live: WorkbookScripts = createWorkbookScripts({
         instance: dql, workbookId: crypto.randomUUID(), name: 'References',
         pendingConnection: null, workbookMetadata: createEmptyMetadata(),
-        scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName),
-    };
+        scripts: entries.map(([name, sql]) => ({ name, sql, connection })),
+    });
     const writer = new StorageWriter(logger, new WorkbookTestBackend());
     const apply = (action: WorkbookScriptsAction) => { live = reduceWorkbookScripts(live, action, writer, logger); return live; };
     for (const fileName of remote) apply({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: trino } });
@@ -164,7 +156,7 @@ describe('script runs', () => {
         expect(f.calls.map(call => call.sql)).toEqual(['SELECT   1   AS a']);
         expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({
             type: SET_SCRIPT_EXECUTION_VISUALIZATION,
-            value: [f.script('foo.sql').scriptKey, expect.objectContaining({ renderer: 'table', sql: 'SELECT   1   AS a' })],
+            value: [f.script('foo.sql').scriptKey, expect.objectContaining({ sql: 'SELECT   1   AS a', visualization: expect.objectContaining({ renderer: 'table' }) })],
         });
     });
 

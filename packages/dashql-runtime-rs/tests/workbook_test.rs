@@ -776,3 +776,20 @@ fn applies_the_analyses_of_the_planner_that_are_current() {
     assert!(!outcome.changed);
     assert!(workbook.script(query).unwrap().analysis_outdated());
 }
+
+#[test]
+fn takes_deleted_and_dropped_scripts_out_of_their_catalogs() {
+    let (mut workbook, main) = workbook(&[("tables.sql", "create table t (x int)"), ("more.sql", "create table u (y int)")]);
+    let (tables, more) = (key(&workbook, "tables.sql"), key(&workbook, "more.sql"));
+    settle(&mut workbook);
+    assert!(main.catalog.borrow().contains(tables) && main.catalog.borrow().contains(more));
+    workbook.apply(WorkbookAction::DeleteScript { file_name: "tables.sql".into() }).unwrap();
+    assert!(!main.catalog.borrow().contains(tables));
+    // A moved script leaves the catalog of its old connection
+    let other = connection("other", None);
+    workbook.apply(WorkbookAction::SetScriptConnection { file_name: "more.sql".into(), connection: other.clone() }).unwrap();
+    assert!(!main.catalog.borrow().contains(more) && other.catalog.borrow().contains(more));
+    // A dropped workbook takes its scripts with it
+    drop(workbook);
+    assert!(!other.catalog.borrow().contains(more));
+}

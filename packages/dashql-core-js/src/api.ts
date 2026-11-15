@@ -5,6 +5,7 @@ import * as glue from './wasm/dashql_core.js';
 import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
+import { DashQLWorkbook } from './workbook.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -387,6 +388,12 @@ export class DashQL {
     /// SQL text, `SqlType.sql`. Throws if the type doesn't read the value.
     public inputLiteral(value: string, type: string | null): string {
         return this.bindings.inputLiteral(value, type ?? undefined);
+    }
+
+    /// Create the scripts of a workbook in the Rust runtime. Created through the instance, the session handles of the
+    /// workbook are the classes of the instance also where a bundle holds two copies of this package.
+    public createWorkbook(id: string, name: string | null, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLWorkbook {
+        return DashQLWorkbook.create(this, id, name, offsetUnit);
     }
 
     /// Create the table parameters of a session, the tables that `:foo` in table position reads

@@ -6,8 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { createEmptyScriptData, replaceScriptSessionText, scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createWorkbookScripts, scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useWorkbookScriptsRegistry } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -29,19 +28,15 @@ beforeAll(async () => {
 /// A workbook s1 with the script orders.sql of the text
 function workbook(text: string): [WorkbookScripts, number] {
     const connection = { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: core.createCatalog() };
-    const [scriptKey, scriptData] = createEmptyScriptData(core, connection, 'orders.sql');
-    replaceScriptSessionText(scriptData.scriptSession, text);
-    const workbookScripts = {
+    const workbookScripts = createWorkbookScripts({
+        instance: core,
         workbookId: 's1',
         name: 'Orders',
         pendingConnection: null,
-        instance: core,
-        workbookMetadata: {},
-        scripts: { [scriptKey]: scriptData },
-        scriptRefs: { 'orders.sql': createScriptRef(scriptKey, 'orders.sql') },
-        scriptOrder: ['orders.sql'],
-    } as unknown as WorkbookScripts;
-    return [workbookScripts, scriptKey];
+        workbookMetadata: {} as WorkbookScripts['workbookMetadata'],
+        scripts: [{ name: 'orders.sql', sql: text, connection }],
+    });
+    return [workbookScripts, workbookScripts.scriptRefs['orders.sql'].scriptId];
 }
 
 /// A query result of the columns, owned by the script of the workbook

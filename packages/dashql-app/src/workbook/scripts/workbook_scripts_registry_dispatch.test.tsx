@@ -1,30 +1,35 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
+
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createWorkbookScripts, isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { useWorkbookScripts, useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// A workbook with the script `1.sql`, its key is the key that the tests read
 function fixture(workbookId: string): WorkbookScripts {
-    // REGISTER_QUERY only needs the script entry; no Wasm or execution setup is required. The runtime registers the
-    // services of script runs with the instance.
-    return {
-        workbookId,
-        instance: {},
-        pendingConnection: null,
-        scripts: { 1: { scriptKey: 1, fileName: '1.sql', latestQueryId: null, connection: { connectionId: `${workbookId}-database` } } },
-        scriptRefs: { '1.sql': { scriptId: 1, fileName: '1.sql' } },
-        scriptOrder: ['1.sql'],
-    } as unknown as WorkbookScripts;
+    const connection = { connectionId: `${workbookId}-database`, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
+    return createWorkbookScripts({
+        instance: dql, workbookId, name: null, workbookMetadata: createEmptyMetadata(), pendingConnection: null,
+        scripts: [{ name: '1.sql', sql: 'select 1', connection }],
+    });
 }
 
 function SeedRegistry(props: { workbooks: WorkbookScripts[]; children: React.ReactNode }) {
@@ -56,6 +61,7 @@ describe('useWorkbookScripts dispatch', () => {
     it('keeps retained and current modifiers bound to their workbooks when a reused route batches actions', async () => {
         const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
         const workbooks = [fixture('a'), fixture('b')];
+        const [keyA, keyB] = workbooks.map(workbook => workbook.scriptRefs['1.sql'].scriptId);
         const backend = new WorkbookTestBackend();
         const container = document.createElement('div');
         document.body.appendChild(container);
@@ -94,18 +100,18 @@ describe('useWorkbookScripts dispatch', () => {
             let resultB!: ReturnType<typeof modifyB>;
             await act(async () => {
                 // Both calls enqueue synchronously before the shared queue's microtask flush.
-                resultA = modifyA({ type: REGISTER_QUERY, value: [1, 101] });
-                resultB = modifyB({ type: REGISTER_QUERY, value: [1, 202] });
-                expect(registry.workbookScriptsMap.get('a')?.scripts[1].latestQueryId).toBeNull();
-                expect(registry.workbookScriptsMap.get('b')?.scripts[1].latestQueryId).toBeNull();
+                resultA = modifyA({ type: REGISTER_QUERY, value: [keyA, 101] });
+                resultB = modifyB({ type: REGISTER_QUERY, value: [keyB, 202] });
+                expect(registry.workbookScriptsMap.get('a')?.scripts[keyA].latestQueryId).toBeNull();
+                expect(registry.workbookScriptsMap.get('b')?.scripts[keyB].latestQueryId).toBeNull();
             });
 
             const [resolvedA, resolvedB] = await Promise.all([resultA, resultB]);
-            expect(resolvedA).toMatchObject({ workbookId: 'a', scripts: { 1: { latestQueryId: 101 } } });
-            expect(resolvedB).toMatchObject({ workbookId: 'b', scripts: { 1: { latestQueryId: 202 } } });
-            await vi.waitFor(() => expect(current[0]?.scripts[1].latestQueryId).toBe(202));
-            expect(registry.workbookScriptsMap.get('a')?.scripts[1].latestQueryId).toBe(101);
-            expect(registry.workbookScriptsMap.get('b')?.scripts[1].latestQueryId).toBe(202);
+            expect(resolvedA).toMatchObject({ workbookId: 'a', scripts: { [keyA]: { latestQueryId: 101 } } });
+            expect(resolvedB).toMatchObject({ workbookId: 'b', scripts: { [keyB]: { latestQueryId: 202 } } });
+            await vi.waitFor(() => expect(current[0]?.scripts[keyB].latestQueryId).toBe(202));
+            expect(registry.workbookScriptsMap.get('a')?.scripts[keyA].latestQueryId).toBe(101);
+            expect(registry.workbookScriptsMap.get('b')?.scripts[keyB].latestQueryId).toBe(202);
             act(() => {
                 modifyA({ type: RENAME_WORKBOOK, value: 'Offline workbook' });
             });

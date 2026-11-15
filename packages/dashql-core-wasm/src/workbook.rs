@@ -90,6 +90,14 @@ fn text_changes_json(changes: &[TextChange]) -> Value {
     Value::Array(changes.iter().map(|c| json!({ "from": c.from, "to": c.to, "insert": c.insert })).collect())
 }
 
+/// The key of an editor update: its versions, its status and whether it holds an analysis
+fn editor_update_key(update: &dashql_buffers::editor::EditorUpdateT) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        update.text_version, update.state_revision, update.catalog_revision, update.status.0, update.analysis_available
+    )
+}
+
 /// The plain fields of a script
 fn script_json(script: &WorkbookScript) -> Value {
     let visualization = script.visualization();
@@ -102,6 +110,8 @@ fn script_json(script: &WorkbookScript) -> Value {
         "connectionId": script.connection().connection_id,
         "unresolvedConnectionId": script.unresolved_connection_id(),
         "analysisOutdated": script.analysis_outdated(),
+        // Names the editor update, an update with the same key is the same analysis
+        "editorUpdateKey": script.editor_update().map(editor_update_key),
         "latestQueryId": script.latest_query_id(),
         "latestResultQueryId": script.latest_result_query_id(),
         "pendingDiffPriorText": script.pending_diff().map(|diff| diff.prior_text.as_str()),
@@ -501,6 +511,13 @@ impl Workbook {
     pub fn apply_planner_analysis(&mut self, key: u32, update: &[u8]) -> Result<WorkbookOutcome, JsError> {
         let update = flatbuffers::root::<EditorUpdate>(update).map_err(|_| js_error(Error::invalid_argument("invalid editor update")))?.unpack();
         self.apply(WorkbookAction::ApplyPlannerAnalysis { updates: vec![(key, update)] })
+    }
+
+    /// Give the table parameters of the workbook to a session that is no script of it, e.g. the draft of the composer.
+    /// Returns whether the analysis of the session is outdated by them.
+    #[wasm_bindgen(js_name = attachTableParameters)]
+    pub fn attach_table_parameters(&self, session: &ScriptSession) -> bool {
+        self.inner.attach_table_parameters(&mut session.inner.borrow_mut())
     }
 
     // Reading the state

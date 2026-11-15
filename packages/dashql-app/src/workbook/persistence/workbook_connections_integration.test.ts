@@ -12,7 +12,7 @@ import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-runtime/storag
 import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import { ANALYZE_OUTDATED_SCRIPT, analyzeScriptData, reduceWorkbookScripts, REORDER_SCRIPTS, scriptConnectionOf, workbookConnectionIds, SET_SCRIPT_CONNECTION, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { ANALYZE_OUTDATED_SCRIPT, reduceWorkbookScripts, REORDER_SCRIPTS, scriptConnectionOf, workbookConnectionIds, SET_SCRIPT_CONNECTION, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { applyConnectionImportPlan, planConnectionImport, type ConnectionImportChoice } from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
 import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
@@ -84,7 +84,11 @@ describe('Workbook connections', () => {
     /// Load every script into the catalog of its connection like a workbook run does and return the
     /// number of table references of a script that its catalog does not resolve
     const unresolvedReferences = (workbook: WorkbookScripts, fileName: string): number => {
-        for (const name of workbook.scriptOrder) analyzeScriptData(scriptOf(workbook, name), logger);
+        for (const name of workbook.scriptOrder) {
+            const session = scriptOf(workbook, name).scriptSession;
+            session.analyze();
+            session.loadIntoCatalog();
+        }
         const script = scriptOf(workbook, fileName);
         script.scriptSession.analyze();
         return dql.planSession({

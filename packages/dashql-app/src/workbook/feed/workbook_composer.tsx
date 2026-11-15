@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
+import type { WorkbookTableParameters } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import * as styles from './workbook_composer.module.css';
 
 import type { EditorView } from '@codemirror/view';
@@ -67,7 +68,7 @@ export interface WorkbookComposerProps {
     /// Receives the function that references a workbook script in the draft, by its display name
     targetScriptRef?: React.RefObject<((name: string) => void) | null>;
     /// The results of the workbook scripts, the table parameters of the draft read them
-    tableParameters?: core.DashQLTableParameters | null;
+    tableParameters?: WorkbookTableParameters | null;
     /// Receives the function that renames the references to a workbook script in the draft, by display names
     renameScriptRef?: React.RefObject<((from: string, to: string) => void) | null>;
     /// Picks the connection that the draft runs on

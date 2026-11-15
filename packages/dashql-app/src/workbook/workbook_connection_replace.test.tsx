@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
@@ -15,12 +15,19 @@ import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_
 import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { scriptConnectionOf, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createWorkbookScripts, scriptConnectionOf, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import * as core from '@ankoh/dashql-core';
 import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 const WORKBOOK_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
@@ -32,7 +39,8 @@ function connection(connectionId: string, endpoint: string): ConnectionState {
         connectionHealth: ConnectionHealth.NOT_STARTED, metrics: createConnectionMetrics(),
         params: { trino: { endpoint } },
         details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: { endpoint } } } },
-        catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
+        instance: dql,
+        catalog: dql.createCatalog(),
         catalogRelationEntryId: 1,
         catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
         catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false },
@@ -43,16 +51,15 @@ function connection(connectionId: string, endpoint: string): ConnectionState {
 
 /// A workbook whose next script runs on a connection
 function workbook(on: ConnectionState): WorkbookScripts {
-    return {
+    return createWorkbookScripts({
+        instance: dql,
         workbookId: WORKBOOK_ID,
-        // The runtime registers the services of script runs with the instance
-        instance: {},
+        name: null,
+        workbookMetadata: createEmptyMetadata(),
         pendingConnection: scriptConnectionOf(on),
-        scripts: {},
-        scriptRefs: {},
-        scriptOrder: [],
-        attachments: [],
-    } as unknown as WorkbookScripts;
+        scripts: [],
+        dataFiles: [],
+    });
 }
 
 interface Api {
@@ -94,10 +101,12 @@ describe('useReplaceConnection', () => {
     let root: Root;
     let api: Api | null;
     let backend: WorkbookTestBackend;
-    const source = connection('source', 'http://old');
-    const target = connection('target', 'http://new');
+    let source: ConnectionState;
+    let target: ConnectionState;
 
     beforeEach(async () => {
+        source = connection('source', 'http://old');
+        target = connection('target', 'http://new');
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);

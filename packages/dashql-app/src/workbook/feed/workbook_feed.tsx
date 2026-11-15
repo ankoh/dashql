@@ -35,7 +35,7 @@ import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { checkWorkbookScriptReferences } from '../scripts/script_reference_reports.js';
-import { workbookTableParameters } from '@ankoh/dashql-runtime/workbook/scripts/table_parameters_publisher';
+import { workbookTableParameters } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';

@@ -4,13 +4,12 @@ import { stringifyError } from '../../platform/logger/logger.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { registerConnection, workbookConnectionFromState, type ConnectionRegistry } from '../../connections/connection_registry_state.js';
-import type { WorkbookScripts, ScriptData } from '../scripts/workbook_scripts.js';
+import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
 import { addWorkbookScriptsForConnection, copyWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry_state.js';
-import { createEmptyScriptData, destroyWorkbookScripts, isEphemeralWorkbook, replaceScriptSessionText, scriptConnectionOf, workbookConnectionIds } from '../scripts/workbook_scripts.js';
-import { readWorkbookAttachments, type WorkbookAttachment } from '../attachments/workbook_attachments.js';
+import { createWorkbookScripts, destroyWorkbookScripts, dropEphemeralMarker, isEphemeralWorkbook, scriptConnectionOf, workbookConnectionIds } from '../scripts/workbook_scripts.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection, restoreConnectionCatalog } from '../../connections/connection_restore.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '../../connections/connector_info.js';
-import type { StorageBackend, WorkbookEntry, WorkbookData, WorkbookRegistryBackend, ConnectionEntry, WorkbookConnection, WorkbookScript } from '../../storage/storage_backend.js';
+import type { StorageBackend, WorkbookEntry, WorkbookData, WorkbookRegistryBackend, ConnectionEntry, WorkbookConnection, WorkbookScript, DataFile } from '../../storage/storage_backend.js';
 import { StorageBackendType, isWorkbookRegistryBackend } from '../../storage/storage_backend.js';
 import { connectionParamsEqual, createDefaultConnectionParamsForConnector } from '../../connections/connection_params.js';
 import { findEmbeddedConnection } from '../../connections/embedded_connection.js';
@@ -82,62 +81,40 @@ async function restoreWorkbookScripts(
     resolveConnection: WorkbookConnectionResolver,
     logger: Logger
 ): Promise<{ workbookScripts: WorkbookScripts; workbook: WorkbookData }> {
-    const scripts: Record<number, ScriptData> = {};
+    logger.info("Loading scripts", { workbookId }, LOG_CTX);
+    const storedScripts = await backend.loadScripts(workbookId);
+    logger.info("Scripts loaded", {
+        workbookId,
+        scriptCount: storedScripts.length.toString()
+    }, LOG_CTX);
 
+    // The workbook file orders the scripts and names their connections
+    const sqlByName = new Map(storedScripts.map(script => [script.name, script.sql]));
+    const resolved = resolveWorkbookScripts(workbookData, storedScripts.map(script => script.name), fallbackConnection, resolveConnection,
+        connectionId => logger.warn("Script references an unknown connection, using the embedded database", { workbookId, connectionId }, LOG_CTX));
+    // The attachments of the workbook, a Parquet attachment is a table parameter of the scripts
+    let dataFiles: DataFile[] = [];
     try {
-        logger.info("Loading scripts", { workbookId }, LOG_CTX);
-        const storedScripts = await backend.loadScripts(workbookId);
-        logger.info("Scripts loaded", {
-            workbookId,
-            scriptCount: storedScripts.length.toString()
-        }, LOG_CTX);
-
-        // The workbook file orders the scripts and names their connections
-        const sqlByName = new Map(storedScripts.map(script => [script.name, script.sql]));
-        const resolved = resolveWorkbookScripts(workbookData, storedScripts.map(script => script.name), fallbackConnection, resolveConnection,
-            connectionId => logger.warn("Script references an unknown connection, using the embedded database", { workbookId, connectionId }, LOG_CTX));
-        const scriptRefs: { [fileName: string]: { scriptId: number; fileName: string } } = {};
-        for (const entry of resolved.scripts) {
-            const [scriptKey, created] = createEmptyScriptData(core, scriptConnectionOf(entry.connection), entry.name);
-            const scriptData = entry.unresolvedConnectionId == null ? created : { ...created, unresolvedConnectionId: entry.unresolvedConnectionId };
-            scripts[scriptKey] = scriptData;
-
-            // Set SQL content. Ordinary workbook scripts remain outdated until first use.
-            replaceScriptSessionText(scriptData.scriptSession, sqlByName.get(entry.name) ?? '');
-
-            scriptRefs[entry.name] = {
-                scriptId: scriptKey,
-                fileName: entry.name,
-            };
-        }
-        const scriptOrder = resolved.scripts.map(entry => entry.name);
-        // The attachments of the workbook, a Parquet attachment is a table parameter of the scripts
-        let attachments: WorkbookAttachment[] = [];
-        try {
-            attachments = readWorkbookAttachments(await backend.listDataFiles(workbookId));
-        } catch (error) {
-            logger.warn("Listing the attachments failed", { workbookId, error: stringifyError(error) }, LOG_CTX);
-        }
-
-        const workbookScripts: WorkbookScripts = {
-            instance: core,
-            workbookId,
-            name,
-            pendingConnection: resolved.pendingConnection == null ? null : scriptConnectionOf(resolved.pendingConnection),
-            workbookMetadata: workbookData.metadata,
-            scripts,
-            scriptRefs,
-            scriptOrder,
-            attachments,
-        };
-
-        return { workbookScripts, workbook: resolved.workbook };
+        dataFiles = await backend.listDataFiles(workbookId);
     } catch (error) {
-        for (const scriptData of Object.values(scripts)) {
-            scriptData.scriptSession.destroy();
-        }
-        throw error;
+        logger.warn("Listing the attachments failed", { workbookId, error: stringifyError(error) }, LOG_CTX);
     }
+    // The scripts stay outdated until their first use. A failure frees what was created.
+    const workbookScripts = createWorkbookScripts({
+        instance: core,
+        workbookId,
+        name,
+        workbookMetadata: workbookData.metadata,
+        pendingConnection: resolved.pendingConnection == null ? null : scriptConnectionOf(resolved.pendingConnection),
+        scripts: resolved.scripts.map(entry => ({
+            name: entry.name,
+            sql: sqlByName.get(entry.name) ?? '',
+            connection: scriptConnectionOf(entry.connection),
+            ...(entry.unresolvedConnectionId != null ? { unresolvedConnectionId: entry.unresolvedConnectionId } : {}),
+        })),
+        dataFiles,
+    });
+    return { workbookScripts, workbook: resolved.workbook };
 }
 
 /// The state that the restoration of connections and workbooks shares.
@@ -360,8 +337,7 @@ async function restoreWorkbookEntry(
         );
         restoredWorkbookScripts = restored.workbookScripts;
         if (isEphemeralWorkbook(restoredWorkbookScripts) && restoredWorkbookScripts.scriptOrder.length > 0) {
-            const { ephemeral: _promoted, ...workbookMetadata } = restoredWorkbookScripts.workbookMetadata;
-            restoredWorkbookScripts = { ...restoredWorkbookScripts, workbookMetadata };
+            restoredWorkbookScripts = dropEphemeralMarker(restoredWorkbookScripts);
             ctx.pendingWrites.promotedWorkbooks.push(workbookId);
         }
         if (workbookScriptsResolutionChanged(workbookData, restored.workbook)) {

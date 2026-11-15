@@ -79,6 +79,8 @@ export interface WorkbookScriptSnapshot {
     connectionId: string;
     unresolvedConnectionId: string | null;
     analysisOutdated: boolean;
+    /// Names the editor update of the script, an update with the same key is the same analysis
+    editorUpdateKey: string | null;
     latestQueryId: number | null;
     latestResultQueryId: number | null;
     /// The text before a staged rewrite
@@ -148,6 +150,11 @@ function dataFileArgs(files: readonly WorkbookDataFile[]): [string[], Float64Arr
         Float64Array.from(files, file => file.sizeBytes),
         Float64Array.from(files, file => file.mtimeMs ?? 0),
     ];
+}
+
+/// The key of an editor update as `WorkbookScriptSnapshot.editorUpdateKey` names it
+export function editorUpdateKey(update: buffers.editor.EditorUpdateT): string {
+    return `${update.textVersion}:${update.stateRevision}:${update.catalogRevision}:${update.status}:${update.analysisAvailable}`;
 }
 
 function readEditorUpdate(bytes: Uint8Array): buffers.editor.EditorUpdateT {
@@ -361,6 +368,12 @@ export class DashQLWorkbook {
         const builder = new flatbuffers.Builder();
         builder.finish(update.pack(builder));
         return this.outcome(this.ptr.assertNotNull().applyPlannerAnalysis(key, builder.asUint8Array()));
+    }
+
+    /// Give the table parameters of the workbook to a session that is no script of it, e.g. the draft of the composer.
+    /// Returns whether the analysis of the session is outdated by them.
+    public attachTableParameters(session: DashQLScriptSession): boolean {
+        return this.ptr.assertNotNull().attachTableParameters(session.ptr.assertNotNull());
     }
 
     // Reading the state

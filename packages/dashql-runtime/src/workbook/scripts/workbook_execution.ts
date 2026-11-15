@@ -6,7 +6,7 @@ import type { QueryExecutionArgs } from '../../connections/query_execution_args.
 import type { ClientFunctionCallDescription } from '../../connections/clfn/clfn_spec.js';
 import { QueryType, type PlannedStatement } from '../../query/query_execution_state.js';
 import type { LoggerLike } from '../../platform/logger/logger.js';
-import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
+import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type CapturedVisualization, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
 import { resolveCompiledVisualization } from './script_compilation.js';
 import { scriptDisplayName } from './script_types.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
@@ -387,15 +387,14 @@ function logPlan(logger: LoggerLike | undefined, workbookId: string, graph: core
 /// discards. Returns the visualizations of the outputs by node.
 async function checkExecutionGraph(plan: WorkbookScriptsPlan, cooperate: () => Promise<void>) {
     const { graph } = plan;
-    const visualizations = new Map<number, ReturnType<typeof resolveCompiledVisualization>>();
+    const visualizations = new Map<number, CapturedVisualization | null>();
     for (const [index, node] of graph.nodes.entries()) {
         if (!node.producesOutput) continue;
-        const visualization = node.visualization
-            ? resolveCompiledVisualization(String(node.sql ?? ''), node.visualization, node.statementId) : null;
-        if (node.visualization && !visualization) {
+        const sql = String(node.sql ?? '');
+        if (node.visualization && !resolveCompiledVisualization(sql, node.visualization, node.statementId)) {
             throw new Error('Invalid captured visualization metadata');
         }
-        visualizations.set(index, visualization);
+        visualizations.set(index, node.visualization ? { sql, statementId: node.statementId, visualization: node.visualization } : null);
         if ((index + 1) % PREPARATION_YIELD_INTERVAL === 0) await cooperate();
     }
     return visualizations;

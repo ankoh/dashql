@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import * as core from '@ankoh/dashql-core';
 
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -14,6 +15,11 @@ import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/wor
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('workbook creation', () => {
     it('picks the first workbook name no other workbook has', () => {
@@ -28,8 +34,8 @@ describe('workbook creation', () => {
         const database = {
             connectionId: TEST_CONNECTION_ID,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            instance: {},
-            catalog: {},
+            instance: dql,
+            catalog: dql.createCatalog(),
             catalogFunctionScript: { toString: () => '' },
             params,
             details: { type: HYPER_CONNECTOR, value: { proto: {} } },
@@ -77,8 +83,8 @@ describe('workbook creation', () => {
         const connection = (connectionId: string) => ({
             connectionId,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            instance: {},
-            catalog: {},
+            instance: dql,
+            catalog: dql.createCatalog(),
             catalogFunctionScript: { toString: () => '' },
             params,
             details: { type: HYPER_CONNECTOR, value: { proto: {} } },
