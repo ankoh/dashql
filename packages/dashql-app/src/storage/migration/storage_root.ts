@@ -1,4 +1,4 @@
-import { exists } from '@ankoh/dashql-runtime/platform/electron_fs';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 import { type MigrationFolder, NativeFolder, OPFSFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 
 /// The manifest of the storage root, it holds the storage version
@@ -62,10 +62,10 @@ export async function listSessionFolders(root: FileSystemDirectoryHandle, entrie
             }
             // Folders registered before the app granted folders are claimed once, later starts reject the claim
             await globalThis.dashqlElectron.claimWorkbookFolder(nativePath);
-            if (!(await exists(nativePath))) {
+            if (!(await ELECTRON_FILE_SYSTEM.exists(nativePath))) {
                 continue;
             }
-            folders.push({ sessionId: path, folder: new NativeFolder(nativePath) });
+            folders.push({ sessionId: path, folder: new NativeFolder(ELECTRON_FILE_SYSTEM, nativePath) });
             continue;
         }
         try {

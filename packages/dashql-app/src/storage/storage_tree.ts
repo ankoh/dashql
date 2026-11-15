@@ -1,6 +1,7 @@
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { type WorkbookLocation, displayPath } from './workbook_locator.js';
-import { join, readDir, stat } from '@ankoh/dashql-runtime/platform/electron_fs';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
+import { joinPath } from '@ankoh/dashql-runtime/platform/file_system';
 import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 
@@ -96,15 +97,15 @@ export function nativeTreeRoot(dir: string, label: string, shownPath: string): S
         label,
         displayPath: shownPath,
         async list(path) {
-            const entries = await readDir(await join(dir, ...path));
+            const entries = await ELECTRON_FILE_SYSTEM.readDir(joinPath(dir, ...path));
             return sortStorageTreeEntries(entries.map(entry => ({
                 name: entry.name,
                 kind: entry.isDirectory && !entry.isSymlink ? StorageTreeEntryKind.Directory : StorageTreeEntryKind.File,
             })));
         },
         async stat(path) {
-            const value = await stat(await join(dir, ...path));
-            return { sizeBytes: value.size, modifiedMs: value.mtime?.getTime() ?? null, note: null };
+            const value = await ELECTRON_FILE_SYSTEM.stat(joinPath(dir, ...path));
+            return { sizeBytes: value.size, modifiedMs: value.mtime == null ? null : Date.parse(value.mtime), note: null };
         },
     };
 }

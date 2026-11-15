@@ -2,6 +2,8 @@ import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookE
 import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
 
 import { joinPath, type FileStamp, type FileSystem } from '../platform/file_system.js';
+import { NativeFolder } from './migration/migration_folder.js';
+import { migrateWorkbookFolder } from './migration/workbook_migration.js';
 
 /// The name of the workbook-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';
@@ -42,6 +44,8 @@ export class NativeStorageBackend implements StorageBackend {
     /// Were the scripts acknowledged? From then on a script without a stamp is known to be absent, and
     /// script writes fail with an `ExternalScriptChangeError` when the stamp on disk differs.
     private scriptsAcknowledged = false;
+    /// Was the folder brought to the current format?
+    private migrated = false;
 
     constructor(dir: string, protected readonly fs: FileSystem) {
         this.dir = dir;
@@ -105,6 +109,11 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     async loadWorkbook(workbookId: string): Promise<WorkbookData> {
+        // A folder of an older version of the app is migrated first, like the app migrates its folders at the start
+        if (!this.migrated) {
+            await migrateWorkbookFolder(new NativeFolder(this.fs, this.dir));
+            this.migrated = true;
+        }
         const text = await this.readWorkbookFile(STORAGE_WORKBOOK_FILE);
         if (text == null) {
             throw new Error(`Missing ${STORAGE_WORKBOOK_FILE} in ${this.dir}`);

@@ -1,27 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { fsStore, makeFsMock, resetFsStore } from '../testing/test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
-import { ELECTRON_FILE_SYSTEM } from '../platform/electron_fs.js';
 
 const DIR = '/tmp/v2-workbook';
-/// The bridge of the desktop app that ELECTRON_FILE_SYSTEM reads, the test stands in for it
-const ELECTRON = globalThis as { dashqlElectron?: unknown };
 
 describe('NativeStorageBackend V2 flat storage', () => {
     let backend: NativeStorageBackend;
 
     beforeEach(async () => {
         resetFsStore();
-        ELECTRON.dashqlElectron = { fs: makeFsMock() };
-        backend = new NativeStorageBackend(DIR, ELECTRON_FILE_SYSTEM);
+        backend = new NativeStorageBackend(DIR, makeFsMock());
         await backend.initialize();
-    });
-
-    afterEach(() => {
-        delete ELECTRON.dashqlElectron;
     });
 
     it('round-trips manifest and naturally ordered flat scripts', async () => {
@@ -93,6 +85,13 @@ describe('NativeStorageBackend V2 flat storage', () => {
         fsStore.dirs.add(`${DIR}/attachments/nested`);
         await expect(backend.listDataFiles(TEST_WORKBOOK_ID)).rejects.toThrow('nested data');
     });
+
+    it('migrates a folder of an older version of the app before it loads the workbook', async () => {
+        const { workbookId, ...rest } = testWorkbook();
+        fsStore.files.set(`${DIR}/dashql-session.json`, JSON.stringify({ ...rest, sessionId: workbookId, formatVersion: 10 }));
+        expect(await backend.loadWorkbook(TEST_WORKBOOK_ID)).toEqual(testWorkbook());
+        expect(fsStore.files.has(`${DIR}/dashql-session.json`)).toBe(false);
+    });
 });
 
 describe('NativeStorageBackend external script changes', () => {
@@ -105,15 +104,10 @@ describe('NativeStorageBackend external script changes', () => {
 
     beforeEach(async () => {
         resetFsStore();
-        ELECTRON.dashqlElectron = { fs: makeFsMock() };
-        backend = new NativeStorageBackend(DIR, ELECTRON_FILE_SYSTEM);
+        backend = new NativeStorageBackend(DIR, makeFsMock());
         await backend.initialize();
         await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 1');
         await backend.saveScript(TEST_WORKBOOK_ID, 'b.sql', 'select 2');
-    });
-
-    afterEach(() => {
-        delete ELECTRON.dashqlElectron;
     });
 
     it('finds scripts changed outside the app by their stamps but not its own writes', async () => {

@@ -381,7 +381,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// A folder of an older version is migrated in memory, the folder itself is migrated once it is
     /// registered.
     async prepareNativeWorkbook(dir: string): Promise<PreparedNativeWorkbook> {
-        const head = await readWorkbookBundleHead(new OverlayFolder(new NativeFolder(dir)), `Invalid workbook folder ${dir}`);
+        const head = await readWorkbookBundleHead(new OverlayFolder(new NativeFolder(ELECTRON_FILE_SYSTEM, dir)), `Invalid workbook folder ${dir}`);
 
         let bundle: WorkbookBundle;
         try {
@@ -452,7 +452,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         // The catalogs of the folder seed the connections that are new to the app. The app ignores
         // them afterwards, and the migration removes the catalog copy of older folders.
         await seedConnectionCatalogs(this.opfs, prepared.bundle, workbookId);
-        await migrateWorkbookFolder(new NativeFolder(prepared.dir));
+        await migrateWorkbookFolder(new NativeFolder(ELECTRON_FILE_SYSTEM, prepared.dir));
         const native = new NativeStorageBackend(prepared.dir, ELECTRON_FILE_SYSTEM);
         await reconcileStoredWorkbookFiles(native, workbookId);
         await this.upsertWorkbookEntry({

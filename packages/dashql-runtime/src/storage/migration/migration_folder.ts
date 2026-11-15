@@ -1,4 +1,4 @@
-import { exists, join, readTextFile, remove, rename, writeTextFile } from '../../platform/electron_fs.js';
+import { joinPath, type FileSystem } from '../../platform/file_system.js';
 
 /// The top-level files of a session folder, as the session migrations see them.
 ///
@@ -154,36 +154,36 @@ export class OPFSFolder implements MigrationFolder {
     }
 }
 
-/// A session folder on the native file system
+/// A workbook folder in a file system, the one of the desktop app or of Node
 export class NativeFolder implements MigrationFolder {
-    /// The absolute directory of the session
-    private readonly dir: string;
-
-    constructor(dir: string) {
-        this.dir = dir;
-    }
+    constructor(
+        /// The file system of the folder
+        private readonly fs: FileSystem,
+        /// The absolute directory of the workbook
+        private readonly dir: string,
+    ) { }
 
     async exists(name: string): Promise<boolean> {
-        return await exists(await join(this.dir, name));
+        return await this.fs.exists(joinPath(this.dir, name));
     }
 
     async readText(name: string): Promise<string | null> {
-        const path = await join(this.dir, name);
-        return await exists(path) ? await readTextFile(path) : null;
+        const path = joinPath(this.dir, name);
+        return await this.fs.exists(path) ? await this.fs.readTextFile(path) : null;
     }
 
     async writeText(name: string, text: string): Promise<void> {
-        await writeTextFile(await join(this.dir, name), text);
+        await this.fs.writeTextFile(joinPath(this.dir, name), text);
     }
 
     async rename(from: string, to: string): Promise<void> {
-        await rename(await join(this.dir, from), await join(this.dir, to));
+        await this.fs.rename(joinPath(this.dir, from), joinPath(this.dir, to));
     }
 
     async remove(name: string): Promise<void> {
-        const path = await join(this.dir, name);
-        if (await exists(path)) {
-            await remove(path);
+        const path = joinPath(this.dir, name);
+        if (await this.fs.exists(path)) {
+            await this.fs.remove(path);
         }
     }
 }

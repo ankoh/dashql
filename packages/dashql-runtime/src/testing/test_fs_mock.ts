@@ -132,7 +132,7 @@ export function makeFsMock() {
             }
             return {
                 size,
-                mtime: new Date(mtimes.get(p) ?? 0),
+                mtime: new Date(mtimes.get(p) ?? 0).toISOString(),
                 isFile: true,
                 isDirectory: false,
                 isSymlink: false,
