@@ -61,10 +61,20 @@ buffers in between. The boundary moves to what the UI reads.
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host.
 
+## Typing
+
+Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,
+the way the editor does it: the editor applies the event to the shared session (1.4 to 2.0 ms per keystroke, the
+analysis of the core) and reports the update. The reduction then takes 0.6 to 0.9 ms: 0.4 to 0.6 ms in the workbook
+(publishing the declarations into the catalog, compiling the visualization, deriving the table parameters, which the
+TypeScript reducer did as well, each through a call of its own), 0.2 to 0.3 ms for the projection. Packing the update
+for the workbook is 0.09 ms of it, an editor that sends its events to the workbook (`ApplyEditorEvent`) would save
+about that.
+
 ## Open
 
-- A burst of typing in a profile of the app: every keystroke packs the update of the editor for the workbook.
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
+- A profile in the browser: the numbers above are Node, with two other builds on the machine.
 
 ## Kept on purpose
 
