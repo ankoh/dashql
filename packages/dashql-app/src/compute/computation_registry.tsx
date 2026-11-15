@@ -45,5 +45,7 @@ export function useComputationDispatch(): Dispatch<ComputationAction> {
     }, [computations]);
 }
 export const useDataFrameRegistry = (): DataFrameRegistry => React.useContext(COMPUTATIONS_CTX)?.dataFrames as DataFrameRegistry;
+/// The computations of the provider above, null without one
+export const useComputations = (): Computations | null => React.useContext(COMPUTATIONS_CTX);
 /// Get the computation state without subscribing to its changes
 export const useComputationStore = (): Store<ComputationState> => React.useContext(COMPUTATIONS_CTX)?.store ?? NO_COMPUTATION_STORE;

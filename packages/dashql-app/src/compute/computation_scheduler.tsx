@@ -11,8 +11,8 @@ import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, DATA_SEARCH_FAILED, DA
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { LoggableException, Logger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
-import { TaskStatus, TaskProgress, TaskVariant, COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from "@ankoh/dashql-runtime/compute/computation_types";
-import { useComputationRegistry } from "./computation_registry.js";
+import { computationTaskTitle, TaskStatus, TaskProgress, TaskVariant, COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from "@ankoh/dashql-runtime/compute/computation_types";
+import { useComputationRegistry, useComputations } from "./computation_registry.js";
 import { useLogger } from '../platform/logger/logger_provider.js';
 import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { useCreateComputeQueryExecution } from './compute_query_execution.js';
@@ -34,10 +34,18 @@ interface SchedulerState {
     launched: Set<number>
 }
 
+/// Runs the tasks of the computations that the runtime of the core doesn't run, and tracks the queries of the tasks in
+/// the core with the query execution of the provider above. The tasks of an analysis run in the core, the tasks of a
+/// computation that an action of the host started run here.
 export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     const logger = useLogger();
     const [computationState, dispatchComputation] = useComputationRegistry();
+    const computations = useComputations();
     const createQueryExecution = useCreateComputeQueryExecution();
+    React.useEffect(() => {
+        computations?.setQueryExecution(createQueryExecution);
+        return () => computations?.setQueryExecution(null);
+    }, [computations, createQueryExecution]);
 
     const schedulerState = React.useRef<SchedulerState>({ launched: new Set() });
     React.useEffect(() => {
@@ -52,7 +60,7 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
             launched.add(id);
 
             // Process a task asynchronously
-            processTask(task, dispatchComputation, logger, createQueryExecution?.(task));
+            processTask(task, dispatchComputation, logger, createQueryExecution?.({ tableId: task.value.tableId, title: computationTaskTitle(task) }));
         }
         // Cleanup tasks that are no longer in included in the background tasks
         for (const l of launched) {

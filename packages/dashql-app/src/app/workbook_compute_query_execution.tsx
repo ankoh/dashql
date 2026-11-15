@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
 import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { useComputationStore } from '../compute/computation_registry.js';
-import { computationTaskTitle, type TaskVariant } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { ComputeTaskContext } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { useConnectionDispatch } from '../connections/connection_registry.js';
@@ -17,8 +17,8 @@ export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChil
     // execution factory and re-render the scheduler for every task step.
     const computations = useComputationStore();
     const dispatch = useConnectionDispatch();
-    const createExecution = React.useCallback((task: TaskVariant) => {
-        const computation = computations.current.tableComputations[task.value.tableId];
+    const createExecution = React.useCallback((task: ComputeTaskContext) => {
+        const computation = computations.current.tableComputations[task.tableId];
         const connectionId = computation?.connectionId ?? null;
         const execution: ComputeQueryExecution = (query, execute) => {
             if (connectionId == null) return execute(computation?.clientContext ?? null);
@@ -27,7 +27,7 @@ export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChil
                 tracker: { dispatch: action => dispatch(connectionId, action) },
                 metadata: {
                     queryType: QueryType.INTERNAL_SQLFRAME,
-                    title: computationTaskTitle(task),
+                    title: task.title,
                     description: null,
                     issuer: 'SQLFrame',
                     userProvided: false,

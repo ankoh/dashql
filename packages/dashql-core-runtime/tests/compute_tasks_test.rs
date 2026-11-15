@@ -54,6 +54,11 @@ fn a<T: Array + 'static>(array: T) -> ArrayRef {
     Arc::new(array)
 }
 
+/// A table of the state with a number per row
+fn arrow_table(id: u64, rows: i64) -> ArrowTable {
+    ArrowTable::new(id, Arc::new(table(vec![("n", a(Int64Array::from_iter_values(0..rows)))])))
+}
+
 /// A table of named columns
 fn table(columns: Vec<(&str, ArrayRef)>) -> ResultTable {
     let batch = RecordBatch::try_from_iter(columns).expect("a batch");
@@ -617,7 +622,7 @@ fn table_aggregation_reads_unsigned_integers_exactly() {
 // System columns, filtering and ordering
 
 fn stats_aggregation() -> TableAggregation {
-    TableAggregation { table: 50, data_frame: 20, count_star_field_name: "_count".into() }
+    TableAggregation { table: arrow_table(50, 1), data_frame: 20, count_star_field_name: "_count".into() }
 }
 
 #[test]
@@ -631,7 +636,7 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
     let task = dashql_core_runtime::compute::tasks::analyze_table::system_columns_task(
         1,
         plan.column_groups,
-        ArrowTable { id: 1, rows: 3 },
+        arrow_table(1, 3),
         10,
         "_rownum".into(),
         stats_aggregation(),
@@ -659,7 +664,7 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
     let mut task = TableFilteringTask {
         table_id: 1,
         table_version: ComputationVersion::new(0, 1),
-        input_data_table: ArrowTable { id: 1, rows: 100 },
+        input_data_table: arrow_table(1, 100),
         input_data_frame: 10,
         row_number_column_name: "_rownum".into(),
         filters: vec![],
@@ -683,17 +688,17 @@ fn table_ordering_orders_equal_rows_by_their_row_number() {
     let task = TableOrderingTask {
         table_id: 1,
         table_version: ComputationVersion::new(0, 1),
-        input_data_table: ArrowTable { id: 1, rows: 100 },
+        input_data_table: arrow_table(1, 100),
         input_data_frame: 10,
         filter_table: Some(FilterTable {
             input_row_number_column_name: "_rownum".into(),
-            table: ArrowTable { id: 2, rows: 5 },
+            table: arrow_table(2, 5),
             data_frame: 20,
             version: ComputationVersion::new(0, 1),
         }),
         data_search_table: Some(DataSearchTable {
             input_row_number_column_name: "_rownum".into(),
-            table: ArrowTable { id: 3, rows: 5 },
+            table: arrow_table(3, 5),
             data_frame: 30,
             version: ComputationVersion::new(0, 1),
             request_id: 4,
@@ -778,17 +783,17 @@ fn filtered_task(column_entry: ColumnGroup) -> FilteredColumnAggregationTask {
             column_id: 0,
             column_entry,
             input_data_frame: 10,
-            table_aggregate: TableAggregation { table: 50, data_frame: 20, count_star_field_name: "_count_star".into() },
+            table_aggregate: TableAggregation { table: arrow_table(50, 1), data_frame: 20, count_star_field_name: "_count_star".into() },
         },
         filter_table: Some(FilterTable {
             input_row_number_column_name: "rownum".into(),
-            table: ArrowTable { id: 2, rows: 1 },
+            table: arrow_table(2, 1),
             data_frame: 30,
             version: ComputationVersion::new(1, 2),
         }),
         data_search_table: Some(DataSearchTable {
             input_row_number_column_name: "rownum".into(),
-            table: ArrowTable { id: 3, rows: 1 },
+            table: arrow_table(3, 1),
             data_frame: 40,
             version: ComputationVersion::new(1, 2),
             request_id: 9,

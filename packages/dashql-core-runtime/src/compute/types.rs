@@ -1,11 +1,15 @@
 //! The values of the computation state: versions, column groups, the results of the tasks and the tasks.
 //!
-//! The Arrow tables, the summaries of columns and the data frames stay with the host, the state knows them by their
-//! ids and keeps only what the reducer reads.
+//! The Arrow tables of the state are Rust values (`ResultTable` behind an `Arc`) with an id that names them for the
+//! host, e.g. to decode a table once. The data frames are ids of tables in the compute database of the host.
 //!
 //! Ported from `packages/dashql-runtime/src/compute/computation_types.ts`.
 
 use std::fmt;
+use std::sync::Arc;
+
+use super::tasks::analysis::{OrdinalColumnAnalysis, StringColumnAnalysis};
+use super::tasks::result_table::ResultTable;
 
 /// The id of the result table that a computation summarizes, unique among the computations
 pub type TableId = u64;
@@ -16,7 +20,7 @@ pub type TaskId = u64;
 /// The id of a data frame, a table in the compute database of the host
 pub type DataFrameId = u64;
 
-/// The id of an Arrow table at the host, with what the host derives from it, e.g. a formatter
+/// The id of an Arrow table of the state, the host keeps what it derives from a table by it, e.g. a decoded table
 pub type ArrowTableId = u64;
 
 /// The id of the lifetime of a computation at the host, aborting it cancels the work on the computation
@@ -67,13 +71,40 @@ impl fmt::Display for ComputationVersion {
     }
 }
 
-/// An Arrow table at the host
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// An Arrow table of the state. Clones share the table, dropping the last one frees it.
+#[derive(Clone)]
 pub struct ArrowTable {
-    /// The id of the table at the host
+    /// The id that names the table for the host
     pub id: ArrowTableId,
+    /// The table
+    pub table: Arc<ResultTable>,
+}
+
+impl ArrowTable {
+    /// A table with its id
+    pub fn new(id: ArrowTableId, table: Arc<ResultTable>) -> Self {
+        Self { id, table }
+    }
+
     /// The rows of the table
-    pub rows: u64,
+    pub fn rows(&self) -> u64 {
+        self.table.num_rows() as u64
+    }
+}
+
+// An id names one table, two tables are the same if they have the same id
+impl PartialEq for ArrowTable {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for ArrowTable {}
+
+impl fmt::Debug for ArrowTable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ArrowTable").field("id", &self.id).field("rows", &self.rows()).finish()
+    }
 }
 
 /// The comparison of a scalar filter
@@ -282,26 +313,45 @@ pub struct DataSearchTable {
 /// The statistics of all columns of a table
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TableAggregation {
-    /// The statistics, an Arrow table with its formatter
-    pub table: ArrowTableId,
+    /// The statistics, one row
+    pub table: ArrowTable,
     /// The statistics, a data frame
     pub data_frame: DataFrameId,
     /// The field with the row count
     pub count_star_field_name: String,
 }
 
-/// The summary of a column at the host: the binned or the frequent values, an Arrow table with its formatter and
-/// analysis, and their data frame
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ColumnSummary {
-    /// The summary at the host
-    pub id: ArrowTableId,
-    /// The data frame of the binned or the frequent values
-    pub data_frame: DataFrameId,
+/// The analysis of the summary of a column
+#[derive(Clone, Debug, PartialEq)]
+pub enum ColumnSummaryAnalysis {
+    /// The histogram of an ordinal column
+    Ordinal(OrdinalColumnAnalysis),
+    /// The frequent values of a string column
+    String(StringColumnAnalysis),
 }
 
+/// The summary of a column: the binned or the frequent values with their analysis, and their data frame
+#[derive(Clone, Debug)]
+pub struct ColumnSummary {
+    /// The binned or the frequent values
+    pub table: ArrowTable,
+    /// The data frame of the binned or the frequent values
+    pub data_frame: DataFrameId,
+    /// The analysis, none for a summary that the host analyzed
+    pub analysis: Option<Arc<ColumnSummaryAnalysis>>,
+}
+
+// The analysis follows from the table, a summary is the same if its table and its data frame are
+impl PartialEq for ColumnSummary {
+    fn eq(&self, other: &Self) -> bool {
+        self.table == other.table && self.data_frame == other.data_frame
+    }
+}
+
+impl Eq for ColumnSummary {}
+
 /// The summary of a column of a kind
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ColumnAggregate {
     /// The histogram of an ordinal column
     Ordinal(ColumnSummary),
@@ -326,7 +376,7 @@ impl ColumnAggregate {
 }
 
 /// The summary of a column over the rows that the filters and the data search select
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FilteredColumnAggregate {
     /// The summary
     pub aggregate: ColumnAggregate,

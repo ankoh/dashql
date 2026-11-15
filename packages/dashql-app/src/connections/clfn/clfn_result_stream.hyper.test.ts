@@ -2,8 +2,8 @@ import * as arrow from 'apache-arrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { processTask } from '../../compute/computation_scheduler.js';
-import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-runtime/compute/computation_state';
+import * as dashql from '@ankoh/dashql-core';
+import { createComputations } from '@ankoh/dashql-runtime/compute/computations';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
@@ -11,6 +11,8 @@ import { consumeQueryResponseStream } from '@ankoh/dashql-runtime/connections/qu
 import { ClientFunctionResultStream } from '@ankoh/dashql-runtime/connections/clfn/clfn_result_stream';
 import { runClientFunctionCall } from '@ankoh/dashql-runtime/connections/clfn/clfn_runtime';
 import type { ClientFunctionSpec } from '@ankoh/dashql-runtime/connections/clfn/clfn_spec';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 const logger = new TestLogger();
 
@@ -80,10 +82,12 @@ describe('The result of a client function call', () => {
         const table = await resultOf(items);
         expect(table.numRows).toBe(items.length);
         expect(table.schema.fields.map(field => field.name)).toEqual(['text', 'small', 'big', 'real', 'flag', 'day', 'at', 'json', '_status', '_next', '_meta', '_raw']);
-        let nextTaskId = 1;
-        const dispatch = (action: ComputationAction) => {
-            if (action.type === SCHEDULE_TASK) void processTask({ ...action.value, taskId: nextTaskId++ }, dispatch, logger);
-        };
-        await analyzeTable(1, table, dispatch, database, logger);
+        // The tasks of the analysis run in the core
+        const computations = createComputations(logger, await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }));
+        try {
+            await analyzeTable(1, table, computations.dispatch, database, logger);
+        } finally {
+            computations.destroy();
+        }
     }, 60_000);
 });

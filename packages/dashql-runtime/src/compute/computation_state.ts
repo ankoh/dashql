@@ -6,7 +6,8 @@ import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, Tabl
 import { VariantKind } from '../utils/variant.js';
 import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
-import type { EmbeddedClientContext } from '../platform/database/embedded_database.js';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
+import type { AsyncValue } from '../utils/async_value.js';
 import { TaskVariant } from './computation_types.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { NativeComputations } from './computation_native.js';
@@ -180,6 +181,21 @@ export const COLUMN_SEARCH_SUCCEEDED = Symbol('COLUMN_SEARCH_SUCCEEDED');
 export const DATA_SEARCH_SUCCEEDED = Symbol('DATA_SEARCH_SUCCEEDED');
 export const DATA_SEARCH_FAILED = Symbol('DATA_SEARCH_FAILED');
 export const RESULT_SEARCH_FAILED = Symbol('RESULT_SEARCH_FAILED');
+export const ANALYZE_TABLE = Symbol('ANALYZE_TABLE');
+
+/// Analyze a result in the runtime of the core: the computation of the table, its import into the compute database,
+/// the statistics, the system columns and the summaries of the columns. The result settles with the analysis.
+export interface AnalyzeTableRequest {
+    tableId: number;
+    table: arrow.Table;
+    /// The compute database that the tasks of the computation run on
+    database: EmbeddedComputeDatabase;
+    connectionId: string | null;
+    clientContext: EmbeddedClientContext | null;
+    /// Compute the summaries of the columns
+    columnAggregates: boolean;
+    result: AsyncValue<void, Error>;
+}
 
 export type ComputationAction =
     | VariantKind<typeof SCHEDULE_TASK, TaskVariant>
@@ -203,6 +219,7 @@ export type ComputationAction =
     | VariantKind<typeof DATA_SEARCH_SUCCEEDED, [number, DataFrame, number, DataSearchTable]>
     | VariantKind<typeof DATA_SEARCH_FAILED, [number, DataFrame, number, string]>
     | VariantKind<typeof RESULT_SEARCH_FAILED, [number, DataFrame, 'columns' | 'data', number, string]>
+    | VariantKind<typeof ANALYZE_TABLE, AnalyzeTableRequest>
     ;
 
 /// Apply an action to the computations. The state of the app is a projection of the Rust state

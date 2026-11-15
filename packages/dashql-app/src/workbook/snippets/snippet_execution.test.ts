@@ -3,8 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { processTask } from '../../compute/computation_scheduler.js';
-import { SCHEDULE_TASK, type ComputationAction } from '@ankoh/dashql-runtime/compute/computation_state';
+import { createComputations } from '@ankoh/dashql-runtime/compute/computations';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
@@ -58,21 +57,18 @@ describe('Snippet execution', () => {
             && snippet.connectors.includes(ConnectorType.HYPER));
         expect(recipes.length).toBeGreaterThan(0);
         const logger = new TestLogger();
-        let nextTaskId = 1;
-        const dispatch = (action: ComputationAction) => {
-            if (action.type === SCHEDULE_TASK) {
-                void processTask({ ...action.value, taskId: nextTaskId++ }, dispatch, logger);
-            }
-        };
+        // The tasks of the analysis run in the core
+        const computations = createComputations(logger, core);
         for (const [index, recipe] of recipes.entries()) {
             const text = snippetText(recipe, ConnectorType.HYPER);
             const result = await connection!.query(text).catch((error: unknown) => {
                 throw new Error(`snippet ${recipe.id} failed: ${String(error)}`);
             });
             expect(result.numRows, recipe.id).toBeGreaterThan(0);
-            await analyzeTable(index, result, dispatch, database!, logger).catch((error: unknown) => {
+            await analyzeTable(index, result, computations.dispatch, database!, logger).catch((error: unknown) => {
                 throw new Error(`snippet ${recipe.id} failed in compute: ${String(error)}`);
             });
         }
+        computations.destroy();
     }, 60_000);
 });

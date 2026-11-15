@@ -5,9 +5,15 @@ import type * as glue from './wasm/dashql_core.js';
 /// docs/wip/core_runtime.md): the summaries of the columns, the statistics of a table, the system columns, the cross
 /// filters, the ordering and the searches, and the tasks of the scheduler that compute them.
 ///
-/// The Arrow tables, the summaries, the data frames and the lifetimes stay with the host, the state knows them by the
-/// ids that the host gives them. The state owns what it holds: an action returns an effect to release a data frame or
-/// an Arrow table once nothing in the state holds it. A computation changes its revision with every change.
+/// The Arrow tables of the state are Rust values with ids: the host registers a table of its own as Arrow IPC before
+/// the action that hands it over (`registerArrowTable`) and reads a table of the state as Arrow IPC once
+/// (`arrowTableIpc`). The data frames and the lifetimes are ids of the host. The state owns the data frames it holds:
+/// an action returns an effect to release a data frame once nothing in the state holds it. A computation changes its
+/// revision with every change.
+///
+/// The tasks run in Rust on the compute database of the host (`ComputeHost`, set with `setHost`): `analyzeTable`
+/// analyzes a result, `runTask` runs a scheduled task. The service drops the data frames that the state releases
+/// through the host.
 
 const COMPUTATIONS_TYPE = Symbol('COMPUTATIONS_TYPE');
 
@@ -17,10 +23,11 @@ export interface ComputationVersionValue {
     filter: number;
 }
 
-/// An Arrow table of the host
+/// An Arrow table by its id: a table that the host registered for the action, or a table of the state
 export interface ComputationArrowTable {
     id: number;
-    rows: number;
+    /// The rows, in a snapshot
+    rows?: number;
 }
 
 /// The fields of the table aggregation with the statistics of a column
@@ -94,14 +101,14 @@ export interface ComputationDataSearchTable {
     requestId: number;
 }
 
-/// The statistics of all columns of a table, the table names the statistics of the host with their formatter
+/// The statistics of all columns of a table, the table by its id
 export interface ComputationTableAggregation {
     table: number;
     dataFrame: number;
     countStarFieldName: string;
 }
 
-/// The summary of a column, the id names the summary of the host
+/// The summary of a column, the id names the table of the binned or the frequent values
 export type ComputationColumnAggregate =
     | { kind: 'ordinal' | 'string' | 'list'; id: number; dataFrame: number }
     | { kind: 'skipped' };
@@ -113,11 +120,40 @@ export interface ComputationFilteredAggregate {
     dataSearchRequestId: number | null;
 }
 
-/// A summary of a column as a snapshot names it, the id and the data frame are null for a skipped column
+/// The numbers of the analysis of a summary that the runtime computed. The host formats the values of the tables: the
+/// minimum and the maximum of the statistics, the lower bounds of the bins and the frequent values.
+export type ComputationSummaryAnalysis =
+    | {
+        kind: 'ordinal';
+        totalCount: number;
+        countNotNull: number;
+        countNull: number;
+        binCount: number;
+        binValueCounts: number[];
+        binPercentages: number[];
+        /// Numbers in the domain of the column, or milliseconds since epoch of a temporal column
+        binLowerBounds: (number | null)[];
+        binBounds: 'numbers' | 'epochMillis';
+    }
+    | {
+        kind: 'string';
+        totalCount: number;
+        countNotNull: number;
+        countNull: number;
+        countDistinct: number;
+        isUnique: boolean;
+        frequentValueIds: number[];
+        frequentValueCounts: number[];
+        frequentValuePercentages: number[];
+    };
+
+/// A summary of a column as a snapshot names it, the id and the data frame are null for a skipped column. A summary
+/// that the runtime computed has its analysis.
 export interface ComputationColumnAggregateSnapshot {
     kind: 'ordinal' | 'string' | 'list' | 'skipped';
     id: number | null;
     dataFrame: number | null;
+    analysis?: ComputationSummaryAnalysis | null;
 }
 
 /// The summary of a column to compute
@@ -214,10 +250,8 @@ export type ComputationEffect =
     | { type: 'abortComputation'; tableId: number; lifetime: number }
     /// Abort a data search that was superseded
     | { type: 'abortDataSearch'; tableId: number; requestId: number }
-    /// Nothing in the state holds the data frame anymore
-    | { type: 'releaseDataFrame'; dataFrame: number }
-    /// Nothing in the state holds the Arrow table anymore
-    | { type: 'releaseArrowTable'; table: number };
+    /// Nothing in the state holds the data frame anymore, the service drops its table through the host
+    | { type: 'releaseDataFrame'; dataFrame: number };
 
 /// What an action did
 export interface ComputationOutcome {
@@ -262,26 +296,43 @@ export interface ComputationSearchSnapshot {
     error: string | null;
 }
 
-/// The fields of a computation. The ids name the objects of the host.
+/// A column group of a snapshot, the host knows the Arrow type of a field by its name
+export type ComputationColumnGroupSnapshot = DistributiveOmit<ComputationColumnGroup, 'inputFieldType'>;
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+/// The rows that pass the filters of a snapshot, the table by its id
+export interface ComputationFilterTableSnapshot {
+    table: number;
+    dataFrame: number;
+    inputRowNumberColumnName: string;
+    version: ComputationVersionValue;
+}
+
+/// The fields of a computation. The tables are named by their ids, the data frames and the lifetime are ids of the
+/// host.
 export interface ComputationSnapshot {
     tableId: number;
     connectionId: string | null;
+    /// The client context of the queries of a computation without a connection, opaque JSON
+    clientContext: string | null;
     lifetime: number;
     revision: number;
     version: ComputationVersionValue;
-    dataTable: ComputationArrowTable;
+    dataTable: Required<ComputationArrowTable>;
+    /// The fields of the table that the computation was created with, in order
+    dataTableFields: string[];
     dataFrame: number | null;
+    /// The column groups of the grid
+    columnGroups: ComputationColumnGroupSnapshot[];
     dataTableOrdering: ComputationOrderBy[];
-    /// The filter, ordering and search tables by the ids of their tables
-    filterTable: number | null;
-    orderingTable: number | null;
-    dataSearchTable: number | null;
+    filterTable: ComputationFilterTableSnapshot | null;
+    orderingTable: (ComputationFilterTableSnapshot & { orderingConstraints: ComputationOrderBy[]; dataSearchRequestId: number | null }) | null;
+    dataSearchTable: (ComputationFilterTableSnapshot & { requestId: number }) | null;
     columnSearch: ComputationSearchSnapshot;
     dataSearch: ComputationSearchSnapshot;
     rowNumberColumnGroup: number | null;
     rowNumberColumnName: string | null;
-    /// The statistics by the id of their table
-    tableAggregation: number | null;
+    tableAggregation: ComputationTableAggregation | null;
     columnAggregates: (ComputationColumnAggregateSnapshot | null)[];
     filteredColumnAggregates: ({
         aggregate: ComputationColumnAggregateSnapshot;
@@ -307,6 +358,9 @@ export interface ComputationSchedulerTaskSnapshot {
 }
 
 type NativeComputations = glue.Computations;
+
+/// The compute database of the computations, see `ComputeHost` of the module
+export type ComputeHost = glue.ComputeHost;
 
 export class DashQLComputations {
     public readonly ptr: Ptr<typeof COMPUTATIONS_TYPE, NativeComputations>;
@@ -336,6 +390,50 @@ export class DashQLComputations {
         }
     }
 
+    // Services
+
+    /// Set the compute host, the tasks run on its compute database
+    public setHost(host: ComputeHost): void {
+        this.ptr.assertNotNull().setHost(host);
+    }
+
+    /// A new id of a data frame, an Arrow table or a lifetime of the host
+    public allocateId(): number {
+        return this.ptr.assertNotNull().allocateId();
+    }
+
+    /// Register a table of the host as an Arrow IPC stream, the next action names it by the returned id. The tables
+    /// that the action doesn't take go.
+    public registerArrowTable(ipc: Uint8Array): number {
+        return this.ptr.assertNotNull().registerArrowTable(ipc);
+    }
+
+    /// A table of the state as an Arrow IPC stream
+    public arrowTableIpc(table: number): Uint8Array {
+        return this.ptr.assertNotNull().arrowTableIpc(table);
+    }
+
+    /// The tables that the state holds
+    public arrowTableIds(): number[] {
+        return Array.from(this.ptr.assertNotNull().arrowTableIds());
+    }
+
+    /// Analyze a result as Arrow IPC: start its computation, import it, compute its statistics, its system columns and
+    /// the summaries of its columns. Rejects with the error of a failed task.
+    public analyzeTable(tableId: number, ipc: Uint8Array, connectionId: string | null, clientContext: string | null, columnAggregates: boolean): Promise<void> {
+        return this.ptr.assertNotNull().analyzeTable(tableId, ipc, connectionId ?? undefined, clientContext ?? undefined, columnAggregates) as Promise<void>;
+    }
+
+    /// Run a scheduled task on the compute host, rejects with its error
+    public runTask(taskId: number): Promise<void> {
+        return this.ptr.assertNotNull().runTask(taskId) as Promise<void>;
+    }
+
+    /// Cancel the run of a task, it fails
+    public cancelTask(taskId: number): void {
+        this.ptr.assertNotNull().cancelTask(taskId);
+    }
+
     // Actions
 
     /// Schedule a task, it becomes the latest task of its kind of its computation. A task of an unknown computation
@@ -363,7 +461,7 @@ export class DashQLComputations {
         clientContext: string | null,
     ): ComputationOutcome {
         return this.outcome(this.ptr.assertNotNull().computationFromQueryResult(
-            tableId, dataTable.id, dataTable.rows, fields, JSON.stringify(columnGroups), lifetime, connectionId ?? undefined, clientContext ?? undefined,
+            tableId, dataTable.id, fields, JSON.stringify(columnGroups), lifetime, connectionId ?? undefined, clientContext ?? undefined,
         ));
     }
 
@@ -401,7 +499,7 @@ export class DashQLComputations {
         now: number,
     ): ComputationOutcome {
         return this.outcome(this.ptr.assertNotNull().systemColumnsSucceeded(
-            tableId, dataTable.id, dataTable.rows, dataFrame, JSON.stringify(columnGroups), now,
+            tableId, dataTable.id, dataFrame, JSON.stringify(columnGroups), now,
         ));
     }
 

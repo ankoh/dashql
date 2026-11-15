@@ -2,9 +2,9 @@
 //! summarize a result, filter, order and search it, and the reading of their results.
 //!
 //! A task is sans-IO. Its plan says what the host runs: a `TaskQuery` creates the table of a new data frame from a
-//! SELECT and reads it back. The host runs the two statements and hands the read batches to the `finish` of the plan,
-//! which returns what the computation state takes, with the summaries as Rust values. The analysis of a result
-//! imports the result with row numbers as the first data frame (`TableImport`).
+//! SELECT and reads it back. The service (`compute::service`) runs the two statements on the host and hands the read
+//! batches to the `finish` of the plan, which returns what the computation state takes, with the summaries as Rust
+//! values. The analysis of a result imports the result with row numbers as the first data frame (`TableImport`).
 //!
 //! A data frame is a table of the compute database, named by its id (`data_frame_table_name`). The caller allocates the
 //! id of the data frame of a plan. A query or a finish that fails leaves the data frame to the caller, which drops it.

@@ -2,11 +2,15 @@
 //! the TypeScript runtime.
 //!
 //! The TypeScript tests count the references of a data frame registry. Here the state owns what it holds: a test
-//! counts the holds of a data frame in the state and reads the releases from the effects. A state of the TypeScript
+//! counts the holds of a data frame in the state and reads the releases from the effects. The Arrow tables are Rust
+//! values that go with their last clone, a table of the tests has a column of numbers. A state of the TypeScript
 //! tests that holds a data frame without a reference is built with actions here, so the data frame of the table counts
 //! once more.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
+
+use arrow_array::{Int64Array, RecordBatch};
 
 use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
 use dashql_core_runtime::compute::types::{
@@ -16,14 +20,26 @@ use dashql_core_runtime::compute::types::{
     ScalarFilter, StringColumnGroup, SystemColumnsTask, TableAggregation, TableAggregationTask, TableFilteringTask,
     TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus,
 };
+use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind};
 
 /// The time of the actions
 const NOW: i64 = 1_000;
+/// A table of the state with a number per row
+fn arrow_table(id: u64, rows: i64) -> ArrowTable {
+    let batch = RecordBatch::try_from_iter([("n", Arc::new(Int64Array::from_iter_values(0..rows)) as _)]).unwrap();
+    ArrowTable::new(id, Arc::new(ResultTable::from_batch(batch)))
+}
+
 /// The result table of the tests
-const INPUT_TABLE: ArrowTable = ArrowTable { id: 100, rows: 4 };
+fn input_table() -> ArrowTable {
+    arrow_table(100, 4)
+}
+
 /// The table with the row numbers of the filtered or ordered rows
-const ROW_TABLE: ArrowTable = ArrowTable { id: 101, rows: 2 };
+fn row_table() -> ArrowTable {
+    arrow_table(101, 2)
+}
 /// The statistics of the table
 const AGGREGATE_TABLE: u64 = 102;
 /// The binned values of the score column
@@ -76,7 +92,7 @@ fn binned(name: &str, bin_field_name: Option<&str>) -> OrdinalColumnGroup {
 
 /// The summary of the score column in a data frame
 fn score_summary(data_frame: DataFrameId) -> ColumnAggregate {
-    ColumnAggregate::Ordinal(ColumnSummary { id: SCORE_SUMMARY, data_frame })
+    ColumnAggregate::Ordinal(ColumnSummary { table: arrow_table(SCORE_SUMMARY, 4), data_frame, analysis: None })
 }
 
 /// The summary of the score column over the selected rows of a filter version
@@ -86,12 +102,12 @@ fn filtered_score_summary(data_frame: DataFrameId, filter_version: ComputationVe
 
 /// The statistics of the table in a data frame
 fn table_aggregation(data_frame: DataFrameId) -> TableAggregation {
-    TableAggregation { table: AGGREGATE_TABLE, data_frame, count_star_field_name: "_count_star".into() }
+    TableAggregation { table: arrow_table(AGGREGATE_TABLE, 1), data_frame, count_star_field_name: "_count_star".into() }
 }
 
 /// The filtered rows of a filter version
 fn filter_table(data_frame: DataFrameId, version: ComputationVersion) -> FilterTable {
-    FilterTable { input_row_number_column_name: "rowNumber".into(), table: ROW_TABLE, data_frame, version }
+    FilterTable { input_row_number_column_name: "rowNumber".into(), table: row_table(), data_frame, version }
 }
 
 /// The score descending
@@ -104,7 +120,7 @@ fn ordering_table(data_frame: DataFrameId, constraints: Vec<OrderByConstraint>, 
     OrderingTable {
         input_row_number_column_name: "rowNumber".into(),
         ordering_constraints: constraints,
-        table: ROW_TABLE,
+        table: row_table(),
         data_frame,
         version,
         data_search_request_id: None,
@@ -113,7 +129,7 @@ fn ordering_table(data_frame: DataFrameId, constraints: Vec<OrderByConstraint>, 
 
 /// The rows of a data search
 fn search_table(data_frame: DataFrameId, version: ComputationVersion, request_id: u64) -> DataSearchTable {
-    DataSearchTable { input_row_number_column_name: "rowNumber".into(), table: ArrowTable { id: 104, rows: 2 }, data_frame, version, request_id }
+    DataSearchTable { input_row_number_column_name: "rowNumber".into(), table: arrow_table(104, 2), data_frame, version, request_id }
 }
 
 fn apply(state: &mut ComputationState, action: ComputationAction) -> ComputationOutcome {
@@ -136,7 +152,7 @@ fn released(outcome: &ComputationOutcome) -> Vec<DataFrameId> {
 fn from_query_result(table_id: TableId, lifetime: u64) -> ComputationAction {
     ComputationAction::ComputationFromQueryResult {
         table_id,
-        data_table: INPUT_TABLE,
+        data_table: input_table(),
         fields: vec!["rowNumber".into(), "score".into()],
         column_groups: input_columns(),
         lifetime,
@@ -205,7 +221,7 @@ fn computation_from_query_result() {
     let computation = state.computation(1).unwrap();
     // The computation queries are tracked on the connection that ran the query of the table
     assert_eq!(computation.connection_id.as_deref(), Some("connection"));
-    assert_eq!(computation.data_table, INPUT_TABLE);
+    assert_eq!(computation.data_table, input_table());
     assert_eq!(computation.field_index("rowNumber"), Some(0));
     assert_eq!(computation.field_index("score"), Some(1));
     assert_eq!(computation.field_index("other"), None);
@@ -388,7 +404,6 @@ fn delete_computation() {
         outcome.effects,
         vec![
             ComputationEffect::AbortComputation { table_id: 1, lifetime: 7 },
-            ComputationEffect::ReleaseArrowTable { table: INPUT_TABLE.id },
         ]
     );
     // Deleting an unknown computation changes nothing
@@ -424,7 +439,7 @@ fn filtering_task() {
         ComputationTask::TableFiltering(TableFilteringTask {
             table_id: 1,
             table_version: ComputationVersion::new(0, 20),
-            input_data_table: INPUT_TABLE,
+            input_data_table: input_table(),
             input_data_frame: 1,
             row_number_column_name: "rowNumber".into(),
             filters: vec![ScalarFilter { field_name: "score".into(), op: FilterOp::Less, value: 20.0 }],
@@ -447,8 +462,8 @@ fn filtering_task() {
     assert_eq!(state.data_frame_holds(1), 3);
     assert!(state.holds_data_frame(1));
     assert!(!state.holds_data_frame(2));
-    assert!(state.holds_arrow_table(INPUT_TABLE.id));
-    assert!(!state.holds_arrow_table(ROW_TABLE.id));
+    assert!(state.holds_arrow_table(input_table().id));
+    assert!(!state.holds_arrow_table(row_table().id));
     assert_eq!(tracked.task_id, task_id);
 
     update(&mut state, task_id, TaskStatus::Succeeded);
@@ -469,7 +484,7 @@ fn ordering_task(constraints: Vec<OrderByConstraint>) -> ComputationTask {
     ComputationTask::TableOrdering(TableOrderingTask {
         table_id: 1,
         table_version: ComputationVersion::new(0, 20),
-        input_data_table: INPUT_TABLE,
+        input_data_table: input_table(),
         input_data_frame: 1,
         filter_table: None,
         data_search_table: None,
@@ -561,7 +576,7 @@ fn system_column_computation_task() {
             table_id: 1,
             table_version: ComputationVersion::new(0, 20),
             column_entries: input_columns(),
-            input_table: INPUT_TABLE,
+            input_table: input_table(),
             input_data_frame: 1,
             row_number_field_name: "_rownum".into(),
             table_aggregate: table_aggregation(2),
@@ -586,16 +601,16 @@ fn system_column_computation_task() {
 fn system_columns_replace_the_table_and_the_data_frame() {
     let mut state = state_with_table(1);
     let before = version(&state);
-    let numbered = ArrowTable { id: 110, rows: 4 };
+    let numbered = arrow_table(110, 4);
     let mut columns = input_columns();
     columns.push(ColumnGroup::RowNumber(RowNumberColumnGroup { row_number_field_name: "_rownum".into() }));
     let outcome = apply(
         &mut state,
-        ComputationAction::SystemColumnsSucceeded { table_id: 1, data_table: numbered, data_frame: 2, column_groups: columns.clone(), now: NOW },
+        ComputationAction::SystemColumnsSucceeded { table_id: 1, data_table: numbered.clone(), data_frame: 2, column_groups: columns.clone(), now: NOW },
     );
     assert_eq!(
         outcome.effects,
-        vec![ComputationEffect::ReleaseDataFrame { data_frame: 1 }, ComputationEffect::ReleaseArrowTable { table: INPUT_TABLE.id }]
+        vec![ComputationEffect::ReleaseDataFrame { data_frame: 1 }]
     );
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.version, before.with_data_increment());
@@ -705,7 +720,7 @@ fn filtered_score_aggregation(version: ComputationVersion, filter_frame: DataFra
         column,
         filter_table: Some(filter_table(filter_frame, version)),
         data_search_table: None,
-        selection_row_count: ROW_TABLE.rows,
+        selection_row_count: row_table().rows(),
         unfiltered_aggregate: score_summary(3),
     })
 }
@@ -747,7 +762,7 @@ fn state_with_score_summary(summary_frame: DataFrameId) -> (ComputationState, Co
         ComputationTask::TableFiltering(TableFilteringTask {
             table_id: 1,
             table_version: ComputationVersion::default(),
-            input_data_table: INPUT_TABLE,
+            input_data_table: input_table(),
             input_data_frame: 1,
             row_number_column_name: "rowNumber".into(),
             filters: Vec::new(),
@@ -792,7 +807,6 @@ fn ignores_stale_filter_table_success_for_an_older_table_epoch() {
     );
     assert!(!outcome.changed);
     assert_eq!(released(&outcome), vec![4]);
-    assert!(outcome.effects.contains(&ComputationEffect::ReleaseArrowTable { table: ROW_TABLE.id }));
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.version, filter_version);
     assert_eq!(computation.filter_table, None);
@@ -813,7 +827,7 @@ fn accepts_filter_table_success_for_the_current_table_epoch() {
         ComputationTask::TableFiltering(TableFilteringTask {
             table_id: 1,
             table_version: ComputationVersion::default(),
-            input_data_table: INPUT_TABLE,
+            input_data_table: input_table(),
             input_data_frame: 1,
             row_number_column_name: "rowNumber".into(),
             filters: Vec::new(),
@@ -849,7 +863,7 @@ fn stores_the_ordering_table_without_replacing_the_immutable_base_table() {
     // An ordering doesn't change the version
     assert_eq!(computation.version, current);
     assert_eq!(computation.data_frame, Some(1));
-    assert_eq!(computation.data_table, INPUT_TABLE);
+    assert_eq!(computation.data_table, input_table());
     assert_eq!(computation.ordering_table.as_ref().map(|ordering| ordering.data_frame), Some(5));
     assert_eq!(computation.data_table_ordering, score_descending());
     assert_eq!(computation.tasks.ordering.as_ref().unwrap().progress.status, TaskStatus::Succeeded);
@@ -997,7 +1011,6 @@ fn ending_the_data_search_drops_its_rows_and_aborts_it() {
         vec![
             ComputationEffect::AbortDataSearch { table_id: 1, request_id: 1 },
             ComputationEffect::ReleaseDataFrame { data_frame: 2 },
-            ComputationEffect::ReleaseArrowTable { table: 104 },
         ]
     );
     let computation = state.computation(1).unwrap();

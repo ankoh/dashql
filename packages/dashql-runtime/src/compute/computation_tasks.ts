@@ -15,6 +15,15 @@ export type ComputeQueryExecution = <T>(
 /// Execute the query of a task without tracking it
 export const executeDirectly: ComputeQueryExecution = (_queryText, execute) => execute(null);
 
+/// The task of a query of the computations: the computation and the title of the task in the query history
+export interface ComputeTaskContext {
+    tableId: number;
+    title: string;
+}
+
+/// Create the execution of the queries of a task, e.g. to track them in the query history of the connection of the table
+export type CreateComputeQueryExecution = (task: ComputeTaskContext) => ComputeQueryExecution;
+
 /// The task variant of a task type
 type TaskOf<T extends TaskVariant['type']> = Extract<TaskVariant, { type: T }>;
 /// The result of a task type

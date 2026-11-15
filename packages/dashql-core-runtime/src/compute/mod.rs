@@ -5,14 +5,17 @@
 //! the columns and the data. The tasks of the scheduler compute them, the state tracks the tasks and accepts the
 //! results that are still current: a result of an older filter, ordering or search is dropped.
 //!
-//! The Arrow tables, the summaries and the data frames stay with the host, the state knows them by their ids. The state
-//! owns what it holds: an action that drops the last hold on a data frame or an Arrow table returns an effect to
-//! release it, a result that an action hands over and the state doesn't keep is released right away. An action
-//! changes the state in place and returns the effects that the host applies afterwards.
+//! The Arrow tables are Rust values that the state shares, dropping the last clone frees a table. The data frames are
+//! tables in the compute database of the host, the state knows them by their ids and owns what it holds: an action
+//! that drops the last hold on a data frame returns an effect to release it, a data frame that an action hands over and
+//! the state doesn't keep is released right away. An action changes the state in place and returns the effects that
+//! the host applies afterwards. `service` runs the tasks on a compute host.
 //!
 //! Ported from `reduceComputationState` of `packages/dashql-runtime/src/compute/computation_state.ts`.
 
 pub mod cross_filters;
+pub mod host;
+pub mod service;
 pub mod tasks;
 pub mod types;
 
@@ -414,13 +417,13 @@ impl ComputationAction {
     /// identify the source of a search are not handed over, a scheduled task is held by the scheduler.
     fn collect_handed_over(&self, held: &mut Held) {
         match self {
-            ComputationAction::ComputationFromQueryResult { data_table, .. } => held.table(data_table.id),
+            ComputationAction::ComputationFromQueryResult { data_table, .. } => held.table(data_table),
             ComputationAction::CreatedDataFrame { data_frame, .. } => held.frame(*data_frame),
             ComputationAction::TableOrderingSucceeded { ordering, .. } => held.ordering(ordering),
             ComputationAction::TableFilteringSucceeded { filter, .. } => held.filter(filter.as_ref()),
             ComputationAction::TableAggregationSucceeded { aggregation, .. } => held.table_aggregation(Some(aggregation)),
             ComputationAction::SystemColumnsSucceeded { data_table, data_frame, .. } => {
-                held.table(data_table.id);
+                held.table(data_table);
                 held.frame(*data_frame);
             }
             ComputationAction::ColumnAggregationSucceeded { aggregate, .. } => held.aggregate(Some(aggregate)),
@@ -451,8 +454,6 @@ pub enum ComputationEffect {
     AbortDataSearch { table_id: TableId, request_id: u64 },
     /// Nothing in the state holds the data frame anymore, the host drops its table
     ReleaseDataFrame { data_frame: DataFrameId },
-    /// Nothing in the state holds the Arrow table anymore, the host lets go of it
-    ReleaseArrowTable { table: ArrowTableId },
 }
 
 /// The outcome of an action
@@ -488,41 +489,41 @@ struct Held {
     /// The data frames
     data_frames: Vec<DataFrameId>,
     /// The Arrow tables
-    tables: Vec<ArrowTableId>,
+    tables: Vec<ArrowTable>,
 }
 
 impl Held {
     fn frame(&mut self, data_frame: DataFrameId) {
         self.data_frames.push(data_frame);
     }
-    fn table(&mut self, table: ArrowTableId) {
-        self.tables.push(table);
+    fn table(&mut self, table: &ArrowTable) {
+        self.tables.push(table.clone());
     }
     fn filter(&mut self, filter: Option<&FilterTable>) {
         if let Some(filter) = filter {
-            self.table(filter.table.id);
+            self.table(&filter.table);
             self.frame(filter.data_frame);
         }
     }
     fn ordering(&mut self, ordering: &OrderingTable) {
-        self.table(ordering.table.id);
+        self.table(&ordering.table);
         self.frame(ordering.data_frame);
     }
     fn search(&mut self, search: Option<&DataSearchTable>) {
         if let Some(search) = search {
-            self.table(search.table.id);
+            self.table(&search.table);
             self.frame(search.data_frame);
         }
     }
     fn table_aggregation(&mut self, aggregation: Option<&TableAggregation>) {
         if let Some(aggregation) = aggregation {
-            self.table(aggregation.table);
+            self.table(&aggregation.table);
             self.frame(aggregation.data_frame);
         }
     }
     fn aggregate(&mut self, aggregate: Option<&ColumnAggregate>) {
         if let Some(summary) = aggregate.and_then(ColumnAggregate::summary) {
-            self.table(summary.id);
+            self.table(&summary.table);
             self.frame(summary.data_frame);
         }
     }
@@ -533,7 +534,7 @@ impl Held {
     fn task(&mut self, task: &ComputationTask) {
         match task {
             ComputationTask::TableFiltering(task) => {
-                self.table(task.input_data_table.id);
+                self.table(&task.input_data_table);
                 self.frame(task.input_data_frame);
             }
             ComputationTask::TableOrdering(task) => self.ordering_task(task),
@@ -545,13 +546,13 @@ impl Held {
         }
     }
     fn ordering_task(&mut self, task: &TableOrderingTask) {
-        self.table(task.input_data_table.id);
+        self.table(&task.input_data_table);
         self.frame(task.input_data_frame);
         self.filter(task.filter_table.as_ref());
         self.search(task.data_search_table.as_ref());
     }
     fn system_columns_task(&mut self, task: &SystemColumnsTask) {
-        self.table(task.input_table.id);
+        self.table(&task.input_table);
         self.frame(task.input_data_frame);
         self.table_aggregation(Some(&task.table_aggregate));
     }
@@ -562,7 +563,7 @@ impl Held {
         self.aggregate(Some(&task.unfiltered_aggregate));
     }
     fn computation(&mut self, computation: &TableComputation) {
-        self.table(computation.data_table.id);
+        self.table(&computation.data_table);
         if let Some(data_frame) = computation.data_frame {
             self.frame(data_frame);
         }
@@ -580,7 +581,7 @@ impl Held {
         }
         let tasks = &computation.tasks;
         if let Some(tracked) = &tasks.filtering {
-            self.table(tracked.task.input_data_table.id);
+            self.table(&tracked.task.input_data_table);
             self.frame(tracked.task.input_data_frame);
         }
         if let Some(tracked) = &tasks.ordering {
@@ -666,7 +667,12 @@ impl ComputationState {
 
     /// The Arrow tables that the state holds
     pub fn arrow_tables(&self) -> BTreeSet<ArrowTableId> {
-        self.held_by_all().tables.into_iter().collect()
+        self.held_by_all().tables.into_iter().map(|table| table.id).collect()
+    }
+
+    /// An Arrow table that the state holds
+    pub fn arrow_table(&self, table: ArrowTableId) -> Option<ArrowTable> {
+        self.held_by_all().tables.into_iter().find(|held| held.id == table)
     }
 
     /// How many places of the state hold a data frame: the computation, its latest tasks and the scheduler tasks
@@ -681,7 +687,7 @@ impl ComputationState {
 
     /// Does the state hold an Arrow table?
     pub fn holds_arrow_table(&self, table: ArrowTableId) -> bool {
-        self.held_by_all().tables.contains(&table)
+        self.held_by_all().tables.iter().any(|held| held.id == table)
     }
 
     /// The tasks that the state knows: the tasks of the scheduler and the tasks that the computations track. The host
@@ -793,27 +799,18 @@ impl ComputationState {
             }
         }
 
-        // Release what the state no longer holds
+        // Release the data frames that the state no longer holds, the Arrow tables go with their last clone
         let held_after = self.held_by_table(table_id);
         let mut frames: BTreeSet<DataFrameId> = held_before.data_frames.into_iter().collect();
-        let mut tables: BTreeSet<ArrowTableId> = held_before.tables.into_iter().collect();
         for frame in &held_after.data_frames {
             frames.remove(frame);
         }
-        for table in &held_after.tables {
-            tables.remove(table);
-        }
-        if !frames.is_empty() || !tables.is_empty() {
-            let held = self.held_by_all();
-            for frame in &held.data_frames {
+        if !frames.is_empty() {
+            for frame in &self.held_by_all().data_frames {
                 frames.remove(frame);
-            }
-            for table in &held.tables {
-                tables.remove(table);
             }
         }
         outcome.effects.extend(frames.into_iter().map(|data_frame| ComputationEffect::ReleaseDataFrame { data_frame }));
-        outcome.effects.extend(tables.into_iter().map(|table| ComputationEffect::ReleaseArrowTable { table }));
         Ok(outcome)
     }
 

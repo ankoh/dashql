@@ -43,6 +43,11 @@ impl ResultTable {
         Ok(Self { schema, batches })
     }
 
+    /// A table without columns and rows
+    pub fn empty() -> Self {
+        Self { schema: Arc::new(Schema::empty()), batches: Vec::new() }
+    }
+
     /// A table of one batch
     pub fn from_batch(batch: RecordBatch) -> Self {
         Self { schema: batch.schema(), batches: vec![batch] }

@@ -82,6 +82,21 @@ rust_test(
     edition = "2021",
     deps = [
         ":dashql_core_runtime",
+        "@core_crates//:arrow-array",
+    ],
+)
+
+# The tasks of the computations on a fake compute host
+rust_test(
+    name = "compute_service_test",
+    size = "small",
+    srcs = ["tests/compute_service_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_runtime",
+        "//packages/dashql-core:dashql_core",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
     ],
 )
 
