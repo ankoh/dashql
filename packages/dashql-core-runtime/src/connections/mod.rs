@@ -134,6 +134,8 @@ pub enum ConnectionEffect {
     StopQueries { reason: &'static str },
     /// Abort a handle, e.g. a running catalog update
     Abort { handle: Handle, reason: &'static str },
+    /// Cancel a running catalog update of the catalog loader, it ends as cancelled with the reason
+    CancelCatalogUpdate { task_id: u32, reason: &'static str },
     /// Close a handle, a channel, and release it
     Close { handle: Handle },
     /// Release a handle, e.g. a channel that the connection no longer uses, without closing it
@@ -656,6 +658,9 @@ impl ConnectionState {
         effects.push(ConnectionEffect::CancelSetup);
         effects.push(ConnectionEffect::InvalidateCatalogBatch);
         let updates = std::mem::take(&mut self.catalog_updates);
+        for task_id in updates.tasks_running.keys() {
+            effects.push(ConnectionEffect::CancelCatalogUpdate { task_id: *task_id, reason });
+        }
         for handle in updates.tasks_running.values().filter_map(|task| task.handle) {
             effects.push(ConnectionEffect::Abort { handle, reason });
         }

@@ -1,12 +1,7 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql-core';
 
-import {
-    SET_CONNECTION_DRAFT,
-    DISCARD_CONNECTION_DRAFT,
-    type ConnectionAction,
-    type ConnectionState,
-    type NewConnection,
-} from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionState, NewConnection } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_provider.js';
 import { useOptionalCoreRuntime, useView } from '../runtime/runtime_hooks.js';
 import { scriptConnectionOf, type ScriptConnection } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
@@ -109,7 +104,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
 /// Dispatch actions to connections without subscribing to their changes
 export function useConnectionDispatch(): DynamicConnectionDispatch {
     const runtime = useOptionalCoreRuntime();
-    return React.useCallback((connectionId: string | null, action: ConnectionAction) => {
+    return React.useCallback((connectionId: string | null, action: core.RuntimeAction) => {
         if (runtime == null) throw new Error('the connections need a RuntimeProvider');
         runtime.dispatchConnection(connectionId, action);
     }, [runtime]);
@@ -147,7 +142,7 @@ export function useConnection(connectionId: string | null | undefined): Connecti
 export function useConnectionById(connectionId: string | null): [ConnectionState | null, ConnectionDispatch] {
     const connection = useConnection(connectionId);
     const dispatch = useConnectionDispatch();
-    const capturingDispatch = React.useCallback((action: ConnectionAction) => dispatch(connectionId, action), [connectionId, dispatch]);
+    const capturingDispatch = React.useCallback((action: core.RuntimeAction) => dispatch(connectionId, action), [connectionId, dispatch]);
     return [connection, capturingDispatch];
 }
 
@@ -155,10 +150,10 @@ export function useConnectionById(connectionId: string | null): [ConnectionState
 export function useConnectionDraft(connectionId: string | null) {
     const [database, dispatch] = useConnectionById(connectionId);
     const setDraft = React.useCallback((params: ConnectionParams) => {
-        dispatch({ type: SET_CONNECTION_DRAFT, value: params });
+        dispatch({ kind: 'setDraft', value: { params: params as unknown as core.JsonParams } });
     }, [dispatch]);
     const discard = React.useCallback(() => {
-        dispatch({ type: DISCARD_CONNECTION_DRAFT, value: null });
+        dispatch({ kind: 'discardDraft' });
     }, [dispatch]);
     return { params: database?.params ?? null, paramsDraft: database?.paramsDraft ?? undefined, setDraft, discard };
 }

@@ -1,14 +1,14 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
+import type * as pb from '../../proto.js';
 import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import type { EmbeddedConnection } from '../../platform/database/embedded_database.js';
-import { TestLogger } from '../../testing/test_logger.js';
-import type { QueryExecutor } from '../query_execution_args.js';
 import { ConnectorType } from '../connector_info.js';
+import { setupStepAction } from '../connection_state.js';
 import type { CoreRuntime } from '../../core_runtime.js';
 import { testCoreRuntime } from '../../testing/mocks/connector_state.js';
-import { CatalogLoaderService } from './catalog_loader_service.js';
+import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
 import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from './catalog_sql_generator.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -20,21 +20,23 @@ describe('the catalog of a connection follows statements', () => {
     let dql: dashql.DashQL;
     let connection: EmbeddedConnection;
     let runtime: CoreRuntime;
-    let loader: CatalogLoaderService;
     let catalog: dashql.DashQLCatalog;
     let relations: number;
     let queries: string[];
 
-    const executor: QueryExecutor = (_id, args) => {
-        queries.push(args.query);
-        return [queries.length, connection.query(args.query) as never];
-    };
-    /// Ask the connection about what a statement touched, like the catalog loader does after a statement
+    /// Wait until the catalog loader answered every relation that statements touched
+    const settled = () => vi.waitFor(() => {
+        const updates = runtime.connection('connection')!.catalogUpdates;
+        expect([updates.touchedRelations, updates.tasksRunning]).toEqual([[], []]);
+    }, { timeout: 4000 });
+    /// The relations that a statement touched, like the query executor does after a statement, the catalog loader asks
+    /// the connection about them
     const follow = async (statement: string) => {
-        const touched = dql.touchedRelations(statement).map(name => readRelationName(name, 'hyper'));
-        if (touched.length === 0) return;
-        const [, done] = loader.update('connection', { relations: touched });
-        await done;
+        const names = dql.touchedRelations(statement).map(name => readRelationName(name));
+        if (names.length === 0) return;
+        const value = names.map(name => ({ databaseName: name.databaseName || null, schemaName: name.schemaName || null, tableName: name.tableName || null }));
+        runtime.dispatch({ connection: 'connection' }, { kind: 'relationsTouched', value: { names: value } });
+        await settled();
     };
     const run = async (statement: string) => {
         await connection.query(statement);
@@ -59,15 +61,26 @@ describe('the catalog of a connection follows statements', () => {
         const database = await openTestHyperDB('catalog_updates_integration_test');
         connection = await database.connect();
         runtime = testCoreRuntime(dql);
-        const state = runtime.createConnection({ connectorType: ConnectorType.HYPER, setupParams: { protocol: 'WASM' } }, 'connection');
-        // The metadata queries run on the embedded Hyper of the test
-        runtime.execute = executor;
-        loader = new CatalogLoaderService({ logger: new TestLogger(), runtime, http: null, salesforce: null });
-        // Only the updates of the tests run, nothing is scheduled
-        loader.follow();
+        await runtime.ready();
+        // A Hyper server that a restored catalog describes: the loader only asks about the relations of statements
+        const params = { protocol: 'V3_GRPC', endpoint: 'https://hyper.example.com' };
+        const state = runtime.createConnection({ connectorType: ConnectorType.HYPER, setupParams: params }, 'connection');
+        runtime.dispatch({ connection: 'connection' }, { kind: 'restoreCatalogUpdates', value: { described: true } });
+        // The metadata queries run on the session of the statements of the test, it sees their temporary tables
+        const embedded = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(connection));
+        const channel = {
+            executeQuery: (params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal) => {
+                queries.push(params.query);
+                return embedded.executeQuery(params, abort);
+            },
+            close: async () => { },
+        };
+        queries = [];
+        runtime.dispatchConnection('connection', setupStepAction('HYPER_CHANNEL_READY', params, runtime.handles.register(channel)));
+        runtime.dispatchConnection('connection', setupStepAction('HEALTH_CHECK_SUCCEEDED'));
         catalog = runtime.catalog('connection')!;
         relations = state.catalogRelationEntryId;
-        queries = [];
+        queries.length = 0;
     });
     afterAll(async () => {
         runtime.destroy();

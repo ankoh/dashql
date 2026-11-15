@@ -3,9 +3,7 @@ import type * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { HandleTable } from './handles.js';
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from '../connections/catalog/catalog_update_state.js';
 import type { ConnectionParams } from '../connections/connection_params.js';
-import { DELETE_CONNECTION } from '../connections/connection_state.js';
 import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
@@ -102,7 +100,7 @@ describe('The handles of a runtime', () => {
         await vi.waitFor(() => expect(isWorkbookExecutionRunning(workbook.workbookId)).toBe(false));
         expect(rt.connection(connectionId).queriesFinishedOrdered.length).toBeGreaterThan(0);
 
-        // A query that the host runs with a result, one that stays active and a catalog update that fails
+        // A query that the host runs with a result and one that stays active
         const tracker = { runtime: rt.coreRuntime, target: { connection: connectionId } };
         const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
         const result = new arrow.Table({ n: vectorFromArray([1, 2], new arrow.Int32()) });
@@ -111,15 +109,8 @@ describe('The handles of a runtime', () => {
         const pending = executeTrackedQuery({ query: 'select 2', metadata, tracker, cancellation: active, execute: () => new Promise((_resolve, reject) => {
             active.signal.addEventListener('abort', () => reject(active.signal.reason));
         }) });
-        const update = new AbortController();
-        rt.coreRuntime.dispatch({ connection: connectionId }, {
-            kind: 'updateCatalog',
-            value: { taskId: 7, handle: handles.register({ abort: (reason: unknown) => update.abort(reason) }), variant: CatalogUpdateVariant.FULL_CATALOG_REFRESH },
-        });
-        rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'catalogUpdateFinished', value: { taskId: 7, status: CatalogUpdateTaskStatus.FAILED, error: { message: 'the catalog failed' } } });
         rt.coreRuntime.flush();
         const connection = rt.connection(connectionId);
-        expect(connection.catalogUpdates.tasksFinished.find(task => task.taskId === 7)?.error).toEqual({ message: 'the catalog failed' });
         const finished = rt.coreRuntime.store.get('query', connection.queriesFinishedOrdered.at(-1)!);
         expect(rt.coreRuntime.table(finished?.resultTable?.id)).toBe(result);
 
@@ -139,7 +130,7 @@ describe('The handles of a runtime', () => {
         // Everything goes: the computation, the history of the shell, the connection, the runtime
         rt.coreRuntime.deleteComputation(1);
         rt.coreRuntime.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
-        rt.coreRuntime.dispatchConnection(connectionId, { type: DELETE_CONNECTION, value: null });
+        rt.coreRuntime.dispatchConnection(connectionId, { kind: 'deleteConnection' });
         rt.coreRuntime.flush();
         expect(rt.coreRuntime.store.get('computation', 1)).toBeNull();
         expect(channel.close).toHaveBeenCalledTimes(1);

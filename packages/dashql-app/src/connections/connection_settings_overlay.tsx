@@ -10,7 +10,7 @@ import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info'
 import { useConnectionById, useConnectionDraft, useConnectionReferencesSelector } from './connection_registry.js';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { ConnectionHealth, connectionCachesQueryResults, SET_CONNECTION_QUERY_RESULT_CACHING, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
@@ -98,7 +98,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
                     caching={conn != null && connectionCachesQueryResults(conn)}
                     disabled={conn == null}
                     toggle={() => {
-                        if (conn != null) modifyConn({ type: SET_CONNECTION_QUERY_RESULT_CACHING, value: !connectionCachesQueryResults(conn) });
+                        if (conn != null) modifyConn({ kind: 'setQueryResultCaching', value: { caching: !connectionCachesQueryResults(conn) } });
                     }}
                 />
                 <ConnectionSaveBar

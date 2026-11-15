@@ -17,15 +17,11 @@ import { useConnectionById, useConnectionDraftForm } from './connection_registry
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useQueryExecutor } from './query_executor.js';
-import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
-import { useTrinoSetup } from './trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { requiresSwitchingToNative } from './connector_list.js';
 import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
-import { LoggableException, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { withTrinoCatalogFields } from '@ankoh/dashql-runtime/connections/trino/trino_catalogs';
 
 const LOG_CTX = "trino_connector";
@@ -71,15 +67,13 @@ interface Props {
 
 export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const trinoSetup = useTrinoSetup();
-    const queryExecutor = useQueryExecutor();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionById(props.connectionId);
+    const [connectionState] = useConnectionById(props.connectionId);
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
 
@@ -267,44 +261,16 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         };
     });
 
-    // Helper to setup the connection
+    // The runtime sets up the connection and checks its health, the view of the connection shows a failure
     const setupConnection = async () => {
-        // Is there a Trino client?
-        if (trinoSetup == null) {
-            logger.error("Trino connector is unavailable", {}, LOG_CTX);
-            return;
-        }
-        // Is there a connection id?
         if (connectionState == null) {
             logger.warn("Trino connection state is null", {}, LOG_CTX);
             return;
         }
-
-        await connectionSetup.run(async signal => {
-            try {
-                const connectionParams: connection.TrinoConnectionParams = pageState.newParams;
-                const trinoChannel = await trinoSetup.setup(dispatchConnectionState, connectionParams, signal);
-                if (trinoChannel != null) {
-                    await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, signal);
-                }
-            } catch (error: any) {
-                if (error instanceof LoggableException) {
-                    logger.warn(error.message, error.keyValues, error.target);
-                } else {
-                    logger.warn("Error while setting up trino connection", {
-                        authType: (pageState.newParams.auth?.authType ?? 0).toString(),
-                        error: stringifyError(error)
-                    }, LOG_CTX);
-                }
-            }
-        });
+        await connectionSetup.run({ trino: pageState.newParams });
     };
     const cancelSetup = connectionSetup.cancel;
-    const resetSetup = async () => {
-        if (trinoSetup) {
-            await trinoSetup.reset(dispatchConnectionState);
-        }
-    };
+    const resetSetup = connectionSetup.reset;
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;

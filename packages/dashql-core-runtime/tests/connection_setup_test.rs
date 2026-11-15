@@ -177,9 +177,9 @@ impl SetupHost for FakeHost {
         self.values.borrow_mut().push(json["value"].clone());
     }
 
-    fn open_trino_channel(&self, id: ChannelId, channel: &TrinoChannel) -> Result<(), HostError> {
-        self.trino_channels.borrow_mut().push((id, channel.clone()));
-        Ok(())
+    fn connect_trino_channel(&self, channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
+        self.trino_channels.borrow_mut().push((1, channel.clone()));
+        std::future::ready(Ok(1))
     }
 
     fn connect_salesforce_channel(&self, channel: &SalesforceChannelSetup, _cancellation: &CancellationToken) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {

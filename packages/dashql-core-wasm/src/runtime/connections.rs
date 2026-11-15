@@ -1,18 +1,22 @@
-//! The connections of the runtime with the histories of their queries, the query executor that runs the queries and
-//! the saves of the connections (docs/wip/runtime_api.md).
+//! The connections of the runtime with the histories of their queries, the query executor that runs the queries, the
+//! setups, the catalog loader and the saves of the connections (docs/wip/runtime_api.md).
 //!
-//! `Connections` is shared by the runtime and the host of the executor (`queries.rs`): the registry of the crate holds
-//! the connections and the histories, the executor reports what happens to a query into its history right away. A
+//! `Connections` is shared by the runtime and the hosts of the executor (`queries.rs`), the setups (`setups.rs`) and the
+//! catalog loader (`catalog.rs`): the registry of the crate holds the connections and the histories, the executor
+//! reports what happens to a query into its history right away, a change of the registry lets the catalog loader
+//! follow it at the end of the task. A
 //! change of a connection schedules its writes through the storage writer of the module once the host gave the
 //! runtime one (`setStorageWriter`); a save writes the app manifest, commits the params and writes the copies of the
 //! workbooks that use the connection. The workbooks that use a connection come from the host until the workbooks are
 //! part of the runtime.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core::error::{Error, Result};
+use dashql_core_runtime::catalog_loader::CatalogLoaderService;
+use dashql_core_runtime::clfn::ClientFunctionSpec;
 use dashql_core_runtime::compute::service::ComputeService;
 use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::compute::ComputationOutcome;
@@ -34,7 +38,9 @@ use dashql_core_runtime::workbook::next_revision;
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
+use super::catalog::{CatalogLoader, LoaderHost};
 use super::queries::{QueryHost, QueryRun};
+use super::setups::RunningSetup;
 use crate::connection::view::ConnectionSaveView;
 use crate::connection_persistence::view::{copies, ConnectionSaveOutcome};
 use crate::host::JsPlatform;
@@ -86,6 +92,18 @@ pub(crate) struct Connections {
     pub result_owners: RefCell<Vec<(String, QueryId)>>,
     /// The executor, its host holds the connections weakly
     pub executor: RefCell<Option<QueryExecutor<QueryHost>>>,
+    /// The specs of the client functions by extension, loaded with the first call
+    pub specs: RefCell<Vec<(&'static str, Rc<ClientFunctionSpec>)>>,
+    /// The setups that run, few
+    pub setups: RefCell<Vec<RunningSetup>>,
+    /// The number of the last setup
+    pub setup_numbers: Cell<u64>,
+    /// The catalog loader, its host holds the connections weakly
+    pub loader: RefCell<Option<CatalogLoader>>,
+    /// Is the catalog loader asked to follow the registry at the end of the task?
+    pub follow_requested: Cell<bool>,
+    /// The number of the announcements of a new catalog by connection
+    pub catalog_versions: RefCell<Vec<(String, u64)>>,
 }
 
 impl Connections {
@@ -99,10 +117,20 @@ impl Connections {
             runs: RefCell::new(Vec::new()),
             result_owners: RefCell::new(Vec::new()),
             executor: RefCell::new(None),
+            specs: RefCell::new(Vec::new()),
+            setups: RefCell::new(Vec::new()),
+            setup_numbers: Cell::new(0),
+            loader: RefCell::new(None),
+            follow_requested: Cell::new(false),
+            catalog_versions: RefCell::new(Vec::new()),
         });
-        let host = QueryHost::new(Rc::downgrade(&connections), platform);
+        let host = QueryHost::new(Rc::downgrade(&connections), platform.clone());
         let executor = QueryExecutor::new(Rc::new(host));
         *connections.executor.borrow_mut() = Some(executor);
+        // The loader schedules from the start, the host may stop it
+        let loader = CatalogLoaderService::new(Rc::new(LoaderHost::new(Rc::downgrade(&connections), platform)));
+        loader.start();
+        *connections.loader.borrow_mut() = Some(loader);
         connections
     }
 
@@ -115,10 +143,11 @@ impl Connections {
         self.platform.now()
     }
 
-    /// Hand the effects of the registry to the host: the effects on handles, the cancelled setups and the queries that
-    /// the executor stops
-    pub fn settle(&self, connection_id: Option<&str>, outcome: &RegistryOutcome, urgent: bool) {
-        let cancel_setup = self.platform.push_registry_effects(&outcome.effects);
+    /// Hand the effects of the registry to the host and to the services: the effects on handles, the cancelled setups
+    /// and catalog updates and the queries that the executor stops. A change that is urgent lets the catalog loader
+    /// follow the registry, e.g. a query that started or finished.
+    pub fn settle(self: &Rc<Self>, connection_id: Option<&str>, outcome: &RegistryOutcome, urgent: bool) {
+        let follow_up = self.platform.push_registry_effects(&outcome.effects);
         if !outcome.stopped.is_empty() {
             {
                 let mut runs = self.runs.borrow_mut();
@@ -133,11 +162,19 @@ impl Connections {
                 }
             }
         }
-        if let (true, Some(connection_id)) = (cancel_setup, connection_id) {
-            self.platform.cancel_setup(connection_id);
+        if let (true, Some(connection_id)) = (follow_up.cancel_setup, connection_id) {
+            self.cancel_setup(connection_id);
+        }
+        if let Some(loader) = self.loader() {
+            for (task_id, reason) in follow_up.cancel_catalog_updates {
+                loader.cancel(task_id, reason);
+            }
         }
         if outcome.changed || !outcome.effects.is_empty() {
             self.platform.signal(urgent);
+            if urgent || outcome.deleted {
+                self.follow_later();
+            }
         }
     }
 
@@ -158,7 +195,7 @@ impl Connections {
 
     /// Create a connection with an empty catalog, returns its id. An active connection is written into the app
     /// manifest right away.
-    pub fn create(&self, connection: NewConnection) -> Result<String> {
+    pub fn create(self: &Rc<Self>, connection: NewConnection) -> Result<String> {
         let connection_id = match connection.connection_id {
             Some(id) => id,
             None => self.platform.random_uuid().map_err(|e| Error::invalid_argument(e.message().to_string()))?,
@@ -184,14 +221,16 @@ impl Connections {
             self.write(&connection_entry_key(&connection_id), WriteTask::WriteConnectionEntry { entry }, 0.0);
         }
         self.platform.signal(true);
+        self.follow_later();
         Ok(connection_id)
     }
 
     /// Adopt a connection that a service created, e.g. the restore
-    pub fn adopt(&self, state: ConnectionState) -> Result<String> {
+    pub fn adopt(self: &Rc<Self>, state: ConnectionState) -> Result<String> {
         let connection_id = state.connection_id().to_string();
         self.registry.borrow_mut().insert(state)?;
         self.platform.signal(true);
+        self.follow_later();
         Ok(connection_id)
     }
 
@@ -206,7 +245,7 @@ impl Connections {
 
     /// Apply an action to a connection and schedule what storage keeps of the change. A finished catalog update tells
     /// whether it changed the catalog.
-    pub fn apply(&self, connection_id: &str, action: ConnectionAction, catalog_changed: Option<bool>) -> Result<RegistryOutcome> {
+    pub fn apply(self: &Rc<Self>, connection_id: &str, action: ConnectionAction, catalog_changed: Option<bool>) -> Result<RegistryOutcome> {
         let connection = self.registry.borrow().get(connection_id).cloned();
         let prev = connection.as_ref().map(|connection| PersistedConnection::of_state(&connection.state.borrow()));
         let finished_task = match &action {
@@ -255,7 +294,7 @@ impl Connections {
     }
 
     /// Apply an action to a query of a history
-    pub fn apply_query(&self, owner: &QueryOwner, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
+    pub fn apply_query(self: &Rc<Self>, owner: &QueryOwner, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
         let outcome = self.registry.borrow_mut().apply_query(owner, action)?;
         let connection_id = match owner {
             QueryOwner::Connection(id) => Some(id.as_str()),

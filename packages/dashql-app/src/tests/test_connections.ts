@@ -2,13 +2,7 @@ import type * as core from '@ankoh/dashql-core';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import type { QueryMetadata } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import {
-    ConnectionHealth,
-    HEALTH_CHECK_FAILED,
-    HEALTH_CHECK_STARTED,
-    HEALTH_CHECK_SUCCEEDED,
-    type ConnectionState,
-} from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
 /// A connection of a test of the app, created in the runtime of the app
@@ -45,11 +39,11 @@ export function setTestConnectionHealth(runtime: CoreRuntime, connectionId: stri
     const state = { connectionId };
     switch (health) {
         case ConnectionHealth.ONLINE:
-            return reduceTestConnection(runtime, state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+            return reduceTestConnection(runtime, state, setupStepAction('HEALTH_CHECK_SUCCEEDED'));
         case ConnectionHealth.FAILED:
-            return reduceTestConnection(runtime, state, { type: HEALTH_CHECK_FAILED, value: { message: error ?? 'failed' } });
+            return reduceTestConnection(runtime, state, setupStepAction('HEALTH_CHECK_FAILED', { message: error ?? 'failed' }));
         case ConnectionHealth.CONNECTING:
-            return reduceTestConnection(runtime, state, { type: HEALTH_CHECK_STARTED, value: null });
+            return reduceTestConnection(runtime, state, setupStepAction('HEALTH_CHECK_STARTED'));
         default:
             return current;
     }

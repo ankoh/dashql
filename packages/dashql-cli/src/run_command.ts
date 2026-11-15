@@ -7,11 +7,7 @@ import path from 'node:path';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
-import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
-import { HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
-import { setupTrinoConnection } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
-import type { ConnectionAction, ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { openNodeComputeDatabase, type NodeComputeDatabase } from '@ankoh/dashql-runtime/node/node_hyperdb';
 import { createNodePlatform } from '@ankoh/dashql-runtime/node/node_platform';
@@ -185,54 +181,44 @@ function connectionLabel(conn: ConnectionState): string {
 }
 
 /// Set up a connection and check that it answers, an error message if it can't be set up: Trino with basic auth and the
-/// embedded Hyper, also a local cloud on it
+/// embedded Hyper, also a local cloud on it. The runtime sets it up, the embedded Hyper of the run is its channel.
 async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvironment, hyper: NodeComputeDatabase | null, signal: AbortSignal): Promise<string | null> {
     const params = conn.params;
-    const dispatch = (action: ConnectionAction) => { rt.coreRuntime.dispatchConnection(conn.connectionId, action); };
+    let options: { channelParams?: connection.TrinoConnectionParams } = {};
     if ('hyper' in params && (params.hyper.protocol ?? 'WASM') === 'WASM') {
         if (hyper == null) return 'the script runs on the embedded Hyper, which did not start';
-        const hyperParams = params.hyper as connection.HyperConnectionParams;
-        try {
-            dispatch({ type: HYPER_CHANNEL_SETUP_STARTED, value: hyperParams });
-            const channel = await connectEmbeddedHyper(hyper.database, hyperParams);
-            dispatch({ type: HYPER_CHANNEL_READY, value: [channel, hyperParams] });
-            await performHealthCheck(rt.coreRuntime.execute, conn.connectionId, { type: 'hyper', channel }, dispatch, signal);
-        } catch (error) {
-            dispatch({ type: HYPER_CHANNEL_SETUP_FAILED, value: { message: describeError(error) } });
-            return describeError(error);
-        }
-        return null;
-    }
-    if (!('trino' in params)) {
+    } else if (!('trino' in params)) {
         return `dashql run reaches Trino and the embedded Hyper only, this script runs on ${connectionLabel(conn)}`;
-    }
-    const auth = params.trino.auth;
-    if (auth?.authType === 'AUTH_OAUTH') {
-        return 'the connection signs in with OAuth, dashql run supports basic auth only';
-    }
-    const stored = params.trino as connection.TrinoConnectionParams;
-    const trino: connection.TrinoConnectionParams = {
-        ...stored,
-        auth: {
-            authType: 'AUTH_BASIC',
-            basic: {
-                username: env.trinoUser ?? auth?.basic?.username ?? '',
-                secret: env.trinoPassword ?? auth?.basic?.secret ?? '',
+    } else {
+        const auth = params.trino.auth;
+        if (auth?.authType === 'AUTH_OAUTH') {
+            return 'the connection signs in with OAuth, dashql run supports basic auth only';
+        }
+        // A connection saves the params it was set up with once it is online, and saved params are written into the
+        // workbook. The connection keeps the params of the workbook, the credentials of the environment stay in the channel.
+        const channelParams: connection.TrinoConnectionParams = {
+            ...(params.trino as connection.TrinoConnectionParams),
+            auth: {
+                authType: 'AUTH_BASIC',
+                basic: {
+                    username: env.trinoUser ?? auth?.basic?.username ?? '',
+                    secret: env.trinoPassword ?? auth?.basic?.secret ?? '',
+                },
             },
-        },
-    };
-    const { logger, http, oauthFlow } = rt.platform;
-    // A connection saves the params it was set up with once it is online, and saved params are written into the
-    // workbook. The connection sees the params of the workbook, the credentials of the environment stay in the channel.
-    const trinoDispatch = (action: ConnectionAction) => dispatch(
-        action.type === TRINO_CHANNEL_SETUP_STARTED ? { type: TRINO_CHANNEL_SETUP_STARTED, value: stored } : action);
-    try {
-        const channel = await setupTrinoConnection(trinoDispatch, logger, trino, http, oauthFlow, false, signal);
-        await performHealthCheck(rt.coreRuntime.execute, conn.connectionId, { type: 'trino', channel }, trinoDispatch, signal);
-    } catch (error) {
-        return describeError(error);
+        };
+        options = { channelParams };
     }
-    return null;
+    const cancel = () => rt.coreRuntime.cancelSetup(conn.connectionId);
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+        const outcome = await rt.coreRuntime.setupConnection(conn.connectionId, {
+            channelParams: options.channelParams == null ? undefined : { trino: options.channelParams },
+        });
+        if (outcome.status === 'succeeded') return null;
+        return describeError(new LoggableException(outcome.message ?? 'the connection could not be set up', outcome.data, 'connection_setup'));
+    } finally {
+        signal.removeEventListener('abort', cancel);
+    }
 }
 
 /// The root of the files of DashQL of a workspace: its `.dashql/`, which `dashql session serve` creates in the folder of
@@ -306,17 +292,27 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     } catch (error) {
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
+    const embedded = hyper?.database ?? null;
     const runtime = createRuntime({
         ...createNodePlatform({ logger, storage }),
         setupCore: () => cli.setupCore(),
-        computeDatabase: hyper?.database ?? null,
+        computeDatabase: embedded,
         resultCache: hyper?.resultCache ?? null,
+        // The embedded Hyper of the run is the channel of its connections to the embedded Hyper
+        channels: {
+            connect: async (_connectionId, request) => {
+                if (request.type !== 'hyper' || request.kind !== 'embedded' || embedded == null) {
+                    throw new Error('dashql run connects the embedded Hyper only');
+                }
+                return await connectEmbeddedHyper(embedded, request.params);
+            },
+        },
     });
     const reporters: RunReporter[] = [];
     let progressTimer: ReturnType<typeof setInterval> | null = null;
     try {
         // A run doesn't describe the connections, it only runs the scripts
-        runtime.catalogLoader.stop();
+        runtime.coreRuntime.runCatalogLoader(false);
         let workbook: WorkbookScripts;
         try {
             workbook = await loadWorkbook(runtime, storage);

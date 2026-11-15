@@ -11,22 +11,31 @@
 //! (`tables.open` and `tables.push`), the channels of the host push their batches into it, the platform builds the
 //! table at the end (`tables.finish`). The history takes the table by its handle, the analysis takes a handle of its
 //! own.
+//!
+//! The runtime runs queries of its own as well (`run_internal`): the metadata queries of the catalog loader and the
+//! probes of the health checks. They are queries of their connection like the others, the platform describes where
+//! they run (`queries.describe`). The specs of the client functions come from the platform (`extensions`) when a call
+//! runs.
 
+use std::pin::Pin;
 use std::rc::{Rc, Weak};
+use std::task::{Context, Poll};
 
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
+use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionSpec};
 use dashql_core_runtime::connections::registry::QueryOwner;
 use dashql_core_runtime::connections::ConnectionAction;
 use dashql_core_runtime::executor::json::{failure_json, request_from_json, SpecCache};
 use dashql_core_runtime::executor::{
-    CacheEntry, ChannelMessage, ExecutorHost, FailureKind, HostTable, QueryEvent, QueryFailure, QueryId, QueryOutcome,
+    CacheEntry, ChannelMessage, ExecutorHost, FailureKind, HostTable, QueryEvent, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget,
 };
 use dashql_core_runtime::handles::Handle;
+use dashql_core_runtime::host::signal::{oneshot, Receiver};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{Body, CancellationToken, HttpHost, HttpRequest, HttpResponse};
-use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryResultTable};
+use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable};
 use js_sys::{Function, Object, Promise, Reflect, Uint8Array};
 use serde::Deserialize;
 use std::future::Future;
@@ -185,7 +194,7 @@ impl Connections {
     }
 
     /// Apply an event of the executor to the history of its query
-    pub(crate) fn report(&self, query_id: QueryId, event_: QueryEvent) {
+    pub(crate) fn report(self: &Rc<Self>, query_id: QueryId, event_: QueryEvent) {
         let Some((connection_id, preset_failure)) = self.run_of(query_id, |run| (run.connection_id.clone(), run.preset_failure)) else {
             return;
         };
@@ -572,6 +581,9 @@ impl Connections {
             Ok(request) => request,
             Err(message) => return fail(QueryFailure::new(FailureKind::Error, message), "failed"),
         };
+        if let Err(message) = self.load_spec(&mut request).await {
+            return fail(QueryFailure::new(FailureKind::Error, message), "failed");
+        }
         if request.analyze_results && !self.platform.has_compute() {
             return fail(QueryFailure::new(FailureKind::Error, "Compute database is not yet ready"), "failed");
         }
@@ -591,6 +603,113 @@ impl Connections {
             executor.watch_profile(query_id, 1);
         }
         outcome.await
+    }
+
+    /// The spec of the client functions of a call, from the extension of its connector. A connector without a binding
+    /// has no spec, starting the call names it.
+    async fn load_spec(&self, request: &mut QueryRequest) -> Result<(), String> {
+        let QueryTarget::ClientFunction(target) = &mut request.target else { return Ok(()) };
+        if target.spec.is_some() {
+            return Ok(());
+        }
+        let Some(binding) = ClientFunctionBinding::of_connector(target.connector) else { return Ok(()) };
+        let extension = binding.extension();
+        let cached = self.specs.borrow().iter().find(|(name, _)| *name == extension).map(|(_, spec)| spec.clone());
+        let spec = match cached {
+            Some(spec) => spec,
+            None => {
+                let text = self.platform.load_spec(extension).await.map_err(|error| error.message().to_string())?;
+                let spec = Rc::new(ClientFunctionSpec::from_json(&text).map_err(|error| error.message)?);
+                let mut specs = self.specs.borrow_mut();
+                specs.retain(|(name, _)| *name != extension);
+                specs.push((extension, spec.clone()));
+                spec
+            }
+        };
+        target.spec = Some(spec);
+        Ok(())
+    }
+
+    /// Run a query of the runtime on a connection, e.g. a metadata query of the catalog loader or the probe of a health
+    /// check. It is a query of the history of the connection, the platform describes where it runs. Returns its id and
+    /// a future of its result: the result table as an Arrow IPC stream if `read` asks for it, empty bytes otherwise,
+    /// none for a query without a result. The token cancels the query, it ends as cancelled at the backend.
+    pub(crate) fn run_internal(
+        self: &Rc<Self>,
+        connection_id: &str,
+        text: &str,
+        metadata: QueryMetadata,
+        read_timeout_ms: Option<u32>,
+        read: bool,
+        cancellation: &CancellationToken,
+    ) -> (QueryId, InternalQuery) {
+        let owner = QueryOwner::Connection(connection_id.to_string());
+        let query_id = self.registry.borrow_mut().next_query_id();
+        let description = Object::new();
+        let set = |key: &str, value: &JsValue| {
+            let _ = Reflect::set(&description, &JsValue::from_str(key), value);
+        };
+        set("text", &JsValue::from_str(text));
+        set("metadata", &serde_wasm_bindgen::to_value(&QueryMetadataView::from(&metadata)).unwrap_or(JsValue::NULL));
+        set("readTimeoutMs", &read_timeout_ms.map(|ms| JsValue::from_f64(ms.into())).unwrap_or(JsValue::NULL));
+        let state = QueryExecutionState::new(query_id, 0, text.to_string(), metadata, self.now() as i64);
+        let registered = self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true);
+        if registered.is_ok() {
+            self.runs.borrow_mut().push((
+                query_id,
+                QueryRun {
+                    connection_id: connection_id.to_string(),
+                    text: text.to_string(),
+                    table: None,
+                    result: None,
+                    in_history: false,
+                    events: None,
+                    result_owner: None,
+                    log_details: Vec::new(),
+                    preset_failure: false,
+                    cancelled: false,
+                    started: false,
+                    profile_viewers: 0,
+                },
+            ));
+        }
+        let request = registered.as_ref().ok().map(|_| self.platform.describe_query(query_id as f64, connection_id, &description));
+        let connections = self.clone();
+        let token = cancellation.clone();
+        let Some(request) = request else {
+            let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}"));
+            return (query_id, InternalQuery::Ready(Some(Err(failure))));
+        };
+        // The query runs in a task of its own to its end, a caller that stops waiting leaves it to the cancellation
+        let (sender, receiver) = oneshot();
+        let ended = CancellationToken::new();
+        {
+            let connections = connections.clone();
+            let ended = ended.clone();
+            self.platform.spawn(Box::pin(async move {
+                if ended.run(token.cancelled()).await.is_some() {
+                    connections.cancel(query_id).await;
+                }
+            }));
+        }
+        self.platform.spawn(Box::pin(async move {
+            let outcome = connections.run(query_id, owner, request, JsValue::UNDEFINED).await;
+            ended.cancel();
+            // The table is read before the run is forgotten, the run releases a table that the history didn't take
+            let table = connections.run_of(query_id, |run| run.result).flatten();
+            let result = match (outcome, table) {
+                (QueryOutcome::Resolved { has_result: true }, Some(table)) if read => {
+                    connections.platform.read_table(table).map(Some).map_err(|error| QueryFailure::from_host(&error))
+                }
+                (QueryOutcome::Resolved { has_result: true }, Some(_)) => Ok(Some(Vec::new())),
+                (QueryOutcome::Resolved { .. }, _) => Ok(None),
+                (QueryOutcome::Rejected(failure), _) => Err(failure),
+            };
+            connections.forget(query_id);
+            connections.platform.forget_query(query_id as f64);
+            sender.send(result);
+        }));
+        (query_id, InternalQuery::Waiting(receiver))
     }
 
     /// Cancel a query: one that the executor runs stops at the backend, one that waits for its description ends as
@@ -631,6 +750,25 @@ impl Connections {
             if let Some(executor) = self.executor() {
                 executor.watch_profile(query_id, delta);
             }
+        }
+    }
+}
+
+/// The result of a query that the runtime runs itself: its result table as an Arrow IPC stream, or its failure
+pub(crate) enum InternalQuery {
+    /// The query failed before it ran
+    Ready(Option<Result<Option<Vec<u8>>, QueryFailure>>),
+    /// The query runs in a task of its own
+    Waiting(Receiver<Result<Option<Vec<u8>>, QueryFailure>>),
+}
+
+impl Future for InternalQuery {
+    type Output = Result<Option<Vec<u8>>, QueryFailure>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.get_mut() {
+            InternalQuery::Ready(result) => Poll::Ready(result.take().unwrap_or_else(|| Err(QueryFailure::cancelled()))),
+            InternalQuery::Waiting(receiver) => Pin::new(receiver).poll(cx).map(|result| result.unwrap_or_else(|| Err(QueryFailure::cancelled()))),
         }
     }
 }

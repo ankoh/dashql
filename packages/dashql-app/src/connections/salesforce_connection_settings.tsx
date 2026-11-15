@@ -8,10 +8,6 @@ import { useConnectionById, useConnectionDraftForm } from './connection_registry
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-runtime/connections/connection_state';
-import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
-import { useQueryExecutor } from './query_executor.js';
-import { useSalesforceSetup } from './salesforce/salesforce_connector.js';
-import type { SalesforceConnectorType } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';
 import { getSalesforceConnectionDetails } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
 import {
     TextField,
@@ -31,6 +27,9 @@ import { collectSalesforceAuthInfo } from '@ankoh/dashql-runtime/connections/sal
 import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_catalog_update';
 
 const LOG_CTX = "sf_connector";
+
+/// The connectors that share the Salesforce settings
+type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.DBCOM;
 
 interface PageState {
     instanceUrl: string;
@@ -328,11 +327,8 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
 };
 
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
-    const sfSetup = useSalesforceSetup();
-    const queryExecutor = useQueryExecutor();
-
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionById(props.connectionId);
+    const [connectionState] = useConnectionById(props.connectionId);
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
@@ -395,25 +391,12 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         } else {
             setAppConsumerValidation({ type: VALIDATION_UNKNOWN, value: null });
         }
-        if (!validationSucceeded || !sfSetup) return;
-
-        await connectionSetup.run(async signal => {
-            try {
-                const sfChannel = await sfSetup.setup(dispatchConnectionState, props.connector, setupParams, signal);
-                if (connectionState != null) {
-                    await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, signal);
-                }
-            } catch {
-                // Setup updates connection state with the failure details.
-            }
-        });
+        if (!validationSucceeded) return;
+        // The setup updates the connection state with the failure details
+        await connectionSetup.run(connectionParamsOf(CONNECTOR_DESCRIPTORS[props.connector], setupParams));
     };
     const cancelSetup = connectionSetup.cancel;
-    const resetSetup = async () => {
-        if (sfSetup) {
-            await sfSetup.reset(dispatchConnectionState);
-        }
-    };
+    const resetSetup = connectionSetup.reset;
 
     // Saving writes the settings into every workbook that uses the connection
     let freezeInput = saving;

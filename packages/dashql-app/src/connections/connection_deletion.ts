@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import { useConnectionDispatch, useConnectionReferences, useConnectionRegistryStore } from './connection_registry.js';
-import { DELETE_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { embeddedCloudDatabases } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 import type { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
@@ -44,7 +43,7 @@ export function useDeleteConnection(): DeleteConnection {
         const attached = hyper == null || !deleted ? [] : embeddedCloudDatabases(database.params != null && 'hyper' in database.params ? database.params.hyper : null);
         // The session detaches the databases when it closes, the deletion closes it without waiting
         if (attached.length > 0) await hyper?.channel?.close().catch(() => {});
-        connectionDispatch(connectionId, { type: DELETE_CONNECTION, value: null });
+        connectionDispatch(connectionId, { kind: 'deleteConnection' });
         if (attached.length === 0 || setupEmbeddedDatabase == null) return;
 
         const others = [...registryStore.current.connections.values()].filter(other => other.connectionId !== connectionId);

@@ -3,7 +3,8 @@
 Status: decided on 2026-11-15 (see [Decisions](#decisions)). Step 1 is built: the frame (`Runtime`, `JsPlatform`,
 `RuntimeStore`, the hooks) with the computations as its first domain, see [Step 1 as built](#step-1-as-built). Step 2
 is built: the connections with their query histories, the query executor and the saves of connections, see
-[Step 2 as built](#step-2-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+[Step 2 as built](#step-2-as-built). Step 3 is built: the setups of the connections and the catalog loader, see
+[Step 3 as built](#step-3-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -429,7 +430,7 @@ deletes more than it adds.
    their UI parts, and the bindings `connection.rs`, `query_history.rs`, `query_executor.rs`,
    `connection_persistence.rs`. TypeScript about −3,000, +200. The workbooks read their catalogs through
    `runtime.catalog(id)` until step 4.
-3. **The setups and the catalog loader** on the connections and the executor of the runtime; the platform gets
+3. **The setups and the catalog loader** (done, see [Step 3 as built](#step-3-as-built)) on the connections and the executor of the runtime; the platform gets
    `oauth` and `extensions`; `setupConnection`, `cancelSetup`, `refreshCatalog`. The 6 setup files and the settings
    pages. Deletes `connection_setup_native.ts`, `connection_setup_cancellation.ts`, `health_check.ts`,
    `catalog_loader_service.ts`, the Trino and Salesforce setup wrappers, `connection_setup.rs` and
@@ -617,6 +618,91 @@ and the executor that are there now; `runtimeActionOf` with the action symbols o
 (`refreshCatalog`), its host with `updateStarted`, `updateFinished` and `runQuery` goes; it runs its metadata queries
 on the executor of the runtime instead of `CoreRuntime.execute`. The platform gets `oauth` and `extensions` (the specs
 of the client functions, which `QueryPlatform` loads today when it describes a call).
+
+### Step 3 as built
+
+The setups of the connections, the health checks and the catalog loader, built on `0857d61ac` (step 2).
+
+- **The setups are commands.** `setupConnection(connectionId, options)` sets up a connection with the setup of its
+  connector (`connection_setup` of the crate) on a host of the runtime (`runtime/setups.rs` of the bindings) and checks
+  its health unless the connection is online with its channel; `authenticateSalesforce(setupId, params, options,
+  onStep)` logs in without a connection (the login of the shell); `cancelSetup(setupId)` cancels either. A setup is
+  known by an id, the id of its connection or of a login: a new setup of an id cancels the one that runs, a reset or a
+  delete of the connection cancels it in Rust (`RegistryEffect::CancelSetup`). The options are `params` (the params of
+  the connection by default), `channelParams` (the params that the channel connects with while the connection keeps
+  `params`, the credentials of the environment of the command line tool; this replaces `connections.prepare` of the
+  platform), `forceRelogin` and `oauthRedirect`. The outcome is `{ status, message, data, authentication }`, the
+  command resolves, a failure is in the view of the connection and in the log as well.
+- **The steps go to the connection.** A step of a setup is applied to the connection right away (`Connections::apply`),
+  the channel of a ready step is the handle that the platform returned. The view of the connection shows whether a
+  setup runs (`setupRunning`). `runtimeActionOf` and the action symbols of TypeScript went, the app dispatches the
+  generated union (`setDraft`, `discardDraft`, `rename`, `setQueryResultCaching`, `deleteConnection`,
+  `resetConnection`). The action `setupStep` stays for the setups that the host runs itself: the mock of Salesforce of
+  the app config (`salesforce_connection_setup_mock.ts`) and the fixtures of tests (`setupStepAction`).
+- **The health check is a query of the runtime.** `run_internal` of `runtime/queries.rs` runs a query that the runtime
+  issues itself in a task of its own: it is a query of the history of its connection, the platform describes where it
+  runs (`queries.describe`, the same description as for `executeQuery`; `queries.forget` when it ended), a cancelled
+  token cancels it at the backend, and the result is read as Arrow IPC before the run is forgotten. The probe of a
+  health check and the metadata queries of the catalog loader run on it; `channelOverride` of the query arguments went.
+- **The catalog loader is a service of the runtime** (`runtime/catalog.rs`). It follows the registry: an urgent change
+  of the registry asks it to follow at the end of the task (`follow_later`). The start and the end of an update are
+  actions of the connection, a metadata query is registered with its update, a reset or a delete cancels the running
+  updates (`ConnectionEffect::CancelCatalogUpdate`, the handles of the updates are no longer set). An update that
+  announces a new catalog raises `catalogVersion` of the view of the connection; `createRuntime` of TypeScript follows it
+  and dispatches `CATALOG_DID_UPDATE` to the workbooks until they are part of the runtime. `refreshCatalog(connectionId,
+  force)` requests a refresh, `runCatalogLoader(running)` starts and stops the loader (the command line tool and the
+  tests stop it). `CatalogLoaderHost` of TypeScript with `updateStarted`, `updateFinished` and `runQuery` went with the
+  class `CatalogLoader` of the module.
+- **The platform grew** `oauth` (`pkce`, `flowInfo`, `authorizeWithLoopback`, `authorizeWithRedirectPage`, `abort`,
+  each flow belongs to a setup by its id), `extensions` (`loadSpec`: the executor loads the spec of a client function
+  call with the first call of a connector, `QueryPlatform` no longer loads it), `salesforce` (a getter, the metadata of
+  the mock of the app), `queries` (`describe`, `forget`) and `channels.connect` and `channels.hyperLinkToken`.
+  `cancelSetup` of the platform went. `CoreRuntime` builds them: a Trino channel is a `TrinoChannel` of the runtime, the
+  other channels come from the `ChannelConnector` of the platform (`setChannelConnector`; the app installs its clients of
+  Hyper and Salesforce with `ChannelConnectorProvider`, the command line tool connects its embedded Hyper), the OAuth
+  flow is the one of the platform or the one that a login brings.
+- **The crate.** `SetupHost::open_trino_channel` became `connect_trino_channel`, async with the id of the host, so that
+  every channel is a handle of the platform; `TrinoAuthParams::to_json` describes the channel. `ConnectionEffect` and
+  `RegistryEffect` gained `CancelCatalogUpdate`.
+- **TypeScript.** Deleted: `connection_setup_native.ts`, `connection_setup_cancellation.ts`, `health_check.ts`,
+  `catalog_loader_service.ts` and its test, `trino_connection_setup.ts`, `salesforce_connection_setup.ts`,
+  `salesforce_authentication.ts`, `hyper_connection_state.ts`, `trino_connection_state.ts`, the tests of the reducers
+  of Trino and Salesforce through the symbols, `connection_setup.ts` and `catalog_loader.ts` of `dashql-core-js`,
+  `trino_connector.tsx` of the app; `connection_setup.rs` and `catalog_loader.rs` of the bindings. The app's
+  `useConnectionSetup(connectionId)` has `run(params)`, `cancel()` and `reset()` over the runtime; the settings pages,
+  the cloud login, the startup (`useInitialMemorySetup` over `InitialSetups`) and the shell use the commands.
+- **Changed on purpose.** A setup resolves with its outcome instead of rejecting with what the host failed with. A
+  connection that is not online once its channel is ready runs the probe, also the Hyper of a link at startup; the
+  embedded Hyper runs none, also in the command line tool. The mock of Salesforce marks its health check as succeeded
+  instead of running a probe on its mock channel. The catalog loader runs from the creation of the runtime and follows
+  the registry in Rust, not the flushes of the store. A refresh that is requested before the core is there waits for it.
+
+Measured (`git diff --numstat` with the new files, sources without tests; the test helpers of `testing/` and
+`src/tests/` count as tests):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 1,446 | 329 | 780 | 59 |
+| `dashql-core-js` | 158 | 9 | 7 | 96 |
+| `dashql-core-wasm` | 1,099 | 1,224 | | |
+| `dashql-core-runtime` | 9 | 61 | 8 | 8 |
+| `dashql-app` | 429 | 292 | 347 | 329 |
+| `dashql-cli` | 47 | 43 | | |
+
+TypeScript lost 2,080 lines and gained 673 without tests (−1,407 net), and 1,134 lines of tests for 492. Rust gained
+1,285 and lost 1,108: the bindings of the setups and the loader (`connection_setup.rs`, `catalog_loader.rs`, 981 lines
+with their hosts) became `runtime/setups.rs`, `runtime/catalog.rs` and the queries of the runtime (`run_internal`)
+over the platform. The release module (`--compilation_mode=opt`) grew from 16,753,862 to 16,788,613 bytes (+0.2%),
+gzip (`-9`) from 4,047,094 to 4,050,059 bytes (+0.1%): the two hosts with their JSON readers went, the commands and the
+platform calls came.
+
+What step 4 needs: the workbooks enter the runtime with the index of their connections, which replaces
+`setConnectionReferences` and the follow of `catalogVersion` in `createRuntime` (a new catalog analyzes the scripts of
+the connection in Rust); the storage writer and the restore become services of it on `storage` of the platform
+(`setStorageWriter` and `adoptRestoredConnection` go); `reportEditorUpdate`, `restore`, `restoreWorkbook` and `storage`
+are the commands. The restore restores the catalog updates of a connection in Rust instead of `restoreCatalogUpdates`.
+The startup of the app then sets up the connections of the workbook it opens from the workbook slice instead of
+`useWorkbookConnections`.
 
 ### The order
 

@@ -1,3 +1,5 @@
+import type { RuntimeOAuth } from './runtime.js';
+
 let wasmBinary: Promise<Uint8Array> | undefined;
 
 export function loadCoreWasm(): Promise<Uint8Array> {
@@ -27,3 +29,12 @@ export function loadDataflowWasm(): Promise<Uint8Array> {
         return new Uint8Array(await response.arrayBuffer());
     })();
 }
+
+/// The OAuth flows of a platform without any
+export const NO_OAUTH: RuntimeOAuth = {
+    pkce: () => Promise.reject(new Error('no OAuth')),
+    flowInfo: () => ({ redirectVariant: 'WEB_OPENER_FLOW', redirectCallbackUrl: null, debugMode: false, flavor: null }),
+    authorizeWithLoopback: () => Promise.reject(new Error('no OAuth')),
+    authorizeWithRedirectPage: () => Promise.reject(new Error('no OAuth')),
+    abort: () => { },
+};

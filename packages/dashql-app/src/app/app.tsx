@@ -15,7 +15,7 @@ import { FlavorProvider, FlavorUrlKeeper } from '../config/flavor_provider.js';
 import { getRequestedFlavor } from '../config/flavor_resolution.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { HyperSetupProvider } from '../connections/hyper/hyper_connection_setup.js';
+import { ChannelConnectorProvider } from '../connections/hyper/hyper_connection_setup.js';
 import { CloudStateProvider } from '../cloud/cloud_state.js';
 import { CloudPreviewCleanup } from '../cloud/cloud_workbooks.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
@@ -26,7 +26,6 @@ import { PlatformEventListenerProvider } from '../platform/events/event_listener
 import { RouterReset } from './router/router_reset.js';
 import { SalesforceConnector } from '../connections/salesforce/salesforce_connector.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { TrinoConnector } from '../connections/trino/trino_connector.js';
 import { VersionCheck } from '../platform/version/version_check.js';
 import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
 import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
@@ -51,33 +50,32 @@ const LOG_CTX = 'app';
 
 // The RuntimeProvider creates the runtime of DashQL over the storage, the http client, the core, the embedded database
 // and the API of Salesforce of the providers above it. The providers below it bind parts of it to the app:
+// - ChannelConnectorProvider gives it the clients that connect the channels of the setups.
 // - CloudStateProvider runs its statements through the query executor, the AppLoader shows the cloud setup from it.
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
     <SalesforceConnector>
         <RuntimeProvider>
             <HyperLogMetricsProvider>
-                <HyperSetupProvider>
-                    <TrinoConnector>
-                        <WorkbookComputeQueryExecutionProvider>
-                            <ComputationScheduler />
-                            <NativeWorkbookSync />
-                            <AgentSessionProvider>
-                                <WorkbookImportProvider>
-                                    <WorkbookViewModeProvider>
-                                        <WorkbookCommands>
-                                            <CloudStateProvider>
-                                                <CloudPreviewCleanup />
-                                                <AppLoader>
-                                                    {props.children}
-                                                </AppLoader>
-                                            </CloudStateProvider>
-                                        </WorkbookCommands>
-                                    </WorkbookViewModeProvider>
-                                </WorkbookImportProvider>
-                            </AgentSessionProvider>
-                        </WorkbookComputeQueryExecutionProvider>
-                    </TrinoConnector>
-                </HyperSetupProvider>
+                <ChannelConnectorProvider>
+                    <WorkbookComputeQueryExecutionProvider>
+                        <ComputationScheduler />
+                        <NativeWorkbookSync />
+                        <AgentSessionProvider>
+                            <WorkbookImportProvider>
+                                <WorkbookViewModeProvider>
+                                    <WorkbookCommands>
+                                        <CloudStateProvider>
+                                            <CloudPreviewCleanup />
+                                            <AppLoader>
+                                                {props.children}
+                                            </AppLoader>
+                                        </CloudStateProvider>
+                                    </WorkbookCommands>
+                                </WorkbookViewModeProvider>
+                            </WorkbookImportProvider>
+                        </AgentSessionProvider>
+                    </WorkbookComputeQueryExecutionProvider>
+                </ChannelConnectorProvider>
             </HyperLogMetricsProvider>
         </RuntimeProvider>
     </SalesforceConnector>

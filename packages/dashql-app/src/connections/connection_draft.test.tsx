@@ -7,19 +7,11 @@ import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtim
 import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { useCoreRuntime } from '../runtime/runtime_hooks.js';
-import {
-    ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, HEALTH_CHECK_FAILED,
-    HEALTH_CHECK_CANCELLED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION, SET_CONNECTION_DRAFT,
-    type ConnectionState, type ConnectionAction,
-} from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
 import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { HYPER_CHANNEL_SETUP_STARTED, HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { buildHyperConnectionPageState, buildHyperConnectionSetupParams, type HyperConnectionPageState } from './hyper_connection_settings.js';
-import { TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
-import { SETUP_STARTED, SETUP_FAILED, SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
-import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-runtime/connections/connection_setup_cancellation';
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
@@ -64,53 +56,46 @@ function withWorkbookOnConnection(registry: WorkbookScriptsRegistry): WorkbookSc
     };
 }
 
-function reduce(state: ConnectionState, action: ConnectionAction) {
+function reduce(state: ConnectionState, action: core.RuntimeAction) {
     return reduceTestConnection(runtime, state, action);
 }
+/// Set the draft of the params
+function setDraft(params: ConnectionParams): core.RuntimeAction {
+    return { kind: 'setDraft', value: { params: params as unknown as core.JsonParams } };
+}
+const DISCARD_DRAFT: core.RuntimeAction = { kind: 'discardDraft' };
+const HEALTH_CHECK_SUCCEEDED = setupStepAction('HEALTH_CHECK_SUCCEEDED');
 function edited(params: ConnectionParams, endpoint: string): ConnectionParams {
     if ('hyper' in params) return { hyper: { ...params.hyper, protocol: 'V3_HTTP', endpoint } };
     if ('trino' in params) return { trino: { ...params.trino, endpoint } };
     if ('dbcom' in params) return { dbcom: { ...params.dbcom, instanceUrl: endpoint } };
     return { salesforce: { ...params.salesforce, instanceUrl: endpoint } };
 }
-function start(params: ConnectionParams): ConnectionAction {
-    if ('hyper' in params) return { type: HYPER_CHANNEL_SETUP_STARTED, value: params.hyper as any };
-    if ('trino' in params) return { type: TRINO_CHANNEL_SETUP_STARTED, value: params.trino as any };
-    if ('dbcom' in params) return { type: SETUP_STARTED, value: params.dbcom };
-    return { type: SETUP_STARTED, value: params.salesforce };
+function start(params: ConnectionParams): core.RuntimeAction {
+    if ('hyper' in params) return setupStepAction('HYPER_CHANNEL_SETUP_STARTED', params.hyper);
+    if ('trino' in params) return setupStepAction('TRINO_CHANNEL_SETUP_STARTED', params.trino);
+    if ('dbcom' in params) return setupStepAction('SETUP_STARTED', params.dbcom);
+    return setupStepAction('SETUP_STARTED', params.salesforce);
 }
 
 describe('durable connection drafts', () => {
-    it('shares startup cancellation and protects newer registrations from stale cleanup', () => {
-        const startup = new AbortController();
-        const unregisterStartup = registerConnectionSetup(TEST_CONNECTION_ID, startup);
-        cancelConnectionSetup(TEST_CONNECTION_ID);
-        expect(startup.signal.aborted).toBe(true);
-        expect(startup.signal.reason.name).toBe('AbortError');
-        const next = new AbortController();
-        const unregisterNext = registerConnectionSetup(TEST_CONNECTION_ID, next);
-        unregisterStartup();
-        cancelConnectionSetup(TEST_CONNECTION_ID);
-        expect(next.signal.aborted).toBe(true);
-        unregisterNext();
-    });
     it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM])('keeps %s committed until health check succeeds', type => {
         let state = database(type);
         const committed = state.params;
         const draft = edited(committed, 'invalid endpoint');
-        state = reduce(state, { type: SET_CONNECTION_DRAFT, value: draft });
+        state = reduce(state, setDraft(draft));
         state = reduce(state, start(draft));
         expect(state.params).toEqual(committed);
         expect(state.paramsDraft).toEqual(draft);
         // A discard while the setup runs keeps the draft
-        expect(reduce(state, { type: DISCARD_CONNECTION_DRAFT, value: null })).toEqual(state);
+        expect(reduce(state, DISCARD_DRAFT)).toEqual(state);
         const newer = edited(committed, 'newer incomplete edit');
-        state = reduce(state, { type: SET_CONNECTION_DRAFT, value: newer });
-        state = reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+        state = reduce(state, setDraft(newer));
+        state = reduce(state, HEALTH_CHECK_SUCCEEDED);
         expect(state.params).toEqual(draft);
         expect(state.paramsDraft).toEqual(newer);
         state = reduce(state, start(newer));
-        state = reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+        state = reduce(state, HEALTH_CHECK_SUCCEEDED);
         expect(state.params).toEqual(newer);
         expect(state.paramsDraft).toBeNull();
     });
@@ -118,19 +103,19 @@ describe('durable connection drafts', () => {
     it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM])('preserves %s draft and committed parameters on failure, cancellation and reset', type => {
         const initial = database(type);
         const draft = edited(initial.params, 'invalid incomplete endpoint');
-        let state = reduce(initial, { type: SET_CONNECTION_DRAFT, value: draft });
+        let state = reduce(initial, setDraft(draft));
         state = reduce(state, start(draft));
-        const setupFailed = type === ConnectorType.HYPER ? HYPER_CHANNEL_SETUP_FAILED
-            : type === ConnectorType.TRINO ? TRINO_CHANNEL_SETUP_FAILED : SETUP_FAILED;
-        const setupCancelled = type === ConnectorType.HYPER ? HYPER_CHANNEL_SETUP_CANCELLED
-            : type === ConnectorType.TRINO ? TRINO_CHANNEL_SETUP_CANCELLED : SETUP_CANCELLED;
+        const setupFailed = type === ConnectorType.HYPER ? 'HYPER_CHANNEL_SETUP_FAILED'
+            : type === ConnectorType.TRINO ? 'TRINO_CHANNEL_SETUP_FAILED' : 'SETUP_FAILED';
+        const setupCancelled = type === ConnectorType.HYPER ? 'HYPER_CHANNEL_SETUP_CANCELLED'
+            : type === ConnectorType.TRINO ? 'TRINO_CHANNEL_SETUP_CANCELLED' : 'SETUP_CANCELLED';
         for (const action of [
-            { type: setupFailed, value: { message: 'setup failed' } },
-            { type: setupCancelled, value: { message: 'setup cancelled' } },
-            { type: HEALTH_CHECK_FAILED, value: { message: 'failed' } },
-            { type: HEALTH_CHECK_CANCELLED, value: null },
-            { type: RESET_CONNECTION, value: null },
-        ] as ConnectionAction[]) {
+            setupStepAction(setupFailed, { message: 'setup failed' }),
+            setupStepAction(setupCancelled, { message: 'setup cancelled' }),
+            setupStepAction('HEALTH_CHECK_FAILED', { message: 'failed' }),
+            setupStepAction('HEALTH_CHECK_CANCELLED'),
+            { kind: 'resetConnection' } as core.RuntimeAction,
+        ]) {
             const next = reduce(state, action);
             expect(next.params).toEqual(initial.params);
             expect(next.paramsDraft).toEqual(draft);
@@ -139,8 +124,8 @@ describe('durable connection drafts', () => {
                 'hyper' in initial.params ? initial.params.hyper : 'trino' in initial.params ? initial.params.trino : 'dbcom' in initial.params ? initial.params.dbcom : initial.params.salesforce,
             );
         }
-        state = reduce(state, { type: HEALTH_CHECK_FAILED, value: { message: 'failed' } });
-        state = reduce(state, { type: DISCARD_CONNECTION_DRAFT, value: null });
+        state = reduce(state, setupStepAction('HEALTH_CHECK_FAILED', { message: 'failed' }));
+        state = reduce(state, DISCARD_DRAFT);
         expect(state.paramsDraft).toBeNull();
         expect(state.params).toEqual(initial.params);
         expect(state.details.healthCheckError).toBeNull();
@@ -148,9 +133,9 @@ describe('durable connection drafts', () => {
 
     it('promotes embedded Hyper when its local channel becomes ready', () => {
         let state = database(ConnectorType.HYPER);
-        state = reduce(state, { type: SET_CONNECTION_DRAFT, value: state.params });
+        state = reduce(state, setDraft(state.params));
         state = reduce(state, start(state.params));
-        state = reduce(state, { type: HYPER_CHANNEL_READY, value: [{} as any, 'hyper' in state.params ? state.params.hyper as any : undefined] });
+        state = reduce(state, setupStepAction('HYPER_CHANNEL_READY', 'hyper' in state.params ? state.params.hyper : undefined, runtime.handles.register({})));
         expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
         expect(state.paramsDraft).toBeNull();
         expect(state.active).toBe(true);
@@ -190,7 +175,7 @@ describe('durable connection drafts', () => {
             // Drafts are never replicated into the workbook
             expect(backend.workbooks.has(TEST_WORKBOOK_ID)).toBe(false);
             await act(async () => edit('newer unfinished value'));
-            await act(async () => dispatch({ type: DISCARD_CONNECTION_DRAFT, value: null }));
+            await act(async () => dispatch(DISCARD_DRAFT));
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             expect(value).toBe('');
             await writer.flush();
@@ -240,10 +225,10 @@ describe('durable connection drafts', () => {
             expect(buildHyperConnectionPageState(persisted.hyper).gRPCMetadata).toEqual(rows);
             expect(buildHyperConnectionPageState(persisted.hyper).endpoint).toBe('invalid');
             // The draft comes back as the app reads it from its manifest
-            await act(async () => dispatch({ type: SET_CONNECTION_DRAFT, value: persisted }));
+            await act(async () => dispatch(setDraft(persisted)));
             expect(form.gRPCMetadata).toEqual(rows);
             expect(form.endpoint).toBe('invalid');
-            await act(async () => dispatch({ type: DISCARD_CONNECTION_DRAFT, value: null }));
+            await act(async () => dispatch(DISCARD_DRAFT));
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
             expect(form.gRPCMetadata).toEqual([]);
             expect(form.endpoint).toBe('');
@@ -263,9 +248,9 @@ describe('durable connection drafts', () => {
         let hyper = database(ConnectorType.HYPER);
         const draft = { hyper: { ...('hyper' in hyper.params ? hyper.params.hyper : {}), draftRows: { queryParameters: rows } } } as ConnectionParams;
         expect(buildHyperConnectionPageState(JSON.parse(JSON.stringify(draft)).hyper).queryParameters).toEqual(rows);
-        hyper = reduce(hyper, { type: SET_CONNECTION_DRAFT, value: draft });
+        hyper = reduce(hyper, setDraft(draft));
         hyper = reduce(hyper, start(draft));
-        hyper = reduce(hyper, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+        hyper = reduce(hyper, HEALTH_CHECK_SUCCEEDED);
         expect(hyper.paramsDraft).toBeNull();
         expect(JSON.stringify(hyper.params)).not.toContain('draftRows');
     });
@@ -277,14 +262,14 @@ describe('durable connection drafts', () => {
             metadata: { duplicate: 'same' },
             draftRows: { metadata: [{ key: 'duplicate', value: 'same' }] },
         } } as ConnectionParams;
-        state = reduce(state, { type: SET_CONNECTION_DRAFT, value: initial });
+        state = reduce(state, setDraft(initial));
         state = reduce(state, start(initial));
         const newer = { hyper: {
             ...('hyper' in initial ? initial.hyper : {}),
             draftRows: { metadata: [{ key: 'duplicate', value: 'unfinished' }, { key: 'duplicate', value: 'same' }] },
         } } as ConnectionParams;
-        state = reduce(state, { type: SET_CONNECTION_DRAFT, value: newer });
-        state = reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+        state = reduce(state, setDraft(newer));
+        state = reduce(state, HEALTH_CHECK_SUCCEEDED);
         expect(state.paramsDraft).toEqual(newer);
         expect(JSON.stringify(state.params)).not.toContain('draftRows');
     });

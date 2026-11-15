@@ -75,6 +75,8 @@ fn stopping_aborts_the_pending_publishers_and_clears_the_running_tasks() {
             vec![
                 ConnectionEffect::CancelSetup,
                 ConnectionEffect::InvalidateCatalogBatch,
+                ConnectionEffect::CancelCatalogUpdate { task_id: 0, reason },
+                ConnectionEffect::CancelCatalogUpdate { task_id: 1, reason },
                 ConnectionEffect::Abort { handle: 100, reason },
                 ConnectionEffect::Abort { handle: 101, reason },
                 ConnectionEffect::Release { handle: 100 },

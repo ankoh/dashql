@@ -8,10 +8,8 @@ import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
 import { DashQLQueryProgressFollower } from './query_history.js';
 import { DashQLStorageWriter } from './storage_writer.js';
-import { DashQLCatalogLoader } from './catalog_loader.js';
 import { DashQLAppRestore } from './restore.js';
 import { DashQLWorkbookFormat } from './workbook_format.js';
-import { DashQLConnectionSetup } from './connection_setup.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -39,7 +37,6 @@ export type DashQLBindings = Pick<
     | 'replayQueryProgress'
     | 'Runtime'
     | 'StorageWriter'
-    | 'CatalogLoader'
     | 'AppRestore'
     | 'workbookFormat'
     | 'encodeWorkbookTable'
@@ -47,11 +44,6 @@ export type DashQLBindings = Pick<
     | 'workbookLink'
     | 'resolveWorkbookScripts'
     | 'CacheEviction'
-    | 'connectionSetupTrino'
-    | 'connectionSetupSalesforce'
-    | 'connectionSetupAuthenticateSalesforce'
-    | 'connectionSetupHyper'
-    | 'connectionSetupHealthCheck'
 >;
 
 /// The shell of the module, the host runs its effects
@@ -484,11 +476,6 @@ export class DashQL {
         return new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this, bytes, () => new buffers.profile.QueryProfile());
     }
 
-    /// Create the catalog loader of the Rust runtime on a host, through the instance like a workbook
-    public createCatalogLoader(host: glue.CatalogLoaderHost): DashQLCatalogLoader {
-        return DashQLCatalogLoader.create(this, host);
-    }
-
     /// Create the restore of the stored state of the Rust runtime on a host, it writes through a storage writer of the
     /// instance. The editors of the restored workbooks count offsets in `offsetUnit`.
     public createRestore(host: glue.RestoreHost, writer: DashQLStorageWriter, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLAppRestore {
@@ -496,11 +483,6 @@ export class DashQL {
     }
 
     /// The storage format of workbooks: the workbook file, migrations, bundles, the workbook tables and archives
-    /// The setups of the connectors and the health checks, each run on a host of its own
-    public get connectionSetup(): DashQLConnectionSetup {
-        return new DashQLConnectionSetup(this.bindings);
-    }
-
     public get workbookFormat(): DashQLWorkbookFormat {
         return new DashQLWorkbookFormat(this.bindings);
     }

@@ -201,9 +201,9 @@ interface Runtime {
     logger: Logger;
     storageWriter: StorageWriter;
     workbooks: WorkbookScriptsRegistryService;
-    /// The runtime of the module: the connections with their queries, the executor, the saves, the computations
+    /// The runtime of the module: the connections with their queries, the executor, the setups, the catalog loader,
+    /// the saves, the computations
     coreRuntime: CoreRuntime;
-    catalogLoader: CatalogLoaderService;
     execution: WorkbookExecutionService;
     restore(progress?: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     destroy(): Promise<void>;
@@ -267,8 +267,8 @@ Each step ships on its own and keeps the behavior.
    - `QueryExecutorService`, with the computations, the result cache, the tracked execution and the profile layout of
      the query progress (`query/profile/`), since step 2 of [runtime_api.md](runtime_api.md) the executor of the
      runtime of the module with `query/query_platform.ts` as its host half;
-   - `CatalogLoaderService` (`connections/catalog/catalog_loader_service.ts`), with the update of Hyper catalogs. The
-     runtime passes each new registry, the loader reconsiders its queue in a microtask;
+   - the catalog loader, since step 3 of [runtime_api.md](runtime_api.md) a service of the runtime of the module that
+     follows its connections (`refreshCatalog`);
    - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the runs of single scripts;
      the engine of the runs is Rust (`docs/wip/core_runtime.md`, The runs of workbooks);
    - `ConnectionPersistenceService`, since step 2 of [runtime_api.md](runtime_api.md) the saves of the runtime of the
@@ -340,8 +340,9 @@ the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
     written (a successful setup otherwise saves the params it was set up with into every workbook of the connection).
   - The embedded Hyper, see below. Its connection is a session of the `hyper` database of the instance in an
     `EmbeddedHyperDatabaseChannel` (`connections/embedded/`, moved from the app) like in the app.
-  - The setups are the app's (`setupTrinoConnection`, then `performHealthCheck`, in the runtime, rethrowing the error
-    of the probe, e.g. a rejected login; `connectEmbeddedHyper` for the embedded Hyper). The run of a plan sets up the
+  - The setups are commands of the runtime (`setupConnection` with the credentials of the environment as the params of
+    the channel; the embedded Hyper of the run connects with `connectEmbeddedHyper`), the outcome says why a setup
+    failed, e.g. a rejected login. The run of a plan sets up the
     connections of the scripts it will run, all at once (`prepareConnection` of `runWorkbookPlan`), so a result that
     the cache serves needs none. The scripts of a connection that can't be set up are skipped like those of a
     connection that can't run, the others still run.
@@ -396,9 +397,9 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   with the layout of OPFS (`useNodeRoot`), so `getOPFSRoot()` works, and the locks of the process where Node has no Web
   Locks.
 - **The services in Node.** The tests of the providers of the app became tests of the services of the runtime:
-  `WorkbookExecutionService` (starting and stopping runs, the connections a run needs, previews, changes of inputs),
-  `CatalogLoaderService` (the queue of refreshes and lookups) and `WorkbookScriptsRegistryService`; the connections,
-  the queries and their saves are tested on the runtime of the module (`runtime_connections.test.ts` of
+  `WorkbookExecutionService` (starting and stopping runs, the connections a run needs, previews, changes of inputs)
+  and `WorkbookScriptsRegistryService`; the connections, their setups, the catalog loader, the queries and their saves
+  are tested on the runtime of the module (`runtime_connections.test.ts` of
   `dashql-core-js`) and through `CoreRuntime` (the handles, the storage writer, the tracked queries). `createTestRuntime()` (`src/testing/test_runtime.ts`)
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
   stopped unless a test asks for it, so it schedules no updates. The app keeps the

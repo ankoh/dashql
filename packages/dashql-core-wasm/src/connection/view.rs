@@ -479,6 +479,10 @@ pub struct ConnectionView {
     pub workbooks: Vec<String>,
     /// Saving the connection
     pub save: ConnectionSaveView,
+    /// Does a setup of the connection run?
+    pub setup_running: bool,
+    /// Counts the announcements of a new catalog: the scripts that use the connection are analyzed again with it
+    pub catalog_version: u64,
 }
 
 impl ConnectionView {
@@ -529,6 +533,8 @@ impl ConnectionView {
             snapshot_queries_active_finished: queries.snapshot_queries_active_finished(),
             workbooks: workbooks.to_vec(),
             save,
+            setup_running: false,
+            catalog_version: 0,
         }
     }
 }

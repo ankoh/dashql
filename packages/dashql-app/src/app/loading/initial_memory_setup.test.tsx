@@ -5,19 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { HyperSetupApi } from '../../connections/hyper/hyper_connection_setup.js';
-import { cancelInitialMemorySetup, useInitialMemorySetup } from './initial_memory_setup.js';
+import { useInitialMemorySetup, type InitialSetups } from './initial_memory_setup.js';
 
 describe('initial Memory setup', () => {
     let container: HTMLDivElement;
     let root: Root;
     let database: ConnectionState;
-    let setup: HyperSetupApi;
-    const dispatch = vi.fn();
+    let setup: { setup: ReturnType<typeof vi.fn<InitialSetups['setup']>>; reset: ReturnType<typeof vi.fn<InitialSetups['reset']>>; cancel: ReturnType<typeof vi.fn<InitialSetups['cancel']>> };
     const logger = { warn: vi.fn() } as unknown as Logger;
 
     function Consumer(props: { workbookId: string | null; database: ConnectionState | null }) {
-        useInitialMemorySetup(props.workbookId, props.database == null ? null : [props.database], setup, dispatch, logger);
+        useInitialMemorySetup(props.workbookId, props.database == null ? null : [props.database], setup, logger);
         return <div>Workbook visible</div>;
     }
 
@@ -38,8 +36,11 @@ describe('initial Memory setup', () => {
             params: { hyper: { protocol: 'WASM', endpoint: '' } },
             details: { value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } },
         } as unknown as ConnectionState;
-        setup = { setup: vi.fn().mockResolvedValue(null), reset: vi.fn() };
-        dispatch.mockReset();
+        setup = {
+            setup: vi.fn<InitialSetups['setup']>().mockResolvedValue({ status: 'succeeded', message: null }),
+            reset: vi.fn<InitialSetups['reset']>(),
+            cancel: vi.fn<InitialSetups['cancel']>(),
+        };
     });
 
     afterEach(() => {
@@ -49,7 +50,7 @@ describe('initial Memory setup', () => {
 
     it('uses committed Memory params and never reconnects after disconnect or reselection', async () => {
         await render();
-        expect(setup.setup).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ protocol: 'WASM' }), expect.any(AbortSignal), 'memory');
+        expect(setup.setup).toHaveBeenCalledWith('memory');
         await render({ ...database, connectionHealth: ConnectionHealth.ONLINE });
         await render({ ...database, connectionHealth: ConnectionHealth.NOT_STARTED });
         await render(database, null);
@@ -73,7 +74,7 @@ describe('initial Memory setup', () => {
     });
 
     it('starts each newly selected database once without blocking workbook visibility', async () => {
-        setup.setup = vi.fn<HyperSetupApi['setup']>(() => new Promise(() => {}));
+        setup.setup = vi.fn<InitialSetups['setup']>(() => new Promise(() => {}));
         await render();
         expect(container.textContent).toBe('Workbook visible');
         await render({ ...database, connectionId: 'second-memory' }, 'second-workbook');
@@ -81,19 +82,14 @@ describe('initial Memory setup', () => {
         expect(setup.setup).toHaveBeenCalledTimes(2);
     });
 
-    it('cancels the registered startup signal without creating another controller', async () => {
-        let signal!: AbortSignal;
-        setup.setup = vi.fn<HyperSetupApi['setup']>((_dispatch, _params, abort) => {
-            signal = abort;
-            return new Promise((_resolve, reject) => abort.addEventListener('abort', () => reject(abort.reason), { once: true }));
-        });
+    it('cancels the setups that run when it unmounts and does not start a cancelled one again', async () => {
+        setup.setup = vi.fn<InitialSetups['setup']>(() => new Promise(() => {}));
         await render();
-        expect(cancelInitialMemorySetup('memory')).toBe(true);
-        expect(signal.aborted).toBe(true);
-        expect(signal.reason.name).toBe('AbortError');
         await render({ ...database, connectionHealth: ConnectionHealth.CANCELLED });
         await render();
         expect(setup.setup).toHaveBeenCalledTimes(1);
-        expect(cancelInitialMemorySetup('memory')).toBe(false);
+        act(() => root.unmount());
+        expect(setup.cancel).toHaveBeenCalledWith('memory');
+        root = createRoot(container);
     });
 });

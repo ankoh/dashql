@@ -8,15 +8,11 @@ import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
 import { useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
-import { SETUP_CTX as TRINO_SETUP_CTX } from './trino/trino_connector.js';
-import type { TrinoSetupApi } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
-import type { TrinoChannelInterface } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
-import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
@@ -66,27 +62,28 @@ describe('TrinoConnectorSettings', () => {
     let registry: Registry | null;
     let execute: ReturnType<typeof vi.fn<QueryExecutor>>;
     let executor: TestQueryExecutorFunctions;
-    let setup: ReturnType<typeof vi.fn<TrinoSetupApi['setup']>>;
-    let reset: ReturnType<typeof vi.fn<TrinoSetupApi['reset']>>;
+    /// The commands of the runtime that the settings call
+    let setup: ReturnType<typeof vi.fn<CoreRuntime['setupConnection']>>;
+    let cancel: ReturnType<typeof vi.fn<CoreRuntime['cancelSetup']>>;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
         registry = useConnectionRegistry();
         coreRuntime = useCoreRuntime();
+        coreRuntime.setupConnection = setup;
+        coreRuntime.cancelSetup = cancel;
         return null;
     }
 
-    async function render(database: TestConnection | null, trinoSetup: TrinoSetupApi | null = { setup, reset }) {
+    async function render(database: TestConnection | null) {
         const tree = (showSettings: boolean) => (
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
                     <TestRuntime {...executor}>
-                        <TRINO_SETUP_CTX.Provider value={trinoSetup}>
-                            <>
-                                <Capture />
-                                {showSettings && <TrinoConnectorSettings connectionId={CONNECTION_ID} onClose={onClose} />}
-                            </>
-                        </TRINO_SETUP_CTX.Provider>
+                        <>
+                            <Capture />
+                            {showSettings && <TrinoConnectorSettings connectionId={CONNECTION_ID} onClose={onClose} />}
+                        </>
                     </TestRuntime>
                 </StorageProvider>
             </LoggerProvider>
@@ -142,8 +139,8 @@ describe('TrinoConnectorSettings', () => {
         registry = null;
         execute = vi.fn<QueryExecutor>(() => [1, Promise.resolve({} as arrow.Table)]);
         executor = { execute, cancel: vi.fn(async () => { }), watchProfile: vi.fn(() => () => { }) };
-        setup = vi.fn<TrinoSetupApi['setup']>(async () => null);
-        reset = vi.fn<TrinoSetupApi['reset']>(async () => { });
+        setup = vi.fn<CoreRuntime['setupConnection']>(async () => ({ status: 'succeeded', message: null, data: {}, authentication: null }));
+        cancel = vi.fn<CoreRuntime['cancelSetup']>();
         onClose = vi.fn<() => void>();
     });
 
@@ -310,53 +307,23 @@ describe('TrinoConnectorSettings', () => {
         expect(draft().draftRows?.metadata).toEqual([{ key: 'x-a', value: '1' }, { key: 'x-a', value: '2' }]);
     });
 
-    it('connects with the edited params and runs the health check on the channel', async () => {
-        const channel = {} as TrinoChannelInterface;
-        setup.mockImplementation(async () => channel);
+    it('connects with the edited params', async () => {
         await render(trinoDatabase(RESTORED));
         await type('Endpoint', 'http://edited:8080');
         await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!);
         await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-        const [dispatch, params, signal] = setup.mock.calls[0];
-        expect(typeof dispatch).toBe('function');
+        const [connectionId, options] = setup.mock.calls[0];
+        expect(connectionId).toBe(CONNECTION_ID);
+        const params = (options?.params as { trino: connection.TrinoConnectionParams }).trino;
         expect(params.endpoint).toBe('http://edited:8080');
         expect(params.auth?.basic?.username).toBe('alice');
-        expect(signal.aborted).toBe(false);
-        await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce());
-        const [connectionId, args] = execute.mock.calls[0];
-        expect(connectionId).toBe(CONNECTION_ID);
-        expect(args.query).toBe('select 1');
-        expect(args.channelOverride).toEqual({ type: 'trino', channel });
-    });
-
-    it('skips the health check without a channel', async () => {
-        await render(trinoDatabase(RESTORED));
-        await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!);
-        await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-        await act(async () => { await Promise.resolve(); });
-        expect(execute).not.toHaveBeenCalled();
-    });
-
-    it('swallows setup errors', async () => {
-        setup.mockImplementation(async () => { throw new Error('unreachable'); });
-        await render(trinoDatabase(RESTORED));
-        await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!);
-        await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-        expect(execute).not.toHaveBeenCalled();
-    });
-
-    it('does not connect without a Trino setup', async () => {
-        await render(trinoDatabase(RESTORED), null);
-        await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!);
-        expect(execute).not.toHaveBeenCalled();
+        expect(options?.forceRelogin).toBe(false);
     });
 
     it('freezes the form while connecting and cancels the setup', async () => {
-        let setupSignal: AbortSignal | null = null;
-        setup.mockImplementation((dispatch, params, signal) => {
-            setupSignal = signal;
-            dispatch({ type: TRINO_CHANNEL_SETUP_STARTED, value: params });
-            return new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
+        setup.mockImplementation(async (connectionId, options) => {
+            coreRuntime!.dispatchConnection(connectionId, setupStepAction('TRINO_CHANNEL_SETUP_STARTED', (options?.params as { trino: unknown }).trino));
+            return await new Promise(() => { });
         });
         await render(trinoDatabase(RESTORED));
         await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!);
@@ -369,9 +336,7 @@ describe('TrinoConnectorSettings', () => {
         expect(current().paramsDraft).toBeNull();
 
         await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-cancel"]')!);
-        expect(setupSignal!.aborted).toBe(true);
-        await act(async () => { await Promise.resolve(); });
-        expect(execute).not.toHaveBeenCalled();
+        expect(cancel).toHaveBeenCalledWith(CONNECTION_ID);
     });
 
     it('resets an online connection on disconnect', async () => {
@@ -379,14 +344,17 @@ describe('TrinoConnectorSettings', () => {
         const disconnect = container.querySelector<HTMLButtonElement>('[data-testid="connection-reset"]')!;
         expect(disconnect.textContent).toContain('Disconnect');
         await click(disconnect);
-        expect(reset).toHaveBeenCalledOnce();
-        // The setup receives the dispatch of the connection
-        await act(async () => reset.mock.calls[0][0]({ type: RESET_CONNECTION, value: null }));
         expect(current().connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
     });
 
     it('brings the connection online when the health check succeeds', async () => {
-        setup.mockImplementation(async () => ({} as TrinoChannelInterface));
+        setup.mockImplementation(async connectionId => {
+            const channel = coreRuntime!.handles.register({ close: async () => { } });
+            coreRuntime!.dispatchConnection(connectionId, setupStepAction('TRINO_CHANNEL_SETUP_STARTED', RESTORED));
+            coreRuntime!.dispatchConnection(connectionId, setupStepAction('TRINO_CHANNEL_READY', null, channel));
+            coreRuntime!.dispatchConnection(connectionId, setupStepAction('HEALTH_CHECK_SUCCEEDED'));
+            return { status: 'succeeded', message: null, data: {}, authentication: null };
+        });
         await render(trinoDatabase(RESTORED));
         await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!);
         await vi.waitFor(() => expect(current().connectionHealth).toBe(ConnectionHealth.ONLINE));

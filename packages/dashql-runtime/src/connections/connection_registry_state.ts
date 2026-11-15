@@ -1,6 +1,6 @@
 import type * as core from '@ankoh/dashql-core';
 
-import type { ConnectionAction, ConnectionState, NewConnection } from './connection_state.js';
+import type { ConnectionState, NewConnection } from './connection_state.js';
 import type { QueryExecutionState } from '../query/query_execution_state.js';
 import type { ConnectionEntry, WorkbookConnection } from '../storage/storage_backend.js';
 
@@ -116,7 +116,9 @@ export function connectionOrdinals(
     return ordinals;
 }
 
-export type ConnectionDispatch = (action: ConnectionAction) => void;
+/// Apply an action of the runtime to a connection
+export type ConnectionDispatch = (action: core.RuntimeAction) => void;
 /// Create a connection, with a fixed id or a new one
 export type ConnectionAllocator = (connection: NewConnection, connectionId?: string) => ConnectionState;
-export type DynamicConnectionDispatch = (connectionId: string | null, action: ConnectionAction) => void;
+/// Apply an action of the runtime to a connection by its id
+export type DynamicConnectionDispatch = (connectionId: string | null, action: core.RuntimeAction) => void;

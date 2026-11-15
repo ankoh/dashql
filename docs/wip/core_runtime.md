@@ -14,18 +14,19 @@ dispatches to them (see [The computations](#the-computations), [The connections]
 over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
 platform), the query executor the fourth (`runtime/queries.rs` of the bindings over `src/executor/`): Trino, Hyper over HTTP,
 Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host, the
-catalog loader the fifth (`CatalogLoaderService` over `catalog_loader/service.rs`): it schedules the updates of the
-catalogs, runs their metadata queries through the query executor, fetches the metadata of Salesforce and registers the
-client functions of the connections, the runs of workbooks the sixth (`src/workbook_run/`): a run analyzes, plans and
-runs the scripts of a workbook, the setups of the connectors and the health checks the seventh (`connection_setup/`):
-Trino, Salesforce and Hyper set up their connections over an OAuth host. The storage format of workbooks is called by
+catalog loader the fifth (`runtime/catalog.rs` of the bindings over `catalog_loader/service.rs`): it schedules the
+updates of the catalogs, runs their metadata queries on the executor of the runtime, fetches the metadata of Salesforce
+and registers the client functions of the connections, the runs of workbooks the sixth (`src/workbook_run/`): a run
+analyzes, plans and runs the scripts of a workbook, the setups of the connectors and the health checks the seventh
+(`runtime/setups.rs` of the bindings over `connection_setup/`): Trino, Salesforce and Hyper set up their connections
+over the OAuth flows of the platform. The storage format of workbooks is called by
 the storage, the imports and the exports of the TypeScript runtime (`src/workbook_format/`, see
 [The format of workbooks](#the-format-of-workbooks)).
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
 schemas of `proto/fb`. The classes of the runtime (`Runtime`, `Workbook`, `StorageWriter`, `AppRestore`,
-`CatalogLoader`, `WorkbookRun`, `ConnectionSetupRun`, `QueryProgressFollower`) belong to DashQL and change with it,
+`WorkbookRun`, `QueryProgressFollower`) belong to DashQL and change with it,
 their snapshots cross as JSON, the ones of the computations, the workbook, the connections, the queries, the storage
 writer, the restore and the saves of connections as JS objects of views with generated types (see
 [runtime_projection.md](runtime_projection.md)).
@@ -78,15 +79,15 @@ buffers in between. The boundary moves to what the UI reads.
   and the app hands it to the scripts of workbooks, so the scripts publish into the catalog of the connection. The
   script with the functions of the connection stays in Rust, the catalog loader replaces its text through the
   connection.
-- **Channels, tables and cancellations stay in JavaScript, under handles.** The channels, the result tables and the
-  records of catalog updates and of the queries that the host runs itself (their abort controllers) are objects of the
-  handle table of the platform of the runtime (`CoreRuntime.handles`, see
-  [runtime_projection.md](runtime_projection.md#handles)). The progress of a query is the one of the Rust history. The
-  action that gives an object to the connection hands its handle over, the connection keeps the handle where it keeps
-  the object and lets go of it with an effect: `release`, `close` (a channel) or `abort` (a catalog update, an active
-  query). Cancelling the setup is a call of the platform (`cancelSetup`). A reset or a delete stops the queries: the
-  registry clears the history (`QueryExecutionHistory::clear`), which aborts the active queries and releases the
-  handles of all queries, and the executor cancels the queries that it runs.
+- **Channels and tables stay in JavaScript, under handles.** The channels, the result tables and the records of the
+  queries that the host runs itself (their abort controllers) are objects of the handle table of the platform of the
+  runtime (`CoreRuntime.handles`, see [runtime_projection.md](runtime_projection.md#handles)). The progress of a query
+  is the one of the Rust history. The action that gives an object to the connection hands its handle over, the
+  connection keeps the handle where it keeps the object and lets go of it with an effect: `release`, `close` (a
+  channel) or `abort` (an active query). A reset or a delete cancels the setup and the catalog updates of the
+  connection in Rust (`RegistryEffect::CancelSetup`, `CancelCatalogUpdate`) and stops the queries: the registry clears
+  the history (`QueryExecutionHistory::clear`), which aborts the active queries and releases the handles of all
+  queries, and the executor cancels the queries that it runs.
 - **A connection is a view.** The store reads the view of a connection when its slice changed: when the connection
   changed, when a query started or finished, when the workbooks that use it or its save changed. The progress of a
   query changes only the slice of the query. A view shares its unchanged parts with the previous view (`share`), the
@@ -215,9 +216,11 @@ the shell) by name, and hands out the ids of all queries from one sequence.
 - **The rules of the registry are Rust.** A connection that workbooks use is never deleted and switches its connector
   only while one workbook uses it, the embedded Hyper is never deleted. The workbooks that use a connection come from
   the registry of the workbooks of TypeScript (`setConnectionReferences`) until the workbooks are part of the runtime.
-- **The steps of the setups are actions.** A setup or a health check applies a step by the name of the action of its
-  connector (`setupStep`, read by `setup_action_from_json`, the inverse of `setup_action_json`); a channel crosses as a
-  handle that the connection takes, a step that fails releases it.
+- **The setups run in the runtime.** `setupConnection` and `cancelSetup` are commands of the runtime, see
+  [The setups of the connectors](#the-setups-of-the-connectors). A setup that the host runs itself, the mock of
+  Salesforce of the app and the fixtures of tests, applies its steps by the name of the action of the connector
+  (`setupStep`, read by `setup_action_from_json`, the inverse of `setup_action_json`); a channel crosses as a handle that
+  the connection takes, a step that fails releases it.
 - **The saves run in the runtime.** The runtime writes through the storage writer of the module that the host gives it
   (`setStorageWriter`): a change of a connection schedules what storage keeps of it (`connection_writes`), a created
   active connection writes its entry with its creation time, a deleted one leaves the app manifest. `saveConnection`
@@ -227,9 +230,10 @@ the shell) by name, and hands out the ids of all queries from one sequence.
   single workbook adds the connections that it registered.
 - **The tests.** `connections/registry.rs` (the order, the ordinals, the rules, a reset that stops the queries, the
   histories without a connection), `connection_setup/mod.rs` (a step read back from its JSON) and
-  `runtime_connections.test.ts` of `dashql-core-js` (the views, the steps of a setup with a channel, the catalog, a
-  Trino query into the history of its connection, cancelling, the memory of the module while a large result streams,
-  the structured progress, a reset that stops a query).
+  `runtime_connections.test.ts` of `dashql-core-js` (the views, the steps of a setup with a channel, a setup with its
+  probe, a cancelled setup, the description of a connection that comes online, the catalog, a Trino query into the
+  history of its connection, cancelling, the memory of the module while a large result streams, the structured
+  progress, a reset that stops a query).
 
 ## The host and the executor
 
@@ -390,89 +394,100 @@ ordinal and string column.
 
 ## The catalog loader
 
-`CatalogLoaderService` of the TypeScript runtime is an adapter over the loader of the crate
-(`src/catalog_loader/service.rs`), bound as the class `CatalogLoader` of the module (`DashQLCatalogLoader` of
-`@ankoh/dashql-core`, created with `DashQL.createCatalogLoader` on the core of the runtime). The runtime tells it when
-its connections changed and requests refreshes.
+The catalog loader of the crate (`src/catalog_loader/service.rs`) is a service of `Runtime`
+(`runtime/catalog.rs` of the bindings): it follows the connections of the runtime, schedules the updates of their
+catalogs and runs them. The app requests refreshes with `refreshCatalog(connectionId, force)`, a run of the command line
+tool stops the loader (`runCatalogLoader(false)`).
 
-- **The loader follows the connections of the runtime.** The registry of the runtime holds the state and the query
-  history of a connection behind shared references, the loader keeps weak ones (`follow(runtime)` follows them in their
-  order and forgets the others), reads health, params, details, catalog updates and the number of running queries of
-  every connection and describes the connections that came online.
+- **The loader follows the registry.** A change of the registry that is urgent (a connection that is created, set up,
+  saved or refreshed, a query that starts or finishes) asks the loader to follow it at the end of the task. The loader
+  keeps weak references of the connections (`follow` in their order, `observe` forgets the others), reads health,
+  params, details, catalog updates and the number of running queries of every connection and describes the connections
+  that came online.
 - **The scheduler and the updates run in Rust.** `CatalogLoader` decides what to start and to abort, the service runs
   an update as a task: it drives `CatalogUpdate`, parses its batches in the module (`CatalogBatch::process`, like the
   restore) and publishes into the catalog of the connection. A publication needs the connection to still run the
-  update, a reset or a delete aborts it. The text of the function script is replaced in Rust once its descriptor is
-  published. A failed lookup is tried again after a wait, the wake-up is a timer of the host.
-- **The queries go through the query executor.** The host runs a metadata query (`run_query`) with the executor of the
-  runtime as a query of the app with the issuer `Catalog Update`, registers it with the update and hands the result
-  back as Arrow IPC, the loader reads it with `arrow-rs`.
-- **The host keeps the cancellation.** The start and the end of an update are actions of the runtime (`updateCatalog`,
-  `catalogUpdateFinished`), so the connection, its persistence and the scripts that use it see them. The host keeps an abort controller per update, an abort of the loader, of a reset or of a caller cancels the
-  task (`cancel`) and the queries of the update.
+  update. The text of the function script is replaced in Rust once its descriptor is published. A failed lookup is
+  tried again after a wait, the wake-up is a timer of the host.
+- **The queries run on the executor of the runtime.** A metadata query is a query of the history of its connection
+  with the issuer `Catalog Update` (`run_internal` of `runtime/queries.rs`): the platform describes where it runs
+  (`queries.describe`, as for `executeQuery`), the update registers it (`CatalogUpdateRegisterQuery`) and reads its
+  result as Arrow IPC with `arrow-rs`. A query runs in a task of its own, a cancelled update cancels it at the backend.
+- **The connection keeps the updates.** The start and the end of an update are actions of the connection
+  (`UpdateCatalog` and the outcome of the update), so the connection, its persistence and the scripts that use it see
+  them. A reset or a delete of the connection cancels its running updates (`CancelCatalogUpdate`), a forced refresh
+  supersedes the running one.
+- **A new catalog is announced in the view.** An update that succeeded, partly or wholly, and a registration of client
+  functions raise the `catalogVersion` of the view of the connection; the TypeScript runtime analyzes the scripts that
+  use the connection again (`CATALOG_DID_UPDATE`) until the workbooks are part of the runtime.
 - **Salesforce over fetch.** The metadata of a data space comes from the instance over `HttpHost::fetch`
   (`SalesforceMetadataLoad`, three requests at once). An API of Salesforce that the platform passes, e.g. the mock of
-  the app, answers it instead (`salesforce_metadata`).
+  the app, answers it instead (`salesforce.metadata` of the platform).
 - **Client functions.** The loader registers the client functions of a connector on the catalog of every connection
-  it follows (`ClientFunctionRegistrations`), the host loads the specs (`load_spec`) and analyzes the scripts again
-  once they changed (`catalog_changed`).
+  it follows (`ClientFunctionRegistrations`), the platform loads the specs (`extensions.loadSpec`).
 - **The tests.** `tests/catalog_loader_test.rs` drives the updates without I/O, `tests/catalog_loader_service_test.rs`
   runs the loader on a fake host: the queue, forced refreshes, the relations of statements with their retries, the
-  embedded database, Salesforce and client functions. `catalog_loader_service.test.ts` runs the adapter on the module
-  with a fake executor, `catalog_updates.integration.test.ts` runs lookups on the embedded Hyper.
+  embedded database, Salesforce and client functions. `runtime_connections.test.ts` of `dashql-core-js` describes a
+  Trino connection that comes online, `catalog_updates.integration.test.ts` runs lookups on the embedded Hyper.
 - **Changed on purpose.** The requested refreshes are considered before the lookups, so a request that a refresh
   answered and the lookup behind it settle in one pass. The retry wakes at the earliest attempt. Skipped functions and
   duplicate columns come back as warnings of the outcome. A forced refresh doesn't wait for the cancelled update to
   settle at its backend, the update ends as soon as its token is cancelled. The batches parse on the main thread in the
   module, the app has no batch worker anymore. A Hyper update that partly failed logs `Partially updated the catalog`.
-  An update logs on the targets of the log of the loader, not on a trace of its own.
+  An update logs on the targets of the log of the loader, not on a trace of its own. The loader runs from the creation
+  of the runtime, a request before the core is there waits for it.
 
 ## The setups of the connectors
 
-The setup functions of the TypeScript runtime are adapters over the setups of the crate (`src/connection_setup/`):
-`setupTrinoConnection`, `setupSalesforceConnection`, `authenticateSalesforce` and `performHealthCheck` of the runtime
-and `setupHyperConnection` of the app. They are bound as free functions of the module (`connectionSetupTrino`,
-`connectionSetupSalesforce`, `connectionSetupAuthenticateSalesforce`, `connectionSetupHyper`,
-`connectionSetupHealthCheck`, `DashQL.connectionSetup` of `@ankoh/dashql-core`) that start a `ConnectionSetupRun`.
-Their APIs stayed, the settings pages, the startup, the cloud login and the login of the shell call them as before.
+The setups of the crate (`src/connection_setup/`) are commands of `Runtime` (`runtime/setups.rs` of the bindings):
+`setupConnection(connectionId, options)` sets up a connection with its connector and checks its health,
+`authenticateSalesforce(setupId, params, options, onStep)` logs in to Salesforce without a connection (the login of the
+shell), `cancelSetup(setupId)` cancels either. The settings pages, the startup, the cloud login, the shell and the
+command line tool call them through `CoreRuntime`.
 
-- **An OAuth host.** `connection_setup::OAuthHost` adds the OAuth flows to `HttpHost`: the PKCE challenge and a random
-  id come from the crypto of the platform, the core has no SHA-256 and no randomness. `authorize_with_loopback` opens
-  the authorization URL and waits for the loopback redirect (Trino), `authorize_with_redirect_page` waits for the
-  callback of the redirect page whose state has the flow id (Salesforce), in the browser as a window and in the desktop
-  app as a link. The flow reports the window and the external browser as events while it waits, a cancelled token
-  stops it. The adapter implements the host over the `OAuthFlow` of the platform, the tests over a fake.
+- **A setup is known by an id.** The id of its connection or of a login. A new setup of an id cancels the one that runs,
+  a reset or a delete of the connection cancels it (`RegistryEffect::CancelSetup`). The view of the connection shows
+  whether a setup runs (`setupRunning`), its steps and how it ended; the command resolves with the outcome
+  (`{ status, message, data }`, the tokens and the user of a login).
+- **The options.** The params of the setup, those of the connection by default; the params that the channel connects
+  with when they differ from the ones that the connection keeps (`channelParams`, the credentials of the environment of
+  the command line tool); `forceRelogin`; the redirect page of the OAuth flow of Salesforce (`oauthRedirect`).
+- **The OAuth flows of the platform.** `connection_setup::OAuthHost` adds the OAuth flows to `HttpHost`: the PKCE
+  challenge and a random id come from the platform (`oauth.pkce`, `crypto.randomUuid`), the core has no SHA-256 and no
+  randomness. `authorize_with_loopback` opens the authorization URL and waits for the loopback redirect (Trino),
+  `authorize_with_redirect_page` waits for the callback of the redirect page whose state has the flow id (Salesforce),
+  in the browser as a window and in the desktop app as a link. The flow of a setup is the one of the platform, a login
+  may bring its own (the window that the click of the user opened). A cancelled token aborts the flow
+  (`oauth.abort`).
 - **A setup is an async function.** It drives the state machine of its connector (`TrinoSetup`, `SalesforceSetup`, the
-  steps of a Hyper channel in `connection_setup/hyper.rs`) over the host: it applies every action of the connection
-  through `SetupHost::dispatch`, awaits the host for the flow, the requests and the channel, and returns the id of the
-  channel. The token requests and the REST calls of Salesforce go over `fetch` with the HTTP client of the platform.
-- **A run has a host of its own.** The host of a run is one setup: it applies the actions to one connection and keeps
-  the channels of the setup by id. An action crosses as `{connector, type, value}`, the type is the name of the action
-  of the connector in TypeScript, and the adapter puts the channel object in place of its id.
-- **The channels stay what the executor reads.** The host creates the channel from what the setup describes: a
-  `TrinoChannel` on the API client with the endpoint, the defaults and the OAuth token, a `SalesforceDatabaseChannel`
-  over the Hyper channel of the HTTP client with the tokens, the attached database of Database.com and the bearer
-  token. A Hyper over HTTP and the Hyper of a link are channels of the HTTP client that describe themselves to the
-  executor, the setup resolves the params of a link with the token of the page. The embedded Hyper and gRPC through the
-  native proxy of the desktop app stay channels of the host.
-- **The health check runs through the executor.** `check_health` dispatches its start, asks the host to run the probe
-  query of the connector with the metadata of a health check (`run_probe`), and maps the outcome to the action of the
-  connection. The host runs it with the query executor of the app on the channel of the setup, so it shows up in the
-  query viewer. A failed probe fails with the error of the query.
-- **Cancellation.** The signal of the caller cancels the run. A run that is cancelled before it starts reports its
-  start and its cancellation. A connect runs to its end, a channel that is ready after the cancellation is closed. A
-  failed host call keeps what the host failed with, the caller gets the same error.
+  steps of a Hyper channel in `connection_setup/hyper.rs`) over the host: it applies every action to the connection
+  right away, awaits the platform for the flow, the requests and the channel, and returns the handle of the channel.
+  The token requests and the REST calls of Salesforce go over the HTTP client of the platform.
+- **The channels stay what the executor reads.** The platform connects a channel from what the setup describes
+  (`channels.connect`) and keeps it under a handle that the connection takes: the runtime of TypeScript keeps a
+  `TrinoChannel` with the endpoint, the auth, the defaults and the OAuth token; the channel connector of the app connects
+  the embedded Hyper, Hyper over gRPC and HTTP and the `SalesforceDatabaseChannel` over the Hyper channel of the HTTP
+  client with the tokens and the attached database of Database.com. The setup resolves the params of the link to a
+  Hyper with the token that the page holds (`channels.hyperLinkToken`).
+- **The health check runs on the executor.** A channel that is ready but not online yet answers a probe:
+  `check_health` runs the probe query of the connector as a query of the connection (`run_internal`), so it shows up in
+  the query viewer, and maps the outcome to the action of the connection. A failed probe fails with the error of the
+  query. The embedded Hyper is online with its channel and runs no probe.
+- **Cancellation.** A cancelled setup ends at its next step. A connect runs to its end, a channel that is ready after
+  the cancellation is closed. A probe that is cancelled stops at the backend.
 - **The tests.** `tests/connection_setup_test.rs` runs the setups and the health check on a fake host: the flows, the
-  token requests, the channels, failures and cancellations. The tests of the app run the adapters on the module, the
-  ones of Salesforce against a fake Salesforce over the HTTP client.
-- **Changed on purpose.** The requests of the Salesforce setup and the login go over the HTTP client of the API client,
-  not through the methods of `SalesforceApiClientInterface`, the tests answer them as a fake Salesforce. The setup and
-  the login of Salesforce log on the target `salesforce_setup`. A health check that is cancelled before its probe
-  dispatches its cancellation and runs no probe, one that is cancelled while the probe runs ends at once and the probe
-  runs to its end in the executor. A Trino setup with OAuth that is cancelled before it starts reports
-  `OAUTH_STARTED` and `OAUTH_CANCELLED`. A cancelled Hyper setup keeps the message of the cancellation of the runtime.
-  `buildSalesforceAuthorizationUrl`, `validateSalesforceOAuthCallbackState` and `checkSalesforceConnectionSetup` of
-  TypeScript are gone, the crate has them.
+  token requests, the channels, failures and cancellations. `runtime_connections.test.ts` of `dashql-core-js` runs a
+  setup with its probe and a cancelled one on the runtime; the tests of the app run the setups of Trino and Salesforce
+  and the login of Salesforce on `CoreRuntime` with the OAuth flow of the app, the latter against a fake Salesforce over
+  the HTTP client.
+- **Changed on purpose.** A setup resolves with its outcome instead of rejecting, the error is in the view of the
+  connection and in the log; a failure keeps its message and its details, not the error object of the host. The steps
+  of a setup no longer cross as actions of TypeScript. The startup of the app and the command line tool run the probe
+  of a connection that isn't online after its channel, e.g. the Hyper of a link. The mock of Salesforce of the app
+  marks the health check as succeeded instead of running a probe on its mock channel. The requests of the Salesforce
+  setup and the login go over the HTTP client of the platform, the tests answer them as a fake Salesforce. The setup and
+  the login of Salesforce log on the target `salesforce_setup`. A Trino setup with OAuth that is cancelled before it
+  starts reports `OAUTH_STARTED` and `OAUTH_CANCELLED`.
 
 ## The Trino connector
 
@@ -625,7 +640,8 @@ its callers and the hooks of the app didn't change.
 - **The connectors.** Trino runs on `TrinoQuery` with the requests and timers of the host and keeps a refreshed access
   token on the channel of the host. Hyper over HTTP runs on `HyperResultReader` with the auth headers of the context of
   the connection, Salesforce Data Cloud with its bearer token. A client function call runs on `ClientFunctionCallRun`
-  with the spec of the connector and the tokens of the channel.
+  with the spec of the connector and the tokens of the channel. The runtime loads the spec through the platform
+  (`extensions.loadSpec`) with the first call of a connector and keeps it.
 - **Channels of the host.** A channel that the module doesn't speak stays with the host: the gRPC channel of Hyper in
   the desktop app (through its native proxy), the embedded Hyper, the channels of tests. A Trino channel of the
   TypeScript runtime only holds the endpoint, the token and the defaults of the session, the TypeScript protocols of

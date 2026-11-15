@@ -1,14 +1,14 @@
 import * as React from 'react';
 
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useConnectionDispatch, useWorkbookConnections } from '../../connections/connection_registry.js';
+import { useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
-import { useHyperSetup } from '../../connections/hyper/hyper_connection_setup.js';
-import { useInitialMemorySetup } from './initial_memory_setup.js';
+import { useInitialMemorySetup, type InitialSetups } from './initial_memory_setup.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
@@ -27,8 +27,14 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
     const workbookConnections = useWorkbookConnections(routeContext.workbookId ?? null);
-    const dispatchDatabase = useConnectionDispatch();
-    const hyperSetup = useHyperSetup();
+    const runtime = useOptionalCoreRuntime();
+    // The startup sets up the connections with the runtime, the Hyper connector of the config enables it
+    const hyperEnabled = config?.connectors?.hyper != null;
+    const setups = React.useMemo<InitialSetups | null>(() => runtime == null || !hyperEnabled ? null : {
+        setup: connectionId => runtime.setupConnection(connectionId),
+        reset: connectionId => { runtime.dispatchConnection(connectionId, { kind: 'resetConnection' }); },
+        cancel: connectionId => runtime.cancelSetup(connectionId),
+    }, [runtime, hyperEnabled]);
 
     // The import of a workbook that the app was started with, the setup then doesn't open another one
     const initialImport = React.useRef<Promise<boolean> | null>(null);
@@ -48,8 +54,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     useInitialMemorySetup(
         routeContext.workbookId,
         workbookConnections,
-        hyperSetup,
-        dispatchDatabase,
+        setups,
         logger,
     );
 

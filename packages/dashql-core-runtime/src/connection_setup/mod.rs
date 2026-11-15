@@ -107,8 +107,8 @@ pub enum ProbeResult {
 pub trait SetupHost: OAuthHost {
     /// Apply an action of the setup to its connection
     fn dispatch(&self, action: &ConnectionAction);
-    /// Keep a Trino channel under its id. The executor speaks it with the endpoint, the auth and the token.
-    fn open_trino_channel(&self, id: ChannelId, channel: &TrinoChannel) -> Result<(), HostError>;
+    /// Keep a Trino channel, returns its id. The executor speaks it with the endpoint, the auth and the token.
+    fn connect_trino_channel(&self, channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static;
     /// Connect the Hyper channel of a Salesforce connection over HTTP with its tokens, returns its id
     fn connect_salesforce_channel(
         &self,

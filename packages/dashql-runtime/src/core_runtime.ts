@@ -1,5 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import type * as arrow from 'apache-arrow';
+import type * as auth from '@ankoh/dashql-jsonschema/auth.js';
+import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { clientContextJson, createComputePlatform, type CreateComputeQueryExecution } from './compute/compute_platform.js';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from './platform/database/embedded_database.js';
@@ -13,16 +15,17 @@ import { QueryPlatform, type WatchQueryProfile } from './query/query_platform.js
 import type { QueryResultCache } from './query/query_result_cache.js';
 import { createProgressLayoutConfig } from './query/profile/profile_layout_config.js';
 import type { CancelQuery, QueryExecutor } from './connections/query_execution_args.js';
-import { cancelConnectionSetup } from './connections/connection_setup_cancellation.js';
-import {
-    createConnectionAction,
-    runtimeActionOf,
-    type ConnectionAction,
-    type ConnectionState,
-    type NewConnection,
-} from './connections/connection_state.js';
+import { createConnectionAction, type ConnectionState, type NewConnection } from './connections/connection_state.js';
 import type { ConnectionParams } from './connections/connection_params.js';
 import { connectionRegistryOf, type ConnectionRegistry } from './connections/connection_registry_state.js';
+import { ConnectorType } from './connections/connector_info.js';
+import { loadClientFunctionSpec } from './connections/clfn/clfn_specs.js';
+import { SalesforceApiClient, type SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
+import { TrinoApiEndpoint } from './connections/trino/trino_api_client.js';
+import { TrinoChannel } from './connections/trino/trino_channel.js';
+import type { OAuthFlow, OAuthFlowEvent } from './oauth/oauth_flow.js';
+import type { OAuthRedirectData } from './oauth/oauth_types.js';
+import { generatePKCEChallenge } from './utils/pkce.js';
 
 const LOG_CTX = 'runtime';
 
@@ -39,6 +42,30 @@ export interface CoreRuntimeOptions {
     http?: HttpClient | null;
     /// The cache of query results, null without one
     resultCache?: QueryResultCache | null;
+    /// How the setups take the user through the authorization of an OAuth provider, null without
+    oauthFlow?: OAuthFlow | null;
+    /// Connects the channels of the setups besides Trino, null without
+    channels?: ChannelConnector | null;
+    /// The API of Salesforce of the platform. One that isn't the client over the HTTP client, e.g. a mock, answers the
+    /// metadata of the catalog.
+    salesforce?: SalesforceApiClientInterface | null;
+}
+
+/// Connects the channels of the setups that the runtime asks for besides Trino: the embedded Hyper, Hyper over gRPC and
+/// HTTP, the Hyper of Salesforce. The app sets it once its clients are there, Node connects the embedded Hyper.
+export interface ChannelConnector {
+    /// Connect a channel of a setup of a connection, the object that the handle table keeps
+    connect(connectionId: string, request: core.RuntimeChannelRequest): Promise<unknown>;
+    /// The token of the link to a Hyper that the page holds, null without
+    hyperLinkToken?(connectionId: string): string | null;
+}
+
+/// What a login of Salesforce takes besides its params and options
+export interface SalesforceLogin {
+    /// The flow of this login, e.g. with a window that the click of the user opened. The flow of the runtime without.
+    oauthFlow?: OAuthFlow | null;
+    /// Hears the steps of the login, `{ connector, type, value }` with the names of the actions of a setup
+    onStep?: (step: { connector: string; type: string; value: any }) => void;
 }
 
 /// The options of the analysis of a result
@@ -59,9 +86,10 @@ export type ConnectionSaveResult = core.ConnectionSaveOutcome;
 
 /// The runtime of the module on the platform of TypeScript (docs/wip/runtime_api.md): the `Runtime` class of the core
 /// with its platform object (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of
-/// the host, the query result cache, the compute database) and the store that the app reads its views from. It holds
-/// the computations, the connections with the histories of their queries, the histories without a connection and the
-/// query executor.
+/// the host, the queries that the runtime runs itself, the query result cache, the compute database, the OAuth flows,
+/// the specs of the extensions) and the store that the app reads its views from. It holds the computations, the
+/// connections with the histories of their queries, the histories without a connection, the query executor, the setups
+/// of the connections and the catalog loader.
 ///
 /// The runtime of the module needs the instantiated core. The app creates this object before the core is set up: the
 /// views are empty and a dispatch fails until the core is there, a command asks the platform for it.
@@ -87,6 +115,16 @@ export class CoreRuntime {
     private readonly catalogs = new Map<string, core.DashQLCatalog>();
     /// The fetches of the runtime by id
     private readonly fetches = new Map<number, AbortController>();
+    private oauthFlow: OAuthFlow | null;
+    /// The flows of single logins by the id of their setup
+    private readonly loginFlows = new Map<string, OAuthFlow>();
+    /// The OAuth flows that run, by id
+    private readonly flows = new Map<number, AbortController>();
+    private channelConnector: ChannelConnector | null;
+    private salesforce: SalesforceApiClientInterface | null;
+    /// Does the catalog loader run, and the refreshes requested before the core was there
+    private catalogLoading = true;
+    private readonly pendingRefreshes: [string, boolean][] = [];
     /// The registry of the connections of the last flush, with the views it was built from
     private registryCache: { list: unknown; connections: unknown; registry: ConnectionRegistry } | null = null;
     private destroyed = false;
@@ -97,6 +135,9 @@ export class CoreRuntime {
         this.computeDatabase = options.computeDatabase ?? null;
         this.http = options.http ?? null;
         this.resultCache = options.resultCache ?? null;
+        this.oauthFlow = options.oauthFlow ?? null;
+        this.channelConnector = options.channels ?? null;
+        this.salesforce = options.salesforce ?? null;
         this.tables = createRuntimeTables(this.handles);
         this.queries = new QueryPlatform({
             logger: this.logger,
@@ -140,13 +181,101 @@ export class CoreRuntime {
                     this.fetches.get(id)?.abort(new DOMException('The request was cancelled', 'AbortError'));
                 },
             },
-            channels: this.queries.channels,
+            channels: {
+                ...this.queries.channels,
+                connect: async (setupId, request) => this.handles.register(await this.connectChannel(setupId, request)),
+                hyperLinkToken: connectionId => this.channelConnector?.hyperLinkToken?.(connectionId) ?? null,
+            },
+            queries: {
+                describe: (queryId, connectionId, query) => this.queries.describeQuery(queryId, this.connection(connectionId), connectionId, query),
+                forget: queryId => this.queries.forget(queryId),
+            },
             get resultCache() {
                 return runtime.queries.resultCache();
             },
             crypto: { randomUuid: () => crypto.randomUUID() },
-            cancelSetup: connectionId => cancelConnectionSetup(connectionId),
+            oauth: this.oauth(),
+            extensions: { loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)) },
+            get salesforce() {
+                return runtime.salesforceMetadata();
+            },
             changed: urgent => this.store.changed(urgent),
+        };
+    }
+
+    /// Connect a channel of a setup: a Trino channel holds what the executor speaks, the connector of the platform
+    /// connects the others
+    private async connectChannel(connectionId: string, request: core.RuntimeChannelRequest): Promise<unknown> {
+        if (request.type === 'trino') {
+            const endpoint = new TrinoApiEndpoint(request.endpoint, request.auth as auth.TrinoAuthParams);
+            if (request.accessToken != null) endpoint.oauthState = { accessToken: request.accessToken } as connection.TrinoOAuthState;
+            return new TrinoChannel(endpoint, { catalog: request.catalog, schema: request.schema });
+        }
+        const connector = this.channelConnector;
+        if (connector == null) throw new Error(`The platform connects no ${request.type} channels`);
+        return await connector.connect(connectionId, request);
+    }
+
+    /// The OAuth flows of the setups over the flow of the platform, a login may bring a flow of its own
+    private oauth(): core.RuntimeOAuth {
+        const flowOf = (setupId: string) => {
+            const flow = this.loginFlows.get(setupId) ?? this.oauthFlow;
+            if (flow == null) throw new Error('The platform has no OAuth flow');
+            return flow;
+        };
+        const events = (onEvent: (event: string) => void) => (event: OAuthFlowEvent) => {
+            try {
+                onEvent(event);
+            } catch {
+                // The flow ended, a late event changes nothing
+            }
+        };
+        const run = async <T>(id: number, authorize: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+            const abort = new AbortController();
+            this.flows.set(id, abort);
+            try {
+                return await authorize(abort.signal);
+            } finally {
+                this.flows.delete(id);
+            }
+        };
+        return {
+            pkce: () => generatePKCEChallenge(),
+            flowInfo: setupId => {
+                const flow = this.loginFlows.get(setupId) ?? this.oauthFlow;
+                return {
+                    redirectVariant: flow?.redirectVariant ?? 'WEB_OPENER_FLOW',
+                    redirectCallbackUrl: flow?.redirectCallbackUrl ?? null,
+                    debugMode: flow?.debugMode ?? false,
+                    flavor: flow?.flavor ?? null,
+                };
+            },
+            authorizeWithLoopback: (setupId, id, url, callbackUrl, onEvent) => run(id, signal =>
+                flowOf(setupId).authorizeWithLoopback(new URL(url), callbackUrl, signal, events(onEvent))),
+            authorizeWithRedirectPage: (setupId, id, url, flowId, onEvent) => run(id, signal => {
+                const accepts = (callback: OAuthRedirectData) => callback.state?.flowId === flowId;
+                return flowOf(setupId).authorizeWithRedirectPage(new URL(url), accepts, signal, events(onEvent));
+            }),
+            abort: id => {
+                this.flows.get(id)?.abort(new DOMException('The connection setup was cancelled', 'AbortError'));
+            },
+        };
+    }
+
+    /// The metadata of Salesforce from an API of the platform that isn't the client over the HTTP client, e.g. the
+    /// mock of the app. Null lets the runtime fetch it.
+    private salesforceMetadata(): core.RuntimeSalesforce | null {
+        const api = this.salesforce;
+        if (api == null || api instanceof SalesforceApiClient) return null;
+        return {
+            metadata: async (connectionId, dataSpace) => {
+                const conn = this.connection(connectionId);
+                if (conn?.connectorType !== ConnectorType.SALESFORCE_DATA_CLOUD || conn.details.connector.kind !== 'salesforce') return null;
+                const token = conn.details.connector.oauthState?.coreAccessToken;
+                if (token == null) throw new Error('Salesforce core access token is missing');
+                const metadata = await api.getDataCloudMetadata(JSON.parse(token), dataSpace, new AbortController().signal);
+                return JSON.stringify(metadata);
+            },
         };
     }
 
@@ -194,6 +323,8 @@ export class CoreRuntime {
         this.module = instance.createRuntime(this.platform());
         // The progress shows the plan in short panels, it grows left-to-right
         this.module.setProgressLayout(createProgressLayoutConfig());
+        this.module.runCatalogLoader(this.catalogLoading);
+        for (const [connectionId, force] of this.pendingRefreshes.splice(0)) this.module.refreshCatalog(connectionId, force);
         this.store.attach(this.module);
     }
 
@@ -250,6 +381,21 @@ export class CoreRuntime {
     /// Set the query result cache of the platform
     setResultCache(cache: QueryResultCache | null): void {
         this.resultCache = cache;
+    }
+
+    /// Set the OAuth flow of the platform, the setups that start later use it
+    setOAuthFlow(flow: OAuthFlow | null): void {
+        this.oauthFlow = flow;
+    }
+
+    /// Set what connects the channels of the setups, e.g. once the clients of the app are there
+    setChannelConnector(connector: ChannelConnector | null): void {
+        this.channelConnector = connector;
+    }
+
+    /// Set the API of Salesforce of the platform, e.g. the mock that the config of the app chose
+    setSalesforce(api: SalesforceApiClientInterface | null): void {
+        this.salesforce = api;
     }
 
     /// Track the queries of the tasks, e.g. in the query history of the connection of a computation
@@ -333,10 +479,10 @@ export class CoreRuntime {
         return registry;
     }
 
-    /// Apply an action of a setup or the settings to a connection, nothing without an id
-    dispatchConnection = (connectionId: string | null, action: ConnectionAction): core.DispatchOutcome => {
+    /// Apply an action to a connection, nothing without an id
+    dispatchConnection = (connectionId: string | null, action: core.RuntimeAction): core.DispatchOutcome => {
         if (connectionId == null) return { ok: false, changed: false, error: 'no connection', id: null };
-        const outcome = this.dispatch({ connection: connectionId }, runtimeActionOf(action, this.handles));
+        const outcome = this.dispatch({ connection: connectionId }, action);
         if (!outcome.ok) this.logger.warn('A connection refused an action', { connectionId, error: outcome.error ?? '' }, 'connection_registry');
         return outcome;
     };
@@ -400,6 +546,55 @@ export class CoreRuntime {
         } finally {
             this.store.flush();
         }
+    }
+
+    // The setups and the catalog loader
+
+    /// Set up a connection with its connector: the channel of its params or of the params of the options, then the
+    /// health check unless the connection is online with its channel. A setup of the connection that runs is cancelled.
+    /// Resolves with the outcome once its view is in the store, a failure is in the view of the connection as well.
+    async setupConnection(connectionId: string, options: core.SetupOptions = {}): Promise<core.SetupOutcome> {
+        // A runtime with its core starts the setup in the call, a cancellation right after the call reaches it
+        const module = this.module ?? await this.ready();
+        try {
+            return await module.setupConnection(connectionId, options);
+        } finally {
+            this.store.flush();
+        }
+    }
+
+    /// Cancel the setup of a connection or a login that runs
+    cancelSetup(setupId: string): void {
+        this.module?.cancelSetup(setupId);
+    }
+
+    /// Log in to Salesforce with the params of the connector, without a connection, e.g. the login of the shell.
+    /// `cancelSetup` with the id stops it. The outcome of a success has the tokens and the user.
+    async authenticateSalesforce(setupId: string, params: connection.SalesforceConnectionParams, options: core.SetupOptions, login: SalesforceLogin = {}): Promise<core.SetupOutcome> {
+        if (login.oauthFlow != null) this.loginFlows.set(setupId, login.oauthFlow);
+        try {
+            // A runtime with its core starts the login in the call, a cancellation right after the call reaches it
+            const module = this.module ?? await this.ready();
+            return await module.authenticateSalesforce(setupId, params, options, login.onStep ?? null);
+        } finally {
+            this.loginFlows.delete(setupId);
+        }
+    }
+
+    /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. The catalog loader
+    /// runs it once the connection is online.
+    refreshCatalog(connectionId: string, force: boolean): void {
+        if (this.module == null) {
+            this.pendingRefreshes.push([connectionId, force]);
+            return;
+        }
+        this.module.refreshCatalog(connectionId, force);
+    }
+
+    /// Start or stop the catalog loader, e.g. a run of the command line tool doesn't describe its connections
+    runCatalogLoader(running: boolean): void {
+        this.catalogLoading = running;
+        this.module?.runCatalogLoader(running);
     }
 
     // The queries

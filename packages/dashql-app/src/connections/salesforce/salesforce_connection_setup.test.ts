@@ -1,27 +1,53 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { createSalesforceSetup, setupSalesforceConnection } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';
-import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
+import { SalesforceApiClient, SalesforceDatabaseChannel } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql-runtime/connections/connector_descriptor';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
+import type { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
-import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
-import { RESET_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { connectChannel } from '../hyper/hyper_connection_setup.js';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 afterEach(() => vi.unstubAllGlobals());
 
-for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM] as const) for (const exchangeFails of [false, true]) for (const databaseName of [undefined, 'sales']) describe(`setupSalesforceConnection of ${ConnectorType[connector]} with exchange failure=${exchangeFails} and dbcom=${databaseName}`, () => {
+/// A runtime whose setups send their requests with the HTTP client and connect the Hyper of Salesforce with the client
+function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFlow: AppOAuthFlow) {
+    const salesforce = new SalesforceApiClient(new TestLogger(), http);
+    const runtime = new CoreRuntime({
+        logger: new TestLogger(),
+        scheduler: TASK_UPDATE_SCHEDULER,
+        setupCore: dql,
+        http,
+        oauthFlow,
+        channels: {
+            connect: (connectionId, request) => connectChannel({
+                grpcClient: null, httpClient: client, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforce,
+            }, connectionId, request),
+        },
+    });
+    runtime.runCatalogLoader(false);
+    return runtime;
+}
+
+for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM] as const) for (const exchangeFails of [false, true]) for (const databaseName of [undefined, 'sales']) describe(`the setup of ${ConnectorType[connector]} with exchange failure=${exchangeFails} and dbcom=${databaseName}`, () => {
     it('configures the Salesforce database over http', async () => {
         let context: HyperDatabaseConnectionContext | undefined;
         const client: HyperDatabaseClient = {
             connect: vi.fn(async (_params, connectionContext) => {
                 context = connectionContext;
-                return { executeQuery: vi.fn(), close: vi.fn() } as any;
+                return { executeQuery: vi.fn(async () => { throw new Error('no queries in this test'); }), close: vi.fn() } as any;
             }),
         };
         const popup = { closed: false, focus: vi.fn(), close: vi.fn() };
@@ -34,9 +60,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
             login: '',
             databaseName,
         } as connection.SalesforceConnectionParams;
-        // The setup sends its requests with the HTTP client of the API client
         const http = fakeSalesforceHttp({ exchangeError: exchangeFails ? 'exchange failed' : null });
-        const api = new SalesforceApiClient(new TestLogger(), http);
         const events = {
             waitForOAuthRedirect: vi.fn(async (_signal, matches) => {
                 const url = new URL(open.mock.calls[0][0]);
@@ -47,28 +71,18 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
                 return callback;
             }),
         };
-        const dispatch = vi.fn();
-        const setup = setupSalesforceConnection(
-            dispatch,
-            new TestLogger(),
-            connector,
-            params,
-            { auth: { oauthRedirect: 'https://example.com/callback' } },
-            new AppOAuthFlow(events as any, PlatformType.WEB),
-            api,
-            client,
-            false,
-            new AbortController().signal,
-        );
+        const runtime = runtimeOf(http, client, new AppOAuthFlow(events as any, PlatformType.WEB));
+        const connectionParams = connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params);
+        runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParams }, 'salesforce');
+        const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://example.com/callback' });
 
         if (exchangeFails) {
-            await expect(setup).rejects.toThrow('exchange failed');
+            expect(outcome).toMatchObject({ status: 'failed', message: expect.stringContaining('exchange failed') });
             expect(client.connect).not.toHaveBeenCalled();
             expect(http.paths).toContain('/services/a360/token');
-            expect(dispatch).toHaveBeenLastCalledWith({ type: SETUP_FAILED, value: { message: expect.any(String) } });
+            runtime.destroy();
             return;
         }
-        const channel = await setup;
         expect(client.connect).toHaveBeenCalledWith(expect.objectContaining({
             protocol: 'V3_HTTP',
             endpoint: 'https://hyper.example.com/',
@@ -80,37 +94,39 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
             audience: 'tenant-id',
             authorization: `Bearer ${DATA_CLOUD_JWT}`,
         });
+        const state = runtime.connection('salesforce')!;
+        const channel = runtime.channel<SalesforceDatabaseChannel>(state)!;
         expect(channel.coreToken.accessToken).toBe('core-token');
         expect(channel.dataCloudToken.jwt.raw).toBe(DATA_CLOUD_JWT);
         expect(channel.dataCloudToken.instanceUrl).toBe('https://hyper.example.com/');
-        expect(params.login).toBe('');
-        expect(dispatch).toHaveBeenLastCalledWith({ type: SF_CHANNEL_READY, value: channel });
+        // The probe of the health check runs on the channel, it fails in this test
+        expect(outcome).toMatchObject({ status: 'failed', message: 'no queries in this test' });
+        expect(state.connectionHealth).toBe(ConnectionHealth.FAILED);
+        runtime.destroy();
     });
 });
 
-describe('createSalesforceSetup', () => {
+describe('the setup of Salesforce', () => {
     const params = { instanceUrl: 'https://example.my.salesforce.com', appConsumerKey: 'key' } as connection.SalesforceConnectionParams;
-    const create = (config: object) => createSalesforceSetup(null, {} as SalesforceApiClientInterface, new AppOAuthFlow({} as never, PlatformType.WEB), config as never, false, new TestLogger())!;
+    const create = (connector: ConnectorType) => {
+        const runtime = runtimeOf({ fetch: () => Promise.reject(new Error('no network')) }, null, new AppOAuthFlow({} as never, PlatformType.WEB));
+        runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params) }, 'salesforce');
+        return runtime;
+    };
 
-    it('resets the connection', async () => {
-        const dispatch = vi.fn();
-        await create({}).reset(dispatch);
-        expect(dispatch).toHaveBeenCalledWith({ type: RESET_CONNECTION, value: null });
+    it('fails without the redirect page of the config', async () => {
+        const runtime = create(ConnectorType.SALESFORCE_DATA_CLOUD);
+        expect(await runtime.setupConnection('salesforce')).toMatchObject({ status: 'failed', message: expect.stringMatching(/oauth redirect/i) });
+        expect(runtime.connection('salesforce')!.connectionHealth).toBe(ConnectionHealth.FAILED);
+        runtime.destroy();
     });
 
-    it('sets up the connection with the config of the connector', async () => {
-        const dispatch = vi.fn();
-        await expect(create({}).setup(dispatch, ConnectorType.SALESFORCE_DATA_CLOUD, params, new AbortController().signal))
-            .rejects.toThrow('missing oauth redirect url');
-        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([SETUP_STARTED, SETUP_FAILED]);
-    });
-
-    it('cancels an aborted setup', async () => {
-        const dispatch = vi.fn();
-        const abort = new AbortController();
-        abort.abort();
-        await expect(create({ auth: { oauthRedirect: 'https://dashql.app/oauth.html' } }).setup(dispatch, ConnectorType.DBCOM, params, abort.signal))
-            .rejects.toThrow();
-        expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([SETUP_STARTED, SETUP_CANCELLED]);
+    it('cancels a setup', async () => {
+        const runtime = create(ConnectorType.DBCOM);
+        const setup = runtime.setupConnection('salesforce', { oauthRedirect: 'https://dashql.app/oauth.html' });
+        runtime.cancelSetup('salesforce');
+        expect(await setup).toMatchObject({ status: 'cancelled' });
+        expect(runtime.connection('salesforce')!.connectionHealth).not.toBe(ConnectionHealth.ONLINE);
+        runtime.destroy();
     });
 });

@@ -2,13 +2,14 @@
 //! and `JsPlatform`, the host of the services of the crate over it.
 //!
 //! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
-//! the channels of the host, the query result cache and the cancellation of setups. The runtime tells it that its state
-//! changed (`changed`), the store of the app then takes the changes and reads the views. Every call into the platform
-//! catches: a member that throws or is missing fails the call of the service with a `HostError` and never unwinds
-//! through the module. No borrow of the platform is held while it calls JavaScript, so the platform may call the
-//! runtime again from any of its members.
+//! the channels of the host, the descriptions of the queries that the runtime runs itself, the query result cache, the
+//! OAuth flows, the specs of the extensions and the API of Salesforce. The runtime tells it that its state changed
+//! (`changed`), the store of the app then takes the changes and reads the views. Every call into the platform catches:
+//! a member that throws or is missing fails the call of the service with a `HostError` and never unwinds through the
+//! module. No borrow of the platform is held while it calls JavaScript, so the platform may call the runtime again from
+//! any of its members.
 //!
-//! The helpers of the other hosts of the bindings (the setups, the catalog loader) live here as well: reading the
+//! The helpers of the other hosts of the bindings (the storage writer, the restore) live here as well: reading the
 //! fields of JS values, awaiting the promises of the host, requests and responses.
 
 use std::any::Any;
@@ -49,16 +50,68 @@ export interface RuntimePlatform {
     readonly compute: ComputePlatform | null;
     /** Send requests with the HTTP client of the platform */
     http: RuntimeHttp;
-    /** The channels of the host that run queries themselves: the embedded Hyper, gRPC through the native proxy, the channels of tests */
+    /** The channels of the host: the ones that the setups connect, and the ones that run queries themselves (the embedded Hyper, gRPC through the native proxy, the channels of tests) */
     channels: RuntimeChannels;
+    /** The queries that the runtime runs itself, e.g. the metadata queries of the catalog loader and the probes of health checks */
+    queries: RuntimeQueries;
     /** The query result cache, null without one */
     readonly resultCache: RuntimeResultCache | null;
     /** Random ids */
     crypto: { randomUuid(): string };
-    /** Cancel the setup of a connection that runs, e.g. its OAuth flow */
-    cancelSetup(connectionId: string): void;
+    /** The OAuth flows of the setups */
+    oauth: RuntimeOAuth;
+    /** The specs of the client functions of the extensions, the JSON text */
+    extensions: { loadSpec(extension: string): Promise<string> };
+    /** An API of Salesforce that answers the metadata of the catalog, e.g. the mock of the app. Null lets the runtime fetch it. */
+    readonly salesforce: RuntimeSalesforce | null;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
     changed(urgent: boolean): void;
+}
+
+/** A channel that a setup asks the host to connect */
+export type RuntimeChannelRequest =
+    | { type: 'trino'; endpoint: string; auth: unknown; catalog: string | null; schema: string | null; accessToken: unknown | null }
+    | { type: 'salesforce'; endpoint: string; requestMetadata: Record<string, string>; attachedDatabases: { path: string; alias: string }[]; tokens: { core: unknown; dataCloud: unknown } }
+    | { type: 'hyper'; kind: 'embedded' | 'grpc' | 'http'; params: any };
+
+/** A query that the runtime runs itself */
+export interface RuntimeQueryDescription {
+    text: string;
+    metadata: QueryMetadataView;
+    /** The read timeout, null for the default of the connection */
+    readTimeoutMs: number | null;
+}
+/** The host side of the queries that the runtime runs itself */
+export interface RuntimeQueries {
+    /** Describe where a query of a connection runs, the request as `executeQuery` takes it. The host keeps what it needs to run the query on a channel of its own until `forget`. */
+    describe(queryId: number, connectionId: string, query: RuntimeQueryDescription): Promise<unknown>;
+    /** The query ended */
+    forget(queryId: number): void;
+}
+
+/** How the platform takes the user through the redirect page */
+export interface RuntimeOAuthFlowInfo {
+    redirectVariant: 'WEB_OPENER_FLOW' | 'NATIVE_LINK_FLOW';
+    redirectCallbackUrl: string | null;
+    debugMode: boolean;
+    flavor: string | null;
+}
+/** The OAuth flows of the platform. A flow belongs to a setup by the id of the setup, `abort` with the id of the flow stops it. */
+export interface RuntimeOAuth {
+    /** A PKCE challenge: a random verifier and the base64url of its SHA-256 digest */
+    pkce(): Promise<{ value: string; verifier: string }>;
+    flowInfo(setupId: string): RuntimeOAuthFlowInfo;
+    /** Open the authorization URL and wait for the loopback redirect. The events are 'WINDOW_OPENED', 'WINDOW_CLOSED' and 'EXTERNAL_BROWSER_OPENED'. */
+    authorizeWithLoopback(setupId: string, flow: number, url: string, callbackUrl: string, onEvent: (event: string) => void): Promise<{ code?: string; state?: string; error?: string; errorDescription?: string }>;
+    /** Open the authorization URL and wait for the callback of the redirect page whose state has the flow id */
+    authorizeWithRedirectPage(setupId: string, flow: number, url: string, flowId: string, onEvent: (event: string) => void): Promise<unknown>;
+    abort(flow: number): void;
+}
+
+/** An API of Salesforce of the platform */
+export interface RuntimeSalesforce {
+    /** The Data Cloud metadata of a data space as JSON, null to fetch it */
+    metadata(connectionId: string, dataSpace: string): Promise<string | null>;
 }
 
 /** The handle table of the host */
@@ -114,8 +167,12 @@ export type RuntimeChannelMessage =
     | { type: 'progress'; progress: QueryProgressView }
     | { type: 'batch'; metrics: QueryStreamMetrics }
     | { type: 'end'; metrics: QueryStreamMetrics };
-/** The channels of the host by query: the host knows the channel of a query from the query it described */
+/** The channels of the host. The setups connect them, the queries of the host run on them by query: the host knows the channel of a query from the query it described. */
 export interface RuntimeChannels {
+    /** Connect a channel of a setup, returns its handle */
+    connect(setupId: string, request: RuntimeChannelRequest): Promise<number>;
+    /** The token of the link to a Hyper that the page holds, null without */
+    hyperLinkToken(connectionId: string): string | null;
     /** Run a query on its channel, its batches go into the table that was opened for it. False if the channel returned no result. */
     open(queryId: number, table: number): Promise<boolean>;
     /** The next message of the stream of a query */
@@ -159,6 +216,15 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "RuntimePlatform")]
     #[derive(Clone)]
     pub type JsRuntimePlatform;
+}
+
+/// What the services of the runtime do after an action of the registry
+#[derive(Default)]
+pub struct RegistryFollowUp {
+    /// Cancel the setup of the connection that runs
+    pub cancel_setup: bool,
+    /// Cancel the catalog updates of the loader, with their reasons
+    pub cancel_catalog_updates: Vec<(u32, &'static str)>,
 }
 
 /// An effect of the runtime on a handle of the host, applied by the store when it takes the changes
@@ -219,12 +285,6 @@ pub(crate) fn field(value: &JsValue, name: &str) -> Option<JsValue> {
     Reflect::get(value, &JsValue::from_str(name)).ok().filter(|value| !value.is_undefined() && !value.is_null())
 }
 
-/// Await a host call that returns a promise
-pub(crate) async fn host_call(result: Result<JsValue, JsValue>) -> Result<JsValue, HostError> {
-    let value = result.map_err(host_error)?;
-    JsFuture::from(Promise::resolve(&value)).await.map_err(host_error)
-}
-
 /// A member of an object
 fn member(object: &JsValue, name: &str) -> Result<JsValue, HostError> {
     let value = Reflect::get(object, &JsValue::from_str(name)).map_err(host_error)?;
@@ -266,11 +326,6 @@ pub(crate) fn request_value(request: &HttpRequest) -> JsValue {
     set("headers", &headers_value(&request.headers));
     set("body", &request.body.as_deref().map(JsValue::from_str).unwrap_or(JsValue::NULL));
     object.into()
-}
-
-/// A response of the host, its body copied into the module
-pub(crate) fn response_of(value: &JsValue) -> Result<HttpResponse, HostError> {
-    response_keeping(value, false)
 }
 
 /// A response of the host. A successful one may keep its body with the host, the module passes it on unread.
@@ -356,19 +411,25 @@ impl JsPlatform {
         }
     }
 
-    /// Collect the effects of the connections and the queries on handles, returns whether a setup is cancelled
-    pub fn push_registry_effects(&self, effects: &[RegistryEffect]) -> bool {
-        let mut cancel_setup = false;
+    /// Collect the effects of the connections and the queries on handles, returns what the services of the runtime do
+    pub fn push_registry_effects(&self, effects: &[RegistryEffect]) -> RegistryFollowUp {
+        let mut follow_up = RegistryFollowUp::default();
         let mut pending = self.inner.pending.borrow_mut();
         for effect in effects {
             match *effect {
                 RegistryEffect::Release { handle } => pending.effects.push(HandleEffect::Release { handle }),
                 RegistryEffect::Close { handle } => pending.effects.push(HandleEffect::Close { handle }),
                 RegistryEffect::Abort { handle, reason } => pending.effects.push(HandleEffect::Abort { handle, reason: reason.to_string() }),
-                RegistryEffect::CancelSetup => cancel_setup = true,
+                RegistryEffect::CancelSetup => follow_up.cancel_setup = true,
+                RegistryEffect::CancelCatalogUpdate { task_id, reason } => follow_up.cancel_catalog_updates.push((task_id, reason)),
             }
         }
-        cancel_setup
+        follow_up
+    }
+
+    /// Close a handle with the next changes, e.g. a channel that a setup doesn't hand out
+    pub fn push_close(&self, handle: Handle) {
+        self.inner.pending.borrow_mut().effects.push(HandleEffect::Close { handle });
     }
 
     /// Release a handle with the next changes
@@ -436,9 +497,112 @@ impl JsPlatform {
         Ok(host_table(&call(&tables, "finish", &[JsValue::from_f64(table as f64)])?))
     }
 
-    /// Cancel the setup of a connection that runs
-    pub fn cancel_setup(&self, connection_id: &str) {
-        let _ = call(self.object(), "cancelSetup", &[JsValue::from_str(connection_id)]);
+    /// The id of the next request or flow of the platform
+    fn next_id(&self) -> f64 {
+        let id = self.inner.last_request.get() + 1.0;
+        self.inner.last_request.set(id);
+        id
+    }
+
+    /// Connect a channel of a setup, the handle of the channel
+    pub fn connect_channel(&self, setup_id: &str, request: &JsValue) -> impl Future<Output = Result<Handle, HostError>> + 'static {
+        let call = member(self.object(), "channels").and_then(|channels| call(&channels, "connect", &[JsValue::from_str(setup_id), request.clone()]));
+        async move {
+            let value = settled(call).await?;
+            as_handle(&value).ok_or_else(|| HostError::new("the platform connected no channel"))
+        }
+    }
+
+    /// The token of the link to a Hyper that the page holds
+    pub fn hyper_link_token(&self, connection_id: &str) -> Option<String> {
+        let channels = member(self.object(), "channels").ok()?;
+        call(&channels, "hyperLinkToken", &[JsValue::from_str(connection_id)]).ok()?.as_string()
+    }
+
+    /// Describe a query that the runtime runs itself, the promise of its request
+    pub fn describe_query(&self, query_id: f64, connection_id: &str, description: &JsValue) -> Promise {
+        let described = member(self.object(), "queries")
+            .and_then(|queries| call(&queries, "describe", &[JsValue::from_f64(query_id), JsValue::from_str(connection_id), description.clone()]));
+        match described {
+            Ok(value) => Promise::resolve(&value),
+            Err(error) => Promise::reject(&JsError::new(error.message()).into()),
+        }
+    }
+
+    /// A query that the runtime ran itself ended
+    pub fn forget_query(&self, query_id: f64) {
+        if let Ok(queries) = member(self.object(), "queries") {
+            let _ = call(&queries, "forget", &[JsValue::from_f64(query_id)]);
+        }
+    }
+
+    /// The OAuth flows of the platform
+    fn oauth(&self) -> Result<JsValue, HostError> {
+        member(self.object(), "oauth")
+    }
+
+    /// A PKCE challenge of the platform
+    pub fn oauth_pkce(&self) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        settled(self.oauth().and_then(|oauth| call(&oauth, "pkce", &[])))
+    }
+
+    /// How the platform takes the user of a setup through the redirect page
+    pub fn oauth_flow_info(&self, setup_id: &str) -> JsValue {
+        self.oauth().and_then(|oauth| call(&oauth, "flowInfo", &[JsValue::from_str(setup_id)])).unwrap_or(JsValue::NULL)
+    }
+
+    /// Run an OAuth flow of a setup until its callback, the token stops it. `method` is the member of the flow, `args`
+    /// follow the id of the setup and the id of the flow.
+    pub fn oauth_authorize(
+        &self,
+        method: &str,
+        setup_id: &str,
+        args: &[JsValue],
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let flow = self.next_id();
+        let oauth = self.oauth();
+        let mut all = vec![JsValue::from_str(setup_id), JsValue::from_f64(flow)];
+        all.extend_from_slice(args);
+        // A flow that is cancelled rejects after the runtime stopped waiting, its rejection is handled right away. The
+        // handler lives as long as the page, a flow is rare.
+        let sent = oauth.clone().and_then(|oauth| call(&oauth, method, &all)).map(|sent| {
+            let promise = Promise::resolve(&sent);
+            let handler = Closure::<dyn FnMut(JsValue)>::new(|_| {});
+            let _ = promise.catch(&handler);
+            handler.forget();
+            promise
+        });
+        let token = cancellation.clone();
+        async move {
+            let promise = sent?;
+            match token.run(JsFuture::from(promise)).await {
+                None => {
+                    if let Ok(oauth) = oauth {
+                        let _ = call(&oauth, "abort", &[JsValue::from_f64(flow)]);
+                    }
+                    Err(HostError::new(CANCELLED_MESSAGE))
+                }
+                Some(result) => result.map_err(host_error),
+            }
+        }
+    }
+
+    /// Load the spec of the client functions of an extension, the JSON text
+    pub fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
+        let call = member(self.object(), "extensions").and_then(|extensions| call(&extensions, "loadSpec", &[JsValue::from_str(extension)]));
+        async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("a spec that isn't text")) }
+    }
+
+    /// The Data Cloud metadata of a data space from the API of Salesforce of the platform as JSON, none to fetch it
+    pub fn salesforce_metadata(&self, connection_id: &str, data_space: &str) -> impl Future<Output = Result<Option<String>, HostError>> + 'static {
+        let call = member(self.object(), "salesforce")
+            .ok()
+            .map(|salesforce| call(&salesforce, "metadata", &[JsValue::from_str(connection_id), JsValue::from_str(data_space)]));
+        async move {
+            let Some(call) = call else { return Ok(None) };
+            Ok(settled(call).await?.as_string())
+        }
     }
 
     /// A random id
@@ -516,8 +680,7 @@ impl JsPlatform {
 
     /// Send a request with the fetch of the platform, a successful response may keep its body with the host
     pub fn send(&self, request: HttpRequest, cancellation: &CancellationToken, keep_body: bool) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
-        let id = self.inner.last_request.get() + 1.0;
-        self.inner.last_request.set(id);
+        let id = self.next_id();
         let http = member(self.object(), "http");
         let token = cancellation.clone();
         let sent = if token.is_cancelled() {

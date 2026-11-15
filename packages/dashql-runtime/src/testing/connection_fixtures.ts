@@ -1,10 +1,9 @@
-import { HEALTH_CHECK_SUCCEEDED, type ConnectionAction, type ConnectionState } from '../connections/connection_state.js';
+import type * as core from '@ankoh/dashql-core';
+
+import { setupStepAction as setupStep, type ConnectionState } from '../connections/connection_state.js';
 import { newConnectionFromParams, type ConnectionParams } from '../connections/connection_params.js';
 import { connectorOfParams, connectorParams } from '../connections/connector_descriptor.js';
 import { ConnectorType } from '../connections/connector_info.js';
-import { HYPER_CHANNEL_READY } from '../connections/hyper/hyper_connection_state.js';
-import { SF_CHANNEL_READY } from '../connections/salesforce/salesforce_connection_state.js';
-import { TRINO_CHANNEL_READY } from '../connections/trino/trino_connection_state.js';
 import type { CoreRuntime } from '../core_runtime.js';
 
 /// The options of a connection of a test
@@ -25,7 +24,7 @@ export interface TestConnectionOptions {
 }
 
 /// Apply an action to a connection of a test, returns the connection as the runtime holds it now
-export function reduceTestConnection(runtime: CoreRuntime, state: Pick<ConnectionState, 'connectionId'>, action: ConnectionAction): ConnectionState {
+export function reduceTestConnection(runtime: CoreRuntime, state: Pick<ConnectionState, 'connectionId'>, action: core.RuntimeAction): ConnectionState {
     runtime.dispatchConnection(state.connectionId, action);
     runtime.flush();
     const next = runtime.connection(state.connectionId);
@@ -39,19 +38,19 @@ export function createTestConnection(runtime: CoreRuntime, options: TestConnecti
     const setupParams = connectorParams(connector, options.params);
     let state = runtime.createConnection(newConnectionFromParams(options.params, { active: options.active, name: options.name }), options.connectionId ?? 'test');
     if (options.channel == null) return state;
-    const channel = options.channel as any;
+    const channel = runtime.handles.register(options.channel);
     switch (connector.info.connectorType) {
         case ConnectorType.HYPER:
-            state = reduceTestConnection(runtime, state, { type: HYPER_CHANNEL_READY, value: [channel, setupParams as any] });
+            state = reduceTestConnection(runtime, state, setupStep('HYPER_CHANNEL_READY', setupParams, channel));
             break;
         case ConnectorType.TRINO:
-            state = reduceTestConnection(runtime, state, { type: TRINO_CHANNEL_READY, value: channel });
+            state = reduceTestConnection(runtime, state, setupStep('TRINO_CHANNEL_READY', null, channel));
             break;
         case ConnectorType.SALESFORCE_DATA_CLOUD:
         case ConnectorType.DBCOM:
-            state = reduceTestConnection(runtime, state, { type: SF_CHANNEL_READY, value: channel });
+            state = reduceTestConnection(runtime, state, setupStep('SF_CHANNEL_READY', null, channel));
             break;
     }
     if (options.online === false) return state;
-    return reduceTestConnection(runtime, state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+    return reduceTestConnection(runtime, state, setupStep('HEALTH_CHECK_SUCCEEDED'));
 }

@@ -60,7 +60,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         resultCache: options.resultCache ?? null,
     };
     const runtime = createRuntime(platform);
-    if (!options.catalogLoader) runtime.catalogLoader.stop();
+    if (!options.catalogLoader) runtime.coreRuntime.runCatalogLoader(false);
     // The runtime of the module has the core of the tests from the start
     runtime.coreRuntime.setCore(instance);
     return Object.assign(runtime, {

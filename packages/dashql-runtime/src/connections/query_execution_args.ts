@@ -1,7 +1,4 @@
-import { HyperDatabaseChannel } from "./hyper/hyperdb_grpc_client.js";
 import { QueryMetadata } from "../query/query_execution_state.js";
-import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";
-import { TrinoChannelInterface } from "./trino/trino_channel.js";
 import type { buffers } from '@ankoh/dashql-core';
 import type * as arrow from 'apache-arrow';
 import type { ClientFunctionCallDescription } from "./clfn/clfn_spec.js";
@@ -50,18 +47,7 @@ export interface QueryExecutionArgs {
     /// query state. Most workbook callers use the historical null-on-failure behavior; hosts such
     /// as the shell need the error text to complete their asynchronous effect.
     throwOnError?: boolean;
-    /// Optional channel to run the query on. When present, the executor uses this
-    /// channel instead of reading one from the ConnectionState. Callers need this
-    /// when they hold the channel locally but haven't waited for the React state
-    /// update that publishes it into the connection map (e.g. right after a
-    /// connection setup resolves).
-    channelOverride?: QueryExecutionChannelOverride;
 }
-
-export type QueryExecutionChannelOverride =
-    | { type: 'hyper'; channel: HyperDatabaseChannel }
-    | { type: 'salesforce'; channel: SalesforceDatabaseChannel }
-    | { type: 'trino'; channel: TrinoChannelInterface };
 
 /// The query executor function: returns the id of the query and its result
 export type QueryExecutor = (connectionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];

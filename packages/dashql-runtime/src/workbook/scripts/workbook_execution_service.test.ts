@@ -3,7 +3,7 @@
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, type ConnectionAction } from '../../connections/connection_state.js';
+import { ConnectionHealth, setupStepAction } from '../../connections/connection_state.js';
 import type { ConnectionParams } from '../../connections/connection_params.js';
 import { createTestConnection } from '../../testing/connection_fixtures.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
@@ -120,8 +120,8 @@ describe('WorkbookExecutionService', () => {
     }
 
     /// Change a connection of the runtime, e.g. a connection that drops, the services follow the store
-    function act(f: Fixture, action: ConnectionAction) {
-        runtime!.coreRuntime.dispatchConnection(f.database.connectionId, action);
+    function act(f: Fixture, step: string, value?: unknown) {
+        runtime!.coreRuntime.dispatchConnection(f.database.connectionId, setupStepAction(step, value));
         runtime!.coreRuntime.flush();
     }
 
@@ -137,8 +137,8 @@ describe('WorkbookExecutionService', () => {
         });
         // The catalog describes the connection, the runs don't wait for the catalog loader
         rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
-        if (health === ConnectionHealth.FAILED) act(f, { type: HEALTH_CHECK_FAILED, value: { message: 'down' } });
-        if (health === ConnectionHealth.CONNECTING) act(f, { type: HEALTH_CHECK_STARTED, value: null });
+        if (health === ConnectionHealth.FAILED) act(f, 'HEALTH_CHECK_FAILED', { message: 'down' });
+        if (health === ConnectionHealth.CONNECTING) act(f, 'HEALTH_CHECK_STARTED');
         const metadata = { title: null, description: null, issuer: null, userProvided: true };
         for (const queryType of f.database.activeQueries) {
             rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata: { ...metadata, queryType } } });
@@ -360,7 +360,7 @@ describe('WorkbookExecutionService', () => {
         expect(current.state).toBeNull();
         step(() => current.start(f.modify, { inputs: ['min'] }));
         expect(current.state).toBeNull();
-        await step(async () => act(f, { type: HEALTH_CHECK_SUCCEEDED, value: null }));
+        await step(async () => act(f, 'HEALTH_CHECK_SUCCEEDED'));
         await vi.waitFor(() => expect(current.state).not.toBeNull());
     });
 
@@ -368,7 +368,7 @@ describe('WorkbookExecutionService', () => {
         await openWorkbook();
         await start();
         const f = fixtures[0];
-        await step(async () => act(f, { type: HEALTH_CHECK_FAILED, value: { message: 'down' } }));
+        await step(async () => act(f, 'HEALTH_CHECK_FAILED', { message: 'down' }));
         expect(f.signal?.aborted).toBe(true);
     });
 

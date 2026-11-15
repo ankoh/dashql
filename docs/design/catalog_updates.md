@@ -40,10 +40,14 @@ columns keep the order of the connection.
    changes relations. The default of the connection names the database, without one a statement can't have touched
    anything.
 3. **The catalog loader asks the connection** once it is online, no other update runs or is requested and it has room for
-   another query (`CatalogUpdateVariant::RelationRefresh`, `catalog_loader/service.rs`). A refresh that runs may have read the relations too early, the
-   update follows it, and only that answer can say that a relation is gone. The names of a run are merged.
+   another query (`CatalogUpdateVariant::RelationRefresh`, `catalog_loader/service.rs`). The loader is a service of the
+   runtime, it runs its metadata queries as queries of the connection on the executor of the runtime. A refresh that
+   runs may have read the relations too early, the update follows it, and only that answer can say that a relation is
+   gone. The names of a run are merged.
 4. **The answer updates the catalog** (`Catalog::replace_tables`): a relation with rows has a new table in the place of the
-   old one, a relation without rows is gone. An answer that changes nothing keeps the catalog version.
+   old one, a relation without rows is gone. An answer that changes nothing keeps the catalog version. An answer that
+   changed the catalog raises the `catalogVersion` of the view of the connection, the scripts that use the connection
+   are analyzed again.
 
 | Statement | Asks about |
 |---|---|
@@ -89,7 +93,8 @@ the next statement or a refresh. A Hyper refresh that fails for an attached data
 
 A full refresh only runs:
 
-- on user input: the refresh buttons of a connection and the refresh command of a workbook,
+- on user input: the refresh buttons of a connection and the refresh command of a workbook (`refreshCatalog` of the
+  runtime with `force`),
 - for the initial description of a connection when it comes online and nothing describes it yet
   (`CatalogUpdates.described`): no file was restored and no refresh succeeded,
 - whenever a connection whose database doesn't outlive the app comes online: its database is new.

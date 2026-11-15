@@ -1,41 +1,24 @@
 import { vi } from 'vitest';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { setupHyperConnection } from './hyper_connection_setup.js';
-import { HYPER_CHANNEL_READY } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
+import { connectChannel, type ChannelClients } from './hyper_connection_setup.js';
 import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 
-describe('Hyper connection setup', () => {
-    it('publishes WASM setup parameters with the ready channel', async () => {
-        const channel = { close: vi.fn() } as unknown as HyperDatabaseChannel;
-        const dispatch = vi.fn();
-        const params = {
-            protocol: 'WASM',
-            endpoint: '',
-            tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
-        } as connection.HyperConnectionParams;
-        const embedded = {
-            connect: vi.fn(async () => ({})),
-        };
+/// The clients of a test, none by default
+function clients(overrides: Partial<ChannelClients>): ChannelClients {
+    return { grpcClient: null, httpClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforce: null, ...overrides };
+}
 
-        await setupHyperConnection(
-            dispatch,
-            new TestLogger(),
-            params,
-            {},
-            null,
-            null,
-            vi.fn(async () => embedded as any),
-            new AbortController().signal,
-        );
-
-        const ready = dispatch.mock.calls.find(([action]) => action.type === HYPER_CHANNEL_READY)?.[0];
-        expect(ready?.value[1]).toEqual(params);
-        expect(ready?.value[1]).not.toBe(params);
-        expect(ready?.value[0]).toBeInstanceOf(Object);
-        expect(channel.close).not.toHaveBeenCalled();
+// The runtime sets up the connections and asks the app to connect their channels
+describe('Hyper channels of the setups', () => {
+    it('connects the embedded Hyper on a session of the embedded database', async () => {
+        const session = {};
+        const embedded = { connect: vi.fn(async () => session) };
+        const params = { protocol: 'WASM', endpoint: '' } as connection.HyperConnectionParams;
+        const channel = await connectChannel(clients({ setupEmbeddedDatabase: vi.fn(async () => embedded as any) }), 'memory', { type: 'hyper', kind: 'embedded', params });
+        expect(channel).toBeInstanceOf(Object);
+        expect(embedded.connect).toHaveBeenCalledWith(expect.objectContaining({ defaultDatabase: 'hyper', clientContext: connectionClientContext('memory') }));
     });
 
     it('provides configured gRPC metadata to the client context', async () => {
@@ -54,21 +37,12 @@ describe('Hyper connection setup', () => {
             metadata: { 'ctx-tenant-id': 'tenant-123' },
         } as connection.HyperConnectionParams;
 
-        await setupHyperConnection(
-            vi.fn(),
-            new TestLogger(),
-            params,
-            {},
-            client,
-            null,
-            vi.fn(),
-            new AbortController().signal,
-        );
-
+        // The runtime hands the app a copy of the params
+        expect(await connectChannel(clients({ grpcClient: client }), 'connection-1', { type: 'hyper', kind: 'grpc', params: structuredClone(params) })).toBe(channel);
         expect(capturedContext).not.toBeNull();
         params.metadata!['ctx-tenant-id'] = 'edited-after-setup';
         expect(await capturedContext!.getRequestMetadata()).toEqual({ 'ctx-tenant-id': 'tenant-123' });
-        expect(capturedContext!.getClientContext?.()).toBeNull();
+        expect(capturedContext!.getClientContext?.()).toEqual(connectionClientContext('connection-1'));
     });
 
     it('attributes the queries of a remote channel and monitors its log without sessions', async () => {
@@ -86,18 +60,7 @@ describe('Hyper connection setup', () => {
             tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
         } as connection.HyperConnectionParams;
 
-        await setupHyperConnection(
-            vi.fn(),
-            new TestLogger(),
-            params,
-            {},
-            null,
-            client,
-            vi.fn(),
-            new AbortController().signal,
-            logMetrics as unknown as HyperLogMetrics,
-            'connection-1',
-        );
+        await connectChannel(clients({ httpClient: client, logMetrics: logMetrics as unknown as HyperLogMetrics }), 'connection-1', { type: 'hyper', kind: 'http', params });
 
         expect(contexts.map(context => context.getClientContext?.())).toEqual([connectionClientContext('connection-1')]);
         expect(logMetrics.watch).toHaveBeenCalledTimes(1);
@@ -107,5 +70,10 @@ describe('Hyper connection setup', () => {
         // The monitor connects channels of its own, with its own client context
         await origin.database.connect({ clientContext: { dashql: { connectionId: 'connection-1', queryType: 'monitor' } } });
         expect(contexts[1].getClientContext?.()).toEqual({ dashql: { connectionId: 'connection-1', queryType: 'monitor' } });
+    });
+
+    it('fails without a client of the protocol', async () => {
+        const params = { protocol: 'V3_HTTP', endpoint: 'https://hyper.example.com' } as connection.HyperConnectionParams;
+        await expect(connectChannel(clients({}), 'connection-1', { type: 'hyper', kind: 'http', params })).rejects.toThrow('HTTP client is not available');
     });
 });

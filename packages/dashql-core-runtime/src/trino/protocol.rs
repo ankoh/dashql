@@ -128,6 +128,31 @@ impl TrinoAuthParams {
             oauth,
         }
     }
+
+    /// The `auth` of Trino params, the inverse of `from_json`
+    pub fn to_json(&self) -> Value {
+        let auth_type = match self.auth_type {
+            TrinoAuthType::Basic => "AUTH_BASIC",
+            TrinoAuthType::OAuth => "AUTH_OAUTH",
+        };
+        let mut auth = serde_json::json!({
+            "authType": auth_type,
+            "basic": { "username": self.username, "secret": self.secret },
+        });
+        if let (Some(oauth), Some(fields)) = (&self.oauth, auth.as_object_mut()) {
+            fields.insert(
+                "oauth".to_string(),
+                serde_json::json!({
+                    "authorizationUrl": oauth.authorization_url,
+                    "tokenUrl": oauth.token_url,
+                    "clientId": oauth.client_id,
+                    "callbackUrl": oauth.callback_url,
+                    "scopes": oauth.scopes,
+                }),
+            );
+        }
+        auth
+    }
 }
 
 /// An OAuth access token

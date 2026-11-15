@@ -8,15 +8,12 @@ import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
 import { useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
-import { SETUP_CTX as HYPER_SETUP_CTX, type HyperSetupApi } from './hyper/hyper_connection_setup.js';
-import { HYPER_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { HyperDatabaseClientProvider } from './hyper/hyperdb_grpc_client_provider.js';
-import type { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { HYPERDB_WASM_ENGINE_SETTING_ELEMENTS, HyperConnectorSettings } from './hyper_connection_settings.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
@@ -79,32 +76,37 @@ describe('HyperConnectorSettings', () => {
     let registry: Registry | null;
     let execute: ReturnType<typeof vi.fn<QueryExecutor>>;
     let executor: TestQueryExecutorFunctions;
-    let setup: ReturnType<typeof vi.fn<HyperSetupApi['setup']>>;
-    let reset: ReturnType<typeof vi.fn<HyperSetupApi['reset']>>;
+    /// The commands of the runtime that the settings call
+    let setup: ReturnType<typeof vi.fn<CoreRuntime['setupConnection']>>;
+    let cancel: ReturnType<typeof vi.fn<CoreRuntime['cancelSetup']>>;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
         registry = useConnectionRegistry();
         coreRuntime = useCoreRuntime();
+        coreRuntime.setupConnection = setup;
+        coreRuntime.cancelSetup = cancel;
         return null;
+    }
+    /// The params of a setup
+    function setupParams(index = 0): connection.HyperConnectionParams {
+        const [connectionId, options] = setup.mock.calls[index];
+        expect(connectionId).toBe(CONNECTION_ID);
+        return (options?.params as { hyper: connection.HyperConnectionParams }).hyper;
     }
 
     interface RenderOptions {
         /// Provide the gRPC and HTTP clients of Hyper
         clients?: boolean;
-        hyperSetup?: HyperSetupApi | null;
     }
 
     async function render(database: TestConnection | null, options: RenderOptions = {}) {
-        const hyperSetup = options.hyperSetup === undefined ? { setup, reset } : options.hyperSetup;
         const tree = (showSettings: boolean) => {
             const settings = (
-                <HYPER_SETUP_CTX.Provider value={hyperSetup}>
-                    <>
-                        <Capture />
-                        {showSettings && <HyperConnectorSettings connectionId={CONNECTION_ID} onClose={onClose} />}
-                    </>
-                </HYPER_SETUP_CTX.Provider>
+                <>
+                    <Capture />
+                    {showSettings && <HyperConnectorSettings connectionId={CONNECTION_ID} onClose={onClose} />}
+                </>
             );
             return (
                 <LoggerProvider>
@@ -173,8 +175,8 @@ describe('HyperConnectorSettings', () => {
         registry = null;
         execute = vi.fn<QueryExecutor>(() => [1, Promise.resolve({} as arrow.Table)]);
         executor = { execute, cancel: vi.fn(async () => { }), watchProfile: vi.fn(() => () => { }) };
-        setup = vi.fn<HyperSetupApi['setup']>(async () => null);
-        reset = vi.fn<HyperSetupApi['reset']>(async () => { });
+        setup = vi.fn<CoreRuntime['setupConnection']>(async () => ({ status: 'succeeded', message: null, data: {}, authentication: null }));
+        cancel = vi.fn<CoreRuntime['cancelSetup']>();
         onClose = vi.fn<() => void>();
     });
 
@@ -202,20 +204,13 @@ describe('HyperConnectorSettings', () => {
             expect(protocolOptions()).toEqual([]);
         });
 
-        it('selects the embedded engine without a health check', async () => {
-            setup.mockImplementation(async () => ({} as HyperDatabaseChannel));
+        it('selects the embedded engine with the runtime', async () => {
             await render(hyperDatabase(embeddedParams()));
             const select = testId('connection-setup');
             expect(select?.textContent).toBe('Select');
             await click(select);
             await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-            const [dispatch, params, signal, connectionId] = setup.mock.calls[0];
-            expect(typeof dispatch).toBe('function');
-            expect(params.protocol).toBe('WASM');
-            expect(signal.aborted).toBe(false);
-            expect(connectionId).toBe(CONNECTION_ID);
-            await settle();
-            expect(execute).not.toHaveBeenCalled();
+            expect(setupParams().protocol).toBe('WASM');
         });
     });
 
@@ -276,49 +271,23 @@ describe('HyperConnectorSettings', () => {
             expect(setup).not.toHaveBeenCalled();
         });
 
-        it('does not connect without a Hyper setup', async () => {
-            await render(hyperDatabase(HTTP), { clients: true, hyperSetup: null });
-            await click(testId('connection-setup'));
-            await settle();
-            expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('connects with the edited params and runs the health check on the channel', async () => {
-            const channel = {} as HyperDatabaseChannel;
-            setup.mockImplementation(async () => channel);
+        it('connects with the edited params', async () => {
             await render(hyperDatabase(HTTP), { clients: true });
             await type('HTTP Endpoint', 'http://edited:7484');
             await click(testId('connection-setup'));
             await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-            const params = setup.mock.calls[0][1];
+            const params = setupParams();
             expect(params.protocol).toBe('V3_HTTP');
             expect(params.endpoint).toBe('http://edited:7484');
             expect(params.metadata).toEqual({ 'x-tenant': 'acme' });
             expect(params.queryParameters).toEqual({ lc_time: 'de_DE' });
             expect(params.attachedDatabases![0]).toMatchObject({ path: '/data/a.hyper', alias: 'a' });
-            await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce());
-            const [connectionId, args] = execute.mock.calls[0];
-            expect(connectionId).toBe(CONNECTION_ID);
-            expect(args.query).toBe('select 1 as healthy');
-            expect(args.channelOverride).toEqual({ type: 'hyper', channel });
-            await vi.waitFor(() => expect(current().connectionHealth).toBe(ConnectionHealth.ONLINE));
-        });
-
-        it('swallows setup errors', async () => {
-            setup.mockImplementation(async () => { throw new Error('unreachable'); });
-            await render(hyperDatabase(HTTP), { clients: true });
-            await click(testId('connection-setup'));
-            await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-            await settle();
-            expect(execute).not.toHaveBeenCalled();
         });
 
         it('freezes the form while connecting and cancels the setup', async () => {
-            let setupSignal: AbortSignal | null = null;
-            setup.mockImplementation((dispatch, params, signal) => {
-                setupSignal = signal;
-                dispatch({ type: HYPER_CHANNEL_SETUP_STARTED, value: params });
-                return new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
+            setup.mockImplementation(async (connectionId, options) => {
+                coreRuntime!.dispatchConnection(connectionId, setupStepAction('HYPER_CHANNEL_SETUP_STARTED', (options?.params as { hyper: unknown }).hyper));
+                return await new Promise(() => { });
             });
             await render(hyperDatabase(HTTP), { clients: true });
             await click(testId('connection-setup'));
@@ -329,16 +298,12 @@ describe('HyperConnectorSettings', () => {
             expect(container.querySelector('button[aria-label="Add Header"]')).toBeNull();
             expect(container.querySelector('button[aria-label="Clear input"]')).toBeNull();
             await click(testId('connection-cancel'));
-            expect(setupSignal!.aborted).toBe(true);
-            await settle();
-            expect(execute).not.toHaveBeenCalled();
+            expect(cancel).toHaveBeenCalledWith(CONNECTION_ID);
         });
 
         it('resets an online connection on disconnect', async () => {
             await render(hyperDatabase(HTTP, ConnectionHealth.ONLINE), { clients: true });
             await click(testId('connection-reset'));
-            expect(reset).toHaveBeenCalledOnce();
-            await act(async () => reset.mock.calls[0][0]({ type: RESET_CONNECTION, value: null }));
             expect(current().connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
         });
 
@@ -415,7 +380,7 @@ describe('HyperConnectorSettings', () => {
             expect(validation('mTLS Client Key')).toBeNull();
             await click(testId('connection-setup'));
             await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
-            expect(setup.mock.calls[0][1].tls).toEqual({ clientKeyPath: '/k.key', clientCertPath: '/k.pem', caCertsPath: '' });
+            expect(setupParams().tls).toEqual({ clientKeyPath: '/k.key', clientCertPath: '/k.pem', caCertsPath: '' });
         });
 
         it('locks the protocol of an online connection', async () => {

@@ -4,7 +4,7 @@ import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { LoggableException, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
@@ -24,8 +24,6 @@ import { createFormatCommand } from './commands/format.js';
 import { createPlanCommand } from './commands/plan.js';
 import { createShareCommand } from './commands/share.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
-import { SalesforceApiClient } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import { authenticateSalesforce } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_authentication';
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
@@ -110,6 +108,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         if (containerRef.current == null) return;
 
         let cancelled = false;
+        // The logins of the shell are setups of the runtime by an id each
+        let loginCount = 0;
         let connection: EmbeddedConnection | null = null;
         let shell: DashQLShell | null = null;
         let shellCatalog: EmbeddedDatabaseCatalog | null = null;
@@ -145,51 +145,53 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     if (!httpClient) throw new Error('HTTP client is not ready');
                     const oauthRedirect = appConfigRef.current?.connectors?.salesforce?.auth?.oauthRedirect;
                     if (!oauthRedirect) throw new Error('Salesforce OAuth redirect is not configured');
-                    const abortSignal = signal ?? new AbortController().signal;
                     const params: connectionTypes.SalesforceConnectionParams = {
                         instanceUrl: form.instanceUrl,
                         appConsumerKey: form.appConsumerKey,
                         appConsumerSecret: '',
                         login: form.loginHint,
                     };
-                    return await authenticateSalesforce({
-                        logger,
-                        params,
-                        authConfig: { oauthRedirect },
-                        oauthFlow: new AppOAuthFlow(appEvents, platformType, form.oauthPopup ?? null),
-                        apiClient: new SalesforceApiClient(logger, httpClient),
-                        forceReLogin: appConfigRef.current?.settings?.forceReLogin ?? false,
-                        abortSignal,
-                        onProgress: progress => {
-                            const messages: Partial<Record<typeof progress.stage, string>> = {
-                                GENERATING_PKCE_CHALLENGE: 'Preparing secure Salesforce login',
-                                OAUTH_NATIVE_LINK_OPENED: 'Waiting for Salesforce authorization in your browser',
-                                OAUTH_WEB_WINDOW_OPENED: 'Waiting for Salesforce authorization',
-                                REQUESTING_CORE_AUTH_TOKEN: 'Exchanging Salesforce authorization code',
-                                REQUESTING_DATA_CLOUD_ACCESS_TOKEN: 'Requesting Data Cloud credentials',
-                            };
-                            const message = messages[progress.stage];
-                            if (message) {
-                                onProgress?.(message);
-                                loginDialog.update({ status: message });
-                            }
-                            if (progress.stage === 'RECEIVED_CORE_AUTH_TOKEN') {
-                                loginDialog.update({
-                                    status: 'Received Core access token',
-                                    coreAccessToken: progress.coreAccessToken,
-                                });
-                            } else if (progress.stage === 'RECEIVED_CORE_USER_INFO') {
-                                loginDialog.update({
-                                    login: progress.coreUserInfo.preferredUsername ?? progress.coreUserInfo.email ?? '',
-                                });
-                            } else if (progress.stage === 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN') {
-                                loginDialog.update({
-                                    status: 'Received Data Cloud access token',
-                                    dataCloudAccessToken: progress.dataCloudAccessToken,
-                                });
-                            }
-                        },
-                    });
+                    // The runtime logs in with the flow of this login, the window of the click of the user
+                    coreRuntime.setHttp(httpClient);
+                    const loginId = `shell-login-${++loginCount}`;
+                    const cancel = () => coreRuntime.cancelSetup(loginId);
+                    signal?.addEventListener('abort', cancel, { once: true });
+                    const messages: Record<string, string> = {
+                        GENERATING_PKCE_CHALLENGE: 'Preparing secure Salesforce login',
+                        OAUTH_NATIVE_LINK_OPENED: 'Waiting for Salesforce authorization in your browser',
+                        OAUTH_WEB_WINDOW_OPENED: 'Waiting for Salesforce authorization',
+                        REQUESTING_CORE_AUTH_TOKEN: 'Exchanging Salesforce authorization code',
+                        REQUESTING_DATA_CLOUD_ACCESS_TOKEN: 'Requesting Data Cloud credentials',
+                    };
+                    try {
+                        const outcome = await coreRuntime.authenticateSalesforce(loginId, params, {
+                            oauthRedirect,
+                            forceRelogin: appConfigRef.current?.settings?.forceReLogin ?? false,
+                        }, {
+                            oauthFlow: new AppOAuthFlow(appEvents, platformType, form.oauthPopup ?? null),
+                            onStep: step => {
+                                if (step.connector !== 'salesforce') return;
+                                const message = messages[step.type];
+                                if (message) {
+                                    onProgress?.(message);
+                                    loginDialog.update({ status: message });
+                                }
+                                if (step.type === 'RECEIVED_CORE_AUTH_TOKEN') {
+                                    loginDialog.update({ status: 'Received Core access token', coreAccessToken: step.value });
+                                } else if (step.type === 'RECEIVED_CORE_USER_INFO') {
+                                    loginDialog.update({ login: step.value?.preferredUsername ?? step.value?.email ?? '' });
+                                } else if (step.type === 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN') {
+                                    loginDialog.update({ status: 'Received Data Cloud access token', dataCloudAccessToken: step.value });
+                                }
+                            },
+                        });
+                        if (outcome.status === 'cancelled') throw signal?.reason ?? new DOMException(outcome.message ?? 'The login was cancelled', 'AbortError');
+                        if (outcome.authentication == null) throw new LoggableException(outcome.message ?? 'The login failed', outcome.data, LOG_CTX);
+                        const { tokens, userInfo } = outcome.authentication;
+                        return { coreAccessToken: tokens.core, dataCloudAccessToken: tokens.dataCloud, coreUserInfo: userInfo ?? undefined };
+                    } finally {
+                        signal?.removeEventListener('abort', cancel);
+                    }
                 },
                 onSuccess: async (form, authentication) => {
                     const organizationId = authentication.coreUserInfo?.organizationId

@@ -1,5 +1,7 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+import * as core from '@ankoh/dashql-core';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { OAuthState } from '@ankoh/dashql-runtime/oauth/oauth_types';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
@@ -7,8 +9,78 @@ import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
 import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import { authenticateSalesforce } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_authentication';
+import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
+import type { OAuthFlow } from '@ankoh/dashql-runtime/oauth/oauth_flow';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp, type FakeSalesforceOptions } from './salesforce_test_http.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+type SalesforceAuthenticationProgress =
+    | { stage: 'GENERATING_PKCE_CHALLENGE' | 'OAUTH_NATIVE_LINK_OPENED' | 'OAUTH_WEB_WINDOW_OPENED' | 'OAUTH_WEB_WINDOW_CLOSED' | 'REQUESTING_CORE_AUTH_TOKEN' | 'REQUESTING_DATA_CLOUD_ACCESS_TOKEN' }
+    | { stage: 'GENERATED_PKCE_CHALLENGE'; pkceChallenge: auth.OAuthPKCEChallenge }
+    | { stage: 'RECEIVED_CORE_AUTH_CODE'; code: string }
+    | { stage: 'RECEIVED_CORE_AUTH_TOKEN'; coreAccessToken: connection.SalesforceCoreAccessToken }
+    | { stage: 'RECEIVED_CORE_USER_INFO'; coreUserInfo: connection.SalesforceCoreUserInfo }
+    | { stage: 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN'; dataCloudAccessToken: connection.SalesforceDataCloudAccessToken };
+
+interface LoginOptions {
+    logger: Logger;
+    params: connection.SalesforceConnectionParams;
+    authConfig: connection.SalesforceOAuthConfig;
+    oauthFlow: OAuthFlow;
+    apiClient: SalesforceApiClientInterface;
+    forceReLogin: boolean;
+    abortSignal: AbortSignal;
+    onProgress?: (progress: SalesforceAuthenticationProgress) => void;
+}
+
+/// The login of the runtime with the HTTP client of the API client: the tokens and the user, a failure throws
+async function authenticateSalesforce(options: LoginOptions) {
+    const http = options.apiClient instanceof SalesforceApiClient ? options.apiClient.httpClient : null;
+    const runtime = new CoreRuntime({ logger: options.logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, http, oauthFlow: options.oauthFlow });
+    await runtime.ready();
+    const cancel = () => runtime.cancelSetup('login');
+    options.abortSignal.addEventListener('abort', cancel, { once: true });
+    try {
+        const outcome = await runtime.authenticateSalesforce('login', options.params, { oauthRedirect: options.authConfig.oauthRedirect, forceRelogin: options.forceReLogin }, {
+            onStep: step => {
+                if (step.connector !== 'salesforce') return;
+                const stage = step.type as SalesforceAuthenticationProgress['stage'];
+                switch (stage) {
+                    case 'GENERATED_PKCE_CHALLENGE': options.onProgress?.({ stage, pkceChallenge: step.value }); break;
+                    case 'RECEIVED_CORE_AUTH_CODE': options.onProgress?.({ stage, code: step.value.token }); break;
+                    case 'RECEIVED_CORE_AUTH_TOKEN': options.onProgress?.({ stage, coreAccessToken: step.value }); break;
+                    case 'RECEIVED_CORE_USER_INFO': options.onProgress?.({ stage, coreUserInfo: step.value }); break;
+                    case 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN': options.onProgress?.({ stage, dataCloudAccessToken: step.value }); break;
+                    case 'GENERATING_PKCE_CHALLENGE':
+                    case 'OAUTH_NATIVE_LINK_OPENED':
+                    case 'OAUTH_WEB_WINDOW_OPENED':
+                    case 'OAUTH_WEB_WINDOW_CLOSED':
+                    case 'REQUESTING_CORE_AUTH_TOKEN':
+                    case 'REQUESTING_DATA_CLOUD_ACCESS_TOKEN':
+                        options.onProgress?.({ stage });
+                        break;
+                }
+            },
+        });
+        if (options.abortSignal.aborted) throw options.abortSignal.reason;
+        if (outcome.status === 'cancelled') throw new DOMException(outcome.message ?? 'cancelled', 'AbortError');
+        if (outcome.authentication == null) throw new Error(outcome.message ?? 'the login failed');
+        const { tokens, userInfo } = outcome.authentication;
+        return {
+            coreAccessToken: tokens.core as connection.SalesforceCoreAccessToken,
+            dataCloudAccessToken: tokens.dataCloud as connection.SalesforceDataCloudAccessToken,
+            coreUserInfo: (userInfo ?? undefined) as connection.SalesforceCoreUserInfo | undefined,
+        };
+    } finally {
+        options.abortSignal.removeEventListener('abort', cancel);
+        runtime.destroy();
+    }
+}
 
 const params: connection.SalesforceConnectionParams = {
     instanceUrl: 'https://example.my.salesforce.com',

@@ -122,7 +122,7 @@ export class WorkbookScriptsRegistryService {
     ///
     /// Workbook scripts share the catalog of their connection and own every script they create. destroyWorkbookScripts()
     /// drops the scripts from the shared catalog and frees them, so it MUST run while that catalog is alive, i.e. before
-    /// the connection is deleted (DELETE_CONNECTION destroys the catalog). The Wasm goes synchronously here, the removal
+    /// the connection is deleted (`deleteConnection` destroys the catalog). The Wasm goes synchronously here, the removal
     /// from the registry is a pure update.
     delete = (workbookId: string): void => {
         // The store holds the latest registry, a rendered snapshot may miss the latest scripts of the workbook

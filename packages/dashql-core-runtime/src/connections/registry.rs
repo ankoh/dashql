@@ -40,6 +40,8 @@ pub enum RegistryEffect {
     Abort { handle: Handle, reason: &'static str },
     /// Cancel the setup of the connection that is running
     CancelSetup,
+    /// Cancel a running catalog update of the catalog loader
+    CancelCatalogUpdate { task_id: u32, reason: &'static str },
 }
 
 impl From<&QueryExecutionEffect> for RegistryEffect {
@@ -209,6 +211,9 @@ impl ConnectionRegistry {
                 // The catalog loader publishes only for a connection that runs its update, the updates are aborted
                 ConnectionEffect::InvalidateCatalogBatch => {}
                 ConnectionEffect::Abort { handle, reason } => outcome.effects.push(RegistryEffect::Abort { handle, reason }),
+                ConnectionEffect::CancelCatalogUpdate { task_id, reason } => {
+                    outcome.effects.push(RegistryEffect::CancelCatalogUpdate { task_id, reason })
+                }
                 ConnectionEffect::Close { handle } => outcome.effects.push(RegistryEffect::Close { handle }),
                 ConnectionEffect::Release { handle } => outcome.effects.push(RegistryEffect::Release { handle }),
                 ConnectionEffect::StopQueries { reason } => {

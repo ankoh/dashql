@@ -1,6 +1,6 @@
 import * as dashql from './index.js';
 
-import { loadCoreWasm } from './test_fixture.js';
+import { loadCoreWasm, NO_OAUTH } from './test_fixture.js';
 
 let dql: dashql.DashQL | null = null;
 beforeAll(async () => {
@@ -43,14 +43,22 @@ function platform() {
         compute: null,
         http: { fetch: () => Promise.reject(new Error('no http')), abort: () => { } },
         channels: {
+            connect: () => Promise.reject(new Error('no channels')),
+            hyperLinkToken: () => null,
             open: () => Promise.reject(new Error('no channels')),
             next: () => Promise.reject(new Error('no channels')),
             cancel: async () => { },
             profileDetail: () => { },
         },
+        queries: {
+            describe: () => Promise.reject(new Error('no queries')),
+            forget: () => { },
+        },
         resultCache: null,
         crypto: { randomUuid: () => 'uuid' },
-        cancelSetup: () => { },
+        oauth: NO_OAUTH,
+        extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
+        salesforce: null,
         changed: urgent => {
             changed.push(urgent);
         },

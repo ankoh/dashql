@@ -1,5 +1,4 @@
 import * as React from 'react';
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { useConnectionById } from '../connections/connection_registry.js';
 import { connectionParamsWithoutDraftRows } from '@ankoh/dashql-runtime/connections/connection_params';
@@ -7,10 +6,7 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/co
 import { isLocalCloud } from '../connections/cloud_connection.js';
 import { useConnectionSetup } from '../connections/connection_setup.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
-import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
-import { useQueryExecutor } from '../connections/query_executor.js';
-import { useSalesforceSetup } from '../connections/salesforce/salesforce_connector.js';
+import { useAppConfig } from '../config/app_config.js';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 // The login to the cloud connection with its saved settings, the same setup that Connect of its settings runs.
@@ -28,41 +24,21 @@ export interface CloudLogin {
 }
 
 export function useCloudLogin(connectionId: string | null): CloudLogin {
-    const [connectionState, dispatch] = useConnectionById(connectionId);
+    const [connectionState] = useConnectionById(connectionId);
     const connectionSetup = useConnectionSetup(connectionId);
-    const hyperSetup = useHyperSetup();
-    const salesforceSetup = useSalesforceSetup();
-    const executor = useQueryExecutor();
+    const config = useAppConfig();
 
     const connector = connectionState?.connectorType;
-    const available = connector === ConnectorType.HYPER ? hyperSetup != null
-        : connector === ConnectorType.DBCOM ? salesforceSetup != null
+    const available = connector === ConnectorType.HYPER ? config?.connectors?.hyper != null
+        : connector === ConnectorType.DBCOM ? config?.connectors?.salesforce != null
         : false;
 
     const login = React.useCallback(async () => {
         if (connectionState == null || !available) return;
-        const params = connectionParamsWithoutDraftRows(connectionState.params);
-        await connectionSetup.run(async signal => {
-            try {
-                if (connectionState.connectionHealth !== ConnectionHealth.NOT_STARTED) {
-                    if ('hyper' in params) await hyperSetup!.reset(dispatch);
-                    else if ('dbcom' in params) await salesforceSetup!.reset(dispatch);
-                }
-                if ('hyper' in params) {
-                    const hyperParams = structuredClone(params.hyper) as connection.HyperConnectionParams;
-                    const channel = await hyperSetup!.setup(dispatch, hyperParams, signal, connectionState.connectionId);
-                    if (channel != null && (hyperParams.protocol ?? 'WASM') !== 'WASM') {
-                        await performHealthCheck(executor, connectionState.connectionId, { type: 'hyper', channel }, dispatch, signal);
-                    }
-                } else if ('dbcom' in params) {
-                    const channel = await salesforceSetup!.setup(dispatch, ConnectorType.DBCOM, structuredClone(params.dbcom) as connection.SalesforceConnectionParams, signal);
-                    await performHealthCheck(executor, connectionState.connectionId, { type: 'salesforce', channel }, dispatch, signal);
-                }
-            } catch {
-                // The setup and the health check keep the failure in the connection state
-            }
-        });
-    }, [available, connectionSetup, connectionState, dispatch, executor, hyperSetup, salesforceSetup]);
+        // The runtime sets up the connection and checks its health, the view of the connection keeps a failure
+        if (connectionState.connectionHealth !== ConnectionHealth.NOT_STARTED) connectionSetup.reset();
+        await connectionSetup.run(connectionParamsWithoutDraftRows(connectionState.params));
+    }, [available, connectionSetup, connectionState]);
 
     return React.useMemo(() => ({ login, cancel: connectionSetup.cancel, available }), [available, connectionSetup.cancel, login]);
 }

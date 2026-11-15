@@ -37,7 +37,7 @@ function TestRuntimeSetup(props: TestRuntimeProps) {
     const runtime = useRuntime();
     // Before the components below render and fill the registries
     React.useState(() => {
-        if (!props.catalogLoader) runtime.catalogLoader.stop();
+        if (!props.catalogLoader) runtime.coreRuntime.runCatalogLoader(false);
         // The connections are slices of the runtime of the module, it needs its core before they are created
         const instance = props.core ?? core.DashQL.instantiated();
         if (instance != null) {

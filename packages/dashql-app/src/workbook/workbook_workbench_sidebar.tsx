@@ -49,7 +49,7 @@ import {
 import { classNames } from '../utils/classnames.js';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
-import { ConnectionState, RENAME_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import {
     findWorkbookQueries,
     useConnectionReferences,
@@ -1114,7 +1114,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
 
     /// Rename a connection, a blank name restores the default label
     const renameConnection = React.useCallback((connectionId: string, name: string) => {
-        connectionDispatch(connectionId, { type: RENAME_CONNECTION, value: name });
+        connectionDispatch(connectionId, { kind: 'rename', value: { name } });
     }, [connectionDispatch]);
 
     /// Delete a connection that no script uses, other than the embedded Hyper that workbooks fall back to.

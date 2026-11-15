@@ -4,26 +4,28 @@
 //! as views by revision: the runtime tells the platform that it changed, the store of the host takes the changed slices
 //! (`takeChanges`) and reads their views once per kind (`views`). Writes are one `dispatch` with a generated union of
 //! actions; the work that takes time and returns a result is a method each (`analyzeTable`, `executeQuery`,
-//! `cancelQuery`, `saveConnection`, ...).
+//! `cancelQuery`, `saveConnection`, `setupConnection`, ...).
 //!
 //! The runtime owns the computations of result tables, the connections with the histories of their queries, the
-//! histories without a connection (the shell), the query executor and the saves of the connections. The other domains
+//! histories without a connection (the shell), the query executor, the setups and the health checks of the
+//! connections, the catalog loader and the saves of the connections. The other domains
 //! join it step by step: a domain adds its state to `Runtime`, its slices to `ViewKind`, its targets and actions to
 //! the unions.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
 //! call into the platform. Arguments of the wrong type fail with a JS error, nothing panics.
 
+pub(crate) mod catalog;
 pub(crate) mod computation;
 pub(crate) mod connections;
 pub(crate) mod queries;
+pub(crate) mod setups;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use dashql_core::error::Error;
-use dashql_core_runtime::catalog_loader::FollowedConnection;
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
@@ -31,7 +33,7 @@ use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connection_setup::setup_action_from_json;
 use dashql_core_runtime::connections::registry::{ListedConnection, QueryOwner, RegistryOutcome};
-use dashql_core_runtime::connections::{CatalogUpdateTask, ConnectionAction, ConnectionParams, DetailedError};
+use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryResultTable};
 use dashql_core_runtime::workbook::next_revision;
@@ -42,10 +44,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
-use crate::connection::view::{
-    CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionError, ConnectionListView, ConnectionRelationName, ConnectionTableName,
-    ConnectionView, ConnectorType, JsonParams,
-};
+use crate::connection::view::{ConnectionListView, ConnectionRelationName, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetadataView, QueryProfileKeys, QueryProfileProgressView, QueryStreamMetrics, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
@@ -56,6 +55,7 @@ use crate::{Catalog, SharedCatalog};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use connections::{Connections, NewConnection};
 use queries::QueryArgs;
+use setups::{listener, SetupOptions, SetupOutcome};
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_VIEWS: &str = r#"
@@ -199,34 +199,6 @@ pub enum RuntimeAction {
     },
     /// Executed statements touched relations, the names have nulls for the parts that a statement left out
     RelationsTouched { names: Vec<ConnectionTableName> },
-    /// A catalog update started, the host keeps its record (cancellation and error) under the handle
-    UpdateCatalog {
-        task_id: u32,
-        handle: u32,
-        #[tsify(type = "CatalogUpdateVariant")]
-        variant: CatalogUpdateVariant,
-        #[serde(default)]
-        #[tsify(optional)]
-        started_at: Option<f64>,
-        #[serde(default)]
-        #[tsify(optional)]
-        touched_relations: Option<Vec<ConnectionRelationName>>,
-    },
-    /// A catalog update started a query
-    CatalogUpdateRegisterQuery { task_id: u32, query_id: u32 },
-    /// A catalog update finished with a final status, an update that didn't succeed with an error. A lookup tells
-    /// whether it changed the catalog.
-    CatalogUpdateFinished {
-        task_id: u32,
-        #[tsify(type = "CatalogUpdateTaskStatus")]
-        status: CatalogUpdateTaskStatus,
-        #[serde(default)]
-        #[tsify(optional)]
-        error: Option<ConnectionError>,
-        #[serde(default)]
-        #[tsify(optional)]
-        changed: Option<bool>,
-    },
     /// Restore the state of the catalog updates from the files of the catalog, null keeps a field
     RestoreCatalogUpdates {
         #[serde(default)]
@@ -236,8 +208,8 @@ pub enum RuntimeAction {
         #[tsify(optional)]
         touched_relations: Option<Vec<ConnectionRelationName>>,
     },
-    /// A step of a setup or a health check, by the name of the action of the connector (e.g. `TRINO_CHANNEL_READY`).
-    /// The channel of a ready step is a handle that the connection takes.
+    /// A step of a setup or a health check that the host runs itself, e.g. a mock of a setup, by the name of the action
+    /// of the connector (e.g. `TRINO_CHANNEL_READY`). The channel of a ready step is a handle that the connection takes.
     SetupStep {
         step: String,
         #[serde(default)]
@@ -384,6 +356,8 @@ struct ConnectionKey {
     queries: u64,
     workbooks: Vec<String>,
     save: u64,
+    catalog_version: u64,
+    setup_running: bool,
 }
 
 /// The revisions of the slices that the host took
@@ -464,12 +438,6 @@ impl Runtime {
         Self::ids(ids)?.into_iter().map(|id| id.as_string().ok_or_else(|| JsError::new(&format!("the id of a {what} is no string")))).collect()
     }
 
-    /// The connections in their order, the catalog loader follows them
-    pub(crate) fn followed_connections(&self) -> Vec<(String, FollowedConnection)> {
-        let registry = self.connections.registry.borrow();
-        registry.connections().map(|(id, connection)| (id.to_string(), connection.clone())).collect()
-    }
-
     /// Apply an action to a connection
     fn connection_outcome(&self, outcome: dashql_core::error::Result<RegistryOutcome>) -> DispatchOutcome {
         match outcome {
@@ -486,7 +454,6 @@ impl Runtime {
             return Ok(DispatchOutcome::failed(format!("no connection registered with id {connection_id}")));
         };
         let params = |params: JsonParams| params.connection_params().map_err(error_text);
-        let error = |error: Option<ConnectionError>| error.map(DetailedError::from).unwrap_or_default();
         let action = match action {
             RuntimeAction::SetDraft { params: draft } => match params(draft) {
                 // Params of another connector are ignored
@@ -504,26 +471,6 @@ impl Runtime {
             RuntimeAction::ResetConnection => ConnectionAction::Reset,
             RuntimeAction::SwitchConnectorType { connector_type } => ConnectionAction::SwitchConnectorType(connector_type.into()),
             RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
-            RuntimeAction::UpdateCatalog { task_id, handle, variant, started_at, touched_relations } => {
-                let mut task = CatalogUpdateTask::new(task_id, variant.into(), connections.now());
-                task.started_at = started_at;
-                task.touched_relations = touched_relations.unwrap_or_default().into_iter().map(Into::into).collect();
-                task.handle = Some(handle);
-                ConnectionAction::UpdateCatalog(task)
-            }
-            RuntimeAction::CatalogUpdateRegisterQuery { task_id, query_id } => ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id },
-            RuntimeAction::CatalogUpdateFinished { task_id, status, error: failure, changed } => {
-                let action = match status {
-                    CatalogUpdateTaskStatus::SUCCEEDED => ConnectionAction::CatalogUpdateSucceeded { task_id },
-                    CatalogUpdateTaskStatus::FAILED => ConnectionAction::CatalogUpdateFailed { task_id, error: error(failure) },
-                    CatalogUpdateTaskStatus::CANCELLED => ConnectionAction::CatalogUpdateCancelled { task_id, error: error(failure) },
-                    CatalogUpdateTaskStatus::PARTIALLY_SUCCEEDED => {
-                        ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, error: error(failure) }
-                    }
-                    CatalogUpdateTaskStatus::STARTED => return Ok(DispatchOutcome::failed("a catalog update can't finish as started")),
-                };
-                return Ok(self.connection_outcome(connections.apply(&connection_id, action, changed)));
-            }
             RuntimeAction::RestoreCatalogUpdates { described, touched_relations } => {
                 let connection = connections.registry.borrow().get(&connection_id).cloned();
                 if let Some(connection) = connection {
@@ -745,6 +692,8 @@ impl Runtime {
                 queries: connection.queries.borrow().snapshot_queries_active_finished(),
                 workbooks: registry.workbooks_of(id).to_vec(),
                 save: self.connections.save_revision(id),
+                catalog_version: self.connections.catalog_version(id),
+                setup_running: self.connections.setup_running(id),
             };
             let revision = match take_entry(&mut held, &id.to_string()) {
                 Some((taken_key, revision)) if taken_key == key => revision,
@@ -844,7 +793,9 @@ impl Runtime {
                         let registry = connections.registry.borrow();
                         let connection = registry.get(id)?;
                         let save = connections.save_view(id);
-                        let view = ConnectionView::of(&connection.state.borrow(), &connection.queries.borrow(), registry.workbooks_of(id), save);
+                        let mut view = ConnectionView::of(&connection.state.borrow(), &connection.queries.borrow(), registry.workbooks_of(id), save);
+                        view.catalog_version = connections.catalog_version(id);
+                        view.setup_running = connections.setup_running(id);
                         Some(view)
                     })
                     .collect();
@@ -1058,6 +1009,64 @@ impl Runtime {
         })
     }
 
+    /// Set up a connection with its connector: the channel of its params or of the params of the options, then the
+    /// health check unless the connection is online with its channel. The steps go to the connection as they happen, the
+    /// view of the connection shows them and whether a setup runs. A setup of the connection that runs is cancelled.
+    /// Resolves with the outcome, a failure is in the view of the connection as well.
+    #[wasm_bindgen(js_name = setupConnection, unchecked_return_type = "Promise<SetupOutcome>")]
+    pub fn setup_connection(&self, connection_id: String, options: Option<Ts<SetupOptions>>) -> Result<Promise, JsError> {
+        let options = options.as_ref().map(from_js).transpose()?.unwrap_or_default();
+        let setup = self.connections.setup(connection_id, options);
+        Ok(future_to_promise(async move { setup_outcome(setup.await) }))
+    }
+
+    /// Log in to Salesforce with the params of the connector, without a connection, e.g. the login of the shell. The
+    /// steps go to the listener as `{ connector, type, value }`, `cancelSetup` with the id stops the login. The outcome
+    /// of a success has the tokens and the user.
+    #[wasm_bindgen(js_name = authenticateSalesforce, unchecked_return_type = "Promise<SetupOutcome>")]
+    pub fn authenticate_salesforce(
+        &self,
+        setup_id: String,
+        params: JsValue,
+        options: Option<Ts<SetupOptions>>,
+        #[wasm_bindgen(unchecked_param_type = "((step: { connector: string; type: string; value: any }) => void) | null")] events: JsValue,
+    ) -> Result<Promise, JsError> {
+        let options = options.as_ref().map(from_js).transpose()?.unwrap_or_default();
+        let serde_json::Value::Object(params) = JsonValue::of(&params).0 else {
+            return Err(JsError::new("the params of a login are no object"));
+        };
+        let login = self.connections.authenticate_salesforce(setup_id, params, options, listener(events)?);
+        Ok(future_to_promise(async move { setup_outcome(login.await) }))
+    }
+
+    /// Cancel the setup of a connection or a login that runs, it ends as cancelled at its next step
+    #[wasm_bindgen(js_name = cancelSetup)]
+    pub fn cancel_setup(&self, setup_id: &str) {
+        self.connections.cancel_setup(setup_id);
+    }
+
+    /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. The catalog loader
+    /// runs it once the connection is online.
+    #[wasm_bindgen(js_name = refreshCatalog)]
+    pub fn refresh_catalog(&self, connection_id: &str, force: bool) {
+        if let Some(loader) = self.connections.loader() {
+            loader.enqueue(connection_id, force);
+        }
+    }
+
+    /// Start or stop the catalog loader. A stopped loader starts no update, the running ones finish.
+    #[wasm_bindgen(js_name = runCatalogLoader)]
+    pub fn run_catalog_loader(&self, running: bool) {
+        if let Some(loader) = self.connections.loader() {
+            if running {
+                loader.start();
+                self.connections.follow_later();
+            } else {
+                loader.stop();
+            }
+        }
+    }
+
     /// The catalog of a connection, shared with the connection and the scripts that analyze with it. None for an
     /// unknown connection.
     pub fn catalog(&self, connection_id: &str) -> Option<Catalog> {
@@ -1116,6 +1125,13 @@ impl Runtime {
     /// Stop the runtime: the queries are cancelled, the computations go, their runs are cancelled and their tables
     /// released with the next changes
     pub fn destroy(&self) {
+        if let Some(loader) = self.connections.loader.borrow_mut().take() {
+            loader.stop();
+        }
+        let setups: Vec<String> = self.connections.setups.borrow().iter().map(|setup| setup.id.clone()).collect();
+        for setup_id in setups {
+            self.connections.cancel_setup(&setup_id);
+        }
         let running: Vec<QueryId> = self.connections.runs.borrow().iter().map(|(id, _)| *id).collect();
         for query_id in running {
             drop(self.connections.cancel(query_id));
@@ -1127,6 +1143,11 @@ impl Runtime {
             self.settle(deleted);
         }
     }
+}
+
+/// The outcome of a setup as a JS value
+fn setup_outcome(outcome: SetupOutcome) -> Result<JsValue, JsValue> {
+    views_to_js(&outcome).map_err(JsValue::from)
 }
 
 /// The error of a task as a JS error

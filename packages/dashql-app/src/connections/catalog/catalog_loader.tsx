@@ -1,16 +1,17 @@
 import * as React from 'react';
 
-import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 
-// The loader is a service of the runtime (packages/dashql-runtime/src/connections/catalog/catalog_loader_service.ts). The
-// runtime passes it every registry and analyzes the scripts of a connection again when its catalog changed.
+// The catalog loader is a service of the runtime: it follows the connections, describes the ones that come online and
+// asks a connection about the relations that statements touched. The runtime announces a new catalog in the view of the
+// connection, the scripts that use the connection are analyzed again.
 
 /// The hook to resolve the catalog queue: add a connection, `force` to refresh its whole catalog. It resolves the
 /// runtime when it is called, a test may render a component without the runtime as long as it doesn't call it.
 export function useCatalogLoaderQueue(): (connectionId: string, force: boolean) => void {
-    const runtime = useOptionalRuntime();
+    const runtime = useOptionalCoreRuntime();
     return React.useCallback((connectionId: string, force: boolean) => {
         if (runtime == null) throw new Error('the catalog loader needs a RuntimeProvider');
-        runtime.catalogLoader.enqueue(connectionId, force);
+        runtime.refreshCatalog(connectionId, force);
     }, [runtime]);
 }

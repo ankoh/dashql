@@ -14,7 +14,7 @@ import type { HandleTable } from '../store/handles.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
 import { computeQueryResultCacheKey } from './query_result_cache_key.js';
 import { QueryCacheMissError, type QueryResultCache } from './query_result_cache.js';
-import type { QueryExecutionProgress, QueryExecutionResponseStream } from './query_execution_state.js';
+import type { QueryExecutionProgress, QueryExecutionResponseStream, QueryMetadata } from './query_execution_state.js';
 import { createTrace } from '../platform/logger/trace_context.js';
 import { LoggableException, stringifyError, type Logger } from '../platform/logger/logger.js';
 import type { LogRecord } from '../platform/logger/log_buffer.js';
@@ -32,7 +32,7 @@ type ChannelMessage = core.RuntimeChannelMessage | { type: 'error'; error: unkno
 /// What the host keeps of a query of the runtime: the arguments, the channel of the host and its stream
 interface QueryRecord {
     args: QueryExecutionArgs;
-    /// The channel of a query that the host runs, the override of the caller or the one of the connection
+    /// The channel of a query that the host runs, the one of the connection
     channel: unknown;
     /// The name of the connector, e.g. for the error of a channel that is not set up
     connector: string;
@@ -83,16 +83,17 @@ export interface QueryPlatformDependencies {
 
 /// The host side of the queries of the runtime (docs/wip/runtime_api.md): the query executor of the runtime runs a
 /// query and reports into the history of its connection, the host describes where the query runs (the channel of the
-/// connection or of the caller, the cache key), runs the queries of the channels that the module doesn't speak (the
-/// gRPC channel of Hyper, the embedded Hyper, the channels of tests) and keeps the query result cache. The caller gets
-/// the result table and the error of a failed query as before.
+/// connection, the cache key), runs the queries of the channels that the module doesn't speak (the gRPC channel of
+/// Hyper, the embedded Hyper, the channels of tests) and keeps the query result cache. The caller gets the result table
+/// and the error of a failed query as before. The runtime runs queries of its own as well, the metadata queries of the
+/// catalog loader and the probes of the health checks: the host describes them in the same way.
 export class QueryPlatform {
     private readonly records = new Map<number, QueryRecord>();
 
     constructor(private readonly deps: QueryPlatformDependencies) { }
 
     /// The channels of the host by query
-    readonly channels: core.RuntimeChannels = {
+    readonly channels: Pick<core.RuntimeChannels, 'open' | 'next' | 'cancel' | 'profileDetail'> = {
         open: async (queryId, table) => {
             const record = this.recordOf(queryId);
             const channel = requireChannel(record.channel as HyperDatabaseChannel | null, record.connector);
@@ -158,7 +159,7 @@ export class QueryPlatform {
         const trace = createTrace();
         const record: QueryRecord = {
             args,
-            channel: args.channelOverride?.channel ?? null,
+            channel: null,
             connector: '',
             cancellation: new AbortController(),
             trino: null,
@@ -228,6 +229,35 @@ export class QueryPlatform {
         return [queryId, execution];
     }
 
+    /// Describe a query that the runtime runs itself, e.g. a metadata query of the catalog loader. The host keeps its
+    /// record until the runtime forgets it.
+    describeQuery(queryId: number, connection: ConnectionState | null, connectionId: string, query: core.RuntimeQueryDescription): Promise<unknown> {
+        const record: QueryRecord = {
+            args: {
+                query: query.text,
+                metadata: query.metadata as QueryMetadata,
+                readTimeoutMs: query.readTimeoutMs ?? undefined,
+                throwOnError: true,
+            },
+            channel: null,
+            connector: '',
+            cancellation: new AbortController(),
+            trino: null,
+            stream: null,
+            producing: false,
+            table: null,
+            messages: [],
+            wakeMessages: null,
+        };
+        this.records.set(queryId, record);
+        return this.describe(record, connection, connectionId);
+    }
+
+    /// A query that the runtime ran itself ended
+    forget(queryId: number): void {
+        this.records.delete(queryId);
+    }
+
     /// Cancel a query of the runtime, resolves once the query ended
     cancel(runtime: core.Runtime): CancelQuery {
         return async (_connectionId, queryId) => {
@@ -294,18 +324,16 @@ export class QueryPlatform {
         const channel: unknown = record.channel ?? this.deps.handles.get(connection.details.channel) ?? null;
         record.channel = channel;
         record.connector = CONNECTOR_INFOS[connection.connectorType as ConnectorType].names.displayLong;
+        // The runtime loads the spec of the connector through the extensions of the platform
         if (args.clientFunctionCall != null) {
-            const binding = CONNECTOR_DESCRIPTORS[connection.connectorType as ConnectorType].clientFunctions;
-            const spec = binding == null ? null : JSON.stringify(await binding.loadSpec());
             const salesforce = channel as SalesforceDatabaseChannel | null;
             const tokens = salesforce?.coreToken != null && salesforce.dataCloudToken != null
                 ? { core: salesforce.coreToken, dataCloud: salesforce.dataCloudToken }
                 : null;
-            return { type: 'clientFunction', connector: connection.connectorType, spec, description: args.clientFunctionCall, tokens };
+            return { type: 'clientFunction', connector: connection.connectorType, spec: null, description: args.clientFunctionCall, tokens };
         }
-        const override = args.channelOverride;
         // A Trino channel whose requests go over the HTTP client of the platform
-        if (channel instanceof TrinoChannel && (override == null || override.type === 'trino')) {
+        if (channel instanceof TrinoChannel) {
             const endpoint = channel.endpoint;
             record.trino = channel;
             return {

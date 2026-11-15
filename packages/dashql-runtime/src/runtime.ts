@@ -8,9 +8,8 @@ import type { UpdateScheduler } from './store/store.js';
 import type { StorageBackend } from './storage/storage_backend.js';
 import { StorageWriter } from './storage/storage_writer.js';
 import type { QueryResultCache } from './query/query_result_cache.js';
-import { CoreRuntime } from './core_runtime.js';
-import { CatalogLoaderService } from './connections/catalog/catalog_loader_service.js';
-import { SalesforceApiClient, type SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
+import { CoreRuntime, type ChannelConnector } from './core_runtime.js';
+import type { SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
 import { CATALOG_DID_UPDATE } from './workbook/scripts/workbook_scripts.js';
 import { WorkbookScriptsRegistryService } from './workbook/scripts/workbook_scripts_registry_service.js';
 import { WorkbookExecutionService } from './workbook/scripts/workbook_execution_service.js';
@@ -30,14 +29,17 @@ export interface RuntimePlatform {
     scheduler: UpdateScheduler;
     /// How connectors authorize
     oauthFlow: OAuthFlow;
+    /// Connects the channels of the setups besides Trino, e.g. the embedded Hyper. None by default, the app sets it
+    /// once its clients are there.
+    channels?: ChannelConnector | null;
     /// Instantiate the core
     setupCore: (context: string) => Promise<core.DashQL>;
     /// The database of the computations, null without one
     computeDatabase?: EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache?: QueryResultCache | null;
-    /// The API of Salesforce, by default over `http`. The catalog loader fetches the metadata of Salesforce over `http`
-    /// itself, another API, e.g. the mock of the app, answers it instead.
+    /// The API of Salesforce, by default the client over `http`. The catalog loader fetches the metadata of Salesforce
+    /// over `http` itself, another API, e.g. the mock of the app, answers it instead.
     salesforce?: SalesforceApiClientInterface;
 }
 
@@ -49,10 +51,9 @@ export interface Runtime {
     logger: Logger;
     storageWriter: StorageWriter;
     workbooks: WorkbookScriptsRegistryService;
-    /// The runtime of the module: the connections with their queries, the query executor, the saves of the connections
-    /// and the computations of results, read through its store
+    /// The runtime of the module: the connections with their queries, the query executor, the setups, the catalog
+    /// loader, the saves of the connections and the computations of results, read through its store
     coreRuntime: CoreRuntime;
-    catalogLoader: CatalogLoaderService;
     execution: WorkbookExecutionService;
     /// Set the database of the computations once the platform has set it up, e.g. in the app after the settings loaded.
     /// The queries and runs that start later use it.
@@ -67,10 +68,10 @@ export interface Runtime {
 
 /// Create the runtime of a platform. The app creates it in its RuntimeProvider, the command line tool on its own.
 ///
-/// The runtime of the module holds the connections and runs their queries; the workbooks tell it which connections
-/// they use. The catalog loader follows the connections of the runtime, the runs of workbooks run on its executor. The
-/// core is instantiated when the runtime restores the stored state, the services ask the platform for it when they
-/// need it.
+/// The runtime of the module holds the connections, sets them up, loads their catalogs and runs their queries; the
+/// workbooks tell it which connections they use and analyze their scripts again when it announces a new catalog. The
+/// runs of workbooks run on its executor. The core is instantiated when the runtime restores the stored state, the
+/// services ask the platform for it when they need it.
 export function createRuntime(platform: RuntimePlatform): Runtime {
     const { logger, storage, http, scheduler } = platform;
     // The writer of the platform may exist before the core, it sets one up the way the platform does
@@ -85,23 +86,15 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         computeDatabase: platform.computeDatabase ?? null,
         http,
         resultCache: platform.resultCache ?? null,
+        oauthFlow: platform.oauthFlow,
+        channels: platform.channels ?? null,
+        salesforce: platform.salesforce ?? null,
     });
 
-    // The platform may set the compute database and the API of Salesforce later, the services read them when they use them
+    // The platform may set the compute database later, the services read it when they use it
     let computeDatabase = platform.computeDatabase ?? null;
-    let salesforce = platform.salesforce ?? new SalesforceApiClient(logger, http);
     const resultCache = platform.resultCache ?? null;
 
-    const catalogLoader = new CatalogLoaderService({
-        logger,
-        runtime: coreRuntime,
-        http,
-        get salesforce() { return salesforce; },
-        // The scripts that use the connection are analyzed again with the new catalog
-        onCatalogDidUpdate: (connectionId: string) => {
-            void workbooks.dispatchConnection(connectionId, { type: CATALOG_DID_UPDATE, value: connectionId });
-        },
-    });
     const execution = new WorkbookExecutionService({
         logger,
         readWorkbooks: () => workbooks.store.current,
@@ -130,8 +123,18 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         }
         execution.followRegistries(current, coreRuntime.registry());
     };
+    // The scripts that use a connection are analyzed again when the runtime announces a new catalog of it
+    const catalogVersions = new Map<string, number>();
+    const followCatalogs = () => {
+        for (const [connectionId, connection] of coreRuntime.registry().connections) {
+            const version = connection.catalogVersion;
+            if ((catalogVersions.get(connectionId) ?? 0) === version) continue;
+            catalogVersions.set(connectionId, version);
+            if (version > 0) void workbooks.dispatchConnection(connectionId, { type: CATALOG_DID_UPDATE, value: connectionId });
+        }
+    };
     const followConnections = () => {
-        catalogLoader.follow();
+        followCatalogs();
         execution.followRegistries(workbooks.store.current, coreRuntime.registry());
     };
     const unsubscribe = [
@@ -139,7 +142,6 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         coreRuntime.store.subscribeKind('connectionList', followConnections),
         coreRuntime.store.subscribeKind('connection', followConnections),
     ];
-    catalogLoader.start();
 
     return {
         platform,
@@ -147,14 +149,13 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         storageWriter,
         workbooks,
         coreRuntime,
-        catalogLoader,
         execution,
         setComputeDatabase(database) {
             computeDatabase = database;
             coreRuntime.setComputeDatabase(database);
         },
         setSalesforce(api) {
-            salesforce = api;
+            coreRuntime.setSalesforce(api);
         },
         async restore(progress = () => { }) {
             const instance = await platform.setupCore('runtime');
@@ -173,7 +174,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         async destroy() {
             for (const stop of unsubscribe) stop();
             execution.stopAll();
-            catalogLoader.stop();
+            coreRuntime.runCatalogLoader(false);
             for (const instance of scriptRunInstances) registerScriptRunServices(instance, null);
             // The results of the last queries may still be written into the query result cache
             await coreRuntime.flushCacheWrites();

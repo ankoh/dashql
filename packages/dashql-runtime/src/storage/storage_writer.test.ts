@@ -26,7 +26,7 @@ import {
 } from './storage_writer.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
 import { ConnectorType } from '../connections/connector_info.js';
-import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, type ConnectionState } from '../connections/connection_state.js';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../connections/connection_state.js';
 import { newConnectionFromParams } from '../connections/connection_params.js';
 import { testCore } from '../testing/test_runtime.js';
 import { testCoreRuntime } from '../testing/mocks/connector_state.js';
@@ -181,8 +181,8 @@ describe('V2 storage writer flat mutations', () => {
         expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
         for (const discard of [false, true]) {
             runtime.dispatchConnection(TEST_CONNECTION_ID, discard
-                ? { type: DISCARD_CONNECTION_DRAFT, value: null }
-                : { type: SET_CONNECTION_DRAFT, value: paramsDraft });
+                ? { kind: 'discardDraft' }
+                : { kind: 'setDraft', value: { params: paramsDraft } });
             await writer.flush();
             expect(backend.connections).toEqual([expect.objectContaining({ id: TEST_CONNECTION_ID, params })]);
             expect((backend.connections![0] as { paramsDraft?: unknown }).paramsDraft).toEqual(discard ? undefined : paramsDraft);

@@ -22,9 +22,6 @@ import { useConnectionById, useConnectionDraftForm } from './connection_registry
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
-import { useHyperSetup } from './hyper/hyper_connection_setup.js';
-import { useQueryExecutor } from './query_executor.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { isDesktopHost } from '../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
@@ -100,14 +97,12 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const grpcClient = useHyperGrpcClient();
     const httpClient = useHyperHttpClient();
-    const hyperSetup = useHyperSetup();
-    const queryExecutor = useQueryExecutor();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
 
     // Wire up the page state
-    const [connectionState, dispatchConnectionState] = useConnectionById(props.connectionId);
+    const [connectionState] = useConnectionById(props.connectionId);
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
 
@@ -176,7 +171,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         setClientIdentityValidation({ type: VALIDATION_UNKNOWN, value: null });
 
         // Is there a Hyper client?
-        if ((protocol !== 'WASM' && !grpcClient && !httpClient) || hyperSetup == null) {
+        if (protocol !== 'WASM' && !grpcClient && !httpClient) {
             logger.error("Hyper connector is unavailable", {}, LOG_CTX);
             return;
         }
@@ -186,23 +181,11 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        await connectionSetup.run(async signal => {
-            try {
-                const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, signal, connectionState.connectionId);
-                if (hyperChannel != null && protocol !== 'WASM') {
-                    await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, signal);
-                }
-            } catch {
-                // The setup and the health check update the connection state with the failure details.
-            }
-        });
+        // The setup and the health check update the connection state with the failure details
+        await connectionSetup.run({ hyper: setupParams });
     };
     const cancelSetup = connectionSetup.cancel;
-    const resetSetup = async () => {
-        if (hyperSetup) {
-            await hyperSetup.reset(dispatchConnectionState);
-        }
-    };
+    const resetSetup = connectionSetup.reset;
 
     // Get the action button
     // Saving writes the settings into every workbook that uses the connection
