@@ -1,4 +1,4 @@
-//! The wasm-bindgen API of a connection (`dashql_runtime::connections`) and its query history (`dashql_runtime::query`).
+//! The wasm-bindgen API of a connection (`dashql_core_runtime::connections`) and its query history (`dashql_core_runtime::query`).
 //!
 //! A `Connection` holds the state of a connection and the history of its queries. An action is a method call with
 //! typed arguments, params, errors and metrics cross as JSON. It returns a `ConnectionOutcome` with the effects for the
@@ -12,13 +12,13 @@ use std::collections::BTreeMap;
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core::error::Error;
-use dashql_runtime::connections::{
+use dashql_core_runtime::connections::{
     CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionDetails,
     ConnectionEffect, ConnectionOutcome as RuntimeOutcome, ConnectionParams, ConnectionState, ConnectionStateOptions,
     ConnectorDetails, ConnectorType, DetailedError, HyperAction, OAuthPkceChallenge, RelationName, SalesforceAction,
     SetupTimings, TemporaryToken, TrinoAction,
 };
-use dashql_runtime::query::{
+use dashql_core_runtime::query::{
     QueryError, QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionMetrics,
     QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable, QueryType,
 };
@@ -927,7 +927,7 @@ impl Connection {
             ids.iter().map(|id| json!([id, history.query(*id).map(|query| query.revision).unwrap_or(0)])).collect()
         };
         let metrics = history.metrics();
-        let outcome = |m: &dashql_runtime::query::ConnectionQueryMetrics| {
+        let outcome = |m: &dashql_core_runtime::query::ConnectionQueryMetrics| {
             json!({
                 "totalQueries": m.total_queries,
                 "totalBatchesReceived": m.total_batches_received,

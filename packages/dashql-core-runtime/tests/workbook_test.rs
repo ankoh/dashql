@@ -8,8 +8,8 @@ use std::sync::Arc;
 use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorSelectionT, EditorTextChangeT};
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core::catalog::{Catalog, EntryIdSource};
-use dashql_runtime::attachments::DataFile;
-use dashql_runtime::workbook::{
+use dashql_core_runtime::attachments::DataFile;
+use dashql_core_runtime::workbook::{
     text_change, CloudLink, ConnectionCopy, ExternalChanges, ScriptConnection, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
     Workbook, WorkbookAction, WorkbookEffect,
 };

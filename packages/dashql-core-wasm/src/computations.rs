@@ -1,4 +1,4 @@
-//! The wasm-bindgen API of the computations of result tables (`dashql_runtime::compute`).
+//! The wasm-bindgen API of the computations of result tables (`dashql_core_runtime::compute`).
 //!
 //! An action is a method call. Ids, versions and names are typed arguments, the nested values of a task or a result
 //! (column groups, filter tables, summaries, cross filters) come as JSON. An action returns a `ComputationOutcome` with
@@ -12,8 +12,8 @@
 use std::collections::BTreeMap;
 
 use dashql_core::error::Error;
-use dashql_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
-use dashql_runtime::compute::types::{
+use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
+use dashql_core_runtime::compute::types::{
     ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnStatsFields, ColumnSummary, ComputationTask,
     ComputationVersion, DataSearchColumn, DataSearchTable, DataSearchTask, FilterOp, FilterTable, FilteredColumnAggregate,
     FilteredColumnAggregationTask, ListColumnGroup, OrderByConstraint, OrderingTable, OrdinalColumnGroup,
@@ -21,7 +21,7 @@ use dashql_runtime::compute::types::{
     TableAggregation, TableAggregationTask, TableFilteringTask, TableOrderingTask, TaskProgress, TaskProgressUpdate,
     TaskStatus, TrackedTask,
 };
-use dashql_runtime::compute::{
+use dashql_core_runtime::compute::{
     ComputationAction, ComputationEffect, ComputationOutcome as RuntimeOutcome, ComputationState, SearchKind,
     TableComputation,
 };

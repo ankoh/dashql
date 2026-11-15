@@ -10,30 +10,30 @@ use arrow_array::{ArrayRef, BooleanArray, Int32Array, Int64Array, RecordBatch, S
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
-use dashql_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry};
-use dashql_runtime::catalog_loader::hyper::{catalog_tables_from_hyper_cloud, hyper_cloud_catalog_query_sql};
-use dashql_runtime::catalog_loader::information_schema::{information_schema_columns_query, InformationSchemaScope};
-use dashql_runtime::catalog_loader::pg_attribute::{catalog_tables_from_pg_attribute, pg_attribute_query_sql, PgAttributeScope};
-use dashql_runtime::catalog_loader::pg_proc::{catalog_sql_from_pg_proc, PG_PROC_QUERY};
-use dashql_runtime::catalog_loader::prefetched_hyper_functions::{
+use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry};
+use dashql_core_runtime::catalog_loader::hyper::{catalog_tables_from_hyper_cloud, hyper_cloud_catalog_query_sql};
+use dashql_core_runtime::catalog_loader::information_schema::{information_schema_columns_query, InformationSchemaScope};
+use dashql_core_runtime::catalog_loader::pg_attribute::{catalog_tables_from_pg_attribute, pg_attribute_query_sql, PgAttributeScope};
+use dashql_core_runtime::catalog_loader::pg_proc::{catalog_sql_from_pg_proc, PG_PROC_QUERY};
+use dashql_core_runtime::catalog_loader::prefetched_hyper_functions::{
     load_prefetched_hyper_functions, qualify_prefetched_hyper_functions, PREFETCHED_HYPER_FUNCTIONS_SQL,
 };
-use dashql_runtime::catalog_loader::salesforce::catalog_tables_from_salesforce_metadata;
-use dashql_runtime::catalog_loader::sql::{qualified_table_name, quote_data_type, quote_identifier, relation_filter};
-use dashql_runtime::catalog_loader::tables::{
+use dashql_core_runtime::catalog_loader::salesforce::catalog_tables_from_salesforce_metadata;
+use dashql_core_runtime::catalog_loader::sql::{qualified_table_name, quote_data_type, quote_identifier, relation_filter};
+use dashql_core_runtime::catalog_loader::tables::{
     catalog_descriptor_of_sql, catalog_functions_sql, catalog_tables_of_descriptor, catalog_tables_sql, create_table_sql,
     pack_catalog_descriptor_of_tables, parse_catalog_sql, read_catalog_descriptor, relations_file, relations_file_of_entry,
     CatalogStateFile, CatalogTable, ColumnMetadata,
 };
-use dashql_runtime::catalog_loader::trino::{
+use dashql_core_runtime::catalog_loader::trino::{
     parse_trino_catalog_entry, trino_catalog_entries, trino_catalog_scopes, TrinoCatalogEntry, TRINO_CATALOGS_QUERY,
 };
-use dashql_runtime::catalog_loader::{
+use dashql_core_runtime::catalog_loader::{
     catalog_is_durable, CatalogGenerations, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogLoadError,
     CatalogQuery, CatalogStep, CatalogUpdate, CatalogUpdateOutcome, QueryAnswer, CATALOG_QUERY_READ_TIMEOUT_MS,
 };
-use dashql_runtime::connections::*;
-use dashql_runtime::query::QueryType;
+use dashql_core_runtime::connections::*;
+use dashql_core_runtime::query::QueryType;
 use serde_json::{json, Value};
 
 /// 2026-01-01T00:00:00.000Z

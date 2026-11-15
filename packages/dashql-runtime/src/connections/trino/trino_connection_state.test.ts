@@ -41,7 +41,7 @@ const initial = () => connectorState(dql, TRINO_CONNECTOR, createTrinoConnection
 const reduce = (state: ConnectionState, action: TrinoConnectorAction) => reduceConnector(state, action);
 const proto = (state: ConnectionState) => getTrinoConnectionDetails(state)!.proto;
 
-// The Rust connection of the runtime applies the actions, `packages/dashql-runtime-rs/src/connections/trino.rs`
+// The Rust connection of the runtime applies the actions, `packages/dashql-core-runtime/src/connections/trino.rs`
 describe('the setup of Trino connections', () => {
     it.each([
         [OAUTH_STARTED, PARAMS, ConnectionStatus.AUTH_STARTED, ConnectionHealth.CONNECTING, 'oauthStartedAt'],

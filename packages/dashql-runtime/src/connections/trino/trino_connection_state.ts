@@ -8,7 +8,8 @@ import { TRINO_CONNECTOR } from '../connector_info.js';
 import type { ConnectionState, RESET_CONNECTION, DELETE_CONNECTION } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 
-// The Rust connection of the runtime applies the actions of the setup (`packages/dashql-runtime-rs/src/connections/trino.rs`)
+// The Rust connection of the runtime applies the actions of the setup
+// (`packages/dashql-core-runtime/src/connections/trino.rs`)
 
 // OAuth flow action symbols
 export const OAUTH_STARTED = Symbol('OAUTH_STARTED');

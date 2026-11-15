@@ -4,7 +4,7 @@ import * as buffers from './buffers.js';
 import { DashQL, DashQLCatalog, DashQLScriptSession, FlatBufferPtr, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
 
-/// The scripts of a workbook in the Rust runtime (`packages/dashql-runtime-rs`, a spike, see docs/wip/rust_runtime.md).
+/// The scripts of a workbook in the core runtime (`packages/dashql-core-runtime`, see docs/wip/core_runtime.md).
 /// An action changes the workbook and returns the effects that the host applies, e.g. the files to write. The state
 /// is read per script, a script changes its revision with every change.
 

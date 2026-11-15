@@ -1,8 +1,8 @@
 import { DashQL, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
 
-/// The computations of result tables in the Rust runtime (`packages/dashql-runtime-rs/src/compute`, see
-/// docs/wip/rust_runtime.md): the summaries of the columns, the statistics of a table, the system columns, the cross
+/// The computations of result tables in the Rust runtime (`packages/dashql-core-runtime/src/compute`, see
+/// docs/wip/core_runtime.md): the summaries of the columns, the statistics of a table, the system columns, the cross
 /// filters, the ordering and the searches, and the tasks of the scheduler that compute them.
 ///
 /// The Arrow tables, the summaries, the data frames and the lifetimes stay with the host, the state knows them by the

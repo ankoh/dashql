@@ -8,15 +8,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use dashql_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
-use dashql_runtime::compute::types::{
+use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
+use dashql_core_runtime::compute::types::{
     ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnStatsFields, ColumnSummary, ComputationTask,
     ComputationVersion, DataFrameId, DataSearchTable, DataSearchTask, FilterOp, FilterTable, FilteredColumnAggregate,
     FilteredColumnAggregationTask, OrderByConstraint, OrderingTable, OrdinalColumnGroup, RowNumberColumnGroup,
     ScalarFilter, StringColumnGroup, SystemColumnsTask, TableAggregation, TableAggregationTask, TableFilteringTask,
     TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus,
 };
-use dashql_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind};
+use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind};
 
 /// The time of the actions
 const NOW: i64 = 1_000;

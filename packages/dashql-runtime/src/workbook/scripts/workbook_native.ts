@@ -25,7 +25,7 @@ import { createEmptyAnnotations, createScriptRef, type ResolvedVisualizeQuery, t
 import { sameWorkbookAttachments, type WorkbookAttachment } from '../attachments/workbook_attachments.js';
 import type { ScriptConnection, ScriptData, ScriptDataMap, WorkbookScripts } from './workbook_scripts.js';
 
-/// The Rust workbook behind the scripts of a workbook (`packages/dashql-runtime-rs`, docs/wip/rust_runtime.md).
+/// The Rust workbook behind the scripts of a workbook (`packages/dashql-core-runtime`, docs/wip/core_runtime.md).
 ///
 /// The workbook holds the scripts, their sessions and their analyses. The app reads `WorkbookScripts` objects that
 /// `project` builds from it: a script keeps its `ScriptData` object as long as its revision doesn't change, the session

@@ -7,7 +7,7 @@ import { HyperDatabaseChannel } from './hyperdb_grpc_client.js';
 import type { RESET_CONNECTION, DELETE_CONNECTION } from '../connection_state.js';
 
 /// The details of a Hyper connection, the Rust connection of the runtime applies the actions of its setup
-/// (`packages/dashql-runtime-rs/src/connections/hyper.rs`)
+/// (`packages/dashql-core-runtime/src/connections/hyper.rs`)
 export interface HyperConnectionDetails {
     /// The protobuf
     proto: connection.HyperConnectionDetails;

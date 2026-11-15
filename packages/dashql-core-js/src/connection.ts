@@ -1,8 +1,8 @@
 import { DashQL, DashQLCatalog, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
 
-/// A connection with the history of its queries in the Rust runtime (`packages/dashql-runtime-rs`, see
-/// docs/wip/rust_runtime.md). An action changes the connection and returns the effects that the host applies, e.g.
+/// A connection with the history of its queries in the Rust runtime (`packages/dashql-core-runtime`, see
+/// docs/wip/core_runtime.md). An action changes the connection and returns the effects that the host applies, e.g.
 /// closing a channel or releasing a result table. Channels and result tables stay with the host, the connection knows
 /// them by their ids. The state is read as snapshots, the connection and every query change their revision with every
 /// change.

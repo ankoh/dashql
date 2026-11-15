@@ -1,4 +1,4 @@
-//! The wasm-bindgen API of the scripts of a workbook (`dashql_runtime::workbook`).
+//! The wasm-bindgen API of the scripts of a workbook (`dashql_core_runtime::workbook`).
 //!
 //! An action is a method call with typed arguments. It returns a `WorkbookOutcome` with the effects for the host as
 //! JSON, the host writes the files. The state is read per script: a snapshot of the plain fields as JSON, the editor
@@ -13,8 +13,8 @@ use dashql_buffers::editor::{EditorEvent, EditorOffsetUnit, EditorUpdate};
 use dashql_buffers::execution::CompiledVisualization;
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core::error::Error;
-use dashql_runtime::attachments::DataFile;
-use dashql_runtime::workbook::{
+use dashql_core_runtime::attachments::DataFile;
+use dashql_core_runtime::workbook::{
     CloudLink, ScriptConnection, ScriptKey, ScriptList, ScriptVisualization, StoredScript, TextChange, Workbook as RuntimeWorkbook,
     WorkbookAction, WorkbookEffect, WorkbookOutcome as RuntimeOutcome, WorkbookScript,
 };

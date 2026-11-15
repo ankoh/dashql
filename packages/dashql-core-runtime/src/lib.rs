@@ -3,7 +3,7 @@
 //!
 //! The app runs its workbook scripts on `workbook`, its connections with their query histories on `connections` and
 //! `query`, its computations on `compute` and its storage writes on `storage`. The catalog loader and the connectors
-//! are ported without I/O and not used yet, see `docs/wip/rust_runtime.md`. The services of the runtime are async
+//! are ported without I/O and not used yet, see `docs/wip/core_runtime.md`. The services of the runtime are async
 //! functions on a `host::Host`, the platform they run on.
 
 pub mod attachments;

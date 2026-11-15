@@ -1,4 +1,4 @@
-//! The wasm-bindgen API of the storage writer (`dashql_runtime::storage::writer`).
+//! The wasm-bindgen API of the storage writer (`dashql_core_runtime::storage::writer`).
 //!
 //! The host is a JavaScript object whose methods return promises (`StorageWriterHost`), the tasks of the writer run on
 //! the event loop with `wasm-bindgen-futures`. Workbooks and connection entries cross as JSON text. A task comes as
@@ -10,8 +10,8 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 
-use dashql_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_runtime::storage::{
+use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::storage::{
     ConnectionsUpdate, StorageHost, StorageWriter as RuntimeStorageWriter, TextSource, WriteError, WriteOutcome,
     WriteStatistics, WriteTask,
 };
@@ -398,7 +398,7 @@ fn outcome_value(outcome: WriteOutcome) -> JsValue {
     object.into()
 }
 
-/// The storage writer of the runtime, see `dashql_runtime::storage::writer`
+/// The storage writer of the runtime, see `dashql_core_runtime::storage::writer`
 #[wasm_bindgen]
 pub struct StorageWriter {
     writer: RuntimeStorageWriter<JsHost>,

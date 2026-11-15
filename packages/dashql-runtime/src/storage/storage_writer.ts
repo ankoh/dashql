@@ -353,11 +353,12 @@ function writeResultOf(outcome: core.StorageWriteOutcome): StorageWriteResult {
     return { status: 'failed', error };
 }
 
-/// The storage writer of the runtime, an adapter over the writer of the core (`packages/dashql-runtime-rs/src/storage`).
+/// The storage writer of the runtime, an adapter over the writer of the core runtime
+/// (`packages/dashql-core-runtime/src/storage`).
 ///
 /// The writer of the core decides what to write and when: the keys and their chains, debouncing, coalescing, pausing,
 /// flushing, the statistics and the workbook files it patches. This adapter is its host: the storage backend, the
-/// timers, the clock and the log, see `docs/wip/rust_runtime.md`.
+/// timers, the clock and the log, see `docs/wip/core_runtime.md`.
 ///
 /// The writer is created before the core is set up, e.g. by the storage provider of the app. It takes a core that is
 /// given to it or that the package instantiated already, or asks for one with the first write: the calls before it

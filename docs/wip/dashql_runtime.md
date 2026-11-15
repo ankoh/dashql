@@ -52,7 +52,7 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 
 - `reduceWorkbookScripts(state, action, storage, logger)` (`workbook/scripts/workbook_scripts.ts`, 29 actions)
 - `reduceConnectionState(prev, action, logger)` (`connections/connection_state.ts`), an adapter over the Rust connection
-  (`connections/connection_native.ts`, see [rust_runtime.md](rust_runtime.md))
+  (`connections/connection_native.ts`, see [core_runtime.md](core_runtime.md))
 - `query/query_execution_state.ts`, `compute/computation_state.ts`
 
 ### Imports that pulled UI code into the domain
@@ -247,7 +247,7 @@ CLI wire the services in one place, and the tests of `runtime.ts` cover the wiri
   contexts without a provider before.
 - **Computations.** `createComputations` (`compute/computations.ts`) creates them for the runtime and for the shell of
   Hyper, which has no runtime (`StandaloneComputations`). Their state lives in the core (see
-  [rust_runtime.md](rust_runtime.md)), they take the core of the platform with their first action.
+  [core_runtime.md](core_runtime.md)), they take the core of the platform with their first action.
 - **Tests.** `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`) is the provider in the tests of
   components: the catalog loader stopped like in `createTestRuntime`, and the functions of the query executor that a
   test replaces.

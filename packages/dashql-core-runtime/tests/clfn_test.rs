@@ -8,8 +8,8 @@ use std::rc::Rc;
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Date32Type, Int32Type, Int64Type, TimestampMillisecondType};
 use arrow_array::Array;
-use dashql_runtime::clfn::url::Url;
-use dashql_runtime::clfn::*;
+use dashql_core_runtime::clfn::url::Url;
+use dashql_core_runtime::clfn::*;
 use serde_json::{json, Value};
 
 const BASE: &str = "https://svc.example.com";
@@ -419,7 +419,7 @@ fn keeps_the_path_of_the_escape_hatch_below_the_base_path_of_its_host() {
 fn sends_nothing_for_a_parameter_without_a_value() {
     let s = spec(vec![json!({ "name": "p", "options": [{ "name": "a", "in": "query" }] })]);
     let mut description = call("p", json!({ "a": null }));
-    description.bindings = vec![dashql_runtime::clfn::spec::ClientFunctionCallBinding { pointer: "/a".into(), param: "x".into() }];
+    description.bindings = vec![dashql_core_runtime::clfn::spec::ClientFunctionCallBinding { pointer: "/a".into(), param: "x".into() }];
     let (error, host) = fail(&s, description.clone(), vec![]);
     assert!(error.message.contains(":x has no value"));
     assert!(host.sent.is_empty());

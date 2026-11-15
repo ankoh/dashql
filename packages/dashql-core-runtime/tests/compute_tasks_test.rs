@@ -16,30 +16,30 @@ use arrow_array::{
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 
-use dashql_runtime::compute::tasks::analysis::BinBounds;
-use dashql_runtime::compute::tasks::analyze_table::{
+use dashql_core_runtime::compute::tasks::analysis::BinBounds;
+use dashql_core_runtime::compute::tasks::analyze_table::{
     column_aggregation_tasks, start_table_analysis, table_aggregation_task, AnalyzeTableOptions,
 };
-use dashql_runtime::compute::tasks::column_aggregation::{
+use dashql_core_runtime::compute::tasks::column_aggregation::{
     plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult,
 };
-use dashql_runtime::compute::tasks::columns::{build_column_groups, small_integer_domain_size, BIN_COUNT};
-use dashql_runtime::compute::tasks::data_search::{
+use dashql_core_runtime::compute::tasks::columns::{build_column_groups, small_integer_domain_size, BIN_COUNT};
+use dashql_core_runtime::compute::tasks::data_search::{
     build_column_search_sql, build_data_search_sql, collect_searchable_result_columns, parse_column_search_matches,
     parse_data_search_matches, plan_data_search,
 };
-use dashql_runtime::compute::tasks::result_computations::ResultComputations;
-use dashql_runtime::compute::tasks::result_table::ResultTable;
-use dashql_runtime::compute::tasks::sql::{
+use dashql_core_runtime::compute::tasks::result_computations::ResultComputations;
+use dashql_core_runtime::compute::tasks::result_table::ResultTable;
+use dashql_core_runtime::compute::tasks::sql::{
     format_number, quote_string_literal, AggregateFunction, Binning, GroupBy, GroupByAggregate, GroupByKey,
     GroupByKeyBinning, SqlFrame,
 };
-use dashql_runtime::compute::tasks::system_columns::plan_system_columns;
-use dashql_runtime::compute::tasks::table_aggregation::plan_table_aggregation;
-use dashql_runtime::compute::tasks::table_filtering::plan_table_filtering;
-use dashql_runtime::compute::tasks::table_ordering::plan_table_ordering;
-use dashql_runtime::compute::tasks::{data_frame_table_name, TableStats};
-use dashql_runtime::compute::types::{
+use dashql_core_runtime::compute::tasks::system_columns::plan_system_columns;
+use dashql_core_runtime::compute::tasks::table_aggregation::plan_table_aggregation;
+use dashql_core_runtime::compute::tasks::table_filtering::plan_table_filtering;
+use dashql_core_runtime::compute::tasks::table_ordering::plan_table_ordering;
+use dashql_core_runtime::compute::tasks::{data_frame_table_name, TableStats};
+use dashql_core_runtime::compute::types::{
     ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnStatsFields, ComputationVersion,
     DataSearchColumn, DataSearchTable, DataSearchTask, FilterOp, FilterTable, FilteredColumnAggregationTask,
     ListColumnGroup, OrderByConstraint, OrdinalColumnGroup, RowNumberColumnGroup, ScalarFilter, SkippedColumnGroup,
@@ -142,7 +142,7 @@ fn sql_binning_converts_temporal_and_boolean_values() {
             })
             .to_sql()
     };
-    use dashql_runtime::compute::tasks::sql::ToNumeric;
+    use dashql_core_runtime::compute::tasks::sql::ToNumeric;
     let epoch = frame(ToNumeric::Epoch);
     assert!(epoch.contains("EXTRACT(EPOCH FROM t.\"v\")"));
     assert!(epoch.contains("GREATEST(ABS(EXTRACT(EPOCH FROM \"mx\") - EXTRACT(EPOCH FROM \"mn\")) / 2, 1)"));
@@ -242,7 +242,7 @@ fn sql_binned_group_by_without_null_bin() {
 
 #[test]
 fn sql_binned_group_by_keeps_temporal_bounds_as_epoch_milliseconds() {
-    use dashql_runtime::compute::tasks::sql::ToNumeric;
+    use dashql_core_runtime::compute::tasks::sql::ToNumeric;
     let mut key_binning = binning(("mn", "mx", "bin"), 2, false);
     key_binning.to_numeric = Some(ToNumeric::TimeEpoch);
     let sql = SqlFrame::from("input")
@@ -628,7 +628,7 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
         Field::new("_1_id", DataType::Utf8, true),
     ]);
     let plan = plan_table_aggregation(&table_aggregation_task(1, build_column_groups(&schema), 10), 11);
-    let task = dashql_runtime::compute::tasks::analyze_table::system_columns_task(
+    let task = dashql_core_runtime::compute::tasks::analyze_table::system_columns_task(
         1,
         plan.column_groups,
         ArrowTable { id: 1, rows: 3 },

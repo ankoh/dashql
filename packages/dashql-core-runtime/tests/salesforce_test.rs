@@ -5,13 +5,13 @@ use std::collections::BTreeMap;
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use dashql_runtime::clfn::{HttpRequest, HttpResponse};
-use dashql_runtime::connections::{ConnectorType, OAuthPkceChallenge, SalesforceAction};
-use dashql_runtime::salesforce::api::*;
-use dashql_runtime::salesforce::auth::*;
-use dashql_runtime::salesforce::client_functions::*;
-use dashql_runtime::salesforce::setup::*;
-use dashql_runtime::salesforce::*;
+use dashql_core_runtime::clfn::{HttpRequest, HttpResponse};
+use dashql_core_runtime::connections::{ConnectorType, OAuthPkceChallenge, SalesforceAction};
+use dashql_core_runtime::salesforce::api::*;
+use dashql_core_runtime::salesforce::auth::*;
+use dashql_core_runtime::salesforce::client_functions::*;
+use dashql_core_runtime::salesforce::setup::*;
+use dashql_core_runtime::salesforce::*;
 use serde_json::{json, Value};
 
 /// 2026-01-01T00:00:00.000Z

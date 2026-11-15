@@ -58,7 +58,8 @@ describe('isCatalogRefreshRunning', () => {
     });
 });
 
-// The Rust connection of the runtime applies the actions, `packages/dashql-runtime-rs/src/connections/catalog_updates.rs`
+// The Rust connection of the runtime applies the actions,
+// `packages/dashql-core-runtime/src/connections/catalog_updates.rs`
 describe('catalog updates of a connection', () => {
     const terminalActions: CatalogAction[] = [
         { type: CATALOG_UPDATE_CANCELLED, value: [7, new Error('cancelled')] },

@@ -9,7 +9,7 @@ import { SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_i
 import type { ConnectionState, DELETE_CONNECTION, RESET_CONNECTION } from '../connection_state.js';
 
 /// The Salesforce connection state, the Rust connection of the runtime applies the actions of its setup
-/// (`packages/dashql-runtime-rs/src/connections/salesforce.rs`)
+/// (`packages/dashql-core-runtime/src/connections/salesforce.rs`)
 export interface SalesforceConnectionStateDetails {
     /// The connection details
     proto: connection.SalesforceConnectionDetails;

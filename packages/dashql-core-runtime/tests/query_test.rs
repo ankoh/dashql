@@ -4,11 +4,11 @@
 
 use dashql_buffers::profile as fb;
 use dashql_core_profile::{EntityState, ProfileUpdate, Stats, Status};
-use dashql_runtime::query::progress::{
+use dashql_core_runtime::query::progress::{
     replay_recording, EngineProgressPayload, HyperExecutionStats, HyperQueryStatus, ProfileExecutionState,
     QueryProfileProgress, QueryProgressModels, NO_INDEX,
 };
-use dashql_runtime::query::{
+use dashql_core_runtime::query::{
     QueryError, QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionMetrics,
     QueryExecutionProgress, QueryExecutionState, QueryExecutionStatus, QueryId, QueryMetadata, QueryResultTable,
     QueryType, INTERNAL_QUERY_HISTORY_LIMIT,

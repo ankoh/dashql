@@ -108,7 +108,8 @@ describe('attached database descriptor catalogs', () => {
         expect(next.queriesActiveOrdered).toEqual([]);
     });
 
-    // The Rust connection drops the descriptors, `packages/dashql-runtime-rs/tests/connections_test.rs` tests the order
+    // The Rust connection drops the descriptors, `packages/dashql-core-runtime/tests/connections_test.rs` tests
+    // the order
     it('drops both descriptors and the catalog handle on delete', () => {
         const database = state();
         publishCatalog(database, 'CREATE TABLE stored(id int);', 'CREATE FUNCTION stored_fn() RETURNS bigint;');

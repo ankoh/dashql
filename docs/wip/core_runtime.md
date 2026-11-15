@@ -1,13 +1,18 @@
-# The runtime in Rust
+# The core runtime
 
-Status: the workbook scripts, the connections and the computations of the app run on Rust.
-`packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the scripts of a workbook, the state of a connection with
-the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts` of the TypeScript
-runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`), `reduceConnectionState` one over the
-connection (`connections/connection_native.ts`), `reduceComputationState` one over the computations
-(`compute/computation_native.ts`). The storage writer is the first service on a host (`storage/storage_writer.ts`
-over `src/storage/`). The catalog loader, the connectors and the tasks of the computations are ported
-without I/O and not used yet. The name of the package is provisional.
+Status: the workbook scripts, the connections, the computations and the storage writes of the app run on Rust.
+`packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
+connection with the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts`
+of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
+`reduceConnectionState` one over the connection (`connections/connection_native.ts`), `reduceComputationState` one
+over the computations (`compute/computation_native.ts`). The storage writer is the first service on a host
+(`storage/storage_writer.ts` over `src/storage/`). The catalog loader, the connectors and the tasks of the
+computations are ported without I/O and not used yet.
+
+The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
+core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
+schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`) belong
+to DashQL and change with it, their snapshots cross as JSON.
 
 ## Why
 
@@ -139,13 +144,13 @@ JSON, a computation is read as a JSON snapshot once its revision moved.
 
 ## The host and the executor
 
-`dashql_runtime::host` holds what every service asks of the platform: the trait `Host` with the clock (`now`), timers
-(`sleep`, a future that clears its timer when it is dropped), tasks (`spawn`, a task starts after the caller returned)
-and the log. A service adds a trait for its I/O on top, the storage writer `storage::StorageHost` with the operations of
-the storage backend that it uses. Their async methods don't need `Send`: the futures of the module hold JavaScript
-values and run on one thread. A failed host call returns a `HostError`, the error of the task: it keeps what the host
-failed with and hands it back unchanged, and the host classifies the failures that the runtime decides on, e.g. a
-script that changed outside the app.
+`dashql_core_runtime::host` holds what every service asks of the platform: the trait `Host` with the clock (`now`),
+timers (`sleep`, a future that clears its timer when it is dropped), tasks (`spawn`, a task starts after the caller
+returned) and the log. A service adds a trait for its I/O on top, the storage writer `storage::StorageHost` with the
+operations of the storage backend that it uses. Their async methods don't need `Send`: the futures of the module hold
+JavaScript values and run on one thread. A failed host call returns a `HostError`, the error of the task: it keeps
+what the host failed with and hands it back unchanged, and the host classifies the failures that the runtime decides
+on, e.g. a script that changed outside the app.
 
 - **No borrow across an await.** A service keeps its state behind a `RefCell`. A task reads it, awaits the host, then
   applies the result. What the host is told (resolved writes, statistics, notifications, the log) is collected while

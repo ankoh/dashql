@@ -1,7 +1,7 @@
 import { DashQL, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
 
-/// The storage writer of the Rust runtime (`packages/dashql-runtime-rs/src/storage`, see docs/wip/rust_runtime.md):
+/// The storage writer of the Rust runtime (`packages/dashql-core-runtime/src/storage`, see docs/wip/core_runtime.md):
 /// debounced writes of workbooks and connections. The writer decides what to write and when, the host does the I/O:
 /// its methods return promises, the writer runs its tasks on the event loop. Workbooks cross as JSON text.
 

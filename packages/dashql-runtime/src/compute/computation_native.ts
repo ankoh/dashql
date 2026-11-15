@@ -62,7 +62,7 @@ import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
 import type { EmbeddedClientContext } from '../platform/database/embedded_database.js';
 import { LoggableException } from '../platform/logger/logger.js';
 
-/// The computations of result tables in Rust (`packages/dashql-runtime-rs/src/compute`, docs/wip/rust_runtime.md).
+/// The computations of result tables in Rust (`packages/dashql-core-runtime/src/compute`, docs/wip/core_runtime.md).
 ///
 /// The Rust state holds the computations and the tasks of the scheduler. It knows the Arrow tables, the data frames,
 /// the summaries and the lifetimes of the app only by ids. `NativeComputations` gives the JS objects their ids, keeps

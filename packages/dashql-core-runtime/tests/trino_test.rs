@@ -17,18 +17,18 @@ use arrow_array::{Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use serde_json::{json, Value};
 
-use dashql_runtime::connections::{
+use dashql_core_runtime::connections::{
     ConnectionAction, ConnectionHealth, ConnectionParams, ConnectionState, ConnectorType, DetailedError, JsonObject,
     OAuthPkceChallenge, TrinoAction, TrinoSessionDefaults,
 };
-use dashql_runtime::query::progress::EngineProgressPayload;
-use dashql_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
-use dashql_runtime::trino::descriptor::{cache_signature, login_hint, sanitize_for_sharing};
-use dashql_runtime::trino::http::{base64_decode, base64_encode, encode_form, set_query_param};
-use dashql_runtime::trino::protocol::{
+use dashql_core_runtime::query::progress::EngineProgressPayload;
+use dashql_core_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
+use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint, sanitize_for_sharing};
+use dashql_core_runtime::trino::http::{base64_decode, base64_encode, encode_form, set_query_param};
+use dashql_core_runtime::trino::protocol::{
     parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response, ResultPageOutcome,
 };
-use dashql_runtime::trino::{
+use dashql_core_runtime::trino::{
     read_cancel_response, FetchOutcome, HealthCheckOutcome, HttpMethod, HttpRequest, HttpResponse, OAuthCallback,
     RequestId, SetupOutput, StreamOutput, TimerId, TokenRefresh, TrinoAccessToken, TrinoAuthParams, TrinoAuthType,
     TrinoChannel, TrinoColumn, TrinoErrorKind, TrinoQuery, TrinoQueryOptions, TrinoRequest, TrinoRetryPolicy,
@@ -318,7 +318,7 @@ impl TimeZoneOffsets for FakeZones {
 
 /// Milliseconds since epoch of a time in UTC
 fn utc(year: i64, month: i64, day: i64, hours: i64, minutes: i64, seconds: i64, ms: i64) -> i64 {
-    dashql_runtime::trino::time::utc_ms(year, month, day, hours, minutes, seconds, ms).unwrap()
+    dashql_core_runtime::trino::time::utc_ms(year, month, day, hours, minutes, seconds, ms).unwrap()
 }
 
 /// Translate the values of a single column of a type
@@ -446,7 +446,7 @@ fn parses_trino_timestamps() {
         assert_eq!(parse_trino_timestamp_ms(text, &FakeZones), expected, "{text}");
     }
     // Without zone offsets of the host, a named zone is unknown
-    assert_eq!(parse_trino_timestamp_ms("2024-01-15 12:00:00.000 Europe/Berlin", &dashql_runtime::trino::NoTimeZones), None);
+    assert_eq!(parse_trino_timestamp_ms("2024-01-15 12:00:00.000 Europe/Berlin", &dashql_core_runtime::trino::NoTimeZones), None);
 }
 
 #[test]
@@ -513,7 +513,7 @@ fn translates_every_trino_type() {
         .enumerate()
         .map(|(i, (type_name, _))| TrinoColumn { name: format!("c{i}"), type_name: type_name.to_string() })
         .collect();
-    let schema = dashql_runtime::trino::trino_schema(&columns);
+    let schema = dashql_core_runtime::trino::trino_schema(&columns);
     let row = json!([
         true, 7, 300, 70000, 9_007_199_254_740_993_i64, 1.5, 2.25, "12.34", "-12.5", "42", "text", "a", "abc",
         base64_encode(b"bytes"), "{\"a\":1}", "2024-02-29", "01:02:03.456", "01:02:03.456+01:00",

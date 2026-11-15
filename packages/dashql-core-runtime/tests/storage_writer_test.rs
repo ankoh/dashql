@@ -8,10 +8,10 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Wake, Waker};
 
-use dashql_runtime::host::signal::{oneshot, Receiver, Sender};
-use dashql_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_runtime::storage::keys::chain_key;
-use dashql_runtime::storage::{
+use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
+use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::storage::keys::chain_key;
+use dashql_core_runtime::storage::{
     ConnectionsUpdate, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteStatistics, WriteTask,
 };
 use serde_json::{json, Value};

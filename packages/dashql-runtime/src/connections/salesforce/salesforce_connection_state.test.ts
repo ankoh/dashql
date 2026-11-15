@@ -50,7 +50,7 @@ const proto = (state: ConnectionState) => getSalesforceConnectionDetails(state)!
 const userInfo = (info: Partial<connection.SalesforceCoreUserInfo>) =>
     ({ type: RECEIVED_CORE_USER_INFO, value: info as connection.SalesforceCoreUserInfo }) as const;
 
-// The Rust connection of the runtime applies the actions, `packages/dashql-runtime-rs/src/connections/salesforce.rs`
+// The Rust connection of the runtime applies the actions, `packages/dashql-core-runtime/src/connections/salesforce.rs`
 describe('the setup of Salesforce connections', () => {
     it.each([
         [SETUP_STARTED, PARAMS, ConnectionStatus.AUTH_STARTED, ConnectionHealth.CONNECTING, 'authStartedAt'],

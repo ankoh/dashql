@@ -6,7 +6,7 @@ use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{CatalogEntryId, CatalogLayer};
 use dashql_core::pack::pack_catalog_descriptor;
 use dashql_core::script::Script;
-use dashql_runtime::connections::*;
+use dashql_core_runtime::connections::*;
 use serde_json::json;
 
 /// 2026-01-01T00:00:00.000Z

@@ -12,9 +12,9 @@ use dashql_core::completion::Completion;
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_parser::parser::parse;
 use dashql_parser::scanner::scan;
-use dashql_runtime::clfn::*;
-use dashql_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectorType};
-use dashql_runtime::salesforce::*;
+use dashql_core_runtime::clfn::*;
+use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectorType};
+use dashql_core_runtime::salesforce::*;
 use serde_json::{json, Value};
 
 const SPEC: &str = "extensions/d360-api/clfn/spec/spec.json";
