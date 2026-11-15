@@ -2,8 +2,9 @@
 
 Status: the workbook scripts of the app run on Rust. `packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the
 scripts of a workbook, linked into the core module, and `reduceWorkbookScripts` of the TypeScript runtime is an adapter
-over it (`workbook/scripts/workbook_native.ts`). The connection state and the query execution state are ported as
-modules of the crate with their tests, the app doesn't use them yet. The name of the package is provisional.
+over it (`workbook/scripts/workbook_native.ts`). The connection state, the query execution state and the computation
+state are ported as modules of the crate with their tests, the app doesn't use them yet. The name of the package is
+provisional.
 
 ## Why
 
@@ -53,8 +54,10 @@ buffers in between. The boundary moves to what the UI reads.
 3. **Bindings and the switch.** Done: the class of the module, the adapter, the restore of the loader, the registry
    service. The reducer tests of the runtime run against the Rust workbook.
 4. **The other state.** The connection state (`src/connections/`, with the Hyper, Trino and Salesforce connectors and
-   the catalog updates) and the query execution state (`src/query/`, with the progress model and the profile state)
-   are ported with their tests. Their bindings and switches follow, like the ones of the workbook.
+   the catalog updates), the query execution state (`src/query/`, with the progress model and the profile state) and
+   the computation state (`src/compute/`, with the cross filters) are ported with their tests. Arrow tables and data
+   frames stay in JavaScript as opaque ids, a state releases one through an effect once nothing in it holds it. Their
+   bindings and switches follow, like the ones of the workbook.
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host.
 

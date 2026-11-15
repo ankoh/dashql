@@ -1,9 +1,11 @@
-//! The state of DashQL in Rust: the scripts of a workbook and the actions on them, on top of the core.
+//! The state of DashQL in Rust, on top of the core: the scripts of a workbook, the connections, the query executions
+//! and the computations of query results. An action changes a state in place and returns the effects for the host.
 //!
-//! A spike: the TypeScript runtime (`packages/dashql-runtime`) still holds the state the app runs on. This crate ports
-//! the workbook scripts to decide whether the state moves to Rust, see `docs/wip/rust_runtime.md`.
+//! The app runs its workbook scripts on `workbook`, the other states are ported and not used yet, see
+//! `docs/wip/rust_runtime.md`.
 
 pub mod attachments;
+pub mod compute;
 pub mod connections;
 pub mod names;
 pub mod query;
