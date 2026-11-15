@@ -14,8 +14,8 @@ artifact. Cloudflare does not clone or build the repository.
    - `PAGES_DASHQL_API_TOKEN`: the Pages API token.
 
    The deploy jobs of `publish.yml` run in the GitHub environments `cloudflare-pages` (the app),
-   `cloudflare-pages-stable` (stable.dashql.app) and `cloudflare-pages-org` (dashql.org). Add the secrets to the
-   repository, or scope them to all three environments.
+   `cloudflare-pages-stable` (stable.dashql.app), `cloudflare-pages-dev` (dev.dashql.app) and
+   `cloudflare-pages-org` (dashql.org). Add the secrets to the repository, or scope them to all four environments.
 4. Run the main-branch workflow once. The publish job downloads the `dashql_app_pages` artifact
    produced by Bazel and uploads it with `wrangler pages deploy`.
 5. In the Pages project's **Custom domains** settings, add both `dashql.app` and `hyperdb.sh`.
@@ -63,7 +63,7 @@ Release manifests such as `latest.json` and `stable.json`, along with updater ro
 
 The global rule applies `Cross-Origin-Opener-Policy: same-origin`,
 `Cross-Origin-Embedder-Policy: require-corp` and `Document-Isolation-Policy: isolate-and-require-corp` to
-responses on `dashql.app`, `stable.dashql.app`, `hyperdb.sh`, and Pages preview URLs. The first two isolate a
+responses on `dashql.app`, `stable.dashql.app`, `dev.dashql.app`, `hyperdb.sh`, and Pages preview URLs. The first two isolate a
 top-level page, the third also isolates a page in a third-party iframe on Chromium
 (see [Document-Isolation-Policy](../design/document_isolation_policy.md)). It also applies
 `Access-Control-Allow-Origin: *`, allowing static resources to be loaded cross-origin from any of these domains.
@@ -128,6 +128,42 @@ curl -sI -H 'Origin: https://stable.dashql.app' https://data.dashql.app/index.js
 ```
 
 Check the first three responses as described under Verification, the last two have to allow the origin.
+
+## dev.dashql.app
+
+`dev.dashql.app` follows the branch `dev`, which is a pointer and not a branch to merge into: pushing any commit to it
+deploys that commit, `git push -f origin <commit>:dev`. It is the deployment for integrations that need a fixed HTTPS
+domain, such as the Slack app of development (`docs/wip/embeds.md`), without a tunnel to a local server.
+
+`on_push_dev.yml` builds the pushed commit unsigned and calls `publish.yml` with only `publish_dev_pages`. The
+`dev_pages_deploy` job uploads the `dashql_app_pages` artifact to a separate Direct Upload project with the same
+`PAGES_DASHQL_*` secrets. `publish_desktop_release: false` keeps the Electron release and the release manifests of
+`get.dashql.app` untouched, and `dashql.app`, `dashql.org` and the coverage report aren't deployed.
+
+Set this up before the first push to `dev`:
+
+1. Create a Cloudflare Pages **Direct Upload** project named `dashql-dev` with production branch `main`.
+   `wrangler pages deploy` fails if the project does not exist.
+2. Add `dev.dashql.app` in the project's **Custom domains** settings.
+3. Add `https://dev.dashql.app` to the R2 CORS policies of the buckets behind `get.dashql.app` and
+   `data.dashql.app`.
+4. Add `https://dev.dashql.app` to the CORS list of each Salesforce org, see `docs/misc/setup_data_cloud.md`.
+
+Like `stable.dashql.app`, the site is a separate origin with its own browser storage, logins pass through
+`https://dashql.app/oauth.html` (`isAllowedOAuthCallbackUrl`), and workbook links open on `dashql.app`
+(`DASHQL_APP_URL`). The app and Electron accept `https://dev.dashql.app` links like the other two hosts, and the
+session server of the CLI accepts the origin. Secrets of integrations that only dev uses belong to the
+`dashql-dev` project, not to `dashql`.
+
+Verify the deployment after the first push:
+
+```bash
+curl -I https://dev.dashql.app/
+curl -I https://dev.dashql.app/oauth.html
+curl -I https://dev.dashql.app/static/wasm/<fingerprinted-core-wasm>.br
+curl -sI -H 'Origin: https://dev.dashql.app' https://get.dashql.app/latest.json | grep -i access-control
+curl -sI -H 'Origin: https://dev.dashql.app' https://data.dashql.app/index.json | grep -i access-control
+```
 
 ## dashql.org
 

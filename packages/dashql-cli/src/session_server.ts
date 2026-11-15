@@ -8,7 +8,7 @@ import { createAgentSessionState, reduceAgentSessionEvent, reduceAgentSessionJou
 import { JOURNAL_KEYS, journalFilePaths, parseJournalLines, SESSION_JOURNAL_FILE, SESSION_JOURNAL_FOLDER, type JournalFile } from '@ankoh/dashql-runtime/session/workbook_journal';
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
-export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
+export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
 
 export interface SessionServerOptions {
     harness: string;

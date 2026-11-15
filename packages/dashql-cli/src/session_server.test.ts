@@ -99,7 +99,7 @@ describe('the session server', () => {
             expect((await fetch(`${base}/v1/state`)).status).toBe(401);
             expect((await fetch(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
             expect((await fetch(`${base}/v1/state?token=${server.token}`, { headers: { Origin: 'https://evil.example' } })).status).toBe(403);
-            for (const origin of ['https://dashql.app', 'https://stable.dashql.app']) {
+            for (const origin of ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app']) {
                 const page = await fetch(`${base}/v1/state?token=${server.token}`, { headers: { Origin: origin } });
                 expect(page.headers.get('access-control-allow-origin')).toBe(origin);
             }

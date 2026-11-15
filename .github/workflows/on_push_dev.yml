@@ -1,0 +1,33 @@
+name: Dev
+
+# dev is a pointer, not a branch to merge: push any commit to it to deploy that commit to dev.dashql.app,
+# git push -f origin <commit>:dev
+on:
+    push:
+        branches:
+            - 'dev'
+
+jobs:
+    build:
+        name: Build
+        uses: ./.github/workflows/build_trusted.yml
+        with:
+            commit: ${{ github.sha }}
+        secrets: inherit
+
+    publish:
+        name: Publish
+        uses: ./.github/workflows/publish.yml
+        with:
+            commit: ${{ github.sha }}
+            # No Electron release is published from dev, the channel is unused
+            channel: latest
+            publish_latest_pages: false
+            publish_desktop_release: false
+            publish_dev_pages: true
+        needs:
+            - build
+        secrets: inherit
+        permissions:
+            contents: read
+            deployments: write

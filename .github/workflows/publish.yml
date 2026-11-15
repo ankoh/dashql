@@ -18,6 +18,15 @@ on:
                 required: false
                 type: boolean
                 default: false
+            publish_dev_pages:
+                required: false
+                type: boolean
+                default: false
+            publish_desktop_release:
+                description: Publish the Electron release of the channel, off for dev.dashql.app
+                required: false
+                type: boolean
+                default: true
             require_tip:
                 required: false
                 type: boolean
@@ -60,7 +69,7 @@ jobs:
     desktop_release:
         name: Electron Release
         needs: [tip]
-        if: needs.tip.outputs.publish == 'true'
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_desktop_release
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -192,6 +201,38 @@ jobs:
                   workingDirectory: ${{ runner.temp }}
                   packageManager: npm
                   command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql-stable --branch=main --commit-hash=${{ inputs.commit }}
+                  gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+    dev_pages_deploy:
+        name: dev.dashql.app
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_dev_pages
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            deployments: write
+        environment:
+            name: cloudflare-pages-dev
+            url: ${{ steps.deployment.outputs.deployment-url }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_app_pages
+                  path: ${{ runner.temp }}/artifacts/pages
+
+            - name: Deploy prebuilt web app
+              id: deployment
+              uses: cloudflare/wrangler-action@v4
+              with:
+                  apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
+                  accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  workingDirectory: ${{ runner.temp }}
+                  packageManager: npm
+                  command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql-dev --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
     org_pages_deploy:

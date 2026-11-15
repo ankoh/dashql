@@ -24,6 +24,7 @@ describe('OAuth callback relay', () => {
     it.each([
         'https://dashql.app/oauth.html',
         'https://stable.dashql.app/oauth.html',
+        'https://dev.dashql.app/oauth.html',
         'https://hyperdb.sh/oauth.html',
         'http://localhost:5173/oauth.html',
         'https://127.0.0.1:9002/oauth.html',
