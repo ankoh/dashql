@@ -6,7 +6,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { CloudSetupPage, cloudSetupStep, type CloudSetupPageDependencies } from './cloud_setup_page.js';
 import { CloudStateProvider, useClouds, type CloudsApi } from './cloud_state.js';
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore } from './cloud_store_schema.js';
-import { createCloudFolder } from './cloud_folders.js';
+import { createCloudFolder, deleteCloudFolder } from './cloud_folders.js';
+import { describeCloudCleanup } from './cloud_cleanup.js';
 import { isCloudLink, useCloudSetupGate } from '../app/loading/cloud_setup_gate.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
@@ -230,6 +231,40 @@ describe('cloud setup page', () => {
         expect(onDone).toHaveBeenCalledOnce();
         expect(logins).toEqual([]);
         expect(config!.settings?.cloudConnectionIds).toEqual(['server']);
+    });
+
+    it('cleans up a cloud with current tables on request', async () => {
+        const query = async (sql: string, signal?: AbortSignal) => await connection.query(sql, signal);
+        await installCloudStore(query);
+        const kept = await createCloudFolder(query, 'Kept', null);
+        const old = await createCloudFolder(query, 'Old', null);
+        await deleteCloudFolder(query, kept.folderId);
+        await deleteCloudFolder(query, old.folderId);
+        // Deleted more than 30 days ago
+        await connection.execute(`UPDATE "${CLOUD_DATABASE}"."dashql"."workbook_folders" SET deleted_at = now() - INTERVAL '31 days' WHERE folder_id = '${old.folderId}'`);
+        await prepare([hyperConnection('server', ConnectionHealth.ONLINE)], 'server');
+        await root.render(tree(<Page initial="server" startup={false} onDone={() => {}} />));
+        await vi.waitFor(() => expect(installerState()).toBe('current'), { timeout: 10_000 });
+        const summary = () => root.container.querySelector('[data-testid="cloud-cleanup-summary"]')?.textContent;
+        expect(summary()).toBe('Removes what was deleted more than 30 days ago');
+
+        await act(async () => button('cloud-cleanup-run')!.click());
+        await vi.waitFor(() => expect(summary()).toBe('Removed 1 folder'), { timeout: 10_000 });
+        // After the statements of the page, the session runs one at a time
+        const [, read] = execute('server', { query: `SELECT CAST(folder_id AS text) AS folder_id FROM "${CLOUD_DATABASE}"."dashql"."workbook_folders"` } as never);
+        const folders = (await read)!;
+        expect([...folders].map(row => String(row.folder_id))).toEqual([kept.folderId]);
+        await act(async () => button('cloud-cleanup-run')!.click());
+        await vi.waitFor(() => expect(summary()).toBe('Nothing to remove'), { timeout: 10_000 });
+    });
+
+    it('describes what a cleanup did', () => {
+        const key = { workbookId: 'w', versionId: 'v' };
+        expect(describeCloudCleanup({ versions: [], workbooks: [], folders: [], rerooted: [] })).toBe('Nothing to remove');
+        expect(describeCloudCleanup({ versions: [key, key], workbooks: ['w'], folders: [], rerooted: [] })).toBe('Removed 1 workbook and 2 versions');
+        expect(describeCloudCleanup({ versions: [key], workbooks: ['w', 'x'], folders: ['f'], rerooted: ['g'] }))
+            .toBe('Removed 2 workbooks, 1 folder and 1 version, moved 1 folder of a loop to the top');
+        expect(describeCloudCleanup({ versions: [], workbooks: [], folders: [], rerooted: ['g', 'h'] })).toBe('Moved 2 folders of a loop to the top');
     });
 
     it('logs in to the local cloud without asking and installs DashQL in it', async () => {

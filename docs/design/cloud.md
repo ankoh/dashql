@@ -17,7 +17,7 @@ a cloud come from a single statement.
 | Part | State |
 |------|-------|
 | Clouds: a list of connections in the settings, sidebar badge, Use as Cloud | done |
-| The store: publish, update, read any version, delete, cleanup (`cloud/cloud_store.ts`) | done, tested against the embedded Hyper; nothing runs the cleanup yet, see Open |
+| The store: publish, update, read any version, delete, cleanup (`cloud/cloud_store.ts`) | done, tested against the embedded Hyper; the cloud setup runs the cleanup on request |
 | Nested folders, paged listings, search, counts (`cloud/cloud_folders.ts`, `cloud/cloud_store.ts`) | done, tested against the embedded Hyper |
 | Migrations of the tables, with a lock for the installer that runs them (`cloud/cloud_store_schema.ts`) | done, tested against the embedded Hyper |
 | The installer: finds what is missing, installs and updates the tables (`cloud/cloud_installer.tsx`) | done, tested against the embedded Hyper |
@@ -376,7 +376,7 @@ cloud still needs:
 | `choose` | no cloud chosen | the clouds with Set Up, the connections that can be one with Use, and new ones: Hyper Server, Database.com and Local Cloud |
 | `configure` | on Edit Settings or for a new connection | the settings of the connection with their Connect |
 | `login` | the cloud connection is not online | the connection with Log In and Edit Settings, the error of the last login |
-| `install` | the cloud connection is online | the connection, the installer and the number of workbooks and folders |
+| `install` | the cloud connection is online | the connection, the installer and the number of workbooks and folders, the cleanup once the tables are current |
 
 - **Log In.** The page logs in with the saved settings, the setup that Connect of the settings runs (`useCloudLogin`).
   Database.com opens its OAuth popup on the click, it keeps no refresh token, so every start of the app logs in again.
@@ -385,6 +385,11 @@ cloud still needs:
   app goes on without it. Once the tables are current the page closes by itself, so a cloud link to a cloud that is
   online and installed only shows the card for the look at the tables. The link keeps its parameter, a reload asks
   again.
+- **Cleanup.** Clean Up runs `cleanupCloud` (`cloud/cloud_cleanup.tsx`) and says what it removed: the workbooks and
+  folders that were deleted more than 30 days ago, the versions that are being deleted and the uploads that were
+  abandoned, and it moves the folders of a loop to the top. It walks every folder with a parent, so it runs only on
+  request, and the counts of the cloud follow. At the start of the app the page closes itself when the tables are
+  current, the cleanup is reached through Cloud Setup of the cloud.
 - **The cloud state.** `CloudStateProvider` looks at every cloud whenever its connection comes online, after the
   installer ran and after every change of the overview: what the installer finds and, when this DashQL may read the
   tables, the counts of the cloud (`useClouds`, `useCloudState`). It never lists workbooks. The page and the overview
@@ -433,8 +438,7 @@ finds one of five states:
   `CloudSearch`, and list the workbooks that it finds in the same pages.
 - **Links.** A cloud link will carry the sanitized params of the connection and the id of the workbook, and the id of
   a version to open that version instead of the latest one.
-- **Who runs the cleanup.** `cleanupCloud` removes what deleted and abandoned rows leave and repairs orphans and loops,
-  but no part of the app calls it yet, so deleted workbooks and folders stay hidden in the tables. It walks every folder
-  with a parent, so it suits a scheduled job of the cloud or the installer better than the overview.
+- **A cleanup by schedule.** The cleanup runs when a user asks for it in the cloud setup. A cloud that nobody sets up
+  keeps its deleted workbooks hidden in the tables; a scheduled job of the cloud could run it instead.
 - **Atomic statements.** The store relies on a single-row `UPDATE` being atomic, its condition checked against the
   row it changes, which Hyper guarantees: the version that turns ready and the lock depend on it.

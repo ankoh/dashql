@@ -16,6 +16,7 @@ import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info'
 import { createLocalCloudParams, isCloudCapable, isLocalCloud, useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { HyperConnectorSettings } from '../connections/hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from '../connections/salesforce_connection_settings.js';
+import { CloudCleanupLine } from './cloud_cleanup.js';
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
 import { connectionError, useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
 import { CloudConnectionRow } from './cloud_connection_row.js';
@@ -27,8 +28,9 @@ import type { CloudInstallation } from './cloud_store_schema.js';
 // docs/design/cloud.md.
 //
 // It walks through the steps that a cloud still needs: choose the cloud or add one, log in to it, install or update
-// DashQL in it. The number of workbooks of the cloud shows once the tables can be read. At the start of the app it
-// closes itself when nothing is missing, and every step can be skipped: the app then goes on without the cloud.
+// DashQL in it. The number of workbooks of the cloud shows once the tables can be read, and the cleanup of the cloud
+// once they are current. At the start of the app it closes itself when nothing is missing, and every step can be
+// skipped: the app then goes on without the cloud.
 
 /// The name of a new local cloud
 const LOCAL_CLOUD_NAME = 'Local Cloud';
@@ -146,6 +148,12 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
                             </p>
                         )}
                     </div>
+                    {installation?.state === 'current' && (
+                        <div className={styles.section}>
+                            <div className={styles.label}>Cleanup</div>
+                            <CloudCleanupLine cloud={cloud!} />
+                        </div>
+                    )}
                 </>
             );
             break;
