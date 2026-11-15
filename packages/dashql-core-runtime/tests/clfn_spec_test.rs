@@ -247,16 +247,22 @@ fn execute(description: &ClientFunctionCallDescription, tokens: Option<&Salesfor
     let mut sent = Vec::new();
     match start_connection_client_function(ConnectorType::SalesforceDataCloud, spec(), description, NOW)? {
         ConnectionCallStart::Explained(result) => Ok((result, sent)),
-        ConnectionCallStart::Running { binding, mut run, mut step } => loop {
-            step = match step {
-                CallStep::Send(request) => {
-                    sent.push(binding.http_request(ConnectionCredentials::Salesforce(tokens), &request, NOW)?);
-                    run.on_response(HttpResponse::new(200, body.to_string()), NOW)?
+        ConnectionCallStart::Running { binding, mut run, mut step } => {
+            let mut result = ClientFunctionResult { fields: run.fields(), rows: Vec::new() };
+            loop {
+                if let Some(rows) = run.take_rows() {
+                    result.rows.extend(rows.rows);
                 }
-                CallStep::Sleep { .. } => panic!("no wait"),
-                CallStep::Done(result) => return Ok((result, sent)),
+                step = match step {
+                    CallStep::Send(request) => {
+                        sent.push(binding.http_request(ConnectionCredentials::Salesforce(tokens), &request, NOW)?);
+                        run.on_response(HttpResponse::new(200, body.to_string()), NOW)?
+                    }
+                    CallStep::Sleep { .. } => panic!("no wait"),
+                    CallStep::Done => return Ok((result, sent)),
+                }
             }
-        },
+        }
     }
 }
 
@@ -267,8 +273,8 @@ fn sends_the_request_of_the_spec_to_its_host_with_its_token() {
     assert_eq!(sent[0].url, "https://org.my.salesforce.com/services/data/v68.0/ssot/segments?batchSize=10");
     assert_eq!(sent[0].header("Authorization"), Some("Bearer core-token"));
     assert_eq!(result.cell(0, "api_name").and_then(Cell::as_str), Some("Vip"));
-    // The UI reads the result as IPC bytes
-    assert!(!result.to_ipc_stream().unwrap().is_empty());
+    // The host reads the result as Arrow
+    assert_eq!(result.to_record_batch().unwrap().num_rows(), 1);
 }
 
 #[test]

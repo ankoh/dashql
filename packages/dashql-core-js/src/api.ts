@@ -234,6 +234,8 @@ async function loadDefaultWasm(): Promise<Uint8Array | URL> {
 let moduleInstantiation: Promise<void> | null = null;
 /// Did this copy of the package instantiate the module?
 let moduleInstantiated = false;
+/// The linear memory of the module, once this copy of the package instantiated it
+let moduleMemory: WebAssembly.Memory | null = null;
 
 export class DashQL {
     encoder: TextEncoder;
@@ -267,7 +269,7 @@ export class DashQL {
             // Instantiations at the same time would replace the memory of the module under each other
             const instantiation = (async () => {
                 const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadDefaultWasm();
-                await glue.default({ module_or_path: moduleOrPath });
+                moduleMemory = (await glue.default({ module_or_path: moduleOrPath })).memory;
             })();
             moduleInstantiation = instantiation;
             instantiation.catch(() => {
@@ -284,6 +286,11 @@ export class DashQL {
     /// instances of `create`, it shares the wasm memory and owns its native objects.
     public static instantiated(): DashQL | null {
         return moduleInstantiated ? new DashQL({ ...glue }) : null;
+    }
+
+    /// The bytes of the linear memory of the module. It grows to the peak of what the module held and never shrinks.
+    public static moduleMemoryBytes(): number {
+        return moduleMemory?.buffer.byteLength ?? 0;
     }
 
     public registerMemory(ptr: Ptr<symbol>) {

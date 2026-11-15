@@ -2,37 +2,42 @@
 //!
 //! Trino and the HTTP API of Hyper are state machines of the crate, the executor sends their requests with
 //! `HttpHost::fetch`, runs their timers with `Host::sleep` and feeds the outcomes back. A client function call sends
-//! the requests of its run until the result is complete. A channel of the host streams the Arrow IPC of its batches.
-//! Every connector reports `Running` once the result streams, its progress and its batches, and stops at the backend
-//! when the query is cancelled.
+//! the requests of its run until the result is complete. A channel of the host streams the metrics of its batches.
+//! Every connector reports `Running` once the result streams, its progress and the parts of its result, and stops at
+//! the backend when the query is cancelled. No connector keeps a part of the result: a page of Trino or of a client
+//! function is written as the next part of an Arrow IPC stream and handed to the host, a chunk of Hyper is handed on
+//! as it is.
 
 use std::collections::VecDeque;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use arrow_array::RecordBatch;
-use arrow_schema::{Schema, SchemaRef};
+use arrow_schema::SchemaRef;
 
+use super::ipc::IpcStreamWriter;
 use super::wait::{next, Controls, TaskSet, Wake};
 use super::{
-    ipc, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, QueryEvent, QueryFailure, QueryId,
-    QueryTarget, LOG_TARGET,
+    ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, QueryEvent, QueryFailure, QueryId, QueryTarget,
+    LOG_TARGET,
 };
-use crate::clfn::{start_connection_client_function, CallStep, ConnectionCallStart, ConnectionCredentials};
+use crate::clfn::{
+    start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart, ConnectionCredentials,
+};
 use crate::host::{HostError, LogLevel};
-use crate::http::{CancellationToken, FetchOutcome, Headers, HttpResponse};
+use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpResponse};
 use crate::hyper::{HyperHttpChannel, ResultEvent};
 use crate::query::progress::QueryProgressModel;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use dashql_buffers::profile::ProfileLayoutConfig;
 use crate::trino::{StreamOutput, TokenRefresh, TrinoChannel, TrinoQuery, TrinoQueryOptions};
 
-/// The end of a result stream
+/// A failure to write the Arrow IPC stream of a result
+fn write_failure(message: String) -> QueryFailure {
+    QueryFailure::new(FailureKind::Error, message)
+}
+
+/// The end of a result stream, the host holds its parts
 pub struct StreamEnd {
-    /// The schema of the result
-    pub schema: SchemaRef,
-    /// The batches, none if the result is not published
-    pub batches: Vec<RecordBatch>,
     /// The metrics of the stream
     pub metrics: QueryExecutionMetrics,
 }
@@ -47,8 +52,10 @@ pub struct StreamContext<H: ExecutorHost> {
     log_details: Vec<(String, String)>,
     /// Did the result start to stream?
     started: bool,
+    /// The schema of a result that the module converts to Arrow
     schema: Option<SchemaRef>,
-    batches: Vec<RecordBatch>,
+    /// The Arrow IPC stream of a converted result, once its first part was written
+    writer: Option<IpcStreamWriter>,
     metrics: QueryExecutionMetrics,
     /// The layout of the plan of the progress, none for the default one
     progress_layout: Option<ProfileLayoutConfig>,
@@ -75,7 +82,7 @@ impl<H: ExecutorHost> StreamContext<H> {
             log_details,
             started: false,
             schema: None,
-            batches: Vec::new(),
+            writer: None,
             metrics: QueryExecutionMetrics::default(),
             progress_layout,
             progress_model: None,
@@ -126,34 +133,69 @@ impl<H: ExecutorHost> StreamContext<H> {
         self.report(QueryEvent::Progress(Box::new(progress)));
     }
 
+    /// The schema of a result that the module converts to Arrow
     fn schema(&mut self, schema: SchemaRef) {
         if self.schema.is_none() {
             self.schema = Some(schema);
         }
     }
 
-    /// A batch arrived, the metrics count it already
-    fn batch(&mut self, batch: RecordBatch) {
-        if !self.publish {
-            return;
+    /// The writer of the Arrow IPC stream of a converted result
+    fn writer(&mut self, schema: SchemaRef) -> Result<&mut IpcStreamWriter, QueryFailure> {
+        let schema = self.schema.get_or_insert(schema).clone();
+        if self.writer.is_none() {
+            self.writer = Some(IpcStreamWriter::new(&schema).map_err(write_failure)?);
         }
-        self.schema(batch.schema());
+        self.writer.as_mut().ok_or_else(|| QueryFailure::new(FailureKind::Error, "the result has no stream"))
+    }
+
+    /// A page that the module converted to a batch arrived, the metrics count it already. The batch goes to the host
+    /// as the next part of the stream.
+    fn batch(&mut self, batch: RecordBatch) -> Result<(), QueryFailure> {
+        if !self.publish {
+            return Ok(());
+        }
         let details = vec![
             ("batchColumns".to_string(), batch.num_columns().to_string()),
             ("batchRows".to_string(), batch.num_rows().to_string()),
         ];
         self.log(LogLevel::Debug, "Received result batch", details, LOG_TARGET);
-        self.batches.push(batch);
+        let part = self.writer(batch.schema())?.write(&batch).map_err(write_failure)?;
+        drop(batch);
+        self.report(QueryEvent::ResultData(Body::Bytes(part)));
+        self.report(QueryEvent::ReceivedBatch(self.metrics.clone()));
+        Ok(())
+    }
+
+    /// A part of the Arrow IPC stream of the result arrived, the metrics count it already. It goes to the host as it
+    /// is.
+    fn part(&mut self, body: Body) {
+        if !self.publish {
+            return;
+        }
+        let details = vec![("bytes".to_string(), body.len().to_string())];
+        self.log(LogLevel::Debug, "Received result chunk", details, LOG_TARGET);
+        self.report(QueryEvent::ResultData(body));
         self.report(QueryEvent::ReceivedBatch(self.metrics.clone()));
     }
 
-    /// The end of the stream
-    fn end(&mut self) -> StreamEnd {
-        StreamEnd {
-            schema: self.schema.clone().unwrap_or_else(|| Arc::new(Schema::empty())),
-            batches: std::mem::take(&mut self.batches),
-            metrics: self.metrics.clone(),
+    /// A batch arrived at the host, the metrics count it already
+    fn host_batch(&mut self) {
+        if self.publish {
+            self.report(QueryEvent::ReceivedBatch(self.metrics.clone()));
         }
+    }
+
+    /// The end of the stream. A converted result ends its Arrow IPC stream, with the schema if no batch came.
+    fn end(&mut self) -> Result<StreamEnd, QueryFailure> {
+        if self.publish {
+            if let Some(schema) = self.schema.clone() {
+                let part = self.writer(schema)?.finish().map_err(write_failure)?;
+                self.report(QueryEvent::ResultData(Body::Bytes(part)));
+            }
+        }
+        self.writer = None;
+        Ok(StreamEnd { metrics: self.metrics.clone() })
     }
 
     /// Log a backend that failed to cancel a query, the query ends all the same
@@ -271,7 +313,7 @@ async fn run_trino<H: ExecutorHost>(
                 }
                 StreamOutput::Batch(batch) => {
                     context.metrics = query.metrics().clone();
-                    context.batch(batch);
+                    context.batch(batch)?;
                 }
                 StreamOutput::Warning { message, error } => {
                     let mut details = vec![("error".to_string(), error.message.clone())];
@@ -280,7 +322,7 @@ async fn run_trino<H: ExecutorHost>(
                 }
                 StreamOutput::Finished => {
                     context.metrics = query.metrics().clone();
-                    return Ok(context.end());
+                    return context.end();
                 }
                 StreamOutput::Failed(error) => {
                     context.metrics = query.metrics().clone();
@@ -339,7 +381,7 @@ async fn run_hyper<H: ExecutorHost>(
     text: &str,
 ) -> Result<StreamEnd, QueryFailure> {
     let host = context.host.clone();
-    let response = match context.token.run(host.fetch(channel.execute_query(text, auth), &context.token)).await {
+    let response = match context.token.run(host.fetch_result(channel.execute_query(text, auth), &context.token)).await {
         None => return Err(QueryFailure::cancelled()),
         Some(Err(error)) => return Err(context.request_failure(&error)),
         Some(Ok(response)) => response,
@@ -347,7 +389,6 @@ async fn run_hyper<H: ExecutorHost>(
     let mut reader = channel.open_result(response, host.now() as i64)?;
     context.running();
     let mut pending: TaskSet<u64, Result<HttpResponse, HostError>> = TaskSet::new();
-    let mut base = QueryExecutionMetrics::default();
     loop {
         let poll = reader.poll(auth)?;
         for event in poll.events {
@@ -357,21 +398,22 @@ async fn run_hyper<H: ExecutorHost>(
                     progress.metrics = context.metrics.clone();
                     context.progress(progress);
                 }
-                ResultEvent::Schema(schema) => context.schema(schema),
-                ResultEvent::Batch(batch) => {
-                    base.total_batches_received += 1;
-                    base.total_rows_received += batch.num_rows() as u64;
-                    context.metrics.total_batches_received = base.total_batches_received;
-                    context.metrics.total_rows_received = base.total_rows_received;
-                    context.batch(batch);
+                // The chunks count as the batches until the host counts the batches of the result
+                ResultEvent::Chunk(body) => {
+                    context.metrics.total_batches_received += 1;
+                    context.part(body);
                 }
             }
         }
         for request in poll.requests {
-            pending.push(request.id, host.fetch(request.request, &context.token));
+            if request.chunk {
+                pending.push(request.id, host.fetch_result(request.request, &context.token));
+            } else {
+                pending.push(request.id, host.fetch(request.request, &context.token));
+            }
         }
         if poll.done {
-            return Ok(context.end());
+            return context.end();
         }
         match next(&mut pending, &context.token, &context.controls).await {
             Wake::Cancelled => {
@@ -406,9 +448,13 @@ async fn run_client_function<H: ExecutorHost>(
         // The connector has no binding, starting the call names it
         return Err(start_without_spec(target));
     };
-    let result = match start_connection_client_function(target.connector, spec, &target.description, host.now())? {
-        ConnectionCallStart::Explained(result) => result,
+    match start_connection_client_function(target.connector, spec, &target.description, host.now())? {
+        ConnectionCallStart::Explained(result) => client_function_rows(context, result)?,
         ConnectionCallStart::Running { binding, mut run, mut step } => loop {
+            // The rows of a page go to the host once the page arrived
+            if let Some(rows) = run.take_rows() {
+                client_function_rows(context, rows)?;
+            }
             step = match step {
                 CallStep::Send(request) => {
                     let credentials = ConnectionCredentials::Salesforce(target.tokens.as_ref());
@@ -434,18 +480,29 @@ async fn run_client_function<H: ExecutorHost>(
                     }
                     run.on_wake(host.now())?
                 }
-                CallStep::Done(result) => break result,
+                CallStep::Done => {
+                    // A result without rows has the columns of the function
+                    context.running();
+                    context.schema(ClientFunctionResult { fields: run.fields(), rows: Vec::new() }.schema());
+                    break;
+                }
             };
         },
-    };
-    // The result is complete once the stream exists
-    let batch = result.to_record_batch()?;
+    }
+    context.end()
+}
+
+/// The rows of a page of a client function call: the result streams once the first page arrived
+fn client_function_rows<H: ExecutorHost>(
+    context: &mut StreamContext<H>,
+    rows: ClientFunctionResult,
+) -> Result<(), QueryFailure> {
+    let batch = rows.to_record_batch()?;
+    drop(rows);
     context.running();
     context.metrics.total_batches_received += 1;
     context.metrics.total_rows_received += batch.num_rows() as u64;
-    context.schema(batch.schema());
-    context.batch(batch);
-    Ok(context.end())
+    context.batch(batch)
 }
 
 /// The failure of a call on a connector without client functions
@@ -510,21 +567,13 @@ async fn run_host_channel<H: ExecutorHost>(context: &mut StreamContext<H>) -> Re
             }
             Wake::Control => host.channel_profile_detail(query_id, context.controls.profile_shown()),
             Wake::Done((), Ok(ChannelMessage::Progress(progress))) => context.progress(*progress),
-            Wake::Done((), Ok(ChannelMessage::Batch { ipc, metrics })) => {
+            Wake::Done((), Ok(ChannelMessage::Batch { metrics })) => {
                 context.metrics = metrics;
-                let (schema, batches) = ipc::read_stream(&ipc).map_err(|message| QueryFailure::new(FailureKind::Error, message))?;
-                context.schema(schema);
-                for batch in batches {
-                    context.batch(batch);
-                }
+                context.host_batch();
             }
-            Wake::Done((), Ok(ChannelMessage::End { schema_ipc, metrics })) => {
+            Wake::Done((), Ok(ChannelMessage::End { metrics })) => {
                 context.metrics = metrics;
-                if let Some(bytes) = schema_ipc {
-                    let (schema, _) = ipc::read_stream(&bytes).map_err(|message| QueryFailure::new(FailureKind::Error, message))?;
-                    context.schema(schema);
-                }
-                return Ok(Some(context.end()));
+                return context.end().map(Some);
             }
             Wake::Done((), Err(error)) => return Err(context.request_failure(&error)),
             Wake::Idle => return Err(QueryFailure::new(FailureKind::Error, "The channel stalled")),

@@ -147,7 +147,7 @@ What crosses how:
 |---|---|---|
 | The state of DashQL | serde objects of views | workbook, script, connection, query, computation, effects, actions |
 | Payloads of the core | FlatBuffers in views, by key | editor updates, staged diffs, compiled visualizations, processing statistics, completions, query profiles |
-| Tables | Objects of the host by handle; Rust reads the IPC that a task needs once and keeps its values | results, the tables of the computations |
+| Tables | Objects of the host by handle; Rust reads the IPC that a task needs once and keeps its values. A query result never enters the core module, its parts stream to the host | results, the tables of the computations |
 
 ## One projection
 
@@ -262,7 +262,8 @@ what it built. `detailsProto` of the connection goes, the view of the details is
 ### What stays special
 
 - **Arrow tables.** Every Arrow table is a handle of the host, also the ones that the tasks of the computations
-  compute, see [Handles](#handles).
+  compute, see [Handles](#handles). Result tables of queries never live in the core module: the executor hands their
+  parts to the host as they arrive, and the host registers the table it builds from them as a handle.
 - **The compute host.** `NativeComputations` implements `ComputeHost` (import, create, query, drop, register a table,
   release, cancel). Its calls get the context as a view (`ComputeCallContext`) and the effects of a task as
   `ComputationEffect[]`.
@@ -441,5 +442,6 @@ with the tables of its tasks coming from the host.
 - **`into_wasm_abi` of tsify.** Deprecated: a failed conversion panics and leaks. `Ts<T>` is typed the same way.
 - **Views as FlatBuffers.** The schemas of `proto/fb` are the contract of the core; the views belong to DashQL and
   change with it. The FlatBuffer path stays for the payloads that the core produces.
-- **Serialize on the state types.** The state holds sessions, catalogs and Arrow arrays, and its field names are
-  not the contract. The views decide what crosses.
+- **Serialize on the state types.** The state holds sessions, catalogs and the tables of the computations, and its
+  field names are not the contract. The views decide what crosses. Query results are not in the state, it holds their
+  handles.

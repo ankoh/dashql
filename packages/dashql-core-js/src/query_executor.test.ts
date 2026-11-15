@@ -43,7 +43,7 @@ class TrinoHost implements dashql.QueryExecutorHost {
         const type = JSON.parse(event).type as string;
         if (type === 'log') return;
         this.events.push(type);
-        if (type === 'receivedAllBatches') this.results.push(payload as Uint8Array);
+        if (type === 'resultData') this.results.push(payload as Uint8Array);
         if (type === 'progress') this.progress.push(payload as dashql.QueryProgressUpdate);
     }
     async cacheLookup() { return null; }
@@ -51,6 +51,7 @@ class TrinoHost implements dashql.QueryExecutorHost {
     async cacheTouch() { }
     async cacheWrite() { }
     async analyzeResult() { }
+    async finishResult(): Promise<dashql.QueryExecutorHostTable> { return { rows: 2, columns: 1, batches: 1 }; }
     async channelOpen() { return false; }
     async channelNext(): Promise<dashql.QueryExecutorChannelMessage> { throw new Error('no channel'); }
     async channelCancel() { }
@@ -76,15 +77,19 @@ const trino: dashql.DashQLQueryTarget = {
 };
 
 describe('DashQLQueryExecutor', () => {
-    it('streams a Trino query over the fetch of the host and hands the result over as Arrow IPC', async () => {
+    it('streams a Trino query over the fetch of the host and hands the pages over as parts of an Arrow IPC stream', async () => {
         const host = new TrinoHost();
         const executor = dql!.createQueryExecutor(host);
         const outcome = await executor.execute(1, request(trino));
         expect(outcome).toEqual({ status: 'resolved', hasResult: true });
-        expect(host.events).toEqual(['sending', 'running', 'progress', 'progress', 'receivedBatch', 'timing', 'receivedAllBatches', 'resultsReady', 'succeeded']);
+        expect(host.events).toEqual([
+            'sending', 'running', 'progress', 'progress', 'resultData', 'receivedBatch', 'resultData', 'timing', 'receivedAllBatches',
+            'resultsReady', 'succeeded',
+        ]);
         expect(host.requests[0].headers).toContainEqual(['X-Trino-User', 'u']);
-        // An Arrow IPC stream starts with the continuation marker of its schema message
+        // The first part starts with the continuation marker of the schema message, the last one ends the stream
         expect([...host.results[0].slice(0, 4)]).toEqual([255, 255, 255, 255]);
+        expect([...host.results[1]]).toEqual([255, 255, 255, 255, 0, 0, 0, 0]);
         expect(executor.isRunning(1)).toBe(false);
         executor.destroy();
     });
@@ -102,6 +107,65 @@ describe('DashQLQueryExecutor', () => {
         expect(outcome.status === 'rejected' && outcome.failure.kind).toBe('cancelled');
         expect(host.requests.at(-1)?.method).toBe('DELETE');
         expect(host.events.at(-1)).toBe('cancelled');
+        executor.destroy();
+    });
+
+    it('hands the chunks of Hyper over HTTP back to the host as they came', async () => {
+        const host = new TrinoHost();
+        const status = (chunks: number) => JSON.stringify({ queryId: 'h1', completionStatus: 'FINISHED', chunkCount: chunks });
+        const bodies = [new Uint8Array([255, 255, 255, 255, 8, 0, 0, 0]), new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])];
+        host.fetch = async (_requestId, request) => {
+            host.requests.push(request);
+            const body = request.method === 'POST' ? bodies[0] : bodies[1];
+            return { status: 200, statusText: 'OK', headers: [['x-hyperdb-status', status(2)]], body };
+        };
+        const executor = dql!.createQueryExecutor(host);
+        const hyper: dashql.DashQLQueryTarget = { type: 'hyperHttp', params: { endpoint: 'https://hyper.example' }, clientContext: null, auth: {} };
+        const outcome = await executor.execute(1, request(hyper));
+        expect(outcome).toEqual({ status: 'resolved', hasResult: true });
+        expect(host.requests).toHaveLength(2);
+        expect(host.requests[1].url).toContain('/api/v3/query/h1/chunk/1');
+        // The same objects, the bytes never entered the module
+        expect(host.results).toHaveLength(2);
+        expect(host.results[0]).toBe(bodies[0]);
+        expect(host.results[1]).toBe(bodies[1]);
+        executor.destroy();
+    });
+
+    it('keeps the memory of the module at a page while a large Trino result streams', async () => {
+        // 64 pages of 4096 rows with a text of 256 characters, 69 MB as Arrow. The module grows by about 5 MB, it grew
+        // by 200 MB when the executor collected the batches and wrote them as one stream.
+        const PAGES = 64;
+        const value = 'x'.repeat(256);
+        const data = JSON.stringify(Array.from({ length: 4096 }, (_, i) => [i, value]));
+        const columns = JSON.stringify([{ name: 'n', type: 'integer' }, { name: 's', type: 'varchar' }]);
+        const encoder = new TextEncoder();
+        const page = (index: number) => {
+            const next = index < PAGES ? `,"nextUri":"${TRINO}/v1/statement/executing/q1/y/${index + 1}"` : '';
+            const state = index < PAGES ? 'RUNNING' : 'FINISHED';
+            return encoder.encode(`{"id":"q1","columns":${columns},"data":${data}${next},"stats":{"state":"${state}"}}`);
+        };
+        const host = new TrinoHost();
+        let resultBytes = 0;
+        host.fetch = async (_requestId, request) => {
+            const ok = (body: Uint8Array) => ({ status: 200, statusText: 'OK', headers: [] as [string, string][], body });
+            if (request.url.endsWith('/v1/statement')) {
+                return ok(encoder.encode(`{"id":"q1","nextUri":"${TRINO}/v1/statement/executing/q1/y/1","stats":{"state":"QUEUED","queued":true}}`));
+            }
+            return ok(page(Number(/\/y\/(\d+)/.exec(request.url)?.[1])));
+        };
+        host.report = (_queryId, _event, payload) => {
+            if (payload instanceof Uint8Array) resultBytes += payload.byteLength;
+            // A progress update holds memory of the module until a history takes it
+            else (payload as { free?: () => void } | undefined)?.free?.();
+        };
+        const executor = dql!.createQueryExecutor(host);
+        const before = dashql.DashQL.moduleMemoryBytes();
+        const outcome = await executor.execute(1, request(trino));
+        const grown = dashql.DashQL.moduleMemoryBytes() - before;
+        expect(outcome).toEqual({ status: 'resolved', hasResult: true });
+        expect(resultBytes).toBeGreaterThan(64 * 1024 * 1024);
+        expect(grown).toBeLessThan(24 * 1024 * 1024);
         executor.destroy();
     });
 

@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Date32Type, Int32Type, Int64Type, TimestampMillisecondType};
-use arrow_array::Array;
 use dashql_core_runtime::http::Url;
 use dashql_core_runtime::clfn::*;
 use serde_json::{json, Value};
@@ -84,7 +83,12 @@ impl Host {
     fn run(&mut self, spec: &Rc<ClientFunctionSpec>, description: &ClientFunctionCallDescription) -> Result<ClientFunctionResult, ClientFunctionError> {
         let variables = ClientFunctionVariables::from([("version".to_string(), "2".to_string())]);
         let (mut run, mut step) = ClientFunctionCallRun::start(spec.clone(), description, variables, self.now)?;
+        // The rows come page by page
+        let mut result = ClientFunctionResult { fields: run.fields(), rows: Vec::new() };
         loop {
+            if let Some(rows) = run.take_rows() {
+                result.rows.extend(rows.rows);
+            }
             step = match step {
                 CallStep::Send(request) => {
                     let request = http_request(&request, &Host::target())?;
@@ -97,7 +101,7 @@ impl Host {
                     self.now += ms;
                     run.on_wake(self.now)?
                 }
-                CallStep::Done(result) => return Ok(result),
+                CallStep::Done => return Ok(result),
             };
         }
     }
@@ -235,8 +239,9 @@ fn does_not_change_the_fields_that_it_keeps_for_paging() {
         "name": "list", "rows": "/collection/items", "options": [{ "name": "token", "in": "query" }],
         "paging": { "kind": "token", "from": { "body": "/collection/next" }, "option": "token" },
     })]);
-    let (result, _) = run(&s, call("list", json!({})), vec![json_response(json!({ "collection": { "items": [{}], "next": "a" } }))]);
-    assert_eq!(text(&result, 0, "_next").as_deref(), Some("a"));
+    let pages = vec![json_response(json!({ "collection": { "items": [{}], "next": "a" } })), json_response(json!({ "collection": { "items": [] } }))];
+    let (result, host) = run(&s, call("list", json!({ "_pages": 2 })), pages);
+    assert_eq!(param(host.url(1), "token").as_deref(), Some("a"));
     assert_eq!(text(&result, 0, "_meta").as_deref(), Some("{\"collection\":{\"next\":\"a\"}}"));
 }
 
@@ -261,7 +266,6 @@ fn keeps_the_body_in_raw_and_ends_the_list() {
         assert_eq!(result.rows.len(), 1);
         assert_eq!(text(&result, 0, "id"), None);
         assert_eq!(status_of(&result, 0), Cell::Int32(200));
-        assert_eq!(text(&result, 0, "_next"), None);
         assert_eq!(text(&result, 0, "_raw").as_deref(), Some(raw));
     }
 }
@@ -477,11 +481,10 @@ fn ids(result: &ClientFunctionResult) -> Vec<Cell> {
 }
 
 #[test]
-fn returns_one_page_and_the_value_for_the_next_one() {
+fn returns_one_page_with_the_value_for_the_next_one_in_meta() {
     let (result, host) = run(&token_paging(), call("list", json!({ "size": 2 })), vec![json_response(json!({ "items": [{ "id": 1 }, { "id": 2 }], "next": "abc", "total": 9 }))]);
     assert_eq!(host.sent.len(), 1);
     assert_eq!(ids(&result), [Cell::Int64(1), Cell::Int64(2)]);
-    assert_eq!(text(&result, 1, "_next").as_deref(), Some("abc"));
     assert_eq!(json_cell(&result, 0, "_meta"), json!({ "next": "abc", "total": 9 }));
 }
 
@@ -491,7 +494,7 @@ fn applies_next_to_the_option_of_the_function() {
     assert_eq!(param(host.url(0), "pageToken").as_deref(), Some("abc"));
     assert_eq!(param(host.url(0), "size").as_deref(), Some("2"));
     assert_eq!(param(host.url(0), "_next"), None);
-    assert_eq!(text(&result, 0, "_next"), None);
+    assert_eq!(ids(&result), [Cell::Int64(3)]);
 }
 
 #[test]
@@ -503,7 +506,8 @@ fn concatenates_up_to_pages_and_next_continues_after_them() {
     );
     assert_eq!(host.sent.len(), 2);
     assert_eq!(ids(&result), [Cell::Int64(1), Cell::Int64(2)]);
-    assert_eq!((text(&result, 0, "_next"), text(&result, 1, "_next")), (Some("b".into()), Some("b".into())));
+    assert_eq!(param(host.url(1), "pageToken").as_deref(), Some("a"));
+    assert_eq!(result.column_names(), ["id", "_status", "_meta", "_raw"]);
 }
 
 #[test]
@@ -532,11 +536,9 @@ fn fails_on_a_token_that_comes_back_unchanged() {
 }
 
 #[test]
-fn keeps_the_position_on_an_empty_page_with_a_next_value() {
+fn returns_no_rows_for_an_empty_page_of_a_paged_function() {
     let (result, _) = run(&token_paging(), call("list", json!({})), vec![json_response(json!({ "items": [], "next": "a" }))]);
-    assert_eq!(result.rows.len(), 1);
-    assert_eq!(result.cell(0, "id"), Some(&Cell::Null));
-    assert_eq!(text(&result, 0, "_next").as_deref(), Some("a"));
+    assert!(result.rows.is_empty());
     let (last, _) = run(&token_paging(), call("list", json!({})), vec![json_response(json!({ "items": [] }))]);
     assert!(last.rows.is_empty());
 }
@@ -594,7 +596,7 @@ fn takes_a_cursor_from_the_last_row_and_ends_with_has_more() {
     );
     assert_eq!(param(host.url(1), "starting_after").as_deref(), Some("b"));
     assert_eq!(host.sent.len(), 2);
-    assert_eq!(text(&result, 0, "_next"), None);
+    assert_eq!(result.rows.len(), 3);
 }
 
 #[test]
@@ -603,16 +605,17 @@ fn advances_offsets_by_the_rows_that_arrived() {
         spec(vec![json!({ "name": "o", "rows": "/items", "options": [{ "name": "offset", "in": "query" }, { "name": "limit", "in": "query" }], "paging": paging })])
     };
     let paging = json!({ "kind": "offset", "option": "offset", "size": "limit", "start": 0 });
-    let (result, _) = run(&with_paging(paging.clone()), call("o", json!({ "limit": 100, "offset": 10 })), vec![json_response(json!({ "items": [{}, {}] }))]);
-    assert_eq!(text(&result, 0, "_next").as_deref(), Some("12"));
-    let (short, _) = run(&with_paging(merge(paging.clone(), json!({ "end": "short_page" }))), call("o", json!({ "limit": 100 })), vec![json_response(json!({ "items": [{}, {}] }))]);
-    assert_eq!(text(&short, 0, "_next"), None);
-    let (total, _) = run(
+    let pages = vec![json_response(json!({ "items": [{}, {}] })), json_response(json!({ "items": [] }))];
+    let (_, host) = run(&with_paging(paging.clone()), call("o", json!({ "limit": 100, "offset": 10, "_pages": 2 })), pages);
+    assert_eq!(param(host.url(1), "offset").as_deref(), Some("12"));
+    let (_, short) = run(&with_paging(merge(paging.clone(), json!({ "end": "short_page" }))), call("o", json!({ "limit": 100, "_pages": 2 })), vec![json_response(json!({ "items": [{}, {}] }))]);
+    assert_eq!(short.sent.len(), 1);
+    let (_, total) = run(
         &with_paging(merge(paging.clone(), json!({ "end": { "total": "/totalSize" } }))),
-        call("o", json!({ "offset": 8, "limit": 2 })),
+        call("o", json!({ "offset": 8, "limit": 2, "_pages": 2 })),
         vec![json_response(json!({ "items": [{}, {}], "totalSize": 10 }))],
     );
-    assert_eq!(text(&total, 0, "_next"), None);
+    assert_eq!(total.sent.len(), 1);
     let (_, host) = run(&with_paging(paging), call("o", json!({ "_next": "12" })), vec![json_response(json!({ "items": [{}] }))]);
     assert_eq!(param(host.url(0), "offset").as_deref(), Some("12"));
 }
@@ -730,13 +733,26 @@ fn produces_arrow_batches() {
     assert!(column("active").as_boolean().value(0));
     assert_eq!(column("created").as_primitive::<TimestampMillisecondType>().value(0), 1_767_323_045_000);
     assert_eq!(column("_status").as_primitive::<Int32Type>().value(0), 200);
-    assert!(column("_next").is_null(0));
-    // The UI reads the IPC stream
-    let ipc = result.to_ipc_stream().unwrap();
-    let reader = arrow_ipc::reader::StreamReader::try_new(std::io::Cursor::new(ipc), None).unwrap();
-    let batches: Vec<_> = reader.map(|b| b.unwrap()).collect();
-    assert_eq!(batches.len(), 1);
-    assert_eq!(batches[0].num_rows(), 1);
+    assert!(batch.column_by_name("_next").is_none());
+}
+
+#[test]
+fn hands_the_rows_over_page_by_page() {
+    let variables = ClientFunctionVariables::from([("version".to_string(), "2".to_string())]);
+    let (mut run, step) = ClientFunctionCallRun::start(token_paging(), &call("list", json!({ "_pages": 3 })), variables, 0.0).unwrap();
+    assert!(matches!(step, CallStep::Send(_)));
+    let step = run.on_response(json_response(json!({ "items": [{ "id": 1 }, { "id": 2 }], "next": "a" })), 0.0).unwrap();
+    assert!(matches!(step, CallStep::Send(_)));
+    // The rows of a page are ready once it arrived, the run keeps none
+    let first = run.take_rows().unwrap();
+    assert_eq!(ids(&first), vec![Cell::Int64(1), Cell::Int64(2)]);
+    assert!(run.take_rows().is_none());
+    let step = run.on_response(json_response(json!({ "items": [] , "next": "b" })), 0.0).unwrap();
+    assert!(matches!(step, CallStep::Send(_)));
+    assert!(run.take_rows().is_none());
+    let step = run.on_response(json_response(json!({ "items": [{ "id": 3 }], "next": "c" })), 0.0).unwrap();
+    assert_eq!(step, CallStep::Done);
+    assert_eq!(ids(&run.take_rows().unwrap()), vec![Cell::Int64(3)]);
 }
 
 // The pending results
@@ -829,7 +845,7 @@ fn stops_polling_when_the_statement_is_canceled() {
 #[test]
 fn has_a_poll_column_only_with_a_pending_rule() {
     let (without, _) = run(&spec(vec![json!({ "name": "x" })]), call("x", json!({})), vec![json_response(json!({}))]);
-    assert_eq!(without.column_names(), ["_status", "_next", "_meta", "_raw"]);
+    assert_eq!(without.column_names(), ["_status", "_meta", "_raw"]);
     let (error, _) = fail(&spec(vec![json!({ "name": "x" })]), call("x", json!({ "_poll": "a" })), vec![]);
     assert!(error.message.contains("no option _poll"));
 }

@@ -136,10 +136,11 @@ pub trait RuntimeHost: Host + HttpHost + RestoreHost + OAuthHost + ChannelHost +
 - `ChannelHost` is the half of `ExecutorHost` and `SetupHost` that speaks the channels of the host: open, next message,
   cancel, profile detail, close, by the handle of the channel. The embedded Hyper, gRPC through the native proxy of the
   desktop app and the channels of tests live there.
-- `ComputeDatabaseHost` is the I/O half of `ComputeHost` (import Arrow IPC, create a table from a SELECT, query, drop,
-  cancel the calls of a run) plus reading the columns of a Parquet attachment and mounting the attachments.
-- `ResultCacheHost` is the query result cache: lookup, read and write a file as Arrow IPC (the compute database reads
-  and writes the Parquet), touch, retain and release, new file names, the mount prefix, remove. It replaces the cache
+- `ComputeDatabaseHost` is the I/O half of `ComputeHost` (import a result table by its handle, create a table from a
+  SELECT, query, drop, cancel the calls of a run) plus reading the columns of a Parquet attachment and mounting the
+  attachments.
+- `ResultCacheHost` is the query result cache: lookup, read a file into a result table of the host and write one by
+  its handle (the compute database reads and writes the Parquet), touch, retain and release, new file names, the mount prefix, remove. It replaces the cache
   calls of `ExecutorHost` and `RunHost` and the `ExecutionMounts` of TypeScript.
 - What the hosts are told today about the registries goes: `report`, `update_started`, `update_finished`,
   `workbook_changed`, `state`, `changed` of the computations, `dispatch` of the setups. They are changes of the
@@ -255,7 +256,7 @@ What stays a host object by id:
 |---|---|---|
 | A channel of the host: the embedded Hyper session, gRPC through the native proxy, a channel of a test | the connection | `close` on reset, delete or a new setup |
 | The stream of a query on a host channel | the running query | with the query |
-| A result table that isn't in Rust yet (until slice 4), a table that an action of the host hands over | the history, the computation | with the query, the computation or the history limit |
+| A result table (results never live in the core module), a table that an action of the host hands over | the history, the computation | with the query, the computation or the history limit |
 | A host operation that Rust can abort: a fetch, the calls of a compute run, a channel stream, an OAuth flow | the task | `abort`, then `release` when the task ends |
 | The original error of a failed query, setup or update (a `LoggableException` with its stack) | the query, the update | with the query or the update |
 | An OAuth window or the loopback listener of a flow | the setup | when the flow ends or is cancelled |
@@ -311,27 +312,26 @@ What stays a host object by id:
 
 ## Result tables
 
-- **Rust values.** A query result is an `Arc<ResultTable>` (arrow-rs record batches with the schema) in the history of
-  its connection. The connectors in Rust (Trino, Hyper over HTTP, Salesforce Data Cloud, client functions) build the
-  batches already; a channel of the host hands its batches over as Arrow IPC as today, and the executor decodes them
-  with `arrow-ipc`. A result read from the query result cache crosses from the host as IPC once.
-- **Shared, not copied.** The computations take the same `Arc` for the analysis and import it into the compute database
-  as IPC written by Rust, without the decoding and re-encoding of `analyzeTable` (the double write of "Open" in
-  core_runtime.md goes). A run writes a materialized result and the executor writes the cache from the same table.
-- **To the UI once.** `runtime.resultTable(tableId)` crosses the IPC once per table id and `apache-arrow` decodes it;
-  the table cache of the store keeps the decoded table while a query, a run result or a computation names it, and
-  drops it with the `release` of the change set. `executeQuery` keeps its signature for its callers: its promise
-  resolves with the decoded table.
+- **Results never live in the core module.** A result passes through the module at most one page at a time, where a
+  protocol needs a conversion (Trino, client functions), and lives in JavaScript and in hyperdb-wasm (through the data
+  frames), held by handle. Hyper over HTTP hands its chunks over as they are, a channel of the host keeps its batches.
+  The query executor works like this already, see "The query executor" in core_runtime.md. The core module is wasm32:
+  its linear memory has a limit of 4 GiB and never shrinks, so a result held in Rust would keep its peak for the life
+  of the page. There is no memory budget in Rust and no result as a Rust value.
+- **Host tables by handle.** A query result is a table of the host (`ResultTable::Host`), the history and the
+  computations hold its handle. The host builds it from the parts of the stream (`finish_result`) or reads it from the
+  query result cache, imports it into the compute database for the analysis and writes the cache from it; Rust
+  decides when, and learns the rows, columns and batches.
+- **To the UI.** The table is a JavaScript value already: `runtime.resultTable(tableId)` returns it from the handle
+  table, nothing crosses. The table cache of the store keeps it while a query, a run result or a computation names it,
+  and drops it with the `release` of the change set. `executeQuery` keeps its signature for its callers: its promise
+  resolves with the table.
 - **The cache as a host.** `ResultCacheHost` keeps OPFS, the Parquet files and the pins; the keys, the decisions to
   read, write and evict are Rust. The key keeps its bytes: the signature of the params and the script are built in Rust
   in the canonical form of `query_result_cache_key.ts`, the host hashes them with SHA-256.
-- **What goes.** The `table` and `cacheEntry` of the query records, `tableIPC`, the `tables` map of `NativeConnection`,
-  `registerArrowTable` for results, `analyze_table.ts`, `result_computations.ts` (the crate has its port), the
-  `analyze_result` and `cache_*` calls of `ExecutorHost`.
-- **Memory.** The core module is wasm32: its linear memory has a limit of 4 GiB and never shrinks. A result held in
-  Rust grows it to its peak for the life of the page, a result in the JavaScript heap is collected. Slice 4 measures
-  the memory of the module with a large result and sets a budget; a result beyond it stays a host table by handle
-  (`ResultTable::Host`), which the computations import through the host as today. See [Risks](#risks).
+- **What goes.** The `table` and `cacheEntry` of the query records move to the handle table, `registerArrowTable` for
+  results, `analyze_table.ts`, `result_computations.ts` (the crate has its port), the `analyze_result` and `cache_*`
+  calls of `ExecutorHost` become calls of the runtime host on the handle.
 
 ## Slices
 
@@ -402,9 +402,9 @@ counted without tests.
 
 ### 4. Queries on the runtime
 
-- **Rust.** The executor reports into the history of the runtime, query ids from the runtime, results as
-  `Arc<ResultTable>`, the analysis on the computations of the runtime, the cache through `ResultCacheHost`, the
-  queries of the compute tasks in the history.
+- **Rust.** The executor reports into the history of the runtime, query ids from the runtime, results as host tables
+  by handle (`ResultTable::Host`, no memory budget in Rust), the analysis on the computations of the runtime, the cache
+  through `ResultCacheHost`, the queries of the compute tasks in the history.
 - **TypeScript.** `executeQuery` and `cancelQuery` of the runtime; `QueryExecutorService` keeps its signature as a
   facade and the channels of the host (`produce`, `nextMessage`, the Trino token of a host channel) in
   `runtime_host.ts`.
@@ -413,12 +413,11 @@ counted without tests.
   `tracked_query_execution.ts`, the tables and query records of `connection_native.ts`, the import path of
   `computation_native.ts`.
 - **Lines.** TypeScript −900, +150 (net −750). Rust bindings −300 (the executor binding and its JSON events).
-- **Risks.** The memory of the module (the biggest risk of the plan). The progress of a stream, which must stay batched
-  per frame. The bytes of the cache key.
+- **Risks.** The progress of a stream, which must stay batched per frame. The bytes of the cache key.
 - **Tests.** `query_executor_service.test.ts`, `compute/computations.test.ts`, `workbook_execution_integration.test.ts`
-  (cached results), `executor_test.rs`, `compute_service_test.rs`; new: a result crosses once per table id (count the
-  calls), the keys of a fixed workbook match the keys of today (a snapshot), the memory of the module after a result of
-  100 MB and its release, measured.
+  (cached results), `executor_test.rs`, `compute_service_test.rs`; new: a result table is the same object for every
+  reader of its handle, the keys of a fixed workbook match the keys of today (a snapshot). The memory of the module
+  while a large result streams is measured already (`query_executor.test.ts` of `dashql-core-js`).
 
 ### 5. The services on the executor
 
@@ -492,10 +491,6 @@ about another 2,500 of hydrators and types.
 
 ## Risks
 
-- **The memory of the module, the biggest.** Results move from the JavaScript heap into the linear memory of the wasm32
-  core module, which is capped at 4 GiB and never returns what it grew by. A page that shows one large result keeps the
-  peak; a result above a few hundred MB fails to allocate where the heap of JavaScript would hold it. Slice 4 measures
-  it and keeps results beyond a budget as host tables by handle. The other risks are smaller.
 - **Re-entrancy.** One `Runtime` object means every host call happens inside a method of it. The bindings take `&self`
   with the state in `RefCell`s, a host call never runs inside a borrow, and the host is told only after the borrow
   ended; a host that calls back synchronously gets the wasm-bindgen error "recursive use", not a panic. A test per host
@@ -520,15 +515,16 @@ about another 2,500 of hydrators and types.
   TypeScript; in Rust an action runs once by construction, only the notification needs batching.
 - **Notifying per action.** A result stream applies hundreds of batches per second; the frame batching of the queue
   stays as the batching of notifications.
-- **Results only as handles.** It would keep the decoding and re-encoding between the executor, the cache and the
-  computations, and the computations would keep importing through TypeScript. Handles stay the fallback above the
-  memory budget.
+- **Results as Rust values.** The linear memory of the wasm32 core module is capped at 4 GiB and never returns what
+  it grew by: a page that showed one large result would keep the peak, and a result above a few hundred MB would fail
+  to allocate where the heap of JavaScript holds it. A budget with handles above it would keep two paths. Results stay
+  host tables by handle; the cost is that the analysis and the cache go through the host.
 - **Reading the module in `getSnapshot`.** A revision costs a crossing (0.14 µs, measured in runtime_projection.md)
   per read and React reads often; the cache holds the revisions of the last flush.
 
 ## Open
 
-- The budget of results in Rust and whether a large result streams to the UI in parts.
+- Whether a large result streams to the UI in parts, and whether the parts go to the compute database as they arrive.
 - Whether the shell becomes a runtime without workbooks, so its history and computations are those of the runtime.
 - Whether `ConnectionSaveState` and the run states need revisions of their own or ride on their connection and
   workbook.

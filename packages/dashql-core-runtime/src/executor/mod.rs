@@ -6,8 +6,14 @@
 //! `HyperResultReader` (Salesforce Data Cloud too, with its bearer token), client functions with a
 //! `ClientFunctionCallRun`, all over `HttpHost::fetch` and the timers of the host. A connection whose channel is an
 //! object of the host (the gRPC channel of Hyper in the desktop app, the embedded Hyper, a channel of a test) stays a
-//! channel of the host: the task asks the host to run the query and reads the Arrow IPC of the batches. The batches of a
-//! result cross to the host once, as one Arrow IPC stream with the event `ReceivedAllBatches`.
+//! channel of the host: the task asks the host to run the query and follows the metrics of its batches.
+//!
+//! A result never lives in the module, it passes through one page at a time where a protocol needs a conversion. The
+//! chunks of Hyper over HTTP are parts of one Arrow IPC stream already, they go to the host as they arrive, unread and
+//! mostly without entering the module (`ExecutorHost::fetch_result`). A page of Trino or of a client function becomes
+//! the next part of an Arrow IPC stream and goes to the host right away (`QueryEvent::ResultData`). The batches of a
+//! channel of the host stay with the host. Once the result is complete, the host builds its table from the parts
+//! (`ExecutorHost::finish_result`).
 //!
 //! The task keeps the progress model of its query (`query::progress`): the progress payloads of the engine become
 //! the structured progress of the query (its stages, the plan once it is known, their execution state), every
@@ -33,15 +39,13 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::rc::Rc;
 
-use arrow_array::RecordBatch;
-use arrow_schema::SchemaRef;
 use dashql_buffers::profile::ProfileLayoutConfig;
 
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionError, ClientFunctionSpec};
 use crate::connections::ConnectorType;
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{HostError, LogLevel};
-use crate::http::{CancellationToken, Headers, HttpHost};
+use crate::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
 use crate::hyper::{HyperError, HyperHttpChannel};
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use crate::salesforce::SalesforceTokens;
@@ -220,14 +224,6 @@ impl From<ClientFunctionError> for QueryFailure {
     }
 }
 
-/// The result of a query
-pub enum QueryResult {
-    /// The batches that the task collected
-    Batches { schema: SchemaRef, batches: Vec<RecordBatch> },
-    /// A result that the host holds, e.g. one that it read from the cache
-    Host { rows: u64 },
-}
-
 /// What happens to a query, in order. The host applies it to the history of the connection of the query.
 pub enum QueryEvent {
     /// The query is sent to the backend
@@ -236,10 +232,13 @@ pub enum QueryEvent {
     Running,
     /// The backend reported progress, with the structured progress of the progress model of the query
     Progress(Box<QueryExecutionProgress>),
+    /// The next part of the Arrow IPC stream of the result, in the order of the result. A message may span parts, a
+    /// part may repeat the schema or hold an end-of-stream marker. The host holds the parts until `finish_result`.
+    ResultData(Body),
     /// A batch of the result arrived, with the metrics of the stream so far
     ReceivedBatch(QueryExecutionMetrics),
-    /// The result is complete
-    ReceivedAllBatches { result: QueryResult, metrics: QueryExecutionMetrics },
+    /// The result is complete, the host holds its table
+    ReceivedAllBatches { rows: u64, metrics: QueryExecutionMetrics },
     /// The analysis of the result started
     ProcessingResults,
     /// The analysis of the result finished
@@ -282,21 +281,23 @@ pub struct CacheEntry {
     pub cached_at: f64,
 }
 
-/// A cached result that the host read and holds
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CachedTable {
+/// A result table that the host holds: one it read from the cache or one it built from the parts of a stream
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct HostTable {
     pub rows: u64,
     pub columns: u64,
+    /// The record batches, 0 if the host doesn't say
+    pub batches: u64,
 }
 
-/// What a channel of the host reports while it streams a result
+/// What a channel of the host reports while it streams a result. The batches stay with the host.
 pub enum ChannelMessage {
     /// Progress of the backend, an engine payload of it goes into the progress model of the query
     Progress(Box<QueryExecutionProgress>),
-    /// A batch as an Arrow IPC stream, with the metrics of the stream so far
-    Batch { ipc: Vec<u8>, metrics: QueryExecutionMetrics },
-    /// The result is complete. The schema comes as an Arrow IPC stream without batches if no batch came.
-    End { schema_ipc: Option<Vec<u8>>, metrics: QueryExecutionMetrics },
+    /// A batch arrived at the host, with the metrics of the stream so far
+    Batch { metrics: QueryExecutionMetrics },
+    /// The result is complete
+    End { metrics: QueryExecutionMetrics },
 }
 
 /// What the executor asks of the host
@@ -307,7 +308,7 @@ pub trait ExecutorHost: HttpHost {
     /// Look up a result in the query result cache
     fn cache_lookup(&self, query_id: QueryId, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static;
     /// Read a cached result, the host holds it as the result of the query
-    fn cache_read(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<CachedTable, HostError>> + 'static;
+    fn cache_read(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
     /// Record that a cached result was used, for the eviction
     fn cache_touch(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static;
     /// Write the result of a query into the cache
@@ -315,6 +316,19 @@ pub trait ExecutorHost: HttpHost {
 
     /// Analyze the result of a query on the compute database
     fn analyze_result(&self, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static;
+
+    /// Send a request whose response carries a part of a result. The body of a successful response may stay with the
+    /// host (`HttpResponse::host_body`), the module passes it on unread.
+    fn fetch_result(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+        self.fetch(request, cancellation)
+    }
+    /// The result of a query streamed to its end: the host builds its table from the parts of the stream or from the
+    /// batches of its channel and holds it as the result of the query.
+    fn finish_result(&self, query_id: QueryId) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
 
     /// Run a query on the channel of its connection, false if the channel returned no result
     fn channel_open(&self, query_id: QueryId) -> impl Future<Output = Result<bool, HostError>> + 'static;
@@ -630,20 +644,33 @@ impl<H: ExecutorHost> QueryTask<H> {
             self.log(LogLevel::Warn, "Query returned no results", self.query_details());
             return Ok(ResultSummary { has_table: false, served_from_cache: false });
         };
-        let rows: usize = end.batches.iter().map(RecordBatch::num_rows).sum();
+        let mut stream_metrics = end.metrics;
+        let table = if self.request.publish_results {
+            // The host builds the table from the parts it holds
+            let table = self.host.finish_result(self.request.query_id).await;
+            if self.token.is_cancelled() {
+                return Err(QueryFailure::cancelled());
+            }
+            let table = table.map_err(|error| QueryFailure::from_host(&error))?;
+            stream_metrics.total_rows_received = table.rows;
+            stream_metrics.total_batches_received = table.batches;
+            *metrics = Some(stream_metrics.clone());
+            Some(table)
+        } else {
+            None
+        };
         let mut details = self.query_details();
-        if self.request.publish_results {
-            details.push(("numRows".to_string(), rows.to_string()));
-            details.push(("numCols".to_string(), end.schema.fields().len().to_string()));
+        if let Some(table) = &table {
+            details.push(("numRows".to_string(), table.rows.to_string()));
+            details.push(("numCols".to_string(), table.columns.to_string()));
         }
-        details.push(("batchesReceived".to_string(), end.metrics.total_batches_received.to_string()));
-        details.push(("dataBytesReceived".to_string(), end.metrics.total_data_bytes_received.to_string()));
+        details.push(("batchesReceived".to_string(), stream_metrics.total_batches_received.to_string()));
+        details.push(("dataBytesReceived".to_string(), stream_metrics.total_data_bytes_received.to_string()));
         self.log(LogLevel::Info, "Executed query", details);
-        if !self.request.publish_results {
+        let Some(table) = table else {
             return Ok(ResultSummary { has_table: false, served_from_cache: false });
-        }
-        let result = QueryResult::Batches { schema: end.schema, batches: end.batches };
-        self.report(QueryEvent::ReceivedAllBatches { result, metrics: end.metrics });
+        };
+        self.report(QueryEvent::ReceivedAllBatches { rows: table.rows, metrics: stream_metrics });
         Ok(ResultSummary { has_table: true, served_from_cache: false })
     }
 
@@ -703,7 +730,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         details.push(("cachedAt".to_string(), crate::trino::time::iso_timestamp(entry.cached_at as i64)));
         self.log(LogLevel::Info, "Served query from cache", details);
         let metrics = QueryExecutionMetrics::default();
-        self.report(QueryEvent::ReceivedAllBatches { result: QueryResult::Host { rows: table.rows }, metrics });
+        self.report(QueryEvent::ReceivedAllBatches { rows: table.rows, metrics });
         self.report(QueryEvent::CacheRecorded {
             key: cache.key.clone(),
             served_from_cache: true,

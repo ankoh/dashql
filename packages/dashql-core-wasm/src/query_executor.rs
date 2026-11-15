@@ -2,9 +2,13 @@
 //!
 //! The host is a JavaScript object (`QueryExecutorHost`): the clock, timers, fetch through the HTTP client of the
 //! platform, the query result cache, the analysis of results and the channels of the host. A query comes as JSON, its
-//! events go to `report` as JSON with a payload next to them: the Arrow IPC stream of a result, a progress update
-//! (`QueryProgressUpdate`, the host hands it to the history of the connection) or what the host failed with. `execute`
-//! resolves with the outcome once the query ended.
+//! events go to `report` as JSON with a payload next to them: a part of the Arrow IPC stream of a result, a progress
+//! update (`QueryProgressUpdate`, the host hands it to the history of the connection) or what the host failed with.
+//! `execute` resolves with the outcome once the query ended.
+//!
+//! A result never stays in the module. The body of a successful response that carries a chunk of a result stays a
+//! `Uint8Array` of the host, the module hands the same object back as a part of the result. A part that the module
+//! wrote, a page of Trino or of a client function as Arrow, is copied out once and dropped.
 
 use std::cell::{Cell, RefCell};
 use std::future::Future;
@@ -14,14 +18,14 @@ use std::task::{Context, Poll};
 
 use dashql_core_runtime::executor::json::{event_json, failure_json, metrics_from_json, request_from_json, SpecCache};
 use dashql_core_runtime::executor::{
-    ipc, CacheEntry, CachedTable, ChannelMessage, ExecutorHost, QueryEvent, QueryExecutor as RuntimeExecutor, QueryId,
-    QueryOutcome, QueryResult,
+    CacheEntry, ChannelMessage, ExecutorHost, HostTable, QueryEvent, QueryExecutor as RuntimeExecutor, QueryId,
+    QueryOutcome,
 };
 use dashql_core_runtime::query::QueryExecutionProgress;
 use tsify::Ts;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
-use dashql_core_runtime::http::{CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
+use dashql_core_runtime::http::{Body, CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde_json::{Map, Value};
 use wasm_bindgen::prelude::*;
@@ -47,11 +51,18 @@ export interface QueryExecutorHttpResponse {
     headers: [string, string][];
     body: Uint8Array;
 }
-/** What a channel of the host reports while it streams a result. The metrics are JSON. */
+/** What a channel of the host reports while it streams a result, the batches stay with the host. The metrics are JSON. */
 export type QueryExecutorChannelMessage =
     | { type: 'progress'; progress: QueryProgressView }
-    | { type: 'batch'; ipc: Uint8Array; metrics: string }
-    | { type: 'end'; schema: Uint8Array | null; metrics: string };
+    | { type: 'batch'; metrics: string }
+    | { type: 'end'; metrics: string };
+/** A result table that the host holds */
+export interface QueryExecutorHostTable {
+    rows: number;
+    columns: number;
+    /** The record batches, 0 if unknown */
+    batches?: number;
+}
 /** The host of the query executor */
 export interface QueryExecutorHost {
     /** The time in milliseconds since the epoch */
@@ -64,17 +75,19 @@ export interface QueryExecutorHost {
     /** Send a request, `abortFetch` with its id stops it */
     fetch(requestId: number, request: QueryExecutorHttpRequest): Promise<QueryExecutorHttpResponse>;
     abortFetch(requestId: number): void;
-    /** An event of a query as JSON. The payload is the Arrow IPC stream of a result, a `QueryProgressUpdate` or what the host failed with. */
+    /** An event of a query as JSON. The payload is a part of the Arrow IPC stream of a result (a Uint8Array, the body of the response of the host itself for a chunk of Hyper), a `QueryProgressUpdate` or what the host failed with. */
     report(queryId: number, event: string, payload: unknown): void;
     /** The entry of the query result cache of a key, null on a miss */
     cacheLookup(queryId: number, key: string): Promise<{ name: string; cachedAt: number } | null>;
     /** Read a cached result, the host holds it as the result of the query */
-    cacheRead(queryId: number, name: string): Promise<{ rows: number; columns: number }>;
+    cacheRead(queryId: number, name: string): Promise<QueryExecutorHostTable>;
     cacheTouch(queryId: number, name: string): Promise<void>;
     /** Write the result of the query into the cache */
     cacheWrite(queryId: number, key: string): Promise<void>;
     /** Analyze the result of the query on the compute database */
     analyzeResult(queryId: number): Promise<void>;
+    /** The result streamed to its end: build its table from the parts of the stream or the batches of the channel, and hold it as the result of the query */
+    finishResult(queryId: number): Promise<QueryExecutorHostTable>;
     /** Run the query on the channel of its connection, false if the channel returned no result */
     channelOpen(queryId: number): Promise<boolean>;
     channelNext(queryId: number): Promise<QueryExecutorChannelMessage>;
@@ -113,6 +126,8 @@ extern "C" {
     fn cache_write(this: &JsQueryExecutorHost, query_id: f64, key: &str) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, catch, js_name = analyzeResult)]
     fn analyze_result(this: &JsQueryExecutorHost, query_id: f64) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = finishResult)]
+    fn finish_result(this: &JsQueryExecutorHost, query_id: f64) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, catch, js_name = channelOpen)]
     fn channel_open(this: &JsQueryExecutorHost, query_id: f64) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, catch, js_name = channelNext)]
@@ -202,6 +217,11 @@ pub(crate) fn request_value(request: &HttpRequest) -> JsValue {
 }
 
 pub(crate) fn response_of(value: &JsValue) -> Result<HttpResponse, HostError> {
+    response_keeping(value, false)
+}
+
+/// A response of the host. A successful one may keep its body with the host, the module passes it on unread.
+fn response_keeping(value: &JsValue, keep_body: bool) -> Result<HttpResponse, HostError> {
     let status = field(value, "status").and_then(|status| status.as_f64()).ok_or_else(|| HostError::new("a response without a status"))?;
     let mut response = HttpResponse::new(status.clamp(0.0, 999.0) as u16, Vec::new());
     response.status_text = field(value, "statusText").and_then(|text| text.as_string()).unwrap_or_default();
@@ -214,13 +234,17 @@ pub(crate) fn response_of(value: &JsValue) -> Result<HttpResponse, HostError> {
         }
     }
     if let Some(body) = field(value, "body") {
-        response.body = Uint8Array::new(&body).to_vec();
+        match body.dyn_ref::<Uint8Array>() {
+            // The same object goes back to the host
+            Some(bytes) if keep_body && response.status < 400 => {
+                let length = bytes.length() as usize;
+                response.host_body = Some(HostBytes::new(Rc::new(body), length));
+            }
+            Some(bytes) => response.body = bytes.to_vec(),
+            None => response.body = Uint8Array::new(&body).to_vec(),
+        }
     }
     Ok(response)
-}
-
-fn bytes_value(bytes: &[u8]) -> JsValue {
-    Uint8Array::from(bytes).into()
 }
 
 fn metrics_of(value: &JsValue, key: &str) -> dashql_core_runtime::query::QueryExecutionMetrics {
@@ -237,14 +261,8 @@ fn channel_progress(value: Option<JsValue>) -> QueryExecutionProgress {
 fn channel_message(value: &JsValue) -> Result<ChannelMessage, HostError> {
     match field(value, "type").and_then(|kind| kind.as_string()).as_deref() {
         Some("progress") => Ok(ChannelMessage::Progress(Box::new(channel_progress(field(value, "progress"))))),
-        Some("batch") => {
-            let ipc = field(value, "ipc").map(|bytes| Uint8Array::new(&bytes).to_vec()).unwrap_or_default();
-            Ok(ChannelMessage::Batch { ipc, metrics: metrics_of(value, "metrics") })
-        }
-        Some("end") => {
-            let schema_ipc = field(value, "schema").map(|bytes| Uint8Array::new(&bytes).to_vec());
-            Ok(ChannelMessage::End { schema_ipc, metrics: metrics_of(value, "metrics") })
-        }
+        Some("batch") => Ok(ChannelMessage::Batch { metrics: metrics_of(value, "metrics") }),
+        Some("end") => Ok(ChannelMessage::End { metrics: metrics_of(value, "metrics") }),
         _ => Err(HostError::new("an unknown message of a channel")),
     }
 }
@@ -276,6 +294,23 @@ impl Host for JsHost {
 
 impl HttpHost for JsHost {
     fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+        self.send(request, cancellation, false)
+    }
+}
+
+/// A count of a result table of the host
+fn count_of(value: &JsValue, key: &str) -> u64 {
+    field(value, key).and_then(|n| n.as_f64()).unwrap_or_default().max(0.0) as u64
+}
+
+/// A result table of the host
+fn host_table(value: &JsValue) -> HostTable {
+    HostTable { rows: count_of(value, "rows"), columns: count_of(value, "columns"), batches: count_of(value, "batches") }
+}
+
+impl JsHost {
+    /// Send a request with the fetch of the host, a successful response may keep its body with the host
+    fn send(&self, request: HttpRequest, cancellation: &CancellationToken, keep_body: bool) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         let id = self.next_request.get() + 1.0;
         self.next_request.set(id);
         let host = self.host.clone();
@@ -291,7 +326,7 @@ impl HttpHost for JsHost {
                     let _ = host.abort_fetch(id);
                     Err(HostError::new(CANCELLED_MESSAGE))
                 }
-                Some(Ok(value)) => response_of(&value),
+                Some(Ok(value)) => response_keeping(&value, keep_body),
                 Some(Err(value)) => Err(host_error(value)),
             }
         }
@@ -302,12 +337,9 @@ impl ExecutorHost for JsHost {
     fn report(&self, query_id: QueryId, event: QueryEvent) {
         let json = event_json(&event).to_string();
         let payload = match event {
-            QueryEvent::ReceivedAllBatches { result: QueryResult::Batches { schema, batches }, .. } => {
-                match ipc::write_stream(&schema, &batches) {
-                    Ok(bytes) => bytes_value(&bytes),
-                    Err(message) => JsError::new(&message).into(),
-                }
-            }
+            // A part that the module wrote is copied out once, a part of the host goes back as it came
+            QueryEvent::ResultData(Body::Bytes(bytes)) => Uint8Array::from(bytes.as_slice()).into(),
+            QueryEvent::ResultData(Body::Host(bytes)) => host_value(Some(bytes.value())),
             QueryEvent::Progress(progress) => JsValue::from(QueryProgressUpdate { progress: *progress }),
             QueryEvent::Failed { failure, .. } | QueryEvent::Cancelled { failure, .. } => host_value(failure.value.as_ref()),
             _ => JsValue::UNDEFINED,
@@ -326,13 +358,9 @@ impl ExecutorHost for JsHost {
         }
     }
 
-    fn cache_read(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<CachedTable, HostError>> + 'static {
+    fn cache_read(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
         let call = self.host.cache_read(query_id as f64, &entry.name);
-        async move {
-            let value = host_call(call).await?;
-            let count = |key: &str| field(&value, key).and_then(|n| n.as_f64()).unwrap_or_default().max(0.0) as u64;
-            Ok(CachedTable { rows: count("rows"), columns: count("columns") })
-        }
+        async move { host_call(call).await.map(|value| host_table(&value)) }
     }
 
     fn cache_touch(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static {
@@ -348,6 +376,15 @@ impl ExecutorHost for JsHost {
     fn analyze_result(&self, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static {
         let call = self.host.analyze_result(query_id as f64);
         async move { host_call(call).await.map(|_| ()) }
+    }
+
+    fn fetch_result(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+        self.send(request, cancellation, true)
+    }
+
+    fn finish_result(&self, query_id: QueryId) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+        let call = self.host.finish_result(query_id as f64);
+        async move { host_call(call).await.map(|value| host_table(&value)) }
     }
 
     fn channel_open(&self, query_id: QueryId) -> impl Future<Output = Result<bool, HostError>> + 'static {

@@ -23,8 +23,6 @@ pub const OPTION_WAIT: &str = "_wait";
 
 /// The standard column of the HTTP status
 pub const COLUMN_STATUS: &str = "_status";
-/// The standard column of the value for the next page
-pub const COLUMN_NEXT: &str = "_next";
 /// The standard column of the value to poll, only on functions that can answer before they finish
 pub const COLUMN_POLL: &str = "_poll";
 /// The standard column of the response fields outside the rows
@@ -510,7 +508,7 @@ impl ClientFunctionSpec {
     /// columns. A raw function has no columns of its own, its response is in `_raw`.
     pub fn result_columns<'a>(&self, function: &'a ClientFunction) -> Vec<&'a str> {
         let mut columns: Vec<&'a str> = if function.raw { Vec::new() } else { function.columns.iter().map(|c| c.name.as_str()).collect() };
-        columns.extend([COLUMN_STATUS, COLUMN_NEXT]);
+        columns.push(COLUMN_STATUS);
         if self.has_pending(function) {
             columns.push(COLUMN_POLL);
         }
@@ -734,9 +732,9 @@ mod tests {
         )
         .unwrap();
         let columns = |name: &str| spec.result_columns(spec.function(name).unwrap()).join(",");
-        assert_eq!(columns("a"), "id,label,_status,_next,_meta,_raw");
-        assert_eq!(columns("b"), "id,_status,_next,_poll,_meta,_raw");
-        assert_eq!(columns("c"), "_status,_next,_meta,_raw");
+        assert_eq!(columns("a"), "id,label,_status,_meta,_raw");
+        assert_eq!(columns("b"), "id,_status,_poll,_meta,_raw");
+        assert_eq!(columns("c"), "_status,_meta,_raw");
     }
 
     #[test]

@@ -11,7 +11,9 @@ pub mod base64;
 pub mod host;
 pub mod url;
 
+use std::any::Any;
 use std::fmt;
+use std::rc::Rc;
 
 pub use host::{CancellationToken, HttpHost};
 pub use url::{InvalidUrl, Url};
@@ -190,6 +192,75 @@ impl HttpRequest {
     }
 }
 
+/// Bytes that stayed with the host, e.g. the body of a response that the module passes on without reading it. The
+/// module holds them by a handle and knows only their length.
+#[derive(Clone)]
+pub struct HostBytes {
+    value: Rc<dyn Any>,
+    length: usize,
+}
+
+impl HostBytes {
+    /// The bytes of a value of the host
+    pub fn new(value: Rc<dyn Any>, length: usize) -> Self {
+        Self { value, length }
+    }
+
+    /// The value of the host
+    pub fn value(&self) -> &Rc<dyn Any> {
+        &self.value
+    }
+
+    /// The number of bytes
+    pub fn len(&self) -> usize {
+        self.length
+    }
+
+    /// Are there no bytes?
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
+    }
+}
+
+impl fmt::Debug for HostBytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "HostBytes({} bytes)", self.length)
+    }
+}
+
+impl PartialEq for HostBytes {
+    /// The same value of the host
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.value, &other.value)
+    }
+}
+
+impl Eq for HostBytes {}
+
+/// Bytes that the module passes on: bytes in the module or bytes that stayed with the host
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Body {
+    /// Bytes in the module
+    Bytes(Vec<u8>),
+    /// Bytes that stayed with the host
+    Host(HostBytes),
+}
+
+impl Body {
+    /// The number of bytes
+    pub fn len(&self) -> usize {
+        match self {
+            Body::Bytes(bytes) => bytes.len(),
+            Body::Host(bytes) => bytes.len(),
+        }
+    }
+
+    /// Are there no bytes?
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
 /// A response that the host received
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HttpResponse {
@@ -199,14 +270,24 @@ pub struct HttpResponse {
     pub status_text: String,
     /// The headers
     pub headers: Headers,
-    /// The body
+    /// The body, empty if it stayed with the host
     pub body: Vec<u8>,
+    /// The body if it stayed with the host, see `executor::ExecutorHost::fetch_result`
+    pub host_body: Option<HostBytes>,
 }
 
 impl HttpResponse {
     /// A response with a status and a body
     pub fn new(status: u16, body: impl Into<Vec<u8>>) -> Self {
-        Self { status, status_text: String::new(), headers: Headers::new(), body: body.into() }
+        Self { status, status_text: String::new(), headers: Headers::new(), body: body.into(), host_body: None }
+    }
+
+    /// Take the body, the bytes that stayed with the host if they did
+    pub fn take_body(&mut self) -> Body {
+        match self.host_body.take() {
+            Some(bytes) => Body::Host(bytes),
+            None => Body::Bytes(std::mem::take(&mut self.body)),
+        }
     }
 
     /// The response with a header, a value of a name that is set already is appended

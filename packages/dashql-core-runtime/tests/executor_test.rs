@@ -18,10 +18,13 @@ use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpe
 use dashql_core_runtime::connections::{ConnectorType, TrinoSessionDefaults};
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
-    CacheEntry, CacheRequest, CachedTable, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, QueryEvent, QueryExecutor, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryResult, QueryTarget,
+    CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, HostTable, QueryEvent,
+    QueryExecutor, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget,
 };
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::http::{CancellationToken, Headers, HttpHost, HttpMethod, HttpRequest, HttpResponse};
+use dashql_core_runtime::http::{
+    Body, CancellationToken, Headers, HostBytes, HttpHost, HttpMethod, HttpRequest, HttpResponse,
+};
 use dashql_core_runtime::hyper::{HyperChannelContext, HyperHttpChannel};
 use dashql_buffers::profile as fb;
 use dashql_core_runtime::query::progress::{EngineProgressPayload, HyperQueryStatus};
@@ -131,6 +134,14 @@ struct State {
     sent: Vec<HttpRequest>,
     /// The rows of the result tables by query
     results: HashMap<QueryId, usize>,
+    /// The parts of the result streams by query, until the result is finished
+    parts: HashMap<QueryId, Vec<Vec<u8>>>,
+    /// The parts that stayed with the host
+    host_parts: usize,
+    /// The rows of the batches of the channel so far
+    channel_rows: u64,
+    /// Does `fetch_result` keep the body of a successful response, like the module?
+    keep_bodies: bool,
     /// The messages of the channel, the channel holds once they ran out
     channel: VecDeque<Result<ChannelMessage, HostError>>,
     /// Does the channel return a stream?
@@ -252,11 +263,9 @@ fn event_name(event: &QueryEvent) -> Option<String> {
         QueryEvent::Sending => "sending".into(),
         QueryEvent::Running => "running".into(),
         QueryEvent::Progress(progress) => format!("progress:{}", progress.phase.clone().unwrap_or_default()),
+        QueryEvent::ResultData(_) => return None,
         QueryEvent::ReceivedBatch(metrics) => format!("batch:{}", metrics.total_rows_received),
-        QueryEvent::ReceivedAllBatches { result: QueryResult::Batches { batches, .. }, .. } => {
-            format!("all:{}", batches.iter().map(RecordBatch::num_rows).sum::<usize>())
-        }
-        QueryEvent::ReceivedAllBatches { result: QueryResult::Host { rows }, .. } => format!("all:host:{rows}"),
+        QueryEvent::ReceivedAllBatches { rows, .. } => format!("all:{rows}"),
         QueryEvent::ProcessingResults => "processing".into(),
         QueryEvent::ProcessedResults => "processed".into(),
         QueryEvent::Succeeded => "succeeded".into(),
@@ -279,13 +288,14 @@ impl ExecutorHost for FakeHost {
             return;
         }
         match &event {
-            QueryEvent::ReceivedAllBatches { result: QueryResult::Batches { schema, batches }, .. } => {
-                // The result crosses as Arrow IPC
-                let bytes = write_stream(schema, batches).unwrap();
-                let (_, read) = read_stream(&bytes).unwrap();
-                state.results.insert(query_id, read.iter().map(RecordBatch::num_rows).sum());
+            // The parts of the result stay with the host
+            QueryEvent::ResultData(Body::Bytes(bytes)) => state.parts.entry(query_id).or_default().push(bytes.clone()),
+            QueryEvent::ResultData(Body::Host(bytes)) => {
+                let kept = bytes.value().downcast_ref::<Vec<u8>>().expect("bytes of the host").clone();
+                state.host_parts += 1;
+                state.parts.entry(query_id).or_default().push(kept);
             }
-            QueryEvent::ReceivedAllBatches { result: QueryResult::Host { rows }, .. } => {
+            QueryEvent::ReceivedAllBatches { rows, .. } => {
                 state.results.insert(query_id, *rows as usize);
             }
             QueryEvent::Progress(progress) => state.progress.push((**progress).clone()),
@@ -302,11 +312,11 @@ impl ExecutorHost for FakeHost {
         std::future::ready(Ok(state.cache.get(key).cloned()))
     }
 
-    fn cache_read(&self, _query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<CachedTable, HostError>> + 'static {
+    fn cache_read(&self, _query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.cache_calls.push(format!("read:{}", entry.name));
         let fails = state.cache_read_fails;
-        std::future::ready(if fails { Err(HostError::new("corrupt parquet")) } else { Ok(CachedTable { rows: 1, columns: 1 }) })
+        std::future::ready(if fails { Err(HostError::new("corrupt parquet")) } else { Ok(HostTable { rows: 1, columns: 1, batches: 1 }) })
     }
 
     fn cache_touch(&self, _query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static {
@@ -326,6 +336,34 @@ impl ExecutorHost for FakeHost {
         std::future::ready(if fails { Err(HostError::new("no compute")) } else { Ok(()) })
     }
 
+    fn fetch_result(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+        let keep = self.state.borrow().keep_bodies;
+        let fetch = self.fetch(request, cancellation);
+        async move {
+            let mut response = fetch.await?;
+            if keep && response.status < 400 {
+                let bytes = std::mem::take(&mut response.body);
+                let length = bytes.len();
+                response.host_body = Some(HostBytes::new(Rc::new(bytes), length));
+            }
+            Ok(response)
+        }
+    }
+
+    fn finish_result(&self, query_id: QueryId) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+        let mut state = self.state.borrow_mut();
+        // The host builds the table from the parts of the stream, or from the batches of its channel
+        let table = match state.parts.remove(&query_id) {
+            Some(parts) => read_stream(&parts.concat()).map_err(HostError::new).map(|(schema, batches)| HostTable {
+                rows: batches.iter().map(|batch| batch.num_rows() as u64).sum(),
+                columns: schema.fields().len() as u64,
+                batches: batches.len() as u64,
+            }),
+            None => Ok(HostTable { rows: state.channel_rows, columns: 1, batches: 1 }),
+        };
+        std::future::ready(table)
+    }
+
     fn channel_open(&self, _query_id: QueryId) -> impl Future<Output = Result<bool, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.channel_calls.push("open".into());
@@ -334,6 +372,9 @@ impl ExecutorHost for FakeHost {
 
     fn channel_next(&self, _query_id: QueryId) -> impl Future<Output = Result<ChannelMessage, HostError>> + 'static {
         let message = self.state.borrow_mut().channel.pop_front();
+        if let Some(Ok(ChannelMessage::Batch { metrics })) = &message {
+            self.state.borrow_mut().channel_rows = metrics.total_rows_received;
+        }
         let future: Boxed<Result<ChannelMessage, HostError>> = match message {
             Some(message) => Box::pin(std::future::ready(message)),
             None => {
@@ -411,6 +452,11 @@ fn schema() -> SchemaRef {
 fn batch_ipc(values: &[i32]) -> Vec<u8> {
     let batch = RecordBatch::try_new(schema(), vec![Arc::new(Int32Array::from(values.to_vec()))]).unwrap();
     write_stream(&schema(), &[batch]).unwrap()
+}
+
+/// The parts of the result streams that the host received
+fn part_count(host: &FakeHost, query_id: QueryId) -> usize {
+    host.state.borrow().parts.get(&query_id).map_or(0, Vec::len)
 }
 
 fn json_response(value: Value) -> Answer {
@@ -583,7 +629,7 @@ fn hyper_reads_the_result_of_a_query_over_http() {
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
     assert_eq!(resolved(&outcome), Some(true));
-    assert_eq!(host.events(), ["sending", "running", "progress:", "batch:3", "timing:Results", "all:3", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["sending", "running", "progress:", "batch:0", "timing:Results", "all:3", "ready", "succeeded"]);
     // The status of the query is the progress of the whole query
     let progress = host.state.borrow().progress.clone();
     let profile = progress[0].profile_progress.clone().unwrap();
@@ -591,6 +637,24 @@ fn hyper_reads_the_result_of_a_query_over_http() {
     assert_eq!(query.stats.tuples_out, Some(3));
     let structure = flatbuffers::root::<fb::QueryProfile>(&profile.structure).unwrap();
     assert_eq!(structure.engine(), fb::ProfileEngine::HYPER);
+}
+
+#[test]
+fn hyper_passes_the_chunks_to_the_host_unread() {
+    let host = FakeHost::new();
+    host.state.borrow_mut().keep_bodies = true;
+    host.serve(move |request| {
+        let status = json!({ "queryId": "h1", "completionStatus": "RESULTS_PRODUCED", "chunkCount": 1, "rowCount": 3 });
+        assert_eq!(request.method, HttpMethod::Post);
+        Answer::Now(Ok(HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())))
+    });
+    let channel = HyperHttpChannel::connect(json!({ "endpoint": HYPER }).as_object().unwrap(), HyperChannelContext::default(), None).unwrap();
+    let executor = QueryExecutor::new(host.clone());
+    let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth: Headers::new() }));
+    assert_eq!(resolved(&outcome), Some(true));
+    // The chunk stayed with the host, the host built the table
+    assert_eq!(host.state.borrow().host_parts, 1);
+    assert_eq!(host.state.borrow().results.get(&1), Some(&3));
 }
 
 #[test]
@@ -613,7 +677,7 @@ fn the_progress_of_a_channel_of_the_host_goes_into_the_progress_model_with_the_l
         }
         // A plain update keeps no structured progress of its own, the history keeps the earlier one
         state.channel.push_back(Ok(ChannelMessage::Progress(Box::default())));
-        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(0) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(0) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let top_down = fb::ProfileLayoutOrientation::TOP_DOWN;
@@ -658,15 +722,15 @@ fn metrics(rows: u64) -> QueryExecutionMetrics {
 }
 
 #[test]
-fn a_channel_of_the_host_streams_arrow_ipc() {
+fn a_channel_of_the_host_keeps_its_batches() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
         let progress = QueryExecutionProgress { phase: Some("host".into()), ..Default::default() };
         state.channel.push_back(Ok(ChannelMessage::Progress(Box::new(progress))));
-        state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[1, 2]), metrics: metrics(2) }));
-        state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[3]), metrics: metrics(3) }));
-        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(3) }));
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(2) }));
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(3) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(3) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
@@ -678,6 +742,9 @@ fn a_channel_of_the_host_streams_arrow_ipc() {
         ["sending", "running", "progress:host", "batch:2", "batch:3", "timing:Results", "all:3", "touch", "ready", "succeeded"]
     );
     assert_eq!(host.state.borrow().channel_calls, ["open", "profile:false"]);
+    // Nothing of the result crossed
+    assert_eq!(part_count(&host, 1), 0);
+    assert_eq!(host.state.borrow().results.get(&1), Some(&3));
 }
 
 #[test]
@@ -685,8 +752,8 @@ fn a_statement_without_published_results_is_drained() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
-        state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[1]), metrics: metrics(1) }));
-        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: Some(write_stream(&schema(), &[]).unwrap()), metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
@@ -761,8 +828,8 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
     {
         let mut state = host.state.borrow_mut();
         state.analysis_fails = true;
-        state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[1]), metrics: metrics(1) }));
-        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
@@ -790,7 +857,7 @@ fn a_cached_result_is_served_without_the_backend() {
     query.cache = cached("k");
     query.touches_relations = true;
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
-    assert_eq!(host.events(), ["all:host:1", "cache:k:true", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["all:1", "cache:k:true", "ready", "succeeded"]);
     assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "read:k.parquet", "touch:k.parquet"]);
     assert!(host.log_messages().contains(&"Failed to record query cache access".to_string()));
     assert!(host.state.borrow().channel_calls.is_empty());
@@ -801,8 +868,8 @@ fn a_miss_runs_the_query_and_stores_its_result() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
-        state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[1]), metrics: metrics(1) }));
-        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
@@ -830,8 +897,8 @@ fn an_unreadable_entry_is_a_miss_and_a_failed_write_only_logs() {
         state.cache_read_fails = true;
         state.cache_write_fails = true;
         state.cache.insert("k".into(), CacheEntry { name: "k.parquet".into(), cached_at: 1.0 });
-        state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[1]), metrics: metrics(1) }));
-        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
@@ -918,6 +985,40 @@ fn a_client_function_call_asks_the_service() {
     let outcome = run(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
     assert_eq!(resolved(&outcome), Some(true));
     assert_eq!(host.state.borrow().results.get(&1), Some(&2));
+}
+
+#[test]
+fn a_client_function_call_hands_over_a_page_at_a_time() {
+    let host = FakeHost::new();
+    let mut pages = VecDeque::from([
+        json!({ "segments": [{ "apiName": "A" }, { "apiName": "B" }], "nextPageToken": "t1" }),
+        json!({ "segments": [{ "apiName": "C" }], "nextPageToken": "t2" }),
+    ]);
+    host.serve(move |_| json_response(pages.pop_front().unwrap_or(json!({ "segments": [] }))));
+    let spec = json!({
+        "format": 1,
+        "namespace": "cdp",
+        "hosts": { "core": { "base_path": "/services/data/v{api_version}" } },
+        "functions": [{
+            "name": "segment_list", "method": "GET", "host": "core", "path": "/ssot/segments", "rows": "/segments",
+            "options": [{ "name": "page_token", "api_name": "pageToken", "in": "query" }],
+            "paging": { "kind": "token", "from": { "body": "/nextPageToken" }, "option": "page_token" },
+        }],
+    });
+    let mut description = segment_call();
+    description.options = json!({ "_pages": 2 }).as_object().cloned().unwrap();
+    let target = ClientFunctionTarget {
+        connector: ConnectorType::SalesforceDataCloud,
+        spec: Some(Rc::new(ClientFunctionSpec::from_value(spec).unwrap())),
+        description,
+        tokens: Some(salesforce_tokens()),
+    };
+    let executor = QueryExecutor::new(host.clone());
+    let outcome = run(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
+    assert_eq!(resolved(&outcome), Some(true));
+    assert_eq!(host.state.borrow().results.get(&1), Some(&3));
+    // A batch per page
+    assert_eq!(host.events().iter().filter(|event| event.starts_with("batch:")).count(), 2);
 }
 
 #[test]

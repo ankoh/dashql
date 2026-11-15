@@ -4,10 +4,12 @@ import type * as glue from './wasm/dashql_core.js';
 
 /// The query executor of the Rust runtime (`packages/dashql-core-runtime/src/executor`, see docs/wip/core_runtime.md):
 /// a query is an async task that streams its result over the HTTP client and the timers of the host, or over a channel
-/// of the host, and reports its events. The host keeps the result tables, the cache and the analysis of results.
+/// of the host, and reports its events. The host keeps the result tables, the cache and the analysis of results: the
+/// parts of a result go to the host as they arrive, the module keeps none of them.
 
 export type {
     QueryExecutorHost,
+    QueryExecutorHostTable,
     QueryExecutorHttpRequest,
     QueryExecutorHttpResponse,
     QueryExecutorChannelMessage,

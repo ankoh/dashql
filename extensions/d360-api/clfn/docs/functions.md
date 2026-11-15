@@ -96,7 +96,6 @@ If no source documents a response, the function says so, and it returns one row 
 | Column | Type | Contents |
 |---|---|---|
 | `_status` | `INTEGER` | The HTTP status |
-| `_next` | `VARCHAR` | The value for the next page, in that function's paging style, or `NULL` on the last page |
 | `_meta` | `JSON` | Response fields outside the rows, in the API's spelling, such as `totalSize` and `batchSize`, or `NULL` |
 | `_raw` | `JSON` | Row fields the spec doesn't list, or `NULL`. A new API field lands here, so no data is lost |
 
@@ -117,10 +116,10 @@ Many date fields are plain `string` in the spec, so they stay `VARCHAR`. A value
 
 For example, `CALL cdp.segment_list (batch_size => 2);` returns:
 
-| `api_name` | `display_name` | ... | `_status` | `_next` | `_meta` | `_raw` |
-|---|---|---|---|---|---|---|
-| `Vip` | `VIP customers` | ... | 200 | `2` | `{"batchSize":2,"offset":0}` | `NULL` |
-| `Churn` | `Churn risk` | ... | 200 | `2` | `{"batchSize":2,"offset":0}` | `NULL` |
+| `api_name` | `display_name` | ... | `_status` | `_meta` | `_raw` |
+|---|---|---|---|---|---|
+| `Vip` | `VIP customers` | ... | 200 | `{"batchSize":2,"offset":0}` | `NULL` |
+| `Churn` | `Churn risk` | ... | 200 | `{"batchSize":2,"offset":0}` | `NULL` |
 
 This shows the shape only. These values are made up, since nothing has run against an org.
 

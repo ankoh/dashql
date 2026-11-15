@@ -5,6 +5,7 @@
 //! `packages/dashql-runtime/src/connections/`, and `web_hyperdb_http_client.test.ts` of the app.
 
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
@@ -19,6 +20,7 @@ use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments,
 use dashql_core_runtime::hyper::embedded::*;
 use dashql_core_runtime::hyper::link::*;
 use dashql_core_runtime::hyper::local_cloud::*;
+use dashql_core_runtime::http::{Body, HostBytes};
 use dashql_core_runtime::hyper::*;
 use serde_json::{json, Value};
 
@@ -473,14 +475,21 @@ fn read_result(reader: &mut HyperResultReader, server: &mut MockServer) -> Vec<R
     panic!("the result did not end");
 }
 
-fn batches(events: &[ResultEvent]) -> Vec<&RecordBatch> {
+/// The chunks of a result, the reader passes them on as they arrived
+fn chunks(events: &[ResultEvent]) -> Vec<Vec<u8>> {
     events
         .iter()
         .filter_map(|event| match event {
-            ResultEvent::Batch(batch) => Some(batch),
+            ResultEvent::Chunk(Body::Bytes(bytes)) => Some(bytes.clone()),
             _ => None,
         })
         .collect()
+}
+
+/// The values of a chunk that is a whole stream of one Int32 column
+fn chunk_values(chunk: &[u8]) -> Vec<i32> {
+    let reader = arrow_ipc::reader::StreamReader::try_new(std::io::Cursor::new(chunk), None).unwrap();
+    reader.flat_map(|batch| int_values(&batch.unwrap())).collect()
 }
 
 #[test]
@@ -498,6 +507,8 @@ fn async_query_lifecycle_execute_poll_chunk() {
     let poll = reader.poll(&mock_auth()).unwrap();
     assert_eq!(poll.requests.len(), 1);
     assert!(poll.requests[0].request.url.ends_with("/api/v3/query/q-async?waitTimeMs=250"));
+    // A status poll carries no part of the result, its body is read
+    assert!(!poll.requests[0].chunk);
 
     server.register(MockQuery {
         query_id: "q-async".to_string(),
@@ -519,10 +530,8 @@ fn async_query_lifecycle_execute_poll_chunk() {
     assert!(chunk_request.request.url.ends_with("/api/v3/query/q-async/chunk/0"));
     reader.receive(chunk_request.id, server.fetch(&chunk_request.request), NOW).unwrap();
     let events = read_result(&mut reader, &mut server);
-    assert_eq!(batches(&events).len(), 1);
-    assert_eq!(int_values(batches(&events)[0]), vec![7]);
+    assert_eq!(chunks(&events), [int_table("x", &[7])]);
     assert!(reader.is_done());
-    assert_eq!(reader.schema().unwrap().field(0).name(), "x");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -750,10 +759,10 @@ fn reads_a_single_chunk_result_from_the_query_response() {
     let length = bytes.len() as u64;
     server.set_handler(move |_, _| produced("q-1", bytes.clone()));
     let (reader, events) = run(&connect(HyperChannelContext::default()), &mut server, "select n from t").unwrap();
-    let batches = batches(&events);
-    assert_eq!(batches.len(), 1);
-    assert_eq!(batches[0].num_rows(), 3);
-    assert_eq!(int_values(batches[0]), vec![1, 2, 3]);
+    // The chunk goes on byte for byte
+    let chunks = chunks(&events);
+    assert_eq!(chunks, [int_table("n", &[1, 2, 3])]);
+    assert_eq!(chunk_values(&chunks[0]), vec![1, 2, 3]);
     assert_eq!(reader.metrics().total_data_bytes_received, length);
     // The query response is the only request
     assert_eq!(server.requests.len(), 1);
@@ -769,7 +778,7 @@ fn reports_the_server_status_as_progress() {
     assert_eq!(progress.result_rows, Some(0));
     assert_eq!(progress.rows_processed, Some(0));
     assert_eq!(progress.execution_time_ms, Some(1));
-    assert!(matches!(events[1], ResultEvent::Schema(_)));
+    assert!(matches!(events[1], ResultEvent::Chunk(_)));
 }
 
 #[test]
@@ -799,7 +808,7 @@ fn max_chunks_in_flight(parallel_chunks: usize, chunk_count: u64) -> (usize, Vec
     loop {
         let poll = reader.poll(&Headers::new()).unwrap();
         max_in_flight = max_in_flight.max(reader.chunks_in_flight());
-        values.extend(batches(&poll.events).iter().flat_map(|batch| int_values(batch)));
+        values.extend(chunks(&poll.events).iter().flat_map(|chunk| chunk_values(chunk)));
         if poll.done {
             break;
         }
@@ -823,14 +832,14 @@ fn prefetches_up_to_the_parallel_chunks() {
 }
 
 #[test]
-fn decodes_chunks_in_order_when_responses_arrive_out_of_order() {
+fn passes_the_chunks_on_in_order_when_responses_arrive_out_of_order() {
     let status = json!({ "queryId": "q", "completionStatus": "FINISHED", "chunkCount": 3 }).to_string();
     let channel = connect(HyperChannelContext::default());
     let first = int_table("n", &[0]);
     let mut reader =
         channel.open_result(HttpResponse::new(200, first).with_header("x-hyperdb-status", &status), NOW).unwrap();
     let poll = reader.poll(&Headers::new()).unwrap();
-    assert_eq!(batches(&poll.events).len(), 1);
+    assert_eq!(chunks(&poll.events).len(), 1);
     // The chunks after the first leave out the schema
     assert_eq!(poll.requests.len(), 2);
     assert!(poll.requests.iter().all(|request| request.request.url.ends_with("?omitSchema=true")));
@@ -838,10 +847,10 @@ fn decodes_chunks_in_order_when_responses_arrive_out_of_order() {
     let (second, third) = (&poll.requests[0], &poll.requests[1]);
     reader.receive(third.id, HttpResponse::new(200, int_table("n", &[2])), NOW).unwrap();
     let poll = reader.poll(&Headers::new()).unwrap();
-    assert!(batches(&poll.events).is_empty() && !poll.done);
+    assert!(chunks(&poll.events).is_empty() && !poll.done);
     reader.receive(second.id, HttpResponse::new(200, int_table("n", &[1])), NOW).unwrap();
     let poll = reader.poll(&Headers::new()).unwrap();
-    assert_eq!(batches(&poll.events).iter().map(|batch| int_values(batch)[0]).collect::<Vec<_>>(), vec![1, 2]);
+    assert_eq!(chunks(&poll.events).iter().map(|chunk| chunk_values(chunk)[0]).collect::<Vec<_>>(), vec![1, 2]);
     assert!(poll.done);
     assert!(matches!(reader.receive(99, HttpResponse::new(200, Vec::new()), NOW), Err(HyperError::Protocol(_))));
 }
@@ -860,21 +869,28 @@ fn a_failed_chunk_is_a_query_error() {
 }
 
 #[test]
-fn a_message_may_span_chunks() {
-    let bytes = int_table("n", &[4, 5, 6]);
-    let mut decoder = ChunkedStreamDecoder::new();
-    let mut batches = Vec::new();
-    for part in bytes.chunks(7) {
-        batches.extend(decoder.decode(part).unwrap());
-    }
-    decoder.finish().unwrap();
-    assert_eq!(batches.len(), 1);
-    assert_eq!(int_values(&batches[0]), vec![4, 5, 6]);
-
-    let mut decoder = ChunkedStreamDecoder::new();
-    decoder.decode(&bytes[..bytes.len() / 2]).unwrap();
-    assert!(decoder.finish().is_err());
-    assert!(decode_stream(b"ARROW1ARROW1").is_err());
+fn passes_on_a_chunk_that_stayed_with_the_host() {
+    let status = json!({ "queryId": "q", "completionStatus": "FINISHED", "chunkCount": 2 }).to_string();
+    let channel = connect(HyperChannelContext::default());
+    // A body that stayed with the host: the module knows its length only
+    let kept = |length: usize| {
+        let mut response = HttpResponse::new(200, Vec::new()).with_header("x-hyperdb-status", &status);
+        response.host_body = Some(HostBytes::new(Rc::new(length), length));
+        response
+    };
+    let first = kept(16);
+    let first_body = first.host_body.clone().unwrap();
+    let mut reader = channel.open_result(first, NOW).unwrap();
+    let poll = reader.poll(&Headers::new()).unwrap();
+    assert!(poll.events.contains(&ResultEvent::Chunk(Body::Host(first_body))));
+    assert!(poll.requests.iter().all(|request| request.chunk));
+    let second = kept(8);
+    let second_body = second.host_body.clone().unwrap();
+    reader.receive(poll.requests[0].id, second, NOW).unwrap();
+    let poll = reader.poll(&Headers::new()).unwrap();
+    assert_eq!(poll.events.last(), Some(&ResultEvent::Chunk(Body::Host(second_body))));
+    assert!(poll.done);
+    assert_eq!(reader.metrics().total_data_bytes_received, 24);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

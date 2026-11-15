@@ -131,7 +131,7 @@ planner-snapshots:
       - name: counted
         connection: local
         input: |
-          select count(*), max(_next) from :open_tickets;
+          select count(*), max(_status) from :open_tickets;
 
   # Another script reads no call that writes, and no EXPLAIN, which sends nothing
   - name: CallReferencedWrite

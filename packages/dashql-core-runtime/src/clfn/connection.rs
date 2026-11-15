@@ -245,8 +245,8 @@ pub enum ConnectionCallStart {
     Running { binding: ClientFunctionBinding, run: ClientFunctionCallRun, step: CallStep },
 }
 
-/// Start a client function call of a connection with the spec of its connector. The result is complete once the run is
-/// done: a call with several pages has its pages by then, and `EXPLAIN` has sent nothing.
+/// Start a client function call of a connection with the spec of its connector. A run hands its rows over page by page,
+/// `EXPLAIN` sends nothing and its result is complete.
 pub fn start_connection_client_function(
     connector: ConnectorType,
     spec: Rc<ClientFunctionSpec>,

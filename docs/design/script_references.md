@@ -49,8 +49,8 @@ result cache that is mounted read-write at `/mnt/external/cache`, not as a path 
 ## Client Function Calls
 
 A script that is a single `CALL` of a client function that reads (`client_functions.md`, Running calls) has a result like
-a query: the columns of the function followed by the standard columns, `_status`, `_next`, `_poll` if the function
-can answer before it finishes, `_meta` and `_raw`. The call runs in the host and not in a database, no query can
+a query: the columns of the function followed by the standard columns, `_status`, `_poll` if the function can
+answer before it finishes, `_meta` and `_raw`. The call runs in the host and not in a database, no query can
 inline it, so only a **scan** reads it:
 
 | bar.sql runs on | foo.sql is a call that reads, on | `:foo` in bar.sql |

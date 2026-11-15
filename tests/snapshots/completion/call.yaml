@@ -127,7 +127,7 @@ completion-snapshots:
               detail: "string · required"
             - name: "_next"
               detail: "string"
-              description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
             - name: "_pages"
               detail: "integer"
               description: "The number of pages to read, 1 without this option."
@@ -151,7 +151,7 @@ completion-snapshots:
               detail: "string"
             - name: "_next"
               detail: "string"
-              description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
             - name: "_pages"
               detail: "integer"
               description: "The number of pages to read, 1 without this option."
@@ -268,7 +268,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           detail: "string"
-          description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+          description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
           objects: []
         - score: 1048576
           value: _pages
@@ -428,7 +428,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           detail: "string"
-          description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+          description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
           objects: []
         - score: 1048576
           value: _pages
@@ -493,7 +493,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           detail: "string"
-          description: "The page to read, the `_next` column of an earlier result. `null` means the first page."
+          description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
           objects: []
         - score: 1048576
           value: _pages

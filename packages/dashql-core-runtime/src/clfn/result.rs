@@ -10,7 +10,6 @@ use arrow_array::builder::{
     BooleanBuilder, Date32Builder, Float64Builder, Int32Builder, Int64Builder, StringBuilder, TimestampMillisecondBuilder,
 };
 use arrow_array::{ArrayRef, RecordBatch};
-use arrow_ipc::writer::StreamWriter;
 use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use serde_json::Value;
 
@@ -231,18 +230,6 @@ impl ClientFunctionResult {
             columns.push(array);
         }
         RecordBatch::try_new(self.schema(), columns).map_err(|e| ClientFunctionError::new(e.to_string()))
-    }
-
-    /// The table in the Arrow IPC stream format: the schema, and one batch if the table has rows
-    pub fn to_ipc_stream(&self) -> Result<Vec<u8>, ClientFunctionError> {
-        let error = |e: arrow_schema::ArrowError| ClientFunctionError::new(e.to_string());
-        let schema = self.schema();
-        let mut writer = StreamWriter::try_new(Vec::new(), &schema).map_err(error)?;
-        if !self.rows.is_empty() {
-            writer.write(&self.to_record_batch()?).map_err(error)?;
-        }
-        writer.finish().map_err(error)?;
-        writer.into_inner().map_err(error)
     }
 }
 

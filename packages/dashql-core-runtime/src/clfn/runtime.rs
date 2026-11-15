@@ -2,7 +2,8 @@
 //!
 //! A run starts with the description of the core and returns the first request. The host resolves the host of the
 //! request with the binding of the connection, sends it and hands the response back, and the run answers with the next
-//! request, a wait or the result table. The host owns the clock and the timers: every step takes the time, and a wait
+//! request, a wait or the end. The rows of a page are ready once the page arrived (`take_rows`), the run keeps no
+//! page it read. The host owns the clock and the timers: every step takes the time, and a wait
 //! is a step that the host answers with `on_wake` once the time is over. Canceling a call is dropping the run.
 //!
 //! Ported from `connections/clfn/clfn_runtime.ts` of `packages/dashql-runtime`.
@@ -38,8 +39,8 @@ pub enum CallStep {
     Send(ClientFunctionRequest),
     /// Wait for the milliseconds and call `on_wake`
     Sleep { ms: f64 },
-    /// The call finished with its result
-    Done(ClientFunctionResult),
+    /// The call finished, its rows came with `take_rows`
+    Done,
 }
 
 /// One page of a response
@@ -214,8 +215,8 @@ pub struct ClientFunctionCallRun {
     deadline: f64,
     /// The next wait between two polls
     delay: f64,
-    /// The pages so far
-    page_rows: Vec<Page>,
+    /// The rows of the pages that arrived and weren't taken yet
+    ready: Vec<Vec<Cell>>,
     /// The value for the next page after the last page
     last_next: Option<String>,
     /// The index of the current page
@@ -285,7 +286,7 @@ impl ClientFunctionCallRun {
             current: request.clone(),
             deadline: now + wait * 1000.0,
             delay: POLL_MIN_MS,
-            page_rows: Vec::new(),
+            ready: Vec::new(),
             last_next: None,
             page_index: 0,
             phase: Phase::Sending,
@@ -307,7 +308,6 @@ impl ClientFunctionCallRun {
             .collect();
         let text = |name: &str| ResultField { name: name.to_string(), column_type: ColumnType::Varchar };
         fields.push(ResultField { name: "_status".to_string(), column_type: ColumnType::Integer });
-        fields.push(text("_next"));
         if self.pending.is_some() {
             fields.push(text("_poll"));
         }
@@ -317,10 +317,9 @@ impl ClientFunctionCallRun {
     }
 
     /// A row with only the standard columns
-    fn standard_row(&self, status: u16, next: Option<&str>, poll: Option<&str>, meta: Option<&Value>, raw: Option<&Value>) -> Vec<Cell> {
+    fn standard_row(&self, status: u16, poll: Option<&str>, meta: Option<&Value>, raw: Option<&Value>) -> Vec<Cell> {
         let mut row: Vec<Cell> = self.columns.iter().map(|_| Cell::Null).collect();
         row.push(Cell::Int32(i32::from(status)));
-        row.push(Cell::text(next.map(str::to_string)));
         if self.pending.is_some() {
             row.push(Cell::text(poll.map(str::to_string)));
         }
@@ -330,10 +329,10 @@ impl ClientFunctionCallRun {
     }
 
     /// A row of an item: the listed fields in their columns, everything else in `_raw`
-    fn item_row(&self, item: &Value, page: &Page, next: Option<&str>) -> Vec<Cell> {
+    fn item_row(&self, item: &Value, page: &Page) -> Vec<Cell> {
         let meta = page.meta.clone().map(Value::Object);
         let Value::Object(fields) = item else {
-            return self.standard_row(page.status, next, None, meta.as_ref(), Some(item));
+            return self.standard_row(page.status, None, meta.as_ref(), Some(item));
         };
         let mut rest = fields.clone();
         let mut row: Vec<Cell> = Vec::with_capacity(self.columns.len() + 5);
@@ -347,7 +346,6 @@ impl ClientFunctionCallRun {
             row.push(converted.unwrap_or(Cell::Null));
         }
         row.push(Cell::Int32(i32::from(page.status)));
-        row.push(Cell::text(next.map(str::to_string)));
         if self.pending.is_some() {
             row.push(Cell::Null);
         }
@@ -543,8 +541,9 @@ impl ClientFunctionCallRun {
                 ));
             }
             self.phase = Phase::Done;
-            let row = self.standard_row(response.status, None, Some(&poll), None, None);
-            return Ok(CallStep::Done(ClientFunctionResult { fields: self.fields(), rows: vec![row] }));
+            let row = self.standard_row(response.status, Some(&poll), None, None);
+            self.ready.push(row);
+            return Ok(CallStep::Done);
         }
         let retry_after = response.header("Retry-After").map_or(0.0, |v| super::json::js_number_from_str(&v));
         let wait = if retry_after.is_finite() && retry_after > 0.0 { retry_after * 1000.0 } else { self.delay };
@@ -573,12 +572,13 @@ impl ClientFunctionCallRun {
         if value.is_some() && value.as_deref() == previous {
             return Err(ClientFunctionError::new(format!("{} returned the same next value twice", self.label())));
         }
-        self.page_rows.push(page);
         self.last_next = value.clone();
         let Some(value) = value.filter(|_| self.page_index + 1 < self.pages) else {
             self.phase = Phase::Done;
-            return Ok(CallStep::Done(self.result()));
+            self.page_done(&page);
+            return Ok(CallStep::Done);
         };
+        self.page_done(&page);
         // The next page of this call
         let Some(paging) = self.function.paging.clone() else {
             return Err(ClientFunctionError::new(format!("{} doesn't page", self.label())));
@@ -606,26 +606,26 @@ impl ClientFunctionCallRun {
         Ok(CallStep::Send(request))
     }
 
-    /// The result of the pages. `_next` on every row holds the value after the last page. No row can't carry it, so an
-    /// empty page with a next value still has one.
-    fn result(&self) -> ClientFunctionResult {
-        let next = self.last_next.as_deref();
-        let mut rows = Vec::new();
-        for page in &self.page_rows {
-            for item in &page.items {
-                rows.push(self.item_row(item, page, next));
-            }
-            if let Some(unexpected) = &page.unexpected {
-                rows.push(self.standard_row(page.status, next, None, None, Some(unexpected)));
-            }
+    /// The rows of a page. A result without items of a function that doesn't page still has a row, so its status stays
+    /// visible.
+    fn page_done(&mut self, page: &Page) {
+        let mut rows: Vec<Vec<Cell>> = page.items.iter().map(|item| self.item_row(item, page)).collect();
+        if let Some(unexpected) = &page.unexpected {
+            rows.push(self.standard_row(page.status, None, None, Some(unexpected)));
         }
-        if rows.is_empty() && (next.is_some() || self.function.paging.is_none()) {
-            if let Some(last) = self.page_rows.last() {
-                let meta = last.meta.clone().map(Value::Object);
-                rows.push(self.standard_row(last.status, next, None, meta.as_ref(), None));
-            }
+        if rows.is_empty() && self.function.paging.is_none() {
+            let meta = page.meta.clone().map(Value::Object);
+            rows.push(self.standard_row(page.status, None, meta.as_ref(), None));
         }
-        ClientFunctionResult { fields: self.fields(), rows }
+        self.ready.extend(rows);
+    }
+
+    /// The rows of the pages that arrived since the last call, none if there are none
+    pub fn take_rows(&mut self) -> Option<ClientFunctionResult> {
+        if self.ready.is_empty() {
+            return None;
+        }
+        Some(ClientFunctionResult { fields: self.fields(), rows: std::mem::take(&mut self.ready) })
     }
 }
 

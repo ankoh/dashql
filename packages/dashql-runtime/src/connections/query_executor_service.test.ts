@@ -241,6 +241,20 @@ describe('QueryExecutorService', () => {
             expect(query.resultTable?.numRows).toBe(2);
         });
 
+        it('builds the result of its pages, without a column of the next value', async () => {
+            const backend = vi.fn();
+            const pages = [{ segments: [{ apiName: 'A' }, { apiName: 'B' }] }, { segments: [{ apiName: 'C' }] }];
+            const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify(pages.shift())));
+            await createExecutor(backend, { database: salesforce(backend) });
+            const { table } = await run(argsOf({
+                query: 'call cdp.segment_list (batch_size => 2, _pages => 2)',
+                clientFunctionCall: description('segment_list', { batch_size: 2, _pages: 2 }),
+            }));
+            expect(fetch).toHaveBeenCalledTimes(2);
+            expect(table!.getChild('api_name')!.toArray()).toEqual(['A', 'B', 'C']);
+            expect(table!.getChild('_next')).toBeNull();
+        });
+
         it('fails with the message of the service', async () => {
             const backend = vi.fn();
             vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify([{ message: 'No access' }]), { status: 403 }));

@@ -1,9 +1,10 @@
 //! The result of a query of the HTTP API of Hyper as a state machine.
 //!
 //! The query response holds the status of the query and, once the results are produced, the first chunk of the result.
-//! The reader fetches the other chunks, up to a number of them in parallel, and decodes them in order. While the query
-//! runs and no chunk is announced, it polls the status of the query. Every status, of a chunk or a poll, is merged
-//! into the status so far and reported as progress.
+//! The reader fetches the other chunks, up to a number of them in parallel, and passes them on in the order of the
+//! result without reading them: the chunks are parts of one Arrow IPC stream, and the host builds the result from them.
+//! The reader reads only the status of the query. While the query runs and no chunk is announced, it polls the status.
+//! Every status, of a chunk or a poll, is merged into the status so far and reported as progress.
 //!
 //! The host drives the reader: `poll` returns the events so far, the requests to send and whether the result is read
 //! to the end, `receive` takes the response of a request. The host sends the requests of one poll in parallel and
@@ -14,15 +15,11 @@
 
 use std::collections::VecDeque;
 
-use arrow_array::RecordBatch;
-use arrow_schema::SchemaRef;
-
-use super::arrow_stream::ChunkedStreamDecoder;
 use super::client::{
     read_query_response, read_status_response, GetQueryChunkParams, GetQueryStatusParams, HyperHttpClient,
 };
 use super::error::HyperError;
-use crate::http::{Headers, HttpRequest, HttpResponse};
+use crate::http::{Body, Headers, HttpRequest, HttpResponse};
 use super::status::QueryStatus;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress, Timestamp};
 
@@ -41,6 +38,9 @@ pub struct ReaderRequest {
     pub id: RequestId,
     /// The request
     pub request: HttpRequest,
+    /// Does a successful response carry a chunk of the result? The host may keep its body, the reader passes it on
+    /// unread.
+    pub chunk: bool,
 }
 
 /// What a reader reports
@@ -48,10 +48,9 @@ pub struct ReaderRequest {
 pub enum ResultEvent {
     /// The status of the query changed
     Progress(QueryExecutionProgress),
-    /// The schema of the result arrived
-    Schema(SchemaRef),
-    /// A record batch of the result arrived
-    Batch(RecordBatch),
+    /// The next chunk of the result: a part of its Arrow IPC stream. A message may span chunks, a chunk may repeat
+    /// the schema or end with an end-of-stream marker.
+    Chunk(Body),
 }
 
 /// The outcome of a poll
@@ -70,7 +69,7 @@ pub struct ReaderPoll {
 struct ChunkSlot {
     request_id: RequestId,
     /// The body, once the response arrived
-    body: Option<Vec<u8>>,
+    body: Option<Body>,
 }
 
 /// The reader of the result of a query
@@ -92,8 +91,6 @@ pub struct HyperResultReader {
     status_poll: Option<RequestId>,
     /// The id of the next request
     next_request_id: RequestId,
-    /// The decoder of the result stream
-    decoder: ChunkedStreamDecoder,
     /// The metrics of the response stream
     metrics: QueryExecutionMetrics,
     /// The events since the last poll
@@ -107,10 +104,11 @@ impl HyperResultReader {
     /// is the first chunk of the result if it isn't empty. The first event is the progress of the status.
     pub fn new(
         client: HyperHttpClient,
-        response: HttpResponse,
+        mut response: HttpResponse,
         parallel_chunks: usize,
         now: Timestamp,
     ) -> Result<Self, HyperError> {
+        let host_body = response.host_body.take();
         let response = read_query_response(response).map_err(|e| match e {
             HyperError::Http(error) => HyperError::from_http(error),
             other => other,
@@ -119,7 +117,10 @@ impl HyperResultReader {
             .status
             .filter(|status| !status.query_id.is_empty())
             .ok_or_else(|| HyperError::Protocol("v3 query response missing status header".to_string()))?;
-        let initial = response.body;
+        let initial = match host_body {
+            Some(bytes) => Body::Host(bytes),
+            None => Body::Bytes(response.body),
+        };
         let mut reader = Self {
             client,
             query_id: status.query_id.clone(),
@@ -130,15 +131,12 @@ impl HyperResultReader {
             inflight: VecDeque::new(),
             status_poll: None,
             next_request_id: 0,
-            decoder: ChunkedStreamDecoder::new(),
             metrics: QueryExecutionMetrics::default(),
             events: Vec::new(),
             done: false,
         };
         reader.report_progress(now);
-        if !initial.is_empty() {
-            reader.decode(&initial)?;
-        }
+        reader.chunk(initial);
         Ok(reader)
     }
 
@@ -155,11 +153,6 @@ impl HyperResultReader {
     /// The metrics of the response stream
     pub fn metrics(&self) -> &QueryExecutionMetrics {
         &self.metrics
-    }
-
-    /// The schema of the result, once it arrived
-    pub fn schema(&self) -> Option<SchemaRef> {
-        self.decoder.schema()
     }
 
     /// The chunk requests in flight
@@ -181,16 +174,13 @@ impl HyperResultReader {
         self.events.push(ResultEvent::Progress(self.status.progress_update(&self.metrics, now)));
     }
 
-    /// Decode a non-empty chunk
-    fn decode(&mut self, bytes: &[u8]) -> Result<(), HyperError> {
-        self.metrics.total_data_bytes_received += bytes.len() as u64;
-        let had_schema = self.decoder.schema().is_some();
-        let batches = self.decoder.decode(bytes)?;
-        if let (false, Some(schema)) = (had_schema, self.decoder.schema()) {
-            self.events.push(ResultEvent::Schema(schema));
+    /// Pass a chunk on, an empty one is left out
+    fn chunk(&mut self, body: Body) {
+        if body.is_empty() {
+            return;
         }
-        self.events.extend(batches.into_iter().map(ResultEvent::Batch));
-        Ok(())
+        self.metrics.total_data_bytes_received += body.len() as u64;
+        self.events.push(ResultEvent::Chunk(body));
     }
 
     fn allocate_request_id(&mut self) -> RequestId {
@@ -209,28 +199,26 @@ impl HyperResultReader {
             self.schema_requested = true;
             let id = self.allocate_request_id();
             let params = GetQueryChunkParams { query_id: self.query_id.clone(), chunk_id, omit_schema };
-            requests.push(ReaderRequest { id, request: self.client.get_query_chunk(&params, None, auth) });
+            let request = self.client.get_query_chunk(&params, None, auth);
+            requests.push(ReaderRequest { id, request, chunk: true });
             self.inflight.push_back(ChunkSlot { request_id: id, body: None });
         }
     }
 
-    /// Advance the reader: decode the chunks that arrived in order, fetch the next chunks, poll the status of a query
+    /// Advance the reader: pass on the chunks that arrived in order, fetch the next chunks, poll the status of a query
     /// that runs without announced chunks. The auth headers go on the new requests.
     pub fn poll(&mut self, auth: &Headers) -> Result<ReaderPoll, HyperError> {
         let mut requests = Vec::new();
         if !self.done {
-            // The chunks are decoded in the order of the result
-            while self.inflight.front().is_some_and(|slot| slot.body.is_some()) {
-                let body = self.inflight.pop_front().and_then(|slot| slot.body).unwrap_or_default();
+            // The chunks are passed on in the order of the result
+            while let Some(body) = self.inflight.front_mut().and_then(|slot| slot.body.take()) {
+                self.inflight.pop_front();
                 self.fill_prefetch_window(auth, &mut requests);
-                if !body.is_empty() {
-                    self.decode(&body)?;
-                }
+                self.chunk(body);
             }
             self.fill_prefetch_window(auth, &mut requests);
             if self.inflight.is_empty() {
                 if self.status.completion_status.is_completed() && self.next_chunk >= self.status.chunks() {
-                    self.decoder.finish()?;
                     self.done = true;
                 } else if self.status_poll.is_none() {
                     // No chunks yet and the query still runs
@@ -239,7 +227,8 @@ impl HyperResultReader {
                         query_id: self.query_id.clone(),
                         wait_time_ms: Some(CHUNK_POLL_DELAY_MS),
                     };
-                    requests.push(ReaderRequest { id, request: self.client.get_query_status(&params, auth) });
+                    let request = self.client.get_query_status(&params, auth);
+                    requests.push(ReaderRequest { id, request, chunk: false });
                     self.status_poll = Some(id);
                 }
             }
@@ -249,7 +238,7 @@ impl HyperResultReader {
 
     /// Take the response of a request. A status updates the progress, the body of a chunk waits for the chunks
     /// before it. An error response of the server is a query error if the module recognizes the error.
-    pub fn receive(&mut self, id: RequestId, response: HttpResponse, now: Timestamp) -> Result<(), HyperError> {
+    pub fn receive(&mut self, id: RequestId, mut response: HttpResponse, now: Timestamp) -> Result<(), HyperError> {
         let to_query_error = |e: HyperError| match e {
             HyperError::Http(error) => HyperError::from_http(error),
             other => other,
@@ -264,13 +253,17 @@ impl HyperResultReader {
         let Some(index) = self.inflight.iter().position(|slot| slot.request_id == id && slot.body.is_none()) else {
             return Err(HyperError::Protocol(format!("a response to an unknown request {id}")));
         };
+        let host_body = response.host_body.take();
         let response = read_query_response(response).map_err(to_query_error)?;
         if let Some(status) = response.status {
             self.status = self.status.merge(&status);
             self.report_progress(now);
         }
         if let Some(slot) = self.inflight.get_mut(index) {
-            slot.body = Some(response.body);
+            slot.body = Some(match host_body {
+                Some(bytes) => Body::Host(bytes),
+                None => Body::Bytes(response.body),
+            });
         }
         Ok(())
     }

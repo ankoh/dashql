@@ -656,7 +656,7 @@ fn standard_options_are_described() {
     assert_eq!(names, vec!["_next", "_pages"]);
     assert_eq!(candidates[0].1, NameTag::OPTION_NAME.0);
     assert_eq!(candidates[0].2, text("string"));
-    assert!(candidates[0].3.as_ref().unwrap().contains("`_next`"));
+    assert!(candidates[0].3.as_ref().unwrap().contains("`_meta`"));
     assert_eq!(candidates[1].2, text("integer"));
 }
 
@@ -693,7 +693,7 @@ fn a_function_shows_its_parameters_and_result() {
 fn a_function_lists_its_standard_options_after_its_own() {
     let info = client_info("call svc.", "item_list");
     assert_eq!(field_details(&info.parameters), vec![("_next", Some("string")), ("_pages", Some("integer"))]);
-    assert!(info.parameters[0].description.as_ref().unwrap().contains("`_next`"));
+    assert!(info.parameters[0].description.as_ref().unwrap().contains("`_meta`"));
     assert_eq!(field_details(&info.facts), vec![("Paging", Some("url"))]);
 }
 

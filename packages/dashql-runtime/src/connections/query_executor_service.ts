@@ -28,6 +28,7 @@ import { analyzeTable } from '../compute/analyze_table.js';
 import { DELETE_COMPUTATION, type ComputationAction } from '../compute/computation_state.js';
 import { ResultComputations } from './result_computations.js';
 import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '../query/query_result_cache.js';
+import { QueryResultStream } from '../query/query_result_stream.js';
 import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { computeQueryResultCacheKey } from '../query/query_result_cache_key.js';
@@ -108,11 +109,11 @@ export interface QueryExecutorDependencies {
     setupCore: ((context: string) => Promise<core.DashQL>) | null;
 }
 
-/// A message of a channel of the host, what the stream produced
+/// A message of a channel of the host, what the stream produced. The batches stay in the result stream of the query.
 type ChannelMessage =
     | { type: 'progress'; progress: QueryExecutionProgress }
-    | { type: 'batch'; ipc: Uint8Array; metrics: string }
-    | { type: 'end'; schema: Uint8Array | null; metrics: string }
+    | { type: 'batch'; metrics: string }
+    | { type: 'end'; metrics: string }
     | { type: 'error'; error: unknown };
 
 /// The JavaScript side of a query: the arguments, the cancellation, the result table and the stream of a channel of the
@@ -132,7 +133,9 @@ interface QueryRecord {
     profileViewers: number;
     /// Is the query in the Rust executor?
     started: boolean;
-    /// The result table, decoded from the Arrow IPC of the executor or read from the cache
+    /// The parts of the result as they arrive, until the executor finishes the result
+    result: QueryResultStream | null;
+    /// The result table, built from the parts of the result or read from the cache
     table: arrow.Table | null;
     /// The cache entry of a hit
     cacheEntry: QueryResultCacheEntry | null;
@@ -165,11 +168,6 @@ function asLoggableException(error: unknown, target: string): LoggableException 
     return error instanceof LoggableException ? error : new LoggableException(stringifyError(error), {}, target);
 }
 
-/// The Arrow IPC stream of a table
-function tableIPC(table: arrow.Table): Uint8Array {
-    return arrow.tableToIPC(table, 'stream');
-}
-
 /// Runs queries on connections: the cache of results, the progress of the engines, the analysis of the results and
 /// the relations that statements touch. One executor serves every connection, the queries of all of them share the
 /// ids of one sequence.
@@ -178,7 +176,8 @@ function tableIPC(table: arrow.Table): Uint8Array {
 /// as a task, streams Trino, Hyper over HTTP and client functions itself and reports what happens, a progress update
 /// with the structured progress of the progress model of the query. The adapter applies the events to the connection,
 /// keeps the result tables, the query result cache, the analysis of results and the channels of the host (the gRPC
-/// channel of Hyper, the embedded Hyper, channels of tests).
+/// channel of Hyper, the embedded Hyper, channels of tests). A result never stays in the core: its parts come as they
+/// arrive and the adapter builds the table from them.
 export class QueryExecutorService {
     private readonly deps: QueryExecutorDependencies;
     private readonly records = new Map<number, QueryRecord>();
@@ -222,6 +221,7 @@ export class QueryExecutorService {
             connection: null,
             profileViewers: 0,
             started: false,
+            result: null,
             table: null,
             cacheEntry: null,
             error: null,
@@ -478,11 +478,14 @@ export class QueryExecutorService {
                 // The update of the executor carries the structured progress, the history of the connection keeps it
                 this.dispatch(record, { type: QUERY_PROGRESS_UPDATED, value: [queryId, payload as core.QueryProgressUpdate] });
                 break;
+            case 'resultData':
+                // The next part of the result, the core keeps none of them
+                (record.result ??= new QueryResultStream()).pushBytes(payload as Uint8Array);
+                break;
             case 'receivedBatch':
                 this.dispatch(record, { type: QUERY_RECEIVED_BATCH, value: [queryId, event.metrics as QueryExecutionMetrics] });
                 break;
             case 'receivedAllBatches': {
-                if (!event.host) record.table = arrow.tableFromIPC(payload as Uint8Array);
                 if (record.table != null) {
                     this.dispatch(record, { type: QUERY_RECEIVED_ALL_BATCHES, value: [queryId, record.table, event.metrics as QueryExecutionMetrics] });
                 }
@@ -501,6 +504,7 @@ export class QueryExecutorService {
                 const failure = event.failure as core.DashQLQueryFailure;
                 const error = this.errorOf(record, failure, payload);
                 record.error = error;
+                record.result = null;
                 // The preset failure and a failed analysis are logged already
                 if (args.failure == null && failure.kind !== 'processing') logQueryFailure(traced, error, queryId, record.workbookId);
                 this.finish(record, { type: QUERY_FAILED, value: [queryId, asLoggableException(error, LOG_CTX), event.metrics ?? null] });
@@ -510,6 +514,7 @@ export class QueryExecutorService {
                 const failure = event.failure as core.DashQLQueryFailure;
                 const error = this.errorOf(record, failure, payload);
                 record.error = error;
+                record.result = null;
                 const cancellation = error instanceof LoggableException ? error : new LoggableException('Query was cancelled', {}, LOG_CTX);
                 this.finish(record, { type: QUERY_CANCELLED, value: [queryId, cancellation, event.metrics ?? null] });
                 break;
@@ -589,8 +594,9 @@ export class QueryExecutorService {
             resolve: (_stream: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
                 if (!publish) return;
                 ++batches;
-                const ipc = tableIPC(new arrow.Table([batch]));
-                this.pushMessage(record, { type: 'batch', ipc, metrics: JSON.stringify(stream.getMetrics()) });
+                // The batch stays here, the executor follows the metrics
+                (record.result ??= new QueryResultStream()).pushBatch(batch);
+                this.pushMessage(record, { type: 'batch', metrics: JSON.stringify(stream.getMetrics()) });
             },
             reject: () => { },
         };
@@ -602,12 +608,10 @@ export class QueryExecutorService {
         };
         Promise.resolve().then(() => stream.produce(batchConsumer, progressConsumer, record.cancellation.signal)).then(
             async () => {
-                let schema: Uint8Array | null = null;
                 if (publish && batches === 0) {
-                    const empty = new arrow.Table(await stream.getSchema() ?? new arrow.Schema(), []);
-                    schema = tableIPC(empty);
+                    (record.result ??= new QueryResultStream()).setSchema(await stream.getSchema() ?? new arrow.Schema());
                 }
-                this.pushMessage(record, { type: 'end', schema, metrics: JSON.stringify(stream.getMetrics()) });
+                this.pushMessage(record, { type: 'end', metrics: JSON.stringify(stream.getMetrics()) });
             },
         ).catch((error: unknown) => this.pushMessage(record, { type: 'error', error }));
     }
@@ -698,6 +702,14 @@ export class QueryExecutorService {
                 } finally {
                     await release();
                 }
+            },
+            finishResult: async queryId => {
+                const record = this.recordOf(queryId);
+                const result = record.result ?? new QueryResultStream();
+                record.result = null;
+                const table = result.finish();
+                record.table = table;
+                return { rows: table.numRows, columns: table.numCols, batches: table.batches.length };
             },
             analyzeResult: async queryId => {
                 const record = this.recordOf(queryId);

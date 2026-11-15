@@ -607,7 +607,7 @@ planner-snapshots:
       - name: counted
         connection: local
         input: |
-          select count(*), max(_next) from :open_tickets;
+          select count(*), max(_status) from :open_tickets;
     expected:
       valid: true
       connections:
@@ -631,7 +631,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e2ef0ee200d1089d5aa76061b0d37356"
+          signature: "ed8cdd941edae161d2f1f06c00dedefa"
           references: [open_tickets]
       entities: []
       unresolved-references: []
@@ -655,7 +655,7 @@ planner-snapshots:
           type: SELECT
           sql: |-
             with open_tickets as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
-            select count(*), max(_next) from open_tickets
+            select count(*), max(_status) from open_tickets
           produces-output: true
           barrier: false
           script-result: true

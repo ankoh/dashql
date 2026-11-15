@@ -7,8 +7,7 @@ use std::rc::Rc;
 use serde_json::{json, Value};
 
 use super::{
-    CacheRequest, ClientFunctionTarget, FailureKind, QueryEvent, QueryFailure, QueryRequest, QueryResult,
-    QueryTarget,
+    CacheRequest, ClientFunctionTarget, FailureKind, QueryEvent, QueryFailure, QueryRequest, QueryTarget,
 };
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use crate::connections::{ConnectorType, JsonObject, TrinoSessionDefaults};
@@ -67,19 +66,16 @@ pub fn failure_json(failure: &QueryFailure) -> Value {
     })
 }
 
-/// An event as JSON. The batches of a result, a progress update and what the host failed with cross next to it.
+/// An event as JSON. A part of a result, a progress update and what the host failed with cross next to it.
 pub fn event_json(event: &QueryEvent) -> Value {
     match event {
         QueryEvent::Sending => json!({ "type": "sending" }),
         QueryEvent::Running => json!({ "type": "running" }),
         QueryEvent::Progress(_) => json!({ "type": "progress" }),
+        QueryEvent::ResultData(body) => json!({ "type": "resultData", "bytes": body.len() }),
         QueryEvent::ReceivedBatch(metrics) => json!({ "type": "receivedBatch", "metrics": metrics_json(metrics) }),
-        QueryEvent::ReceivedAllBatches { result, metrics } => {
-            let (host, rows) = match result {
-                QueryResult::Batches { batches, .. } => (false, batches.iter().map(|batch| batch.num_rows() as u64).sum()),
-                QueryResult::Host { rows } => (true, *rows),
-            };
-            json!({ "type": "receivedAllBatches", "host": host, "rows": rows, "metrics": metrics_json(metrics) })
+        QueryEvent::ReceivedAllBatches { rows, metrics } => {
+            json!({ "type": "receivedAllBatches", "rows": rows, "metrics": metrics_json(metrics) })
         }
         QueryEvent::ProcessingResults => json!({ "type": "processingResults" }),
         QueryEvent::ProcessedResults => json!({ "type": "processedResults" }),

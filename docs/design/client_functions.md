@@ -447,7 +447,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 /* open_tickets.sql, on the Salesforce connection */
 call tickets.ticket_list (project => 'OPS', _pages => 3);
 /* counted.sql, on the embedded Hyper */
-select count(*), max(_next) from :open_tickets;
+select count(*), max(_status) from :open_tickets;
 ```
 
 - **The call runs first,** and its result is written as a Parquet file that the statement scans. The planner gives the call's node the materialization, and the run writes the result table of the runtime like the result of any query.
@@ -511,13 +511,12 @@ A function has at most one `paging` entry, in one of four kinds:
 "paging": { "kind": "page", "option": "page", "size": "per_page", "start": 1 }
 ```
 
-### The `_next` column
+### No `_next` column
 
-Every result has a `VARCHAR` column `_next` with the raw next value, without encoding, so `EXPLAIN` and debugging stay readable.
+A result has no column with the next value. Its rows stream to the host page by page, and a value that is known only after the last page can't be on the rows of the pages before it. The response fields outside the rows stay in `_meta`, so a next URL or token that an API returns in its body is there.
 
-- **Non-NULL means there may be more, and NULL means done.**
 - **Offsets advance by the rows returned,** not the requested size, because some endpoints cap the page size.
-- **A page with no rows but a next value returns one row** with only the standard columns. Otherwise, an API that filters after paging would lose its position. The cost is that `count(*)` is off by one in that rare case. A last page with no rows returns no rows.
+- **A page with no rows returns no rows.**
 
 ### The `_next` option
 
@@ -543,7 +542,7 @@ CALL tickets.ticket_list (project => 'OPS', page_size => 200, _pages => 10);
 One call is one page unless a script asks for more, because every page can cost API calls. `_pages` asks for more, with a limit in the script:
 
 - It defaults to 1 and always takes a number, with no `all`.
-- Rows are concatenated, and `_next` on every row holds the value after the last page fetched, so a later call can continue.
+- Rows are concatenated, a page at a time.
 - If a page fails, the whole statement fails, with no partial result.
 - A token or URL that comes back unchanged is an error. The page limit bounds APIs that ignore offsets.
 - It's only allowed on `effect: read` functions.
@@ -553,7 +552,7 @@ One call is one page unless a script asks for more, because every page can cost 
 | Consumer | Mechanism |
 |---|---|
 | A script that wants many rows | `_pages` |
-| Someone browsing results | Not built yet: a "Next page" control that re-runs the statement with `_next` applied, without editing the script text, since tokens expire and scripts get shared. Until then, a literal `_next` |
+| Someone browsing results | Not built yet: a "Next page" control that re-runs the statement with `_next` applied, without editing the script text, since tokens expire and scripts get shared. Until then, a literal `_next` with a value from `_meta` |
 | An agent or a person typing | A literal `_next => '...'` |
 
 ## Pending results
@@ -596,7 +595,7 @@ CALL snowflake.warehouse_create (_poll => '/api/v2/results/01b66701');
 | No `rows`, and no body (such as HTTP 204) | One row | Only the standard columns |
 | No `rows`, and any other body: an array, or text that isn't JSON | One row | Only the standard columns, with the body in `_raw` |
 
-**A result without items** still has one row with only the standard columns if the function doesn't page, so its status stays visible. A paged function only has that row if there is a next value, see [The `_next` column](#the-_next-column).
+**A result without items** still has one row with only the standard columns if the function doesn't page, so its status stays visible. A paged function has no row then.
 
 **`rows` has to be explicit.** "An object holding one array" isn't a usable rule: Stripe has 197 responses with one array plus other fields, and only 135 of those arrays are `data`. On GitHub, the array is often just `labels` or `topics` on a single object. A generator sets `rows` only from evidence, such as a list operation's documented field.
 
@@ -605,7 +604,6 @@ CALL snowflake.warehouse_create (_poll => '/api/v2/results/01b66701');
 | Column | Type | Contents |
 |---|---|---|
 | `_status` | `INTEGER` | The HTTP status |
-| `_next` | `VARCHAR` | The value for the next page, or `NULL` on the last page |
 | `_poll` | `VARCHAR` | Only on functions with `pending`: the value to poll, or `NULL` when finished |
 | `_meta` | `JSON` | Response fields outside the rows, or `NULL` |
 | `_raw` | `JSON` | Row fields the spec doesn't list, or `NULL`. A new API field lands here, so no data is lost |
@@ -728,6 +726,5 @@ Each phase lands separately.
 2. **Specs from elsewhere.** This document covers bundled specs. Loading others needs a trust decision, even with the security rules above.
 3. **Tags beside an object.** A `tag` reads an attribute of the object itself. Some APIs select a variant with a sibling instead, such as `type` next to `config` in Data 360, so only the attributes of those objects decide. A `tag` that reads a sibling would close this, once a source says which value selects which variant.
 4. **Spec size.** The Data 360 spec is 1,322 KB, or 166 KB gzipped, for 535 functions and it loads lazily. What completion shows is about 575 KB of that. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
-5. **`_next` on an empty page.** The one-row rule covers it, at the cost of `count(*)`. If that turns out to be wrong in practice, the alternative is carrying the value in result metadata, outside the table.
-6. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a workbook attachment.
-7. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.
+5. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a workbook attachment.
+6. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.

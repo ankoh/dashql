@@ -389,7 +389,7 @@ fn attribute_detail(attribute: &ClientFunctionAttribute, required: bool) -> Opti
 /// What a list shows about a standard option, no spec describes them
 fn standard_option_info(option: &str) -> CandidateInfo {
     let (detail, description) = match option {
-        OPTION_NEXT => ("string", "The page to read, the `_next` column of an earlier result. `null` means the first page."),
+        OPTION_NEXT => ("string", "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."),
         OPTION_PAGES => ("integer", "The number of pages to read, 1 without this option."),
         OPTION_POLL => ("string", "The pending result to poll, the `_poll` column of an earlier result."),
         OPTION_WAIT => ("integer", "The seconds to poll a pending result for, no polling without this option."),

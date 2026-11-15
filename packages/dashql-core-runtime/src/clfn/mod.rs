@@ -1,7 +1,7 @@
 //! Client functions: `CALL`s in a namespace with a spec run in the client as HTTP requests. The core checks a call
 //! against the signatures of its spec and describes it as JSON (`describe_client_function_call`), this module applies the
-//! spec to the description: it builds the requests, pages, polls, reads the errors and turns the responses into one
-//! result table. It knows no service, a connector binding says where a host is and what a request to it carries.
+//! spec to the description: it builds the requests, pages, polls, reads the errors and turns every page into rows of
+//! the result table. It knows no service, a connector binding says where a host is and what a request to it carries.
 //!
 //! Sans-IO: a call is a state machine that returns the next request or wait and takes the response, the host sends it
 //! with its HTTP client. See `docs/design/client_functions.md`.

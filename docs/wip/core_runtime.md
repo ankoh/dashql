@@ -138,8 +138,9 @@ of workbooks, the restore and the persistence of connections, the registries.
 
 **Arrow in Rust.** Most of these read or build Arrow: the catalog loader reads result columns, Trino turns JSON pages
 into batches, the client functions build tables, the computations read results. The crate uses `arrow-rs` (arrays,
-schema, IPC), a result crosses to the UI as IPC bytes once, and `apache-arrow` decodes it there as today. Hyper
-hands its results to the host as IPC bytes already.
+schema, IPC). A query result never lives in the core module: a page that needs a conversion passes through it as the
+next part of an Arrow IPC stream, Hyper hands its chunks over as they are, and `apache-arrow` builds the table in
+JavaScript (see [The query executor](#the-query-executor)).
 
 **Tasks.** A service is an async function on the runtime: it reads a state, awaits the host without holding a borrow,
 then applies an action. `spawn_local` runs it in the browser, cancellation is a token that the action checks. A host
@@ -453,7 +454,7 @@ timers by id, takes the responses and the fired timers with the time they happen
 progress, the record batches and the end. It follows the next URIs until Trino stops sending one, requests the next
 page before it converts the current one, retries busy or unreachable coordinators with growing delays, and fetches the
 QueryInfos of the profile only while the profile is shown. The rows of a page become an Arrow record batch with the
-coercions of the TypeScript runtime. A timestamp with a named time zone asks the host for the offsets of the zone, the
+coercions of the TypeScript runtime, and the executor hands it to the host before it converts the next page. A timestamp with a named time zone asks the host for the offsets of the zone, the
 crate has no time zone database. The setup of a connection (`TrinoSetup`) is a state machine as well: it reports every
 step as an action on the connection and asks the host for the PKCE challenge, the login in the browser, the token
 request, the channel and the health check. `connection_setup::setup_trino` drives it.
@@ -469,8 +470,9 @@ executor runs the calls and the catalog loader registers the specs, `connection_
 setup. A call is a state machine: it starts from the description of the core, returns the next request,
 a wait or the result table, and takes the response with the time. The runtime reads the spec for its requests, and the
 core checks it when a binding registers it on the catalog of a connection. The registrations of the connections ask the
-host to load a spec and register it once it arrives. A result is a table of typed cells that becomes a record batch or
-IPC bytes. The setup of a Salesforce connection is a state machine too: every step returns the actions of the
+host to load a spec and register it once it arrives. The rows of every page are a table of typed cells that becomes a
+record batch once the page arrived (`take_rows`); the run keeps no page. A result has no `_next` column: the value
+after the last page is known only at the end, after the rows of the pages before it went to the host. The setup of a Salesforce connection is a state machine too: every step returns the actions of the
 connection state and what the host does next. The host generates the PKCE challenge, opens the authorization page,
 sends the requests and connects the Hyper channel. The REST calls of Salesforce are pairs of a function that builds the
 request and one that reads the response, and the metadata of a data space sends its three requests at once. URLs, JSON
@@ -550,9 +552,10 @@ requests of the V3 API, the host sends them and hands the responses back. The au
 the context of the connection holds them.
 
 - **A result is a state machine.** `HyperResultReader` starts from the query response, whose status header names the
-  query and whose body is the first chunk. `poll` returns the record batches and the progress so far, the chunk
-  requests up to the parallel chunks and a status poll while the query runs without chunks, `receive` takes a
-  response. The chunks are decoded in the order of the result as one Arrow stream, a message may span chunks.
+  query and whose body is the first chunk. `poll` returns the chunks and the progress so far, the chunk requests up to
+  the parallel chunks and a status poll while the query runs without chunks, `receive` takes a response. The reader
+  reads only the status (the query id, the progress, the chunk count, the completion, the errors). The chunks are
+  parts of one Arrow IPC stream already, the reader passes them on unread in the order of the result.
 - **Errors keep the rich model.** An error response becomes a `HyperErrorInfo` from the JSON body or the status
   header, with the diagnostics of the response for the log. The headers that the gRPC proxy of the desktop app
   forwards decode to the same error.
@@ -562,7 +565,8 @@ the context of the connection holds them.
 - **The connection helpers move along.** The labels, the outcome of the health check, the setup check of Salesforce,
   the import of stored connections and whether a catalog can be refreshed are functions of `src/connections/`.
 - **Changed on purpose.** The chunks are one stream that skips a repeated schema and an end-of-stream marker inside a
-  chunk. The client logs nothing, the error carries the diagnostics. A restored connection keeps only its setup params.
+  chunk; the host reads it (`QueryResultStream`). The client logs nothing, the error carries the diagnostics. A restored
+  connection keeps only its setup params.
 
 ## The query executor
 
@@ -592,15 +596,31 @@ change.
 - **Channels of the host.** A channel that the module doesn't speak stays with the host: the gRPC channel of Hyper in
   the desktop app (through its native proxy), the embedded Hyper, the channels of tests. A Trino channel of the
   TypeScript runtime only holds the endpoint, the token and the defaults of the session, the TypeScript protocols of
-  Trino and of client functions are gone. The task asks the host to run the query and reads every batch as an Arrow IPC stream, the host learns of
-  the views of the profile and of the cancellation right away.
-- **Results.** A result crosses to the host once, as one Arrow IPC stream with the event of all batches, and
-  `apache-arrow` decodes it. The host keeps the result tables, the Parquet files of the cache and the analysis on the
-  compute database.
+  Trino and of client functions are gone. The task asks the host to run the query and follows the metrics of its
+  batches, the batches stay with the host. The host learns of the views of the profile and of the cancellation right
+  away.
+- **Results never live in the core module.** A result passes through the module at most one page at a time, where a
+  protocol needs a conversion. It lives in JavaScript and in hyperdb-wasm (through the data frames), held by handle.
+  - Hyper over HTTP: the chunks are parts of one Arrow IPC stream. The executor fetches them with
+    `ExecutorHost::fetch_result`, and the body of a successful response stays a `Uint8Array` of the host
+    (`HttpResponse::host_body`): the module reads the status header only and hands the same object back
+    (`QueryEvent::ResultData`).
+  - Trino and client functions: every page becomes an Arrow batch and the next part of one Arrow IPC stream
+    (`executor::ipc::IpcStreamWriter`), which goes to the host as soon as the page arrived. The peak of the module is
+    a page (Trino asks for 32 MB), not the result: a result of 64 pages of 1 MB grows the memory of the module by 5 MB,
+    it grew by 200 MB when the executor collected the batches (`query_executor.test.ts` of `dashql-core-js`).
+  - A channel of the host (the embedded Hyper, gRPC, a channel of a test) keeps its record batches, the executor sees
+    their metrics.
+  - Once the stream ended, `ExecutorHost::finish_result` asks the host for the table: `QueryResultStream` of the
+    TypeScript runtime frames the parts (a message may span parts, a repeated schema and an end-of-stream marker are
+    skipped) and decodes them with `apache-arrow`. A part that doesn't end on a message is an error of the query. The
+    action of all batches hands the table to the history as a handle of the handle table. The host keeps the result
+    tables, the Parquet files of the cache and the analysis on the compute database.
 - **Changed on purpose.** A query that is cancelled before the executor started it rejects with the reason of the
   cancellation. A failure before the query reached the executor, e.g. a spec of client functions that doesn't load,
-  rejects. The metrics of a Hyper result over HTTP count its batches and rows. The executor reads the auth headers of
-  a Hyper connection once per query.
+  rejects. The metrics of a Hyper result over HTTP count its chunks while it streams, and the batches and rows of its
+  table once the host built it; no stream counts rows the module doesn't see. A client function call streams once its
+  first page arrived, and its result has no `_next` column. The executor reads the auth headers of a Hyper connection once per query.
 
 ## The progress of a query
 
@@ -742,7 +762,8 @@ statistics of the script with a call and an unpacking each.
   tasks that the host would run) remain for the reducer tests only, in Rust and in `computation_native.ts`.
   `ResultComputations` of the query executor stays in TypeScript, the crate has its port.
 - A result crosses from the query executor to the computations as Arrow IPC that `apache-arrow` writes, and the host
-  imports it through `insertArrowTable`, which writes it again; the executor in Rust would hand its IPC over.
+  imports it through `insertArrowTable`, which writes it again. The parts of the stream could go to the compute
+  database as they arrive instead.
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
 - The connections of a native workbook that changed on disk are still created in TypeScript
@@ -752,7 +773,6 @@ statistics of the script with a call and an unpacking each.
 - The executor reports into the history through the dispatch of the registry, the history and the executor are not
   one Rust value yet. The query result cache, the analysis of results and the relations of a statement are calls of
   the host.
-- A channel of the host converts its record batches to Arrow IPC, the embedded Hyper decodes its IPC first.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
 - The mock setup of Salesforce (`salesforce_connection_setup_mock.ts`, the mock config of the app) stays in TypeScript,
   it answers from `SalesforceAPIClientMock` without requests. The owner of the cancellation of a setup per connection
