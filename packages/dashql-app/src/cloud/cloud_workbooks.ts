@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
 import { useComputationDispatch } from '../compute/computation_registry.js';
-import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
+import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore, type ConnectionReferences } from '../connections/connection_registry.js';
 import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
 import { workbookTablesToBundle } from '@ankoh/dashql-runtime/storage/workbook_tables';
@@ -86,18 +86,23 @@ export function findLinkedWorkbook(
     return null;
 }
 
-/// The previews by the id of the local preview: the version it shows, the connections it registered and whether a
-/// connection uses an existing one that the import would ask about. A preview that outlived the page is imported again
-/// from the cloud.
+/// The previews by the id of the local preview: the version it shows and whether a connection uses an existing one
+/// that the import would ask about. A preview that outlived the page is imported again from the cloud.
 interface PreviewSource {
     link: WorkbookCloudLink;
     bundle: WorkbookBundle;
-    registered: string[];
     unasked: boolean;
 }
 const previewSources = new Map<string, PreviewSource>();
 /// The previews being discarded, the cleanup and an import may both discard one
 const discarding = new Set<string>();
+
+/// The connections that a preview registered: those it uses that no other workbook uses and that the app manifest
+/// doesn't keep. A preview links only to connections of the manifest and registers the others, its files keep them, so
+/// this holds after a reload as well.
+export function previewConnections(workbookId: string, used: readonly string[], kept: ReadonlySet<string>, references: ConnectionReferences): string[] {
+    return used.filter(connectionId => !kept.has(connectionId) && references.workbooksOf(connectionId).every(other => other === workbookId));
+}
 
 /// Follows the loading of a version
 interface CloudLoadingProgress {
@@ -232,9 +237,10 @@ export function useCloudWorkbooks(): CloudWorkbooks {
                     computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
                 }
             }
-            // The connections that only the preview had go with it
-            for (const connectionId of previewSources.get(workbookId)?.registered ?? []) {
-                if (references.workbooksOf(connectionId).some(other => other !== workbookId)) continue;
+            // The connections that the preview registered go with it
+            const manifest = storageReader.workbookFolders == null ? null : await storageReader.workbookFolders.loadManifest();
+            const kept = new Set<string>((manifest?.connections ?? []).map(entry => entry.id));
+            for (const connectionId of previewConnections(workbookId, connections, kept, references)) {
                 await deleteConnection(connectionId);
             }
             previewSources.delete(workbookId);
@@ -242,7 +248,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         } finally {
             discarding.delete(workbookId);
         }
-    }, [computationDispatch, connectionStore, deleteConnection, deleteScripts, logger, readRegistry, references, storageWriter]);
+    }, [computationDispatch, connectionStore, deleteConnection, deleteScripts, logger, readRegistry, references, storageReader, storageWriter]);
 
     /// Read a version of a published workbook, the latest without one
     const readVersion = React.useCallback(async (cloudId: string, cloudWorkbookId: string, versionId?: string) => {
@@ -306,7 +312,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             // A preview keeps the connections of the version, the ones the app doesn't have are registered for it
             let mapping: WorkbookImportConnectionMapping = { registered: [], unasked: false };
             imported = await importVersion(bundle, { ...link, preview: true }, decided => { mapping = decided; progress.mapped(decided); }, progress.imported);
-            if (imported != null) previewSources.set(imported, { link, bundle, ...mapping });
+            if (imported != null) previewSources.set(imported, { link, bundle, unasked: mapping.unasked });
         } else {
             imported = await importVersion(bundle, link, progress.mapped, progress.imported);
         }

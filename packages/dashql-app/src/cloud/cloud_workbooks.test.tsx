@@ -7,7 +7,8 @@ import type { DashQL } from '@ankoh/dashql-core';
 import { WORKBOOK_TABLE } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { sharedWorkbookTables } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { findLinkedWorkbook, linkedWorkbookMetadata, useCloudPreviewCleanup } from './cloud_workbooks.js';
+import { findLinkedWorkbook, linkedWorkbookMetadata, previewConnections, useCloudPreviewCleanup } from './cloud_workbooks.js';
+import { fixedConnectionReferences } from '@ankoh/dashql-runtime/testing/mocks/connection_references';
 import { testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -84,5 +85,13 @@ describe('Cloud workbooks', () => {
         } finally {
             act(() => root.unmount());
         }
+    });
+
+    it('removes with a preview the connections that it registered, also after a reload', () => {
+        // The preview uses the cloud, a connection of the manifest it linked to, and two that it registered, one of them
+        // used by another workbook as well
+        const references = fixedConnectionReferences({ preview: ['cloud', 'linked', 'own', 'shared'], other: ['shared'] });
+        const kept = new Set(['cloud', 'linked']);
+        expect(previewConnections('preview', references.connectionsOf('preview'), kept, references)).toEqual(['own']);
     });
 });

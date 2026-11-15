@@ -229,8 +229,9 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **The connections of a preview.** A preview keeps the connections of the version, they need not exist in the app.
   The import asks nothing (`connections: 'preview'`): the embedded Hyper is the one of the app, a connection that the
   app has with the same params is used, one that may consolidate with an existing one uses the first candidate, and
-  the others are registered for the preview and removed with it. The bar shows them greyed with a lock, they open
-  nothing; the embedded Hyper is shown as it is.
+  the others are registered for the preview and removed with it, also after a reload: the connections of a preview
+  that the app manifest doesn't keep and no other workbook uses (`previewConnections`). The bar shows them greyed with
+  a lock, they open nothing; the embedded Hyper is shown as it is.
 - **Running a preview.** Execute All runs a preview with no special case but one: only the embedded Hyper counts as
   online (`WorkbookExecutionService` of the runtime). The scripts of the other connections serve the published results from the
   cache or are skipped, like the scripts of a connection that is not connected. The published results stay in the
