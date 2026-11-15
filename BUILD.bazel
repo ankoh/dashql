@@ -51,6 +51,12 @@ npm_link_package(
     src = "//packages/dashql-runtime:npm_package",
 )
 
+# The library of the embedded Hyper of hyperdb-wasm, the runtime checks the WebAssembly of Node with it.
+npm_link_package(
+    name = "node_modules/@ankoh/hyperdb-edge",
+    src = "//packages/hyperdb-edge:npm_package",
+)
+
 # The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
 npm_link_package(
     name = "node_modules/@ankoh/dashql-ui",

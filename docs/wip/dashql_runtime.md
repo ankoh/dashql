@@ -137,7 +137,8 @@ import, the tests in Node in `test/setup_node.mjs`). The seams that remain are l
 
 - The origin private file system: only `platform/opfs_root.ts` reads `navigator.storage`. The other modules that keep
   files ask it for the root (`getOPFSRoot()`), and Node hands them a folder of the host (`setOPFSRootProvider`).
-- The Electron bridge: `platform/electron_fs.ts`, `platform/native_globals.ts`.
+- The Electron bridge: `platform/electron_fs.ts`, the file system of the desktop app. Which host the app runs in
+  (`native_globals.ts`) and which connectors it offers there are questions of the app and live in it.
 - A Web Worker: `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`; its tests run only
   in the browsers.
 
@@ -162,8 +163,9 @@ For agents this means:
 
 - **No flag.** Node refuses V8 flags in `NODE_OPTIONS` (`--experimental-wasm-exnref is not allowed in NODE_OPTIONS`),
   and a flag on the command line breaks approval by prefix and launches through `npx`. Before it compiles the engine,
-  `node/node_hyperdb.ts` calls `v8.setFlagsFromString('--experimental-wasm-exnref')` when exnref is missing, so every
-  Node 24 runs it without flags. The CLI declares `engines: node >=22`, for the commands without Hyper.
+  `node/node_hyperdb.ts` runs the check of hyperdb-edge (`checkWasmFeatures` of
+  `packages/hyperdb-edge/src/node/runtime_check.ts`, linked as `@ankoh/hyperdb-edge`), which calls
+  `v8.setFlagsFromString('--experimental-wasm-exnref')` when exnref is missing, so every Node 24 runs it without flags. The CLI declares `engines: node >=22`, for the commands without Hyper.
 - **The `node` of a harness may not be the one of the shell.** MCP servers and hooks start without the login shell,
   and other tools put their own older Node on `PATH`. Before the engine starts, the runtime validates a tiny module per
   feature (`WebAssembly.validate`) and names `process.execPath` and the missing feature, instead of failing in V8.
@@ -442,8 +444,5 @@ Planned:
   the commands without Hyper may run; that is untested. Run the runtime's tests without Hyper under Bun as well, and the
   rest once JavaScriptCore has memory64.
 - **A plain-JSON link.** A workbook without results as JSON in the fragment of the link, for agents without the CLI.
-- **One check of the Wasm features.** `node/node_hyperdb.ts` and `packages/hyperdb-edge/src/node/runtime_check.ts`
-  both validate memory64, table64 and exnref and set the exnref flag; only the one of hyperdb-edge has tests. The
-  runtime could use it once it depends on hyperdb-edge.
 - **The Node of Bazel.** The tests run on the pinned Node 24.4.1. Pinning 24.15 or later would drop the exnref flag
   from the tests, and a Node with Web Locks would let `node/node_locks.ts` go.

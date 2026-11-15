@@ -48,6 +48,7 @@ _DEPENDENCIES = [
     ":dep_protobuf",
     "//:node_modules/@ankoh/dashql-core",
     "//:node_modules/@ankoh/dashql-runtime",
+    "//:node_modules/@ankoh/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/apache-arrow",
     "//:node_modules/flatbuffers",

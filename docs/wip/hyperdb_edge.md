@@ -160,7 +160,8 @@ exnref behind `--experimental-wasm-exnref`; a flag on the command line would bre
 sets it with `v8.setFlagsFromString` before the engine compiles, and the worker of the engine has it as well. That
 works on Node 24.4.1, the Node of the Bazel toolchain, which runs every test. When a feature is still missing, the
 check names `process.execPath`, its version and the feature, and `run` exits with 2. `--version` prints the same
-check. `describe` and `--help` don't load the engine.
+check. `describe` and `--help` don't load the engine. The embedded Hyper of the runtime of DashQL runs the same check, the
+runtime links the package as `@ankoh/hyperdb-edge`.
 
 ## Harness tests
 

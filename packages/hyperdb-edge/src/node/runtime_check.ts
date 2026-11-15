@@ -44,7 +44,8 @@ export class UnsupportedRuntimeError extends Error {
     }
 }
 
-/// Check that this node runs the engine before it loads, instead of failing inside V8.
+/// Check that this node runs the engine before it loads, instead of failing inside V8. hyperdb-edge and the embedded
+/// Hyper of the runtime of DashQL check with it.
 /// The node of an agent harness may not be the one of the shell: MCP servers and hooks start without the login shell,
 /// and other tools put an older node first on the PATH. So the error names the node that runs.
 /// Node 24 before 24.15 has exnref behind a flag. A flag on the command line would break approving the command by
@@ -61,7 +62,7 @@ export function checkWasmFeatures(env: RuntimeEnvironment = NODE_ENVIRONMENT): v
     if (missing.length > 0) {
         throw new UnsupportedRuntimeError(
             `${env.execPath} (Node ${env.version}) lacks the WebAssembly ${missing.length === 1 ? 'feature' : 'features'} ` +
-                `${missing.join(', ')} that hyperdb-wasm needs. Run hyperdb-edge with Node 24 or later.`,
+                `${missing.join(', ')} that hyperdb-wasm needs. It needs Node 24 or later.`,
             missing,
         );
     }

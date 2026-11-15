@@ -4,7 +4,8 @@
 // query result cache, the instances and the attachments keep their paths.
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import v8 from 'node:v8';
+
+import { checkWasmFeatures } from '@ankoh/hyperdb-edge/node/runtime_check';
 
 import { HyperDB, type HyperDBEngine, type MountFile } from '../platform/hyperdb/hyperdb_wasm.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
@@ -45,26 +46,6 @@ function mountHostFile(folder: string): MountFile {
     };
 }
 
-const WASM_HEADER = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
-/// The smallest modules that use a feature of WebAssembly that the engine, a wasm64 build, needs
-const WASM_FEATURES = {
-    memory64: new Uint8Array([...WASM_HEADER, 0x05, 0x03, 0x01, 0x04, 0x01]),
-    table64: new Uint8Array([...WASM_HEADER, 0x04, 0x04, 0x01, 0x70, 0x04, 0x01]),
-    exnref: new Uint8Array([...WASM_HEADER, 0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x69]),
-};
-
-/// Can this Node run the engine? Node 24 before 24.15 has exnref behind a flag, it is set in V8 before the engine
-/// compiles: a flag on the command line would break the approval of a command by its prefix. Fails with the Node that
-/// runs, an agent harness may not run the one of the shell.
-function checkNodeWasmFeatures(): void {
-    if (!WebAssembly.validate(WASM_FEATURES.exnref)) v8.setFlagsFromString('--experimental-wasm-exnref');
-    const missing = (Object.keys(WASM_FEATURES) as Array<keyof typeof WASM_FEATURES>).filter(feature => !WebAssembly.validate(WASM_FEATURES[feature]));
-    if (missing.length > 0) {
-        throw new Error(`${process.execPath} (Node ${process.version}) can't run the embedded Hyper, it lacks the WebAssembly feature `
-            + `${missing.join(', ')}. The embedded Hyper needs Node 24 or later.`);
-    }
-}
-
 /// Keep the files of the app in a folder of the host, for every module of this process that keeps files there
 export async function useNodeRoot(folder: string): Promise<FileSystemDirectoryHandle> {
     const root = await openNodeRoot(folder);
@@ -86,7 +67,8 @@ export interface NodeHyperEngine {
 
 /// Start the engine of the embedded Hyper in a folder of the host with an instance of its own, like a window of the app
 export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEngine> {
-    checkNodeWasmFeatures();
+    // Node 24 before 24.15 has exnref behind a flag, the check sets it before the engine compiles
+    checkWasmFeatures();
     const root = path.resolve(folder);
     const handle = await useNodeRoot(root);
     // An instance folder like a window of the app, the folders of processes that are gone are removed
