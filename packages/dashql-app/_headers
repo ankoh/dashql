@@ -14,14 +14,16 @@
 /static/js/*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: http: https: ws: wss:
 
-# The embed is framed by the hosts listed here, see docs/wip/embeds.md. frame-ancestors has no effect in a <meta>
-# policy, so it is a header. Pages serves embed.html as /embed.
+# The embed is framed by the hosts listed here, see docs/wip/embeds.md: Slack, and ChatGPT, whose MCP App views run
+# under <ui.domain>.web-sandbox.oaiusercontent.com inside chatgpt.com. A browser checks every frame above the embed
+# against the list. Keep all hosts in this one header: a second policy with frame-ancestors would have to pass too.
+# frame-ancestors has no effect in a <meta> policy, so it is a header. Pages serves embed.html as /embed.
 /embed
-  Content-Security-Policy: frame-ancestors 'self' https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com
+  Content-Security-Policy: frame-ancestors 'self' https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com https://chatgpt.com https://*.web-sandbox.oaiusercontent.com
   Cache-Control: public, max-age=0, must-revalidate
 
 /embed.html
-  Content-Security-Policy: frame-ancestors 'self' https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com
+  Content-Security-Policy: frame-ancestors 'self' https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com https://chatgpt.com https://*.web-sandbox.oaiusercontent.com
   Cache-Control: public, max-age=0, must-revalidate
 
 # Vite fingerprints files in these output directories. Their URLs change with their contents, so

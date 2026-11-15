@@ -120,8 +120,14 @@ shows its cached results, and running it is left to the full app.
 
 The embed gets the global headers (COOP, COEP, DIP) and a rule of its own in `_headers` for `/embed` and
 `/embed.html` (built): a `Content-Security-Policy` with `frame-ancestors` that lists `'self'` and the hosts (for
-Slack: `https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com`).
-`frame-ancestors` has no effect in a `<meta>` policy, it has to be the header. The policy of the page itself stays in
+Slack: `https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com`; for
+ChatGPT: `https://chatgpt.com https://*.web-sandbox.oaiusercontent.com`). The browser checks every frame above the
+embed against this list. In ChatGPT the view of an MCP App runs on a sandbox origin under
+`web-sandbox.oaiusercontent.com`, derived from `_meta.ui.domain` of the resource, so both the sandbox and `chatgpt.com`
+have to be listed. The wildcard stays until a probe in ChatGPT shows the exact host; ChatGPT lets a view frame only the
+registrable domain of its MCP server, so other apps can't declare the embed. All hosts stay in one header: a second
+policy with its own `frame-ancestors` would be enforced as well. `frame-ancestors` has no effect in a `<meta>` policy,
+it has to be the header. The policy of the page itself stays in
 its `<meta>` tag like the other entries (`app_csp.md`), with `connect-src https:` for the files.
 
 ## Slack
