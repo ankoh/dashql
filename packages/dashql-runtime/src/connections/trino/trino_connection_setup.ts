@@ -20,9 +20,8 @@ import {
 import { Dispatch } from '../../utils/variant.js';
 import { Logger } from '../../platform/logger/logger.js';
 import { RESET_CONNECTION } from '../connection_state.js';
-import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
+import { TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
-import { TrinoConnectorConfig } from '../connector_configs.js';
 import type { OAuthFlow } from '../../oauth/oauth_flow.js';
 import { HttpClient } from '../../platform/http/http_client.js';
 import { loadSetupCore, SetupRun } from '../connection_setup_native.js';
@@ -53,8 +52,6 @@ export async function setupTrinoConnection(
     modifyState: Dispatch<TrinoConnectorAction>,
     logger: Logger,
     params: connection.TrinoConnectionParams,
-    _config: TrinoConnectorConfig,
-    client: TrinoApiClientInterface,
     httpClient: HttpClient,
     oauthFlow: OAuthFlow,
     forceReLogin: boolean,
@@ -86,7 +83,7 @@ export async function setupTrinoConnection(
                     accessToken: description.accessToken,
                 } as connection.TrinoOAuthState;
             }
-            return new TrinoChannel(logger, client, endpoint, { catalog: description.catalog, schema: description.schema });
+            return new TrinoChannel(endpoint, { catalog: description.catalog, schema: description.schema });
         },
     });
     const { channel } = await run.result<{ channel: number }>(core.connectionSetup.trino(run.host(), params, forceReLogin), LOG_CTX);
@@ -99,15 +96,13 @@ export interface TrinoSetupApi {
 }
 
 export function createTrinoSetup(
-    trinoClient: TrinoApiClientInterface,
-    config: TrinoConnectorConfig,
     logger: Logger,
     httpClient: HttpClient,
     oauthFlow: OAuthFlow,
     forceReLogin: boolean
 ): (TrinoSetupApi | null) {
     const setup = async (modifyState: Dispatch<TrinoConnectorAction>, params: connection.TrinoConnectionParams, abort: AbortSignal) => {
-        return await setupTrinoConnection(modifyState, logger, params, config, trinoClient, httpClient, oauthFlow, forceReLogin, abort);
+        return await setupTrinoConnection(modifyState, logger, params, httpClient, oauthFlow, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<TrinoConnectorAction>) => {
         updateState({

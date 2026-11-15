@@ -55,24 +55,6 @@ export function getStatusFromProgressCounter(counter: ProgressCounter): Indicato
     return IndicatorStatus.Running;
 }
 
-export function combineIndicatorStatus(l: IndicatorStatus, r: IndicatorStatus): IndicatorStatus {
-    if (l == r) {
-        return l;
-    }
-    if (l == IndicatorStatus.Running || r == IndicatorStatus.Running) {
-        return IndicatorStatus.Running;
-    }
-    if (l == IndicatorStatus.Failed || r == IndicatorStatus.Failed) {
-        return IndicatorStatus.Failed;
-    }
-    if (l == IndicatorStatus.Blocked || r == IndicatorStatus.Blocked) {
-        return IndicatorStatus.Blocked;
-    }
-    if (l == IndicatorStatus.Succeeded || r == IndicatorStatus.Succeeded) {
-        return IndicatorStatus.Succeeded;
-    }
-    return IndicatorStatus.None;
-}
 
 
 export interface StatusIndicatorProps {
@@ -212,50 +194,5 @@ export const StatusDot: React.FC<StatusDotProps> = (props: StatusDotProps) => {
             data-status={IndicatorStatus[props.status].toLowerCase()}
             aria-hidden="true"
         />
-    );
-};
-
-export interface BinaryStatusIndicatorProps {
-    className?: string;
-    online: boolean;
-    width?: string;
-    height?: string;
-    fill?: string;
-}
-
-export const BinaryStatusIndicator: React.FC<BinaryStatusIndicatorProps> = (props: BinaryStatusIndicatorProps) => {
-    const fill = props.fill || (props.online ? STATUS_COLOR_SUCCESS : STATUS_COLOR_OTHER);
-    return (
-        <svg
-            className={classNames(props.className)}
-            style={{ color: fill }}
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="-8 -8 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-        >
-            <g fill="none" fillRule="evenodd">
-                {props.online && (
-                    <circle
-                        cx="0"
-                        cy="0"
-                        r="4"
-                        strokeWidth="0"
-                        fill="currentColor"
-                        className={styles.status_binary_pulse}
-                    />
-                )}
-                <circle
-                    cx="0"
-                    cy="0"
-                    r="4"
-                    opacity=".5"
-                    strokeWidth="0"
-                    fill="currentColor"
-                />
-            </g>
-        </svg>
     );
 };

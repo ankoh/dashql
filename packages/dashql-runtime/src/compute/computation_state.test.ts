@@ -13,7 +13,7 @@ import { TestLogger } from '../testing/test_logger.js';
 import { mockDataFrame } from '../testing/mocks/compute_query.js';
 import { CrossFilters } from './cross_filters.js';
 import { tableFromArrays } from '../testing/arrow_fixtures.js';
-import type { OrderByConstraint } from './sql/sqlframe_builder.js';
+import type { OrderByConstraint } from './computation_types.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

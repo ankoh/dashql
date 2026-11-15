@@ -29,14 +29,6 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
         return this.mock.coreAccess;
     }
 
-    async getCoreUserInfo(
-        _access: connection.SalesforceCoreAccessToken,
-        _cancel: AbortSignal,
-    ): Promise<connection.SalesforceCoreUserInfo> {
-        await sleep(200);
-        return this.mock.coreUserInfo;
-    }
-
     public async getDataCloudMetadata(
         _access: connection.SalesforceCoreAccessToken,
         _dataSpace: string,

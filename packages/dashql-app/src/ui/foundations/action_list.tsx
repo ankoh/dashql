@@ -92,6 +92,3 @@ export function ItemTextDescription(props: ItemTextProps) {
     return <span className={styles.text_description}>{props.children}</span>;
 }
 
-export function Divider() {
-    return <div className={styles.divider} />;
-}

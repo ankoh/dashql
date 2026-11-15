@@ -9,16 +9,6 @@ interface RectangleWaveSpinnerProps {
     active: boolean;
 }
 
-export const CenteredRectangleWaveSpinner: React.FC<RectangleWaveSpinnerProps> = (
-    props: RectangleWaveSpinnerProps,
-) => {
-    return (
-        <div className={styles.rw_container}>
-            <RectangleWaveSpinner className={props.className} active={props.active} color={props.color} />
-        </div>
-    );
-};
-
 export const RectangleWaveSpinner: React.FC<RectangleWaveSpinnerProps> = (props: RectangleWaveSpinnerProps) => {
     const s = {
         backgroundColor: props.color || 'var(--color_fg)',

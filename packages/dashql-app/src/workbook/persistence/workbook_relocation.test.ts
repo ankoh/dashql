@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { addNativeWorkbookFromFolder, relocateWorkbookToNative } from './workbook_relocation.js';
+import { relocateWorkbookToNative } from './workbook_relocation.js';
 
 // The successful paths reload the app, which would reload the test frame, so only the cancelled and failed paths are
 // tested here.
@@ -38,20 +38,5 @@ describe('relocateWorkbookToNative', () => {
         expect(writer.flush).toHaveBeenCalledOnce();
         expect(backend.relocateWorkbookToNative).toHaveBeenCalledWith('s1', '/Users/me/workbook');
         expect(writer.resume).toHaveBeenCalledOnce();
-    });
-});
-
-describe('addNativeWorkbookFromFolder', () => {
-    it('does nothing when the folder picker is cancelled', async () => {
-        pickFolder(null);
-        const backend = { loadNativeWorkbook: vi.fn() } as unknown as CompositeStorageBackend;
-        expect(await addNativeWorkbookFromFolder(backend, new TestLogger())).toBe(false);
-        expect(backend.loadNativeWorkbook).not.toHaveBeenCalled();
-    });
-
-    it('forwards folders without a workbook', async () => {
-        pickFolder('/Users/me/empty');
-        const backend = { loadNativeWorkbook: vi.fn(async () => { throw new Error('no workbook'); }) } as unknown as CompositeStorageBackend;
-        await expect(addNativeWorkbookFromFolder(backend, new TestLogger())).rejects.toThrow('no workbook');
     });
 });

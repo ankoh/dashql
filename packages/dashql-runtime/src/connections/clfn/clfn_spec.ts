@@ -145,11 +145,3 @@ export interface ClientFunctionCallDescription {
     options: Record<string, unknown>;
     bindings?: ClientFunctionCallBinding[];
 }
-
-/// A call that failed, the status is set if a service answered
-export class ClientFunctionError extends Error {
-    constructor(message: string, public readonly status: number | null = null) {
-        super(message);
-        this.name = 'ClientFunctionError';
-    }
-}

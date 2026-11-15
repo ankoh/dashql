@@ -7,18 +7,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { ArrowTableFormatter, dataTypeToString } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
-    type ColumnAggregationTask,
     type ColumnAggregationVariant,
     type ColumnGroup,
-    ComputationStateVersion,
     ORDINAL_COLUMN,
     type OrdinalColumnAggregation,
+    type OrdinalGridColumnGroup,
     type TableAggregation,
-    type WithFilter,
     type WithFilterEpoch,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { computeColumnAggregates, computeFilteredColumnAggregates } from '@ankoh/dashql-runtime/compute/tasks/column_aggregation';
-import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
+import { filteredAggregate, ordinalAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
+import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
@@ -59,17 +57,6 @@ function tableAggregate(rows: number, notNull: number, max: number): TableAggreg
     };
 }
 
-function aggregationTask(table: TableAggregation, column: ColumnGroup): ColumnAggregationTask {
-    return {
-        tableId: 1,
-        tableVersion: new ComputationStateVersion(1, 1),
-        columnId: 2,
-        columnEntry: column,
-        inputDataFrame: mockDataFrame('input'),
-        tableAggregate: table,
-    };
-}
-
 /// The bins of width 10 starting at 0, followed by the bin of the null values
 function bins(counts: bigint[]) {
     const binCount = counts.length - 1;
@@ -84,24 +71,13 @@ function bins(counts: bigint[]) {
 }
 
 /// Aggregate the column with the bins the compute query returns
-async function aggregate(table: TableAggregation, column: ColumnGroup, values: arrow.Table): Promise<OrdinalColumnAggregation> {
-    const result = await computeColumnAggregates(aggregationTask(table, column), new TestLogger(), executeReturning(values).executeQuery);
-    expect(result.type).toBe(ORDINAL_COLUMN);
-    return result.value as OrdinalColumnAggregation;
+function aggregate(table: TableAggregation, column: ColumnGroup, values: arrow.Table): OrdinalColumnAggregation {
+    return ordinalAggregate(table, column.value as OrdinalGridColumnGroup, values);
 }
 
 /// Aggregate the column among the selected rows
-async function aggregateFiltered(table: TableAggregation, column: ColumnGroup, values: arrow.Table, selectionRowCount: number): Promise<WithFilterEpoch<ColumnAggregationVariant>> {
-    const task: WithFilter<ColumnAggregationTask> = {
-        ...aggregationTask(table, column),
-        filterTable: null,
-        dataSearchTable: null,
-        selectionRowCount,
-        unfilteredAggregate: {} as ColumnAggregationVariant,
-    };
-    const result = await computeFilteredColumnAggregates(task, new TestLogger(), executeReturning(values).executeQuery);
-    expect(result).not.toBeNull();
-    return result!;
+function aggregateFiltered(table: TableAggregation, column: ColumnGroup, values: arrow.Table, selectionRowCount: number): WithFilterEpoch<ColumnAggregationVariant> {
+    return filteredAggregate({ type: ORDINAL_COLUMN, value: ordinalAggregate(table, column.value as OrdinalGridColumnGroup, values, selectionRowCount) });
 }
 
 /// 10 rows: [0, 10) (1), [10, 20) (4), [20, 30) (2), [30, 40) (1), null (2)

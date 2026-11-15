@@ -493,8 +493,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     readonly batches: arrow.RecordBatch[];
     readonly batchValues: ((string | null)[] | null)[];
     readonly loadedBatchValueCount: Uint32Array;
-    readonly batchFormattedLengthSum: Float64Array;
-    readonly batchFormattedLengthMax: Uint32Array;
     formattedRowCount: number;
     formattedLengthMax: number;
     formattedLengthSum: number;
@@ -512,8 +510,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         this.batches = batches;
         this.batchValues = Array.from({ length: batches.length }, () => null);
         this.loadedBatchValueCount = new Uint32Array(batches.length);
-        this.batchFormattedLengthSum = new Float64Array(batches.length);
-        this.batchFormattedLengthMax = new Uint32Array(batches.length);
         this.formattedRowCount = 0;
         this.formattedLengthMax = 0;
         this.formattedLengthSum = 0;
@@ -523,64 +519,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         this.formatter = valueFormatter.format;
     }
 
-    /// We do not eagerly format all columns.
-    /// Instead, we just check lazily if a batch is loaded before resolving a value.
-    public ensureBatchIsLoaded(index: number): (string | null)[] {
-        if (this.batchValues[index] != null && this.loadedBatchValueCount[index] === this.batches[index].numRows) {
-            return this.batchValues[index]!;
-        }
-        const data = this.batches[index];
-        const column = data.getChildAt(this.columnId)!;
-
-        this.formattedRowCount -= this.loadedBatchValueCount[index];
-        this.formattedLengthSum -= this.batchFormattedLengthSum[index];
-
-        const values: (string | null)[] = [];
-        let valueLengthSum = 0;
-        let valueLengthMax = 0;
-
-        const pushFormatted = (value: any) => {
-            if (value == null) {
-                values.push(null);
-            } else {
-                const text = this.formatter(value) || '';
-                values.push(text);
-                valueLengthSum += text.length;
-                valueLengthMax = Math.max(valueLengthMax, text.length);
-            }
-        };
-
-        try {
-            for (const value of column) {
-                pushFormatted(value);
-            }
-        } catch (e) {
-            if (!isUnsafeIntegerConversion(e)) {
-                throw e;
-            }
-            // Arrow JS throws for Int64 values exceeding MAX_SAFE_INTEGER.
-            // Fall back to reading raw bigint values via DataView.
-            values.length = 0;
-            valueLengthSum = 0;
-            valueLengthMax = 0;
-            for (let row = 0; row < column.length; ++row) {
-                pushFormatted(readRawInt64(column, row));
-            }
-        }
-
-        this.formattedLengthSum += valueLengthSum;
-        this.formattedRowCount += values.length;
-        this.batchValues[index] = values;
-        this.loadedBatchValueCount[index] = values.length;
-        this.batchFormattedLengthSum[index] = valueLengthSum;
-        this.batchFormattedLengthMax[index] = valueLengthMax;
-        this.formattedLengthMax = Math.max(...this.batchFormattedLengthMax);
-        return values;
-    }
-
-    public getBatchValues(batch: number) {
-        return this.ensureBatchIsLoaded(batch);
-    }
     public getValue(batch: number, row: number): string | null {
         const loaded = this.batchValues[batch];
         if (loaded != null && this.loadedBatchValueCount[batch] === this.batches[batch].numRows) {
@@ -610,8 +548,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         if (text != null) {
             this.formattedLengthSum += text.length;
             this.formattedLengthMax = Math.max(this.formattedLengthMax, text.length);
-            this.batchFormattedLengthSum[batch] += text.length;
-            this.batchFormattedLengthMax[batch] = Math.max(this.batchFormattedLengthMax[batch], text.length);
         }
         return text;
     }

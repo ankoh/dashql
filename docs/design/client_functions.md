@@ -270,17 +270,13 @@ There are three places to see the actual names: the reference of a spec, such as
 A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-runtime/src/connections/connector_descriptor.ts`):
 
 ```ts
-interface ClientFunctionBinding<Details> {
+interface ClientFunctionBinding {
     /// Load the spec, only when a connection needs it
     loadSpec(): Promise<ClientFunctionSpec>;
-    /// Where a host that the spec names is on a connection, and the credentials for it
-    resolveHost(details: Details, host: string): Promise<{ baseUrl: URL; headers: Record<string, string> }>;
-    /// The values of the variables in the base paths of the spec. They need no login, `EXPLAIN` prints them.
-    variables(details: Details): Record<string, string>;
 }
 ```
 
-`resolveHost` is async since a token may need a refresh or an exchange. The Salesforce binding doesn't refresh one yet: an expired Data 360 token fails the call with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
+The runtime of the core resolves the rest from the connection (`ClientFunctionBinding` of `clfn/connection.rs` in `dashql_core_runtime`): where a host that the spec names is and the credentials for it, and the values of the variables in the base paths of the spec, which need no login so `EXPLAIN` prints them. The Salesforce binding doesn't refresh a token yet: an expired Data 360 token fails the call with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
 
 **A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. The catalog loader of the runtime (`catalog_loader/service.rs` with `ClientFunctionRegistrations` of `clfn/connection.rs`) asks the host to load the spec and registers it on the connection's catalog. It does so on every change of the registry, so a spec that failed to load is tried again, and it drops the spec if the connection switches to a connector without it. The shell of a connection runs on that catalog, so its prompt completes the same calls.
 
@@ -406,7 +402,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - `parser/context.rs`: panics on an unknown statement root.
 - `dashql-core/src/formatter/`: an unknown node renders as `'<OBJECT_...>'`, which fails the round-trip test.
 - `dashql-core-runtime/src/planner/mod.rs`: see [Running calls](#running-calls).
-- `dashql-core-script/src/compiler.rs` and `dashql-core/src/pack.rs`, plus the labels in `dashql_story_decorations.ts`.
+- `dashql-core-script/src/compiler.rs` and `dashql-core/src/pack.rs`.
 - `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
 
 ## Running calls

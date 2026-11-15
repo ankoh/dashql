@@ -2,9 +2,9 @@
 //! `query_result_search_sql.test.ts`, `analyze_table.test.ts`, the tests under `compute/tasks` and
 //! `result_computations.test.ts` of the TypeScript runtime.
 //!
-//! The tasks are sans-IO: a test compares the SQL of a plan and hands batches to its finish. The tests of the
-//! TypeScript runtime that run the SQL on Hyper (`sqlframe_builder_exec.test.ts`, the order of the rows of the system
-//! columns, the filter and the ordering) pin what Hyper does with the SQL; here they pin the SQL that orders the rows.
+//! The tasks are sans-IO: a test compares the SQL of a plan and hands batches to its finish. `computations.test.ts` of
+//! the TypeScript runtime runs the tasks on Hyper (the analysis, the filter, the ordering and the search); here they
+//! pin the SQL that orders the rows.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

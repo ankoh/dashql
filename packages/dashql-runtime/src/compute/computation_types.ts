@@ -1,15 +1,12 @@
 import * as arrow from 'apache-arrow';
 import { TaskStatus } from '@ankoh/dashql-core';
 
-import { OrderByConstraint, ScalarFilter } from './sql/sqlframe_builder.js';
 import { VariantKind } from '../utils/variant.js';
 import { DataFrame } from './data_frame.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { AsyncValue } from '../utils/async_value.js';
 
-export const TASK_FAILED = Symbol("TASK_FAILED");
-export const TASK_RUNNING = Symbol("TASK_RUNNING");
 export const ORDINAL_COLUMN = Symbol("ORDINAL_COLUMN");
 export const STRING_COLUMN = Symbol("STRING_COLUMN");
 export const LIST_COLUMN = Symbol("LIST_COLUMN");
@@ -17,6 +14,23 @@ export const SKIPPED_COLUMN = Symbol("SKIPPED_COLUMN");
 export const ROWNUMBER_COLUMN = Symbol("ROWNUMBER_COLUMN");
 
 // ------------------------------------------------------------
+
+/// The comparison of a scalar filter
+export type FilterOp = "=" | "<" | "<=" | ">" | ">=";
+
+/// An order of the rows by a column
+export interface OrderByConstraint {
+    field: string;
+    ascending?: boolean;
+    nullsFirst?: boolean;
+}
+
+/// A filter of the rows by the value of a column
+export interface ScalarFilter {
+    fieldName: string;
+    op: FilterOp;
+    value: number;
+}
 
 export class ComputationStateVersion {
     /// The data version - incremented when underlying data changes
@@ -32,21 +46,6 @@ export class ComputationStateVersion {
     /// Clone a computation state version
     clone(): ComputationStateVersion {
         return new ComputationStateVersion(this.data, this.filter);
-    }
-
-    /// Create a new version with data incremented
-    withDataIncrement(): ComputationStateVersion {
-        return new ComputationStateVersion(this.data + 1, this.filter);
-    }
-
-    /// Create a new version with filter incremented
-    withFilterIncrement(): ComputationStateVersion {
-        return new ComputationStateVersion(this.data, this.filter + 1);
-    }
-
-    /// Check if this version matches another in the data dimension
-    dataMatches(other: ComputationStateVersion): boolean {
-        return this.data === other.data;
     }
 
     /// Check if this version matches another in data + filter dimensions
@@ -136,19 +135,6 @@ export interface DataSearchTask {
     abortController: AbortController;
 }
 
-export function createResultSearchState(): ResultSearchState {
-    return {
-        requestedPattern: '',
-        appliedPattern: '',
-        requestId: 0,
-        appliedRequestId: 0,
-        matchingColumnGroups: null,
-        matchingRows: null,
-        pending: false,
-        error: null,
-    };
-}
-
 export interface TableAggregationTask {
     /// The table id
     tableId: number;
@@ -221,16 +207,6 @@ export type ColumnGroup =
     | VariantKind<typeof STRING_COLUMN, StringGridColumnGroup>
     | VariantKind<typeof LIST_COLUMN, ListGridColumnGroup>
     ;
-
-export function getGridColumnTypeName(variant: ColumnGroup) {
-    switch (variant.type) {
-        case ROWNUMBER_COLUMN: return "ROWNUMBER";
-        case SKIPPED_COLUMN: return "SKIPPED";
-        case ORDINAL_COLUMN: return "ORDINAL";
-        case STRING_COLUMN: return "STRING";
-        case LIST_COLUMN: return "LIST";
-    }
-}
 
 export interface ColumnStatsFields {
     /// Entry count (!= null)
@@ -519,14 +495,3 @@ export type TaskVariant =
     ;
 
 /// The title of the queries of a task in the query history
-export function computationTaskTitle(task: TaskVariant): string {
-    switch (task.type) {
-        case COLUMN_AGGREGATION_TASK: return 'Column aggregation';
-        case TABLE_FILTERING_TASK: return 'Table filtering';
-        case TABLE_ORDERING_TASK: return 'Table ordering';
-        case TABLE_AGGREGATION_TASK: return 'Table aggregation';
-        case SYSTEM_COLUMN_COMPUTATION_TASK: return 'System column computation';
-        case FILTERED_COLUMN_AGGREGATION_TASK: return 'Filtered column aggregation';
-        case DATA_SEARCH_TASK: return 'Data search';
-    }
-}

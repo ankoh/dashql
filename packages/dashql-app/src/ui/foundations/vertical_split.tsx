@@ -5,8 +5,6 @@ import * as styles from './vertical_split.module.css';
 
 const DEFAULT_SEPARATOR_SIZE = 12;
 const KEYBOARD_STEP = 0.05;
-const MIN_RATIO = 0;
-const MAX_RATIO = 1;
 
 export interface VerticalSplitProps {
     first: React.ReactNode;

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, type ColumnGroup } from '../computation_types.js';
 import {
     buildColumnSearchSQL,
-    buildDataSearchSQL,
     collectSearchableResultColumns,
     parseDataSearchMatches,
 } from './query_result_search_sql.js';
@@ -95,43 +94,8 @@ describe('query result search SQL', () => {
         expect(sql).toContain(`WHERE name ILIKE '%o''neil%'`);
     });
 
-    it('builds an empty materializable Data search when there are no searchable columns', () => {
+    it('builds no Columns search when there are no searchable columns', () => {
         expect(buildColumnSearchSQL([], 'x')).toBeNull();
-        expect(buildDataSearchSQL('__syscols_1', '_rownum', [], 'x')).toContain('WHERE FALSE');
-    });
-
-    it('searches every original data column independently of column visibility', () => {
-        const sql = buildDataSearchSQL(
-            '__syscols_1',
-            '_rownum',
-            collectSearchableResultColumns(columnGroups),
-            'search',
-        );
-        expect(sql).toBe(
-            `WITH search AS (\n` +
-            `    SELECT "_rownum" AS row_idx, 0 AS column_idx\n` +
-            `    FROM "__syscols_1"\n` +
-            `    WHERE CAST("column_name" AS TEXT) ILIKE '%search%'\n` +
-            `    UNION ALL\n` +
-            `    SELECT "_rownum" AS row_idx, 1 AS column_idx\n` +
-            `    FROM "__syscols_1"\n` +
-            `    WHERE CAST("score" AS TEXT) ILIKE '%search%'\n` +
-            `    UNION ALL\n` +
-            `    SELECT "_rownum" AS row_idx, 2 AS column_idx\n` +
-            `    FROM "__syscols_1"\n` +
-            `    WHERE CAST("tags" AS TEXT) ILIKE '%search%'\n` +
-            `    UNION ALL\n` +
-            `    SELECT "_rownum" AS row_idx, 3 AS column_idx\n` +
-            `    FROM "__syscols_1"\n` +
-            `    WHERE CAST("col""umn" AS TEXT) ILIKE '%search%'\n` +
-            `)\n` +
-            `SELECT\n` +
-            `    row_idx,\n` +
-            `    array_agg(column_idx ORDER BY column_idx) AS column_indices\n` +
-            `FROM search\n` +
-            `GROUP BY row_idx\n` +
-            `ORDER BY row_idx`
-        );
     });
 
     it('parses Arrow list values into matching column indexes', () => {

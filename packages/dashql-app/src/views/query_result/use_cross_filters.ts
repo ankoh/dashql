@@ -4,7 +4,7 @@ import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '@an
 import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { FILTERED_COLUMN_AGGREGATION_TASK, TABLE_FILTERING_TASK, ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask, DataSearchTable, FilterTable } from '@ankoh/dashql-runtime/compute/computation_types';
-import { ScalarFilter } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
+import type { ScalarFilter } from '@ankoh/dashql-runtime/compute/computation_types';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';

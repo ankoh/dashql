@@ -406,9 +406,9 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   `workbook_import.ts`, `workbook_zip.ts`, `storage/workbook_tables_parquet.ts`) moved into the runtime with their
   tests and `workbook_execution_integration.test.ts`; a link takes the URL of the app that opens it, the app passes its
   own, `workbook_link.ts` has the one of the desktop app.
-- **The compute tasks in Node.** The tasks of the computations (`compute/tasks/`: aggregation, filtering, ordering,
-  search, system columns) and `compute/column_analysis.ts` moved into the runtime with their tests; the app keeps
-  the scheduler that runs them in React (`compute/computation_scheduler.tsx`).
+- **The compute tasks.** The tasks of the computations (aggregation, filtering, ordering, search, system columns) run in
+  the runtime of the core (`packages/dashql-core-runtime/src/compute`); the app keeps `compute/computation_scheduler.tsx`,
+  which tracks their queries in React.
 - **What remains in the app** (the inventory of the test files): the OPFS and composite storage backends; the
   connector setups, which need a fake `OAuthFlow`; the snippets and the local cloud.
 - **Compile time.** The runtime compiles against the `WebWorker` lib, without the DOM and without the types of Node; the

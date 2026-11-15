@@ -58,9 +58,9 @@ The Salesforce connector's descriptor (`packages/dashql-runtime/src/connections/
 | `tenant` | none | Data 360 JWT | `/api/v1`, ingestion, agentic memory |
 | `connect` | `/services/data/v{api_version}` | Core OAuth token, for now | The other `/ssot/*`, `/connect`, `/personalization` and `/semantic-engine` calls |
 
-**`connect` takes the core host and token for now,** as DashQL's metadata call does, because the sources conflict: the spec places these calls on the tenant host after a token exchange, while that metadata call works on the core host with the core token (see [the notes](api_notes.md#hosts-and-tokens)). The spec only names `connect`, so settling this on an org changes `salesforce_client_functions.ts` and not 400 functions.
+**`connect` takes the core host and token for now,** as DashQL's metadata call does, because the sources conflict: the spec places these calls on the tenant host after a token exchange, while that metadata call works on the core host with the core token (see [the notes](api_notes.md#hosts-and-tokens)). The spec only names `connect`, so settling this on an org changes `salesforce/client_functions.rs` of `dashql_core_runtime` and not 400 functions.
 
-**The token exchange** stays in `SalesforceApiClient`, as `POST /services/oauth2/token` and `POST /services/a360/token` aren't functions. `resolveHost` reads the tokens of the connection's channel, and a call without a login fails. Tokens aren't refreshed today, so a call with an expired token fails with the service's error, and `resolveHost` has to handle that before long-running sessions can rely on it.
+**The token exchange** stays in `SalesforceApiClient`, as `POST /services/oauth2/token` and `POST /services/a360/token` aren't functions. The host resolution of the runtime (`resolve_salesforce_client_function_host`) reads the tokens of the connection's channel, and a call without a login fails. Tokens aren't refreshed today, so a call with an expired Data 360 token fails with a message that says so, and the host resolution has to refresh it before long-running sessions can rely on it.
 
 **`api_version`** comes from the binding, which sends 68.0, the version of the spec. DashQL's own calls use v64.0, and the hosted server needs v66 or later. The binding could load a spec per API version later, which needs no rebuild.
 

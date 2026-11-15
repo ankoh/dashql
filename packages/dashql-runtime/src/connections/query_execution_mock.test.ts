@@ -86,12 +86,11 @@ describe('the mocked connector clients', () => {
         const cancel = new AbortController().signal;
         const pending = Promise.all([
             client.getCoreAccessToken({} as never, {} as never, 'code', 'verifier', cancel),
-            client.getCoreUserInfo(config.coreAccess, cancel),
             client.getDataCloudMetadata(config.coreAccess, 'default', cancel),
             client.getDataCloudAccessToken(config.coreAccess, cancel),
         ]);
         await vi.advanceTimersByTimeAsync(200);
-        expect(await pending).toEqual([config.coreAccess, config.coreUserInfo, config.dataCloudMetadata, config.dataCloudAccess]);
+        expect(await pending).toEqual([config.coreAccess, config.dataCloudMetadata, config.dataCloudAccess]);
         expect(client.executeQuery('select 1', config.dataCloudAccess)).toBeInstanceOf(QueryExecutionResponseStreamMock);
     });
 });

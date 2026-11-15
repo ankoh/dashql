@@ -156,33 +156,6 @@ export function parseCoreAccessToken(obj: any, logger?: Logger): connection.Sale
     };
 }
 
-export function parseCoreUserInfo(obj: any): connection.SalesforceCoreUserInfo {
-    return ({
-        active: obj.active,
-        email: obj.email,
-        emailVerified: obj.email_verified,
-        familyName: obj.family_name,
-        givenName: obj.given_name,
-        isAppInstalled: obj.is_app_installed,
-        isSalesforceIntegrationUser: obj.is_salesforce_integration_user,
-        language: obj.language,
-        locale: obj.locale,
-        name: obj.name,
-        nickname: obj.nickname,
-        organizationId: obj.organization_id,
-        photos: obj.photos,
-        picture: obj.picture,
-        preferredUsername: obj.preferred_username,
-        profile: obj.profile,
-        sub: obj.sub,
-        updatedAt: obj.updated_at,
-        userId: obj.user_id,
-        userType: obj.user_type,
-        utcOffset: obj.utcOffset,
-        zoneinfo: obj.zoneinfo,
-    });
-}
-
 export interface SalesforceApiClientInterface {
     getCoreAccessToken(
         authConfig: connection.SalesforceOAuthConfig,
@@ -191,10 +164,6 @@ export interface SalesforceApiClientInterface {
         pkceVerifier: string,
         cancel: AbortSignal,
     ): Promise<connection.SalesforceCoreAccessToken>;
-    getCoreUserInfo(
-        access: connection.SalesforceCoreAccessToken,
-        cancel: AbortSignal,
-    ): Promise<connection.SalesforceCoreUserInfo>;
     getDataCloudMetadata(
         access: connection.SalesforceCoreAccessToken,
         dataSpace: string,
@@ -320,26 +289,6 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
             this.logger.warn('Rejected Data Cloud token response', { oauthResponse: redactTokenDiagnostics(responseBody) }, LOG_CTX);
             throw error;
         }
-    }
-
-    public async getCoreUserInfo(
-        access: connection.SalesforceCoreAccessToken,
-        cancel: AbortSignal,
-    ): Promise<connection.SalesforceCoreUserInfo> {
-        const params = new URLSearchParams();
-        params.set('format', 'json');
-        params.set('access_token', access.accessToken ?? '');
-        const headers = new Headers({
-            authorization: `Bearer ${access.accessToken}`,
-            accept: 'application/json',
-        });
-        const url = new URL(`${access.instanceUrl ?? ""}/services/oauth2/userinfo?${params.toString()}`);
-        const response = await this.httpClient.fetch(url, {
-            headers,
-            signal: cancel,
-        });
-        const responseJson = await response.json();
-        return parseCoreUserInfo(responseJson);
     }
 
     public async getDataCloudMetadata(

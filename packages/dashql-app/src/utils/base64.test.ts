@@ -3,8 +3,19 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import type * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import { BASE64_CODEC, BASE64URL_CODEC } from "@ankoh/dashql-runtime/utils/base64";
-import { randomBuffer32 } from "./hash.js";
-import { DefaultHasher } from './hash_default.js';
+
+/// 32 words of a seeded generator (mulberry32)
+function randomBuffer32(seed: number): ArrayBuffer {
+    const out = new Uint32Array(32);
+    let state = seed >>> 0;
+    for (let i = 0; i < out.length; ++i) {
+        state = (state + 0x6D2B79F5) >>> 0;
+        let t = Math.imul(state ^ (state >>> 15), state | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        out[i] = (t ^ (t >>> 14)) >>> 0;
+    }
+    return out.buffer;
+}
 
 describe('Base64Codec', () => {
     describe("invalid base64 strings", () => {
@@ -19,7 +30,7 @@ describe('Base64Codec', () => {
     describe("encodes random 32 byte sequences", () => {
         for (let i = 0; i < 1000; ++i) {
             it(`seed=${i}`, () => {
-                const randomBytes = randomBuffer32(32, DefaultHasher.hash(i.toString()).asPrng())
+                const randomBytes = randomBuffer32(i)
                 const encoded = BASE64_CODEC.encode(randomBytes);
                 expect(BASE64_CODEC.isValidBase64(encoded)).toBeTruthy();
                 const decoded = BASE64_CODEC.decode(encoded);
@@ -125,7 +136,7 @@ describe('Base64UrlCodec', () => {
     describe("encodes random 32 byte sequences", () => {
         for (let i = 0; i < 1000; ++i) {
             it(`seed=${i}`, () => {
-                const randomBytes = randomBuffer32(32, DefaultHasher.hash(i.toString()).asPrng())
+                const randomBytes = randomBuffer32(i)
                 const encoded = BASE64URL_CODEC.encode(randomBytes);
                 expect(BASE64URL_CODEC.isValidBase64(encoded)).toBeTruthy();
                 const decoded = BASE64URL_CODEC.decode(encoded);

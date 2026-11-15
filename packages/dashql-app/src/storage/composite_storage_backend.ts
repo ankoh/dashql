@@ -511,30 +511,4 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         await this.opfs.deleteWorkbookFiles(uuid);
         this.logger.info('relocated workbook to native storage', { workbookId: uuid, dir }, LOG_CTX);
     }
-
-    /// Load a pre-existing native workbook directory into the registry.
-    ///
-    /// Unlike `relocateWorkbookToNative`, this copies nothing: the directory already holds a complete
-    /// workbook written by a previous run (or another machine). We simply read its workbook manifest,
-    /// validate the metadata up front (the same fail-fast gate the loader uses), and record a
-    /// `location=native` entry in the OPFS workbook tree so the next restore picks it up.
-    ///
-    /// Returns the loaded workbook's UUID. Throws if the directory holds no readable workbook, the
-    /// metadata is invalid, or a workbook with the same UUID is already registered (we never silently
-    /// overwrite an existing entry — the caller surfaces the error).
-    async loadNativeWorkbook(dir: string): Promise<string> {
-        const prepared = await this.prepareNativeWorkbook(dir);
-        const uuid = prepared.bundle.workbook.workbookId;
-
-        // Never clobber a workbook that's already registered (same folder added twice, or a UUID
-        // collision with an existing OPFS/native workbook).
-        if (await this.findWorkbookImportConflict(uuid)) {
-            throw new Error(`Workbook ${uuid} is already registered`);
-        }
-
-        await this.registerPreparedNativeWorkbook(prepared, uuid);
-
-        this.logger.info('loaded native workbook', { workbookId: uuid, dir }, LOG_CTX);
-        return uuid;
-    }
 }

@@ -28,7 +28,6 @@ import {
     publishCloudWorkbook,
     readCloudWorkbook,
     readParquetAsText,
-    restoreCloudWorkbook,
     type CloudWorkbook,
     type CloudWorkbookVersion,
 } from './cloud_store.js';
@@ -386,7 +385,7 @@ describe('cloud store', () => {
         expect(await rowCount()).toBe(0);
     });
 
-    it('hides a deleted workbook until it is restored or a cleanup removes it with all its versions', async () => {
+    it('hides a deleted workbook until a cleanup removes it with all its versions', async () => {
         const first = await publishCloudWorkbook(query, database, await testTables());
         const second = await publishCloudWorkbook(query, database, await testTables(), { workbookId: first.workbookId });
         const rows = await rowCount();
@@ -399,10 +398,6 @@ describe('cloud store', () => {
         expect(await rowCount()).toBe(rows);
         await deleteCloudWorkbook(query, first.workbookId);
 
-        await restoreCloudWorkbook(query, first.workbookId);
-        expect(await listWorkbooks()).toEqual([{ ...second, folderId: null }]);
-
-        await deleteCloudWorkbook(query, first.workbookId);
         expect((await cleanupCloud(query)).workbooks).toEqual([]);
         const removed = await cleanupCloud(query, { purgeAfterSeconds: 0 });
         expect(removed.workbooks).toEqual([first.workbookId]);

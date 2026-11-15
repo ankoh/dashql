@@ -16,7 +16,7 @@ import {
     TABLE_FILTERING_TASK,
     TaskStatus,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import type { ScalarFilter } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
+import type { ScalarFilter } from '@ankoh/dashql-runtime/compute/computation_types';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';

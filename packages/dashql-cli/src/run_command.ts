@@ -9,7 +9,6 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
 import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_check';
 import { HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
-import { TrinoApiClient } from '@ankoh/dashql-runtime/connections/trino/trino_api_client';
 import { setupTrinoConnection } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
 import type { ConnectionAction, ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { TRINO_CHANNEL_SETUP_STARTED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
@@ -229,7 +228,7 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
     const trinoDispatch = (action: ConnectionAction) => dispatch(
         action.type === TRINO_CHANNEL_SETUP_STARTED ? { type: TRINO_CHANNEL_SETUP_STARTED, value: stored } : action);
     try {
-        const channel = await setupTrinoConnection(trinoDispatch, logger, trino, {}, new TrinoApiClient(logger, http), http, oauthFlow, false, signal);
+        const channel = await setupTrinoConnection(trinoDispatch, logger, trino, http, oauthFlow, false, signal);
         await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'trino', channel }, trinoDispatch, signal);
     } catch (error) {
         return describeError(error);

@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { DataFrame, generateTableName } from '@ankoh/dashql-runtime/compute/data_frame';
+import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
 import { WebFile } from '../file/web_file.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
@@ -612,16 +612,18 @@ describe('HyperDB embedded database integration', () => {
 
 
     it('keeps shared tables visible across physical DataFrame connections', async () => {
-        const inputName = generateTableName('__hyper_input');
-        const summaryName = generateTableName('__hyper_summary');
-        const input = await DataFrame.fromArrowTable(database!, tableFromArrays({
+        const inputName = '__hyper_input';
+        const summaryName = '__hyper_summary';
+        await DataFrame.withConnection(database!, conn => conn.insertArrowTable(tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
-        }), inputName);
+        }), { name: inputName, create: true }));
+        const input = new DataFrame(database!, inputName);
+        const read = (dataFrame: DataFrame) => dataFrame.withConnection(conn => conn.query(`SELECT * FROM "${dataFrame.tableName}"`));
 
         const [firstRead, secondRead] = await Promise.all([
-            input.readTable(),
-            input.readTable(),
+            read(input),
+            read(input),
         ]);
         expect(toPlainObjects(firstRead)).toEqual([
             { id: 1, label: 'alpha' },
@@ -636,14 +638,14 @@ describe('HyperDB embedded database integration', () => {
             `SELECT COUNT(*)::INTEGER AS row_count FROM "${inputName}"`,
             summaryName,
         );
-        expect(toPlainObjects(await summary.readTable())).toEqual([{ row_count: 3 }]);
+        expect(toPlainObjects(await read(summary))).toEqual([{ row_count: 3 }]);
         // Later statements reuse the attached sessions of the parallel reads.
         expect(client.connectCount).toBe(connectsAfterReads);
 
         await summary.destroy();
-        await expect(summary.readTable()).rejects.toThrow();
+        await expect(read(summary)).rejects.toThrow();
         await input.destroy();
-        await expect(input.readTable()).rejects.toThrow();
+        await expect(read(input)).rejects.toThrow();
     });
 
     it('appends Arrow batches to a shared table', async () => {

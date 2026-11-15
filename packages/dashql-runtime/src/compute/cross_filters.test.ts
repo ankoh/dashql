@@ -32,60 +32,6 @@ describe('CrossFilters', () => {
         });
     });
 
-    describe('equals', () => {
-        it('returns true for two empty CrossFilters', () => {
-            expect(new CrossFilters().equals(new CrossFilters())).toBe(true);
-        });
-
-        it('returns false when key counts differ', () => {
-            const a = new CrossFilters();
-            const b = new CrossFilters();
-            const ordinalGroup = { inputFieldName: 'x', inputFieldType: {} as any, inputFieldNullable: false, statsFields: null, binFieldName: '_bin', binCount: 10 };
-            a.addHistogramFilter(1, ordinalGroup, [0, 1]);
-            expect(a.equals(b)).toBe(false);
-            expect(b.equals(a)).toBe(false);
-        });
-
-        it('returns false when filter types differ for the same column', () => {
-            const a = new CrossFilters();
-            const b = new CrossFilters();
-            const ordinalGroup = { inputFieldName: 'x', inputFieldType: {} as any, inputFieldNullable: false, statsFields: null, binFieldName: '_bin', binCount: 10 };
-            a.addHistogramFilter(1, ordinalGroup, [0, 1]);
-            b.columnFilters[1] = { type: MOST_FREQUENT_FILTER, value: { valueId: 1, filters: [] } };
-            expect(a.equals(b)).toBe(false);
-        });
-
-        it('returns false for non-matching histogram selections', () => {
-            const a = new CrossFilters();
-            const b = new CrossFilters();
-            const ordinalGroup = { inputFieldName: 'x', inputFieldType: {} as any, inputFieldNullable: false, statsFields: null, binFieldName: '_bin', binCount: 10 };
-            a.addHistogramFilter(1, ordinalGroup, [0, 5]);
-            b.addHistogramFilter(1, ordinalGroup, [2, 5]);
-            expect(a.equals(b)).toBe(false);
-        });
-
-        it('returns true for matching histogram selections', () => {
-            const a = new CrossFilters();
-            const b = new CrossFilters();
-            const ordinalGroup = { inputFieldName: 'x', inputFieldType: {} as any, inputFieldNullable: false, statsFields: null, binFieldName: '_bin', binCount: 10 };
-            a.addHistogramFilter(1, ordinalGroup, [2, 5]);
-            b.addHistogramFilter(1, ordinalGroup, [2, 5]);
-            expect(a.equals(b)).toBe(true);
-        });
-
-        it('compares most-frequent filters by value id', () => {
-            const stringGroup = { inputFieldName: 'category', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, valueIdFieldName: '_category_id' };
-            const a = new CrossFilters();
-            const b = new CrossFilters();
-            a.addMostFrequentValueFilter(1, stringGroup, 2);
-            b.addMostFrequentValueFilter(1, stringGroup, 2);
-            expect(a.equals(b)).toBe(true);
-
-            b.addMostFrequentValueFilter(1, stringGroup, 3);
-            expect(a.equals(b)).toBe(false);
-        });
-    });
-
     describe('createFilterTransforms', () => {
         it('returns empty array when no filters are set', () => {
             const cf = new CrossFilters();

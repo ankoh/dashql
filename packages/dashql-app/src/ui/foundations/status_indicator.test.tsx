@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { BinaryStatusIndicator, IndicatorStatus, StatusDot, StatusIndicator } from './status_indicator.js';
+import { IndicatorStatus, StatusDot, StatusIndicator } from './status_indicator.js';
 
 describe('StatusIndicator', () => {
     let container: HTMLDivElement;
@@ -38,14 +38,6 @@ describe('StatusIndicator', () => {
         expect(new Set([running, succeeded, failed, none]).size).toBe(4);
         expect(blocked).toBe(none);
         expect(skip).toBe(none);
-    });
-
-    it('uses the success color only when a binary status is online', () => {
-        const succeeded = renderColor(<StatusIndicator status={IndicatorStatus.Succeeded} />);
-        const neutral = renderColor(<StatusIndicator status={IndicatorStatus.None} />);
-
-        expect(renderColor(<BinaryStatusIndicator online />)).toBe(succeeded);
-        expect(renderColor(<BinaryStatusIndicator online={false} />)).toBe(neutral);
     });
 
     it('allows an explicit color override', () => {

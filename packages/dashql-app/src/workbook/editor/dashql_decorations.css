@@ -38,63 +38,6 @@
     text-decoration-style: dotted;
 }
 
-.dashql-story-sql-control {
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-    height: 20px;
-    margin: 0;
-    padding: 2px 6px;
-    border: 1px solid color-mix(in srgb, var(--code_keyword) 28%, transparent);
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--code_keyword) 7%, var(--color_bg_subtle));
-    color: var(--code_keyword);
-    cursor: pointer;
-    font-family: var(--font_family_mono);
-    font-size: 0.72rem;
-    line-height: 1.35;
-    letter-spacing: 0;
-}
-
-.dashql-story-fold-gutter {
-    width: 16px;
-}
-
-.dashql-story-fold-spacer {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-}
-
-.dashql-story-fold-control {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 2px;
-    background: transparent;
-    color: var(--code_keyword);
-    cursor: pointer;
-    font-family: var(--font_family_mono);
-    font-size: 0.85rem;
-    line-height: 1;
-}
-
-.dashql-story-fold-control:hover {
-    background: color-mix(in srgb, var(--code_keyword) 10%, transparent);
-}
-
-.dashql-story-fold-control:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: -1px;
-}
-
-.dashql-story-sql-control:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 2px;
-}
-
 /* The comment tags and the tokens of their content: keep the colors of the theme, but step back behind the SQL */
 .cm-content .dashql-comment-token {
     font-weight: normal;

@@ -45,7 +45,6 @@ import { createProgressLayoutConfig } from '../query/profile/profile_layout_conf
 import type { Dispatch } from '../utils/variant.js';
 import { connectorOfDetails } from './connector_descriptor.js';
 import { TrinoChannel } from './trino/trino_channel.js';
-import { TrinoApiClient } from './trino/trino_api_client.js';
 import type { HyperDatabaseChannel } from './hyper/hyperdb_grpc_client.js';
 import type { SalesforceDatabaseChannel } from './salesforce/salesforce_api_client.js';
 
@@ -420,8 +419,7 @@ export class QueryExecutorService {
         const override = args.channelOverride;
         const channel: unknown = override != null ? override.channel : details.value.channel;
         // A Trino channel whose requests go over the HTTP client of the platform
-        if (channel instanceof TrinoChannel && channel.apiClient instanceof TrinoApiClient
-            && (override == null || override.type === 'trino')) {
+        if (channel instanceof TrinoChannel && (override == null || override.type === 'trino')) {
             const endpoint = channel.endpoint;
             record.trino = channel;
             return {

@@ -11,6 +11,8 @@ import {
     type ColumnAggregationTask,
     type ColumnAggregationVariant,
     type ColumnGroup,
+    type OrdinalGridColumnGroup,
+    type StringGridColumnGroup,
     ComputationStateVersion,
     LIST_COLUMN,
     ORDINAL_COLUMN,
@@ -21,9 +23,9 @@ import {
     type WithFilter,
     type WithProgress,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { computeColumnAggregates } from '@ankoh/dashql-runtime/compute/tasks/column_aggregation';
+import { ordinalAggregate, stringAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
 import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
-import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
+import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
@@ -109,7 +111,7 @@ function aggregationTask(columnId: number, columnEntry: ColumnGroup): ColumnAggr
 
 async function nameAggregate(): Promise<ColumnAggregationVariant> {
     const values = tableFromArrays({ key: ['a', 'b', 'c'], keyId: BigInt64Array.from([1n, 2n, 3n]), count: BigInt64Array.from([5n, 3n, 2n]) });
-    return await computeColumnAggregates(aggregationTask(1, NAME), new TestLogger(), executeReturning(values).executeQuery);
+    return { type: STRING_COLUMN, value: stringAggregate(TABLE, NAME.value as StringGridColumnGroup, values) };
 }
 
 async function scoreAggregate(): Promise<ColumnAggregationVariant> {
@@ -121,7 +123,7 @@ async function scoreAggregate(): Promise<ColumnAggregationVariant> {
         binLowerBound: Float64Array.from(ids.map(bin => bin * 10)),
         binUpperBound: Float64Array.from(ids.map(bin => (bin + 1) * 10)),
     });
-    return await computeColumnAggregates(aggregationTask(2, SCORE), new TestLogger(), executeReturning(bins).executeQuery);
+    return { type: ORDINAL_COLUMN, value: ordinalAggregate(TABLE, SCORE.value as OrdinalGridColumnGroup, bins) };
 }
 
 function progress(status: TaskStatus) {

@@ -225,11 +225,6 @@ export class NativeComputations implements core.ComputeHost {
         this.queryExecution = create;
     }
 
-    /// Does a task of the app run in Rust? The scheduler of the host leaves it alone.
-    runsTask(taskId: number): boolean {
-        return this.nativeTasks.has(taskId);
-    }
-
     /// Free the Rust state and abort the lifetimes of the computations
     destroy(): void {
         for (const host of this.hosts.values()) host.lifetime.abort();

@@ -1,8 +1,7 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import { OrderByConstraint } from './sql/sqlframe_builder.js';
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, WithFilter, WithFilterEpoch, ComputationStateVersion, ResultSearchState, createResultSearchState, DataSearchTable, DataSearchTask } from './computation_types.js';
+import { ColumnAggregationVariant, OrderByConstraint, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, WithFilter, WithFilterEpoch, ComputationStateVersion, ResultSearchState, DataSearchTable, DataSearchTask } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
@@ -123,43 +122,6 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
         out.set(table.schema.fields[i].name, i);
     }
     return out;
-}
-
-/// The state of the computation of a table as a plain object, e.g. of a test that renders a computation
-export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController, connectionId: string | null = null, clientContext: EmbeddedClientContext | null = null): TableComputationState {
-    return {
-        tableId: computationId,
-        connectionId,
-        clientContext,
-        tasks: {
-            filteringTask: null,
-            orderingTask: null,
-            dataSearchTask: null,
-            tableAggregationTask: null,
-            systemColumnTask: null,
-            columnAggregationTasks: Array(tableColumns.length + 1).fill(null),
-            filteredColumnAggregationTasks: Array(tableColumns.length + 1).fill(null),
-        },
-        dataTable: table,
-        version: new ComputationStateVersion(0, 0),
-        dataTableFieldsByName: createArrowFieldIndex(table),
-        columnGroups: tableColumns,
-        columnAggregates: Array.from({ length: tableColumns.length }, () => null),
-        rowNumberColumnGroup: null,
-        rowNumberColumnName: null,
-        dataTableLifetime: tableLifetime,
-        dataTableOrdering: [],
-        crossFilters: new CrossFilters(),
-        dataFrame: null,
-        filterTable: null,
-        orderingTable: null,
-        columnSearch: createResultSearchState(),
-        dataSearch: createResultSearchState(),
-        dataSearchTable: null,
-        filteredColumnAggregates: Array.from({ length: tableColumns.length }, () => null),
-        filteredColumnAggregatesOutdated: Array.from({ length: tableColumns.length }, () => false),
-        tableAggregation: null,
-    };
 }
 
 export const COMPUTATION_FROM_QUERY_RESULT = Symbol('COMPUTATION_FROM_QUERY_RESULT');

@@ -74,7 +74,3 @@
     display: inline-flex;
     color: var(--color_fg_muted);
 }
-.divider {
-    border-bottom: 1px solid var(--color_border);
-    margin: 8px 0;
-}

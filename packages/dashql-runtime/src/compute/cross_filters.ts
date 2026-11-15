@@ -1,4 +1,4 @@
-import { ScalarFilter } from './sql/sqlframe_builder.js';
+import type { ScalarFilter } from './computation_types.js';
 import { VariantKind } from "../utils/variant.js";
 import { OrdinalGridColumnGroup, StringGridColumnGroup } from "./computation_types.js";
 
@@ -38,47 +38,6 @@ export class CrossFilters {
             ...this.columnFilters
         };
         return copy;
-    }
-
-    public equals(other: CrossFilters): boolean {
-        if (Object.keys(this.columnFilters).length != Object.keys(other.columnFilters).length) {
-            return false;
-        }
-        for (const [key, a] of Object.entries(this.columnFilters)) {
-            const bFilter = other.columnFilters[+key];
-            if (bFilter === undefined || a.type != bFilter.type) {
-                return false;
-            }
-            switch (a.type) {
-                case HISTOGRAM_FILTER: {
-                    const b = bFilter.value as HistogramFilterPredicate;
-                    if (a.value.selection == null) {
-                        if (b.selection != null) {
-                            return false;
-                        }
-                    } else {
-                        if (b.selection == null) {
-                            return false;
-                        }
-                        if (
-                            a.value.selection[0] != b.selection[0] ||
-                            a.value.selection[1] != b.selection[1]
-                        ) {
-                            return false;
-                        }
-                    }
-                    break;
-                }
-                case MOST_FREQUENT_FILTER: {
-                    const b = bFilter.value as MostFrequentFilterPredicate;
-                    if (a.value.valueId != b.valueId) {
-                        return false;
-                    }
-                    break;
-                }
-            }
-        }
-        return true;
     }
 
     public createFilterTransforms(): ScalarFilter[] {

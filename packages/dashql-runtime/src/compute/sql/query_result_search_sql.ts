@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 
-import { quoteIdent, quoteStringLiteral } from './sqlframe_builder.js';
+import { quoteLiteral } from '../../utils/sql_quote.js';
 import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from '../computation_types.js';
 
-/// The row number of a matching row in the result of buildDataSearchSQL()
+/// The row number of a matching row in the result of a Data search
 export const DATA_SEARCH_ROW_FIELD = 'row_idx';
 
 export interface SearchableResultColumn {
@@ -42,7 +42,7 @@ export function buildColumnSearchSQL(columns: SearchableResultColumn[], pattern:
         return null;
     }
     const values = columns.map(column =>
-        `(${column.columnIdx}, ${column.columnGroupIdx}, ${quoteStringLiteral(column.fieldName)})`
+        `(${column.columnIdx}, ${column.columnGroupIdx}, ${quoteLiteral(column.fieldName)})`
     );
     return (
         `SELECT column_idx, column_group_idx\n` +
@@ -50,47 +50,8 @@ export function buildColumnSearchSQL(columns: SearchableResultColumn[], pattern:
         `    VALUES\n` +
         `        ${values.join(',\n        ')}\n` +
         `) AS columns(column_idx, column_group_idx, name)\n` +
-        `WHERE name ILIKE ${quoteStringLiteral(`%${pattern}%`)}\n` +
+        `WHERE name ILIKE ${quoteLiteral(`%${pattern}%`)}\n` +
         `ORDER BY column_idx`
-    );
-}
-
-export function buildDataSearchSQL(
-    tableName: string,
-    rowNumberFieldName: string,
-    columns: SearchableResultColumn[],
-    pattern: string,
-): string {
-    if (columns.length === 0) {
-        const quotedRowNumber = quoteIdent(rowNumberFieldName);
-        return (
-            `SELECT\n` +
-            `    ${quotedRowNumber} AS row_idx,\n` +
-            `    array_agg(0 ORDER BY 0) AS column_indices\n` +
-            `FROM ${quoteIdent(tableName)}\n` +
-            `WHERE FALSE\n` +
-            `GROUP BY ${quotedRowNumber}\n` +
-            `ORDER BY row_idx`
-        );
-    }
-    const quotedPattern = quoteStringLiteral(`%${pattern}%`);
-    const quotedRowNumber = quoteIdent(rowNumberFieldName);
-    const quotedTable = quoteIdent(tableName);
-    const unions = columns.map(column => (
-        `    SELECT ${quotedRowNumber} AS row_idx, ${column.columnIdx} AS column_idx\n` +
-        `    FROM ${quotedTable}\n` +
-        `    WHERE CAST(${quoteIdent(column.fieldName)} AS TEXT) ILIKE ${quotedPattern}`
-    ));
-    return (
-        `WITH search AS (\n` +
-        `${unions.join('\n    UNION ALL\n')}\n` +
-        `)\n` +
-        `SELECT\n` +
-        `    row_idx,\n` +
-        `    array_agg(column_idx ORDER BY column_idx) AS column_indices\n` +
-        `FROM search\n` +
-        `GROUP BY row_idx\n` +
-        `ORDER BY row_idx`
     );
 }
 

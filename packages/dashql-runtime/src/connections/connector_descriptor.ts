@@ -38,20 +38,11 @@ interface ConnectorDetailsMap {
 /// The field of the connection params that holds the params of a connector, e.g. `{ hyper: ... }`
 export type ConnectorParamsKey = keyof ConnectorParamsMap;
 
-/// Where a host of a spec is, and what every request to it carries
-export interface ClientFunctionHostTarget {
-    baseUrl: URL;
-    headers: Record<string, string>;
-}
-
-/// The client functions that a connector enables on its connections
-export interface ClientFunctionBinding<Details = unknown> {
+/// The client functions that a connector enables on its connections. The runtime of the core resolves their hosts and
+/// variables (`dashql_core_runtime::clfn`).
+export interface ClientFunctionBinding {
     /// Load the spec, only when a connection needs it
     loadSpec(): Promise<ClientFunctionSpec>;
-    /// Where a host that the spec names is on a connection, and the credentials for it
-    resolveHost(details: Details, host: string): Promise<ClientFunctionHostTarget>;
-    /// The values of the variables in the base paths of the spec. They need no login, `EXPLAIN` prints them.
-    variables(details: Details): Record<string, string>;
 }
 
 /// What the connection layer knows about a connector.
@@ -91,7 +82,7 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     /// Can the queries of a connection read the data files that are attached to a workbook?
     readsAttachments(details: ConnectorDetailsMap[K]): boolean;
     /// The client functions of the connections, undefined if they have none
-    clientFunctions?: ClientFunctionBinding<ConnectorDetailsMap[K]>;
+    clientFunctions?: ClientFunctionBinding;
 }
 
 /// The connectors by connector type

@@ -36,7 +36,7 @@ Paths without a package are under `packages/dashql-app/src/` or `packages/dashql
 |---|---|---|
 | Dataflow edge geometry (`orthogonalPath`, `crossesBox`, `routeBadgeAt`, `routeEdge` in `workbook/dataflow/dataflow_scene.ts`) | ~160 | Visual tuning settles: 12 commits touched this file, against 5 for `profile_scene.ts`. It runs per drag update, lives in a separate wasm module from the profile code, and every tweak would need a wasm rebuild. |
 | Focus span join (`workbook/editor/dashql_decorations.ts:126,155`) | ~20 | `spans.find` in a loop shows up in a profile. Then have core send resolved spans. |
-| SQL builders (`compute/sql/sqlframe_builder.ts`, `compute/sql/query_result_search_sql.ts`) | 562 | The CLI or shell needs the same summaries. Pure and well tested, but no second consumer today. |
+| Column search SQL (`compute/sql/query_result_search_sql.ts`) | ~90 | The CLI or shell needs the same search. Pure and well tested, but no second consumer today. |
 | Workbook format (`storage/workbook_bundle.ts`, `storage/workbook_files.ts`, `storage/workbook_validation.ts`, `workbook/persistence/workbook_export.ts`) | ~980 | A consumer outside JavaScript must read workbooks. The CLI reads them through the runtime in Node. |
 
 ### Keep in TS

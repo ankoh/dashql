@@ -6,18 +6,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
-    type ColumnAggregationTask,
     type ColumnAggregationVariant,
     type ColumnGroup,
-    ComputationStateVersion,
     STRING_COLUMN,
     type StringColumnAggregation,
+    type StringGridColumnGroup,
     type TableAggregation,
-    type WithFilter,
     type WithFilterEpoch,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { computeColumnAggregates, computeFilteredColumnAggregates } from '@ankoh/dashql-runtime/compute/tasks/column_aggregation';
-import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
+import { filteredAggregate, stringAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
+import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
@@ -52,17 +50,6 @@ function tableAggregate(rows: number, notNull: number, distinct: number): TableA
     };
 }
 
-function aggregationTask(table: TableAggregation): ColumnAggregationTask {
-    return {
-        tableId: 1,
-        tableVersion: new ComputationStateVersion(1, 1),
-        columnId: 3,
-        columnEntry: NAME,
-        inputDataFrame: mockDataFrame('input'),
-        tableAggregate: table,
-    };
-}
-
 /// The frequent values of the column, most frequent first
 function frequentValues(keys: (string | null)[], keyIds: bigint[], counts: bigint[]) {
     return tableFromArrays({
@@ -73,24 +60,13 @@ function frequentValues(keys: (string | null)[], keyIds: bigint[], counts: bigin
 }
 
 /// Aggregate the column with the frequent values the compute query returns
-async function aggregate(table: TableAggregation, values: arrow.Table): Promise<StringColumnAggregation> {
-    const result = await computeColumnAggregates(aggregationTask(table), new TestLogger(), executeReturning(values).executeQuery);
-    expect(result.type).toBe(STRING_COLUMN);
-    return result.value as StringColumnAggregation;
+function aggregate(table: TableAggregation, values: arrow.Table): StringColumnAggregation {
+    return stringAggregate(table, NAME.value as StringGridColumnGroup, values);
 }
 
 /// Aggregate the column among the selected rows
-async function aggregateFiltered(table: TableAggregation, values: arrow.Table, selectionRowCount: number): Promise<WithFilterEpoch<ColumnAggregationVariant>> {
-    const task: WithFilter<ColumnAggregationTask> = {
-        ...aggregationTask(table),
-        filterTable: null,
-        dataSearchTable: null,
-        selectionRowCount,
-        unfilteredAggregate: {} as ColumnAggregationVariant,
-    };
-    const result = await computeFilteredColumnAggregates(task, new TestLogger(), executeReturning(values).executeQuery);
-    expect(result).not.toBeNull();
-    return result!;
+function aggregateFiltered(table: TableAggregation, values: arrow.Table, selectionRowCount: number): WithFilterEpoch<ColumnAggregationVariant> {
+    return filteredAggregate({ type: STRING_COLUMN, value: stringAggregate(table, NAME.value as StringGridColumnGroup, values, selectionRowCount) });
 }
 
 /// 10 rows: a (4), b (2), null (2), c (2)

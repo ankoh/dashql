@@ -29,9 +29,6 @@ describe('TableFormatter', () => {
         expect(formatter.formattedRowCount).toEqual(1);
         expect(formatter.getValue(0, 1)).toEqual('20');
         expect(formatter.formattedRowCount).toEqual(1);
-
-        expect(formatter.getBatchValues(0)).toEqual(['10', '20', '30']);
-        expect(formatter.formattedRowCount).toEqual(3);
     });
 });
 
@@ -215,21 +212,6 @@ describe('ArrowTextColumnFormatter of values beyond the safe integers', () => {
         }));
         return { schema, batch };
     }
-
-    it('reads the raw values when Arrow cannot convert them', () => {
-        const huge = 2n ** 60n;
-        const { schema, batch } = timestampBatch([0n, null, huge]);
-        const formatter = new ArrowTextColumnFormatter(new TestLogger(), 0, schema, [batch]);
-        const values = formatter.ensureBatchIsLoaded(0);
-        expect(values.length).toBe(3);
-        expect(values[0]).toEqual(new Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(0)));
-        expect(values[1]).toBeNull();
-        expect(values[2]).toBe(huge.toString());
-        expect(formatter.formattedRowCount).toBe(3);
-        expect(formatter.getLayoutInfo().valueMaxWidth).toBe(Math.max(values[0]!.length, huge.toString().length));
-        // A loaded batch is not formatted again
-        expect(formatter.ensureBatchIsLoaded(0)).toBe(values);
-    });
 
     it('reads single raw values when Arrow cannot convert them', () => {
         const huge = 2n ** 60n;

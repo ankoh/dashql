@@ -11,12 +11,11 @@ import {
 } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useConnectionRegistry, useConnectionById, useConnectionDraftForm } from './connection_registry.js';
 import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
-import { createDefaultConnectionParamsForConnector, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { HYPER_CHANNEL_SETUP_STARTED, HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
 import { buildHyperConnectionPageState, buildHyperConnectionSetupParams, type HyperConnectionPageState } from './hyper_connection_settings.js';
 import { TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
 import { SETUP_STARTED, SETUP_FAILED, SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
-import { encodeConnectionAsProto } from './connection_export.js';
 import { cancelConnectionSetup, registerConnectionSetup } from '@ankoh/dashql-runtime/connections/connection_setup_cancellation';
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
@@ -138,18 +137,6 @@ describe('durable connection drafts', () => {
         expect(state.paramsDraft).toBeUndefined();
         expect(state.params).toEqual(initial.params);
         expect(state.details.value.proto.healthCheckError).toBeUndefined();
-    });
-
-    it('exports only sanitized committed settings through the connection encoder', () => {
-        const state = database(ConnectorType.SALESFORCE_DATA_CLOUD);
-        state.params = { salesforce: { instanceUrl: 'committed', appConsumerKey: 'key', appConsumerSecret: 'secret', login: '' } };
-        state.paramsDraft = edited(state.params, 'draft');
-        state.details = getConnectionStateDetailsFromParams(edited(state.params, 'attempted'))!;
-        const encoded = JSON.stringify(encodeConnectionAsProto(state));
-        expect(encoded).toContain('committed');
-        expect(encoded).not.toContain('attempted');
-        expect(encoded).not.toContain('draft');
-        expect(encoded).not.toContain('"secret"');
     });
 
     it('promotes embedded Hyper when its local channel becomes ready', () => {

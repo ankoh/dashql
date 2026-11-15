@@ -26,30 +26,11 @@ export enum ButtonVariant {
     Outline,
 }
 
-export function mapButtonVariant(variant: ButtonVariant) {
-    switch (variant) {
-        case ButtonVariant.Default: return 'default';
-        case ButtonVariant.Primary: return 'primary';
-        case ButtonVariant.Danger: return 'danger';
-        case ButtonVariant.Invisible: return 'invisible';
-        case ButtonVariant.Outline: return 'outline';
-    }
-}
-
 export enum ButtonSize {
     Tiny,
     Small,
     Medium,
     Large
-}
-
-export function mapButtonSize(size: ButtonSize) {
-    switch (size) {
-        case ButtonSize.Tiny: return 'tiny';
-        case ButtonSize.Small: return 'small';
-        case ButtonSize.Medium: return 'medium';
-        case ButtonSize.Large: return 'large';
-    }
 }
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

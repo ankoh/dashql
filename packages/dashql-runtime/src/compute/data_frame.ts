@@ -1,31 +1,11 @@
-import type * as arrow from 'apache-arrow';
-
 import { Logger } from '../platform/logger/logger.js';
 import type {
     EmbeddedClientContext,
     EmbeddedComputeDatabase,
     EmbeddedTableImportConnection,
 } from '../platform/database/embedded_database.js';
-import { OrderByConstraint, SQLFrame } from './sql/sqlframe_builder.js';
 
 const LOG_CTX = "data_frame";
-
-let nextTableId = 0;
-
-/// The options of a read of the rows of a data frame
-export interface DataFrameReadOptions {
-    /// The order of the rows. A table does not keep the order of the query that created it, the order of a read
-    /// without constraints is arbitrary.
-    orderBy?: OrderByConstraint[];
-    /// The columns to read, all columns by default
-    columns?: string[];
-    /// Cancels the read
-    abort?: AbortSignal;
-}
-
-export function generateTableName(prefix: string = "__df"): string {
-    return `${prefix}_${nextTableId++}`;
-}
 
 export class DataFrame {
     readonly database: EmbeddedComputeDatabase;
@@ -56,18 +36,6 @@ export class DataFrame {
         return await DataFrame.withConnection(this.database, fn, this.clientContext);
     }
 
-    static async fromArrowTable(
-        database: EmbeddedComputeDatabase,
-        table: arrow.Table,
-        tableName: string,
-        clientContext: EmbeddedClientContext | null = null,
-    ): Promise<DataFrame> {
-        await DataFrame.withConnection(database, async conn => {
-            await conn.insertArrowTable(table, { name: tableName, create: true });
-        }, clientContext);
-        return new DataFrame(database, tableName, clientContext);
-    }
-
     static async fromSQL(
         database: EmbeddedComputeDatabase,
         sql: string,
@@ -79,14 +47,6 @@ export class DataFrame {
             await conn.createTableAs(tableName, sql, abort);
         }, clientContext);
         return new DataFrame(database, tableName, clientContext);
-    }
-
-    async readTable(options: DataFrameReadOptions = {}): Promise<arrow.Table> {
-        let frame = SQLFrame.from(this.tableName);
-        if (options.orderBy != null) frame = frame.orderBy(options.orderBy);
-        if (options.columns != null) frame = frame.project(options.columns);
-        const sql = frame.toSQL();
-        return await this.withConnection(async conn => await conn.query(sql, options.abort));
     }
 
     async destroy(): Promise<void> {
@@ -146,12 +106,6 @@ export class DataFrameRegistry {
         this.hostHolds.delete(dataFrame);
         if (!this.heldByState.has(dataFrame)) {
             this.destroy(dataFrame);
-        }
-    }
-
-    releaseMany(dataFrames: (DataFrame | null | undefined)[]) {
-        for (const dataFrame of dataFrames) {
-            this.release(dataFrame);
         }
     }
 

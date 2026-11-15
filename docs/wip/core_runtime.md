@@ -176,7 +176,8 @@ revision moved.
   the query execution of its provider (`setQueryExecution`), the host runs the SELECT of a task through it, e.g. into
   the query history of the connection of the computation.
 - **Computations of the host.** A computation that an action of the host starts (`COMPUTATION_FROM_QUERY_RESULT`)
-  runs its tasks on the scheduler of the app (`processTask`) with the TypeScript tasks, the reducer tests use it.
+  has no runner of its tasks: the reducer tests start one and hand over the results of its tasks with the actions of
+  their success. The app starts every computation with an analysis.
 - **The projection keeps identity.** A computation keeps its object while its revision doesn't move
   (`RevisionCache`); a changed one shares the unchanged parts of its view with the previous view (`share`), and the
   version, the column groups, the searches, the arrays of summaries and the tracked tasks keep their objects while
@@ -660,9 +661,9 @@ about that.
 
 ## Open
 
-- The TypeScript tasks (`compute/tasks/`, `data_frame.ts`) and `processTask` of the app stay for computations that an
-  action of the host starts, which only tests do. `ResultComputations` of the query executor stays in TypeScript, the
-  crate has its port.
+- The computations of the host (`COMPUTATION_FROM_QUERY_RESULT`, the actions of the success of a task, the scheduler
+  tasks that the host would run) remain for the reducer tests only, in Rust and in `computation_native.ts`.
+  `ResultComputations` of the query executor stays in TypeScript, the crate has its port.
 - A result crosses from the query executor to the computations as Arrow IPC that `apache-arrow` writes, and the host
   imports it through `insertArrowTable`, which writes it again; the executor in Rust would hand its IPC over.
 

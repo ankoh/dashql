@@ -6,7 +6,6 @@ import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { TrinoApiClient } from '@ankoh/dashql-runtime/connections/trino/trino_api_client';
 import { TrinoChannel } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
 import { createTrinoSetup, setupTrinoConnection } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
 import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
@@ -67,7 +66,7 @@ async function setup(
     signal = new AbortController().signal,
 ) {
     const logger = new TestLogger();
-    return await setupTrinoConnection(dispatch, logger, params, {} as never, new TrinoApiClient(logger, httpClient), httpClient, new AppOAuthFlow({} as never, PlatformType.DESKTOP), false, signal);
+    return await setupTrinoConnection(dispatch, logger, params, httpClient, new AppOAuthFlow({} as never, PlatformType.DESKTOP), false, signal);
 }
 
 describe('Trino OAuth setup', () => {
@@ -127,7 +126,7 @@ describe('Trino basic setup', () => {
     it('sets up and resets connections through the setup API', async () => {
         const http = new FakeHttpClient();
         const logger = new TestLogger();
-        const api = createTrinoSetup(new TrinoApiClient(logger, http), {} as never, logger, http, new AppOAuthFlow({} as never, PlatformType.DESKTOP), false)!;
+        const api = createTrinoSetup(logger, http, new AppOAuthFlow({} as never, PlatformType.DESKTOP), false)!;
         const dispatch = vi.fn();
         expect(await api.setup(dispatch, BASIC_PARAMS, new AbortController().signal)).toBeInstanceOf(TrinoChannel);
         await api.reset(dispatch);

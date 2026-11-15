@@ -4,8 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openTestHyperDB } from '../testing/test_hyperdb.js';
 import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../testing/test_logger.js';
-import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
+import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { tableFromArrays } from '../testing/arrow_fixtures.js';
+
+/// Import a table like the computations do (`importTable` of computation_native.ts)
+async function importDataFrame(database: HyperDB, table: arrow.Table, tableName: string): Promise<DataFrame> {
+    await DataFrame.withConnection(database, conn => conn.insertArrowTable(table, { name: tableName, create: true }));
+    return new DataFrame(database, tableName);
+}
+
+/// Read the rows of a data frame
+async function readDataFrame(dataFrame: DataFrame): Promise<arrow.Table> {
+    return await dataFrame.withConnection(conn => conn.query(`SELECT * FROM "${dataFrame.tableName}"`));
+}
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -29,17 +40,17 @@ describe('DataFrame', () => {
     });
 
     it('keeps named tables readable across ad-hoc connections', async () => {
-        const tableName = generateTableName('__frame');
-        const summaryName = generateTableName('__summary');
+        const tableName = '__frame';
+        const summaryName = '__summary';
         const inputTable = tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
         });
 
-        const dataFrame = await DataFrame.fromArrowTable(database!, inputTable, tableName);
+        const dataFrame = await importDataFrame(database!, inputTable, tableName);
         const [firstRead, secondRead] = await Promise.all([
-            dataFrame.readTable(),
-            dataFrame.readTable(),
+            readDataFrame(dataFrame),
+            readDataFrame(dataFrame),
         ]);
 
         expect(toPlainObjects(firstRead)).toEqual([
@@ -54,19 +65,19 @@ describe('DataFrame', () => {
             `SELECT COUNT(*)::INTEGER AS row_count FROM "${tableName}"`,
             summaryName,
         );
-        const summary = await summaryFrame.readTable();
+        const summary = await readDataFrame(summaryFrame);
         expect(toPlainObjects(summary)).toEqual([{ row_count: 3 }]);
 
         await summaryFrame.destroy();
-        await expect(summaryFrame.readTable()).rejects.toThrow();
+        await expect(readDataFrame(summaryFrame)).rejects.toThrow();
 
         await dataFrame.destroy();
-        await expect(dataFrame.readTable()).rejects.toThrow();
+        await expect(readDataFrame(dataFrame)).rejects.toThrow();
     });
 
     it('drops a data frame when its last registry reference is released', async () => {
-        const tableName = generateTableName('__released');
-        const dataFrame = await DataFrame.fromArrowTable(database!, tableFromArrays({ id: [1] }), tableName);
+        const tableName = '__released';
+        const dataFrame = await importDataFrame(database!, tableFromArrays({ id: [1] }), tableName);
         const registry = new DataFrameRegistry(new TestLogger());
         const destroy = vi.spyOn(dataFrame, 'destroy');
 
@@ -75,7 +86,7 @@ describe('DataFrame', () => {
 
         expect(destroy).toHaveBeenCalledOnce();
         await destroy.mock.results[0].value;
-        await expect(dataFrame.readTable()).rejects.toThrow();
+        await expect(readDataFrame(dataFrame)).rejects.toThrow();
         expect(registry.getRegisteredDataFrames().size).toBe(0);
     });
 });

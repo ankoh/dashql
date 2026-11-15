@@ -19,8 +19,3 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
     const connector = CONNECTOR_DESCRIPTORS[type];
     return connectionStateDetailsOf(connector, connector.defaultParams());
 }
-
-/// Do the details hold the Salesforce connection state?
-export function isSalesforceDetails(details: ConnectionStateDetailsVariant): details is VariantKind<SalesforceDetailsType, SalesforceConnectionStateDetails> {
-    return details.type === SALESFORCE_DATA_CLOUD_CONNECTOR || details.type === DBCOM_CONNECTOR;
-}

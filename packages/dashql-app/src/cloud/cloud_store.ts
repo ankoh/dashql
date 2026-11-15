@@ -526,13 +526,6 @@ export async function deleteCloudWorkbook(query: CloudQuery, workbookId: string,
     }
 }
 
-/// Restore a deleted workbook that no cleanup removed yet
-export async function restoreCloudWorkbook(query: CloudQuery, workbookId: string, options: CloudStoreOptions = {}): Promise<void> {
-    checkCloudId(workbookId, 'workbook');
-    await openCloudStore(query, 'write', options);
-    await query(`UPDATE ${workbooksTable(options)} SET deleted_at = NULL, updated_at = now() WHERE workbook_id = ${quoteLiteral(workbookId)}`, options.signal);
-}
-
 /// Remove a version: its row turns `deleting`, its data tables are dropped, then its rows of the merged tables are
 /// removed and its row last. Every step can run again, so a remove that stops halfway is completed by a cleanup.
 /// `dataTables` names data tables of the version that its rows may not name, those of a failed publish.

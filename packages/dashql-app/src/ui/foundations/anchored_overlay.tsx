@@ -26,10 +26,6 @@ interface AnchoredOverlayPropsWithoutAnchor {
     anchorId?: string;
 }
 
-export type AnchoredOverlayWrapperAnchorProps =
-    | Partial<AnchoredOverlayPropsWithAnchor>
-    | AnchoredOverlayPropsWithoutAnchor
-
 interface AnchoredOverlayBaseProps extends Pick<OverlayProps, 'height' | 'width' | 'minWidth' | 'maxWidth' | 'maxHeight'> {
     /// The React children
     children?: React.ReactElement;

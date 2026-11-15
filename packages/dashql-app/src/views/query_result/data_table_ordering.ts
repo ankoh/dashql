@@ -4,7 +4,7 @@ import { CLEAR_TABLE_ORDERING, type ComputationAction, type TableComputationStat
 import { scheduleTask } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import type { TableOrderingTask } from '@ankoh/dashql-runtime/compute/computation_types';
 import { TABLE_ORDERING_TASK, TaskStatus } from '@ankoh/dashql-runtime/compute/computation_types';
-import type { OrderByConstraint } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
+import type { OrderByConstraint } from '@ankoh/dashql-runtime/compute/computation_types';
 import type { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 
 export function getColumnSortDirection(field: string, ordering: OrderByConstraint[]): boolean | null {
