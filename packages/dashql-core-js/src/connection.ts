@@ -104,6 +104,10 @@ export class DashQLConnection extends DashQLQueryActions {
         return this.native();
     }
 
+    protected queriesApi(): DashQL {
+        return this.ptr.api;
+    }
+
     // The connection
 
     public setDraft(draft: JsonParams, now = Date.now()): ConnectionOutcome {

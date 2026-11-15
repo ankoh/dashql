@@ -2,18 +2,24 @@
 //!
 //! The progress model of a query owns a query profile (`dashql_core_profile`), which turns the payloads into the
 //! structure of the plan (stages, pipelines, the operators once the plan is known) and the updates of its execution
-//! state. The execution state folds the updates into the effective state of every entity. The model records the
-//! payloads, replaying a recording reproduces the progress at any point in time.
+//! state. The execution state folds the updates into the effective state of every entity. The query executor keeps a
+//! model per running query and reports the structured progress with every progress update, the query history keeps
+//! the latest one.
 //!
-//! Ported from `packages/dashql-runtime/src/query/query_progress_model.ts` and `profile_execution_state.ts`.
+//! The model records the payloads, the progress of every update shares the recording. Replaying a recording
+//! reproduces the progress at any point in time, a follower replays it with another layout of the plan, e.g. the
+//! other orientation. A recording reads and writes the JSON of the app (`{"version": 1, "payloads": [...]}`) and reads
+//! the recordings of the Trino test harness (`tests/snapshots/profiles/trino/recordings/`).
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use dashql_buffers::profile as fb;
 use dashql_core::error::{Error, Result};
 use dashql_core_profile::{EntityState, ProfileInputEvent, ProfileUpdate, QueryProfile, Stats, Status};
-use serde_json::Value;
+use flatbuffers::FlatBufferBuilder;
+use serde_json::{json, Value};
 
 use super::{QueryId, Timestamp};
 
@@ -80,6 +86,76 @@ impl EngineProgressPayload {
                 fb::ProfileEngine::TRINO
             }
             Self::HyperQueryStatus { .. } => fb::ProfileEngine::HYPER,
+        }
+    }
+
+    /// The payload as JSON: `{"kind": "trino_statement_stats", "stats": ..., "receivedAt": ...}`
+    pub fn to_json(&self) -> Value {
+        match self {
+            Self::TrinoStatementStats { stats, received_at } => {
+                json!({ "kind": "trino_statement_stats", "stats": stats, "receivedAt": received_at })
+            }
+            Self::TrinoQueryInfo { info, received_at } => {
+                json!({ "kind": "trino_query_info", "info": info, "receivedAt": received_at })
+            }
+            Self::TrinoQueryInfoStats { info, received_at } => {
+                json!({ "kind": "trino_query_info_stats", "info": info, "receivedAt": received_at })
+            }
+            Self::HyperQueryStatus { status, received_at } => json!({
+                "kind": "hyper_query_status",
+                "status": {
+                    "completionStatus": status.completion_status,
+                    "rowCount": status.row_count,
+                    "progress": status.progress,
+                    "executionStats": status.execution_stats.as_ref().map(|stats| json!({
+                        "wallClockTime": stats.wall_clock_time,
+                        "rowsProcessed": stats.rows_processed,
+                    })),
+                },
+                "receivedAt": received_at,
+            }),
+        }
+    }
+
+    /// A payload from its JSON
+    pub fn from_json(value: &Value) -> Result<Self> {
+        let received_at = value.get("receivedAt").and_then(Value::as_f64).map_or(0, |at| at as Timestamp);
+        let field = |key: &str| {
+            value.get(key).cloned().ok_or_else(|| Error::invalid_argument(format!("a progress payload without {key}")))
+        };
+        match value.get("kind").and_then(Value::as_str) {
+            Some("trino_statement_stats") => Ok(Self::TrinoStatementStats { stats: field("stats")?, received_at }),
+            Some("trino_query_info") => Ok(Self::TrinoQueryInfo { info: field("info")?, received_at }),
+            Some("trino_query_info_stats") => Ok(Self::TrinoQueryInfoStats { info: field("info")?, received_at }),
+            Some("hyper_query_status") => {
+                Ok(Self::HyperQueryStatus { status: HyperQueryStatus::from_json(&field("status")?), received_at })
+            }
+            _ => Err(Error::invalid_argument("a progress payload of an unknown kind")),
+        }
+    }
+}
+
+/// A number of JSON, also as a string, e.g. a 64-bit integer of a protocol
+fn json_number(value: Option<&Value>) -> Option<f64> {
+    match value? {
+        Value::Number(number) => number.as_f64(),
+        Value::String(text) => text.parse().ok(),
+        _ => None,
+    }
+}
+
+impl HyperQueryStatus {
+    /// The status from the JSON of the Hyper HTTP API, missing fields are unknown
+    pub fn from_json(value: &Value) -> Self {
+        let stats = value.get("executionStats").filter(|stats| stats.is_object());
+        HyperQueryStatus {
+            completion_status: value.get("completionStatus").and_then(Value::as_str).unwrap_or_default().to_string(),
+            row_count: json_number(value.get("rowCount")),
+            progress: json_number(value.get("progress")),
+            execution_stats: stats.map(|stats| HyperExecutionStats {
+                wall_clock_time: json_number(stats.get("wallClockTime")).unwrap_or(0.0),
+                rows_processed: json_number(stats.get("rowsProcessed")).unwrap_or(0.0),
+            }),
         }
     }
 }
@@ -178,9 +254,44 @@ impl ProfileExecutionState {
         let from_slot = if slot != NO_INDEX { reported(&self.slots, slot) } else { None };
         from_slot.or_else(|| reported(&self.operators, child_operator))
     }
+
+    /// The state as packed `QueryProfileEvents` of the core: one update per entity with state, for the structure of
+    /// a version. Folding the events into an empty state gives this state.
+    pub fn pack_events(&self, structure_version: u32) -> Vec<u8> {
+        let mut events = Vec::new();
+        let mut push = |entity: fb::ProfileEntity, index: usize, state: &EntityState| {
+            let stats = state.stats.to_fb();
+            events.push(fb::ProfileUpdateEvent::new(0, entity, index as u32, state.status.to_fb(), &stats));
+        };
+        if let Some(query) = &self.query {
+            push(fb::ProfileEntity::QUERY, 0, query);
+        }
+        let lists = [
+            (fb::ProfileEntity::FRAGMENT, &self.fragments),
+            (fb::ProfileEntity::PIPELINE, &self.pipelines),
+            (fb::ProfileEntity::SLOT, &self.slots),
+            (fb::ProfileEntity::OPERATOR, &self.operators),
+        ];
+        for (entity, states) in lists {
+            for (index, state) in states.iter().enumerate() {
+                if let Some(state) = state {
+                    push(entity, index, state);
+                }
+            }
+        }
+        let mut builder = FlatBufferBuilder::new();
+        let events = builder.create_vector(&events);
+        let root = fb::QueryProfileEvents::create(
+            &mut builder,
+            &fb::QueryProfileEventsArgs { structure_version, events: Some(events) },
+        );
+        builder.finish(root, None);
+        builder.finished_data().to_vec()
+    }
 }
 
-/// The structured progress of a query: the structure of its profile and its execution state
+/// The structured progress of a query: the structure of its profile, its execution state and the recording of the
+/// payloads so far
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueryProfileProgress {
     /// The packed `QueryProfile` (FlatBuffers)
@@ -191,6 +302,8 @@ pub struct QueryProfileProgress {
     pub execution: Rc<ProfileExecutionState>,
     /// The revision of the progress, it changes when the structure or the execution state changes
     pub revision: u64,
+    /// The payloads so far, the model of the query adds the later ones
+    pub recording: SharedRecording,
 }
 
 /// A payload of a recording
@@ -213,6 +326,148 @@ pub struct ProfileRecording {
 impl ProfileRecording {
     /// The version of the format of recordings
     pub const VERSION: u32 = 1;
+
+    /// The recording as JSON: `{"version": 1, "payloads": [{"elapsedMs": ..., "payload": ...}]}`
+    pub fn to_json(&self) -> Value {
+        let payloads: Vec<Value> = self
+            .payloads
+            .iter()
+            .map(|recorded| json!({ "elapsedMs": recorded.elapsed_ms, "payload": recorded.payload.to_json() }))
+            .collect();
+        json!({ "version": Self::VERSION, "payloads": payloads })
+    }
+
+    /// Read a recording: a recording of the app, or a recording of the Trino test harness
+    /// (`tests/snapshots/profiles/trino/recordings/`, written by `//packages/trino-testing:trino_recorder`)
+    pub fn from_json(text: &str) -> Result<Self> {
+        let document: Value = serde_json::from_str(text)
+            .map_err(|e| Error::invalid_argument(format!("the file is no profile recording: {e}")))?;
+        if let (Some(1), Some(payloads)) =
+            (document.get("version").and_then(Value::as_u64), document.get("payloads").and_then(Value::as_array))
+        {
+            let payloads = payloads
+                .iter()
+                .map(|recorded| {
+                    let elapsed_ms = recorded.get("elapsedMs").and_then(Value::as_f64).map_or(0, |ms| ms as i64);
+                    let payload = EngineProgressPayload::from_json(recorded.get("payload").unwrap_or(&Value::Null))?;
+                    Ok(RecordedPayload { elapsed_ms, payload })
+                })
+                .collect::<Result<Vec<_>>>()?;
+            return Ok(Self { payloads });
+        }
+        if document.get("statementResponses").is_some_and(Value::is_array) {
+            return Ok(Self::from_trino_harness(&document));
+        }
+        Err(Error::invalid_argument("the file is no profile recording"))
+    }
+
+    /// Convert a recording of the Trino test harness. Its QueryInfos are the ones the app fetches when the tasks of
+    /// stages are done and when the query finished. The last one carries the plans, the app requests them when the
+    /// stages appear, so the plans move there, without the operator summaries that arrive with the later QueryInfos.
+    fn from_trino_harness(recording: &Value) -> Self {
+        let samples = |key: &str| recording.get(key).and_then(Value::as_array).cloned().unwrap_or_default();
+        let elapsed = |sample: &Value| sample.get("elapsedMs").and_then(Value::as_f64).map_or(0, |ms| ms as i64);
+        let statements = samples("statementResponses");
+        let infos = samples("queryInfos");
+        let mut payloads = Vec::new();
+        for response in &statements {
+            let Some(stats) = response.get("body").and_then(|body| body.get("stats")) else { continue };
+            let at = elapsed(response);
+            payloads.push(RecordedPayload {
+                elapsed_ms: at,
+                payload: EngineProgressPayload::TrinoStatementStats { stats: stats.clone(), received_at: at },
+            });
+        }
+        for sample in &infos {
+            let at = elapsed(sample);
+            let info = sample.get("body").cloned().unwrap_or(Value::Null);
+            payloads.push(RecordedPayload {
+                elapsed_ms: at,
+                payload: EngineProgressPayload::TrinoQueryInfoStats { info, received_at: at },
+            });
+        }
+        let has_stages = |response: &&Value| {
+            let stage = response.get("body").and_then(|body| body.get("stats")).and_then(|stats| stats.get("rootStage"));
+            stage.is_some_and(|stage| !stage.is_null())
+        };
+        let stages_at = statements.iter().find(has_stages).map(elapsed);
+        if let (Some(mut plans), Some(at)) = (infos.last().and_then(|sample| sample.get("body")).cloned(), stages_at) {
+            let stages = plans.get_mut("stages").and_then(|stages| stages.get_mut("stages")).and_then(Value::as_array_mut);
+            for stage in stages.into_iter().flatten() {
+                let Some(stage) = stage.as_object_mut() else { continue };
+                let stats = stage.entry("stageStats").or_insert_with(|| json!({}));
+                if !stats.is_object() {
+                    *stats = json!({});
+                }
+                if let Some(stats) = stats.as_object_mut() {
+                    stats.insert("operatorSummaries".to_string(), json!([]));
+                }
+            }
+            payloads.push(RecordedPayload {
+                elapsed_ms: at,
+                payload: EngineProgressPayload::TrinoQueryInfo { info: plans, received_at: at },
+            });
+        }
+        // Stable, the payloads of a point in time keep their order
+        payloads.sort_by_key(|recorded| recorded.elapsed_ms);
+        Self { payloads }
+    }
+}
+
+/// The recording of a running query that its model extends and the progress of every update shares. Two recordings
+/// are equal if they are the same.
+#[derive(Clone, Default)]
+pub struct SharedRecording(Rc<RefCell<ProfileRecording>>);
+
+impl SharedRecording {
+    /// The payloads recorded so far
+    pub fn len(&self) -> usize {
+        self.0.try_borrow().map_or(0, |recording| recording.payloads.len())
+    }
+
+    /// Is the recording empty?
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// The recording so far
+    pub fn snapshot(&self) -> ProfileRecording {
+        self.0.try_borrow().map(|recording| recording.clone()).unwrap_or_default()
+    }
+
+    /// The payloads from an index on
+    pub fn payloads_from(&self, start: usize) -> Vec<RecordedPayload> {
+        self.0.try_borrow().map(|recording| recording.payloads.get(start..).unwrap_or_default().to_vec()).unwrap_or_default()
+    }
+
+    /// When the first payload was received
+    fn first_received_at(&self) -> Option<Timestamp> {
+        self.0.try_borrow().ok()?.payloads.first().map(|first| first.payload.received_at())
+    }
+
+    /// Record a payload
+    fn push(&self, payload: RecordedPayload) {
+        if let Ok(mut recording) = self.0.try_borrow_mut() {
+            recording.payloads.push(payload);
+        }
+    }
+
+    /// Is it the same recording?
+    pub fn same(&self, other: &SharedRecording) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl PartialEq for SharedRecording {
+    fn eq(&self, other: &Self) -> bool {
+        self.same(other)
+    }
+}
+
+impl std::fmt::Debug for SharedRecording {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SharedRecording").field("payloads", &self.len()).finish()
+    }
 }
 
 /// A JSON payload as bytes for the query profile
@@ -230,8 +485,6 @@ pub struct QueryProgressModel {
     progress: QueryProfileProgress,
     /// The latest statement stats (as JSON) and their time, applied again on top of a plan that arrives later
     latest_stats: Option<(Vec<u8>, u64)>,
-    /// The payloads so far
-    recording: ProfileRecording,
 }
 
 impl QueryProgressModel {
@@ -247,8 +500,9 @@ impl QueryProgressModel {
             structure_version: profile.structure_version(),
             execution: Rc::new(ProfileExecutionState::default()),
             revision: 0,
+            recording: SharedRecording::default(),
         };
-        Self { profile, engine, progress, latest_stats: None, recording: ProfileRecording::default() }
+        Self { profile, engine, progress, latest_stats: None }
     }
 
     /// The engine of the query
@@ -262,12 +516,12 @@ impl QueryProgressModel {
     }
 
     /// The payloads so far
-    pub fn recording(&self) -> &ProfileRecording {
-        &self.recording
+    pub fn recording(&self) -> &SharedRecording {
+        &self.progress.recording
     }
 
     /// Apply a payload of the engine. A payload of another engine changes nothing, a payload that changes neither the
-    /// structure nor the execution state keeps the revision.
+    /// structure nor the execution state keeps the revision. A malformed payload fails and changes nothing.
     pub fn apply(&mut self, payload: EngineProgressPayload) -> Result<&QueryProfileProgress> {
         if payload.engine() != self.engine {
             return Ok(&self.progress);
@@ -318,8 +572,8 @@ impl QueryProgressModel {
                 execution
             }
         };
-        let first = self.recording.payloads.first().map_or(received_at, |first| first.payload.received_at());
-        self.recording.payloads.push(RecordedPayload { elapsed_ms: received_at.saturating_sub(first).max(0), payload });
+        let first = self.progress.recording.first_received_at().unwrap_or(received_at);
+        self.progress.recording.push(RecordedPayload { elapsed_ms: received_at.saturating_sub(first).max(0), payload });
 
         let structure_changed = self.profile.structure_version() != self.progress.structure_version;
         let execution_changed = execution != *self.progress.execution;
@@ -338,21 +592,58 @@ impl QueryProgressModel {
 }
 
 /// Replay a recording up to a point in time (milliseconds since the first payload), none if nothing happened until
-/// then
+/// then. A malformed payload is skipped, like by the model of the query.
 pub fn replay_recording(
     recording: &ProfileRecording,
     until_ms: i64,
     layout: Option<&fb::ProfileLayoutConfig>,
-) -> Result<Option<QueryProfileProgress>> {
+) -> Option<QueryProfileProgress> {
     let mut payloads = recording.payloads.iter().filter(|p| p.elapsed_ms <= until_ms).peekable();
-    let Some(first) = payloads.peek() else {
-        return Ok(None);
-    };
+    let first = payloads.peek()?;
     let mut model = QueryProgressModel::new(first.payload.engine(), layout);
     for recorded in payloads {
-        model.apply(recorded.payload.clone())?;
+        let _ = model.apply(recorded.payload.clone());
     }
-    Ok(Some(model.progress))
+    Some(model.progress)
+}
+
+/// A progress model that follows the recording of the progress of a query with a layout of its own, e.g. the other
+/// orientation of the plan. The model of the query keeps its layout, the follower applies the recorded payloads again,
+/// the ones that are recorded later as they come.
+pub struct QueryProgressFollower {
+    /// The layout of the plan
+    layout: Option<fb::ProfileLayoutConfig>,
+    /// The model, created with the first payload
+    model: Option<QueryProgressModel>,
+    /// The recording that the follower follows
+    source: Option<SharedRecording>,
+    /// The payloads of the recording that the model applied
+    applied: usize,
+}
+
+impl QueryProgressFollower {
+    /// A follower with a layout of the plan or the default one
+    pub fn new(layout: Option<fb::ProfileLayoutConfig>) -> Self {
+        Self { layout, model: None, source: None, applied: 0 }
+    }
+
+    /// Follow the recording of the progress of a query, none before its first payload. The recording of another
+    /// query starts over. A malformed payload is skipped, like by the model of the query.
+    pub fn follow(&mut self, recording: &SharedRecording) -> Option<&QueryProfileProgress> {
+        let length = recording.len();
+        if !self.source.as_ref().is_some_and(|source| source.same(recording)) || length < self.applied {
+            self.model = None;
+            self.applied = 0;
+            self.source = Some(recording.clone());
+        }
+        for recorded in recording.payloads_from(self.applied) {
+            let layout = self.layout.as_ref();
+            let model = self.model.get_or_insert_with(|| QueryProgressModel::new(recorded.payload.engine(), layout));
+            let _ = model.apply(recorded.payload);
+        }
+        self.applied = length;
+        self.model.as_ref().map(QueryProgressModel::progress)
+    }
 }
 
 /// The progress models of running queries, created with the first payload of a query

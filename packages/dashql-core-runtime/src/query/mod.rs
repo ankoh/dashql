@@ -99,7 +99,8 @@ pub struct QueryExecutionProgress {
     pub metrics: QueryExecutionMetrics,
     /// The phase the engine reports, e.g. the Trino query state (QUEUED, PLANNING, RUNNING, FINISHING)
     pub phase: Option<String>,
-    /// The raw progress payload of the engine, the progress model of the query turns it into the profile progress
+    /// The raw progress payload of the engine, the progress model of the query in the executor turns it into the
+    /// profile progress and leaves it out of the update
     pub engine_progress: Option<EngineProgressPayload>,
     /// The structured progress (stages, pipelines, the plan) of the progress model of the query
     pub profile_progress: Option<QueryProfileProgress>,

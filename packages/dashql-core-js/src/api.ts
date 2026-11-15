@@ -8,7 +8,7 @@ import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
 import { DashQLConnection, type ConnectorType, type DashQLConnectionOptions } from './connection.js';
 import { DashQLComputations } from './computations.js';
-import { DashQLQueryHistory } from './query_history.js';
+import { DashQLQueryHistory, DashQLQueryProgressFollower } from './query_history.js';
 import { DashQLStorageWriter } from './storage_writer.js';
 import { DashQLQueryExecutor } from './query_executor.js';
 import { DashQLCatalogLoader } from './catalog_loader.js';
@@ -40,6 +40,8 @@ export type DashQLBindings = Pick<
     | 'Workbook'
     | 'Connection'
     | 'QueryHistory'
+    | 'QueryProgressFollower'
+    | 'replayQueryProgress'
     | 'Computations'
     | 'StorageWriter'
     | 'QueryExecutor'
@@ -473,6 +475,22 @@ export class DashQL {
     /// Create the query executor of the Rust runtime on a host, through the instance like a workbook
     public createQueryExecutor(host: glue.QueryExecutorHost): DashQLQueryExecutor {
         return DashQLQueryExecutor.create(this, host);
+    }
+
+    /// Create a follower of the progress of queries with a layout of its plans, e.g. the other orientation
+    public createQueryProgressFollower(layout: buffers.profile.ProfileLayoutConfigT): DashQLQueryProgressFollower {
+        return DashQLQueryProgressFollower.create(this, layout);
+    }
+
+    /// Replay a recording of the progress of a query (JSON) up to a point in time in milliseconds since its first
+    /// payload, with a layout of the plan or the default one. Null if nothing happened until then.
+    public replayQueryProgress(recording: string, untilMs: number, layout: buffers.profile.ProfileLayoutConfigT | null = null): glue.QueryProfileProgressView | null {
+        return this.bindings.replayQueryProgress(recording, untilMs, layout) ?? null;
+    }
+
+    /// A packed query profile, e.g. of a progress view, as the FlatBuffer of the core
+    public readQueryProfile(bytes: Uint8Array): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
+        return new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this, bytes, () => new buffers.profile.QueryProfile());
     }
 
     /// Create the catalog loader of the Rust runtime on a host, through the instance like a workbook

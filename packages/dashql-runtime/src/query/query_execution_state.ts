@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-core';
+import { QueryExecutionStatus, QueryType, type QueryProgressUpdate } from '@ankoh/dashql-core';
 
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
-import type { EngineProgressPayload, QueryProfileProgress } from './query_progress_model.js';
+import type { EngineProgressPayload, QueryProfileProgress } from './query_progress.js';
 
 /// The status of the execution of a query, a numeric enum of the module
 export { QueryExecutionStatus };
@@ -57,9 +57,11 @@ export interface QueryExecutionProgress {
     metrics: QueryExecutionMetrics;
     /// The phase the engine reports, e.g. the Trino query state (QUEUED, PLANNING, RUNNING, FINISHING)
     phase?: string | null;
-    /// The raw progress payload of the engine, the query executor feeds it into the progress model of the query
+    /// The raw progress payload of the engine that a channel of the host reports, the query executor of the core
+    /// feeds it into the progress model of the query
     engineProgress?: EngineProgressPayload | null;
-    /// The structured progress (stages, pipelines, the plan), set by the query executor
+    /// The structured progress (stages, pipelines, the plan) of the progress model of the query, projected from the
+    /// query history of the core
     profileProgress?: QueryProfileProgress | null;
 }
 
@@ -225,7 +227,7 @@ export type QueryExecutionAction =
     | VariantKind<typeof EXECUTE_QUERY, [number, QueryExecutionState]>
     | VariantKind<typeof QUERY_SENDING, [number]>
     | VariantKind<typeof QUERY_RUNNING, [number]>
-    | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryExecutionProgress]>
+    | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryProgressUpdate]>
     | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, QueryExecutionMetrics]>
     | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, QueryExecutionMetrics]>
     | VariantKind<typeof QUERY_PROCESSING_RESULTS, [number]>

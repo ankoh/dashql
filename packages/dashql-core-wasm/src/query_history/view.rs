@@ -4,7 +4,13 @@
 //! The views of the queries are the same for the history of a connection and a history of its own, e.g. the one of
 //! the shell. Ids, revisions and times are numbers, a missing value is null. The counters of the stream metrics cross
 //! as numbers that the host may count with fractions, Rust rounds them down.
+//!
+//! The structured progress of a query (`QueryProfileProgressView`) crosses as FlatBuffers of the core: the packed
+//! `QueryProfile` of its plan and its execution state as packed `QueryProfileEvents`, each only when its key differs
+//! from the one the host holds.
 
+use dashql_buffers::profile as fb;
+use dashql_core_runtime::query::progress::{EngineProgressPayload, QueryProfileProgress};
 use dashql_core_runtime::query::{
     self as rt, ConnectionQueryMetrics, QueryExecutionHistory, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionState,
     QueryMetadata,
@@ -13,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::views::app_enum;
+use crate::views::{app_enum, FlatBufferBytes};
 
 app_enum! {
     "The status of the execution of a query"
@@ -96,7 +102,9 @@ impl From<QueryStreamMetrics> for QueryExecutionMetrics {
     }
 }
 
-/// The plain fields of a progress update of a query. The structured progress stays with the host.
+/// A progress update of a channel of the host: the plain fields and the raw progress payload of the engine, e.g.
+/// `{ kind: 'hyper_query_status', status, receivedAt }`. The progress model of the query in the executor turns the
+/// payload into the structured progress.
 #[derive(Clone, Debug, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -111,6 +119,10 @@ pub struct QueryProgressView {
     pub metrics: Option<QueryStreamMetrics>,
     #[tsify(optional, type = "string | null")]
     pub phase: Option<String>,
+    /// The raw progress payload of the engine, a payload of an unknown kind is dropped
+    #[serde(default)]
+    #[tsify(optional, type = "unknown")]
+    pub engine_progress: Option<serde_json::Value>,
 }
 
 impl From<QueryProgressView> for QueryExecutionProgress {
@@ -123,8 +135,123 @@ impl From<QueryProgressView> for QueryExecutionProgress {
             execution_time_ms: p.execution_time_ms.map(|ms| ms as i64),
             metrics: p.metrics.map(Into::into).unwrap_or_default(),
             phase: p.phase,
-            engine_progress: None,
+            engine_progress: p.engine_progress.as_ref().and_then(|payload| EngineProgressPayload::from_json(payload).ok()),
             profile_progress: None,
+        }
+    }
+}
+
+/// The layout of the plans of query profiles, the fields of `ProfileLayoutConfigT` of the generated FlatBuffer code
+#[derive(Clone, Copy, Debug, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ProfileLayoutView {
+    pub level_height: f64,
+    pub node_height: f64,
+    pub node_margin_horizontal: f64,
+    pub node_padding_left: f64,
+    pub node_padding_right: f64,
+    pub icon_width: f64,
+    pub icon_margin_right: f64,
+    pub max_label_chars: u32,
+    pub width_per_label_char: f64,
+    pub node_min_width: f64,
+    pub node_margin_vertical: f64,
+    /// A `ProfileLayoutOrientation`
+    pub orientation: u8,
+    pub symbol_width: f64,
+}
+
+impl From<ProfileLayoutView> for fb::ProfileLayoutConfig {
+    fn from(l: ProfileLayoutView) -> Self {
+        fb::ProfileLayoutConfig::new(
+            l.level_height,
+            l.node_height,
+            l.node_margin_horizontal,
+            l.node_padding_left,
+            l.node_padding_right,
+            l.icon_width,
+            l.icon_margin_right,
+            l.max_label_chars,
+            l.width_per_label_char,
+            l.node_min_width,
+            l.node_margin_vertical,
+            fb::ProfileLayoutOrientation(l.orientation),
+            l.symbol_width,
+        )
+    }
+}
+
+/// The keys of the structured progress of a query that the host holds, their payloads don't cross again
+#[derive(Clone, Copy, Debug, Default, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct QueryProfileKeys {
+    /// The revision of the progress, the execution state crosses when it differs
+    pub revision: Option<f64>,
+    /// The version of the structure, the structure crosses when it differs
+    pub structure_version: Option<f64>,
+}
+
+/// The structured progress of a query: the plan with its stages and their execution state. A payload is null when the
+/// host holds it already, its key names it.
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct QueryProfileProgressView {
+    /// The revision of the progress, it changes with the structure or the execution state
+    pub revision: u64,
+    /// The version of the structure
+    pub structure_version: u32,
+    /// The packed `QueryProfile`, null while the host holds its version
+    #[tsify(type = "FlatBuffer<buffers_profile.QueryProfile> | null")]
+    pub structure: Option<FlatBufferBytes>,
+    /// The execution state as packed `QueryProfileEvents`, one event per entity with state, null while the host holds
+    /// the revision
+    #[tsify(type = "FlatBuffer<buffers_profile.QueryProfileEvents> | null")]
+    pub execution: Option<FlatBufferBytes>,
+}
+
+impl QueryProfileProgressView {
+    /// The view of the structured progress, without the payloads that the host holds
+    pub fn of(progress: &QueryProfileProgress, known: QueryProfileKeys) -> Self {
+        let revision_known = known.revision == Some(progress.revision as f64);
+        let structure_known = known.structure_version == Some(progress.structure_version as f64);
+        QueryProfileProgressView {
+            revision: progress.revision,
+            structure_version: progress.structure_version,
+            structure: (!structure_known).then(|| FlatBufferBytes(progress.structure.as_ref().clone())),
+            execution: (!revision_known).then(|| FlatBufferBytes(progress.execution.pack_events(progress.structure_version))),
+        }
+    }
+}
+
+/// The latest progress update of a query: the plain fields and the structured progress
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct QueryLatestProgressView {
+    pub is_queued: Option<bool>,
+    pub progress_percent: Option<f64>,
+    pub result_rows: Option<u64>,
+    pub rows_processed: Option<u64>,
+    pub execution_time_ms: Option<i64>,
+    pub metrics: QueryStreamMetrics,
+    pub phase: Option<String>,
+    pub profile: Option<QueryProfileProgressView>,
+}
+
+impl QueryLatestProgressView {
+    fn of(progress: &QueryExecutionProgress, known: QueryProfileKeys) -> Self {
+        QueryLatestProgressView {
+            is_queued: progress.is_queued,
+            progress_percent: progress.progress_percent,
+            result_rows: progress.result_rows,
+            rows_processed: progress.rows_processed,
+            execution_time_ms: progress.execution_time_ms,
+            metrics: (&progress.metrics).into(),
+            phase: progress.phase.clone(),
+            profile: progress.profile_progress.as_ref().map(|profile| QueryProfileProgressView::of(profile, known)),
         }
     }
 }
@@ -201,7 +328,7 @@ pub struct QueryResultTableView {
     pub rows: u64,
 }
 
-/// The plain fields of a query. The text, the metadata and the progress stay with the host.
+/// The plain fields of a query and its latest progress. The text and the metadata stay with the host.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -216,11 +343,13 @@ pub struct QueryView {
     pub served_from_cache: bool,
     pub cache_deleted: bool,
     pub cached_at: Option<i64>,
+    pub latest_progress: Option<QueryLatestProgressView>,
     pub revision: u64,
 }
 
-impl From<&QueryExecutionState> for QueryView {
-    fn from(query: &QueryExecutionState) -> Self {
+impl QueryView {
+    /// The view of a query, the payloads of its structured progress that the host holds don't cross
+    pub fn of(query: &QueryExecutionState, known: QueryProfileKeys) -> Self {
         let m = &query.metrics;
         QueryView {
             query_id: query.query_id,
@@ -250,6 +379,7 @@ impl From<&QueryExecutionState> for QueryView {
             served_from_cache: query.served_from_cache,
             cache_deleted: query.cache_deleted,
             cached_at: query.cached_at,
+            latest_progress: query.latest_progress_update.as_ref().map(|progress| QueryLatestProgressView::of(progress, known)),
             revision: query.revision,
         }
     }

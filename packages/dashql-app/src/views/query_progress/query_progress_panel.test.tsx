@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
-import { QueryProgressModels } from '@ankoh/dashql-runtime/query/query_progress_model';
+import { replayProgressRecording } from '@ankoh/dashql-runtime/query/query_progress';
 import { ProfileProgressDetails } from './query_progress_panel.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -35,7 +35,12 @@ describe('ProfileProgressDetails', () => {
     });
 
     it('shows the status of the stage of every Trino operator', () => {
-        const models = new QueryProgressModels();
+        // The progress of the query after the payloads so far, replayed in the core
+        const payloads: object[] = [];
+        const apply = (payload: object) => {
+            payloads.push({ elapsedMs: payloads.length, payload });
+            return replayProgressRecording(core, JSON.stringify({ version: 1, payloads }))!;
+        };
         const stats = {
             state: 'RUNNING', completedSplits: 2, totalSplits: 20,
             rootStage: {
@@ -47,7 +52,7 @@ describe('ProfileProgressDetails', () => {
                 }],
             },
         };
-        models.apply(core, 1, { kind: 'trino_statement_stats', stats, receivedAt: 1 });
+        apply({ kind: 'trino_statement_stats', stats, receivedAt: 1 });
         const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
         const remote = (id: string, source: string) => ({ id, name: 'RemoteSource', descriptor: { sourceFragmentIds: `[${source}]` }, children: [] });
         const info = { queryId: 'q', stages: { stages: [
@@ -55,7 +60,7 @@ describe('ProfileProgressDetails', () => {
             stage('1', { id: '3', name: 'Aggregate', children: [remote('4', '2')] }),
             stage('2', { id: '5', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }),
         ] } };
-        const progress = models.apply(core, 1, { kind: 'trino_query_info', info, receivedAt: 2 })!;
+        const progress = apply({ kind: 'trino_query_info', info, receivedAt: 2 });
         act(() => root.render(<ProfileProgressDetails progress={progress} />));
 
         // Every operator shows the status of its stage: the scan of the done stage a check, the others a spinner,
@@ -76,18 +81,18 @@ describe('ProfileProgressDetails', () => {
 
         // The query finishes: the statement stats report every stage finished, QueryInfo the operator summaries
         const finished = (state: string) => ({ state, totalSplits: 2, completedSplits: 2 });
-        models.apply(core, 1, { kind: 'trino_statement_stats', stats: {
+        apply({ kind: 'trino_statement_stats', stats: {
             state: 'FINISHED', completedSplits: 20, totalSplits: 20,
             rootStage: { stageId: '0', ...finished('FINISHED'), subStages: [{ stageId: '1', ...finished('FINISHED'), subStages: [{ stageId: '2', ...finished('FINISHED') }] }] },
         }, receivedAt: 3 });
         const summary = (pipelineId: number, operatorId: number, planNodeId: string) =>
             ({ pipelineId, operatorId, planNodeId, inputPositions: 4, outputPositions: 4 });
         const summaries = (id: string, ops: object[]) => ({ stageId: `q.${id}`, state: 'FINISHED', stageStats: { operatorSummaries: ops } });
-        const done = models.apply(core, 1, { kind: 'trino_query_info_stats', info: { queryId: 'q', state: 'FINISHED', stages: { stages: [
+        const done = apply({ kind: 'trino_query_info_stats', info: { queryId: 'q', state: 'FINISHED', stages: { stages: [
             summaries('0', [summary(0, 0, '2'), summary(0, 1, '1')]),
             summaries('1', [summary(0, 0, '4'), summary(0, 1, '3')]),
             summaries('2', [summary(0, 0, '5')]),
-        ] } }, receivedAt: 4 })!;
+        ] } }, receivedAt: 4 });
         act(() => root.render(<ProfileProgressDetails progress={done} />));
         // Every operator shows a check, and only the check
         const shown = [...container.querySelectorAll('[data-plan-operator-id]')].map(operator =>
@@ -99,6 +104,5 @@ describe('ProfileProgressDetails', () => {
         const check = container.querySelector(`[data-status-icon="${view.SUCCEEDED}"] path`) as SVGPathElement;
         expect(check.isPointInFill(new DOMPoint(2, 8))).toBe(true);
         expect(check.isPointInFill(new DOMPoint(6.75, 10))).toBe(false);
-        models.release(1);
     });
 });

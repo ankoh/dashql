@@ -18,13 +18,14 @@ use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpe
 use dashql_core_runtime::connections::{ConnectorType, TrinoSessionDefaults};
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
-    CacheEntry, CacheRequest, CachedTable, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, Progress,
-    QueryEvent, QueryExecutor, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryResult, QueryTarget,
+    CacheEntry, CacheRequest, CachedTable, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, QueryEvent, QueryExecutor, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryResult, QueryTarget,
 };
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, Headers, HttpHost, HttpMethod, HttpRequest, HttpResponse};
 use dashql_core_runtime::hyper::{HyperChannelContext, HyperHttpChannel};
-use dashql_core_runtime::query::QueryExecutionMetrics;
+use dashql_buffers::profile as fb;
+use dashql_core_runtime::query::progress::{EngineProgressPayload, HyperQueryStatus};
+use dashql_core_runtime::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use dashql_core_runtime::salesforce::SalesforceTokens;
 use dashql_core_runtime::trino::{TrinoAuthParams, TrinoAuthType, TrinoChannel};
 
@@ -124,6 +125,8 @@ type Server = Box<dyn FnMut(&HttpRequest) -> Answer>;
 struct State {
     /// The events of the queries without the logs
     events: Vec<String>,
+    /// The progress updates of the queries
+    progress: Vec<QueryExecutionProgress>,
     logs: Vec<(LogLevel, String, Vec<(String, String)>)>,
     sent: Vec<HttpRequest>,
     /// The rows of the result tables by query
@@ -248,8 +251,7 @@ fn event_name(event: &QueryEvent) -> Option<String> {
     Some(match event {
         QueryEvent::Sending => "sending".into(),
         QueryEvent::Running => "running".into(),
-        QueryEvent::Progress(Progress::Engine(progress)) => format!("progress:{}", progress.phase.clone().unwrap_or_default()),
-        QueryEvent::Progress(Progress::Host(_)) => "progress:host".into(),
+        QueryEvent::Progress(progress) => format!("progress:{}", progress.phase.clone().unwrap_or_default()),
         QueryEvent::ReceivedBatch(metrics) => format!("batch:{}", metrics.total_rows_received),
         QueryEvent::ReceivedAllBatches { result: QueryResult::Batches { batches, .. }, .. } => {
             format!("all:{}", batches.iter().map(RecordBatch::num_rows).sum::<usize>())
@@ -286,6 +288,7 @@ impl ExecutorHost for FakeHost {
             QueryEvent::ReceivedAllBatches { result: QueryResult::Host { rows }, .. } => {
                 state.results.insert(query_id, *rows as usize);
             }
+            QueryEvent::Progress(progress) => state.progress.push((**progress).clone()),
             _ => {}
         }
         if let Some(name) = event_name(&event) {
@@ -465,6 +468,15 @@ fn trino_streams_the_pages_of_a_query() {
         ]
     );
     assert_eq!(host.state.borrow().results.get(&1), Some(&3));
+    // The statement stats go into the progress model of the query, every update carries its structured progress
+    let progress = host.state.borrow().progress.clone();
+    assert_eq!(progress.len(), 3);
+    assert!(progress.iter().all(|p| p.engine_progress.is_none() && p.profile_progress.is_some()));
+    let last = progress[2].profile_progress.clone().unwrap();
+    assert_eq!(last.recording, progress[0].profile_progress.clone().unwrap().recording);
+    assert_eq!(last.recording.len(), 3);
+    let structure = flatbuffers::root::<fb::QueryProfile>(&last.structure).unwrap();
+    assert_eq!(structure.engine(), fb::ProfileEngine::TRINO);
     let sent = host.state.borrow().sent.clone();
     assert_eq!(sent[0].header("X-Trino-User"), Some("user"));
     assert!(sent[1].url.contains("targetResultSize=32MB"));
@@ -572,6 +584,56 @@ fn hyper_reads_the_result_of_a_query_over_http() {
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
     assert_eq!(resolved(&outcome), Some(true));
     assert_eq!(host.events(), ["sending", "running", "progress:", "batch:3", "timing:Results", "all:3", "ready", "succeeded"]);
+    // The status of the query is the progress of the whole query
+    let progress = host.state.borrow().progress.clone();
+    let profile = progress[0].profile_progress.clone().unwrap();
+    let query = profile.execution.query.unwrap();
+    assert_eq!(query.stats.tuples_out, Some(3));
+    let structure = flatbuffers::root::<fb::QueryProfile>(&profile.structure).unwrap();
+    assert_eq!(structure.engine(), fb::ProfileEngine::HYPER);
+}
+
+#[test]
+fn the_progress_of_a_channel_of_the_host_goes_into_the_progress_model_with_the_layout_of_the_executor() {
+    let host = FakeHost::new();
+    let status = |progress: f64| HyperQueryStatus {
+        completion_status: "RUNNING_OR_UNSPECIFIED".into(),
+        row_count: None,
+        progress: Some(progress),
+        execution_stats: None,
+    };
+    {
+        let mut state = host.state.borrow_mut();
+        for (at, fraction) in [(1, 0.25), (2, 0.5)] {
+            let progress = QueryExecutionProgress {
+                engine_progress: Some(EngineProgressPayload::HyperQueryStatus { status: status(fraction), received_at: at }),
+                ..Default::default()
+            };
+            state.channel.push_back(Ok(ChannelMessage::Progress(Box::new(progress))));
+        }
+        // A plain update keeps no structured progress of its own, the history keeps the earlier one
+        state.channel.push_back(Ok(ChannelMessage::Progress(Box::default())));
+        state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(0) }));
+    }
+    let executor = QueryExecutor::new(host.clone());
+    let top_down = fb::ProfileLayoutOrientation::TOP_DOWN;
+    executor.set_progress_layout(Some(fb::ProfileLayoutConfig::new(
+        56.0, 32.0, 28.0, 12.0, 12.0, 34.0, 8.0, 20, 8.5, 0.0, 40.0, top_down, 20.0,
+    )));
+    let outcome = run(&host, &executor, request(1, QueryTarget::Host));
+    assert_eq!(resolved(&outcome), Some(true));
+    let progress = host.state.borrow().progress.clone();
+    assert_eq!(progress.len(), 3);
+    let work = |p: &QueryExecutionProgress| {
+        let stats = p.profile_progress.as_ref()?.execution.query?.stats;
+        Some((stats.work_done?, stats.work_total?))
+    };
+    assert_eq!(work(&progress[0]), Some((250, 1000)));
+    assert_eq!(work(&progress[1]), Some((500, 1000)));
+    assert!(progress[2].profile_progress.is_none());
+    let profile = progress[1].profile_progress.clone().unwrap();
+    let structure = flatbuffers::root::<fb::QueryProfile>(&profile.structure).unwrap();
+    assert_eq!(structure.layout_config().unwrap().input().orientation(), top_down);
 }
 
 #[test]
@@ -600,7 +662,8 @@ fn a_channel_of_the_host_streams_arrow_ipc() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
-        state.channel.push_back(Ok(ChannelMessage::Progress(Rc::new(1))));
+        let progress = QueryExecutionProgress { phase: Some("host".into()), ..Default::default() };
+        state.channel.push_back(Ok(ChannelMessage::Progress(Box::new(progress))));
         state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[1, 2]), metrics: metrics(2) }));
         state.channel.push_back(Ok(ChannelMessage::Batch { ipc: batch_ipc(&[3]), metrics: metrics(3) }));
         state.channel.push_back(Ok(ChannelMessage::End { schema_ipc: None, metrics: metrics(3) }));

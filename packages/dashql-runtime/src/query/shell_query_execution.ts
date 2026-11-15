@@ -2,12 +2,11 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import type { LoggableException } from '../platform/logger/logger.js';
-import type { QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryExecutionTracker } from './query_execution_state.js';
+import type { QueryExecutionAction, QueryExecutionState, QueryExecutionTracker } from './query_execution_state.js';
 import {
     applyQueryAction,
     QueryProjection,
     queryRecord,
-    updateQueryRecordProgress,
     type NativeQueryObjects,
     type QueryRecord,
 } from './query_history_native.js';
@@ -110,11 +109,6 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
 
     registerQuery(state: QueryExecutionState): void {
         if (!this.records.has(state.queryId)) this.records.set(state.queryId, queryRecord(state));
-    }
-
-    setQueryProgress(queryId: number, progress: QueryExecutionProgress): void {
-        const record = this.records.get(queryId);
-        if (record != null) updateQueryRecordProgress(record, progress);
     }
 
     setQueryError(queryId: number, error: LoggableException): void {

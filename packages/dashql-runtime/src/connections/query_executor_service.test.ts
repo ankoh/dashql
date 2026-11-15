@@ -30,6 +30,8 @@ import { SF_CHANNEL_READY } from './salesforce/salesforce_connection_state.js';
 import type { SalesforceDatabaseChannel } from './salesforce/salesforce_api_client.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import { computeQueryCacheKeyForConnection, logQueryFailure, type QueryExecutorService } from './query_executor_service.js';
+import { QueryProgressFollower, readProgressRecording, replayProgressRecording } from '../query/query_progress.js';
+import { createProfileLayoutConfig } from '../query/profile/profile_layout_config.js';
 
 /// Run a step of a test and wait for it
 const step = async (run: () => unknown) => { await run(); };
@@ -282,12 +284,55 @@ describe('QueryExecutorService', () => {
         });
 
         it('passes the progress of the backend on', async () => {
-            const update = { isQueued: false, metrics: null } as unknown as QueryExecutionProgress;
+            const update = { isQueued: false, phase: 'RUNNING', metrics: null } as unknown as QueryExecutionProgress;
             await createExecutor(vi.fn(async () => new TestStream(undefined, false, null, [update])));
             const { queryId } = await run(argsOf());
             const query = await finished(queryId);
             expect(query.status).toBe(QueryExecutionStatus.SUCCEEDED);
-            expect(query.latestProgressUpdate).toEqual(expect.objectContaining(update));
+            expect(query.latestProgressUpdate).toEqual(expect.objectContaining({ isQueued: false, phase: 'RUNNING', profileProgress: null }));
+        });
+
+        it('keeps the structured progress of the progress model of the query in the history of the connection', async () => {
+            const status = (completionStatus: string, progress: number | null) => ({
+                completionStatus, rowCount: 7, progress, executionStats: { wallClockTime: 1500, rowsProcessed: 12000 },
+            });
+            const update = (completionStatus: string, progress: number | null, receivedAt: number) => ({
+                isQueued: null, progressPercent: progress, resultRows: 7, rowsProcessed: 12000, executionTimeMs: 1500,
+                metrics: createQueryResponseStreamMetrics(),
+                engineProgress: { kind: 'hyper_query_status', status: status(completionStatus, progress), receivedAt },
+            } as QueryExecutionProgress);
+            // A plain update after them keeps the structured progress
+            const plain = { isQueued: false, metrics: null } as unknown as QueryExecutionProgress;
+            const updates = [update('RUNNING_OR_UNSPECIFIED', 0.42, 1000), update('RUNNING_OR_UNSPECIFIED', 60, 2000), plain];
+            await createExecutor(vi.fn(async () => new TestStream(undefined, false, null, updates)));
+            const { queryId } = await run(argsOf());
+            const query = await finished(queryId);
+            const profile = query.latestProgressUpdate?.profileProgress;
+            expect(profile).not.toBeNull();
+            const queryState = profile!.execution.query!;
+            expect(queryState.status).toBe(core.buffers.profile.ProfileExecutionStatus.RUNNING);
+            // Percentages count like fractions
+            expect([queryState.stats.workDone, queryState.stats.workTotal]).toEqual([600n, 1000n]);
+            expect([queryState.stats.tuplesIn, queryState.stats.tuplesOut, queryState.stats.wallTimeUs]).toEqual([12000n, 7n, 1_500_000n]);
+            expect(profile!.structure.read().engine()).toBe(core.buffers.profile.ProfileEngine.HYPER);
+            // The progress of the app grows left-to-right
+            expect(profile!.structure.read().layoutConfig()!.input()!.orientation()).toBe(core.buffers.profile.ProfileLayoutOrientation.LEFT_TO_RIGHT);
+
+            // The history keeps the recording of the payloads, replaying it reproduces the progress
+            const recording = readProgressRecording(profile!)!;
+            expect(JSON.parse(recording).payloads.map((p: { elapsedMs: number }) => p.elapsedMs)).toEqual([0, 1000]);
+            const replayed = replayProgressRecording(dql, recording, 0)!;
+            expect(replayed.execution.query!.stats.workDone).toBe(420n);
+
+            // A follower lays the plan out in the other orientation
+            const { TOP_DOWN } = core.buffers.profile.ProfileLayoutOrientation;
+            const follower = new QueryProgressFollower(dql, createProfileLayoutConfig(TOP_DOWN));
+            const followed = follower.follow(profile!)!;
+            expect(followed.structure.read().layoutConfig()!.input()!.orientation()).toBe(TOP_DOWN);
+            expect(followed.execution.query!.stats.workDone).toBe(600n);
+            // Following again without a new payload keeps the projection
+            expect(follower.follow(profile!)).toBe(followed);
+            follower.destroy();
         });
 
         it('drains a statement without a table when its results are not published', async () => {

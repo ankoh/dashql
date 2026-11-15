@@ -20,6 +20,7 @@ const FLATBUFFER: &str = r#"
 import type * as buffers_editor from '../gen/dashql/buffers/editor.js';
 import type * as buffers_diff from '../gen/dashql/buffers/diff.js';
 import type * as buffers_execution from '../gen/dashql/buffers/execution.js';
+import type * as buffers_profile from '../gen/dashql/buffers/profile.js';
 /** The bytes of a packed FlatBuffer whose root table is `T`, read with the generated accessors */
 export type FlatBuffer<T> = Uint8Array & { readonly __flatbufferRoot?: T };
 "#;

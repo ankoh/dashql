@@ -9,9 +9,13 @@
 //! channel of the host: the task asks the host to run the query and reads the Arrow IPC of the batches. The batches of a
 //! result cross to the host once, as one Arrow IPC stream with the event `ReceivedAllBatches`.
 //!
+//! The task keeps the progress model of its query (`query::progress`): the progress payloads of the engine become
+//! the structured progress of the query (its stages, the plan once it is known, their execution state), every
+//! progress update carries it to the history.
+//!
 //! The host keeps what the runtime holds as JavaScript values: the result tables, the query result cache (Parquet
-//! files of the embedded Hyper), the analysis of the results on the compute database, the progress model of the
-//! profile and the relations that a statement touches. The task decides when they happen.
+//! files of the embedded Hyper), the analysis of the results on the compute database and the relations that a
+//! statement touches. The task decides when they happen.
 //!
 //! Cancelling a query cancels its token: the requests of the query stop, the query is cancelled at the backend (a
 //! Trino or Hyper query by its request, a channel of the host by the host) and the task ends as cancelled.
@@ -31,6 +35,7 @@ use std::rc::Rc;
 
 use arrow_array::RecordBatch;
 use arrow_schema::SchemaRef;
+use dashql_buffers::profile::ProfileLayoutConfig;
 
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionError, ClientFunctionSpec};
 use crate::connections::ConnectorType;
@@ -215,15 +220,6 @@ impl From<ClientFunctionError> for QueryFailure {
     }
 }
 
-/// The progress of a query
-#[derive(Clone)]
-pub enum Progress {
-    /// The progress that a connector of the module reports
-    Engine(Box<QueryExecutionProgress>),
-    /// The progress that a channel of the host reports, it goes back unchanged
-    Host(HostValue),
-}
-
 /// The result of a query
 pub enum QueryResult {
     /// The batches that the task collected
@@ -238,8 +234,8 @@ pub enum QueryEvent {
     Sending,
     /// The backend runs the query, its result streams
     Running,
-    /// The backend reported progress
-    Progress(Progress),
+    /// The backend reported progress, with the structured progress of the progress model of the query
+    Progress(Box<QueryExecutionProgress>),
     /// A batch of the result arrived, with the metrics of the stream so far
     ReceivedBatch(QueryExecutionMetrics),
     /// The result is complete
@@ -295,8 +291,8 @@ pub struct CachedTable {
 
 /// What a channel of the host reports while it streams a result
 pub enum ChannelMessage {
-    /// Progress of the backend
-    Progress(HostValue),
+    /// Progress of the backend, an engine payload of it goes into the progress model of the query
+    Progress(Box<QueryExecutionProgress>),
     /// A batch as an Arrow IPC stream, with the metrics of the stream so far
     Batch { ipc: Vec<u8>, metrics: QueryExecutionMetrics },
     /// The result is complete. The schema comes as an Arrow IPC stream without batches if no batch came.
@@ -345,6 +341,8 @@ struct ExecutorState {
     cache_writes: usize,
     /// The callers that wait for the cache writes
     cache_waiters: Vec<Sender<()>>,
+    /// The layout of the plans of the progress of queries, none for the default one
+    progress_layout: Option<ProfileLayoutConfig>,
 }
 
 /// Removes a query from the running ones when its task ends
@@ -426,6 +424,13 @@ impl<H: ExecutorHost> QueryExecutor<H> {
             let outcome = task.run().await;
             drop(guard);
             outcome
+        }
+    }
+
+    /// The layout of the plans of the progress of the queries that start later, none for the default one
+    pub fn set_progress_layout(&self, layout: Option<ProfileLayoutConfig>) {
+        if let Ok(mut state) = self.state.try_borrow_mut() {
+            state.progress_layout = layout;
         }
     }
 
@@ -607,6 +612,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         }
         self.report(QueryEvent::Sending);
         let started_at = self.host.now();
+        let progress_layout = self.state.try_borrow().ok().and_then(|state| state.progress_layout);
         let mut stream = connectors::StreamContext::new(
             self.host.clone(),
             self.request.query_id,
@@ -614,6 +620,7 @@ impl<H: ExecutorHost> QueryTask<H> {
             self.controls.clone(),
             self.request.publish_results,
             self.request.log_details.clone(),
+            progress_layout,
         );
         let end = connectors::run(&mut stream, &self.request.target, &self.request.text).await;
         *metrics = stream.metrics_if_started();

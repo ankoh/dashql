@@ -15,14 +15,16 @@ use arrow_schema::{Schema, SchemaRef};
 
 use super::wait::{next, Controls, TaskSet, Wake};
 use super::{
-    ipc, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, Progress, QueryEvent, QueryFailure, QueryId,
+    ipc, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, QueryEvent, QueryFailure, QueryId,
     QueryTarget, LOG_TARGET,
 };
 use crate::clfn::{start_connection_client_function, CallStep, ConnectionCallStart, ConnectionCredentials};
 use crate::host::{HostError, LogLevel};
 use crate::http::{CancellationToken, FetchOutcome, Headers, HttpResponse};
 use crate::hyper::{HyperHttpChannel, ResultEvent};
+use crate::query::progress::QueryProgressModel;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
+use dashql_buffers::profile::ProfileLayoutConfig;
 use crate::trino::{StreamOutput, TokenRefresh, TrinoChannel, TrinoQuery, TrinoQueryOptions};
 
 /// The end of a result stream
@@ -48,6 +50,10 @@ pub struct StreamContext<H: ExecutorHost> {
     schema: Option<SchemaRef>,
     batches: Vec<RecordBatch>,
     metrics: QueryExecutionMetrics,
+    /// The layout of the plan of the progress, none for the default one
+    progress_layout: Option<ProfileLayoutConfig>,
+    /// The progress model of the query, created with the first payload of the engine
+    progress_model: Option<QueryProgressModel>,
 }
 
 impl<H: ExecutorHost> StreamContext<H> {
@@ -58,6 +64,7 @@ impl<H: ExecutorHost> StreamContext<H> {
         controls: Controls,
         publish: bool,
         log_details: Vec<(String, String)>,
+        progress_layout: Option<ProfileLayoutConfig>,
     ) -> Self {
         Self {
             host,
@@ -70,6 +77,8 @@ impl<H: ExecutorHost> StreamContext<H> {
             schema: None,
             batches: Vec::new(),
             metrics: QueryExecutionMetrics::default(),
+            progress_layout,
+            progress_model: None,
         }
     }
 
@@ -99,8 +108,22 @@ impl<H: ExecutorHost> StreamContext<H> {
         self.report(QueryEvent::Running);
     }
 
-    fn progress(&self, progress: QueryExecutionProgress) {
-        self.report(QueryEvent::Progress(Progress::Engine(Box::new(progress))));
+    /// The backend reported progress. Its engine payload goes into the progress model of the query, the update
+    /// carries the structured progress instead. A malformed payload is logged, the update keeps the structured
+    /// progress of the previous one then.
+    fn progress(&mut self, mut progress: QueryExecutionProgress) {
+        if let Some(payload) = progress.engine_progress.take() {
+            let layout = self.progress_layout.as_ref();
+            let model = self.progress_model.get_or_insert_with(|| QueryProgressModel::new(payload.engine(), layout));
+            match model.apply(payload) {
+                Ok(profile) => progress.profile_progress = Some(profile.clone()),
+                Err(error) => {
+                    let details = vec![("error".to_string(), error.to_string())];
+                    self.log(LogLevel::Warn, "Failed to apply the progress of the engine", details, LOG_TARGET);
+                }
+            }
+        }
+        self.report(QueryEvent::Progress(Box::new(progress)));
     }
 
     fn schema(&mut self, schema: SchemaRef) {
@@ -486,7 +509,7 @@ async fn run_host_channel<H: ExecutorHost>(context: &mut StreamContext<H>) -> Re
                 return Err(QueryFailure::cancelled());
             }
             Wake::Control => host.channel_profile_detail(query_id, context.controls.profile_shown()),
-            Wake::Done((), Ok(ChannelMessage::Progress(progress))) => context.report(QueryEvent::Progress(Progress::Host(progress))),
+            Wake::Done((), Ok(ChannelMessage::Progress(progress))) => context.progress(*progress),
             Wake::Done((), Ok(ChannelMessage::Batch { ipc, metrics })) => {
                 context.metrics = metrics;
                 let (schema, batches) = ipc::read_stream(&ipc).map_err(|message| QueryFailure::new(FailureKind::Error, message))?;

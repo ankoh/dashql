@@ -1,20 +1,20 @@
-//! The executor in JSON, as it crosses to the host of the module: requests, events, failures, metrics and progress in
-//! the shapes of the TypeScript runtime (`QueryExecutionProgress`, `QueryExecutionMetrics`, `EngineProgressPayload`).
+//! The executor in JSON, as it crosses to the host of the module: requests, events, failures and metrics in the shapes
+//! of the TypeScript runtime (`QueryExecutionMetrics`). A progress update crosses next to its event, as a value of the
+//! module that the host hands to the query history.
 
 use std::rc::Rc;
 
 use serde_json::{json, Value};
 
 use super::{
-    CacheRequest, ClientFunctionTarget, FailureKind, Progress, QueryEvent, QueryFailure, QueryRequest, QueryResult,
+    CacheRequest, ClientFunctionTarget, FailureKind, QueryEvent, QueryFailure, QueryRequest, QueryResult,
     QueryTarget,
 };
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use crate::connections::{ConnectorType, JsonObject, TrinoSessionDefaults};
 use crate::http::Headers;
 use crate::hyper::{HyperChannelContext, HyperHttpChannel};
-use crate::query::progress::EngineProgressPayload;
-use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
+use crate::query::QueryExecutionMetrics;
 use crate::salesforce::SalesforceTokens;
 use crate::trino::{TrinoAccessToken, TrinoAuthParams, TrinoChannel};
 
@@ -47,48 +47,6 @@ pub fn metrics_from_json(value: &Value) -> QueryExecutionMetrics {
     }
 }
 
-/// An engine progress payload as JSON
-pub fn engine_progress_json(payload: &EngineProgressPayload) -> Value {
-    match payload {
-        EngineProgressPayload::TrinoStatementStats { stats, received_at } => {
-            json!({ "kind": "trino_statement_stats", "stats": stats, "receivedAt": received_at })
-        }
-        EngineProgressPayload::TrinoQueryInfo { info, received_at } => {
-            json!({ "kind": "trino_query_info", "info": info, "receivedAt": received_at })
-        }
-        EngineProgressPayload::TrinoQueryInfoStats { info, received_at } => {
-            json!({ "kind": "trino_query_info_stats", "info": info, "receivedAt": received_at })
-        }
-        EngineProgressPayload::HyperQueryStatus { status, received_at } => json!({
-            "kind": "hyper_query_status",
-            "status": {
-                "completionStatus": status.completion_status,
-                "rowCount": status.row_count,
-                "progress": status.progress,
-                "executionStats": status.execution_stats.as_ref().map(|stats| json!({
-                    "wallClockTime": stats.wall_clock_time,
-                    "rowsProcessed": stats.rows_processed,
-                })),
-            },
-            "receivedAt": received_at,
-        }),
-    }
-}
-
-/// A progress update as JSON. The structured progress stays with the host, its progress model derives it.
-pub fn progress_json(progress: &QueryExecutionProgress) -> Value {
-    json!({
-        "isQueued": progress.is_queued,
-        "progressPercent": progress.progress_percent,
-        "resultRows": progress.result_rows,
-        "rowsProcessed": progress.rows_processed,
-        "executionTimeMs": progress.execution_time_ms,
-        "metrics": metrics_json(&progress.metrics),
-        "phase": progress.phase,
-        "engineProgress": progress.engine_progress.as_ref().map(engine_progress_json),
-    })
-}
-
 fn details_json(details: &[(String, String)]) -> Value {
     Value::Object(details.iter().map(|(key, value)| (key.clone(), Value::String(value.clone()))).collect())
 }
@@ -109,14 +67,12 @@ pub fn failure_json(failure: &QueryFailure) -> Value {
     })
 }
 
-/// An event as JSON. The batches of a result, the progress of a channel of the host and what the host failed with
-/// cross next to it.
+/// An event as JSON. The batches of a result, a progress update and what the host failed with cross next to it.
 pub fn event_json(event: &QueryEvent) -> Value {
     match event {
         QueryEvent::Sending => json!({ "type": "sending" }),
         QueryEvent::Running => json!({ "type": "running" }),
-        QueryEvent::Progress(Progress::Engine(progress)) => json!({ "type": "progress", "progress": progress_json(progress) }),
-        QueryEvent::Progress(Progress::Host(_)) => json!({ "type": "progress", "progress": null }),
+        QueryEvent::Progress(_) => json!({ "type": "progress" }),
         QueryEvent::ReceivedBatch(metrics) => json!({ "type": "receivedBatch", "metrics": metrics_json(metrics) }),
         QueryEvent::ReceivedAllBatches { result, metrics } => {
             let (host, rows) = match result {
@@ -279,6 +235,7 @@ pub fn request_from_json(query_id: u64, value: &Value, specs: &mut SpecCache) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::query::QueryExecutionProgress;
 
     #[test]
     fn reads_the_targets_of_queries() {
@@ -328,9 +285,7 @@ mod tests {
         assert_eq!(request.log_details, [("workbookId".to_string(), "w".to_string())]);
 
         let progress = QueryExecutionProgress { is_queued: Some(true), phase: Some("QUEUED".into()), ..Default::default() };
-        let event = event_json(&QueryEvent::Progress(Progress::Engine(Box::new(progress))));
-        assert_eq!(event["progress"]["isQueued"], json!(true));
-        assert_eq!(event["progress"]["metrics"]["totalRowsReceived"], json!(0));
+        assert_eq!(event_json(&QueryEvent::Progress(Box::new(progress))), json!({ "type": "progress" }));
         let failure = QueryFailure::new(FailureKind::CacheMiss, "miss");
         assert_eq!(event_json(&QueryEvent::Failed { failure, metrics: None })["failure"]["kind"], json!("cacheMiss"));
         let metrics = metrics_from_json(&json!({ "totalRowsReceived": 3, "durationUntilFirstBatchMs": 1.5 }));

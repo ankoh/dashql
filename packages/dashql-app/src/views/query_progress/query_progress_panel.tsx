@@ -6,7 +6,7 @@ import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-runtime
 import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
 import { useQueryProfileDetail } from '../../connections/query_executor.js';
-import { QueryProgressFollower, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
+import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@ankoh/dashql-runtime/query/profile/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
@@ -100,11 +100,13 @@ interface QueryProgressPanelProps {
 }
 
 
-/// Download the recording of the progress of a query, replaying it in the profile simulator reproduces the profile
+/// Download the recording of the progress of a query, replaying it reproduces the profile
 function DownloadRecordingButton(props: { queryId: number; progress: QueryProfileProgress }) {
     const fileDownloader = useFileDownloader();
     const download = React.useCallback(() => {
-        const text = JSON.stringify(props.progress.recording());
+        // The query history of the core holds the recording
+        const text = readProgressRecording(props.progress);
+        if (text == null) return;
         void fileDownloader.downloadBufferAsFile(new TextEncoder().encode(text), `query-${props.queryId}-profile.json`);
     }, [fileDownloader, props.progress, props.queryId]);
     return (
@@ -122,8 +124,8 @@ function DownloadRecordingButton(props: { queryId: number; progress: QueryProfil
 }
 
 /// The progress of a query with its plan laid out in the other orientation, while rotated. The progress model of
-/// the query keeps its layout, a follower of the panel applies the recorded payloads again. Without core, e.g.
-/// while it loads, the progress stays as it is.
+/// the query keeps its layout, a follower of the panel applies the recorded payloads again in the core. Without core,
+/// e.g. while it loads, the progress stays as it is.
 function useRotatedProgress(progress: QueryProfileProgress, rotated: boolean): QueryProfileProgress {
     const coreSetup = useDashQLCoreSetup() as DashQLSetupFn | null;
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);

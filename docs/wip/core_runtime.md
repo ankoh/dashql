@@ -76,8 +76,7 @@ buffers in between. The boundary moves to what the UI reads.
   workbooks, so the scripts publish into the catalog of the connection. The script with the functions of the
   connection stays in Rust, the catalog loader replaces its text through the connection.
 - **Channels, tables and cancellations stay in JavaScript.** `NativeConnection` keeps the channels and the result
-  tables by id, the abort controllers and the errors of catalog updates and queries, and the structured progress of
-  a query. The effects map to what the reducer in TypeScript did: cancel the setup, invalidate the catalog batches,
+  tables by id, the abort controllers and the errors of catalog updates and queries. The effects map to what the reducer in TypeScript did: cancel the setup, invalidate the catalog batches,
   abort catalog updates and the queries of a stopped connection, close or release a channel, release a result table.
   A reset or a delete stops the queries: the binding drops the history (`QueryExecutionHistory::clear`) and names the
   active queries in the effect.
@@ -584,12 +583,43 @@ change.
   Trino and of client functions are gone. The task asks the host to run the query and reads every batch as an Arrow IPC stream, the host learns of
   the views of the profile and of the cancellation right away.
 - **Results.** A result crosses to the host once, as one Arrow IPC stream with the event of all batches, and
-  `apache-arrow` decodes it. The host keeps the result tables, the Parquet files of the cache, the analysis on the
-  compute database and the progress model of the profile.
+  `apache-arrow` decodes it. The host keeps the result tables, the Parquet files of the cache and the analysis on the
+  compute database.
 - **Changed on purpose.** A query that is cancelled before the executor started it rejects with the reason of the
   cancellation. A failure before the query reached the executor, e.g. a spec of client functions that doesn't load,
   rejects. The metrics of a Hyper result over HTTP count its batches and rows. The executor reads the auth headers of
   a Hyper connection once per query.
+
+## The progress of a query
+
+The progress model of a query (`src/query/progress.rs`) runs in the query executor of the crate. The query history
+holds the structured progress that the app reads, the TypeScript progress model (`query_progress_model.ts`) is gone.
+
+- **The task owns the model.** The stream of a query creates its `QueryProgressModel` with the first progress payload
+  of its engine: the statement stats and the QueryInfos of Trino, the status of a Hyper query over HTTP, and the
+  `engineProgress` of a channel of the host (the Hyper status of the web client). The model applies the payload to a
+  query profile of `dashql-core-profile`, the progress update carries the structured progress instead of the payload:
+  the packed `QueryProfile` with its version, the execution state and the revision. The model ends with the task. A
+  malformed payload is logged and changes nothing, the update keeps the structured progress of the previous one.
+- **The update crosses as a value of the module.** The executor reports a progress as `QueryProgressUpdate`, the
+  adapter hands it to the history of the connection (`queryProgressUpdated`) through the dispatch of the registry,
+  nothing of it is read in JavaScript. `QueryExecutor.setProgressLayout` sets the layout of the plans, the adapter
+  sets the left-to-right layout of the progress panels (`createProgressLayoutConfig`).
+- **The view of a query carries it.** `QueryView.latestProgress` has the plain fields and the structured progress
+  (`QueryProfileProgressView`): the packed `QueryProfile` and the execution state as packed `QueryProfileEvents`, one
+  event per entity with state. The projection passes the keys that it holds (the revision and the version of the
+  structure) and the module leaves those payloads out, so an update of the execution state crosses only the events
+  and a batch crosses neither. `QueryProjection` folds the events into the `ProfileExecutionState` of the views and
+  keeps the projected progress while its revision doesn't move.
+- **The recording stays with the progress.** The model records the payloads of the engine with the milliseconds since
+  the first one, the progress of every update shares the recording (`SharedRecording`), so a finished query keeps it.
+  `queryProgressRecording` returns it as JSON for the download of the panel, `ProfileRecording::from_json` reads it
+  and the recordings of the Trino test harness, `replayQueryProgress` replays it up to a point in time. A
+  `QueryProgressFollower` replays it with a layout of its own, the panel rotates the plan with it and applies the
+  later payloads as they come.
+- **Changed on purpose.** The metrics of a progress update are always an object, a host channel that reported none
+  reads as zeros. A payload is no longer dropped while the core loads, the core runs the executor. The stats of Trino
+  stay JSON of `serde_json` from the response to the recording, a counter above 2^53 no longer stops the progress.
 
 ## The query history of the shell
 
@@ -607,8 +637,8 @@ query execution and its actions.
 - **The last 100 queries.** `QueryExecutionHistory::with_limit` keeps at most a number of queries: a query that starts
   beyond the limit drops the oldest finished queries, then the oldest active ones, and releases their result tables.
   A later action on a dropped query changes nothing. The history of a connection has no limit.
-- **The JavaScript objects stay with the tracker.** It keeps the result tables by id, the cancellations, the errors and
-  the progress of the queries, and lists the finished queries before the active ones. A result that the shell shows
+- **The JavaScript objects stay with the tracker.** It keeps the result tables by id, the cancellations and the errors of
+  the queries, and lists the finished queries before the active ones. A result that the shell shows
   keeps its table after its query left the history.
 - **The core comes with the first action.** The tracker takes the core or a function that sets it up. The provider of
   the shell sets up the core of the app, the actions before the core is there wait for it. The provider frees the
@@ -706,9 +736,7 @@ statistics of the script with a call and an unpacking each.
 - The connections of a native workbook that changed on disk are still created in TypeScript
   (`connections/connection_restore.ts`), the restore of a single workbook could take them over.
 - The registry of connections applies its actions in TypeScript, only the decisions of their persistence are Rust.
-- The progress model of a query runs in the adapter of the query executor in TypeScript, the Rust history gets the
-  plain fields of a progress update, the adapter keeps the structured progress. The planned statement of a query stays
-  in TypeScript.
+- The planned statement of a query stays in TypeScript.
 - The executor reports into the history through the dispatch of the registry, the history and the executor are not
   one Rust value yet. The query result cache, the analysis of results and the relations of a statement are calls of
   the host.

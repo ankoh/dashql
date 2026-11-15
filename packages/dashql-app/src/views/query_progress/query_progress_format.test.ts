@@ -1,5 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
-import { QueryProgressFollower, QueryProgressModels, readProfileRecording, replayRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
+import { readProgressRecording, replayProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -48,182 +48,44 @@ function poll(state: string, done: number) {
     };
 }
 
-describe('QueryProgressModels', () => {
-    it('follows the Trino polls of a query and lists its stages', () => {
-        const models = new QueryProgressModels();
-        // Without core the payload is dropped
-        expect(models.apply(null, 1, { kind: 'trino_statement_stats', stats: poll('QUEUED', 0), receivedAt: 1 })).toBeNull();
-
-        const first = models.apply(core, 1, { kind: 'trino_statement_stats', stats: poll('RUNNING', 4), receivedAt: 2 })!;
-        expect(first.structure.read().fragmentsLength()).toEqual(3);
-        expect(workOf(first.execution.query)).toEqual({ done: 4, total: 20 });
-
-        const second = models.apply(core, 1, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 3 })!;
-        expect(second).not.toBe(first);
-        expect(workOf(second.execution.query)).toEqual({ done: 8, total: 20 });
-        // A repeated poll changes nothing
-        expect(models.apply(core, 1, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 4 })).toBe(second);
-
+describe('Replayed query progress', () => {
+    // The progress model runs in the core, its tests are in packages/dashql-core-runtime/tests/query_test.rs
+    it('projects the stages and their state from a recording of Trino polls', () => {
+        const payload = (done: number, receivedAt: number) => ({ kind: 'trino_statement_stats', stats: poll('RUNNING', done), receivedAt });
+        const recording = JSON.stringify({ version: 1, payloads: [
+            { elapsedMs: 0, payload: payload(2, 1000) },
+            { elapsedMs: 3000, payload: payload(8, 4000) },
+        ] });
+        expect(replayProgressRecording(core, recording, -1)).toBeNull();
+        const early = replayProgressRecording(core, recording, 0)!;
+        expect(workOf(early.execution.query)).toEqual({ done: 2, total: 20 });
         // The stages are the fragments, nested like the stage tree
-        expect(fragmentsOf(second)).toEqual([['0', null], ['1', '0'], ['2', '1']]);
-        const stages = second.execution.fragments;
+        expect(fragmentsOf(early)).toEqual([['0', null], ['1', '0'], ['2', '1']]);
+        const late = replayProgressRecording(core, recording)!;
+        expect(late.revision).toBeGreaterThan(early.revision);
+        expect(workOf(late.execution.query)).toEqual({ done: 8, total: 20 });
+        const stages = late.execution.fragments;
         expect(workOf(stages[1])).toEqual({ done: 4, total: 8 });
         expect(stages[2]!.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
         expect(stages[2]!.stats.cpuTimeUs).toEqual(42000n);
-
-        // Fields of unexpected types are not reported
-        expect(models.apply(core, 1, { kind: 'trino_statement_stats', stats: { state: 7 }, receivedAt: 5 })).toBe(second);
-        models.release(1);
+        // A replayed progress has no recording of a query and follows nothing
+        expect(late.source).toBeNull();
+        expect(readProgressRecording(late)).toBeNull();
+        expect(() => replayProgressRecording(core, '{"a": 1}')).toThrow();
     });
 
-    it('replaces the stages with the plan of the QueryInfo and keeps their state', () => {
-        const models = new QueryProgressModels();
-        models.apply(core, 2, { kind: 'trino_statement_stats', stats: poll('RUNNING', 4), receivedAt: 1 });
-        const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
-        const remote = (id: string, source: string) => ({ id, name: 'RemoteSource', descriptor: { sourceFragmentIds: `[${source}]` }, children: [] });
-        const info = { queryId: 'q', stages: { stages: [
-            stage('0', { id: '1', name: 'Output', children: [remote('2', '1')] }),
-            stage('1', { id: '3', name: 'Aggregate', children: [{ id: '6', name: 'InnerJoin', children: [
-                { id: '7', name: 'ScanFilter', descriptor: { table: 'tpch:sf1:orders' }, children: [] },
-                { id: '8', name: 'LocalExchange', children: [remote('4', '2')] },
-            ] }] }),
-            stage('2', { id: '5', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }),
-        ] } };
-        const progress = models.apply(core, 2, { kind: 'trino_query_info', info, receivedAt: 2 })!;
-        expect(progress.structure.read().operatorsLength()).toEqual(8);
-        // The stages are the fragments of the plan, with the state of the latest poll
-        expect(fragmentsOf(progress)).toEqual([['0', null], ['1', '0'], ['2', '1']]);
-        expect(workOf(progress.execution.fragments[1])).toEqual({ done: 2, total: 8 });
-        expect(workOf(progress.execution.query)).toEqual({ done: 4, total: 20 });
-
-        // A broken plan leaves the stages without plan
-        const broken = models.apply(core, 2, { kind: 'trino_query_info', info: { stages: { stages: [{ stageId: 'q.0', plan: { jsonRepresentation: '{' } }] } }, receivedAt: 3 })!;
-        expect(broken.structure.read().operatorsLength()).toEqual(0);
-        expect(fragmentsOf(broken)).toHaveLength(3);
-        models.release(2);
-    });
-
-    it('applies the operator summaries of a later QueryInfo to the plan', () => {
-        const models = new QueryProgressModels();
+    it('lays out the plan with the layout of the replay', () => {
+        const { LEFT_TO_RIGHT, TOP_DOWN } = dashql.buffers.profile.ProfileLayoutOrientation;
         const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
         const info = { queryId: 'q', stages: { stages: [
             stage('0', { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', children: [] }] }),
         ] } };
-        const loaded = models.apply(core, 3, { kind: 'trino_query_info', info, receivedAt: 1 })!;
-        expect(loaded.structure.read().pipelinesLength()).toEqual(0);
-        const summary = (operatorId: number, planNodeId: string, rows: number) =>
-            ({ pipelineId: 0, operatorId, planNodeId, inputPositions: rows, outputPositions: rows });
-        const sample = { stages: { stages: [{ stageId: 'q.0', state: 'PENDING', stageStats: {
-            operatorSummaries: [summary(0, '2', 25), summary(1, '1', 25)],
-        } }] } };
-        const progress = models.apply(core, 3, { kind: 'trino_query_info_stats', info: sample, receivedAt: 2 })!;
-        // The pipeline appears in the structure, the edge from the scan carries its rows
-        const structure = progress.structure.read();
-        expect(structure.pipelinesLength()).toEqual(1);
-        const edge = structure.operatorEdges(0)!;
-        expect(progress.execution.edgeRows(edge.slot(), edge.child())).toEqual(25n);
-        models.release(3);
-    });
-});
-
-describe('QueryProgressFollower', () => {
-    it('follows the recording of a query with the other orientation', () => {
-        const { LEFT_TO_RIGHT, TOP_DOWN } = dashql.buffers.profile.ProfileLayoutOrientation;
-        const models = new QueryProgressModels(createProfileLayoutConfig(LEFT_TO_RIGHT));
-        const stage = (id: string, plan: object) => ({ stageId: `q.${id}`, plan: { jsonRepresentation: JSON.stringify(plan) } });
-        const info = { queryId: 'q', stages: { stages: [
-            stage('0', { id: '1', name: 'Output', children: [{ id: '2', name: 'InnerJoin', children: [
-                { id: '3', name: 'TableScan', children: [] },
-                { id: '4', name: 'TableScan', children: [] },
-            ] }] }),
-        ] } };
-        models.apply(core, 4, { kind: 'trino_statement_stats', stats: poll('RUNNING', 4), receivedAt: 1 });
-        const loaded = models.apply(core, 4, { kind: 'trino_query_info', info, receivedAt: 2 })!;
+        const recording = JSON.stringify({ version: 1, payloads: [{ elapsedMs: 0, payload: { kind: 'trino_query_info', info, receivedAt: 1 } }] });
         const orientation = (progress: QueryProfileProgress) => progress.structure.read().layoutConfig()!.input()!.orientation();
-        expect(orientation(loaded)).toEqual(LEFT_TO_RIGHT);
-
-        const follower = new QueryProgressFollower(core, createProfileLayoutConfig(TOP_DOWN));
-        const rotated = follower.follow(loaded)!;
+        expect(orientation(replayProgressRecording(core, recording, 0, createProfileLayoutConfig(LEFT_TO_RIGHT))!)).toEqual(LEFT_TO_RIGHT);
+        const rotated = replayProgressRecording(core, recording, 0, createProfileLayoutConfig(TOP_DOWN))!;
         expect(orientation(rotated)).toEqual(TOP_DOWN);
-        expect(rotated.structure.read().operatorsLength()).toEqual(4);
-        expect(workOf(rotated.execution.query)).toEqual({ done: 4, total: 20 });
-
-        // A later payload of the query reaches the rotated plan as well
-        const later = models.apply(core, 4, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 3 })!;
-        const followed = follower.follow(later)!;
-        expect(orientation(followed)).toEqual(TOP_DOWN);
-        expect(workOf(followed.execution.query)).toEqual({ done: 8, total: 20 });
-        follower.destroy();
-        models.release(4);
-    });
-});
-
-describe('Profile recordings', () => {
-    it('record the payloads of a query and replay them to any point in time', () => {
-        const models = new QueryProgressModels();
-        models.apply(core, 5, { kind: 'trino_statement_stats', stats: poll('RUNNING', 2), receivedAt: 1000 });
-        const last = models.apply(core, 5, { kind: 'trino_statement_stats', stats: poll('RUNNING', 8), receivedAt: 4000 })!;
-        const recording = last.recording();
-        expect(recording.payloads.map(p => p.elapsedMs)).toEqual([0, 3000]);
-        models.release(5);
-
-        // The recording outlives the model and serializes as JSON
-        const replayed = readProfileRecording(JSON.stringify(recording));
-        expect(replayRecording(core, replayed, -1)).toBeNull();
-        expect(workOf(replayRecording(core, replayed, 0)!.execution.query)).toEqual({ done: 2, total: 20 });
-        expect(workOf(replayRecording(core, replayed, 3000)!.execution.query)).toEqual({ done: 8, total: 20 });
-    });
-
-    it('read the recordings of the Trino test harness', () => {
-        const stage = (id: string, plan: object, summaries: object[]) => ({
-            stageId: `q.${id}`, state: 'FINISHED',
-            plan: { jsonRepresentation: JSON.stringify(plan) },
-            stageStats: { operatorSummaries: summaries },
-        });
-        const final = { queryId: 'q', stages: { stages: [
-            stage('0', { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', children: [] }] }, [
-                { pipelineId: 0, operatorId: 0, planNodeId: '2', inputPositions: 9, outputPositions: 9 },
-                { pipelineId: 0, operatorId: 1, planNodeId: '1', inputPositions: 9, outputPositions: 9 },
-            ]),
-        ] } };
-        const harness = {
-            statementResponses: [
-                { elapsedMs: 1, body: { stats: { state: 'QUEUED' } } },
-                { elapsedMs: 200, body: { stats: { state: 'RUNNING', rootStage: { stageId: '0', state: 'RUNNING' } } } },
-                { elapsedMs: 900, body: { stats: { state: 'FINISHED', rootStage: { stageId: '0', state: 'FINISHED' } } } },
-            ],
-            queryInfos: [{ elapsedMs: 800, body: final }],
-        };
-        const recording = readProfileRecording(JSON.stringify(harness));
-        // The plans arrive when the stages appear, the operator summaries at the end
-        const kinds = recording.payloads.map(p => [p.elapsedMs, p.payload.kind]);
-        expect(kinds).toEqual([[1, 'trino_statement_stats'], [200, 'trino_statement_stats'], [200, 'trino_query_info'], [800, 'trino_query_info_stats'], [900, 'trino_statement_stats']]);
-        const early = replayRecording(core, recording, 500)!;
-        expect(early.structure.read().operatorsLength()).toEqual(2);
-        expect(early.structure.read().pipelinesLength()).toEqual(0);
-        const end = replayRecording(core, recording, 900)!;
-        expect(end.structure.read().pipelinesLength()).toEqual(1);
-        expect(() => readProfileRecording('{"a": 1}')).toThrow();
-    });
-});
-
-describe('Hyper query progress', () => {
-    it('reports the progress of the whole query', () => {
-        const models = new QueryProgressModels();
-        const status = (completionStatus: string, progress: number | null) => ({
-            completionStatus, rowCount: 7, progress, executionStats: { wallClockTime: 1500, rowsProcessed: 12000 },
-        });
-        const running = models.apply(core, 4, { kind: 'hyper_query_status', status: status('RUNNING_OR_UNSPECIFIED', 0.42), receivedAt: 1 })!;
-        const query = running.execution.query!;
-        expect(query.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.RUNNING);
-        expect(workOf(query)).toEqual({ done: 420, total: 1000 });
-        expect([query.stats.tuplesIn, query.stats.tuplesOut, query.stats.wallTimeUs]).toEqual([12000n, 7n, 1_500_000n]);
-        // Percentages count like fractions
-        expect(workOf(models.apply(core, 4, { kind: 'hyper_query_status', status: status('RUNNING_OR_UNSPECIFIED', 60), receivedAt: 2 })!.execution.query)).toEqual({ done: 600, total: 1000 });
-        const finished = models.apply(core, 4, { kind: 'hyper_query_status', status: status('FINISHED', null), receivedAt: 3 })!;
-        expect(finished.execution.query!.status).toEqual(dashql.buffers.profile.ProfileExecutionStatus.SUCCEEDED);
-        expect(finished.structure.read().fragmentsLength()).toEqual(0);
-        models.release(4);
+        expect(rotated.structure.read().operatorsLength()).toEqual(2);
     });
 });
 

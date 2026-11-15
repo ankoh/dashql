@@ -333,7 +333,9 @@ rust_test(
     edition = "2021",
     deps = [
         ":dashql_core_runtime",
+        "//proto/fb:dashql_buffers_rs",
         "@core_crates//:arrow-array",
+        "@core_crates//:flatbuffers",
         "@core_crates//:arrow-schema",
         "@core_crates//:serde_json",
     ],

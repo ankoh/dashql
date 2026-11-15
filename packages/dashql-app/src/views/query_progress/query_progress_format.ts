@@ -1,6 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
 import { isStatReported, type ProfileEntityState } from '@ankoh/dashql-runtime/query/profile_execution_state';
-import type { QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
 import type { QueryExecutionProgress } from '@ankoh/dashql-runtime/query/query_execution_state';
 
 const view = dashql.buffers.profile;

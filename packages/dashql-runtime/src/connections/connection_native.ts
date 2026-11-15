@@ -2,8 +2,8 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import type { LoggableException } from '../platform/logger/logger.js';
-import type { QueryExecutionProgress, QueryExecutionState } from '../query/query_execution_state.js';
-import { QueryProjection, queryRecord, updateQueryRecordProgress, type NativeQueryObjects, type QueryRecord } from '../query/query_history_native.js';
+import type { QueryExecutionState } from '../query/query_execution_state.js';
+import { QueryProjection, queryRecord, type NativeQueryObjects, type QueryRecord } from '../query/query_history_native.js';
 import { share } from '../store/projection.js';
 import type { CatalogUpdateTaskState } from './catalog/catalog_update_state.js';
 import type { RelationName } from './catalog/catalog_sql_generator.js';
@@ -192,12 +192,6 @@ export class NativeConnection implements NativeQueryObjects {
     registerQuery(state: QueryExecutionState): void {
         if (this.queryRecords.has(state.queryId)) return;
         this.queryRecords.set(state.queryId, queryRecord(state));
-    }
-
-    /// Keep the latest progress of a query, an update without structured progress keeps the one of the previous update
-    setQueryProgress(queryId: number, progress: QueryExecutionProgress): void {
-        const record = this.queryRecords.get(queryId);
-        if (record != null) updateQueryRecordProgress(record, progress);
     }
 
     setQueryError(queryId: number, error: LoggableException): void {

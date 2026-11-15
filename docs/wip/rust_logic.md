@@ -16,7 +16,7 @@ Paths without a package are under `packages/dashql-app/src/` or `packages/dashql
 
 | Area | State |
 |---|---|
-| Hyper progress adapter | Proposed, not started |
+| Hyper progress adapter | Done: the progress model of a query runs in the core runtime |
 | Query profile geometry | Proposed, not started |
 | Conditional candidates | Waiting for their triggers |
 | Headless CLI workbooks | Decided: the CLI runs the TypeScript runtime in Node |
@@ -28,7 +28,6 @@ Paths without a package are under `packages/dashql-app/src/` or `packages/dashql
 | Candidate | TS removed | Why it wins |
 |---|---|---|
 | **Query profile geometry**: paths in `views/query_profile/profile_scene.ts`, all of `ui/graph/graph_edges.ts` | ~950 lines | Continues `profile_layout.rs`, input is already a flatbuffer, runs per rendered profile, gains snapshot coverage. It is the most intricate pure code in the app. |
-| **Hyper progress adapter**: `hyperQueryEvents` in `query/query_progress_model.ts:27` | ~17 lines | Trino's adapter is already in `packages/dashql-core-profile/src/progress/trino.rs` with a snapshot harness. Small, and removes an asymmetry. |
 
 ### Conditional: port only if the trigger happens
 
@@ -78,13 +77,9 @@ Each step is one commit and can stop there. Hyper goes first because it is the s
 
 ### Step 1: Hyper progress adapter
 
-1. Add `packages/dashql-core-profile/src/progress/hyper.rs`, reading `serde_json::Value` like `trino.rs`. Don't use
-   `deny_unknown_fields`, because the payload is a full `QueryStatus`.
-2. Add an inline `statuses` case to `tests/snapshots/profiles/progress/progress.tpl.yaml` (no sidecar), with the encoder and
-   the snapshotter entry.
-3. Add the wasm binding in `packages/dashql-core-wasm/src/lib.rs` and the wrapper in
-   `packages/dashql-core-js/src/api.ts`, following `applyTrinoStatementStats`.
-4. Switch `query/query_progress_model.ts` to it and delete `hyperQueryEvents`.
+Done with the progress model of a query, which runs in the query executor of the core runtime: the input events of
+the status of a Hyper query are `hyper_query_events` in `packages/dashql-core-runtime/src/query/progress.rs`, see
+[core_runtime.md](core_runtime.md#the-progress-of-a-query).
 
 ### Step 2: Query profile geometry
 
@@ -134,10 +129,8 @@ plan, in both orientations, and confirm edges and stage contours draw correctly.
 
 These are TS fixes rather than ports, and are separate from the steps above:
 
-1. **BigInt in Trino stats** (`query/query_progress_model.ts:214`): a stat
-   of 2^53 or more makes `JSON.stringify` throw. It is caught, so the query continues, but progress stops updating and
-   the download of the progress recording throws too. Rare (about 9 PiB). Fix: convert BigInts under `stats` to
-   `Number`.
+1. **BigInt in Trino stats**: fixed by the move of the progress model into the core runtime, the stats stay JSON of
+   `serde_json` from the response to the recording.
 3. **Silently dropped contours** (`views/query_profile/profile_scene.ts:354,368`): an unclosed contour disappears
    without a log. Step 2 can carry this over or report it.
 4. **Five copies of identifier quoting and four of literal quoting in TS**: merge them into one TS helper after

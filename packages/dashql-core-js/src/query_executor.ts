@@ -1,3 +1,4 @@
+import type * as buffers from './buffers.js';
 import { DashQL, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
 
@@ -90,6 +91,11 @@ export class DashQLQueryExecutor {
 
     public isRunning(queryId: number): boolean {
         return this.ptr.assertNotNull().isRunning(queryId);
+    }
+
+    /// The layout of the plans of the progress of the queries that start later, null for the default one
+    public setProgressLayout(layout: buffers.profile.ProfileLayoutConfigT | null): void {
+        this.ptr.assertNotNull().setProgressLayout(layout);
     }
 
     /// A view starts (1) or stops (-1) showing the profile of a running query

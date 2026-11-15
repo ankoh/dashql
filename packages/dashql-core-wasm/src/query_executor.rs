@@ -2,8 +2,9 @@
 //!
 //! The host is a JavaScript object (`QueryExecutorHost`): the clock, timers, fetch through the HTTP client of the
 //! platform, the query result cache, the analysis of results and the channels of the host. A query comes as JSON, its
-//! events go to `report` as JSON with a payload next to them: the Arrow IPC stream of a result, the progress of a
-//! channel of the host or what the host failed with. `execute` resolves with the outcome once the query ended.
+//! events go to `report` as JSON with a payload next to them: the Arrow IPC stream of a result, a progress update
+//! (`QueryProgressUpdate`, the host hands it to the history of the connection) or what the host failed with. `execute`
+//! resolves with the outcome once the query ended.
 
 use std::cell::{Cell, RefCell};
 use std::future::Future;
@@ -13,9 +14,11 @@ use std::task::{Context, Poll};
 
 use dashql_core_runtime::executor::json::{event_json, failure_json, metrics_from_json, request_from_json, SpecCache};
 use dashql_core_runtime::executor::{
-    ipc, CacheEntry, CachedTable, ChannelMessage, ExecutorHost, Progress, QueryEvent, QueryExecutor as RuntimeExecutor,
-    QueryId, QueryOutcome, QueryResult,
+    ipc, CacheEntry, CachedTable, ChannelMessage, ExecutorHost, QueryEvent, QueryExecutor as RuntimeExecutor, QueryId,
+    QueryOutcome, QueryResult,
 };
+use dashql_core_runtime::query::QueryExecutionProgress;
+use tsify::Ts;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
 use dashql_core_runtime::http::{CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
@@ -24,6 +27,9 @@ use serde_json::{Map, Value};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
+
+use crate::query_history::view::{ProfileLayoutView, QueryProgressView};
+use crate::views::from_js;
 
 #[wasm_bindgen(typescript_custom_section)]
 const QUERY_EXECUTOR_HOST: &str = r#"
@@ -43,7 +49,7 @@ export interface QueryExecutorHttpResponse {
 }
 /** What a channel of the host reports while it streams a result. The metrics are JSON. */
 export type QueryExecutorChannelMessage =
-    | { type: 'progress'; progress: unknown }
+    | { type: 'progress'; progress: QueryProgressView }
     | { type: 'batch'; ipc: Uint8Array; metrics: string }
     | { type: 'end'; schema: Uint8Array | null; metrics: string };
 /** The host of the query executor */
@@ -58,7 +64,7 @@ export interface QueryExecutorHost {
     /** Send a request, `abortFetch` with its id stops it */
     fetch(requestId: number, request: QueryExecutorHttpRequest): Promise<QueryExecutorHttpResponse>;
     abortFetch(requestId: number): void;
-    /** An event of a query as JSON. The payload is the Arrow IPC stream of a result, the progress of a channel or what the host failed with. */
+    /** An event of a query as JSON. The payload is the Arrow IPC stream of a result, a `QueryProgressUpdate` or what the host failed with. */
     report(queryId: number, event: string, payload: unknown): void;
     /** The entry of the query result cache of a key, null on a miss */
     cacheLookup(queryId: number, key: string): Promise<{ name: string; cachedAt: number } | null>;
@@ -222,9 +228,15 @@ fn metrics_of(value: &JsValue, key: &str) -> dashql_core_runtime::query::QueryEx
     metrics_from_json(&serde_json::from_str(&json).unwrap_or(Value::Null))
 }
 
+/// The progress of a channel of the host, a progress that doesn't read is an update without fields
+fn channel_progress(value: Option<JsValue>) -> QueryExecutionProgress {
+    let view = value.and_then(|value| serde_wasm_bindgen::from_value::<QueryProgressView>(value).ok());
+    view.map(Into::into).unwrap_or_default()
+}
+
 fn channel_message(value: &JsValue) -> Result<ChannelMessage, HostError> {
     match field(value, "type").and_then(|kind| kind.as_string()).as_deref() {
-        Some("progress") => Ok(ChannelMessage::Progress(Rc::new(field(value, "progress").unwrap_or(JsValue::NULL)))),
+        Some("progress") => Ok(ChannelMessage::Progress(Box::new(channel_progress(field(value, "progress"))))),
         Some("batch") => {
             let ipc = field(value, "ipc").map(|bytes| Uint8Array::new(&bytes).to_vec()).unwrap_or_default();
             Ok(ChannelMessage::Batch { ipc, metrics: metrics_of(value, "metrics") })
@@ -289,14 +301,14 @@ impl HttpHost for JsHost {
 impl ExecutorHost for JsHost {
     fn report(&self, query_id: QueryId, event: QueryEvent) {
         let json = event_json(&event).to_string();
-        let payload = match &event {
+        let payload = match event {
             QueryEvent::ReceivedAllBatches { result: QueryResult::Batches { schema, batches }, .. } => {
-                match ipc::write_stream(schema, batches) {
+                match ipc::write_stream(&schema, &batches) {
                     Ok(bytes) => bytes_value(&bytes),
                     Err(message) => JsError::new(&message).into(),
                 }
             }
-            QueryEvent::Progress(Progress::Host(value)) => host_value(Some(value)),
+            QueryEvent::Progress(progress) => JsValue::from(QueryProgressUpdate { progress: *progress }),
             QueryEvent::Failed { failure, .. } | QueryEvent::Cancelled { failure, .. } => host_value(failure.value.as_ref()),
             _ => JsValue::UNDEFINED,
         };
@@ -373,6 +385,20 @@ fn outcome_value(outcome: QueryOutcome) -> JsValue {
     object.into()
 }
 
+/// A progress update of a query with its structured progress, as the executor reports it. The host hands it to the
+/// history of the connection of the query (`queryProgressUpdated`), nothing of it is read in JavaScript.
+#[wasm_bindgen]
+pub struct QueryProgressUpdate {
+    progress: QueryExecutionProgress,
+}
+
+impl QueryProgressUpdate {
+    /// The progress update
+    pub(crate) fn progress(&self) -> &QueryExecutionProgress {
+        &self.progress
+    }
+}
+
 /// The query executor of the runtime, see `dashql_core_runtime::executor`
 #[wasm_bindgen]
 pub struct QueryExecutor {
@@ -408,6 +434,14 @@ impl QueryExecutor {
             cancel.await;
             Ok(JsValue::UNDEFINED)
         })
+    }
+
+    /// The layout of the plans of the progress of the queries that start later, null for the default one
+    #[wasm_bindgen(js_name = setProgressLayout)]
+    pub fn set_progress_layout(&self, layout: Option<Ts<ProfileLayoutView>>) -> Result<(), JsError> {
+        let layout = layout.as_ref().map(from_js).transpose()?;
+        self.executor.set_progress_layout(layout.map(Into::into));
+        Ok(())
     }
 
     /// Is a query running?

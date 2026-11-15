@@ -40,7 +40,6 @@ import type { EmbeddedComputeDatabase } from '../platform/database/embedded_data
 import { allocateQueryId } from '../query/tracked_query_execution.js';
 import { yieldToBrowser } from '../utils/yield_to_browser.js';
 import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
-import { QueryProgressModels, type EngineProgressPayload } from '../query/query_progress_model.js';
 import { createProgressLayoutConfig } from '../query/profile/profile_layout_config.js';
 import type { Dispatch } from '../utils/variant.js';
 import { connectorOfDetails } from './connector_descriptor.js';
@@ -111,7 +110,7 @@ export interface QueryExecutorDependencies {
 
 /// A message of a channel of the host, what the stream produced
 type ChannelMessage =
-    | { type: 'progress'; progress: unknown }
+    | { type: 'progress'; progress: QueryExecutionProgress }
     | { type: 'batch'; ipc: Uint8Array; metrics: string }
     | { type: 'end'; schema: Uint8Array | null; metrics: string }
     | { type: 'error'; error: unknown };
@@ -176,16 +175,14 @@ function tableIPC(table: arrow.Table): Uint8Array {
 /// ids of one sequence.
 ///
 /// An adapter over the query executor of the Rust runtime (`dashql_core_runtime::executor`): the executor runs a query
-/// as a task, streams Trino, Hyper over HTTP and client functions itself and reports what happens. The adapter applies
-/// the events to the connection, keeps the result tables, the query result cache, the analysis of results, the
-/// progress model and the channels of the host (the gRPC channel of Hyper, the embedded Hyper, channels of tests).
+/// as a task, streams Trino, Hyper over HTTP and client functions itself and reports what happens, a progress update
+/// with the structured progress of the progress model of the query. The adapter applies the events to the connection,
+/// keeps the result tables, the query result cache, the analysis of results and the channels of the host (the gRPC
+/// channel of Hyper, the embedded Hyper, channels of tests).
 export class QueryExecutorService {
     private readonly deps: QueryExecutorDependencies;
     private readonly records = new Map<number, QueryRecord>();
     private readonly resultComputations = new ResultComputations();
-    // The progress models of the running queries, they need the core
-    private readonly progressModels = new QueryProgressModels(createProgressLayoutConfig());
-    private core: core.DashQL | null = null;
     private native: core.DashQLQueryExecutor | null = null;
     private fetchAborts = new Map<number, AbortController>();
 
@@ -198,7 +195,8 @@ export class QueryExecutorService {
     private nativeOf(instance: core.DashQL): core.DashQLQueryExecutor {
         if (this.native == null) {
             this.native = instance.createQueryExecutor(this.createHost());
-            this.core = instance;
+            // The progress shows the plan in short panels, it grows left-to-right
+            this.native.setProgressLayout(createProgressLayoutConfig());
         }
         return this.native;
     }
@@ -206,10 +204,6 @@ export class QueryExecutorService {
     /// Wait for the results that are written into the query result cache, e.g. before a process ends
     async flushCacheWrites(): Promise<void> {
         await this.native?.flushCacheWrites();
-    }
-
-    private applyEngineProgress(queryId: number, payload: EngineProgressPayload) {
-        return this.progressModels.apply(this.core, queryId, payload);
     }
 
     /// Allocate the next query id and start the execution
@@ -264,7 +258,6 @@ export class QueryExecutorService {
         record.execution = execution;
         const settle = () => {
             args.abortSignal?.removeEventListener('abort', cancelFromCaller);
-            this.progressModels.release(queryId);
             if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
             record.settled = true;
             this.forget(record);
@@ -468,14 +461,6 @@ export class QueryExecutorService {
         }
     }
 
-    /// The progress of an event, the structured progress of the progress model next to it
-    private progressOf(record: QueryRecord, json: any, payload: unknown): QueryExecutionProgress {
-        const progress = (json == null ? payload : json) as QueryExecutionProgress;
-        const engine = progress?.engineProgress ?? null;
-        const profileProgress = engine == null ? null : this.applyEngineProgress(record.queryId, engine);
-        return profileProgress == null ? progress : { ...progress, profileProgress };
-    }
-
     /// Apply an event of the executor
     private report(queryId: number, text: string, payload: unknown): void {
         const record = this.records.get(queryId);
@@ -490,7 +475,8 @@ export class QueryExecutorService {
                 this.dispatch(record, { type: QUERY_RUNNING, value: [queryId] });
                 break;
             case 'progress':
-                this.dispatch(record, { type: QUERY_PROGRESS_UPDATED, value: [queryId, this.progressOf(record, event.progress, payload)] });
+                // The update of the executor carries the structured progress, the history of the connection keeps it
+                this.dispatch(record, { type: QUERY_PROGRESS_UPDATED, value: [queryId, payload as core.QueryProgressUpdate] });
                 break;
             case 'receivedBatch':
                 this.dispatch(record, { type: QUERY_RECEIVED_BATCH, value: [queryId, event.metrics as QueryExecutionMetrics] });

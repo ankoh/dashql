@@ -6,7 +6,7 @@ use dashql_buffers::profile as fb;
 use dashql_core_profile::{EntityState, ProfileUpdate, Stats, Status};
 use dashql_core_runtime::query::progress::{
     replay_recording, EngineProgressPayload, HyperExecutionStats, HyperQueryStatus, ProfileExecutionState,
-    QueryProfileProgress, QueryProgressModels, NO_INDEX,
+    ProfileRecording, QueryProfileProgress, QueryProgressFollower, QueryProgressModels, NO_INDEX,
 };
 use dashql_core_runtime::query::{
     QueryError, QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionMetrics,
@@ -566,7 +566,7 @@ fn progress_models_ignore_payloads_of_another_engine() {
     let status = HyperQueryStatus { completion_status: "FINISHED".into(), row_count: None, progress: None, execution_stats: None };
     let other = models.apply(1, EngineProgressPayload::HyperQueryStatus { status, received_at: 2 }).unwrap();
     assert_eq!(*other, first);
-    assert_eq!(models.model(1).unwrap().recording().payloads.len(), 1);
+    assert_eq!(models.model(1).unwrap().recording().len(), 1);
 }
 
 #[test]
@@ -574,17 +574,191 @@ fn profile_recordings_record_the_payloads_of_a_query_and_replay_them_to_any_poin
     let mut models = QueryProgressModels::default();
     models.apply(5, stats(poll("RUNNING", 2), 1000)).unwrap();
     models.apply(5, stats(poll("RUNNING", 8), 4000)).unwrap();
-    let recording = models.model(5).unwrap().recording().clone();
+    let progress = models.model(5).unwrap().progress().clone();
+    let recording = progress.recording.snapshot();
     let elapsed: Vec<i64> = recording.payloads.iter().map(|p| p.elapsed_ms).collect();
     assert_eq!(elapsed, vec![0, 3000]);
-    // The recording outlives the model
+    // The recording outlives the model, the progress keeps it
     models.release(5);
+    assert_eq!(progress.recording.len(), 2);
 
-    assert_eq!(replay_recording(&recording, -1, None).unwrap(), None);
-    let early = replay_recording(&recording, 0, None).unwrap().unwrap();
+    // The recording serializes as JSON
+    let recording = ProfileRecording::from_json(&recording.to_json().to_string()).unwrap();
+    assert_eq!(recording, progress.recording.snapshot());
+    assert_eq!(replay_recording(&recording, -1, None), None);
+    let early = replay_recording(&recording, 0, None).unwrap();
     assert_eq!(work_of(early.execution.query), Some((2, 20)));
-    let late = replay_recording(&recording, 3000, None).unwrap().unwrap();
+    let late = replay_recording(&recording, 3000, None).unwrap();
     assert_eq!(work_of(late.execution.query), Some((8, 20)));
+}
+
+#[test]
+fn profile_recordings_share_the_payloads_with_the_progress_of_every_update() {
+    let mut models = QueryProgressModels::default();
+    let first = models.apply(6, stats(poll("RUNNING", 2), 1000)).unwrap().clone();
+    let second = models.apply(6, stats(poll("RUNNING", 4), 2000)).unwrap().clone();
+    // An earlier update sees the later payloads
+    assert_eq!(first.recording.len(), 2);
+    assert_eq!(first.recording, second.recording);
+    // The recording of another query is another one
+    let other = models.apply(7, stats(poll("RUNNING", 2), 1000)).unwrap().clone();
+    assert_ne!(other.recording, first.recording);
+}
+
+#[test]
+fn profile_recordings_read_the_recordings_of_the_trino_test_harness() {
+    let plan = json!({ "id": "1", "name": "Output", "children": [{ "id": "2", "name": "TableScan", "children": [] }] });
+    let summary = |operator_id: u32, plan_node_id: &str| {
+        json!({ "pipelineId": 0, "operatorId": operator_id, "planNodeId": plan_node_id, "inputPositions": 9, "outputPositions": 9 })
+    };
+    let final_info = json!({ "queryId": "q", "stages": { "stages": [{
+        "stageId": "q.0", "state": "FINISHED",
+        "plan": { "jsonRepresentation": plan.to_string() },
+        "stageStats": { "operatorSummaries": [summary(0, "2"), summary(1, "1")] },
+    }] } });
+    let harness = json!({
+        "statementResponses": [
+            { "elapsedMs": 1, "body": { "stats": { "state": "QUEUED" } } },
+            { "elapsedMs": 200, "body": { "stats": { "state": "RUNNING", "rootStage": { "stageId": "0", "state": "RUNNING" } } } },
+            { "elapsedMs": 900, "body": { "stats": { "state": "FINISHED", "rootStage": { "stageId": "0", "state": "FINISHED" } } } },
+        ],
+        "queryInfos": [{ "elapsedMs": 800, "body": final_info }],
+    });
+    let recording = ProfileRecording::from_json(&harness.to_string()).unwrap();
+    // The plans arrive when the stages appear, the operator summaries at the end
+    let kinds: Vec<(i64, &str)> = recording
+        .payloads
+        .iter()
+        .map(|p| {
+            let kind = match p.payload {
+                EngineProgressPayload::TrinoStatementStats { .. } => "trino_statement_stats",
+                EngineProgressPayload::TrinoQueryInfo { .. } => "trino_query_info",
+                EngineProgressPayload::TrinoQueryInfoStats { .. } => "trino_query_info_stats",
+                EngineProgressPayload::HyperQueryStatus { .. } => "hyper_query_status",
+            };
+            (p.elapsed_ms, kind)
+        })
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            (1, "trino_statement_stats"),
+            (200, "trino_statement_stats"),
+            (200, "trino_query_info"),
+            (800, "trino_query_info_stats"),
+            (900, "trino_statement_stats"),
+        ]
+    );
+    let early = replay_recording(&recording, 500, None).unwrap();
+    assert_eq!(operator_count(&early), 2);
+    assert_eq!(pipeline_count(&early), 0);
+    let end = replay_recording(&recording, 900, None).unwrap();
+    assert_eq!(pipeline_count(&end), 1);
+    assert!(ProfileRecording::from_json(r#"{"a": 1}"#).is_err());
+    assert!(ProfileRecording::from_json("{").is_err());
+}
+
+/// The layout of the progress of the app with an orientation
+fn layout(orientation: fb::ProfileLayoutOrientation) -> fb::ProfileLayoutConfig {
+    fb::ProfileLayoutConfig::new(56.0, 32.0, 32.0, 12.0, 12.0, 34.0, 8.0, 20, 8.5, 0.0, 40.0, orientation, 20.0)
+}
+
+fn orientation(progress: &QueryProfileProgress) -> fb::ProfileLayoutOrientation {
+    structure(progress).layout_config().unwrap().input().orientation()
+}
+
+#[test]
+fn progress_followers_follow_the_recording_of_a_query_with_the_other_orientation() {
+    let (left_to_right, top_down) = (fb::ProfileLayoutOrientation::LEFT_TO_RIGHT, fb::ProfileLayoutOrientation::TOP_DOWN);
+    let mut models = QueryProgressModels::new(Some(layout(left_to_right)));
+    let info = json!({ "queryId": "q", "stages": { "stages": [
+        stage("0", json!({ "id": "1", "name": "Output", "children": [{ "id": "2", "name": "InnerJoin", "children": [
+            { "id": "3", "name": "TableScan", "children": [] },
+            { "id": "4", "name": "TableScan", "children": [] },
+        ] }] })),
+    ] } });
+    models.apply(4, stats(poll("RUNNING", 4), 1)).unwrap();
+    let loaded = models.apply(4, EngineProgressPayload::TrinoQueryInfo { info, received_at: 2 }).unwrap().clone();
+    assert_eq!(orientation(&loaded), left_to_right);
+
+    let mut follower = QueryProgressFollower::new(Some(layout(top_down)));
+    let rotated = follower.follow(&loaded.recording).unwrap().clone();
+    assert_eq!(orientation(&rotated), top_down);
+    assert_eq!(operator_count(&rotated), 4);
+    assert_eq!(work_of(rotated.execution.query), Some((4, 20)));
+
+    // A later payload of the query reaches the rotated plan as well
+    let later = models.apply(4, stats(poll("RUNNING", 8), 3)).unwrap().clone();
+    let followed = follower.follow(&later.recording).unwrap().clone();
+    assert_eq!(orientation(&followed), top_down);
+    assert_eq!(work_of(followed.execution.query), Some((8, 20)));
+    assert!(followed.revision > rotated.revision);
+    // Following again without a new payload changes nothing
+    assert_eq!(follower.follow(&later.recording).unwrap().revision, followed.revision);
+
+    // The recording of another query starts over
+    let other = models.apply(5, stats(poll("RUNNING", 2), 1)).unwrap().clone();
+    let switched = follower.follow(&other.recording).unwrap();
+    assert_eq!(operator_count(switched), 0);
+    assert_eq!(work_of(switched.execution.query), Some((2, 20)));
+    // Nothing recorded, nothing followed
+    let mut empty = QueryProgressFollower::new(None);
+    assert!(empty.follow(&Default::default()).is_none());
+}
+
+#[test]
+fn progress_models_fail_on_malformed_payloads_and_change_nothing() {
+    let mut models = QueryProgressModels::default();
+    let first = models.apply(1, stats(poll("RUNNING", 4), 1)).unwrap().clone();
+    let info = json!({ "stages": { "stages": [{ "stageId": "q.0", "stageStats": { "operatorSummaries": 7 } }] } });
+    let _ = models.apply(1, EngineProgressPayload::TrinoQueryInfoStats { info, received_at: 2 });
+    let after = models.model(1).unwrap().progress();
+    assert_eq!(after.execution, first.execution);
+    assert_eq!(after.structure, first.structure);
+}
+
+#[test]
+fn profile_execution_states_pack_as_the_events_of_the_core() {
+    let mut models = QueryProgressModels::default();
+    let progress = models.apply(1, stats(poll("RUNNING", 4), 1)).unwrap().clone();
+    let bytes = progress.execution.pack_events(progress.structure_version);
+    let events = flatbuffers::root::<fb::QueryProfileEvents>(&bytes).unwrap();
+    assert_eq!(events.structure_version(), progress.structure_version);
+    // One event per entity with state: the query and the three stages
+    let events = events.events().unwrap();
+    assert_eq!(events.len(), 4);
+    let query = events.iter().find(|event| event.entity() == fb::ProfileEntity::QUERY).unwrap();
+    assert_eq!(query.status(), fb::ProfileExecutionStatus::RUNNING);
+    assert_eq!(query.stats().work_done(), 4);
+    let stage = events.iter().find(|event| event.entity() == fb::ProfileEntity::FRAGMENT && event.index() == 2).unwrap();
+    assert_eq!(stage.status(), fb::ProfileExecutionStatus::SUCCEEDED);
+    // The empty state has no events
+    let empty = ProfileExecutionState::default().pack_events(0);
+    assert_eq!(flatbuffers::root::<fb::QueryProfileEvents>(&empty).unwrap().events().map_or(0, |e| e.len()), 0);
+}
+
+#[test]
+fn engine_progress_payloads_read_their_json() {
+    let status = HyperQueryStatus {
+        completion_status: "RUNNING_OR_UNSPECIFIED".into(),
+        row_count: Some(7.0),
+        progress: Some(0.5),
+        execution_stats: Some(HyperExecutionStats { wall_clock_time: 1.5, rows_processed: 12.0 }),
+    };
+    let payloads = [
+        stats(poll("RUNNING", 4), 3),
+        EngineProgressPayload::TrinoQueryInfo { info: json!({ "queryId": "q" }), received_at: 4 },
+        EngineProgressPayload::TrinoQueryInfoStats { info: json!({ "queryId": "q" }), received_at: 5 },
+        EngineProgressPayload::HyperQueryStatus { status, received_at: 6 },
+    ];
+    for payload in payloads {
+        assert_eq!(EngineProgressPayload::from_json(&payload.to_json()).unwrap(), payload);
+    }
+    // The 64-bit numbers of a protocol may be strings
+    let status = HyperQueryStatus::from_json(&json!({ "completionStatus": "FINISHED", "rowCount": "12" }));
+    assert_eq!((status.row_count, status.progress, status.execution_stats), (Some(12.0), None, None));
+    assert!(EngineProgressPayload::from_json(&json!({ "kind": "unknown" })).is_err());
+    assert!(EngineProgressPayload::from_json(&json!({ "kind": "trino_query_info" })).is_err());
 }
 
 #[test]

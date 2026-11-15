@@ -13,7 +13,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
-import { QueryProgressModels, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
+import { replayProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
 import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
 import { StandaloneComputations } from '../../compute/computation_registry.js';
 
@@ -223,10 +223,10 @@ describe('FeedEntryFooter', () => {
 
     it('shows the plan of a running query as a tree in the progress tab', async () => {
         const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
-        const models = new QueryProgressModels();
         const plan = { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }] };
         const info = { queryId: 'q', stages: { stages: [{ stageId: 'q.0', plan: { jsonRepresentation: JSON.stringify(plan) } }] } };
-        const profileProgress = models.apply(core, 44, { kind: 'trino_query_info', info, receivedAt: 1 })!;
+        const recording = { version: 1, payloads: [{ elapsedMs: 0, payload: { kind: 'trino_query_info', info, receivedAt: 1 } }] };
+        const profileProgress = replayProgressRecording(core, JSON.stringify(recording))!;
         const queryState = {
             queryId: 44,
             traceId: 11,
@@ -242,7 +242,6 @@ describe('FeedEntryFooter', () => {
         expect(profile?.querySelector('[aria-label="Query execution plan with 2 operators"]')).not.toBeNull();
         act(() => root.unmount());
         root = createRoot(container);
-        models.release(44);
         core.resetUnsafe();
     });
 });

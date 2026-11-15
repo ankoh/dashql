@@ -22,6 +22,7 @@ import {
     type QueryExecutionState,
     type QueryMetadata,
 } from './query_execution_state.js';
+import { profileKeys, projectProfileProgress, type QueryProgressSource } from './query_progress.js';
 
 /// The query actions and views of a Rust history: the queries of a connection (`DashQLConnection`) or a history of its
 /// own (`DashQLQueryHistory`, its effects are the ones of the queries of a connection)
@@ -31,8 +32,6 @@ export type NativeQueryActions = core.DashQLQueryActions;
 export interface NativeQueryObjects {
     /// Keep the objects of a new query
     registerQuery(state: QueryExecutionState): void;
-    /// Keep the latest progress of a query
-    setQueryProgress(queryId: number, progress: QueryExecutionProgress): void;
     /// Keep the error of a failed or cancelled query
     setQueryError(queryId: number, error: LoggableException): void;
     /// Keep a result table, returns its id
@@ -47,7 +46,6 @@ export interface QueryRecord {
     queryMetadata: QueryMetadata;
     cancellation: AbortController;
     error: LoggableException | null;
-    progress: QueryExecutionProgress | null;
 }
 
 /// The record of a new query
@@ -58,14 +56,7 @@ export function queryRecord(state: QueryExecutionState): QueryRecord {
         queryMetadata: state.queryMetadata,
         cancellation: state.cancellation,
         error: state.error,
-        progress: state.latestProgressUpdate,
     };
-}
-
-/// Keep the latest progress of a query, an update without structured progress keeps the one of the previous update
-export function updateQueryRecordProgress(record: QueryRecord, progress: QueryExecutionProgress): void {
-    const profileProgress = progress.profileProgress ?? record.progress?.profileProgress ?? null;
-    record.progress = { ...progress, profileProgress };
 }
 
 /// Apply a query action to a Rust history, the objects of the query stay with the host. Returns the outcome, the host
@@ -81,12 +72,8 @@ export function applyQueryAction(history: NativeQueryActions, objects: NativeQue
             return history.querySending(action.value[0], now);
         case QUERY_RUNNING:
             return history.queryRunning(action.value[0], now);
-        case QUERY_PROGRESS_UPDATED: {
-            const [queryId, progress] = action.value;
-            const outcome = history.queryProgressUpdated(queryId, progress, now);
-            if (outcome.changed) objects.setQueryProgress(queryId, progress);
-            return outcome;
-        }
+        case QUERY_PROGRESS_UPDATED:
+            return history.queryProgressUpdated(action.value[0], action.value[1], now);
         case QUERY_RECEIVED_BATCH:
             return history.queryReceivedBatch(action.value[0], action.value[1], now);
         case QUERY_RECEIVED_ALL_BATCHES: {
@@ -124,8 +111,25 @@ export function applyQueryAction(history: NativeQueryActions, objects: NativeQue
 
 const toDate = (ms: number | null): Date | null => ms == null ? null : new Date(ms);
 
+/// The latest progress of a query from its view. The previous progress is the one whose keys the view was read with.
+function projectProgress(view: core.QueryLatestProgressView | null, previous: QueryExecutionProgress | null, source: QueryProgressSource): QueryExecutionProgress | null {
+    if (view == null) return null;
+    return {
+        isQueued: view.isQueued,
+        progressPercent: view.progressPercent,
+        resultRows: view.resultRows,
+        rowsProcessed: view.rowsProcessed,
+        executionTimeMs: view.executionTimeMs,
+        metrics: view.metrics,
+        phase: view.phase,
+        profileProgress: view.profile == null
+            ? null
+            : projectProfileProgress(view.profile, previous?.profileProgress ?? null, source, bytes => source.history.readQueryProfile(bytes)),
+    };
+}
+
 /// The state of a query of the app from the view of a Rust history and the record of the host
-function projectQuery(snapshot: core.QueryView, record: QueryRecord, resultTable: arrow.Table | null, errorTarget: string): QueryExecutionState {
+function projectQuery(snapshot: core.QueryView, record: QueryRecord, resultTable: arrow.Table | null, errorTarget: string, progress: QueryExecutionProgress | null): QueryExecutionState {
     const m = snapshot.metrics;
     return {
         queryId: snapshot.queryId,
@@ -154,7 +158,7 @@ function projectQuery(snapshot: core.QueryView, record: QueryRecord, resultTable
         },
         cancellation: record.cancellation,
         error: snapshot.error == null ? null : (record.error ?? new LoggableException(snapshot.error.message, {}, errorTarget)),
-        latestProgressUpdate: record.progress,
+        latestProgressUpdate: progress,
         resultTable,
         cacheKey: snapshot.cacheKey,
         servedFromCache: snapshot.servedFromCache,
@@ -174,11 +178,14 @@ export class QueryProjection {
     state(history: NativeQueryActions, queryId: number, revision: number, record: QueryRecord | undefined, tables: ReadonlyMap<number, arrow.Table>): QueryExecutionState | null {
         if (record == null) return null;
         const projected = this.cache.get(queryId, revision, prev => {
-            const next = history.query(queryId);
+            // The payloads of the structured progress that the previous state holds don't cross again
+            const previousProgress = prev?.state.latestProgressUpdate ?? null;
+            const next = history.query(queryId, profileKeys(previousProgress?.profileProgress));
             if (next == null) return null;
             const view = share(prev?.view, next);
             const resultTable = view.resultTable == null ? null : (tables.get(view.resultTable.id) ?? null);
-            return { view, state: projectQuery(view, record, resultTable, this.errorTarget) };
+            const progress = projectProgress(view.latestProgress, previousProgress, { history, queryId });
+            return { view, state: projectQuery(view, record, resultTable, this.errorTarget, progress) };
         });
         return projected?.state ?? null;
     }
