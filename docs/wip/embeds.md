@@ -76,9 +76,11 @@ The embed checks what it got before it loads anything (`getHyperDBWebSupportErro
 1. **Isolated, with an origin** (Chromium 137+ with DIP; the Slack embed with `allow-same-origin`): the embedded Hyper
    starts, OPFS is available as a cache of its partition. Measured in the stand-ins of
    [document_isolation_policy.md](../design/document_isolation_policy.md).
-2. **Isolated, opaque origin** (a sandbox without `allow-same-origin`, Slack's default): the engine can't start until
-   `hyperdb-wasm` starts its worker and pthreads from one `blob:` URL and runs without OPFS (the list is in
-   `document_isolation_policy.md`). Until then: as 3.
+2. **Isolated, opaque origin** (a sandbox without `allow-same-origin`, Slack's default): no storage at all, no OPFS,
+   IndexedDB or `localStorage`, and no worker from a URL. The engine runs from one `blob:` worker with an in-memory
+   root; attachments mount as `File`s. Measured with a patched `hyperdb-wasm` (`document_isolation_policy.md`), the
+   package needs the two options listed there. The embed itself then needs storage in memory and its own workers
+   (the core batch worker) from `blob:` URLs as well. Until then: as 3.
 3. **Not isolated** (Firefox, Safari, an Electron below Chromium 137): no engine. The workbook mode still shows cached
    results, everything else shows what the link carries and says that the view needs Chrome or Edge.
 

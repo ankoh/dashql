@@ -120,9 +120,14 @@ A Work Objects embed loads an HTTPS URL of the app in an iframe of the flexpane.
     `Cross-Origin-Resource-Policy: cross-origin` under `isolate-and-require-corp`, or the page uses
     `isolate-and-credentialless`.
 
-  The worker part is measured: in the sandbox without `allow-same-origin`, a worker from a `blob:` URL starts a
-  child from its own `self.location.href` (`blob:null/…`), the way Emscripten starts pthreads, and both share a
-  `SharedArrayBuffer` and are isolated. The engine itself is not measured there, it needs the changes above first.
+  Measured with a patched copy of `hyperdb-wasm` 0.0.27367 in the sandbox without `allow-same-origin` (Chrome 158,
+  both values of DIP): the worker script of the package as one `blob:` with `self.HYPERDB_WASM_ENGINE_URL` set in
+  front of it, the query that the client appends to the worker URL dropped, and the `FS.mount(runtime.OPFS, …)` of
+  `/mnt/fs` removed, so `/mnt/fs` stays in the default in-memory file system. The engine starts in about 0.4 s, the
+  pthreads start from that blob (`blob:null/…`), the query over 5M rows and a temporary table of 1M rows run, and a
+  `File` mounted at `/mnt/external/att.csv` reads with `external()`. What the package would have to offer instead of
+  the patch: a worker that takes its settings from a global or its first message, and a root in memory instead of
+  OPFS. Not available there: `COPY … TO`, Hyper copies only into registered targets, which are OPFS directories.
 - Not measured in Slack itself: the Electron version of the desktop client, the mobile clients, and whether the
   flexpane sets an `allow` attribute that withholds anything.
 
