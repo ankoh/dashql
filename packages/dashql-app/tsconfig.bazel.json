@@ -19,7 +19,7 @@
             "@dashql/browser-test-act": ["./src/tests/react_act.ts"]
         },
         "types": ["node", "vitest/globals", "vite/client"],
-        "lib": ["es6", "es2020", "dom"],
+        "lib": ["es6", "es2022", "dom"],
         "allowJs": true,
         "noEmit": true,
         "skipLibCheck": true

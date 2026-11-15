@@ -53,7 +53,7 @@
         ],
         "lib": [
             "es6",
-            "es2020",
+            "es2022",
             "dom"
         ],
         "allowJs": true,
