@@ -20,7 +20,7 @@ import { ScriptEditor } from './script_editor.js';
 import { checkWorkbookScriptReferences } from './script_reference_reports.js';
 import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { useWorkbookExecution } from './workbook_execution_provider.js';
+import { useWorkbookExecution } from './use_workbook_execution.js';
 
 export interface ScriptEditorDialogProps {
     workbookScripts: WorkbookScripts;

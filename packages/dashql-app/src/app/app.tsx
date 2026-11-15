@@ -6,13 +6,10 @@ import { AppConfigProvider, useAppConfig } from '../config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';
-import { WorkbookCatalogLoaderProvider } from '../workbook/scripts/workbook_catalog_loader.js';
-import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
-import { ConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionPersistenceProvider } from '../connections/connection_persistence.js';
 import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
+import { RuntimeProvider } from '../runtime/runtime_provider.js';
 import { FileDropzone } from './file_dropzone.js';
 import { FlavorProvider, FlavorUrlKeeper } from '../config/flavor_provider.js';
 import { getRequestedFlavor } from '../config/flavor_resolution.js';
@@ -26,7 +23,6 @@ import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_c
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { NavBarContainer } from './navbar.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';
-import { QueryExecutorProvider } from '../connections/query_executor.js';
 import { RouterReset } from './router/router_reset.js';
 import { SalesforceConnector } from '../connections/salesforce/salesforce_connector.js';
 import { StorageProvider } from '../storage/storage_provider.js';
@@ -35,7 +31,6 @@ import { VersionCheck } from '../platform/version/version_check.js';
 import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
 import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 import { WorkbookPage } from '../workbook/workbook_page.js';
-import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
 import { AgentSessionProvider } from '../agent/agent_session_provider.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
@@ -44,7 +39,6 @@ import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platf
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
 import { WorkbookComputeQueryExecutionProvider } from './workbook_compute_query_execution.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
-import { WorkbookExecutionProvider } from '../workbook/scripts/workbook_execution_provider.js';
 
 import '@ankoh/dashql-ui/fonts/fonts.css';
 import '@ankoh/dashql-ui/styles/colors.css';
@@ -55,52 +49,38 @@ import '../connections/clfn/bundled_clfn_specs.js';
 
 const LOG_CTX = 'app';
 
-// Note that the order among connection providers is important and non-obvious.
-// For example:
-// - WorkbookScriptsRegistryProvider comes first, the connection layer reads from it which workbooks use a connection.
-// - WorkbookCatalogLoaderProvider requires WorkbookScriptsRegistryProvider to mark connection scripts as outdated.
-// - CloudStateProvider runs its statements through the QueryExecutorProvider, the AppLoader shows the cloud setup from it.
+// The RuntimeProvider creates the runtime of DashQL over the storage, the http client, the core, the embedded database
+// and the API of Salesforce of the providers above it. The providers below it bind parts of it to the app:
+// - CloudStateProvider runs its statements through the query executor, the AppLoader shows the cloud setup from it.
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
-    <WorkbookScriptsRegistryProvider>
-        <ConnectionRegistry>
-            <ConnectionPersistenceProvider>
-                <SalesforceConnector>
-                    <HyperLogMetricsProvider>
-                        <HyperSetupProvider>
-                            <TrinoConnector>
-                                <ComputationRegistry>
-                                    <WorkbookComputeQueryExecutionProvider>
-                                        <ComputationScheduler />
-                                        <QueryExecutorProvider>
-                                            <WorkbookExecutionProvider>
-                                                <NativeWorkbookSync />
-                                                <AgentSessionProvider>
-                                                    <WorkbookCatalogLoaderProvider>
-                                                        <WorkbookImportProvider>
-                                                            <WorkbookViewModeProvider>
-                                                                <WorkbookCommands>
-                                                                    <CloudStateProvider>
-                                                                        <CloudPreviewCleanup />
-                                                                        <AppLoader>
-                                                                            {props.children}
-                                                                        </AppLoader>
-                                                                    </CloudStateProvider>
-                                                                </WorkbookCommands>
-                                                            </WorkbookViewModeProvider>
-                                                        </WorkbookImportProvider>
-                                                    </WorkbookCatalogLoaderProvider>
-                                                </AgentSessionProvider>
-                                            </WorkbookExecutionProvider>
-                                        </QueryExecutorProvider>
-                                    </WorkbookComputeQueryExecutionProvider>
-                                </ComputationRegistry>
-                            </TrinoConnector>
-                        </HyperSetupProvider>
-                    </HyperLogMetricsProvider>
-                </SalesforceConnector>
-            </ConnectionPersistenceProvider>
-        </ConnectionRegistry>
-    </WorkbookScriptsRegistryProvider>
+    <SalesforceConnector>
+        <RuntimeProvider>
+            <HyperLogMetricsProvider>
+                <HyperSetupProvider>
+                    <TrinoConnector>
+                        <WorkbookComputeQueryExecutionProvider>
+                            <ComputationScheduler />
+                            <NativeWorkbookSync />
+                            <AgentSessionProvider>
+                                <WorkbookImportProvider>
+                                    <WorkbookViewModeProvider>
+                                        <WorkbookCommands>
+                                            <CloudStateProvider>
+                                                <CloudPreviewCleanup />
+                                                <AppLoader>
+                                                    {props.children}
+                                                </AppLoader>
+                                            </CloudStateProvider>
+                                        </WorkbookCommands>
+                                    </WorkbookViewModeProvider>
+                                </WorkbookImportProvider>
+                            </AgentSessionProvider>
+                        </WorkbookComputeQueryExecutionProvider>
+                    </TrinoConnector>
+                </HyperSetupProvider>
+            </HyperLogMetricsProvider>
+        </RuntimeProvider>
+    </SalesforceConnector>
 );
 
 /// The embedded database with the startup options of the app settings.

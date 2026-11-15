@@ -45,17 +45,13 @@ export class WorkbookScriptsRegistryService {
     readonly queue: UpdateQueue<WorkbookScriptsRegistry>;
     /// The connections that the workbooks use, the connection layer reads them from here
     readonly references: ConnectionReferences;
-    protected deps: WorkbookScriptsRegistryDependencies;
+    protected readonly deps: WorkbookScriptsRegistryDependencies;
 
     constructor(deps: WorkbookScriptsRegistryDependencies, scheduler: UpdateScheduler) {
         this.deps = deps;
         this.store = new Store(emptyWorkbookScriptsRegistry());
         this.queue = new UpdateQueue(this.store, scheduler);
         this.references = workbookConnectionReferences(this.store);
-    }
-
-    setDependencies(deps: WorkbookScriptsRegistryDependencies): void {
-        this.deps = deps;
     }
 
     /// Apply an action to the scripts of a workbook

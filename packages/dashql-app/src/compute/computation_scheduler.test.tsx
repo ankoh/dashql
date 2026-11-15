@@ -34,7 +34,7 @@ import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/comput
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { ComputationRegistry, useComputationRegistry } from './computation_registry.js';
+import { useComputationRegistry, StandaloneComputations } from './computation_registry.js';
 import { ComputeQueryExecutionProvider } from './compute_query_execution.js';
 import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from '@ankoh/dashql-runtime/compute/computation_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
@@ -82,12 +82,12 @@ describe('ComputationScheduler', () => {
         await act(async () => {
             root.render(
                 <LoggerProvider>
-                    <ComputationRegistry>
+                    <StandaloneComputations>
                         <ComputeQueryExecutionProvider createExecution={createExecution}>
                             <ComputationScheduler />
                             <ScheduleTask task={task} />
                         </ComputeQueryExecutionProvider>
-                    </ComputationRegistry>
+                    </StandaloneComputations>
                 </LoggerProvider>,
             );
             await new Promise(resolve => setTimeout(resolve, 0));

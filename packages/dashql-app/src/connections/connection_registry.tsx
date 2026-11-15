@@ -8,11 +8,9 @@ import {
     DISCARD_CONNECTION_DRAFT,
 } from '@ankoh/dashql-runtime/connections/connection_state';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
-import { UpdateQueue } from '@ankoh/dashql-runtime/store/store';
-import { FRAME_UPDATE_SCHEDULER, useStoreState } from '../utils/store_hooks.js';
+import { storeWithoutRuntime, useStoreState } from '../utils/store_hooks.js';
 import { ConnectionRegistryService } from '@ankoh/dashql-runtime/connections/connection_registry_service';
-import { useStorageWriter } from '../storage/storage_provider.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useOptionalRuntime } from '../runtime/runtime_provider.js';
 import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import {
     NO_CONNECTION_REFERENCES,
@@ -46,13 +44,13 @@ export {
 /// The connection registry, see connection_registry_state.ts
 export type ConnectionRegistry = ConnectionRegistryState;
 
-const CONNECTION_REFERENCES_CTX = React.createContext<ConnectionReferences>(NO_CONNECTION_REFERENCES);
-/// Provide the workbooks that use the connections
-export const ConnectionReferencesProvider = CONNECTION_REFERENCES_CTX.Provider;
+// The registry is a service of the runtime (packages/dashql-runtime/src/connections/connection_registry_service.ts) that
+// the RuntimeProvider provides. The scripts own the references to their connections, the registry of the workbook
+// scripts keeps them.
 
 /// Get the references without subscribing to their changes
 export function useConnectionReferences(): ConnectionReferences {
-    return React.useContext(CONNECTION_REFERENCES_CTX);
+    return useOptionalRuntime()?.workbooks.references ?? NO_CONNECTION_REFERENCES;
 }
 
 /// Subscribe to a slice of the references.
@@ -76,49 +74,26 @@ export interface ConnectionRegistryStore {
     subscribe: (listener: () => void) => () => void;
 }
 
-const CONNECTION_REGISTRY_CTX = React.createContext<ConnectionRegistry | null>(null);
-const CONNECTION_REGISTRY_SETTER_CTX = React.createContext<Dispatch<SetConnectionRegistryAction> | null>(null);
-const CONNECTION_REGISTRY_STORE_CTX = React.createContext<ConnectionRegistryStore | null>(null);
-const CONNECTION_REGISTRY_QUEUE_CTX = React.createContext<UpdateQueue<ConnectionRegistry> | null>(null);
-const CONNECTION_REGISTRY_SERVICE_CTX = React.createContext<ConnectionRegistryService | null>(null);
-
-/// The service that holds the connections
-export function useConnectionRegistryService(): ConnectionRegistryService {
-    return React.useContext(CONNECTION_REGISTRY_SERVICE_CTX)!;
+// The hooks resolve the service when their function is called, a test may render a component without the runtime as
+// long as it doesn't call them
+function useLazyConnections(): () => ConnectionRegistryService {
+    const runtime = useOptionalRuntime();
+    return React.useCallback(() => {
+        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
+        return runtime.connections;
+    }, [runtime]);
 }
 
-type Props = {
-    children: React.ReactElement | React.ReactElement[];
-};
+/// The store of the registry, without a runtime one without state
+function useConnectionStore() {
+    return useOptionalRuntime()?.connections.store ?? NO_CONNECTION_STORE;
+}
+const NO_CONNECTION_STORE = storeWithoutRuntime<ConnectionRegistry>('the connections');
 
-export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
-    const logger = useLogger();
-    const storageWriter = useStorageWriter();
-    const references = useConnectionReferences();
-    const deps = { logger, storageWriter, references };
-    const [service] = React.useState(() => new ConnectionRegistryService(deps, FRAME_UPDATE_SCHEDULER));
-    service.setDependencies(deps);
-    React.useEffect(() => () => service.dispose(), [service]);
-    const store = service.store;
-    const reg = useStoreState(store);
-    return (
-        <CONNECTION_REGISTRY_SERVICE_CTX.Provider value={service}>
-            <CONNECTION_REGISTRY_STORE_CTX.Provider value={store}>
-                <CONNECTION_REGISTRY_QUEUE_CTX.Provider value={service.queue}>
-                    <CONNECTION_REGISTRY_SETTER_CTX.Provider value={store.update}>
-                        <CONNECTION_REGISTRY_CTX.Provider value={reg}>
-                            {props.children}
-                        </CONNECTION_REGISTRY_CTX.Provider>
-                    </CONNECTION_REGISTRY_SETTER_CTX.Provider>
-                </CONNECTION_REGISTRY_QUEUE_CTX.Provider>
-            </CONNECTION_REGISTRY_STORE_CTX.Provider>
-        </CONNECTION_REGISTRY_SERVICE_CTX.Provider>
-    );
-};
 
 /// Get the registry store without subscribing to registry changes
 export function useConnectionRegistryStore(): ConnectionRegistryStore {
-    return React.useContext(CONNECTION_REGISTRY_STORE_CTX)!;
+    return useConnectionStore();
 }
 
 /// Subscribe to a slice of the registry.
@@ -131,26 +106,26 @@ export function useConnectionRegistrySelector<T>(select: (registry: ConnectionRe
 
 /// Modify the registry without subscribing to registry changes
 export function useConnectionRegistrySetter(): Dispatch<SetConnectionRegistryAction> {
-    return React.useContext(CONNECTION_REGISTRY_SETTER_CTX)!;
+    const service = useLazyConnections();
+    return React.useCallback((action: SetConnectionRegistryAction) => service().store.update(action), [service]);
 }
 
 
 /// Allocate a new connection that no workbook references yet.
 /// A workbook references the connection once its scripts use it.
 /// Active connections are written into the app manifest right away.
-// The hooks resolve the service when their function is called, a test may render a component without the provider as
-// long as it doesn't call them
 export function useConnectionAllocator(): ConnectionAllocator {
-    const service = useConnectionRegistryService();
-    return React.useCallback((state: ConnectionStateWithoutId, fixedId?: string) => service.allocate(state, fixedId), [service]);
+    const service = useLazyConnections();
+    return React.useCallback((state: ConnectionStateWithoutId, fixedId?: string) => service().allocate(state, fixedId), [service]);
 }
 
 export function useConnectionRegistry(): [ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] {
-    return [React.useContext(CONNECTION_REGISTRY_CTX)!, React.useContext(CONNECTION_REGISTRY_SETTER_CTX)!];
+    const store = useConnectionStore();
+    return [useStoreState(store), store.update];
 }
 
 export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConnectionDispatch] {
-    const registry = React.useContext(CONNECTION_REGISTRY_CTX)!;
+    const registry = useStoreState(useConnectionStore());
     const dispatch = useConnectionDispatch();
     return [registry, dispatch];
 }
@@ -158,8 +133,8 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
 /// Dispatch actions to connections without subscribing to registry changes.
 /// The dispatches of all components are applied in order through the queue of the registry.
 export function useConnectionDispatch(): DynamicConnectionDispatch {
-    const service = useConnectionRegistryService();
-    return React.useCallback((connectionId: string | null, action: ConnectionAction) => service.dispatch(connectionId, action), [service]);
+    const service = useLazyConnections();
+    return React.useCallback((connectionId: string | null, action: ConnectionAction) => service().dispatch(connectionId, action), [service]);
 }
 
 /// The connections that the scripts of a workbook use

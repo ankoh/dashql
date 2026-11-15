@@ -3,9 +3,9 @@ import { act } from '@dashql/browser-test-act';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryCacheView } from './query_cache_view.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -14,6 +14,7 @@ import { QueryResultCacheProvider } from '../../storage/query_result_cache_provi
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
 import { createTestRoot } from '../../tests/react_root.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 const CONNECTION_ID = 'query-cache-view-test';
 
@@ -29,6 +30,7 @@ function connectionWithQueries(cacheKeys: string[]): ConnectionState {
         connectionId: CONNECTION_ID,
         connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         params: {},
+        details: { type: HYPER_CONNECTOR, value: {} },
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
@@ -58,14 +60,14 @@ describe('QueryCacheView', () => {
         const tree = (show: boolean) => (
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
-                    <ConnectionRegistry>
-                        <QueryResultCacheProvider cache={cache}>
+                    <QueryResultCacheProvider cache={cache}>
+                        <TestRuntime>
                             <>
                                 <Capture />
                                 {show && <QueryCacheView onClose={onClose} />}
                             </>
-                        </QueryResultCacheProvider>
-                    </ConnectionRegistry>
+                        </TestRuntime>
+                    </QueryResultCacheProvider>
                 </StorageProvider>
             </LoggerProvider>
         );
@@ -193,9 +195,9 @@ describe('QueryCacheView', () => {
         await root.render(
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
-                    <ConnectionRegistry>
+                    <TestRuntime>
                         <QueryCacheView onClose={onClose} />
-                    </ConnectionRegistry>
+                    </TestRuntime>
                 </StorageProvider>
             </LoggerProvider>,
         );

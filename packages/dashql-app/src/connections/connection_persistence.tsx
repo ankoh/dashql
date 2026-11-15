@@ -1,14 +1,12 @@
 import * as React from 'react';
 
-import { useStorageWriter } from '../storage/storage_provider.js';
-import { useConnectionReferences, useConnectionDispatch, useConnectionRegistryStore } from './connection_registry.js';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import {
+import type {
     ConnectionPersistenceService,
-    type ConnectionPersistenceDependencies,
-    type ConnectionSaveResult,
-    type ConnectionSaveState,
+    ConnectionSaveResult,
+    ConnectionSaveState,
 } from '@ankoh/dashql-runtime/connections/connection_persistence_service';
+import { useOptionalRuntime } from '../runtime/runtime_provider.js';
 
 // Saving connections is a service of the runtime (packages/dashql-runtime/src/connections/connection_persistence_service.ts),
 // this module binds it to React
@@ -20,53 +18,20 @@ export {
     type WorkbookCopySaveResult,
 } from '@ankoh/dashql-runtime/connections/connection_persistence_service';
 
-/// The API to save connections
-interface ConnectionPersistence {
-    /// The save states of connections (connectionId -> state)
-    states: Map<string, ConnectionSaveState>;
-    /// Save the draft of a connection, or the given params
-    save: (connectionId: string, params?: ConnectionParams) => Promise<ConnectionSaveResult>;
-    /// Write the copies of workbooks again
-    retry: (connectionId: string, workbookIds: string[]) => Promise<ConnectionSaveResult | null>;
-}
-
-const CONNECTION_PERSISTENCE_CTX = React.createContext<ConnectionPersistence | null>(null);
-
 const IDLE_SAVE_STATE: ConnectionSaveState = { saving: false, result: null };
+const NO_SAVE_STATES = new Map<string, ConnectionSaveState>();
+const subscribeNothing = () => () => { };
 
-/// Saves connections, see ConnectionPersistenceService
-export const ConnectionPersistenceProvider: React.FC<{ children: React.ReactElement }> = (props) => {
-    const storageWriter = useStorageWriter();
-    const registryStore = useConnectionRegistryStore();
-    const references = useConnectionReferences();
-    const dispatch = useConnectionDispatch();
-    const deps = React.useMemo<ConnectionPersistenceDependencies>(() => ({
-        storageWriter,
-        readConnections: () => registryStore.current,
-        references,
-        dispatchConnection: dispatch,
-    }), [storageWriter, registryStore, references, dispatch]);
-    const [service] = React.useState(() => new ConnectionPersistenceService(deps));
-    service.setDependencies(deps);
-
-    const states = React.useSyncExternalStore(service.states.subscribe, service.states.get);
-    // The functions change with the dependencies, like the callbacks of the former provider
-    const value = React.useMemo<ConnectionPersistence>(() => ({
-        states,
-        save: (connectionId, params) => service.save(connectionId, params),
-        retry: (connectionId, workbookIds) => service.retry(connectionId, workbookIds),
-    }), [states, service, deps]);
-    return (
-        <CONNECTION_PERSISTENCE_CTX.Provider value={value}>
-            {props.children}
-        </CONNECTION_PERSISTENCE_CTX.Provider>
-    );
-};
+/// The service that saves connections, null outside of the runtime
+function usePersistence(): ConnectionPersistenceService | null {
+    return useOptionalRuntime()?.persistence ?? null;
+}
 
 /// Save a connection and observe the save state
 export function useConnectionSave(connectionId: string | null) {
-    const persistence = React.useContext(CONNECTION_PERSISTENCE_CTX);
-    const state = (connectionId == null ? null : persistence?.states.get(connectionId)) ?? IDLE_SAVE_STATE;
+    const persistence = usePersistence();
+    const states = React.useSyncExternalStore(persistence?.states.subscribe ?? subscribeNothing, persistence?.states.get ?? (() => NO_SAVE_STATES));
+    const state = (connectionId == null ? null : states.get(connectionId)) ?? IDLE_SAVE_STATE;
     const save = React.useCallback(async (): Promise<ConnectionSaveResult | null> => {
         if (connectionId == null || persistence == null) return null;
         return await persistence.save(connectionId);
@@ -80,7 +45,7 @@ export function useConnectionSave(connectionId: string | null) {
 
 /// Save the params of any connection, e.g. of a connection that is not shown
 export function useConnectionSaver(): (connectionId: string, params: ConnectionParams) => Promise<ConnectionSaveResult | null> {
-    const persistence = React.useContext(CONNECTION_PERSISTENCE_CTX);
+    const persistence = usePersistence();
     return React.useCallback(async (connectionId: string, params: ConnectionParams) => {
         return persistence == null ? null : await persistence.save(connectionId, params);
     }, [persistence]);
@@ -89,13 +54,12 @@ export function useConnectionSaver(): (connectionId: string, params: ConnectionP
 /// Save the draft of a connection before connecting with it.
 /// Resolves false if the connection must not be set up because the draft could not be saved.
 export function useSaveBeforeConnect(connectionId: string | null): () => Promise<boolean> {
-    const persistence = React.useContext(CONNECTION_PERSISTENCE_CTX);
-    const registryStore = useConnectionRegistryStore();
+    const runtime = useOptionalRuntime();
     return React.useCallback(async () => {
-        if (connectionId == null || persistence == null) return true;
-        const connection = registryStore.current.connections.get(connectionId);
+        if (connectionId == null || runtime == null) return true;
+        const connection = runtime.connections.store.current.connections.get(connectionId);
         if (connection?.paramsDraft == null) return true;
-        const result = await persistence.save(connectionId);
+        const result = await runtime.persistence.save(connectionId);
         return result.manifest.status === 'written';
-    }, [connectionId, persistence, registryStore]);
+    }, [connectionId, runtime]);
 }

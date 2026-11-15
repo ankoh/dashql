@@ -7,9 +7,10 @@ import { createDefaultHyperWasmConnectionState } from '../connections/connection
 describe('the platform of Node', () => {
     it('runs a runtime with the core from its file', async () => {
         const storage = new WorkbookTestBackend();
-        const runtime = await createRuntime(createNodePlatform({ logger: new TestLogger(), storage }));
+        const runtime = createRuntime(createNodePlatform({ logger: new TestLogger(), storage }));
         try {
-            const connection = runtime.connections.allocate({ ...createDefaultHyperWasmConnectionState(runtime.core), active: true });
+            const core = await runtime.platform.setupCore('test');
+            const connection = runtime.connections.allocate({ ...createDefaultHyperWasmConnectionState(core), active: true });
             const workbook = runtime.workbooks.create(connection, 'Node', false);
             expect(runtime.workbooks.store.current.workbookScriptsMap.get(workbook.workbookId)?.name).toBe('Node');
             await expect(runtime.platform.oauthFlow.authorizeWithLoopback(new URL('http://127.0.0.1'), '', new AbortController().signal, () => { }))

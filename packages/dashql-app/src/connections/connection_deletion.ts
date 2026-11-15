@@ -73,8 +73,8 @@ export function useDropAllCloudDatabases(): () => Promise<void> {
     const logger = useLogger();
     return React.useCallback(async () => {
         const paths = new Set<string>();
-        // Outside the providers of the connections, e.g. in a test of the settings, there are none
-        for (const connection of registryStore?.current.connections.values() ?? []) {
+        // Outside the runtime, e.g. in a test of the settings, there are none
+        for (const connection of registryStore.current?.connections.values() ?? []) {
             const attached = embeddedCloudDatabases(connection.params != null && 'hyper' in connection.params ? connection.params.hyper : null);
             if (attached.length === 0) continue;
             const hyper = connection.details.type === HYPER_CONNECTOR ? connection.details.value as HyperConnectionDetails : null;

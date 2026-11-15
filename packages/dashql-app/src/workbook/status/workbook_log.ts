@@ -15,9 +15,10 @@ export function isWorkbookLogRecord(record: LogRecord, workbookId: string, trace
 }
 
 /// The traces of the queries of a workbook, active and finished
-function workbookTraceIds(store: ReturnType<typeof useConnectionRegistryStore> | null, workbookId: string): Set<number> {
+function workbookTraceIds(store: ReturnType<typeof useConnectionRegistryStore>, workbookId: string): Set<number> {
     const traceIds = new Set<number>();
-    for (const connection of store?.current.connections.values() ?? []) {
+    // Outside the runtime, e.g. in a test, there are no connections
+    for (const connection of store.current?.connections.values() ?? []) {
         for (const queryId of findWorkbookQueries(connection, workbookId)) {
             const query = connection.queriesActive.get(queryId) ?? connection.queriesFinished.get(queryId);
             if (query != null) traceIds.add(query.traceId);

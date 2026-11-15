@@ -6,8 +6,6 @@ import { connectionLabelParts, type ConnectionLabelParts } from '@ankoh/dashql-r
 import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 
-const subscribeNever = () => () => {};
-
 /// The ordinals that tell connections of the same connector apart, see `connectionOrdinals`.
 /// The map keeps its identity while the ordinals are unchanged.
 export function useConnectionOrdinals(): ReadonlyMap<string, number> {
@@ -21,9 +19,9 @@ export function useConnectionOrdinals(): ReadonlyMap<string, number> {
             .join(','),
         [references, scripts],
     );
-    // Views outside of a connection registry (e.g. in tests) number no connections
+    // Views outside of the runtime (e.g. in tests) number no connections
     const store = useConnectionRegistryStore();
-    const key = React.useSyncExternalStore(store?.subscribe ?? subscribeNever, () => store == null ? '' : selectKey(store.current));
+    const key = React.useSyncExternalStore(store.subscribe, () => store.current == null ? '' : selectKey(store.current));
     return React.useMemo(() => new Map(key.length === 0 ? [] : key.split(',').map(entry => {
         const [connectionId, ordinal] = entry.split('=');
         return [connectionId, Number(ordinal)] as const;

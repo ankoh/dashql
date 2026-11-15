@@ -75,16 +75,11 @@ export interface ConnectionPersistenceDependencies {
 /// connection keeps a copy of its params. Saving writes the manifest first and the copies after, so a
 /// partial failure heals forward: the next load rewrites stale copies from the manifest.
 export class ConnectionPersistenceService {
-    private deps: ConnectionPersistenceDependencies;
+    private readonly deps: ConnectionPersistenceDependencies;
     /// The save states of connections (connectionId -> state)
     readonly states = new Store<Map<string, ConnectionSaveState>>(new Map());
 
     constructor(deps: ConnectionPersistenceDependencies) {
-        this.deps = deps;
-    }
-
-    /// Replace the dependencies
-    setDependencies(deps: ConnectionPersistenceDependencies): void {
         this.deps = deps;
     }
 

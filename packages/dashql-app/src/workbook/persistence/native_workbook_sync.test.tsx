@@ -4,7 +4,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
@@ -15,10 +15,11 @@ import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FI
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
 import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { NativeWorkbookSync, readStoredWorkbookScripts } from './native_workbook_sync_react.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -117,11 +118,9 @@ describe('NativeWorkbookSync', () => {
             root!.render(
                 <LoggerProvider>
                     <StorageProvider backend={backend}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <App restored={restored} capture={next => { api = next; }} />
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
+                        <TestRuntime>
+                            <App restored={restored} capture={next => { api = next; }} />
+                        </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>,
             );
@@ -484,11 +483,9 @@ describe('NativeWorkbookSync', () => {
                 root!.render(
                     <LoggerProvider>
                         <StorageProvider backend={backend}>
-                            <ConnectionRegistry>
-                                <WorkbookScriptsRegistryProvider>
-                                    <App restored={restored} capture={next => { api = next; }} />
-                                </WorkbookScriptsRegistryProvider>
-                            </ConnectionRegistry>
+                            <TestRuntime>
+                                <App restored={restored} capture={next => { api = next; }} />
+                            </TestRuntime>
                         </StorageProvider>
                     </LoggerProvider>,
                 );

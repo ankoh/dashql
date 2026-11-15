@@ -3,9 +3,9 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { EXECUTOR_CTX } from '../../connections/query_executor.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
@@ -17,9 +17,10 @@ import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend } from '
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookImportProvider, useWorkbookImport } from './workbook_import_provider.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
+import { TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {
@@ -135,17 +136,13 @@ describe('WorkbookImportProvider', () => {
             root.render(
                 <LoggerProvider>
                     <StorageProvider backend={backend}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <EXECUTOR_CTX.Provider value={executor as never}>
-                                    <DashQLCoreProvider>
-                                        <WorkbookImportProvider dependencies={dependencies}>
-                                            <Capture capture={next => { api = next; }} />
-                                        </WorkbookImportProvider>
-                                    </DashQLCoreProvider>
-                                </EXECUTOR_CTX.Provider>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
+                        <TestRuntime {...executor}>
+                            <DashQLCoreProvider>
+                                <WorkbookImportProvider dependencies={dependencies}>
+                                    <Capture capture={next => { api = next; }} />
+                                </WorkbookImportProvider>
+                            </DashQLCoreProvider>
+                        </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>,
             );
@@ -363,7 +360,7 @@ describe('WorkbookImportProvider', () => {
             await act(async () => {
                 api.setConnections(current => {
                     const connections = new Map(current.connections);
-                    connections.set(KNOWN_TRINO_ID, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS } as never);
+                    connections.set(KNOWN_TRINO_ID, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS, details: { type: TRINO_CONNECTOR, value: {} } } as never);
                     return { ...current, connections };
                 });
             });

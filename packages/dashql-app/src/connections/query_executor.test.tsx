@@ -5,7 +5,6 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
@@ -21,25 +20,22 @@ import {
     type QueryExecutionResponseStream,
     type QueryExecutionState,
 } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { WorkbookScriptsRegistryProvider } from '../workbook/scripts/workbook_scripts_registry.js';
+
 import { vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
-import { ConnectionRegistry, useConnectionRegistry } from './connection_registry.js';
+import { useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { computeQueryCacheKeyForConnection, logQueryFailure } from '@ankoh/dashql-runtime/connections/query_executor_service';
-import {
-    EXECUTOR_CTX,
-    QueryExecutorProvider,
-    useQueryProfileDetail,
-    useQueryState,
-    type QueryExecutorContextValue,
-} from './query_executor.js';
+import { useQueryExecutor, useQueryProfileDetail, useQueryState } from './query_executor.js';
+import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import type { WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -101,14 +97,14 @@ class TestStream implements QueryExecutionResponseStream {
 }
 
 interface Api {
-    executor: QueryExecutorContextValue;
+    execute: QueryExecutor;
     connection: ConnectionState;
     logger: Logger;
 }
 
 function Capture(props: { database: ConnectionState; capture: (api: Api) => void }) {
     const [registry, setRegistry] = useConnectionRegistry();
-    const executor = React.useContext(EXECUTOR_CTX)!;
+    const execute = useQueryExecutor();
     const compute = useComputeDatabase();
     const logger = useLogger();
     React.useEffect(() => {
@@ -121,7 +117,7 @@ function Capture(props: { database: ConnectionState; capture: (api: Api) => void
     }, [props.database, setRegistry]);
     const connection = registry.connections.get(props.database.connectionId);
     React.useLayoutEffect(() => {
-        if (compute && connection) props.capture({ executor, connection, logger });
+        if (compute && connection) props.capture({ execute, connection, logger });
     });
     return null;
 }
@@ -176,7 +172,7 @@ const cacheableArgs = (overrides: Partial<QueryExecutionArgs> = {}) => argsOf({ 
 
 // The behavior of the executor is tested in the runtime (connections/query_executor_service.test.ts), these are the
 // hooks of the app on it
-describe('QueryExecutorProvider', () => {
+describe('the query executor of the app', () => {
     let container: HTMLDivElement;
     let root: Root;
     let api: Api | null;
@@ -202,27 +198,21 @@ describe('QueryExecutorProvider', () => {
         const compute = options.compute ?? {};
         const setupDatabase = async () => ({ terminate: vi.fn(), ...compute }) as unknown as EmbeddedComputeDatabase;
         const tree = (
-            <ComputationRegistry>
-                <QueryExecutorProvider>
+            <TestRuntime>
+                <HyperLogMetricsProvider>
                     <Capture database={database} capture={next => { api = next; }} />
-                </QueryExecutorProvider>
-            </ComputationRegistry>
+                </HyperLogMetricsProvider>
+            </TestRuntime>
         );
         await act(async () => {
             root.render(<LoggerProvider>
                 <HttpClientProvider>
                     <StorageProvider backend={new WorkbookTestBackend()}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                                    <HyperLogMetricsProvider>
-                                        <ComputeConnectionProvider>
-                                            {options.cache != null ? <QueryResultCacheProvider cache={options.cache}>{tree}</QueryResultCacheProvider> : tree}
-                                        </ComputeConnectionProvider>
-                                    </HyperLogMetricsProvider>
-                                </EmbeddedDatabaseProvider>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
+                        <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                            <ComputeConnectionProvider>
+                                {options.cache != null ? <QueryResultCacheProvider cache={options.cache}>{tree}</QueryResultCacheProvider> : tree}
+                            </ComputeConnectionProvider>
+                        </EmbeddedDatabaseProvider>
                     </StorageProvider>
                 </HttpClientProvider>
             </LoggerProvider>);
@@ -242,7 +232,7 @@ describe('QueryExecutorProvider', () => {
         let queryId = 0;
         let table: arrow.Table | null = null;
         await act(async () => {
-            const [id, execution] = api!.executor.execute(CONNECTION_ID, args);
+            const [id, execution] = api!.execute(CONNECTION_ID, args);
             queryId = id;
             table = await execution;
         });
@@ -267,24 +257,18 @@ describe('QueryExecutorProvider', () => {
                 await act(async () => {
                     root.render(<LoggerProvider>
                         <StorageProvider backend={new WorkbookTestBackend()}>
-                            <ConnectionRegistry>
-                                <WorkbookScriptsRegistryProvider>
-                                    <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                            <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                                <ComputeConnectionProvider>
+                                    <TestRuntime>
                                         <HyperLogMetricsProvider>
-                                            <ComputeConnectionProvider>
-                                                <ComputationRegistry>
-                                                    <QueryExecutorProvider>
-                                                        <>
-                                                            <Capture database={database} capture={next => { api = next; }} />
-                                                            <QueryStatus workbookId={workbookId} queryId={queryId} />
-                                                        </>
-                                                    </QueryExecutorProvider>
-                                                </ComputationRegistry>
-                                            </ComputeConnectionProvider>
+                                            <>
+                                                <Capture database={database} capture={next => { api = next; }} />
+                                                <QueryStatus workbookId={workbookId} queryId={queryId} />
+                                            </>
                                         </HyperLogMetricsProvider>
-                                    </EmbeddedDatabaseProvider>
-                                </WorkbookScriptsRegistryProvider>
-                            </ConnectionRegistry>
+                                    </TestRuntime>
+                                </ComputeConnectionProvider>
+                            </EmbeddedDatabaseProvider>
                         </StorageProvider>
                     </LoggerProvider>);
                 });
@@ -324,9 +308,17 @@ describe('useQueryProfileDetail', () => {
     it('watches the profile while mounted and enabled', async () => {
         const stop = vi.fn();
         const watchProfile = vi.fn(() => stop);
-        const value = { execute: vi.fn(), cancel: vi.fn(), watchProfile } as unknown as QueryExecutorContextValue;
+        const backend = new WorkbookTestBackend();
         const render = (queryId: number | null, enabled?: boolean) => act(async () => {
-            root.render(<EXECUTOR_CTX.Provider value={value}><Viewer queryId={queryId} enabled={enabled} /></EXECUTOR_CTX.Provider>);
+            root.render(
+                <LoggerProvider>
+                    <StorageProvider backend={backend}>
+                        <TestRuntime watchProfile={watchProfile as WatchQueryProfile}>
+                            <Viewer queryId={queryId} enabled={enabled} />
+                        </TestRuntime>
+                    </StorageProvider>
+                </LoggerProvider>,
+            );
         });
         await render(null);
         expect(watchProfile).not.toHaveBeenCalled();
@@ -339,7 +331,7 @@ describe('useQueryProfileDetail', () => {
         expect(watchProfile).toHaveBeenCalledWith(2);
     });
 
-    it('does nothing without an executor', async () => {
+    it('does nothing without a runtime', async () => {
         await act(async () => { root.render(<Viewer queryId={1} />); });
         expect(container.textContent).toBe('');
     });

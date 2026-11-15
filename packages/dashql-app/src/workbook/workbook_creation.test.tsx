@@ -9,10 +9,11 @@ import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 describe('workbook creation', () => {
     it('picks the first workbook name no other workbook has', () => {
@@ -45,7 +46,7 @@ describe('workbook creation', () => {
         const root = createRoot(document.createElement('div'));
         try {
             await act(async () => root.render(
-                <LoggerProvider><StorageProvider backend={backend}><WorkbookScriptsRegistryProvider><Harness /></WorkbookScriptsRegistryProvider></StorageProvider></LoggerProvider>,
+                <LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>,
             ));
             let workbookId = '';
             await act(async () => { workbookId = createWorkbook(database, 'Default').workbookId; });
@@ -97,7 +98,7 @@ describe('workbook creation', () => {
         const root = createRoot(document.createElement('div'));
         try {
             await act(async () => root.render(
-                <LoggerProvider><StorageProvider backend={backend}><WorkbookScriptsRegistryProvider><Harness /></WorkbookScriptsRegistryProvider></StorageProvider></LoggerProvider>,
+                <LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>,
             ));
             let firstId = '';
             let secondId = '';

@@ -232,7 +232,7 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
   the others are registered for the preview and removed with it. The bar shows them greyed with a lock, they open
   nothing; the embedded Hyper is shown as it is.
 - **Running a preview.** Execute All runs a preview with no special case but one: only the embedded Hyper counts as
-  online (`WorkbookExecutionProvider`). The scripts of the other connections serve the published results from the
+  online (`WorkbookExecutionService` of the runtime). The scripts of the other connections serve the published results from the
   cache or are skipped, like the scripts of a connection that is not connected. The published results stay in the
   cache after the preview is gone, the cache can't tell them from the results of local runs yet.
 - **Read-only.** A preview changes nothing until it is imported. The feed page provides `WorkbookReadOnlyContext`: the

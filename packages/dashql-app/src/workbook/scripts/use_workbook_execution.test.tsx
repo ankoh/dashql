@@ -4,24 +4,23 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputationRegistry } from '../../compute/computation_registry.js';
 import { ComputeConnectionProvider, useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
-import { QueryExecutorProvider } from '../../connections/query_executor.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookExecutionProvider, useWorkbookExecution } from './workbook_execution_provider.js';
+import { useWorkbookExecution } from './use_workbook_execution.js';
 import { workbookExecutionIsBusy } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { REGISTER_QUERY, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type ModifyWorkbookScripts } from './workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry, type ModifyWorkbookScripts } from './workbook_scripts_registry.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -67,7 +66,7 @@ function fixture(workbookId: string, deferStream = false) {
     const plan = vi.fn(() => ({ unpack: () => ({
         valid: true,
         scripts: [{ scriptId: 1, textVersion: 1n, analyzedTextVersion: 1n, analyzedCatalogRevision: 1n, planned: true }],
-        // Command-only nodes avoid exercising result computation in provider lifecycle tests.
+        // Command-only nodes avoid exercising result computation in lifecycle tests.
         nodes: [0, 1].map(statementId => ({ script: 0, statementId, producesOutput: false, sql: `command ${statementId}`, connection: 0, materialization: 0xffffffff })),
         edges: [], diagnostics: [], materializations: [],
     }) }));
@@ -82,6 +81,8 @@ function fixture(workbookId: string, deferStream = false) {
         connectionId: `${workbookId}-database`, active: false,
         connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
+        params: { hyper: {} },
+        catalogUpdates: { described: true },
         details: { type: HYPER_CONNECTOR, value: { proto: {}, channel: { executeQuery } } },
         queriesActive: new Map(), queriesActiveOrdered: [],
         queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
@@ -123,7 +124,7 @@ function RunServicesProbe(props: { workbookId: string; capture: (registered: boo
         }));
     });
     React.useEffect(() => {
-        // Only the services of the provider read the live workbook
+        // Only the services of the runtime read the live workbook
         if (workbook != null) props.capture(scriptRunServices(workbook.instance).liveWorkbook != null);
     }, [workbook]);
     return null;
@@ -153,8 +154,8 @@ function SeedRegistries(props: { fixtures: Fixture[]; children: React.ReactNode 
 }
 
 // The runs themselves are tested in the runtime (workbook/scripts/workbook_execution_service.test.ts), these are the
-// provider and the hook of the app on it
-describe('WorkbookExecutionProvider', () => {
+// runtime of the app and the hook on it
+describe('the runs of workbooks in the app', () => {
     let container: HTMLDivElement;
     let root: Root;
     let fixtures: Fixture[];
@@ -192,38 +193,30 @@ describe('WorkbookExecutionProvider', () => {
         container.remove();
     });
 
-    async function render(workbookId = 'first', showConsumer = true, showProvider = true) {
+    async function render(workbookId = 'first', showConsumer = true, showRuntime = true) {
         // The execution value is memoized, count the observer commits instead of comparing identities.
         const previousObserverCommits = observerCommits;
         await act(async () => {
             root.render(<LoggerProvider>
                 <StorageProvider backend={backend}>
-                    <ConnectionRegistry>
-                        <WorkbookScriptsRegistryProvider>
-                            <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                                <ComputeConnectionProvider>
-                                    <ComputationRegistry>
-                                        <SeedRegistries fixtures={fixtures}>
-                                            <QueryExecutorProvider>
-                                                {showProvider ? <WorkbookExecutionProvider>
-                                                    {showConsumer ? <Consumer key={workbookId} workbookId={workbookId} capture={capture} /> : null}
-                                                    <Consumer workbookId="first" capture={captureObserver} />
-                                                    <EarlyConsumer capture={execution => { early = execution; }} />
-                                                    <RunServicesProbe workbookId="first" capture={captureServices} expose={bump => { bumpWorkbook = bump; }} />
-                                                </WorkbookExecutionProvider> : <></>}
-                                            </QueryExecutorProvider>
-                                        </SeedRegistries>
-                                    </ComputationRegistry>
-                                </ComputeConnectionProvider>
-                            </EmbeddedDatabaseProvider>
-                        </WorkbookScriptsRegistryProvider>
-                    </ConnectionRegistry>
+                    <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                        <ComputeConnectionProvider>
+                            {showRuntime ? <TestRuntime>
+                                <SeedRegistries fixtures={fixtures}>
+                                    {showConsumer ? <Consumer key={workbookId} workbookId={workbookId} capture={capture} /> : null}
+                                    <Consumer workbookId="first" capture={captureObserver} />
+                                    <EarlyConsumer capture={execution => { early = execution; }} />
+                                    <RunServicesProbe workbookId="first" capture={captureServices} expose={bump => { bumpWorkbook = bump; }} />
+                                </SeedRegistries>
+                            </TestRuntime> : <></>}
+                        </ComputeConnectionProvider>
+                    </EmbeddedDatabaseProvider>
                 </StorageProvider>
             </LoggerProvider>);
             await new Promise(resolve => setTimeout(resolve, 0));
         });
         // A timer turn does not guarantee that async database setup and React commits have finished.
-        if (showProvider) await vi.waitFor(() => expect(observerCommits).toBeGreaterThan(previousObserverCommits));
+        if (showRuntime) await vi.waitFor(() => expect(observerCommits).toBeGreaterThan(previousObserverCommits));
     }
 
     async function start(f = fixtures[0]) {
@@ -236,7 +229,7 @@ describe('WorkbookExecutionProvider', () => {
         expect(current.state?.phase).toBe('running');
     }
 
-    it('registers the run services before the effects of its children read them', async () => {
+    it('registers the run services before the effects of the components read them', async () => {
         await render();
         // A change of the workbook re-registers the services, e.g. a run that registers its query
         act(() => bumpWorkbook());
@@ -310,7 +303,7 @@ describe('WorkbookExecutionProvider', () => {
         expect(fixtures[1].signal?.aborted).toBe(false);
     });
 
-    it('aborts every active run when the provider unmounts, not when route consumers unmount', async () => {
+    it('aborts every active run when the runtime unmounts, not when route consumers unmount', async () => {
         await render();
         await start();
         await render('second');

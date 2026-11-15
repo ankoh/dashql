@@ -1,8 +1,8 @@
 # DashQL runtime
 
-Status: steps 1 to 3 are built. Step 4 has the OAuth flow, the restore, the runtime object, the Node platform with the
-embedded Hyper, and the CLI with `lint`, `format`, `run` and `session serve`. Open: the `RuntimeProvider` of the app,
-`dashql auth`, `workbook check`/`pack`/`link`, and step 5.
+Status: steps 1 to 3 are built. Step 4 has the OAuth flow, the restore, the runtime object with the `RuntimeProvider`
+of the app, the Node platform with the embedded Hyper, and the CLI with `lint`, `format`, `run` and `session serve`.
+Open: `dashql auth`, `workbook check`/`pack`/`link`, and step 5.
 
 `packages/dashql-runtime` (`@ankoh/dashql-runtime`) holds the logic of DashQL without React: the workbook model and its
 format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
@@ -16,7 +16,7 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections, done |
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: `workbook/persistence/app_state_loader.ts` and the Hyper links of a tab, done |
-| One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, done; the app still nests its providers |
+| One runtime | Step 4: `createRuntime` in `runtime.ts` and the registries as services, the `RuntimeProvider` of the app, done |
 | Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper over a root folder with the layout of OPFS, done |
 | The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth and the embedded Hyper, results in the query result cache, done; `session serve` with the journal of a workspace, done; `workbook check`, `pack`, `link`, `auth` follow |
 | Editor state out of `ScriptData` | Later, step 5 |
@@ -190,7 +190,7 @@ packages/dashql-runtime             @ankoh/dashql-runtime, a source package: `@a
                                     the platform of Node, node:fs handles of the OPFS root, the embedded Hyper of Node,
                                     the core from its file, the locks of the process
   src/testing/                      helpers of the tests on both platforms
-packages/dashql-app                 its providers create the services (see React after the move), UI-only state:
+packages/dashql-app                 the RuntimeProvider creates the runtime (see React after the move), UI-only state:
                                     CodeMirror, focus, view modes, overlays, ownership
 packages/dashql-cli                 the dashql command: lint, format, run, session
 ```
@@ -226,29 +226,28 @@ interface Runtime {
 
 ## React after the move
 
-Planned. Today the providers of the app create the services of the runtime themselves, one per provider, in the order
-that `createRuntime` writes down a second time. Each new service has to be wired in both places, and a test of the
-runtime doesn't cover the wiring of the app. One `RuntimeProvider` over `createRuntime` ends that:
+Built. One `RuntimeProvider` (`packages/dashql-app/src/runtime/runtime_provider.tsx`) creates the runtime with
+`createRuntime` over the platform of the app and replaces the providers that each created a service. The app and the
+CLI wire the services in one place, and the tests of `runtime.ts` cover the wiring of the app.
 
-- **Stores.** They move into the runtime unchanged. `Store` loses the React type, `UpdateQueue` takes a `Scheduler`.
-  `createRuntime` creates them once, not a provider.
-- **Hooks keep their names.** Only their bodies change:
-
-  ```ts
-  export function useWorkbookScripts(id: string | null): [WorkbookScripts | null, ModifyWorkbookScripts] {
-      const rt = useRuntime();
-      const scripts = useStoreSelector(rt.workbooks, reg => (id == null ? null : reg.workbookMap.get(id) ?? null));
-      return [scripts, action => rt.workbooks.dispatch(id!, action)];
-  }
-  ```
-
-  Call sites that keep working: `useConnectionRegistry` (39), `useWorkbookScriptsRegistry` (23), `useQueryExecutor`
-  (16), `useConnectionById` (12), `useLogger` (100).
-- **Dispatch.** `applyConnectionAction` (the reducer plus the storage writes, now in `connection_registry.tsx`)
-  becomes `rt.connections.dispatch(id, action)` with the same queue. The storage writer and the logger come from the
-  runtime instead of context. The same holds for the workbook scripts.
-- **Providers.** The services become fields of the runtime, and one `<RuntimeProvider runtime={rt}>` replaces most
-  of the nesting in `app/app.tsx`. Router, theme, flavor, toasts, the file dropzone and the version check stay.
+- **The platform of the app.** The provider sits below the providers of the storage, the http client, the core, the
+  embedded database, the query result cache and Salesforce, and passes them to `createRuntime`, the storage writer
+  of the `StorageProvider` included: the app flushes it when the page hides and stops it when another tab takes over.
+  The compute database starts after the settings loaded and the config may choose the mock of Salesforce, so the
+  runtime takes them later (`setComputeDatabase`, `setSalesforce`). `createRuntime` is synchronous, the core is
+  instantiated when the runtime needs it.
+- **The followers.** The runtime registers the services of script runs with the core of every workbook and passes
+  every registry to the catalog loader and the runs when the store changes, before React renders. The catalog loader
+  analyzes the scripts of a connection again when its catalog changed, also in the CLI.
+- **Hooks keep their names.** `useConnectionRegistry`, `useWorkbookScriptsRegistry`, `useQueryExecutor`,
+  `useConnectionById` and the others read the stores and the services of the runtime. Outside of the provider, e.g. in
+  a test of a component, the state hooks return no state and the functions throw when they are called, like the
+  contexts without a provider before.
+- **Computations.** `createComputations` (`compute/computations.ts`) creates them for the runtime and for the shell of
+  Hyper, which has no runtime (`StandaloneComputations`).
+- **Tests.** `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`) is the provider in the tests of
+  components: the catalog loader stopped like in `createTestRuntime`, and the functions of the query executor that a
+  test replaces.
 - **Wasm lifetimes** stay in the reducers inside the stores.
 - **Editor state** stays in `ScriptData` with types free of CodeMirror. Step 5 moves `completion`, `pendingDiff` and
   the focus into an editor store of the app keyed by workbook and script.
@@ -263,19 +262,17 @@ Each step ships on its own and keeps the behavior.
    `react-dom`, `@codemirror/*`, a `.tsx` file or a `?url` asset. Done.
 2. **Draw the package line.** Move the clean set into `packages/dashql-runtime`, a source package with tests in
    Node. The app imports from `@ankoh/dashql-runtime`. Done.
-3. **Services out of providers.** Done for four services of the runtime, each a class with its dependencies passed in,
-   its state as a `Store`, and a provider that binds it to React:
+3. **Services out of providers.** Done for four services of the runtime, each a class with its dependencies passed in
+   and its state as a `Store`:
    - `QueryExecutorService` (`connections/query_executor_service.ts`), with the computations, the result cache, the
      tracked execution and the profile layout of the query progress (`query/profile/`);
    - `CatalogLoaderService` (`connections/catalog/catalog_loader_service.ts`), with the update of Hyper catalogs. The
-     provider passes each new registry, the loader reconsiders its queue in a microtask;
+     runtime passes each new registry, the loader reconsiders its queue in a microtask;
    - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the engine of the runs and the
      runs of single scripts;
    - `ConnectionPersistenceService` (`connections/connection_persistence_service.ts`).
 
-   The rest waited for the seams of step 4. The runtime object that replaces the
-   nesting of providers comes with them: `createRuntime` states the startup order that the nesting implies today
-   (the embedded Hyper needs the core, the Hyper setup needs the embedded Hyper).
+   The rest waited for the seams of step 4, with the runtime object that replaced the nesting of providers.
 4. **Platform seams and Node.** An OAuth flow, done: `oauth/oauth_flow.ts` of the runtime opens the authorization page
    and receives the redirect, through the redirect page (`oauth.html`, to the opener in a browser or as a link of the
    desktop app) or a loopback server (Trino). A connector builds the URL and exchanges the code. The app implements it
@@ -288,11 +285,10 @@ Each step ships on its own and keeps the behavior.
    `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. The runtime object, done: the registries of
    the workbook scripts and the connections are services of the runtime (`workbook_scripts_registry_service.ts`,
    `connection_registry_service.ts`) with the store, the queue, dispatch, allocation and the creation of a workbook;
-   the providers of the app create them and keep their hooks. `createRuntime(platform)` in `runtime.ts` wires the
-   registries, the computations and the four services of step 3 in the order of the providers, `restore()` loads the
-   stored state into the registries and `destroy()` writes what is pending. `runtime.test.ts` writes a workbook with
-   one runtime and restores it with a second one in Node. The app keeps its providers until a `RuntimeProvider`
-   replaces them. The Node platform, done: `NativeStorageBackend` (one workbook in a folder) moved into the runtime and
+   `createRuntime(platform)` in `runtime.ts` wires the registries, the computations and the four services of step 3,
+   `restore()` loads the stored state into the registries and `destroy()` writes what is pending. `runtime.test.ts`
+   writes a workbook with one runtime and restores it with a second one in Node. The app creates it in its
+   `RuntimeProvider` (see React after the move). The Node platform, done: `NativeStorageBackend` (one workbook in a folder) moved into the runtime and
    takes a `FileSystem` (`platform/file_system.ts`); the app passes `ELECTRON_FILE_SYSTEM`, Node passes
    `NODE_FILE_SYSTEM` (`node/node_file_system.ts`). The modules of Node live in `src/node`, the only place that
    imports `node:` (the boundary test checks it), with a type check of their own against the types of Node
@@ -323,23 +319,32 @@ the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
   prefix (`dashql run`), never through `node` or `npx`.
 - **Results stay in files.** Harness telemetry records tool output, so `run` prints the error with its position, the
   schema, the row count and a few rows, and writes the result as Parquet into the workbook.
-- **`dashql run`, built.** `dashql run [--workspace <dir>] <workbook-dir> [<script>...]`
+- **`dashql run`, built.** `dashql run [--plain] [--workspace <dir>] <workbook-dir> [<script>...]`
   (`packages/dashql-cli/src/run_command.ts`) loads the folder with `restoreSingleWorkbook` over a
-  `NativeStorageBackend` and runs the scripts in the order of the workbook, each like the Run of the script in the app:
-  `ensureWorkbookScriptAnalyzed`, then `runPlannedScript` with the scripts it references. It stops at the first
-  failure. The first interrupt cancels the running queries and reports the scripts that didn't run, the second ends the
-  process. What is built:
+  `NativeStorageBackend` and runs it like the Run of the workbook in the app: `runWorkbookExecution` with the services
+  of the runtime, all scripts or the named ones as `targets` with what they need. Scripts of different connections run
+  at the same time; the first failed statement stops the run. The first interrupt cancels the running queries, the
+  second ends the process. What is built:
+  - Events of the scripts. `runWorkbookPlan` reports what happens to every script through `onScript`
+    (`ScriptRunEvent`: planned with the scripts it follows, cached, skipped with a reason, started, done with its key
+    and the query of its output, failed, cancelled). The command turns them and the progress of the running queries
+    into `RunEvent`s (`run_events.ts`) that reporters show: the live view on a terminal (`run_live.ts`, settled lines
+    in the scrollback and a region drawn again in place below them), plain lines for agents and pipes
+    (`run_output.ts`, nothing while scripts run, a summary at the end), and the markers of the journal of a session
+    (`run_journal.ts`). `term.ts` decides between the two views: a live view only when stdout is a terminal.
   - Trino with basic auth. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` override the user and the password of
     the workbook; the connection keeps the params of the workbook, so the credentials of the environment are never
     written (a successful setup otherwise saves the params it was set up with into every workbook of the connection).
   - The embedded Hyper, see below. Its connection is a session of the `hyper` database of the instance in an
     `EmbeddedHyperDatabaseChannel` (`connections/embedded/`, moved from the app) like in the app.
   - The setups are the app's (`setupTrinoConnection`, then `performHealthCheck`, in the runtime, rethrowing the error
-    of the probe, e.g. a rejected login; `connectEmbeddedHyper` for the embedded Hyper). The run of a plan asks for the
-    connections of the scripts it will run (`prepareConnection` of `runWorkbookPlan`), so a result that the cache
-    serves needs none.
+    of the probe, e.g. a rejected login; `connectEmbeddedHyper` for the embedded Hyper). The run of a plan sets up the
+    connections of the scripts it will run, all at once (`prepareConnection` of `runWorkbookPlan`), so a result that
+    the cache serves needs none. The scripts of a connection that can't be set up are skipped like those of a
+    connection that can't run, the others still run.
   - It prints the schema, the row count and the first rows (`--rows`), the file of the result in the query result
-    cache, and the message of Trino on a failure. A cached result is served like in the app, `--refresh` runs again.
+    cache, and the message of Trino on a failure with the line of the statement it points at. A cached result is
+    served like in the app, `--refresh` runs again.
   - The results are not analyzed (the summaries of the app), the catalog loader is stopped; `catalog refresh` follows.
   - Tested against a fake Trino in `//packages/dashql-cli:test`, the bundle in `:binary_test`, by hand against
     `bazel run //:trino`.

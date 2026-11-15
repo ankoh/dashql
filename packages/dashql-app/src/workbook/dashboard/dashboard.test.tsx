@@ -4,7 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/query_executor.js';
+import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
+import { StorageProvider } from '../../storage/storage_provider.js';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { flushContinuousUpdates } from '../../tests/react_act.js';
@@ -85,7 +87,7 @@ describe('Dashboard', () => {
     let container: HTMLDivElement;
     let root: Root;
     let modify: ReturnType<typeof vi.fn>;
-    let executor: QueryExecutorContextValue;
+    let executor: TestQueryExecutorFunctions;
     let runWorkbookScript: ReturnType<typeof vi.fn>;
     let dependencies: DashboardDependencies;
 
@@ -101,7 +103,7 @@ describe('Dashboard', () => {
             [30, { queryId: 30, status: QueryExecutionStatus.RUNNING }],
         ]);
         modify = vi.fn();
-        executor = { execute: vi.fn(), cancel: vi.fn(), watchProfile: vi.fn() } as unknown as QueryExecutorContextValue;
+        executor = { execute: vi.fn(), cancel: vi.fn(), watchProfile: vi.fn() } as unknown as TestQueryExecutorFunctions;
         runWorkbookScript = vi.fn(async () => {});
         dependencies = {
             runWorkbookScript: runWorkbookScript as unknown as DashboardDependencies['runWorkbookScript'],
@@ -132,20 +134,23 @@ describe('Dashboard', () => {
         container.remove();
     });
 
+    const backend = new WorkbookTestBackend();
     const online = new Map([['db', { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState]]);
 
     function render(workbookScripts: WorkbookScripts, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null> } = {}) {
         act(() => root.render(
             <LoggerProvider>
-                <EXECUTOR_CTX.Provider value={executor}>
-                    <Dashboard
-                        workbookScripts={workbookScripts}
-                        modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
-                        scriptConnections={extra.scriptConnections ?? online}
-                        draftRenameRef={extra.draftRenameRef}
-                        dependencies={dependencies}
-                    />
-                </EXECUTOR_CTX.Provider>
+                <StorageProvider backend={backend}>
+                    <TestRuntime {...executor}>
+                        <Dashboard
+                            workbookScripts={workbookScripts}
+                            modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
+                            scriptConnections={extra.scriptConnections ?? online}
+                            draftRenameRef={extra.draftRenameRef}
+                            dependencies={dependencies}
+                        />
+                    </TestRuntime>
+                </StorageProvider>
             </LoggerProvider>,
         ));
     }
@@ -194,7 +199,9 @@ describe('Dashboard', () => {
         act(() => cardButton(1, 'dashboard-card-run').click());
         act(() => cardButton(2, 'dashboard-card-run').click());
         expect(workbookScripts.map(call => [call[1].scriptKey, call[5]])).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
-        expect(workbookScripts[0][2]).toBe(executor.execute);
+        // The runs execute with the executor of the runtime
+        workbookScripts[0][2]('db', { query: 'select 1' } as never);
+        expect(executor.execute).toHaveBeenCalledWith('db', { query: 'select 1' });
         expect(workbookScripts[0][3]).toBe(modify);
 
         // A running card cancels its query

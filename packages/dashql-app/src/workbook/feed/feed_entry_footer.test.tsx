@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { ComputationRegistry } from '../../compute/computation_registry.js';
+
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 import type { ResolvedVisualizeQuery } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
@@ -15,6 +15,7 @@ import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_exec
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { QueryProgressModels, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress_model';
 import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
+import { StandaloneComputations } from '../../compute/computation_registry.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -84,12 +85,12 @@ describe('FeedEntryFooter', () => {
     function renderFooter(resultTable: arrow.Table, visualizeQuery: ResolvedVisualizeQuery | null = null) {
         // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
-            <ComputationRegistry>
+            <StandaloneComputations>
                 <FooterWithTabs
                     queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
                     visualizeQuery={visualizeQuery}
                 />
-            </ComputationRegistry>,
+            </StandaloneComputations>,
         ));
     }
 

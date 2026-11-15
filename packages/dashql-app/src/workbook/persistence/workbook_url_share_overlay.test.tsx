@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { MemoryRouter } from 'react-router-dom';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFERENCES, useConnectionRegistry, type ConnectionReferences } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -11,13 +11,15 @@ import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook
 import { createTestRoot } from '../../tests/react_root.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { readWorkbookBundleFromZip } from './workbook_import.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
+import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -34,15 +36,14 @@ const CONNECTION = {
     connectionId: TEST_CONNECTION_ID,
     name: 'Warehouse',
     params: { hyper: {} },
-    details: { value: { proto: { setupParams: null } } },
+    details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: null } } },
 } as unknown as ConnectionState;
 
-const REFERENCES: ConnectionReferences = {
-    ...NO_CONNECTION_REFERENCES,
-    connectionsOf: workbookId => workbookId === TEST_WORKBOOK_ID ? [TEST_CONNECTION_ID] : [],
-};
-
-const WORKBOOK = { workbookId: TEST_WORKBOOK_ID, scripts: {}, scriptRefs: {}, scriptOrder: [] } as unknown as WorkbookScripts;
+// The workbook uses the connection without a script
+const WORKBOOK = {
+    workbookId: TEST_WORKBOOK_ID, scripts: {}, scriptRefs: {}, scriptOrder: [], instance: {},
+    pendingConnection: { connectionId: TEST_CONNECTION_ID },
+} as unknown as WorkbookScripts;
 
 describe('WorkbookURLShareOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
@@ -63,14 +64,10 @@ describe('WorkbookURLShareOverlay', () => {
                     <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
 <DashQLCoreProvider>
                         <StorageProvider backend={backend}>
-                            <ConnectionRegistry>
-                                <WorkbookScriptsRegistryProvider>
-                                    <ConnectionReferencesProvider value={REFERENCES}>
-                                        <Capture />
-                                        {overlay && <WorkbookURLShareOverlay isOpen setIsOpen={vi.fn()} workbookId={TEST_WORKBOOK_ID} {...props} />}
-                                    </ConnectionReferencesProvider>
-                                </WorkbookScriptsRegistryProvider>
-                            </ConnectionRegistry>
+                            <TestRuntime>
+                                <Capture />
+                                {overlay && <WorkbookURLShareOverlay isOpen setIsOpen={vi.fn()} workbookId={TEST_WORKBOOK_ID} {...props} />}
+                            </TestRuntime>
                         </StorageProvider>
                     </DashQLCoreProvider>
 </EmbeddedDatabaseProvider>

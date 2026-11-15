@@ -1,0 +1,50 @@
+import * as React from 'react';
+
+import type { CancelQuery, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import type { WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
+
+import { RuntimeProvider, useRuntime } from '../runtime/runtime_provider.js';
+
+/// The functions of the query executor that a test replaces
+export interface TestQueryExecutorFunctions {
+    execute?: QueryExecutor;
+    cancel?: CancelQuery;
+    watchProfile?: WatchQueryProfile;
+}
+
+interface TestRuntimeProps extends TestQueryExecutorFunctions {
+    /// Keep the catalog loader running. It asks connections that come online about their catalogs, the tests of
+    /// components stop it like the tests of the runtime (packages/dashql-runtime/src/testing/test_runtime.ts).
+    catalogLoader?: boolean;
+    children?: React.ReactNode;
+}
+
+/// The runtime of the app in a test: the RuntimeProvider over the providers above it, the catalog loader stopped and
+/// the functions of the query executor that the test replaces
+export function TestRuntime(props: TestRuntimeProps) {
+    const { children, ...setup } = props;
+    return (
+        <RuntimeProvider>
+            <TestRuntimeSetup {...setup}>{children}</TestRuntimeSetup>
+        </RuntimeProvider>
+    );
+}
+
+function TestRuntimeSetup(props: TestRuntimeProps) {
+    const runtime = useRuntime();
+    // Before the components below render and fill the registries
+    React.useState(() => {
+        if (!props.catalogLoader) runtime.catalogLoader.stop();
+    });
+    return <TestQueryExecutor execute={props.execute} cancel={props.cancel} watchProfile={props.watchProfile}>{props.children}</TestQueryExecutor>;
+}
+
+/// Replace functions of the query executor of the runtime for the components below, before they render. The hooks
+/// of the app call the executor of the runtime, the services of the runtime keep the real one.
+export function TestQueryExecutor(props: TestQueryExecutorFunctions & { children?: React.ReactNode }) {
+    const executor = useRuntime().executor;
+    if (props.execute) executor.execute = props.execute;
+    if (props.cancel) executor.cancel = props.cancel;
+    if (props.watchProfile) executor.watchProfile = props.watchProfile;
+    return <>{props.children}</>;
+}

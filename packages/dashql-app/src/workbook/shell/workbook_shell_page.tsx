@@ -59,8 +59,10 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const keywordCaseRef = React.useRef(keywordCase);
     keywordCaseRef.current = keywordCase;
     const logger = useLogger();
-    const executeQuery = useQueryExecutor();
-    const cancelQuery = useCancelQuery();
+    // The shell calls the latest executor: a new one, e.g. once the compute database is set up, keeps the shell
+    const executor = { execute: useQueryExecutor(), cancel: useCancelQuery() };
+    const executorRef = React.useRef(executor);
+    executorRef.current = executor;
     const { setMode } = useWorkbookViewMode();
     const containerRef = React.useRef<HTMLDivElement>(null);
     const controllerRef = React.useRef<BrowserShellController | null>(null);
@@ -127,8 +129,8 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         const environment = createWorkbookShellEnvironment(
             workbookId,
             connection.connectionId,
-            executeQuery,
-            cancelQuery,
+            (connectionId, args) => executorRef.current.execute(connectionId, args),
+            (connectionId, queryId) => executorRef.current.cancel(connectionId, queryId),
             releaseResult,
             query => resolveClientFunctionCall(connection.catalog, query),
         );
@@ -206,7 +208,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, connection?.catalog, prompt, workbookName, shellName, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult]);
+    }, [connection?.connectionId, connection?.catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

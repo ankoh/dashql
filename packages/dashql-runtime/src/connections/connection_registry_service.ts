@@ -29,16 +29,12 @@ export function emptyConnectionRegistry(): ConnectionRegistry {
 export class ConnectionRegistryService {
     readonly store: Store<ConnectionRegistry>;
     readonly queue: UpdateQueue<ConnectionRegistry>;
-    protected deps: ConnectionRegistryDependencies;
+    protected readonly deps: ConnectionRegistryDependencies;
 
     constructor(deps: ConnectionRegistryDependencies, scheduler: UpdateScheduler) {
         this.deps = deps;
         this.store = new Store(emptyConnectionRegistry());
         this.queue = new UpdateQueue(this.store, scheduler);
-    }
-
-    setDependencies(deps: ConnectionRegistryDependencies): void {
-        this.deps = deps;
     }
 
     /// Apply an action to a connection, nothing without an id

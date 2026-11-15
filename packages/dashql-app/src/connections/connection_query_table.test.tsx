@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
-import { ComputationRegistry } from '../compute/computation_registry.js';
+
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
 import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
@@ -13,6 +13,7 @@ import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } fr
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { QueryTable } from './connection_query_table.js';
+import { StandaloneComputations } from '../compute/computation_registry.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -68,12 +69,12 @@ describe('QueryTable', () => {
             <LoggerProvider>
                 <EmbeddedDatabaseProvider setupDatabase={async () => computeDatabase}>
                     <ComputeConnectionProvider>
-                        <ComputationRegistry>
+                        <StandaloneComputations>
                             <ComputeQueryExecutionProvider createExecution={() => execute}>
                                 <ComputationScheduler />
                                 <QueryTable sql={sql} clientContext={null} runQuery={runQuery} />
                             </ComputeQueryExecutionProvider>
-                        </ComputationRegistry>
+                        </StandaloneComputations>
                     </ComputeConnectionProvider>
                 </EmbeddedDatabaseProvider>
             </LoggerProvider>,

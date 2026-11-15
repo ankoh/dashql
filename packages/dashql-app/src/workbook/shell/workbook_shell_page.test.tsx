@@ -6,14 +6,14 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputationRegistry, useComputationRegistry } from '../../compute/computation_registry.js';
+import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { ComputeConnectionProvider } from '../../compute/compute_connection_provider.js';
 import { COMPUTATION_FROM_QUERY_RESULT } from '@ankoh/dashql-runtime/compute/computation_state';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
-import { EXECUTOR_CTX, type QueryExecutorContextValue } from '../../connections/query_executor.js';
+import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
 import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_client_functions';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
@@ -67,6 +67,7 @@ function createConnection(connectionId: string, options: {
         params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
         details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: options.setupParams ?? { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } } },
         catalog,
+        catalogUpdates: { described: true },
         queriesActive: new Map(),
         queriesActiveOrdered: [],
         queriesFinished: options.queriesFinished ?? new Map(),
@@ -142,7 +143,7 @@ describe('WorkbookShellPage', () => {
     let nextQueryId: number;
     let execute: ReturnType<typeof vi.fn>;
     let cancel: ReturnType<typeof vi.fn>;
-    let executor: QueryExecutorContextValue;
+    let executor: TestQueryExecutorFunctions;
     let database: EmbeddedComputeDatabase | null;
     let transcript: string[];
     let backend: WorkbookTestBackend;
@@ -177,7 +178,7 @@ describe('WorkbookShellPage', () => {
             Promise.resolve(tableFromArrays({ answer: [42] })),
         ]);
         cancel = vi.fn();
-        executor = { execute, cancel, watchProfile: vi.fn() } as unknown as QueryExecutorContextValue;
+        executor = { execute, cancel, watchProfile: vi.fn() } as unknown as TestQueryExecutorFunctions;
         database = null;
         // The app config has no settings until a test sets them
         vi.stubGlobal('fetch', vi.fn(async () => new Response('{}')));
@@ -193,12 +194,12 @@ describe('WorkbookShellPage', () => {
         act(() => root.unmount());
         container.remove();
         document.getElementById('__dashqlPortalRoot__')?.remove();
+        // Shells that a page loaded and no longer needs are destroyed once their load ends, the spies count them
+        await vi.waitFor(() => expect(created.filter(shell => !destroyed.has(shell))).toEqual([]), WAIT);
         vi.unstubAllGlobals();
         vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
         vi.restoreAllMocks();
         resultFails = false;
-        // Shells that a page loaded and no longer needs are destroyed once their load ends
-        await vi.waitFor(() => expect(created.filter(shell => !destroyed.has(shell))).toEqual([]), WAIT);
     });
 
     interface PageProps {
@@ -213,32 +214,28 @@ describe('WorkbookShellPage', () => {
             <LoggerProvider>
                 <StorageProvider backend={backend}>
                     <AppConfigProvider>
-                        <ConnectionRegistry>
-                            <ComputationRegistry>
-                                <EmbeddedDatabaseProvider setupDatabase={async () => database ?? ({} as EmbeddedComputeDatabase)}>
-                                    <ComputeConnectionProvider>
-                                        <EXECUTOR_CTX.Provider value={executor}>
-                                            <MemoryRouter initialEntries={['/?view=dashboard']}>
-                                                <WorkbookViewModeProvider>
-                                                    <DashQLCoreProvider>
-                                                        <Capture capture={next => { api = next; }}>
-                                                            <WorkbookShellPage
-                                                                dependencies={dependencies}
-                                                                workbookId={WORKBOOK_ID}
-                                                                workbookName={props.workbookName === undefined ? 'My workbook' : props.workbookName}
-                                                                connectionId={props.connectionId ?? MAIN}
-                                                                ordinal={props.ordinal === undefined ? 2 : props.ordinal}
-                                                                active={props.active ?? true}
-                                                            />
-                                                        </Capture>
-                                                    </DashQLCoreProvider>
-                                                </WorkbookViewModeProvider>
-                                            </MemoryRouter>
-                                        </EXECUTOR_CTX.Provider>
-                                    </ComputeConnectionProvider>
-                                </EmbeddedDatabaseProvider>
-                            </ComputationRegistry>
-                        </ConnectionRegistry>
+                        <EmbeddedDatabaseProvider setupDatabase={async () => database ?? ({} as EmbeddedComputeDatabase)}>
+                            <ComputeConnectionProvider>
+                                <TestRuntime {...executor}>
+                                    <MemoryRouter initialEntries={['/?view=dashboard']}>
+                                        <WorkbookViewModeProvider>
+                                            <DashQLCoreProvider>
+                                                <Capture capture={next => { api = next; }}>
+                                                    <WorkbookShellPage
+                                                        dependencies={dependencies}
+                                                        workbookId={WORKBOOK_ID}
+                                                        workbookName={props.workbookName === undefined ? 'My workbook' : props.workbookName}
+                                                        connectionId={props.connectionId ?? MAIN}
+                                                        ordinal={props.ordinal === undefined ? 2 : props.ordinal}
+                                                        active={props.active ?? true}
+                                                    />
+                                                </Capture>
+                                            </DashQLCoreProvider>
+                                        </WorkbookViewModeProvider>
+                                    </MemoryRouter>
+                                </TestRuntime>
+                            </ComputeConnectionProvider>
+                        </EmbeddedDatabaseProvider>
                     </AppConfigProvider>
                 </StorageProvider>
             </LoggerProvider>

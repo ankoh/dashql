@@ -3,19 +3,19 @@ import * as dashql from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { createEmptyScriptData, replaceScriptSessionText, scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -89,13 +89,11 @@ describe('QueryResultActionMenu', () => {
             root!.render(
                 <LoggerProvider>
                     <StorageProvider backend={new WorkbookTestBackend()}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <Seed workbooks={workbooks}>
-                                    <div data-testid="menu-host"><QueryResultActionMenu query={result} /></div>
-                                </Seed>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
+                        <TestRuntime>
+                            <Seed workbooks={workbooks}>
+                                <div data-testid="menu-host"><QueryResultActionMenu query={result} /></div>
+                            </Seed>
+                        </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>
             );

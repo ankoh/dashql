@@ -15,20 +15,14 @@ import {
     SET_PENDING_CONNECTION,
     takenWorkbookNames,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader, useWorkbookScriptsRegistryService } from './scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsCreation, useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from './scripts/workbook_scripts_registry.js';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 
 /// Create a workbook whose first script runs on a connection, a workbook without a name gets a free one
 export type WorkbookCreation = (database: ConnectionState, name?: string) => WorkbookScripts;
 
-/// Allocate a workbook without scripts and write its first manifest
-function useWorkbookAllocation(): (database: ConnectionState, name: string, ephemeral: boolean) => WorkbookScripts {
-    const service = useWorkbookScriptsRegistryService();
-    return React.useCallback((database: ConnectionState, name: string, ephemeral: boolean) => service.create(database, name, ephemeral), [service]);
-}
-
 export function useWorkbookCreation(): WorkbookCreation {
-    const allocate = useWorkbookAllocation();
+    const allocate = useWorkbookScriptsCreation();
     const readRegistry = useWorkbookScriptsRegistryReader();
     return React.useCallback((database: ConnectionState, name?: string) => (
         allocate(database, name ?? freeWorkbookName(takenWorkbookNames(readRegistry().workbookScriptsMap.values())), false)
@@ -41,7 +35,7 @@ export function useWorkbookCreation(): WorkbookCreation {
 /// user picked, unless the connection is the one of a Hyper link: a link moves the workbook to its connection, and a
 /// workbook on the connection of a link that is gone moves back.
 export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookScripts {
-    const allocate = useWorkbookAllocation();
+    const allocate = useWorkbookScriptsCreation();
     const readRegistry = useWorkbookScriptsRegistryReader();
     const modifyWorkbookScripts = useWorkbookScriptsDispatch();
     return React.useCallback((database: ConnectionState) => {

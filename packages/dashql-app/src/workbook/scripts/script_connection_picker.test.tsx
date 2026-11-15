@@ -5,12 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import { ConnectionRegistry } from '../../connections/connection_registry.js';
+
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { WorkbookScriptsRegistryProvider } from './workbook_scripts_registry.js';
+
 import { ScriptConnectionPicker, type ScriptConnectionPickerDependencies, type ScriptConnectionView } from './script_connection_picker.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -41,19 +42,17 @@ describe('ScriptConnectionPicker', () => {
         act(() => root.render(
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
-                    <ConnectionRegistry>
-                        <WorkbookScriptsRegistryProvider>
-                            <ScriptConnectionPicker
-                                workbookId="workbook"
-                                scriptName="query"
-                                connection={connection}
-                                disabled={false}
-                                onPick={vi.fn()}
-                                onAttach={onAttach}
-                                dependencies={dependencies}
-                            />
-                        </WorkbookScriptsRegistryProvider>
-                    </ConnectionRegistry>
+                    <TestRuntime>
+                        <ScriptConnectionPicker
+                            workbookId="workbook"
+                            scriptName="query"
+                            connection={connection}
+                            disabled={false}
+                            onPick={vi.fn()}
+                            onAttach={onAttach}
+                            dependencies={dependencies}
+                        />
+                    </TestRuntime>
                 </StorageProvider>
             </LoggerProvider>,
         ));

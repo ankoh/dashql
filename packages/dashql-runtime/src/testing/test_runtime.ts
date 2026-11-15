@@ -59,7 +59,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         computeDatabase: options.computeDatabase ?? null,
         resultCache: options.resultCache ?? null,
     };
-    const runtime = await createRuntime(platform);
+    const runtime = createRuntime(platform);
     if (!options.catalogLoader) runtime.catalogLoader.stop();
     return Object.assign(runtime, {
         logger,

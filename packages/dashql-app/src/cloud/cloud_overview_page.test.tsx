@@ -20,10 +20,11 @@ import { listCloudWorkbookVersions, publishCloudWorkbook } from './cloud_store.j
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
+import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
-import { EXECUTOR_CTX, type QueryExecutor } from '../connections/query_executor.js';
+import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { TestRuntime } from '../tests/test_runtime.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
@@ -161,14 +162,12 @@ describe('CloudOverviewPage', () => {
                 <AppConfigProvider>
                     <MemoryRouter>
                         <StorageProvider backend={new WorkbookTestBackend()}>
-                            <ConnectionRegistry>
-                                <EXECUTOR_CTX.Provider value={{ execute, cancel: async () => {}, watchProfile: () => () => {} }}>
-                                    <CloudStateProvider>
-                                        <Capture />
-                                        {content}
-                                    </CloudStateProvider>
-                                </EXECUTOR_CTX.Provider>
-                            </ConnectionRegistry>
+                            <TestRuntime execute={execute}>
+                                <CloudStateProvider>
+                                    <Capture />
+                                    {content}
+                                </CloudStateProvider>
+                            </TestRuntime>
                         </StorageProvider>
                     </MemoryRouter>
                 </AppConfigProvider>

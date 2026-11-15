@@ -4,23 +4,22 @@ import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { ConnectionRegistry } from '../../connections/connection_registry.js';
+
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '@ankoh/dashql-runtime/storage/storage_writer';
-import {
-    WorkbookScriptsRegistryProvider,
-    useWorkbookScripts,
-    useWorkbookScriptsRegistry,
-} from './workbook_scripts_registry.js';
+import { useWorkbookScripts, useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 function fixture(workbookId: string): WorkbookScripts {
-    // REGISTER_QUERY only needs the script entry; no Wasm or execution setup is required.
+    // REGISTER_QUERY only needs the script entry; no Wasm or execution setup is required. The runtime registers the
+    // services of script runs with the instance.
     return {
         workbookId,
+        instance: {},
         pendingConnection: null,
         scripts: { 1: { scriptKey: 1, fileName: '1.sql', latestQueryId: null, connection: { connectionId: `${workbookId}-database` } } },
         scriptRefs: { '1.sql': { scriptId: 1, fileName: '1.sql' } },
@@ -71,14 +70,12 @@ describe('useWorkbookScripts dispatch', () => {
             await act(async () => {
                 root.render(<LoggerProvider>
                     <StorageProvider backend={backend}>
-                        <ConnectionRegistry>
-                            <WorkbookScriptsRegistryProvider>
-                                <SeedRegistry workbooks={workbooks}>
-                                    {/* No key: changing the route id must reuse the hook and its pending queue. */}
-                                    <Consumer workbookId={workbookId} capture={capture} />
-                                </SeedRegistry>
-                            </WorkbookScriptsRegistryProvider>
-                        </ConnectionRegistry>
+                        <TestRuntime>
+                            <SeedRegistry workbooks={workbooks}>
+                                {/* No key: changing the route id must reuse the hook and its pending queue. */}
+                                <Consumer workbookId={workbookId} capture={capture} />
+                            </SeedRegistry>
+                        </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>);
             });

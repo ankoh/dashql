@@ -5,23 +5,18 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useHyperLinks } from './hyper_links.js';
-import {
-    ConnectionReferencesProvider,
-    ConnectionRegistry as ConnectionRegistryProvider,
-    NO_CONNECTION_REFERENCES,
-    useConnectionRegistry,
-    type ConnectionRegistry,
-} from '../connections/connection_registry.js';
-import { ConnectionPersistenceProvider } from '../connections/connection_persistence.js';
+import { useConnectionRegistry, type ConnectionRegistry } from '../connections/connection_registry.js';
+
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import { PlatformEventListenerProvider, usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
 import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 const LOCAL_LINK = { endpoint: 'http://127.0.0.1:7484', token: 'first' };
 const REMOTE_LINK = { endpoint: 'https://hyper.example.com:7484', token: 'remote' };
@@ -57,15 +52,9 @@ describe('following Hyper links', () => {
                     <MemoryRouter initialEntries={['/']}>
                         <PlatformEventListenerProvider>
                             <DashQLCoreProvider>
-                                <ConnectionReferencesProvider value={NO_CONNECTION_REFERENCES}>
-                                    <ConnectionRegistryProvider>
-                                        <ConnectionPersistenceProvider>
-                                            <WorkbookScriptsRegistryProvider>
-                                                <Harness opened={opened} />
-                                            </WorkbookScriptsRegistryProvider>
-                                        </ConnectionPersistenceProvider>
-                                    </ConnectionRegistryProvider>
-                                </ConnectionReferencesProvider>
+                                <TestRuntime>
+                                    <Harness opened={opened} />
+                                </TestRuntime>
                             </DashQLCoreProvider>
                         </PlatformEventListenerProvider>
                     </MemoryRouter>

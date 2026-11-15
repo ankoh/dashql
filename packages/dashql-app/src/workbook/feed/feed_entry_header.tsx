@@ -11,7 +11,7 @@ import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_
 import { useCancelQuery } from '../../connections/query_executor.js';
 import { queryIsDone, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
-import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
+import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
 import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';

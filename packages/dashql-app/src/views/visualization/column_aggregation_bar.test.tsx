@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import * as styles from './column_aggregation_bar.module.css';
 import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { ComputationRegistry, useComputationRegistry } from '../../compute/computation_registry.js';
+import { useComputationRegistry, StandaloneComputations } from '../../compute/computation_registry.js';
 import { ComputationScheduler } from '../../compute/computation_scheduler.js';
 import type { ComputationAction, ComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
 import { MOST_FREQUENT_FILTER } from '@ankoh/dashql-runtime/compute/cross_filters';
@@ -58,12 +58,12 @@ describe('ColumnAggregationBar', () => {
         root.container.style.width = `${width}px`;
         root.render(
             <LoggerProvider>
-                <ComputationRegistry>
+                <StandaloneComputations>
                     <ComputationScheduler>
                         <Capture />
                         {showBar ? <ColumnAggregationBar query={query} /> : null}
                     </ComputationScheduler>
-                </ComputationRegistry>
+                </StandaloneComputations>
             </LoggerProvider>
         );
     }

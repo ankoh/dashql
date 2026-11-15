@@ -4,18 +4,18 @@ import type { Logger } from './platform/logger/logger.js';
 import type { HttpClient } from './platform/http/http_client.js';
 import type { EmbeddedComputeDatabase } from './platform/database/embedded_database.js';
 import type { OAuthFlow } from './oauth/oauth_flow.js';
-import { Store, type UpdateScheduler } from './store/store.js';
+import type { UpdateScheduler } from './store/store.js';
 import type { StorageBackend } from './storage/storage_backend.js';
 import { StorageWriter } from './storage/storage_writer.js';
 import type { QueryResultCache } from './query/query_result_cache.js';
-import { createComputationState, reduceComputationState, type ComputationAction, type ComputationState } from './compute/computation_state.js';
-import { DataFrameRegistry } from './compute/data_frame.js';
+import { createComputations, type Computations } from './compute/computations.js';
 import { ConnectionRegistryService } from './connections/connection_registry_service.js';
 import { QueryExecutorService } from './connections/query_executor_service.js';
 import { CatalogLoaderService } from './connections/catalog/catalog_loader_service.js';
 import { ConnectionPersistenceService } from './connections/connection_persistence_service.js';
 import { updateHyperCatalog } from './connections/hyper/hyper_catalog_update.js';
-import { SalesforceApiClient } from './connections/salesforce/salesforce_api_client.js';
+import { SalesforceApiClient, type SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
+import { CATALOG_DID_UPDATE } from './workbook/scripts/workbook_scripts.js';
 import { WorkbookScriptsRegistryService } from './workbook/scripts/workbook_scripts_registry_service.js';
 import { WorkbookExecutionService } from './workbook/scripts/workbook_execution_service.js';
 import { registerScriptRunServices } from './workbook/scripts/script_run.js';
@@ -26,6 +26,9 @@ export interface RuntimePlatform {
     logger: Logger;
     /// Where the workbooks and connections are kept
     storage: StorageBackend;
+    /// The writer of the storage, by default one of the runtime. The app passes the one that it flushes when the page
+    /// hides and stops when another tab takes over.
+    storageWriter?: StorageWriter;
     http: HttpClient;
     /// When the registries apply their updates
     scheduler: UpdateScheduler;
@@ -37,60 +40,51 @@ export interface RuntimePlatform {
     computeDatabase?: EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache?: QueryResultCache | null;
-}
-
-/// The computations on query results
-export interface RuntimeComputations {
-    store: Store<ComputationState>;
-    dispatch: (action: ComputationAction) => void;
-    dataFrames: DataFrameRegistry;
+    /// The API of Salesforce that the catalog loader asks, by default over `http`
+    salesforce?: SalesforceApiClientInterface;
 }
 
 /// The logic of DashQL without a user interface: the registries of workbooks and connections and the services on them.
 /// The app binds it to React, the command line tool uses it as it is.
 export interface Runtime {
     platform: RuntimePlatform;
-    core: core.DashQL;
     logger: Logger;
     storageWriter: StorageWriter;
     workbooks: WorkbookScriptsRegistryService;
     connections: ConnectionRegistryService;
-    computations: RuntimeComputations;
+    computations: Computations;
     executor: QueryExecutorService;
     catalogLoader: CatalogLoaderService;
     execution: WorkbookExecutionService;
     persistence: ConnectionPersistenceService;
+    /// Set the database of the computations once the platform has set it up, e.g. in the app after the settings loaded.
+    /// The queries and runs that start later use it.
+    setComputeDatabase(database: EmbeddedComputeDatabase | null): void;
+    /// Set the API of Salesforce once the platform knows it, e.g. in the app after the config chose a mock
+    setSalesforce(salesforce: SalesforceApiClientInterface): void;
     /// Load the stored connections and workbooks into the registries
     restore(progress?: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     /// Write what is pending and stop the services
     destroy(): Promise<void>;
 }
 
-/// Create the runtime of a platform.
+/// Create the runtime of a platform. The app creates it in its RuntimeProvider, the command line tool on its own.
 ///
-/// The order is the one that the providers of the app nest in: the workbooks first, the connections read from them
-/// which workbooks use a connection; then the query executor on the connections and the computations, the catalog
-/// loader and the runs of workbooks on the executor.
-export async function createRuntime(platform: RuntimePlatform): Promise<Runtime> {
+/// The workbooks come first, the connections read from them which workbooks use a connection; then the query executor
+/// on the connections and the computations, the catalog loader and the runs of workbooks on the executor. The core is
+/// instantiated when the runtime restores the stored state, the services ask the platform for it when they need it.
+export function createRuntime(platform: RuntimePlatform): Runtime {
     const { logger, storage, http, scheduler } = platform;
-    const instance = await platform.setupCore('runtime');
-    const storageWriter = new StorageWriter(logger, storage);
+    const storageWriter = platform.storageWriter ?? new StorageWriter(logger, storage);
 
     const workbooks = new WorkbookScriptsRegistryService({ logger, storageWriter }, scheduler);
     const connections = new ConnectionRegistryService({ logger, storageWriter, references: workbooks.references }, scheduler);
 
-    const dataFrames = new DataFrameRegistry(logger);
-    const computationStore = new Store<ComputationState>(createComputationState());
-    const computations: RuntimeComputations = {
-        store: computationStore,
-        // Reducing acquires and releases data frames, the store runs every action once
-        dispatch: action => computationStore.update(state => reduceComputationState(state, action, dataFrames)),
-        dataFrames,
-    };
+    const computations = createComputations(logger);
 
-    const computeDatabase = platform.computeDatabase ?? null;
+    let computeDatabase = platform.computeDatabase ?? null;
     const resultCache = platform.resultCache ?? null;
-    const executor = new QueryExecutorService({
+    const executorDependencies = () => ({
         logger,
         http,
         readConnections: () => connections.store.current,
@@ -100,17 +94,24 @@ export async function createRuntime(platform: RuntimePlatform): Promise<Runtime>
         resultCache,
         setupCore: platform.setupCore,
     });
+    const executor = new QueryExecutorService(executorDependencies());
     const execute = executor.execute.bind(executor);
     const cancel = executor.cancel.bind(executor);
 
-    const catalogLoader = new CatalogLoaderService({
+    let salesforce = platform.salesforce ?? new SalesforceApiClient(logger, http);
+    const catalogLoaderDependencies = () => ({
         logger,
         dispatchConnection: connections.dispatch,
         execute,
-        salesforce: new SalesforceApiClient(logger, http),
+        salesforce,
         updateHyperCatalog,
+        // The scripts that use the connection are analyzed again with the new catalog
+        onCatalogDidUpdate: (connectionId: string) => {
+            void workbooks.dispatchConnection(connectionId, { type: CATALOG_DID_UPDATE, value: connectionId });
+        },
     });
-    const execution = new WorkbookExecutionService({
+    const catalogLoader = new CatalogLoaderService(catalogLoaderDependencies());
+    const executionDependencies = () => ({
         logger,
         readWorkbooks: () => workbooks.store.current,
         readConnections: () => connections.store.current,
@@ -120,6 +121,7 @@ export async function createRuntime(platform: RuntimePlatform): Promise<Runtime>
         computeDatabase,
         resultCache,
     });
+    const execution = new WorkbookExecutionService(executionDependencies());
     const persistence = new ConnectionPersistenceService({
         storageWriter,
         readConnections: () => connections.store.current,
@@ -145,7 +147,6 @@ export async function createRuntime(platform: RuntimePlatform): Promise<Runtime>
 
     return {
         platform,
-        core: instance,
         logger,
         storageWriter,
         workbooks,
@@ -155,7 +156,17 @@ export async function createRuntime(platform: RuntimePlatform): Promise<Runtime>
         catalogLoader,
         execution,
         persistence,
+        setComputeDatabase(database) {
+            computeDatabase = database;
+            executor.setDependencies(executorDependencies());
+            execution.setDependencies(executionDependencies());
+        },
+        setSalesforce(api) {
+            salesforce = api;
+            catalogLoader.setDependencies(catalogLoaderDependencies());
+        },
         async restore(progress = () => { }) {
+            const instance = await platform.setupCore('runtime');
             const restored = await restoreAppState(instance, storage, logger, progress);
             connections.store.update({
                 connections: restored.connectionStates,

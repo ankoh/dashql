@@ -5,11 +5,12 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionRegistry, useConnectionRegistry } from './connection_registry.js';
+import { useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { EXECUTOR_CTX, type QueryExecutor, type QueryExecutorContextValue } from './query_executor.js';
+import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { SETUP_CTX as TRINO_SETUP_CTX } from './trino/trino_connector.js';
 import type { TrinoSetupApi } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
 import type { TrinoChannelInterface } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
@@ -58,7 +59,7 @@ describe('TrinoConnectorSettings', () => {
     let root: Root;
     let registry: Registry | null;
     let execute: ReturnType<typeof vi.fn<QueryExecutor>>;
-    let executor: QueryExecutorContextValue;
+    let executor: TestQueryExecutorFunctions;
     let setup: ReturnType<typeof vi.fn<TrinoSetupApi['setup']>>;
     let reset: ReturnType<typeof vi.fn<TrinoSetupApi['reset']>>;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
@@ -72,16 +73,14 @@ describe('TrinoConnectorSettings', () => {
         const tree = (showSettings: boolean) => (
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
-                    <ConnectionRegistry>
-                        <EXECUTOR_CTX.Provider value={executor}>
-                            <TRINO_SETUP_CTX.Provider value={trinoSetup}>
-                                <>
-                                    <Capture />
-                                    {showSettings && <TrinoConnectorSettings connectionId={CONNECTION_ID} onClose={onClose} />}
-                                </>
-                            </TRINO_SETUP_CTX.Provider>
-                        </EXECUTOR_CTX.Provider>
-                    </ConnectionRegistry>
+                    <TestRuntime {...executor}>
+                        <TRINO_SETUP_CTX.Provider value={trinoSetup}>
+                            <>
+                                <Capture />
+                                {showSettings && <TrinoConnectorSettings connectionId={CONNECTION_ID} onClose={onClose} />}
+                            </>
+                        </TRINO_SETUP_CTX.Provider>
+                    </TestRuntime>
                 </StorageProvider>
             </LoggerProvider>
         );

@@ -1,50 +1,46 @@
 import * as React from 'react';
-import { ComputationAction, ComputationState, createComputationState, reduceComputationState } from "@ankoh/dashql-runtime/compute/computation_state";
-import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
-import { Store } from '@ankoh/dashql-runtime/store/store';
-import { useStore, useStoreState } from '../utils/store_hooks.js';
+
+import type { ComputationAction, ComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import type { DataFrameRegistry } from '@ankoh/dashql-runtime/compute/data_frame';
+import { createComputations, type Computations } from '@ankoh/dashql-runtime/compute/computations';
+import type { Store } from '@ankoh/dashql-runtime/store/store';
+import type { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { DataFrameRegistry } from '@ankoh/dashql-runtime/compute/data_frame';
+import { storeWithoutRuntime, useStoreState } from '../utils/store_hooks.js';
 
-// The state changes with every computation task step while dispatch and the data frame registry are stable.
-// Keep them in separate contexts so that consumers that only dispatch don't re-render on every step.
-const COMPUTATION_STATE_CTX = React.createContext<ComputationState | null>(null);
-const COMPUTATION_DISPATCH_CTX = React.createContext<Dispatch<ComputationAction> | null>(null);
-const DATA_FRAME_REGISTRY_CTX = React.createContext<DataFrameRegistry | null>(null);
-const COMPUTATION_STORE_CTX = React.createContext<Store<ComputationState> | null>(null);
+// The computations on query results (packages/dashql-runtime/src/compute/computations.ts). The RuntimeProvider
+// provides the ones of the runtime, the shell of Hyper has its own. The state changes with every computation task
+// step while dispatch and the data frame registry are stable: consumers that only dispatch don't subscribe and don't
+// re-render on every step.
+const COMPUTATIONS_CTX = React.createContext<Computations | null>(null);
+/// Provide the computations
+export const ComputationsProvider = COMPUTATIONS_CTX.Provider;
 
-export const useComputationRegistry = (): [ComputationState, Dispatch<ComputationAction>, DataFrameRegistry] => [
-    React.useContext(COMPUTATION_STATE_CTX)!,
-    React.useContext(COMPUTATION_DISPATCH_CTX)!,
-    React.useContext(DATA_FRAME_REGISTRY_CTX)!,
-];
-export const useComputationDispatch = () => React.useContext(COMPUTATION_DISPATCH_CTX)!;
-export const useDataFrameRegistry = () => React.useContext(DATA_FRAME_REGISTRY_CTX)!;
-/// Get the computation state without subscribing to its changes
-export const useComputationStore = () => React.useContext(COMPUTATION_STORE_CTX)!;
-
-interface ComputationRegistryProps {
-    children: React.ReactElement[] | React.ReactElement;
-}
-
-export function ComputationRegistry(props: ComputationRegistryProps) {
+/// Computations without a runtime, e.g. of the shell of Hyper, they live as long as the component
+export function StandaloneComputations(props: { children?: React.ReactNode }) {
     const logger = useLogger();
-    const dataFrameMemory = React.useMemo(() => new DataFrameRegistry(logger), []);
-    // Reducing acquires and releases data frames, the store runs every action once
-    const store = useStore<ComputationState>(createComputationState);
-    const state = useStoreState(store);
-    const dispatch = React.useCallback((action: ComputationAction) => {
-        store.update(state => reduceComputationState(state, action, dataFrameMemory));
-    }, [store, dataFrameMemory]);
-    return (
-        <DATA_FRAME_REGISTRY_CTX.Provider value={dataFrameMemory}>
-            <COMPUTATION_STORE_CTX.Provider value={store}>
-                <COMPUTATION_DISPATCH_CTX.Provider value={dispatch}>
-                    <COMPUTATION_STATE_CTX.Provider value={state}>
-                        {props.children}
-                    </COMPUTATION_STATE_CTX.Provider>
-                </COMPUTATION_DISPATCH_CTX.Provider>
-            </COMPUTATION_STORE_CTX.Provider>
-        </DATA_FRAME_REGISTRY_CTX.Provider>
-    );
+    const [computations] = React.useState(() => createComputations(logger));
+    return <COMPUTATIONS_CTX.Provider value={computations}>{props.children}</COMPUTATIONS_CTX.Provider>;
 }
+
+const NO_COMPUTATION_STORE = storeWithoutRuntime<ComputationState>('the computations');
+
+/// The state of the computations, without them no state. Dispatch resolves them when it is called.
+export function useComputationRegistry(): [ComputationState, Dispatch<ComputationAction>, DataFrameRegistry] {
+    const computations = React.useContext(COMPUTATIONS_CTX);
+    const state = useStoreState(computations?.store ?? NO_COMPUTATION_STORE);
+    return [state, useComputationDispatch(), computations?.dataFrames as DataFrameRegistry];
+}
+/// Dispatch to the computations, resolved when it is called: a test may render a component without them as long as it
+/// doesn't dispatch
+export function useComputationDispatch(): Dispatch<ComputationAction> {
+    const computations = React.useContext(COMPUTATIONS_CTX);
+    return React.useCallback((action: ComputationAction) => {
+        if (computations == null) throw new Error('the computations need a RuntimeProvider or StandaloneComputations');
+        computations.dispatch(action);
+    }, [computations]);
+}
+export const useDataFrameRegistry = (): DataFrameRegistry => React.useContext(COMPUTATIONS_CTX)?.dataFrames as DataFrameRegistry;
+/// Get the computation state without subscribing to its changes
+export const useComputationStore = (): Store<ComputationState> => React.useContext(COMPUTATIONS_CTX)?.store ?? NO_COMPUTATION_STORE;

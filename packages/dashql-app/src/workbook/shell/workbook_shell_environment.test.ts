@@ -1,7 +1,7 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 
-import { QueryExecutor } from '../../connections/query_executor.js';
+import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import {
     createWorkbookShellEnvironment,
 } from './workbook_shell_environment.js';

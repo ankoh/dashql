@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js';
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { createQueryExecutionState, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -17,6 +17,7 @@ import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
 import { createTestRoot } from '../../tests/react_root.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
 
@@ -36,6 +37,7 @@ function connectionWithQueries(): ConnectionState {
         connectionId: 'internals-test',
         connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         params: {},
+        details: { type: HYPER_CONNECTOR, value: {} },
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
@@ -86,14 +88,14 @@ describe('InternalsViewer', () => {
                     <AppConfigProvider>
                         <MemoryRouter>
                             <StorageProvider backend={new WorkbookTestBackend()}>
-                                <ConnectionRegistry>
-                                    <QueryResultCacheProvider cache={memoryQueryResultCache()}>
+                                <QueryResultCacheProvider cache={memoryQueryResultCache()}>
+                                    <TestRuntime>
                                         <>
                                             <Capture />
                                             {content}
                                         </>
-                                    </QueryResultCacheProvider>
-                                </ConnectionRegistry>
+                                    </TestRuntime>
+                                </QueryResultCacheProvider>
                             </StorageProvider>
                         </MemoryRouter>
                     </AppConfigProvider>

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { flushSync } from 'react-dom';
 import * as styles from './workbook_feed.module.css';
 import * as dashql from '@ankoh/dashql-core';
-import { useWorkbookExecution } from '../scripts/workbook_execution_provider.js';
+import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../ui/foundations/symbol_icon.js';

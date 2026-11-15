@@ -36,7 +36,7 @@ const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 describe('the runtime', () => {
     it('writes what the registries hold and a second runtime restores it', async () => {
         const storage = new WorkbookTestBackend();
-        let first: Runtime | null = await createRuntime(testPlatform(storage));
+        let first: Runtime | null = createRuntime(testPlatform(storage));
         let second: Runtime | null = null;
         try {
             expect((await first.restore()).workbookScripts.size).toBe(0);
@@ -49,7 +49,7 @@ describe('the runtime', () => {
             await first.destroy();
             first = null;
 
-            second = await createRuntime(testPlatform(storage));
+            second = createRuntime(testPlatform(storage));
             const restored = await second.restore();
             expect([...restored.workbookScripts.keys()]).toEqual([workbook.workbookId]);
             expect(second.workbooks.store.current.workbookScriptsMap.get(workbook.workbookId)?.name).toBe('Sales');

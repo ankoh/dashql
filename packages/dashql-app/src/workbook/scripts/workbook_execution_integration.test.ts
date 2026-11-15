@@ -3,9 +3,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
-import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { WorkbookTestBackend, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { QueryCacheMissError } from '@ankoh/dashql-runtime/query/query_result_cache';
 import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
@@ -32,7 +31,6 @@ import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { importWorkbookQueryResults, retainWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
-import { TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { computeQueryCacheKeyForConnection } from '@ankoh/dashql-runtime/connections/query_executor_service';
 import { decodeConnectionFromProto } from '@ankoh/dashql-runtime/connections/connection_import';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';

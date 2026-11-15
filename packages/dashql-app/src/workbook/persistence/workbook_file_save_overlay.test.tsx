@@ -3,7 +3,8 @@ import JSZip from 'jszip';
 import { act } from '@dashql/browser-test-act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionReferencesProvider, ConnectionRegistry, NO_CONNECTION_REFERENCES, useConnectionRegistry, type ConnectionReferences } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
@@ -21,6 +22,8 @@ import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { readWorkbookBundleFromZip } from './workbook_import.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
+import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -40,50 +43,53 @@ const CONNECTION = {
     name: 'Warehouse',
     params: { hyper: {} },
     // The connection carries no setup params, so there is no login hint to share
-    details: { value: { proto: { setupParams: null } } },
+    details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: null } } },
 } as unknown as ConnectionState;
 
-const REFERENCES: ConnectionReferences = {
-    ...NO_CONNECTION_REFERENCES,
-    connectionsOf: workbookId => workbookId === TEST_WORKBOOK_ID ? [TEST_CONNECTION_ID] : [],
-};
-
-const WORKBOOK = { workbookId: TEST_WORKBOOK_ID, workbookMetadata: { originalFileName: 'orders' } } as unknown as WorkbookScripts;
+// The workbook uses the connection without a script
+const WORKBOOK = {
+    workbookId: TEST_WORKBOOK_ID, workbookMetadata: { originalFileName: 'orders' },
+    scripts: {}, scriptRefs: {}, scriptOrder: [], instance: {}, pendingConnection: { connectionId: TEST_CONNECTION_ID },
+} as unknown as WorkbookScripts;
 
 describe('WorkbookFileSaveOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
     let registry: Registry | null;
+    let workbooks: ReturnType<typeof useWorkbookScriptsRegistry> | null;
     let download: ReturnType<typeof vi.spyOn>;
 
     function Capture() {
         registry = useConnectionRegistry();
+        workbooks = useWorkbookScriptsRegistry();
         return null;
     }
 
-    async function render(props: Partial<React.ComponentProps<typeof WorkbookFileSaveOverlay>>, references = REFERENCES, cache?: QueryResultCache) {
+    /// Render the overlay, with `known` the registry knows the connections of the workbook
+    async function render(props: Partial<React.ComponentProps<typeof WorkbookFileSaveOverlay>>, known = true, cache?: QueryResultCache) {
         const withCache = (children: React.ReactElement) => cache != null ? <QueryResultCacheProvider cache={cache}>{children}</QueryResultCacheProvider> : children;
         const tree = (overlay: boolean) => withCache(
             <LoggerProvider>
                 <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
 <DashQLCoreProvider>
                     <StorageProvider backend={backend}>
-                        <ConnectionRegistry>
-                            <ConnectionReferencesProvider value={references}>
-                                <Capture />
-                                {overlay && <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={WORKBOOK} {...props} />}
-                            </ConnectionReferencesProvider>
-                        </ConnectionRegistry>
+                        <TestRuntime>
+                            <Capture />
+                            {overlay && <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={WORKBOOK} {...props} />}
+                        </TestRuntime>
                     </StorageProvider>
                 </DashQLCoreProvider>
 </EmbeddedDatabaseProvider>
             </LoggerProvider>,
         );
         await root.render(tree(false));
-        await act(async () => registry![1](reg => {
-            reg.connections.set(TEST_CONNECTION_ID, CONNECTION);
-            return { ...reg };
-        }));
+        await act(async () => {
+            registry![1](reg => {
+                reg.connections.set(TEST_CONNECTION_ID, CONNECTION);
+                return { ...reg };
+            });
+            if (known) workbooks![1](reg => ({ ...reg, workbookScriptsMap: new Map([[TEST_WORKBOOK_ID, WORKBOOK]]) }));
+        });
         await root.render(tree(true));
     }
 
@@ -165,7 +171,7 @@ describe('WorkbookFileSaveOverlay', () => {
             scriptRefs: { '1.sql': { scriptId: 1 }, '2.sql': { scriptId: 2 } }, scripts: { 1: script('1.sql'), 2: script('2.sql') },
         } as unknown as WorkbookScripts;
         try {
-            await render({ workbookScripts: workbook }, REFERENCES, cache);
+            await render({ workbookScripts: workbook }, true, cache);
             await waitForFile();
             expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
             await act(async () => {
@@ -195,7 +201,7 @@ describe('WorkbookFileSaveOverlay', () => {
     });
 
     it('packs nothing while the connections of the workbook are unknown or the overlay is closed', async () => {
-        await render({}, NO_CONNECTION_REFERENCES);
+        await render({}, false);
         await act(() => new Promise(resolve => setTimeout(resolve, 50)));
         expect(saveButton()!.disabled).toBe(true);
         expect(document.body.textContent).toContain('~ 0 bytes');

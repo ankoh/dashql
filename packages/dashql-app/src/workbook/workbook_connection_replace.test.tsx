@@ -3,22 +3,22 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
+import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
-import { QueryExecutorProvider } from '../connections/query_executor.js';
+
 import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { scriptConnectionOf, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { WorkbookScriptsRegistryProvider, useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -45,6 +45,8 @@ function connection(connectionId: string, endpoint: string): ConnectionState {
 function workbook(on: ConnectionState): WorkbookScripts {
     return {
         workbookId: WORKBOOK_ID,
+        // The runtime registers the services of script runs with the instance
+        instance: {},
         pendingConnection: scriptConnectionOf(on),
         scripts: {},
         scriptRefs: {},
@@ -109,21 +111,15 @@ describe('useReplaceConnection', () => {
         await act(async () => {
             root.render(<LoggerProvider>
                 <StorageProvider backend={backend}>
-                    <ConnectionRegistry>
-                        <WorkbookScriptsRegistryProvider>
-                            <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                    <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                        <ComputeConnectionProvider>
+                            <TestRuntime>
                                 <HyperLogMetricsProvider>
-                                    <ComputeConnectionProvider>
-                                        <ComputationRegistry>
-                                            <QueryExecutorProvider>
-                                                <Capture databases={[source, target]} workbook={workbook(source)} capture={next => { api = next; }} />
-                                            </QueryExecutorProvider>
-                                        </ComputationRegistry>
-                                    </ComputeConnectionProvider>
+                                    <Capture databases={[source, target]} workbook={workbook(source)} capture={next => { api = next; }} />
                                 </HyperLogMetricsProvider>
-                            </EmbeddedDatabaseProvider>
-                        </WorkbookScriptsRegistryProvider>
-                    </ConnectionRegistry>
+                            </TestRuntime>
+                        </ComputeConnectionProvider>
+                    </EmbeddedDatabaseProvider>
                 </StorageProvider>
             </LoggerProvider>);
         });

@@ -3,22 +3,22 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { ConnectionRegistry, useConnectionRegistry } from '../connections/connection_registry.js';
+import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
 import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
-import { QueryExecutorProvider, useQueryExecutor } from '../connections/query_executor.js';
+import { useQueryExecutor } from '../connections/query_executor.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookScriptsRegistryProvider } from './scripts/workbook_scripts_registry.js';
+
 import { useMergeConnections } from './workbook_connection_merge.js';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -103,21 +103,15 @@ describe('useMergeConnections', () => {
         await act(async () => {
             root.render(<LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
-                    <ConnectionRegistry>
-                        <WorkbookScriptsRegistryProvider>
-                            <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                    <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                        <ComputeConnectionProvider>
+                            <TestRuntime>
                                 <HyperLogMetricsProvider>
-                                    <ComputeConnectionProvider>
-                                        <ComputationRegistry>
-                                            <QueryExecutorProvider>
-                                                <Capture databases={[source.database, target.database]} capture={next => { api = next; }} />
-                                            </QueryExecutorProvider>
-                                        </ComputationRegistry>
-                                    </ComputeConnectionProvider>
+                                    <Capture databases={[source.database, target.database]} capture={next => { api = next; }} />
                                 </HyperLogMetricsProvider>
-                            </EmbeddedDatabaseProvider>
-                        </WorkbookScriptsRegistryProvider>
-                    </ConnectionRegistry>
+                            </TestRuntime>
+                        </ComputeConnectionProvider>
+                    </EmbeddedDatabaseProvider>
                 </StorageProvider>
             </LoggerProvider>);
         });

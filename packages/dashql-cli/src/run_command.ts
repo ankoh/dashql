@@ -291,7 +291,8 @@ class ConnectionSetupError extends Error {
 async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise<WorkbookScripts> {
     // The folder is the workbook, its file names its id
     const { workbookId } = await storage.loadWorkbook('');
-    const restored = await restoreSingleWorkbook(rt.core, storage, rt.logger, workbookId, rt.connections.store.current);
+    const core = await rt.platform.setupCore('run');
+    const restored = await restoreSingleWorkbook(core, storage, rt.logger, workbookId, rt.connections.store.current);
     rt.connections.store.update(registry => mergeRestoredWorkbookIntoConnections(registry, restored));
     rt.workbooks.store.update(registry => mergeRestoredWorkbookIntoScripts(registry, restored));
     return restored.workbookScripts;
@@ -339,7 +340,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     } catch (error) {
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
-    const runtime = await createRuntime({
+    const runtime = createRuntime({
         ...createNodePlatform({ logger, storage }),
         setupCore: () => cli.setupCore(),
         computeDatabase: hyper?.database ?? null,
