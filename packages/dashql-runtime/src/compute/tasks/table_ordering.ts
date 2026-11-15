@@ -1,8 +1,8 @@
-import { DataFrame, generateTableName } from '@ankoh/dashql-runtime/compute/data_frame';
-import { TableOrderingTask, OrderingTable } from '@ankoh/dashql-runtime/compute/computation_types';
-import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { SQLFrame } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
-import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { DataFrame, generateTableName } from '../data_frame.js';
+import { TableOrderingTask, OrderingTable } from '../computation_types.js';
+import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
+import { SQLFrame } from '../sql/sqlframe_builder.js';
+import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 
 const LOG_CTX = "compute";
 

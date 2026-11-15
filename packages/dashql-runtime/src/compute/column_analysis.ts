@@ -1,9 +1,8 @@
 import * as arrow from 'apache-arrow';
 
-import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
-import { TableAggregation, OrdinalColumnAnalysis, StringColumnAnalysis, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable } from '@ankoh/dashql-runtime/compute/computation_types';
-import { assert } from '../utils/assert.js';
-import { isTemporalType } from '@ankoh/dashql-runtime/compute/arrow_columns';
+import { ArrowTableFormatter } from './arrow_formatter.js';
+import { TableAggregation, OrdinalColumnAnalysis, StringColumnAnalysis, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable } from './computation_types.js';
+import { isTemporalType } from './arrow_columns.js';
 
 export function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter, filteredTotalCount: number | null = null): OrdinalColumnAnalysis {
     const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
@@ -15,16 +14,16 @@ export function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry
     const minValue = tableSummary.tableFormatter.getValue(0, minFieldId) ?? "";
     const maxValue = tableSummary.tableFormatter.getValue(0, maxFieldId) ?? "";
 
-    assert(binnedValues.schema.fields[0].name == "bin");
-    assert(binnedValues.schema.fields[1].name == "count");
-    assert(binnedValues.schema.fields[3].name == "binLowerBound");
+    console.assert(binnedValues.schema.fields[0].name == "bin");
+    console.assert(binnedValues.schema.fields[1].name == "count");
+    console.assert(binnedValues.schema.fields[3].name == "binLowerBound");
     const binIdVector = binnedValues.getChildAt(0) as arrow.Vector<arrow.Uint32>;
     const binCountVector = binnedValues.getChildAt(1) as arrow.Vector<arrow.Int64>;
 
     const nullBinRowIdx = binnedValues.numRows - 1;
     const nullBinId = Number(binIdVector.get(nullBinRowIdx) ?? -1);
-    assert(binnedValues.numRows === (columnEntry.binCount + 1));
-    assert(nullBinId === columnEntry.binCount);
+    console.assert(binnedValues.numRows === (columnEntry.binCount + 1));
+    console.assert(nullBinId === columnEntry.binCount);
 
     const countNull = Number(binCountVector.get(nullBinRowIdx) ?? BigInt(0));
     const countNotNull = filteredTotalCount == null
@@ -78,8 +77,8 @@ export function analyzeStringColumn(tableSummary: TableAggregation, columnEntry:
     const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
     const distinctCount = Number(distinctCountVector.get(0) ?? BigInt(0));
 
-    assert(frequentValueTable.schema.fields[0].name == "key");
-    assert(frequentValueTable.getChild("count") != null);
+    console.assert(frequentValueTable.schema.fields[0].name == "key");
+    console.assert(frequentValueTable.getChild("count") != null);
 
     const frequentValueCounts = frequentValueTable.getChild("count")!.toArray();
     const frequentValuePercentages = new Float64Array(frequentValueTable.numRows);

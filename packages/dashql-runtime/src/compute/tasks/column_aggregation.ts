@@ -1,10 +1,10 @@
-import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
-import { DataFrame, generateTableName } from '@ankoh/dashql-runtime/compute/data_frame';
-import { ColumnAggregationVariant, ColumnAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ROWNUMBER_COLUMN, getGridColumnTypeName, WithFilter, WithFilterEpoch } from '@ankoh/dashql-runtime/compute/computation_types';
-import { LoggableException, LoggerLike, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { OrderByConstraint, SQLFrame } from '@ankoh/dashql-runtime/compute/sql/sqlframe_builder';
-import { ComputeQueryExecution, executeDirectly } from '@ankoh/dashql-runtime/compute/computation_tasks';
-import { getToNumericFn, isIntegerType } from '@ankoh/dashql-runtime/compute/arrow_columns';
+import { ArrowTableFormatter } from '../arrow_formatter.js';
+import { DataFrame, generateTableName } from '../data_frame.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ROWNUMBER_COLUMN, getGridColumnTypeName, WithFilter, WithFilterEpoch } from '../computation_types.js';
+import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
+import { OrderByConstraint, SQLFrame } from '../sql/sqlframe_builder.js';
+import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
+import { getToNumericFn, isIntegerType } from '../arrow_columns.js';
 import { analyzeOrdinalColumn, analyzeStringColumn } from '../column_analysis.js';
 
 const LOG_CTX = "compute";

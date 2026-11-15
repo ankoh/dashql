@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
-import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { TestLogger } from '../../testing/test_logger.js';
+import { ArrowTableFormatter } from '../arrow_formatter.js';
+import type { ComputeQueryExecution } from '../computation_tasks.js';
 import {
     ColumnAggregationTask,
     ColumnAggregationVariant,
@@ -15,10 +15,10 @@ import {
     ORDINAL_COLUMN,
     STRING_COLUMN,
     WithFilter,
-} from '@ankoh/dashql-runtime/compute/computation_types';
-import { executeReturning, mockDataFrame as frame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
+} from '../computation_types.js';
+import { executeReturning, mockDataFrame as frame } from '../../testing/mocks/compute_query.js';
 import { computeFilteredColumnAggregates } from './column_aggregation.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 /// The table aggregate with the stats of the string column name (_0) and the ordinal column score (_1)
 const statsTable = tableFromArrays({

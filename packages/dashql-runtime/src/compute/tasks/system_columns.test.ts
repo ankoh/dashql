@@ -1,19 +1,19 @@
 
-import { appendRowNumbers, buildGridColumnGroups } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
-import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
+import { appendRowNumbers, buildGridColumnGroups } from '../analyze_table.js';
+import { ComputationStateVersion } from '../computation_types.js';
+import { DataFrame } from '../data_frame.js';
 import { computeSystemColumns } from './system_columns.js';
 import { computeTableAggregates } from './table_aggregation.js';
-import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { TestLogger } from '../../testing/test_logger.js';
+import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 describe('computeSystemColumns', () => {
     let database: HyperDB | null = null;
 
     beforeEach(async () => {
-        database = await setupWebHyperDB('system_columns_test', new TestLogger());
+        database = await openTestHyperDB('system_columns_test');
     }, 60_000);
 
     afterEach(async () => {

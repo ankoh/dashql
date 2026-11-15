@@ -115,6 +115,11 @@ describe('processTask', () => {
         vi.spyOn(computationLogic, 'searchData').mockResolvedValue({} as any);
     });
 
+    // The operations are an object of the module, a test file on the same page after this one runs the real ones
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('warns and skips if task has no taskId', async () => {
         const task: TaskVariant = {
             type: TABLE_FILTERING_TASK,

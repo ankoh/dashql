@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { computeColumnAggregates, computeFilteredColumnAggregates } from './tasks/column_aggregation.js';
-import { computeSystemColumns } from './tasks/system_columns.js';
-import { computeTableAggregates } from './tasks/table_aggregation.js';
-import { filterTable } from './tasks/table_filtering.js';
-import { searchData } from './tasks/data_search.js';
-import { sortTable } from './tasks/table_ordering.js';
+import { computeColumnAggregates, computeFilteredColumnAggregates } from '@ankoh/dashql-runtime/compute/tasks/column_aggregation';
+import { computeSystemColumns } from '@ankoh/dashql-runtime/compute/tasks/system_columns';
+import { computeTableAggregates } from '@ankoh/dashql-runtime/compute/tasks/table_aggregation';
+import { filterTable } from '@ankoh/dashql-runtime/compute/tasks/table_filtering';
+import { searchData } from '@ankoh/dashql-runtime/compute/tasks/data_search';
+import { sortTable } from '@ankoh/dashql-runtime/compute/tasks/table_ordering';
 
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from '@ankoh/dashql-runtime/compute/computation_state';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';

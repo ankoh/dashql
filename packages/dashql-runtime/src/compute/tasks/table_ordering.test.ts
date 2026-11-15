@@ -1,19 +1,19 @@
 
-import { appendRowNumbers } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { createArrowFieldIndex } from '@ankoh/dashql-runtime/compute/computation_state';
-import { ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
-import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
+import { appendRowNumbers } from '../analyze_table.js';
+import { createArrowFieldIndex } from '../computation_state.js';
+import { ComputationStateVersion } from '../computation_types.js';
+import { DataFrame } from '../data_frame.js';
 import { sortTable } from './table_ordering.js';
-import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { TestLogger } from '../../testing/test_logger.js';
+import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 describe('sortTable', () => {
     let database: HyperDB | null = null;
 
     beforeEach(async () => {
-        database = await setupWebHyperDB('table_ordering_test', new TestLogger());
+        database = await openTestHyperDB('table_ordering_test');
     }, 60_000);
 
     afterEach(async () => {

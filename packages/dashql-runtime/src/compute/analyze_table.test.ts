@@ -2,14 +2,14 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
+import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
+import { TestLogger } from '../testing/test_logger.js';
+import { analyzeTable } from './analyze_table.js';
 import { computeTableAggregates } from './tasks/table_aggregation.js';
-import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from '@ankoh/dashql-runtime/compute/computation_types';
-import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
-import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { ComputationStateVersion, ORDINAL_COLUMN, TableAggregationTask } from './computation_types.js';
+import { DataFrame } from './data_frame.js';
+import { mockDataFrame } from '../testing/mocks/compute_query.js';
+import { tableFromArrays } from '../testing/arrow_fixtures.js';
 
 describe('analyzeTable', () => {
     it('ignores results without columns', async () => {

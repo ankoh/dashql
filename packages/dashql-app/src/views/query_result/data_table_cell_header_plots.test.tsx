@@ -21,7 +21,7 @@ import {
     type WithFilter,
     type WithProgress,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { computeColumnAggregates } from '../../compute/tasks/column_aggregation.js';
+import { computeColumnAggregates } from '@ankoh/dashql-runtime/compute/tasks/column_aggregation';
 import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
 import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';

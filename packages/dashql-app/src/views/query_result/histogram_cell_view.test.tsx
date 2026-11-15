@@ -17,7 +17,7 @@ import {
     type WithFilter,
     type WithFilterEpoch,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { computeColumnAggregates, computeFilteredColumnAggregates } from '../../compute/tasks/column_aggregation.js';
+import { computeColumnAggregates, computeFilteredColumnAggregates } from '@ankoh/dashql-runtime/compute/tasks/column_aggregation';
 import { executeReturning, mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
