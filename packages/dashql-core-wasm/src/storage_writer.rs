@@ -138,7 +138,7 @@ fn error_value(error: &HostError) -> JsValue {
 }
 
 /// Await a host call that returns a promise
-async fn host_call(result: Result<JsValue, JsValue>) -> Result<JsValue, HostError> {
+pub(crate) async fn host_call(result: Result<JsValue, JsValue>) -> Result<JsValue, HostError> {
     let value = result.map_err(host_error)?;
     JsFuture::from(Promise::resolve(&value)).await.map_err(host_error)
 }
@@ -166,7 +166,7 @@ impl Drop for JsSleep {
 
 /// The host of the writer over the JS object
 pub struct JsHost {
-    host: JsStorageWriterHost,
+    pub(crate) host: JsStorageWriterHost,
 }
 
 impl Host for JsHost {
@@ -374,7 +374,7 @@ fn parse_task(json: &str, readers: &Array) -> Result<WriteTask, JsError> {
 }
 
 /// The outcome of a write for JS: `{ status, error?, unavailableWorkbook? }`
-fn outcome_value(outcome: WriteOutcome) -> JsValue {
+pub(crate) fn outcome_value(outcome: WriteOutcome) -> JsValue {
     let object = Object::new();
     let set = |key: &str, value: &JsValue| {
         let _ = Reflect::set(&object, &JsValue::from_str(key), value);
@@ -402,6 +402,13 @@ fn outcome_value(outcome: WriteOutcome) -> JsValue {
 #[wasm_bindgen]
 pub struct StorageWriter {
     writer: RuntimeStorageWriter<JsHost>,
+}
+
+impl StorageWriter {
+    /// The writer of the runtime, a handle that other services write through
+    pub(crate) fn runtime(&self) -> RuntimeStorageWriter<JsHost> {
+        self.writer.clone()
+    }
 }
 
 #[wasm_bindgen]

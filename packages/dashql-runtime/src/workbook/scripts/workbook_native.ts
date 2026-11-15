@@ -115,18 +115,31 @@ export class NativeWorkbook {
         });
     }
 
+    /// The scripts of a workbook that a service of the Rust runtime created, e.g. the restore. The connections are the
+    /// ones of its scripts and its pending connection.
+    static adopt(init: Pick<WorkbookScriptsInit, 'instance' | 'workbookId' | 'name' | 'workbookMetadata'> & {
+        workbook: core.DashQLWorkbook;
+        connections: readonly ScriptConnection[];
+    }): WorkbookScripts {
+        const native = new NativeWorkbook(init.workbook, init.workbookMetadata.cloud ?? null);
+        for (const connection of init.connections) native.connections.set(connection.connectionId, connection);
+        try {
+            return native.project({
+                instance: init.instance,
+                workbookId: init.workbookId,
+                name: init.name,
+                workbookMetadata: init.workbookMetadata,
+            });
+        } catch (e) {
+            native.destroy();
+            throw e;
+        }
+    }
+
     /// The connection of the Rust workbook, the connection object is remembered for the projection
     connection(connection: ScriptConnection): core.WorkbookConnection {
         this.connections.set(connection.connectionId, connection);
-        return {
-            connectionId: connection.connectionId,
-            catalog: connection.catalog,
-            dialect: formattingDialectForConnector(connection.connectorInfo?.connectorType),
-            local: connection.local ?? false,
-            params: connection.params == null ? null : JSON.stringify(connection.params),
-            defaultDatabase: connection.catalogNameDefaults?.databaseName ?? '',
-            defaultSchema: connection.catalogNameDefaults?.schemaName ?? '',
-        };
+        return workbookConnectionOf(connection);
     }
 
     /// Take an editor update for the next projection of a script instead of unpacking it again
@@ -267,6 +280,19 @@ export class NativeWorkbook {
         this.projected.clear();
         this.workbook.destroy();
     }
+}
+
+/// The connection of a script as the Rust workbook takes it
+export function workbookConnectionOf(connection: ScriptConnection): core.WorkbookConnection {
+    return {
+        connectionId: connection.connectionId,
+        catalog: connection.catalog,
+        dialect: formattingDialectForConnector(connection.connectorInfo?.connectorType),
+        local: connection.local ?? false,
+        params: connection.params == null ? null : JSON.stringify(connection.params),
+        defaultDatabase: connection.catalogNameDefaults?.databaseName ?? '',
+        defaultSchema: connection.catalogNameDefaults?.schemaName ?? '',
+    };
 }
 
 /// The ids of a link to a published workbook that the Rust workbook keeps

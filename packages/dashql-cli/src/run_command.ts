@@ -249,7 +249,7 @@ async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise
     // The folder is the workbook, its file names its id
     const { workbookId } = await storage.loadWorkbook('');
     const core = await rt.platform.setupCore('run');
-    const restored = await restoreSingleWorkbook(core, storage, rt.logger, workbookId, rt.connections.store.current);
+    const restored = await restoreSingleWorkbook(core, storage, rt.logger, workbookId, rt.connections.store.current, rt.storageWriter);
     rt.connections.store.update(registry => mergeRestoredWorkbookIntoConnections(registry, restored));
     rt.workbooks.store.update(registry => mergeRestoredWorkbookIntoScripts(registry, restored));
     return restored.workbookScripts;

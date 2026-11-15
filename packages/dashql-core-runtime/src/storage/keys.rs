@@ -33,3 +33,28 @@ pub fn chain_key(key: &str) -> String {
 pub fn connection_file_prefix(connection_id: &str) -> String {
     format!("@{}/{connection_id}/", super::CONNECTIONS_FOLDER)
 }
+
+/// The key of the entry of a connection in the app manifest, `@manifest/connections/<id>`
+pub fn connection_entry_key(connection_id: &str) -> String {
+    format!("@manifest/{}/{connection_id}", super::CONNECTIONS_FOLDER)
+}
+
+/// The key of a file of a connection, `@connections/<id>/<file>`
+pub fn connection_file_key(connection_id: &str, file_name: &str) -> String {
+    format!("{}{file_name}", connection_file_prefix(connection_id))
+}
+
+/// The key of the workbook file of a workbook, e.g. its properties
+pub fn workbook_file_key(workbook_id: &str) -> String {
+    format!("{workbook_id}/{}", super::WORKBOOK_FILE)
+}
+
+/// The key of the copy of a connection in a workbook file
+pub fn workbook_connection_copy_key(workbook_id: &str, connection_id: &str) -> String {
+    format!("{}:connection/{connection_id}", workbook_file_key(workbook_id))
+}
+
+/// The key of the script list of a workbook file
+pub fn workbook_script_list_key(workbook_id: &str) -> String {
+    format!("{}:scripts", workbook_file_key(workbook_id))
+}

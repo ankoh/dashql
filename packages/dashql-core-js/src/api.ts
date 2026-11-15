@@ -9,6 +9,7 @@ import { DashQLWorkbook } from './workbook.js';
 import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorType } from './connection.js';
 import { DashQLComputations } from './computations.js';
 import { DashQLStorageWriter } from './storage_writer.js';
+import { DashQLAppRestore } from './restore.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -35,6 +36,8 @@ export type DashQLBindings = Pick<
     | 'Connection'
     | 'Computations'
     | 'StorageWriter'
+    | 'AppRestore'
+    | 'ConnectionPersistence'
 >;
 
 /// The shell of the module, the host runs its effects
@@ -440,6 +443,12 @@ export class DashQL {
     /// files of the given format version.
     public createStorageWriter(host: glue.StorageWriterHost, formatVersion: number): DashQLStorageWriter {
         return DashQLStorageWriter.create(this, host, formatVersion);
+    }
+
+    /// Create the restore of the stored state of the Rust runtime on a host, it writes through a storage writer of the
+    /// instance. The editors of the restored workbooks count offsets in `offsetUnit`.
+    public createRestore(host: glue.RestoreHost, writer: DashQLStorageWriter, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLAppRestore {
+        return DashQLAppRestore.create(this, host, writer, offsetUnit);
     }
 
     /// Create the table parameters of a session, the tables that `:foo` in table position reads

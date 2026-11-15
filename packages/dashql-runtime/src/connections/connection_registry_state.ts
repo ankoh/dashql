@@ -1,3 +1,4 @@
+import * as core from '@ankoh/dashql-core';
 import {
     ConnectionState,
     ConnectionAction,
@@ -17,18 +18,13 @@ import type { Logger } from '../platform/logger/logger.js';
 import {
     DEBOUNCE_DURATION_WORKBOOK_WRITE,
     groupConnectionEntryWrites,
-    groupConnectionFileWrites,
     groupWorkbookConnectionCopyWrites,
     WRITE_CONNECTION_ENTRY,
-    WRITE_CONNECTION_FILE,
     PATCH_WORKBOOK_CONNECTION,
-    DELETE_CONNECTION_ENTRY,
     type StorageWriter,
 } from '../storage/storage_writer.js';
-import { generateRelationsFile, readRelationName } from './catalog/catalog_sql_generator.js';
-import { CatalogUpdateVariant, pendingRelations } from './catalog/catalog_update_state.js';
-import { STORAGE_CATALOG_STATE, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, type ConnectionEntry, type WorkbookConnection } from '../storage/storage_backend.js';
-import { connectionCatalogIsDurable, connectionParamsEqual } from './connection_params.js';
+import type { ConnectionEntry, WorkbookConnection } from '../storage/storage_backend.js';
+import { connectionParamsEqual } from './connection_params.js';
 
 const LOG_CTX = 'connection_registry';
 
@@ -212,10 +208,9 @@ export function applyConnectionAction(reg: ConnectionRegistry, references: Conne
     if (action.type == DELETE_CONNECTION) {
         reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != connectionId);
         reg.connections.delete(connectionId);
-        if (prev.active) {
-            storageWriter.cancelPendingConnectionFileWrites(connectionId);
-            void storageWriter.write(groupConnectionEntryWrites(connectionId), { type: DELETE_CONNECTION_ENTRY, value: connectionId });
-        }
+        // An active connection leaves the app manifest with its files
+        void storageWriter.withNativeWriter(async native => core.DashQLConnectionPersistence.scheduleDeleteWrites(native, connectionId, prev.active))
+            .catch(error => logger.error('Failed to schedule the deletion of a connection', { connectionId, error: String(error) }, LOG_CTX));
         return { ...reg };
     }
     reg.connections.set(connectionId, next);
@@ -224,68 +219,45 @@ export function applyConnectionAction(reg: ConnectionRegistry, references: Conne
         reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != connectionId);
         reg.connectionsByType[next.connectorInfo.connectorType].push(connectionId);
     }
-    // Only connections that workbooks reference or that were activated are persisted.
-    // Saving writes the committed params by itself and awaits the writes.
-    if (workbookIds.length === 0 && !next.active) {
-        return { ...reg };
-    }
-    if (action.type !== COMMIT_CONNECTION_PARAMS) {
-        if (didConnectionParamsChange(prev, next) || (!prev.active && next.active)) {
-            // Saved params are replicated into every workbook that references the connection
-            scheduleConnectionParamsWrites(references, next, storageWriter);
-        } else if (didPersistedConnectionChange(prev, next)) {
-            // Drafts, names and the caching choice only live in the app manifest
-            void storageWriter.write(
-                groupConnectionEntryWrites(connectionId),
-                { type: WRITE_CONNECTION_ENTRY, value: connectionEntryFromState(next) },
-                DEBOUNCE_DURATION_CONNECTION_DRAFT_WRITE,
-            );
-        }
-    }
-    if (!next.active) {
-        return { ...reg };
-    }
-    // The catalog of the connection is written into the app storage, workbooks don't keep a copy.
-    // The relations of a connection whose database doesn't outlive the app are never written.
-    const durable = connectionCatalogIsDurable(next.params);
-    if (action.type === CATALOG_UPDATE_SUCCEEDED || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED) {
-        const task = next.catalogUpdates.tasksFinished.get(action.value[0]);
-        const refreshed = task?.taskVariant !== CatalogUpdateVariant.RELATION_REFRESH;
-        // A lookup that changed nothing has nothing to save
-        if (durable && next.catalogUpdates.described && (refreshed || action.value[1] !== false)) {
-            void storageWriter.write(
-                groupConnectionFileWrites(connectionId, STORAGE_CATALOG_RELATIONS),
-                // Rendered when the write runs, a run of statements saves the relations once
-                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_RELATIONS, () => {
-                    // A reset cleared the catalog in the meantime, what is on disk is better than nothing
-                    const descriptor = next.catalog.readDescriptor(next.catalogRelationEntryId);
-                    return descriptor == null ? null : generateRelationsFile(descriptor);
-                }] },
-                DEBOUNCE_DURATION_WORKBOOK_WRITE,
-            );
-        }
-        // Only a full refresh reads the functions
-        if (refreshed) {
-            void storageWriter.write(
-                groupConnectionFileWrites(connectionId, STORAGE_CATALOG_FUNCTIONS),
-                { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_FUNCTIONS, next.catalogFunctionScript.toString()] },
-                DEBOUNCE_DURATION_WORKBOOK_WRITE,
-            );
-        }
-    }
-    // Statements and the updates that answer them change what the relations don't say. A relation stays pending until an
-    // update answered, so that a restart in between asks again.
-    if (durable && (action.type === RELATIONS_TOUCHED || action.type === CATALOG_UPDATE_SUCCEEDED
-        || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED || action.type === CATALOG_UPDATE_FAILED || action.type === CATALOG_UPDATE_CANCELLED)) {
-        const state = JSON.stringify({
-            pending: pendingRelations(next),
-            gone: next.catalog.absentRelations().map(name => readRelationName(name)),
-        });
-        void storageWriter.write(
-            groupConnectionFileWrites(connectionId, STORAGE_CATALOG_STATE),
-            { type: WRITE_CONNECTION_FILE, value: [connectionId, STORAGE_CATALOG_STATE, state] },
-            DEBOUNCE_DURATION_WORKBOOK_WRITE,
-        );
-    }
+    // The Rust runtime decides what storage keeps of the change (`connection_persistence`): the params, the draft, the
+    // name and the caching choice in the app manifest, the saved params in the workbooks, the catalog in the files of
+    // the connection
+    const fields = persistedFields(prev);
+    const change = persistenceChange(action);
+    const workbooks = [...workbookIds];
+    void storageWriter.withNativeWriter(async native => {
+        core.DashQLConnectionPersistence.scheduleWrites(native, next.native.connection, connectionId, fields, change, workbooks);
+    }).catch(error => logger.error('Failed to schedule the writes of a connection', { connectionId, error: String(error) }, LOG_CTX));
     return { ...reg };
+}
+
+/// What storage keeps of a connection before a change
+function persistedFields(state: ConnectionState): core.PersistedConnectionFields {
+    return {
+        active: state.active,
+        params: state.params,
+        paramsDraft: state.paramsDraft ?? null,
+        name: state.name ?? null,
+        cacheQueryResults: state.cacheQueryResults ?? null,
+    };
+}
+
+/// What an action changed for the persistence of a connection
+function persistenceChange(action: ConnectionAction): core.ConnectionPersistenceChange {
+    switch (action.type) {
+        case COMMIT_CONNECTION_PARAMS:
+            return { type: 'paramsCommitted' };
+        case RELATIONS_TOUCHED:
+            return { type: 'relationsTouched' };
+        case CATALOG_UPDATE_SUCCEEDED:
+            return { type: 'catalogUpdateFinished', taskId: action.value[0], status: 'succeeded', ...(action.value[1] === false ? { changed: false } : {}) };
+        case CATALOG_UPDATE_PARTIALLY_SUCCEEDED:
+            return { type: 'catalogUpdateFinished', taskId: action.value[0], status: 'partiallySucceeded' };
+        case CATALOG_UPDATE_FAILED:
+            return { type: 'catalogUpdateFinished', taskId: action.value[0], status: 'failed' };
+        case CATALOG_UPDATE_CANCELLED:
+            return { type: 'catalogUpdateFinished', taskId: action.value[0], status: 'cancelled' };
+        default:
+            return { type: 'other' };
+    }
 }

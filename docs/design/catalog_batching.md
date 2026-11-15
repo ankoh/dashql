@@ -103,7 +103,7 @@ only `catalogDescriptor` outputs.
 
 | Path | Inputs |
 |---|---|
-| Restoring a connection catalog (`connection_restore.ts`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only. |
+| Restoring a connection catalog (`restore/catalog.rs` of `dashql_core_runtime`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only. The module processes the batch itself (`publish_catalog_batch_sync`), without the worker. |
 | Hyper refresh (`hyper/hyper_catalog_update.ts`) | Functions from `pg_proc` for the WASM protocol, otherwise prefetched function SQL. `requireFunctions` is set unless the live `pg_proc` catalog is used. |
 | Salesforce refresh (`salesforce/salesforce_catalog_update.ts`) | Prefetched functions |
 
@@ -134,4 +134,4 @@ batching does not reconstruct argument metadata the engine does not expose.
   transport.
 - `packages/dashql-runtime/src/connections/catalog/catalog_batch.ts`: commit boundary.
 - `packages/dashql-runtime/src/connections/catalog/catalog_loader_service.ts`: refresh queue and supersession.
-- `packages/dashql-runtime/src/connections/connection_restore.ts`: catalog restoration.
+- `packages/dashql-core-runtime/src/restore/catalog.rs`: catalog restoration.

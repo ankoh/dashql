@@ -25,7 +25,7 @@ use super::{js_error, Catalog, ScriptSession, SharedCatalog};
 
 /// A connection from the arguments of the JS API
 #[allow(clippy::too_many_arguments)]
-fn connection(
+pub(crate) fn connection(
     connection_id: &str,
     catalog: &Catalog,
     dialect: u8,
@@ -171,6 +171,11 @@ pub struct Workbook {
 }
 
 impl Workbook {
+    /// A workbook that a service of the runtime created, e.g. the restore
+    pub(crate) fn from_runtime(inner: RuntimeWorkbook) -> Workbook {
+        Workbook { inner, stored: Vec::new() }
+    }
+
     fn apply(&mut self, action: WorkbookAction) -> Result<WorkbookOutcome, JsError> {
         self.inner.apply(action).map(WorkbookOutcome::from).map_err(js_error)
     }

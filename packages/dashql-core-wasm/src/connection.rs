@@ -373,6 +373,16 @@ pub struct Connection {
 }
 
 impl Connection {
+    /// A connection of a state that a service of the runtime created, e.g. the restore
+    pub(crate) fn from_state(state: ConnectionState) -> Connection {
+        Connection { state, queries: QueryExecutionHistory::new() }
+    }
+
+    /// The state of the connection, e.g. for the decisions of its persistence
+    pub(crate) fn state(&self) -> &ConnectionState {
+        &self.state
+    }
+
     /// Apply an action to the connection. A connection that stops its queries drops the history.
     fn apply(&mut self, action: ConnectionAction, now: f64) -> Result<ConnectionOutcome, JsError> {
         let RuntimeOutcome { changed, effects } = self.state.apply(action, now).map_err(js_error)?;

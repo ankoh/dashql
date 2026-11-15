@@ -776,9 +776,16 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
     Ok(())
 }
 
-/// The storage writer, see the module
+/// The storage writer, see the module. A clone is a handle of the same writer, e.g. for a service that writes through
+/// it after an await.
 pub struct StorageWriter<H: StorageHost> {
     shared: Rc<Shared<H>>,
+}
+
+impl<H: StorageHost> Clone for StorageWriter<H> {
+    fn clone(&self) -> Self {
+        StorageWriter { shared: self.shared.clone() }
+    }
 }
 
 impl<H: StorageHost> StorageWriter<H> {

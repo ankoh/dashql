@@ -2,7 +2,8 @@
 //! and the computations of query results. An action changes a state in place and returns the effects for the host.
 //!
 //! The app runs its workbook scripts on `workbook`, its connections with their query histories on `connections` and
-//! `query`, its computations on `compute` and its storage writes on `storage`. The catalog loader and the connectors
+//! `query`, its computations on `compute` and its storage writes on `storage`. It restores the stored state with
+//! `restore` and decides the writes of connections with `connection_persistence`. The catalog loader and the connectors
 //! are ported without I/O and not used yet, see `docs/wip/core_runtime.md`. The services of the runtime are async
 //! functions on a `host::Host`, the platform they run on.
 
@@ -10,11 +11,13 @@ pub mod attachments;
 pub mod catalog_loader;
 pub mod clfn;
 pub mod compute;
+pub mod connection_persistence;
 pub mod connections;
 pub mod host;
 pub mod hyper;
 pub mod names;
 pub mod query;
+pub mod restore;
 pub mod salesforce;
 pub mod storage;
 pub mod trino;

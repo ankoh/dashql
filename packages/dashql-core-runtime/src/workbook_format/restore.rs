@@ -250,15 +250,21 @@ impl RestorePlanner {
     /// Load a workbook of the workbook tree: check its id and its file (None if it couldn't be read) and resolve the
     /// connections it uses. A workbook that fails is invalid, the workbench shows it and the user can delete it.
     pub fn begin_workbook(&mut self, entry_path: &str, text: Option<&str>) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
+        let json = text.and_then(|text| serde_json::from_str::<Value>(text).ok());
+        self.begin_workbook_json(entry_path, json.as_ref())
+    }
+
+    /// Load a workbook of the workbook tree from its file as JSON, see `begin_workbook`
+    pub fn begin_workbook_json(&mut self, entry_path: &str, json: Option<&Value>) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
         let workbook_id = entry_path;
         if !is_valid_uuid(workbook_id) {
             return Err(describe_invalid_workbook(entry_path, WorkbookValidationError::InvalidWorkbookId, None));
         }
-        let Some(json) = text.and_then(|text| serde_json::from_str::<Value>(text).ok()) else {
+        let Some(json) = json else {
             return Err(describe_invalid_workbook(entry_path, WorkbookValidationError::WorkbookUnreadable, None));
         };
-        let data = WorkbookData::from_json(&json);
-        if let Err(error) = validate_workbook_json(&json) {
+        let data = WorkbookData::from_json(json);
+        if let Err(error) = validate_workbook_json(json) {
             return Err(describe_invalid_workbook(entry_path, error, Some(&data)));
         }
         // The connections of the workbook are the connections of its scripts, copies that no script uses are not

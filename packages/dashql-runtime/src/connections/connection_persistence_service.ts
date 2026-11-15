@@ -1,27 +1,9 @@
-import {
-    groupConnectionEntryWrites,
-    groupWorkbookConnectionCopyWrites,
-    PATCH_WORKBOOK_CONNECTION,
-    WRITE_CONNECTION_ENTRY,
-    type StorageWriteResult,
-    type StorageWriter,
-} from '../storage/storage_writer.js';
-import { COMMIT_CONNECTION_PARAMS, type ConnectionState } from './connection_state.js';
-import {
-    connectionEntryFromState,
-    workbookConnectionFromState,
-    type ConnectionReferences,
-    type ConnectionRegistry,
-    type DynamicConnectionDispatch,
-} from './connection_registry_state.js';
-import { connectionParamsWithoutDraftRows, type ConnectionParams } from './connection_params.js';
-import type { WorkbookConnection } from '../storage/storage_backend.js';
+import * as core from '@ankoh/dashql-core';
+import { writeResultOf, type StorageWriteResult, type StorageWriter } from '../storage/storage_writer.js';
+import { COMMIT_CONNECTION_PARAMS } from './connection_state.js';
+import type { ConnectionReferences, ConnectionRegistry, DynamicConnectionDispatch } from './connection_registry_state.js';
+import type { ConnectionParams } from './connection_params.js';
 import { Store } from '../store/store.js';
-
-/// The copy of a connection with saved params that the workbooks store
-function workbookCopy(connection: ConnectionState, params: ConnectionParams): WorkbookConnection {
-    return { ...workbookConnectionFromState(connection), params };
-}
 
 /// The outcome of writing a workbook's copy of the connection params
 export interface WorkbookCopySaveResult {
@@ -71,9 +53,10 @@ export interface ConnectionPersistenceDependencies {
 
 /// Saves connections.
 ///
-/// The app manifest is the source of truth for connections, every workbook that references a
-/// connection keeps a copy of its params. Saving writes the manifest first and the copies after, so a
-/// partial failure heals forward: the next load rewrites stale copies from the manifest.
+/// The app manifest is the source of truth for connections, every workbook that references a connection keeps a copy of
+/// its params. The Rust runtime decides what a save writes (`connection_persistence`): the manifest first and the
+/// copies after, through the storage writer, so a partial failure heals forward: the next load rewrites stale copies
+/// from the manifest.
 export class ConnectionPersistenceService {
     private readonly deps: ConnectionPersistenceDependencies;
     /// The save states of connections (connectionId -> state)
@@ -87,17 +70,6 @@ export class ConnectionPersistenceService {
         this.states.update(prev => new Map(prev).set(connectionId, state));
     }
 
-    private async writeWorkbookCopies(copy: WorkbookConnection, workbookIds: string[]): Promise<WorkbookCopySaveResult[]> {
-        const { storageWriter } = this.deps;
-        return await Promise.all(workbookIds.map(async workbookId => ({
-            workbookId,
-            result: await storageWriter.writeDurable(
-                groupWorkbookConnectionCopyWrites(workbookId, copy.connectionId),
-                { type: PATCH_WORKBOOK_CONNECTION, value: [workbookId, copy] },
-            ),
-        })));
-    }
-
     /// Save the draft of a connection, or the given params
     save = async (connectionId: string, saved?: ConnectionParams): Promise<ConnectionSaveResult> => {
         const { storageWriter, references, dispatchConnection: dispatch } = this.deps;
@@ -105,26 +77,22 @@ export class ConnectionPersistenceService {
         if (connection == null) {
             throw new Error(`no connection registered with id ${connectionId}`);
         }
-        const params = connectionParamsWithoutDraftRows(saved ?? connection.paramsDraft ?? connection.params);
+        const draft = saved ?? connection.paramsDraft ?? connection.params;
         this.setState(connectionId, { saving: true, result: null });
         try {
-            // Write the source of truth first, the same key replaces pending draft writes
-            const manifest = await storageWriter.writeDurable(
-                groupConnectionEntryWrites(connectionId),
-                { type: WRITE_CONNECTION_ENTRY, value: { ...connectionEntryFromState({ ...connection, paramsDraft: undefined }), params } },
-            );
-            if (manifest.status !== 'written') {
-                const result: ConnectionSaveResult = { params, manifest, workbooks: [] };
-                this.setState(connectionId, { saving: false, result });
-                return result;
-            }
-            dispatch(connectionId, { type: COMMIT_CONNECTION_PARAMS, value: params });
             const workbookIds = [...references.workbooksOf(connectionId)];
-            const result: ConnectionSaveResult = { params, manifest, workbooks: await this.writeWorkbookCopies(workbookCopy(connection, params), workbookIds) };
+            const outcome = await storageWriter.withNativeWriter(native => core.DashQLConnectionPersistence.save(
+                native, connection.native.connection, connectionId, saved ?? null, workbookIds,
+                params => dispatch(connectionId, { type: COMMIT_CONNECTION_PARAMS, value: params as ConnectionParams })));
+            const result: ConnectionSaveResult = {
+                params: outcome.params as ConnectionParams,
+                manifest: writeResultOf(outcome.manifest),
+                workbooks: outcome.workbooks.map(copy => ({ workbookId: copy.workbookId, result: writeResultOf(copy.result) })),
+            };
             this.setState(connectionId, { saving: false, result });
             return result;
         } catch (error) {
-            const result: ConnectionSaveResult = { params, manifest: { status: 'failed', error }, workbooks: [] };
+            const result: ConnectionSaveResult = { params: draft, manifest: { status: 'failed', error }, workbooks: [] };
             this.setState(connectionId, { saving: false, result });
             return result;
         }
@@ -137,8 +105,9 @@ export class ConnectionPersistenceService {
         const connection = this.deps.readConnections().connections.get(connectionId);
         if (connection == null) return null;
         this.setState(connectionId, { saving: true, result: last });
-        const retried = await this.writeWorkbookCopies(workbookCopy(connection, last.params), workbookIds);
-        const byWorkbook = new Map(retried.map(r => [r.workbookId, r]));
+        const retried = await this.deps.storageWriter.withNativeWriter(native =>
+            core.DashQLConnectionPersistence.writeCopies(native, connectionId, last.params, workbookIds));
+        const byWorkbook = new Map(retried.map(r => [r.workbookId, { workbookId: r.workbookId, result: writeResultOf(r.result) }]));
         const result: ConnectionSaveResult = {
             ...last,
             workbooks: last.workbooks.map(n => byWorkbook.get(n.workbookId) ?? n),

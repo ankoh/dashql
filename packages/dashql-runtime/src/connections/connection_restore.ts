@@ -1,18 +1,10 @@
-import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQL } from '@ankoh/dashql-core';
-import type { Logger } from '../platform/logger/logger.js';
-import { stringifyError } from '../platform/logger/logger.js';
-import { destroyConnectionState, restoreCatalogUpdates, type ConnectionState } from './connection_state.js';
+import { destroyConnectionState, type ConnectionState } from './connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from './connection_import.js';
-import { connectionCatalogIsDurable } from './connection_params.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
-import { beginCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog/catalog_batch.js';
-import type { WorkbookConnection, WorkbookRegistryBackend } from '../storage/storage_backend.js';
-import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE } from '../storage/storage_backend.js';
-import { packRelationName, parseCatalogStateFile, readRelationName } from './catalog/catalog_sql_generator.js';
-import { mergeRelationNames } from './catalog/catalog_update_state.js';
+import type { WorkbookConnection } from '../storage/storage_backend.js';
 
-const LOG_CTX = "connection_restore";
+/// The connections of storage that the restore of the Rust runtime doesn't create, e.g. the connections of a native
+/// workbook that changed on disk. The restore of the app runs in Rust, see `workbook/persistence/app_state_loader.ts`.
 
 /// The stored params of a connection, as the app manifest or a workbook file holds them
 export type StoredConnection = Pick<WorkbookConnection, 'params' | 'paramsDraft'> & {
@@ -35,93 +27,4 @@ export function connectionStateFromStorage(core: DashQL, connectionId: string, s
 /// Destroy a connection that was created but never registered
 export function destroyUnregisteredConnection(connection: ConnectionState): void {
     destroyConnectionState(connection);
-}
-
-/// What restoring a catalog needs
-export interface CatalogRestoreContext {
-    /// The core instance
-    core: DashQL;
-    /// The logger
-    logger: Logger;
-    /// The processor of catalog batches, the core processes them if absent
-    processor?: BatchProcessor;
-}
-
-/// The outcome of restoring the catalog of a connection from its files
-export interface ConnectionCatalogRestore {
-    /// False if the restoration failed, the connection refreshes its catalog on connect
-    succeeded: boolean;
-    /// The files to write: those whose relations or changes were dropped are cleared
-    files: Array<{ fileName: string; text: string }>;
-}
-
-/// Restore the catalog of a connection from the files of the connection.
-///
-/// The relations of a connection whose database doesn't outlive the app describe a database that is
-/// gone, they are dropped and their file is reported as stale. Such a catalog is described by a refresh
-/// on connect. A restored catalog is kept until an explicit refresh.
-///
-/// The relations the connection didn't answer about yet are asked about again once it is online, and those it reported as
-/// gone stay gone. Older versions of the app kept the changes of executed statements in a file of their own. The relations
-/// of that file count as not answered, the file is cleared.
-export async function restoreConnectionCatalog(
-    ctx: CatalogRestoreContext,
-    registry: WorkbookRegistryBackend,
-    connection: ConnectionState,
-    logContext: Record<string, string>,
-): Promise<ConnectionCatalogRestore> {
-    const { connectionId, catalog, catalogRelationEntryId, catalogFunctionScript } = connection;
-    const durable = connectionCatalogIsDurable(connection.params);
-    const files: Array<{ fileName: string; text: string }> = [];
-    try {
-        const validate = beginCatalogBatch(catalog);
-        const [relations, functions, changes, state] = await Promise.all([
-            registry.loadConnectionFile(connectionId, STORAGE_CATALOG_RELATIONS),
-            registry.loadConnectionFile(connectionId, STORAGE_CATALOG_FUNCTIONS),
-            registry.loadConnectionFile(connectionId, STORAGE_CATALOG_CHANGES),
-            registry.loadConnectionFile(connectionId, STORAGE_CATALOG_STATE),
-        ]);
-        validate();
-        // Clear the dropped relations that older versions of the app wrote
-        if (!durable && relations) files.push({ fileName: STORAGE_CATALOG_RELATIONS, text: '' });
-
-        const catalogScripts: CatalogBatchEntry[] = [];
-        if (durable && relations && relations.trim().length > 0) {
-            ctx.logger.info("Catalog schema loaded", { ...logContext, schemaLength: relations.length.toString() }, LOG_CTX);
-            // The batch reads the file once, the catalog keeps the descriptor and not the text
-            catalogScripts.push({ entryId: catalogRelationEntryId, text: relations });
-        }
-        if (functions && functions.trim().length > 0) {
-            ctx.logger.info("Catalog functions loaded", { ...logContext, functionsLength: functions.length.toString() }, LOG_CTX);
-            catalogScripts.push({ script: catalogFunctionScript, text: functions });
-        }
-        if (catalogScripts.length > 0) {
-            await publishCatalogBatch(ctx.core, catalog, catalogScripts, { processor: ctx.processor }, validate);
-            // Only restored relations make a catalog that is kept
-            if (durable && relations && relations.trim().length > 0) {
-                restoreCatalogUpdates(connection, true, null);
-            }
-        }
-        const { pending, gone } = parseCatalogStateFile(state);
-        if (durable && gone.length > 0) {
-            catalog.replaceTables(catalogRelationEntryId, buffers.catalog.CatalogLayer.CONNECTION, { relations: gone.map(packRelationName), tables: [] });
-        }
-        // Nothing that runs on Salesforce changes its relations, and it has no lookup for them
-        if (durable && connection.details.type !== SALESFORCE_DATA_CLOUD_CONNECTOR) {
-            const changed = changes?.trim() ? ctx.core.touchedRelations(changes).map(name => readRelationName(name)) : [];
-            restoreCatalogUpdates(connection, null, mergeRelationNames(pending, changed));
-        }
-        // The relations of the old file move to the new one before the old one is cleared
-        if (changes) {
-            files.push({ fileName: STORAGE_CATALOG_STATE, text: JSON.stringify({ pending: connection.catalogUpdates.touchedRelations, gone }) });
-            files.push({ fileName: STORAGE_CATALOG_CHANGES, text: '' });
-        }
-        return { succeeded: true, files };
-    } catch (error) {
-        ctx.logger.warn("Failed to restore connection catalog, will refresh on connect", {
-            ...logContext,
-            error: stringifyError(error),
-        }, LOG_CTX);
-        return { succeeded: false, files };
-    }
 }

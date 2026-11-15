@@ -347,7 +347,7 @@ function nativeTask(task: StorageWriteTaskVariant): core.StorageWriteTask {
 }
 
 /// The outcome of a write of the core as the callers know it
-function writeResultOf(outcome: core.StorageWriteOutcome): StorageWriteResult {
+export function writeResultOf(outcome: core.StorageWriteOutcome): StorageWriteResult {
     if (outcome.status !== 'failed') return { status: outcome.status };
     const error = outcome.unavailableWorkbook != null ? new WorkbookUnavailableError(outcome.unavailableWorkbook, outcome.error) : outcome.error;
     return { status: 'failed', error };
@@ -456,8 +456,15 @@ export class StorageWriter {
         this.waiting.push({ run, fail: () => { } });
     }
 
-    /// The writer of the core asks the backend, the timers, the clock and the log through this host
-    protected createHost(): core.StorageWriterHost {
+    /// Run a service of the core that writes through the writer of the core, e.g. the restore. It waits for the core
+    /// like a write.
+    public withNativeWriter<T>(run: (native: core.DashQLStorageWriter) => Promise<T>): Promise<T> {
+        return this.call(run, true);
+    }
+
+    /// The writer of the core asks the backend, the timers, the clock and the log through this host. A service of the
+    /// core that writes through the writer extends it, e.g. the restore.
+    public createHost(): core.StorageWriterHost {
         const notify = <T>(subscribers: Set<(value: T) => void>, value: T) => {
             for (const subscriber of subscribers) {
                 try {

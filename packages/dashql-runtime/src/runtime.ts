@@ -166,7 +166,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
             const instance = await platform.setupCore('runtime');
             computations.setCore(instance);
             storageWriter.provideCore(instance);
-            const restored = await restoreAppState(instance, storage, logger, progress);
+            const restored = await restoreAppState(instance, storage, logger, progress, storageWriter);
             connections.store.update({
                 connections: restored.connectionStates,
                 connectionsByType: restored.connectionStatesByType,

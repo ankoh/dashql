@@ -257,6 +257,11 @@ export class DashQLConnection {
         return new DashQLConnection(new Ptr(CONNECTION_TYPE, api, native));
     }
 
+    /// A connection of the module that a service of the runtime created, e.g. the restore
+    public static adopt(api: DashQL, native: NativeConnection): DashQLConnection {
+        return new DashQLConnection(new Ptr(CONNECTION_TYPE, api, native));
+    }
+
     /// Destroy the connection and its catalog handle. Other holders of the catalog keep it.
     public destroy(): void {
         this.catalogHandle?.destroy();

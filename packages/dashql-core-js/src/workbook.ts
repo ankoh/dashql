@@ -129,7 +129,7 @@ export interface WorkbookStoredScript {
 type NativeWorkbook = glue.Workbook;
 type ConnectionArgs = [string, glue.Catalog, number, boolean, string | undefined, string, string];
 
-function connectionArgs(api: DashQL, connection: WorkbookConnection): ConnectionArgs {
+export function connectionArgs(api: DashQL, connection: WorkbookConnection): ConnectionArgs {
     if (connection.catalog.ptr.api !== api) {
         throw new Error('the catalog of the connection belongs to a different DashQL instance');
     }
@@ -176,6 +176,11 @@ export class DashQLWorkbook {
         offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS,
     ): DashQLWorkbook {
         return new DashQLWorkbook(new Ptr(WORKBOOK_TYPE, api, new api.bindings.Workbook(id, name ?? undefined, offsetUnit)));
+    }
+
+    /// A workbook of the module that a service of the runtime created, e.g. the restore
+    public static adopt(api: DashQL, native: NativeWorkbook): DashQLWorkbook {
+        return new DashQLWorkbook(new Ptr(WORKBOOK_TYPE, api, native));
     }
 
     public destroy(): void {

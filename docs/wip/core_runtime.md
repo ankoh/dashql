@@ -1,18 +1,20 @@
 # The core runtime
 
-Status: the workbook scripts, the connections, the computations and the storage writes of the app run on Rust.
+Status: the workbook scripts, the connections, the computations, the storage writes, the restore of the stored state
+and the persistence of connections of the app run on Rust.
 `packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
 connection with the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts`
 of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
 `reduceConnectionState` one over the connection (`connections/connection_native.ts`), `reduceComputationState` one
 over the computations (`compute/computation_native.ts`). The storage writer is the first service on a host
-(`storage/storage_writer.ts` over `src/storage/`). The catalog loader, the connectors and the tasks of the
-computations are ported without I/O and not used yet.
+(`storage/storage_writer.ts` over `src/storage/`), the restore the second (`workbook/persistence/app_state_loader.ts`
+over `src/restore/`). The catalog loader, the connectors and the tasks of the computations are ported without I/O and
+not used yet.
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
-schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`) belong
-to DashQL and change with it, their snapshots cross as JSON.
+schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`,
+`AppRestore`, `ConnectionPersistence`) belong to DashQL and change with it, their snapshots cross as JSON.
 
 ## Why
 
@@ -82,7 +84,8 @@ buffers in between. The boundary moves to what the UI reads.
    of the runtime and the app run on Rust, see [The computations](#the-computations).
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
-   The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer).
+   The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer), and
+   so are the restore and the persistence of connections, see [The restore](#the-restore).
 
 ## The whole runtime in Wasm
 
@@ -112,7 +115,7 @@ call that fails is an error of the task, never a panic.
 
 **Order.** The host trait and the executor with the storage writer as the first service (done); the catalog loader and the
 query executor once the connection and query states are switched; the connectors one by one behind the existing
-`QueryChannel`; the runs of workbooks; the restore and `createRuntime` last. ZIP archives (`zip.js` with
+`QueryChannel`; the runs of workbooks; the restore (done) and `createRuntime` last. ZIP archives (`zip.js` with
 `CompressionStream`) and the compilation of chart specs (`vega-lite`) stay host calls until a reason to move them.
 
 ## The computations
@@ -193,6 +196,59 @@ the class `StorageWriter` of the module (`DashQLStorageWriter` of `@ankoh/dashql
   scheduled while paused next to the new one. `getPendingKeys` lists every pending key, a test read the pending tasks
   of the TypeScript writer.
 
+## The restore
+
+`restoreAppState` and `restoreSingleWorkbook` of the TypeScript runtime are adapters over the restore of the crate
+(`src/restore/`), bound as the class `AppRestore` of the module (`DashQLAppRestore` of `@ankoh/dashql-core`, created
+with `DashQL.createRestore`). The runtime restores through it on `restore()`, the command line tool loads the workbook
+of a folder through it. Their callers didn't change.
+
+- **A host on top of the writer.** `restore::RestoreHost` extends `storage::StorageHost` with the reads of the restore:
+  the workbooks of the tree, the connection entries of the app manifest, the scripts and the data files of a workbook,
+  the files of a connection, the progress, and whether the storage owns connections. A storage of a single workbook
+  folder doesn't, it restores no catalogs and writes no connections. The adapter builds it over the `StorageBackend` of
+  the platform from the host of the storage writer, the tests of the crate over a storage in memory
+  (`tests/restore_test.rs`).
+- **The steps.** The restore reads the connection entries of the app manifest and creates their connections with the
+  catalogs of their files, then restores the workbooks of the tree in order: it checks the id, loads and validates the
+  workbook file, resolves its connections with the `RestorePlanner`, creates the connections that only the workbook
+  knows with their catalogs, reads the scripts and the data files and creates the workbook. A workbook that fails its
+  validation is skipped, one whose connections or scripts fail is invalid, the workbench shows both. The progress
+  counts the connections, the catalogs and the scripts of every workbook like the loader of the TypeScript runtime.
+- **Catalogs from their files.** `restore::catalog` parses the relations and the functions of a connection in one batch
+  (`publish_catalog_batch_sync`) and publishes them into the catalog of the connection, restores the relations to ask
+  about and those that are gone (`CatalogStateFile`), moves the relations of the changes file of older versions into
+  the pending ones and clears the files of a connection whose database doesn't outlive the app.
+- **The writes after the restore go through the storage writer.** The connections that workbooks registered and the
+  cleared catalog files are durable writes of the app manifest and the files of the connections. Once they are
+  written, the stale copies of the workbooks follow, then the script lists that changed and the promotion of an
+  ephemeral workbook that holds scripts. A failed write is logged, the next restore attempts it again.
+- **Rust objects reach the registries as they are.** The result holds the connections and the workbooks of the module.
+  The adapter wraps a connection in a `NativeConnection` and projects its `ConnectionState`, and adopts a workbook with
+  the connections of its scripts (`NativeWorkbook.adopt`). The registries get the same `RestoredAppState` as before.
+- **Connections that the app holds.** A restore of a single workbook, e.g. an import or the folder of `dashql run`,
+  resolves against the live connections, which the adapter passes with their catalogs, and returns the connections that
+  the workbook registered.
+- **Migrations stay before the restore.** The storage setup of the app migrates the root and the reachable workbook
+  folders before the backend exists, the native backend a folder when it opens it. The restore validates the format
+  version and shows an older workbook as invalid.
+
+The persistence of connections is a module of the crate as well (`src/connection_persistence.rs`, bound as
+`ConnectionPersistence`). The registry of connections still applies the actions in TypeScript, and the module decides
+what storage keeps of a change from the persisted fields of the connection before it and the Rust connection after
+it: saved params go to the app manifest and to every workbook that references the connection, drafts, names and the
+caching choice to the app manifest with a longer debounce, and an active connection writes its catalog files after
+an update and its catalog state after statements and updates. A deleted active connection leaves the app manifest and
+its pending file writes are discarded. `ConnectionPersistenceService` saves through the module: the entry of the app
+manifest first, then the commit of the params, then the copies of the workbooks, all of them durable writes of the
+writer. A connection that the app created holds no id in Rust, the id comes with every call.
+
+- **Changed on purpose.** The restore parses the catalog files in the module and not in the batch worker, a file that
+  doesn't parse publishes neither relations nor functions. A draft that can't be read is dropped with a warning
+  instead of failing the connection. The writes after the restore are writes of the storage writer, a promotion writes
+  the properties of the workbook file. The relations file of a connection is rendered by the module when the write
+  runs.
+
 ## The tasks of the computations
 
 The tasks that summarize, filter, order and search a result are ported to `src/compute/tasks/`, the app doesn't use
@@ -218,7 +274,8 @@ string column.
 
 ## The catalog loader
 
-The catalog loader is a module of the crate (`src/catalog_loader/`), sans-IO and not used yet. It generates the
+The catalog loader is a module of the crate (`src/catalog_loader/`), sans-IO and not used yet, the restore reads catalog
+files with its batches and its state file. It generates the
 metadata SQL of the connectors, reads the result batches into tables and publishes descriptors and table updates into
 the connection layer of the catalog of a connection.
 
@@ -272,7 +329,8 @@ the core and `EXPLAIN`.
 
 ## The format of workbooks
 
-`src/workbook_format/` holds the storage format of workbooks without I/O, the app doesn't use it yet: the layout of the
+`src/workbook_format/` holds the storage format of workbooks without I/O, the app uses its validation and its
+`RestorePlanner` in the restore and nothing else yet: the layout of the
 storage, the workbook file with its validation and migrations, the file lists, the workbook tree, bundles, the workbook
 tables, the archives of imports and exports, the eviction of the query result cache and the decisions of the restore.
 It takes the contents of files and returns parsed values, validation results, migrated files and the files to write.
@@ -331,8 +389,9 @@ about that.
 ## Open
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
-- The loader patches workbook files and connection entries with the TypeScript helpers of `storage_writer.ts`
-  (`patchWorkbookConnection`, `upsertConnectionEntry`), the writer has its own in Rust until the restore moves.
+- The connections of a native workbook that changed on disk are still created in TypeScript
+  (`connections/connection_restore.ts`), the restore of a single workbook could take them over.
+- The registry of connections applies its actions in TypeScript, only the decisions of their persistence are Rust.
 - The query history of the shell (`query/shell_query_execution.ts`) still runs on `reduceQueryAction` in TypeScript.
 - The progress model of a query runs in the query executor in TypeScript, the Rust history gets the plain fields of a
   progress update, the adapter keeps the structured progress. The planned statement of a query stays in TypeScript.
