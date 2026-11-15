@@ -1,0 +1,29 @@
+// One Worker per channel, each on its own path of slack.dashql.app, see README.md.
+//   wrangler deploy --env dev | stable | latest
+// The secrets SLACK_SIGNING_SECRET and SLACK_BOT_TOKEN belong to the Slack app of the channel:
+//   wrangler secret put SLACK_SIGNING_SECRET --env dev
+{
+  "name": "dashql-slack",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "env": {
+    "dev": {
+      "name": "dashql-slack-dev",
+      "routes": [{ "pattern": "slack.dashql.app/dev/*", "zone_name": "dashql.app" }],
+      "vars": { "CHANNEL": "dev", "APP_ORIGIN": "https://dev.dashql.app" }
+    },
+    "stable": {
+      "name": "dashql-slack-stable",
+      "routes": [{ "pattern": "slack.dashql.app/stable/*", "zone_name": "dashql.app" }],
+      "vars": { "CHANNEL": "stable", "APP_ORIGIN": "https://stable.dashql.app" }
+    },
+    "latest": {
+      "name": "dashql-slack-latest",
+      "routes": [{ "pattern": "slack.dashql.app/latest/*", "zone_name": "dashql.app" }],
+      "vars": { "CHANNEL": "latest", "APP_ORIGIN": "https://dashql.app" }
+    }
+  }
+}

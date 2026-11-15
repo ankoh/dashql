@@ -78,6 +78,9 @@ Please consult relevant docs in that directory before making changes.
       another site frames, Slack and MCP Apps embeds)
     - `docs/wip/embeds.md` (`/embed`, one entry for data files, workbooks and Hyper scripts, as Slack Work Objects;
       built: a probe that runs one query in the core and Hyper workers; URL contract, fallback, headers)
+    - `docs/design/slack_app.md` (the Slack app, `packages/dashql-slack`: a Cloudflare Worker per channel on
+      `slack.dashql.app` that turns embed links into Work Objects; the flow of events, the entities, the Slack
+      settings and secrets, the order of the setup, what to look at when nothing shows)
 
 - Web app theme (colors only from the theme tokens, light-dark(), the color scheme toggle, dark chrome)
     - `docs/design/app_theme.md`

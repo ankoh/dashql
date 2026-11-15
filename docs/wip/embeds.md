@@ -143,6 +143,17 @@ need `files:read` and come later.
 Slack's obligations for embeds apply: validate every parameter, render every value as text, keep tokens in URLs
 short-lived (Slack recommends 10 minutes at most).
 
+### The Slack app
+
+`packages/dashql-slack` is the Slack app: a Cloudflare Worker without state, one per channel on `slack.dashql.app`
+(`/dev/events`, `/stable/events`, `/latest/events`), each with its own Slack app, signing secret and bot token
+(`manifests/<channel>.yaml`). `link_shared` gets a `chat.unfurl` with the entity and `full_size_preview` without a
+URL, `entity_details_requested` an `entity.presentDetails` with `preview_url` set to the link. The `external_ref.id`
+is a hash of the link, so both calls give the same entity. It needs no server for Hyper: the side panel runs the
+engine in the viewer's client, and the unfurl shows only what the link carries. The previews of the server in the
+table above would need Node, not a Worker. How it works and how it is set up:
+[slack_app.md](../design/slack_app.md).
+
 ## Form factor
 
 The side panel is narrow, its width isn't documented. The views are one column:
@@ -166,4 +177,3 @@ The side panel is narrow, its width isn't documented. The views are one column:
 - The Chromium version of the Slack desktop client, and whether its flexpane frame gets its own process.
 - The `allow` attribute of the Slack embed frame.
 - Whether the MCP Apps hosts let a view frame `dashql.app` and `hyperdb.sh`.
-- Where the Slack app runs.

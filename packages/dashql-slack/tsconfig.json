@@ -1,0 +1,17 @@
+// The Worker against the WebWorker lib, the runtime of Cloudflare Workers without its own types, and its tests with
+// the globals of vitest. Checked by //packages/dashql-slack:tsc_typecheck_test.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "types": [],
+    "strict": true,
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

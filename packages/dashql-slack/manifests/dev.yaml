@@ -1,0 +1,34 @@
+# The Slack app of the dev channel. Paste into api.slack.com/apps → the app → App Manifest, after the Worker
+# dashql-slack-dev is deployed with its secrets: Slack checks the request URL when the manifest is saved.
+display_information:
+  name: DashQL Dev
+  description: Data files, workbooks and Hyper scripts of dev.dashql.app as Work Objects
+features:
+  bot_user:
+    display_name: DashQL Dev
+    always_online: false
+  unfurl_domains:
+    - dev.dashql.app
+  rich_previews:
+    is_active: true
+    entity_types:
+      - slack#/entities/file
+      - slack#/entities/content_item
+      - slack#/entities/item
+    domain_allowlist:
+      - dev.dashql.app
+    allow_same_origin: true
+oauth_config:
+  scopes:
+    bot:
+      - links:read
+      - links:write
+settings:
+  event_subscriptions:
+    request_url: https://slack.dashql.app/dev/events
+    bot_events:
+      - link_shared
+      - entity_details_requested
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

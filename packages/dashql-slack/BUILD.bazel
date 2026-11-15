@@ -1,0 +1,39 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+
+# The Slack app of DashQL, a Cloudflare Worker that turns embed links into Work Objects, see docs/wip/embeds.md.
+# Wrangler bundles src/worker.ts itself when it deploys, so nothing is compiled here.
+
+_SOURCES = glob(["src/**/*.ts"])
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + ["tsconfig.json"],
+)
+
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.json"],
+    chdir = "packages/dashql-slack",
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+    ],
+)
+
+vitest_bin.vitest_test(
+    name = "test",
+    size = "small",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+    ],
+    chdir = "packages/dashql-slack",
+    data = _SOURCES + [
+        "vitest.config.mjs",
+        "//:node_modules/vitest",
+    ],
+)
