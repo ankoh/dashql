@@ -68,6 +68,10 @@ runs:
           build --build_metadata=COMMIT_SHA=${{ github.sha }}
           build --build_metadata=BRANCH_NAME=${{ github.ref_name }}
 
+          # Two test targets at a time on the 4 vCPUs of a runner. The suites start workers, browsers and embedded
+          # Hyper instances of their own, and four targets at once timed tests out
+          test --local_test_jobs=2
+
           # Bazel profiles
           build --noslim_profile
           build --experimental_profile_include_target_label

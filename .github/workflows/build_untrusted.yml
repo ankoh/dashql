@@ -44,6 +44,8 @@ jobs:
                   disk-cache: false
                   bazelrc: |
                       common --credential_helper=github.com=${{ runner.temp }}/bazel-github-credentials
+                      # Two test targets at a time, like the trusted builds (.github/actions/setup-bazel)
+                      test --local_test_jobs=2
 
             - name: Verify Bazel lockfile
               shell: bash
@@ -106,6 +108,8 @@ jobs:
                   disk-cache: false
                   bazelrc: |
                       common --credential_helper=github.com=${{ runner.temp }}/bazel-github-credentials
+                      # Two test targets at a time, like the trusted builds (.github/actions/setup-bazel)
+                      test --local_test_jobs=2
 
             - name: Test the agent integrations
               shell: bash
