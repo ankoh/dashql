@@ -18,7 +18,7 @@ they check those assumptions on every machine that runs them, without model call
 | `dashql session hook` in the hooks of both harnesses: it starts `dashql session serve`, which holds the question, the command and the final message | Done |
 | `dashql run` in both sandboxes: the embedded Hyper, its root in the `.dashql/` of the workspace, the journal | Planned |
 | opencode | Planned |
-| The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added, not yet run on GitHub |
+| The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added; the first run on GitHub failed on AppArmor (see [Findings](#findings)), the fix not yet run |
 
 ## How it works
 
@@ -88,6 +88,15 @@ redirected) keeps it for the session in both harnesses: the `PostToolUse` and `S
 agent in the sandbox doesn't. That is the transport of the live view without a menu bar app. **`dashql lint`** (Node running
 the bundle of `//packages/dashql-cli:bundle`, as an installation does) runs in both sandboxes.
 
+**AppArmor on Ubuntu.** Ubuntu confines `/usr/bin/bwrap` with the profiles `bwrap` and `unpriv_bwrap`
+(`/etc/apparmor.d/bwrap-userns-restrict`): a child of bwrap may create a user namespace but gets no capabilities in
+it. The seccomp helper of Claude Code creates one inside the sandbox, so every command in the sandbox fails with
+`apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide
+CAP_SYS_ADMIN): Permission denied`, while commands outside the sandbox and hooks work. Setting
+`kernel.apparmor_restrict_unprivileged_userns=0` doesn't help, the profiles attach to the path of bwrap. Codex brings
+its own bubblewrap and isn't affected. The CI job removes the two profiles; a user of Ubuntu needs the same, or a rule in
+`/etc/apparmor.d/local/unpriv_bwrap`.
+
 Hooks run outside the sandbox in both harnesses, so they are the way out of it for the live view: a hook starts `dashql session serve`
 and carries the events of the agent to it, while the commands of the agent work on files. The test checks loopback;
 DNS and listening were checked by hand. Writing outside the workspace isn't checked yet, the `HOME` of the test is
@@ -99,7 +108,8 @@ below the temporary folder, which the sandbox may allow.
   the sandboxes may write, and its journal reaches the session server.
 - **opencode:** its plugins run in its process and see every event.
 - **CI:** the job `agent_integration` installs `bubblewrap` and `socat` on `ubuntu-26.04`, lifts the restriction of
-  unprivileged user namespaces of Ubuntu, and runs `bazel test //tests/agents/...`. A macOS job could follow, the
+  unprivileged user namespaces of Ubuntu, removes the AppArmor profiles `bwrap` and `unpriv_bwrap`, and runs
+  `bazel test //tests/agents/...`. A macOS job could follow, the
   sandbox of Claude Code uses `sandbox-exec` there, which every Mac has.
 - **Versions:** a newer harness is a new version and new integrity values in `//bazel:external_agent_harnesses.bzl`
   (`npm view @anthropic-ai/claude-code-<platform>@<version> dist.integrity`). Testing two versions side by side is a

@@ -77,7 +77,9 @@ jobs:
             - uses: ./.github/actions/setup-ubuntu-mirror
 
             # The sandbox of Claude Code on Linux, see docs/wip/agent_integration_tests.md.
-            # Ubuntu restricts the unprivileged user namespaces that bubblewrap needs.
+            # Ubuntu restricts the unprivileged user namespaces that bubblewrap needs. It also confines /usr/bin/bwrap
+            # with the AppArmor profiles bwrap and unpriv_bwrap: the children of bwrap get no capabilities in a nested
+            # user namespace, where the seccomp helper of Claude Code writes /proc/self/setgroups.
             - name: Install the sandbox of the harnesses
               shell: bash
               run: |
@@ -85,6 +87,13 @@ jobs:
                   if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
                       sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
                   fi
+                  for profile in bwrap unpriv_bwrap; do
+                      if sudo grep -q "^$profile " /sys/kernel/security/apparmor/profiles 2>/dev/null; then
+                          echo "Removing the AppArmor profile $profile"
+                          echo -n "$profile" | sudo tee /sys/kernel/security/apparmor/.remove > /dev/null
+                      fi
+                  done
+                  sudo grep -i bwrap /sys/kernel/security/apparmor/profiles 2>/dev/null || true
 
             - name: Setup GitHub credentials
               uses: ./.github/actions/setup-github-credentials
