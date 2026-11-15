@@ -6,7 +6,6 @@ import {
     QUERY_CACHE_DELETED,
     QUERY_CACHE_RECORDED,
     QUERY_FAILED,
-    QUERY_PREPARING,
     QUERY_PROCESSED_RESULTS,
     QUERY_PROCESSING_RESULTS,
     QUERY_PROGRESS_UPDATED,
@@ -51,8 +50,8 @@ function start(state: QueryExecutionHistoryState, queryId: number, meta: QueryMe
 /// Finish a started query with a one-row table
 function finish(state: QueryExecutionHistoryState, queryId: number): QueryExecutionHistoryState {
     const table = tableFromArrays({ a: new Int32Array([queryId]) });
-    state = reduceQueryAction(state, { type: QUERY_RECEIVED_BATCH, value: [queryId, table.batches[0], createQueryResponseStreamMetrics()] });
-    state = reduceQueryAction(state, { type: QUERY_RECEIVED_ALL_BATCHES, value: [queryId, table, new Map(), createQueryResponseStreamMetrics()] });
+    state = reduceQueryAction(state, { type: QUERY_RECEIVED_BATCH, value: [queryId, createQueryResponseStreamMetrics()] });
+    state = reduceQueryAction(state, { type: QUERY_RECEIVED_ALL_BATCHES, value: [queryId, table, createQueryResponseStreamMetrics()] });
     return reduceQueryAction(state, { type: QUERY_SUCCEEDED, value: [queryId] });
 }
 
@@ -61,11 +60,10 @@ function succeed(state: QueryExecutionHistoryState, queryId: number, meta: Query
 }
 
 describe('finished queries', () => {
-    it('keep the result table of user queries but not their batches', () => {
+    it('keep the result table of user queries', () => {
         const state = succeed(history(), 1, metadata(QueryType.USER_PROVIDED));
         const query = state.queriesFinished.get(1)!;
         expect(query.resultTable?.numRows).toBe(1);
-        expect(query.resultBatches).toEqual([]);
     });
 
     it('keep only the metrics of internal queries', () => {
@@ -138,10 +136,9 @@ describe('active queries', () => {
         let state = start(history(), 1, metadata(QueryType.USER_PROVIDED));
         const progress = { isQueued: true } as QueryExecutionProgress;
         const steps: [QueryExecutionAction, QueryExecutionStatus][] = [
-            [{ type: QUERY_PREPARING, value: [1] }, QueryExecutionStatus.PREPARING],
             [{ type: QUERY_SENDING, value: [1] }, QueryExecutionStatus.SENDING],
             [{ type: QUERY_PROGRESS_UPDATED, value: [1, progress] }, QueryExecutionStatus.QUEUED],
-            [{ type: QUERY_RUNNING, value: [1, null] }, QueryExecutionStatus.RUNNING],
+            [{ type: QUERY_RUNNING, value: [1] }, QueryExecutionStatus.RUNNING],
             [{ type: QUERY_PROGRESS_UPDATED, value: [1, progress] }, QueryExecutionStatus.RUNNING],
             [{ type: QUERY_PROCESSING_RESULTS, value: [1] }, QueryExecutionStatus.PROCESSING_RESULTS],
             [{ type: QUERY_PROCESSED_RESULTS, value: [1] }, QueryExecutionStatus.PROCESSED_RESULTS],
@@ -152,7 +149,7 @@ describe('active queries', () => {
         }
         const metrics = state.queriesActive.get(1)!.metrics;
         expect(metrics.progressUpdatesReceived).toBe(2);
-        expect([metrics.queryPreparingStartedAt, metrics.querySendingStartedAt, metrics.queryQueuedStartedAt, metrics.queryRunningStartedAt, metrics.processedResultsAt].every(at => at != null)).toBe(true);
+        expect([metrics.querySendingStartedAt, metrics.queryQueuedStartedAt, metrics.queryRunningStartedAt, metrics.processedResultsAt].every(at => at != null)).toBe(true);
     });
 });
 

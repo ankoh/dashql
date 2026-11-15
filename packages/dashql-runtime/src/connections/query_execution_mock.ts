@@ -2,7 +2,6 @@ import * as arrow from 'apache-arrow';
 import {
     QueryExecutionProgress,
     QueryExecutionResponseStream, QueryExecutionMetrics,
-    QueryExecutionStatus,
     createQueryResponseStreamMetrics,
 } from '../query/query_execution_state.js';
 import { sleep } from '../utils/sleep.js';
@@ -26,16 +25,8 @@ export class QueryExecutionResponseStreamMock implements QueryExecutionResponseS
     }
 
     /// Get the metrics
-    getMetadata(): Map<string, string> {
-        return new Map();
-    }
-    /// Get the metrics
     getMetrics(): QueryExecutionMetrics {
         return this.metrics;
-    }
-    /// Get the status
-    getStatus() {
-        return QueryExecutionStatus.RUNNING;
     }
     /// Get the arrow schema
     async getSchema(): Promise<arrow.Schema | null> {

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
-import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
+import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import { createTestRuntime, type TestRuntime } from '../../testing/test_runtime.js';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from './workbook_execution.js';
 import { workbookExecutionIsBusy, type WorkbookExecutionOptions } from './workbook_execution_service.js';
@@ -31,9 +31,7 @@ function fixture(workbookId: string, deferStream = false) {
     const aborted = vi.fn();
     const stream: QueryExecutionResponseStream = {
         cancel: vi.fn(() => cancellation.promise),
-        getMetadata: () => new Map(),
         getMetrics: createQueryResponseStreamMetrics,
-        getStatus: () => QueryExecutionStatus.RUNNING,
         getSchema: async () => null,
         produce: vi.fn<QueryExecutionResponseStream['produce']>(async (_batches, _progress, abort) => {
             signal = abort;

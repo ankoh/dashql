@@ -71,9 +71,7 @@ class TestStream implements QueryExecutionResponseStream {
         readonly progress: QueryExecutionProgress[] = [],
     ) { }
 
-    getMetadata() { return new Map([['source', 'test']]); }
     getMetrics() { return this.metrics; }
-    getStatus() { return QueryExecutionStatus.RUNNING; }
     async getSchema() { return SCHEMA; }
     async produce(
         batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>,

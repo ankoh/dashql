@@ -7,7 +7,7 @@ import { ComputeConnectionProvider, useComputeDatabase } from '../compute/comput
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
@@ -26,9 +26,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 function connection(connectionId: string) {
     const stream: QueryExecutionResponseStream = {
         cancel: vi.fn(async () => {}),
-        getMetadata: () => new Map(),
         getMetrics: createQueryResponseStreamMetrics,
-        getStatus: () => QueryExecutionStatus.RUNNING,
         getSchema: async () => null,
         produce: vi.fn<QueryExecutionResponseStream['produce']>(async (_batches, _progress, abort) => {
             await new Promise(resolve => abort?.addEventListener('abort', resolve, { once: true }));

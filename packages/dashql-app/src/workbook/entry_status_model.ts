@@ -36,93 +36,45 @@ function getQueryErrorDetail(query: QueryExecutionState, message: string): Recor
         target: error?.target,
         queryId: query.queryId,
         traceId: query.traceId,
-        statementIndex: query.statementIndex,
-        statementCount: query.statementCount,
         query: query.queryText,
         metadata: query.queryMetadata,
         details: error != null && Object.keys(error.keyValues).length > 0 ? error.keyValues : undefined,
     });
 }
 
-function getStatementStatusText(message: string, statementIndex: number | null, statementCount: number | null): string {
-    return statementIndex != null && statementCount != null && statementCount > 1
-        ? `Statement ${statementIndex} of ${statementCount}: ${message}`
-        : message;
-}
-
 /// Human-readable label for a query execution status. Shared by the feed status bar and the Details
 /// query status panel so both stay in sync.
-export function getQueryStatusText(
-    status: QueryExecutionStatus,
-    statementIndex: number | null = null,
-    statementCount: number | null = null,
-    statementSucceeded: boolean = false,
-): string {
-    const hasMultipleStatements = statementIndex != null && statementCount != null && statementCount > 1;
-    if (hasMultipleStatements && statementSucceeded && !queryIsDone(status)) {
-        return `Statement ${statementIndex} of ${statementCount} executed successfully`;
-    }
+export function getQueryStatusText(status: QueryExecutionStatus): string {
     switch (status) {
         case QueryExecutionStatus.REQUESTED:
-            return hasMultipleStatements
-                ? `Requested statement ${statementIndex} of ${statementCount}`
-                : 'Requested query';
-        case QueryExecutionStatus.PREPARING:
-            return hasMultipleStatements
-                ? `Preparing statement ${statementIndex} of ${statementCount}`
-                : 'Preparing query';
+            return 'Requested query';
         case QueryExecutionStatus.SENDING:
-            return hasMultipleStatements
-                ? `Sending statement ${statementIndex} of ${statementCount}`
-                : 'Sending query';
+            return 'Sending query';
         case QueryExecutionStatus.QUEUED:
-            return hasMultipleStatements
-                ? `Statement ${statementIndex} of ${statementCount} queued`
-                : 'Queued query';
+            return 'Queued query';
         case QueryExecutionStatus.RUNNING:
-            return hasMultipleStatements
-                ? `Executing statement ${statementIndex} of ${statementCount}`
-                : 'Executing query';
+            return 'Executing query';
         case QueryExecutionStatus.RECEIVED_FIRST_BATCH:
-            return hasMultipleStatements
-                ? `Executing statement ${statementIndex} of ${statementCount}, fetching results`
-                : 'Executing query, fetching results';
+            return 'Executing query, fetching results';
         case QueryExecutionStatus.RECEIVED_ALL_BATCHES:
-            return hasMultipleStatements
-                ? `Executing statement ${statementIndex} of ${statementCount}, received all results`
-                : 'Executing query, received all results';
+            return 'Executing query, received all results';
         case QueryExecutionStatus.PROCESSING_RESULTS:
-            return hasMultipleStatements
-                ? `Processing results for statement ${statementIndex} of ${statementCount}`
-                : 'Processing results';
+            return 'Processing results';
         case QueryExecutionStatus.PROCESSED_RESULTS:
-            return hasMultipleStatements
-                ? `Processed results for statement ${statementIndex} of ${statementCount}`
-                : 'Processed results';
+            return 'Processed results';
         case QueryExecutionStatus.FAILED:
-            return hasMultipleStatements
-                ? `Statement ${statementIndex} of ${statementCount} execution failed`
-                : 'Statement execution failed';
+            return 'Statement execution failed';
         case QueryExecutionStatus.CANCELLED:
-            return hasMultipleStatements
-                ? `Statement ${statementIndex} of ${statementCount} execution was cancelled`
-                : 'Statement execution was cancelled';
+            return 'Statement execution was cancelled';
         case QueryExecutionStatus.SUCCEEDED:
-            return hasMultipleStatements
-                ? `Statement ${statementIndex} of ${statementCount} executed successfully`
-                : 'Statement executed successfully';
+            return 'Statement executed successfully';
     }
 }
 
 /// Derive the status bar contents for a workbook entry from its query execution.
 export function deriveEntryStatus(query: QueryExecutionState | null): EntryStatus {
     if (query != null && !queryIsDone(query.status)) {
-        const statusText = getQueryStatusText(
-            query.status,
-            query.statementIndex,
-            query.statementCount,
-            query.statementSucceeded,
-        );
+        const statusText = getQueryStatusText(query.status);
         // Engines with structured progress add the phase, the progress and the throughput
         const progress = summarizeQueryProgress(query.latestProgressUpdate);
         return {
@@ -134,9 +86,7 @@ export function deriveEntryStatus(query: QueryExecutionState | null): EntryStatu
         };
     }
     if (query != null && (query.status === QueryExecutionStatus.FAILED || query.status === QueryExecutionStatus.CANCELLED)) {
-        const message = query.error?.message != null
-            ? getStatementStatusText(query.error.message, query.statementIndex, query.statementCount)
-            : getQueryStatusText(query.status, query.statementIndex, query.statementCount);
+        const message = query.error?.message ?? getQueryStatusText(query.status);
         return {
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Failed,
@@ -150,8 +100,8 @@ export function deriveEntryStatus(query: QueryExecutionState | null): EntryStatu
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Succeeded,
             message: query.status === QueryExecutionStatus.SUCCEEDED && query.servedFromCache
-                ? getStatementStatusText('Result loaded from cache', query.statementIndex, query.statementCount)
-                : getQueryStatusText(query.status, query.statementIndex, query.statementCount),
+                ? 'Result loaded from cache'
+                : getQueryStatusText(query.status),
             traceId: query.traceId,
             errorDetail: null,
         };

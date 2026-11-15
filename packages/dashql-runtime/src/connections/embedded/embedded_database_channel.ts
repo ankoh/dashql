@@ -9,7 +9,6 @@ import {
     createQueryResponseStreamMetrics,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
-    QueryExecutionStatus,
     type QueryExecutionMetrics,
 } from '../../query/query_execution_state.js';
 import type { HyperDatabaseChannel } from '../hyper/hyperdb_grpc_client.js';
@@ -20,7 +19,6 @@ const STREAM_YIELD_INTERVAL = 8;
 /// A query result that streams the record batches as the embedded database produces them.
 class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
     private readonly metrics: QueryExecutionMetrics;
-    private status = QueryExecutionStatus.RUNNING;
     /// Resolves once the result is read to the end or cancelled, the connection is free again then
     readonly finished: Promise<void>;
     private resolveFinished!: () => void;
@@ -40,22 +38,15 @@ class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
         try {
             await this.reader.cancel();
         } finally {
-            if (this.status === QueryExecutionStatus.RUNNING) this.status = QueryExecutionStatus.CANCELLED;
             this.resolveFinished();
         }
     }
 
-    getMetadata(): Map<string, string> {
-        return new Map();
-    }
 
     getMetrics(): QueryExecutionMetrics {
         return this.metrics;
     }
 
-    getStatus(): QueryExecutionStatus {
-        return this.status;
-    }
 
     async getSchema(): Promise<arrow.Schema> {
         return this.reader.schema;
@@ -81,10 +72,8 @@ class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
                 if (this.metrics.totalBatchesReceived % STREAM_YIELD_INTERVAL === 0) await yieldToBrowser();
             }
             this.metrics.totalQueryRequestsSucceeded = 1;
-            this.status = QueryExecutionStatus.SUCCEEDED;
         } catch (error) {
             this.metrics.totalQueryRequestsFailed = 1;
-            this.status = abort?.aborted ? QueryExecutionStatus.CANCELLED : QueryExecutionStatus.FAILED;
             // Stop the query when the batches are not read to the end
             await this.reader.cancel().catch(() => {});
             throw error;

@@ -37,7 +37,6 @@ export interface QueryEntry {
 function getStatusLabel(status: QueryExecutionStatus): string {
     switch (status) {
         case QueryExecutionStatus.REQUESTED: return 'requested';
-        case QueryExecutionStatus.PREPARING: return 'preparing';
         case QueryExecutionStatus.SENDING: return 'sending';
         case QueryExecutionStatus.QUEUED: return 'queued';
         case QueryExecutionStatus.RUNNING: return 'running';
@@ -65,7 +64,6 @@ function entryToObject(entry: QueryEntry): object {
         metadata: q.queryMetadata,
         metrics: {
             queryRequestedAt: m.queryRequestedAt?.toISOString() ?? null,
-            queryPreparingStartedAt: m.queryPreparingStartedAt?.toISOString() ?? null,
             querySendingStartedAt: m.querySendingStartedAt?.toISOString() ?? null,
             queryQueuedStartedAt: m.queryQueuedStartedAt?.toISOString() ?? null,
             queryRunningStartedAt: m.queryRunningStartedAt?.toISOString() ?? null,

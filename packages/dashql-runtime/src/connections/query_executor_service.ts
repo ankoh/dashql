@@ -341,10 +341,10 @@ export class QueryExecutorService {
                         "numCols": table.numCols.toString(),
                         "cachedAt": new Date(cached.cachedAtMs).toISOString(),
                     }, LOG_CTX);
-                    // No live stream, so synthesize empty metadata and zeroed stream metrics.
+                    // No live stream, so synthesize zeroed stream metrics.
                     queryTracker.dispatch({
                         type: QUERY_RECEIVED_ALL_BATCHES,
-                        value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
+                        value: [queryId, table, createQueryResponseStreamMetrics()],
                     });
                     // Record the cache key and the entry's write time so the UI can show how old the
                     // cached result is and offer to delete it.
@@ -448,7 +448,7 @@ export class QueryExecutorService {
                         if (resultStream != null) {
                             runtime.resultStream = resultStream;
                             resultStream.setProfileDetail?.(runtime.profileViewers > 0);
-                            tracked.running(resultStream);
+                            tracked.running();
 
                             // Subscribe to query_status and result messages
                             table = await consumeQueryResponseStream({
@@ -464,9 +464,9 @@ export class QueryExecutorService {
                                         value: [queryId, profileProgress == null ? progress : { ...progress, profileProgress }],
                                     });
                                 },
-                                onBatch: (batch, stream) => queryTracker.dispatch({
+                                onBatch: (_batch, stream) => queryTracker.dispatch({
                                     type: QUERY_RECEIVED_BATCH,
-                                    value: [queryId, batch, stream.getMetrics()],
+                                    value: [queryId, stream.getMetrics()],
                                 }),
                                 onResultsReceived: reportQueryExecution,
                                 logger: traced,
@@ -482,11 +482,9 @@ export class QueryExecutorService {
                                 "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
                             }, LOG_CTX);
 
-                            // Is there any metadata?
-                            const metadata = resultStream.getMetadata();
                             if (table != null) queryTracker.dispatch({
                                 type: QUERY_RECEIVED_ALL_BATCHES,
-                                value: [queryId, table!, metadata, resultStream!.getMetrics()],
+                                value: [queryId, table, resultStream.getMetrics()],
                             });
                         } else {
                             reportQueryExecution();

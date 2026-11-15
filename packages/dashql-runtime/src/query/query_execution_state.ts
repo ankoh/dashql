@@ -10,7 +10,6 @@ import type { EngineProgressPayload, QueryProfileProgress } from './query_progre
 
 export enum QueryExecutionStatus {
     REQUESTED = 0,
-    PREPARING = 1,
     SENDING = 2,
     QUEUED = 3,
     RUNNING = 4,
@@ -81,12 +80,8 @@ export interface QueryExecutionResponseStream {
     cancel?(): Promise<void>;
     /// Is the profile of the query shown? Connectors fetch the plan and its statistics only then (Trino).
     setProfileDetail?(wanted: boolean): void;
-    /// Get the result metadata (after completion)
-    getMetadata(): Map<string, string>;
     /// Get the stream metrics
     getMetrics(): QueryExecutionMetrics;
-    /// Get the current query status
-    getStatus(): QueryExecutionStatus;
     /// Await the schema message
     getSchema(): Promise<arrow.Schema | null>;
     /// Await the next record batch
@@ -96,8 +91,6 @@ export interface QueryExecutionResponseStream {
 export interface QueryMetrics {
     /// The time at which we requested the query (if any)
     queryRequestedAt: Date | null;
-    /// The time at which we prepared the query (if any)
-    queryPreparingStartedAt: Date | null;
     /// The time at which the query was sent (if any)
     querySendingStartedAt: Date | null;
     /// The time at which the query was queued (if any)
@@ -211,24 +204,10 @@ export interface QueryExecutionState {
     metrics: QueryMetrics;
     /// The cancellation signal
     cancellation: AbortController;
-    /// The response stream
-    resultStream: QueryExecutionResponseStream | null;
     /// The loading error (if any)
     error: LoggableException | null;
     /// The latest update for the query execution
     latestProgressUpdate: QueryExecutionProgress | null;
-    /// One-based active statement position for a core-steered script execution.
-    statementIndex: number | null;
-    /// Total statements in the active script execution.
-    statementCount: number | null;
-    /// Whether the latest script statement completed successfully.
-    statementSucceeded: boolean;
-    /// The number of record batches that are already buffered
-    resultSchema: arrow.Schema | null;
-    /// The number of record batches that are already buffered
-    resultBatches: arrow.RecordBatch[];
-    /// The result metadata
-    resultMetadata: Map<string, string> | null;
     /// The result query_result iff the query succeeded
     resultTable: arrow.Table | null;
     /// The file-based query result cache key for this execution, or null when the query is not
@@ -250,12 +229,9 @@ export interface QueryExecutionTracker {
 }
 
 export const EXECUTE_QUERY = Symbol('EXECUTE_QUERY');
-export const QUERY_PREPARING = Symbol('QUERY_PREPARING');
 export const QUERY_SENDING = Symbol('QUERY_SENDING');
 export const QUERY_RUNNING = Symbol('QUERY_RUNNING');
 export const QUERY_PROGRESS_UPDATED = Symbol('QUERY_PROGRESS_UPDATED');
-export const QUERY_STATEMENT_STARTED = Symbol('QUERY_STATEMENT_STARTED');
-export const QUERY_STATEMENT_SUCCEEDED = Symbol('QUERY_STATEMENT_SUCCEEDED');
 export const QUERY_RECEIVED_BATCH = Symbol('QUERY_RECEIVED_BATCH');
 export const QUERY_RECEIVED_ALL_BATCHES = Symbol('QUERY_RECEIVED_ALL_BATCHES');
 export const QUERY_PROCESSING_RESULTS = Symbol('QUERY_PROCESSING_RESULTS');
@@ -268,14 +244,11 @@ export const QUERY_CACHE_DELETED = Symbol('QUERY_CACHE_DELETED');
 
 export type QueryExecutionAction =
     | VariantKind<typeof EXECUTE_QUERY, [number, QueryExecutionState]>
-    | VariantKind<typeof QUERY_PREPARING, [number]>
     | VariantKind<typeof QUERY_SENDING, [number]>
-    | VariantKind<typeof QUERY_RUNNING, [number, QueryExecutionResponseStream | null]>
+    | VariantKind<typeof QUERY_RUNNING, [number]>
     | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryExecutionProgress]>
-    | VariantKind<typeof QUERY_STATEMENT_STARTED, [number, number, number]>
-    | VariantKind<typeof QUERY_STATEMENT_SUCCEEDED, [number, number, number]>
-    | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, arrow.RecordBatch, QueryExecutionMetrics]>
-    | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, Map<string, string>, QueryExecutionMetrics]>
+    | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, QueryExecutionMetrics]>
+    | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, QueryExecutionMetrics]>
     | VariantKind<typeof QUERY_PROCESSING_RESULTS, [number]>
     | VariantKind<typeof QUERY_PROCESSED_RESULTS, [number]>
     | VariantKind<typeof QUERY_SUCCEEDED, [number]>
@@ -308,12 +281,10 @@ export function createQueryExecutionState(
         queryMetadata,
         status: QueryExecutionStatus.REQUESTED,
         cancellation,
-        resultStream: null,
         error: null,
         metrics: {
             textLength: queryText.length,
             queryRequestedAt: requestedAt,
-            queryPreparingStartedAt: null,
             querySendingStartedAt: null,
             queryQueuedStartedAt: null,
             queryRunningStartedAt: null,
@@ -331,12 +302,6 @@ export function createQueryExecutionState(
             streamMetrics: createQueryResponseStreamMetrics(),
         },
         latestProgressUpdate: null,
-        statementIndex: null,
-        statementCount: null,
-        statementSucceeded: false,
-        resultMetadata: null,
-        resultSchema: null,
-        resultBatches: [],
         resultTable: null,
         cacheKey: null,
         servedFromCache: false,
@@ -388,19 +353,6 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
         return state;
     }
     switch (action.type) {
-        case QUERY_PREPARING: {
-            query = {
-                ...query,
-                status: QueryExecutionStatus.PREPARING,
-                metrics: {
-                    ...query.metrics,
-                    lastUpdatedAt: now,
-                    queryPreparingStartedAt: now,
-                },
-            };
-            state.queriesActive.set(query.queryId, query);
-            return { ...state };
-        }
         case QUERY_SENDING: {
             query = {
                 ...query,
@@ -418,7 +370,6 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             query = {
                 ...query,
                 status: QueryExecutionStatus.RUNNING,
-                resultStream: action.value[1],
                 metrics: {
                     ...query.metrics,
                     lastUpdatedAt: now,
@@ -449,38 +400,8 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             state.queriesActive.set(query.queryId, next);
             return { ...state };
         }
-        case QUERY_STATEMENT_STARTED: {
-            query = {
-                ...query,
-                statementIndex: action.value[1],
-                statementCount: action.value[2],
-                statementSucceeded: false,
-                status: QueryExecutionStatus.RUNNING,
-                metrics: {
-                    ...query.metrics,
-                    lastUpdatedAt: now,
-                },
-            };
-            state.queriesActive.set(query.queryId, query);
-            return { ...state };
-        }
-        case QUERY_STATEMENT_SUCCEEDED: {
-            query = {
-                ...query,
-                statementIndex: action.value[1],
-                statementCount: action.value[2],
-                statementSucceeded: true,
-                status: QueryExecutionStatus.RUNNING,
-                metrics: {
-                    ...query.metrics,
-                    lastUpdatedAt: now,
-                },
-            };
-            state.queriesActive.set(query.queryId, query);
-            return { ...state };
-        }
         case QUERY_RECEIVED_BATCH: {
-            const [_queryId, batch, streamMetrics] = action.value;
+            const [_queryId, streamMetrics] = action.value;
             const metrics = { ...query.metrics };
             if (metrics.receivedFirstBatchAt == null) {
                 metrics.receivedFirstBatchAt = now;
@@ -488,15 +409,11 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             metrics.receivedLastBatchAt = now;
             metrics.lastUpdatedAt = now;
             metrics.streamMetrics = streamMetrics;
-            query.resultBatches.push(batch);
             query = {
                 ...query,
                 status: QueryExecutionStatus.RECEIVED_FIRST_BATCH,
                 metrics: metrics,
             };
-            if (query.resultSchema == null) {
-                query.resultSchema = batch.schema;
-            }
             state.queriesActive.set(query.queryId, query);
             return { ...state };
         }
@@ -504,10 +421,9 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             const metrics = { ...query.metrics };
             metrics.lastUpdatedAt = now;
             metrics.receivedAllBatchesAt = now;
-            metrics.streamMetrics = action.value[3];
+            metrics.streamMetrics = action.value[2];
             query = {
                 ...query,
-                resultMetadata: action.value[2],
                 resultTable: action.value[1],
                 status: QueryExecutionStatus.RECEIVED_ALL_BATCHES,
                 metrics: metrics,
@@ -617,15 +533,13 @@ export const INTERNAL_QUERY_HISTORY_LIMIT = 100;
 
 /// Move a terminal query to the finished queries.
 ///
-/// The finished queries keep their result tables for the views of their results, but not their batches, the
-/// table holds them. Internal queries return their results to their callers and keep only their metrics. A
+/// The finished queries keep their result tables for the views of their results. Internal queries return their results to their callers and keep only their metrics. A
 /// succeeded query with a result owner releases the result tables of the other queries of its owner, except for
 /// a later one, like the latest result of a script.
 function finishQuery(state: QueryExecutionHistoryState, query: QueryExecutionState) {
     const userProvided = query.queryMetadata.queryType == QueryType.USER_PROVIDED;
     query = {
         ...query,
-        resultBatches: [],
         resultTable: userProvided ? query.resultTable : null,
     };
     state.queriesActive.delete(query.queryId);

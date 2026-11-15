@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import * as proto from "../../proto.js";
 
 import { LoggableException, Logger } from '../../platform/logger/logger.js';
-import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../query/query_execution_state.js";
+import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics } from "../../query/query_execution_state.js";
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryInfo, TrinoQueryResult, TrinoQueryStage, TrinoQueryStatistics } from "./trino_api_client.js";
 import { ChannelError, RawProxyError } from '../../platform/channel_common.js';
@@ -50,10 +50,6 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     logger: Logger;
     /// The api client
     apiClient: TrinoApiClientInterface;
-    /// The current execution status
-    currentStatus: QueryExecutionStatus;
-    /// The response metadata
-    responseMetadata: Map<string, string>;
     /// The schema
     resultSchema: AsyncValue<arrow.Schema, Error>;
     /// The current result
@@ -92,8 +88,6 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     constructor(logger: Logger, apiClient: TrinoApiClientInterface, endpoint: TrinoApiEndpoint, result: TrinoQueryResult, metrics: QueryExecutionMetrics) {
         this.logger = logger;
         this.apiClient = apiClient;
-        this.currentStatus = QueryExecutionStatus.RUNNING;
-        this.responseMetadata = new Map();
         this.resultSchema = new AsyncValue();
         this.latestQueryResult = result;
         this.latestQueryStats = result.stats ?? null;
@@ -288,17 +282,9 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         return queryResult;
     }
 
-    /// Get the result metadata (after completion)
-    getMetadata(): Map<string, string> {
-        return new Map();
-    }
     /// Get the stream metrics
     getMetrics(): QueryExecutionMetrics {
         return this.queryMetrics;
-    }
-    /// Get the current query status
-    getStatus(): QueryExecutionStatus {
-        return this.currentStatus;
     }
     /// Await the schema message
     async getSchema(): Promise<arrow.Schema | null> {

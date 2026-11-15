@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AsyncConsumerLambdas } from '../../utils/async_consumer.js';
 import type { EmbeddedConnection, EmbeddedResultStream } from '../../platform/database/embedded_database.js';
-import { QueryExecutionStatus, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
+import { type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
@@ -112,7 +112,6 @@ describe('EmbeddedDatabaseChannel', () => {
         running[0].resolve(ONE_ROW);
         const firstStream = await first;
         await firstStream.cancel!();
-        expect(firstStream.getStatus()).toBe(QueryExecutionStatus.CANCELLED);
 
         await vi.waitFor(() => expect(running).toHaveLength(2));
         running[1].resolve(ONE_ROW);
@@ -168,12 +167,10 @@ describe('EmbeddedDatabaseChannel', () => {
         };
         const channel = new EmbeddedDatabaseChannel(connection);
         const stream = await channel.executeQuery('select 1');
-        expect(stream.getStatus()).toBe(QueryExecutionStatus.RUNNING);
-
         const batches = await produceAll(stream);
 
         expect(connection.queryStream).toHaveBeenCalledWith('select 1', undefined);
-        expect(stream.getStatus()).toBe(QueryExecutionStatus.SUCCEEDED);
+        expect(stream.getMetrics().totalQueryRequestsSucceeded).toBe(1);
         expect(stream.getMetrics().totalRowsReceived).toBe(3);
         expect(stream.getMetrics().totalBatchesReceived).toBe(table.batches.length);
         expect(stream.getMetrics().totalDataBytesReceived).toBeGreaterThan(0);

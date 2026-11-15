@@ -7,7 +7,6 @@ import type {
     QueryExecutionProgress,
     QueryExecutionResponseStream,
 } from '../query/query_execution_state.js';
-import { QueryExecutionStatus } from '../query/query_execution_state.js';
 import { LogLevel } from '../platform/logger/log_buffer.js';
 import { TestLogger } from '../testing/test_logger.js';
 import { createTrace } from '../platform/logger/trace_context.js';
@@ -28,9 +27,7 @@ function createStream(table: arrow.Table): QueryExecutionResponseStream {
         durationUntilFirstBatchMs: 0,
     };
     return {
-        getMetadata: () => new Map(),
         getMetrics: () => metrics,
-        getStatus: () => QueryExecutionStatus.SUCCEEDED,
         getSchema: async () => table.schema,
         produce: async (batches, progress) => {
             progress.resolve(null!, { isQueued: false, progressPercent: null, resultRows: null, rowsProcessed: null, executionTimeMs: null, metrics });

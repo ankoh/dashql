@@ -8,38 +8,25 @@ import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 
 describe('getQueryStatusText', () => {
     it.each([
-        [QueryExecutionStatus.REQUESTED, 'Requested statement 2 of 3'],
-        [QueryExecutionStatus.PREPARING, 'Preparing statement 2 of 3'],
-        [QueryExecutionStatus.SENDING, 'Sending statement 2 of 3'],
-        [QueryExecutionStatus.QUEUED, 'Statement 2 of 3 queued'],
-        [QueryExecutionStatus.RUNNING, 'Executing statement 2 of 3'],
-        [QueryExecutionStatus.RECEIVED_FIRST_BATCH, 'Executing statement 2 of 3, fetching results'],
-        [QueryExecutionStatus.RECEIVED_ALL_BATCHES, 'Executing statement 2 of 3, received all results'],
-        [QueryExecutionStatus.PROCESSING_RESULTS, 'Processing results for statement 2 of 3'],
-        [QueryExecutionStatus.PROCESSED_RESULTS, 'Processed results for statement 2 of 3'],
-        [QueryExecutionStatus.FAILED, 'Statement 2 of 3 execution failed'],
-        [QueryExecutionStatus.CANCELLED, 'Statement 2 of 3 execution was cancelled'],
-        [QueryExecutionStatus.SUCCEEDED, 'Statement 2 of 3 executed successfully'],
-    ])('includes the statement position for status %s', (status, expected) => {
-        expect(getQueryStatusText(status, 2, 3)).toBe(expected);
+        [QueryExecutionStatus.REQUESTED, 'Requested query'],
+        [QueryExecutionStatus.SENDING, 'Sending query'],
+        [QueryExecutionStatus.QUEUED, 'Queued query'],
+        [QueryExecutionStatus.RUNNING, 'Executing query'],
+        [QueryExecutionStatus.RECEIVED_FIRST_BATCH, 'Executing query, fetching results'],
+        [QueryExecutionStatus.RECEIVED_ALL_BATCHES, 'Executing query, received all results'],
+        [QueryExecutionStatus.PROCESSING_RESULTS, 'Processing results'],
+        [QueryExecutionStatus.PROCESSED_RESULTS, 'Processed results'],
+        [QueryExecutionStatus.FAILED, 'Statement execution failed'],
+        [QueryExecutionStatus.CANCELLED, 'Statement execution was cancelled'],
+        [QueryExecutionStatus.SUCCEEDED, 'Statement executed successfully'],
+    ])('names status %s', (status, expected) => {
+        expect(getQueryStatusText(status)).toBe(expected);
     });
 
-    it('includes the statement count when the latest statement succeeded before the script completed', () => {
-        expect(getQueryStatusText(QueryExecutionStatus.RUNNING, 2, 3, true))
-            .toBe('Statement 2 of 3 executed successfully');
-    });
-
-    it('keeps single-statement status messages concise', () => {
-        expect(getQueryStatusText(QueryExecutionStatus.RUNNING, 1, 1)).toBe('Executing query');
-        expect(getQueryStatusText(QueryExecutionStatus.SUCCEEDED, 1, 1)).toBe('Statement executed successfully');
-    });
-
-    it('includes the statement position in a custom failure message', () => {
+    it('shows the message of a failure with its details', () => {
         const status = deriveEntryStatus({
             queryId: 7,
             status: QueryExecutionStatus.FAILED,
-            statementIndex: 2,
-            statementCount: 3,
             queryText: 'select * from missing',
             queryMetadata: { title: 'Missing relation' },
             error: {
@@ -51,15 +38,13 @@ describe('getQueryStatusText', () => {
             traceId: 42,
         } as any);
 
-        expect(status.message).toBe('Statement 2 of 3: relation does not exist');
+        expect(status.message).toBe('relation does not exist');
         expect(status.errorDetail).toEqual({
             status: 'failed',
-            message: 'Statement 2 of 3: relation does not exist',
+            message: 'relation does not exist',
             target: 'trino',
             queryId: 7,
             traceId: 42,
-            statementIndex: 2,
-            statementCount: 3,
             query: 'select * from missing',
             metadata: { title: 'Missing relation' },
             details: { sqlState: '42P01', hint: 'Check the table name' },
@@ -70,8 +55,6 @@ describe('getQueryStatusText', () => {
         const status = deriveEntryStatus({
             queryId: 7,
             status: QueryExecutionStatus.FAILED,
-            statementIndex: null,
-            statementCount: null,
             queryText: 'select 1',
             queryMetadata: null,
             error: { message: 'connection lost', keyValues: {} },
@@ -87,23 +70,10 @@ describe('getQueryStatusText', () => {
             query: 'select 1',
         });
     });
-
-    it('includes the statement position in a cached result message when available', () => {
-        const status = deriveEntryStatus({
-            status: QueryExecutionStatus.SUCCEEDED,
-            statementIndex: 3,
-            statementCount: 3,
-            servedFromCache: true,
-            metrics: null,
-            traceId: 42,
-        } as any);
-
-        expect(status.message).toBe('Statement 3 of 3: Result loaded from cache');
-    });
 });
 
 describe('deriveEntryStatus', () => {
-    const query = (fields: object) => ({ queryId: 1, statementIndex: 1, statementCount: 1, error: null, traceId: 5, ...fields }) as never;
+    const query = (fields: object) => ({ queryId: 1, error: null, traceId: 5, ...fields }) as never;
 
     it('shows running, succeeded, cached and idle entries', () => {
         expect(deriveEntryStatus(query({ status: QueryExecutionStatus.RUNNING }))).toEqual({
@@ -124,9 +94,6 @@ describe('deriveEntryStatus', () => {
         const running = (phase: string) => ({
             queryId: 8,
             status: QueryExecutionStatus.RUNNING,
-            statementIndex: null,
-            statementCount: null,
-            statementSucceeded: false,
             latestProgressUpdate: { phase, executionTimeMs: 2000, profileProgress: { execution } },
         }) as unknown as QueryExecutionState;
         expect(deriveEntryStatus(running('RUNNING')).message).toBe('Executing query · 42% · 1.2M rows/s');

@@ -59,7 +59,7 @@ export function createEmbeddedDatabaseShellEnvironment(
                             metrics.totalRowsReceived = table.numRows;
                             tracked.dispatch({
                                 type: QUERY_RECEIVED_ALL_BATCHES,
-                                value: [tracked.queryId, table, new Map(), metrics],
+                                value: [tracked.queryId, table, metrics],
                             });
                             if (table.numCols === 0) return;
                             if (options.prepareResult != null) {

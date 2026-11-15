@@ -8,7 +8,6 @@ import {
     type QueryExecutionAction,
     createQueryExecutionState,
     type QueryExecutionMetrics,
-    type QueryExecutionResponseStream,
     type QueryExecutionState,
     type QueryExecutionTracker,
     type QueryMetadata,
@@ -30,7 +29,7 @@ export interface TrackedQueryExecutionContext {
     readonly isDone: () => boolean;
     readonly dispatch: (action: QueryExecutionAction) => void;
     readonly sending: () => void;
-    readonly running: (stream?: QueryExecutionResponseStream | null) => void;
+    readonly running: () => void;
     readonly succeed: () => void;
     readonly fail: (error: unknown, metrics?: QueryExecutionMetrics | null) => void;
     readonly cancel: (error: unknown, metrics?: QueryExecutionMetrics | null) => void;
@@ -81,7 +80,7 @@ export async function executeTrackedQuery<T>(args: TrackedQueryExecutionArgs<T>)
         isDone: () => done,
         dispatch,
         sending: () => dispatch({ type: QUERY_SENDING, value: [queryId] }),
-        running: stream => dispatch({ type: QUERY_RUNNING, value: [queryId, stream ?? null] }),
+        running: () => dispatch({ type: QUERY_RUNNING, value: [queryId] }),
         succeed: () => finish({ type: QUERY_SUCCEEDED, value: [queryId] }),
         fail: (error, metrics = null) => finish({ type: QUERY_FAILED, value: [queryId, asLoggableException(error, errorTarget), metrics] }),
         cancel: (error, metrics = null) => finish({ type: QUERY_CANCELLED, value: [queryId, asLoggableException(error, errorTarget), metrics] }),

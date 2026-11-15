@@ -11,7 +11,7 @@ const NOW = 1000;
 function query(scriptKey: number, queryId: number, status: QueryExecutionStatus, extra: Partial<ScriptQuery> = {}): ScriptQuery {
     return {
         scriptKey, name: `${scriptKey}_script`, queryId, status, durationMs: 120, error: null,
-        statementIndex: null, statementCount: null, statementSucceeded: false, rows: 42, fromCache: false, ...extra,
+        rows: 42, fromCache: false, ...extra,
     };
 }
 
@@ -44,9 +44,9 @@ describe('Workbook status', () => {
     });
 
     it('tells the running queries, a run of all scripts instead of its queries, publishes and connections', () => {
-        const queries = [query(1, 10, QueryExecutionStatus.RUNNING, { statementIndex: 1, statementCount: 3 }), query(2, 11, QueryExecutionStatus.SUCCEEDED)];
+        const queries = [query(1, 10, QueryExecutionStatus.RUNNING), query(2, 11, QueryExecutionStatus.SUCCEEDED)];
         expect(texts(liveWorkbookStatuses({ queries, execution: null, connections: [], publish: null, now: NOW }))).toEqual([
-            ['progress', 'Running 1_script', 'Executing statement 1 of 3'],
+            ['progress', 'Running 1_script', 'Executing query'],
         ]);
         expect(texts(liveWorkbookStatuses({ queries, execution: execution('running'), connections: [], publish: null, now: NOW }))).toEqual([
             ['progress', 'Running all scripts', '1/3 · 2_revenue'],

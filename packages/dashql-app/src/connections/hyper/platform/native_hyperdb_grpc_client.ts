@@ -21,7 +21,6 @@ import {
     createQueryResponseStreamMetrics,
     QueryExecutionProgress,
     QueryExecutionResponseStream, QueryExecutionMetrics,
-    QueryExecutionStatus,
 } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ChannelArgs, ChannelError } from '@ankoh/dashql-runtime/platform/channel_common';
 import { decodeGrpcErrorHeaders, HyperQueryError } from '@ankoh/dashql-runtime/connections/hyper/hyper_error_info';
@@ -40,8 +39,6 @@ export class QueryResultReader implements AsyncIterator<Uint8Array>, AsyncIterab
     logger: Logger;
     /// The message iterator
     messageIterator: NativeGrpcServerStreamMessageIterator;
-    /// The current status
-    currentStatus: QueryExecutionStatus;
     /// The metrics
     metrics: QueryExecutionMetrics;
 
@@ -49,12 +46,9 @@ export class QueryResultReader implements AsyncIterator<Uint8Array>, AsyncIterab
         this.grpcStream = stream;
         this.logger = logger;
         this.messageIterator = new NativeGrpcServerStreamMessageIterator(this.grpcStream, logger);
-        this.currentStatus = QueryExecutionStatus.RUNNING;
         this.metrics = createQueryResponseStreamMetrics();
     }
 
-    /// Get the result metadata (if any)
-    get metadata() { return this.messageIterator.metadata; }
     /// Get the next binary result chunk
     async next(): Promise<IteratorResult<Uint8Array>> {
         while (true) {
@@ -101,17 +95,9 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
         await this.resultReader.grpcStream.destroy();
     }
 
-    /// Get the metadata
-    getMetadata(): Map<string, string> {
-        return this.resultReader.metadata;
-    }
     /// Get the metrics
     getMetrics(): QueryExecutionMetrics {
         return this.resultReader.metrics;
-    }
-    /// Get the current query status
-    getStatus(): QueryExecutionStatus {
-        return this.resultReader.currentStatus;
     }
     /// Await the Arrow schema
     getSchema(): Promise<arrow.Schema> {

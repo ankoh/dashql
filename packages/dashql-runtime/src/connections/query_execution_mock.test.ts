@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueryExecutionResponseStreamMock } from './query_execution_mock.js';
 import { HyperDatabaseClientMock } from './hyper/hyperdb_grpc_client_mock.js';
 import { SalesforceAPIClientMock, type SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
-import { QueryExecutionStatus, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import { type QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
 
 /// Collect the batches that a stream produces
@@ -21,8 +21,6 @@ describe('the mocked query result stream', () => {
     it('describes a running query with three int columns', async () => {
         vi.useFakeTimers();
         const stream = new QueryExecutionResponseStreamMock();
-        expect(stream.getStatus()).toBe(QueryExecutionStatus.RUNNING);
-        expect(stream.getMetadata().size).toBe(0);
         expect(stream.getMetrics()).toBe(stream.metrics);
         const schema = stream.getSchema();
         await vi.advanceTimersByTimeAsync(200);

@@ -60,9 +60,7 @@ class TestStream implements QueryExecutionResponseStream {
         readonly progress: QueryExecutionProgress[] = [],
     ) { }
 
-    getMetadata() { return new Map([['source', 'test']]); }
     getMetrics() { return this.metrics; }
-    getStatus() { return QueryExecutionStatus.RUNNING; }
     async getSchema() { return SCHEMA; }
     async produce(
         batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>,
@@ -275,7 +273,6 @@ describe('QueryExecutorService', () => {
             const query = await finished(queryId);
             expect(query.status).toBe(QueryExecutionStatus.SUCCEEDED);
             expect(query.resultTable?.numRows).toBe(3);
-            expect(query.resultMetadata?.get('source')).toBe('test');
         });
 
         it('passes the progress of the backend on', async () => {

@@ -20,9 +20,6 @@ export interface ScriptQuery {
     status: QueryExecutionStatus;
     durationMs: number | null;
     error: string | null;
-    statementIndex: number | null;
-    statementCount: number | null;
-    statementSucceeded: boolean;
     /// The rows that the query received
     rows: number | null;
     fromCache: boolean;
@@ -47,9 +44,6 @@ export function scriptQueries(workbookScripts: WorkbookScripts, connections: Rea
                 status: query.status,
                 durationMs: query.metrics.queryDurationMs,
                 error: query.error?.message ?? null,
-                statementIndex: query.statementIndex ?? null,
-                statementCount: query.statementCount ?? null,
-                statementSucceeded: query.statementSucceeded === true,
                 rows: query.metrics.streamMetrics?.totalRowsReceived ?? null,
                 fromCache: query.servedFromCache === true,
             });
@@ -119,7 +113,7 @@ export function liveWorkbookStatuses(args: {
                 tone: WorkbookStatusTone.Progress,
                 text: `Running ${query.name}`,
                 // Every step of the query is a line of the log
-                detail: getQueryStatusText(query.status, query.statementIndex, query.statementCount, query.statementSucceeded),
+                detail: getQueryStatusText(query.status),
                 scriptKey: query.scriptKey,
                 at: now,
             });

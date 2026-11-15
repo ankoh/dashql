@@ -21,7 +21,6 @@ import {
     QueryExecutionMetrics,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
-    QueryExecutionStatus,
 } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
 import { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';
@@ -64,9 +63,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
     /// Has the Arrow schema prefix already been emitted to the reader (via POST body or a prior chunk)?
     schemaEmitted: boolean;
     /// Public reader state.
-    currentStatus: QueryExecutionStatus;
     metrics: QueryExecutionMetrics;
-    metadata: Map<string, string>;
     /// Callback invoked whenever a new QueryStatus is observed.
     progressCallback: ((progress: QueryExecutionProgress) => void) | null;
     abort: AbortSignal | undefined;
@@ -81,9 +78,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
         this.nextPrefetchIndex = initialBytes && initialBytes.byteLength > 0 ? 1 : 0;
         this.inflight = [];
         this.schemaEmitted = !!(initialBytes && initialBytes.byteLength > 0);
-        this.currentStatus = QueryExecutionStatus.RUNNING;
         this.metrics = createQueryResponseStreamMetrics();
-        this.metadata = new Map();
         this.progressCallback = null;
         this.abort = undefined;
         if (initialBytes) {
@@ -191,14 +186,8 @@ export class WebHyperQueryResultStream implements QueryExecutionResponseStream {
         await this.reader.httpClient.cancelQuery(this.reader.queryId);
     }
 
-    getMetadata(): Map<string, string> {
-        return this.reader.metadata;
-    }
     getMetrics(): QueryExecutionMetrics {
         return this.reader.metrics;
-    }
-    getStatus(): QueryExecutionStatus {
-        return this.reader.currentStatus;
     }
     getSchema(): Promise<arrow.Schema> {
         return this.resultSchema.getValue();
