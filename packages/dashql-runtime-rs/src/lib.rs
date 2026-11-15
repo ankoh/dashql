@@ -6,9 +6,11 @@
 
 pub mod attachments;
 pub mod catalog_loader;
+pub mod clfn;
 pub mod compute;
 pub mod connections;
 pub mod names;
 pub mod query;
+pub mod salesforce;
 pub mod trino;
 pub mod workbook;

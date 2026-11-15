@@ -182,6 +182,21 @@ request, the channel and the health check.
   basic auth encodes UTF-8, an error or rows in the response to the statement are handled like a page, a token
   response without a token is an error.
 
+## The client functions and Salesforce
+
+The client functions (`src/clfn/`) and the Salesforce connector (`src/salesforce/`) are ported without I/O, the app
+doesn't use them yet. A call is a state machine: it starts from the description of the core, returns the next request,
+a wait or the result table, and takes the response with the time. The runtime reads the spec for its requests, and the
+core checks it when a binding registers it on the catalog of a connection. The registrations of the connections ask the
+host to load a spec and register it once it arrives. A result is a table of typed cells that becomes a record batch or
+IPC bytes. The setup of a Salesforce connection is a state machine too: every step returns the actions of the
+connection state and what the host does next. The host generates the PKCE challenge, opens the authorization page,
+sends the requests and connects the Hyper channel. The REST calls of Salesforce are pairs of a function that builds the
+request and one that reads the response, and the metadata of a data space sends its three requests at once. URLs, JSON
+pointers and timestamps follow the browser where the origin check and the request text depend on it. Named time zones
+other than UTC are not known. The tests answer with made-up responses and run the examples of the Data 360 spec through
+the core and `EXPLAIN`.
+
 ## Typing
 
 Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,

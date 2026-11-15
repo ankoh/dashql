@@ -20,6 +20,7 @@ filegroup(
     visibility = [
         "//packages/dashql-app:__pkg__",
         "//packages/dashql-runtime:__pkg__",
+        "//packages/dashql-runtime-rs:__pkg__",
     ],
 )
 
