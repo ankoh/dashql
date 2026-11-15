@@ -237,4 +237,4 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - Files of runs: `createExecutionMounts` in `packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts`
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`
 - Exported results: `packages/dashql-runtime/src/workbook/persistence/workbook_query_results.ts`
-- Archives: `packages/dashql-app/src/workbook/persistence/workbook_zip.ts`
+- Archives: `packages/dashql-runtime/src/workbook/persistence/workbook_zip.ts`

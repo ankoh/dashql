@@ -6,7 +6,7 @@ import { AnchorAlignment } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/persistence/workbook_export_settings_view.js';
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
-import { exportConnectionAsUrl, WorkbookLinkTarget } from '../workbook/persistence/workbook_export.js';
+import { exportConnectionAsUrl } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useWorkbookArchiveWriter } from '../workbook/persistence/workbook_archive_database.js';
@@ -37,7 +37,7 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
         let cancelled = false;
         setURL(null);
         archiveWriter('connection_link')
-            .then(writer => exportConnectionAsUrl(writer, params, name, WorkbookLinkTarget.WEB, { withLoginHint: settings.withLoginHint }))
+            .then(writer => exportConnectionAsUrl(writer, params, name, process.env.DASHQL_APP_URL!, { withLoginHint: settings.withLoginHint }))
             .then(link => { if (!cancelled) setURL(link.toString()); })
             .catch(() => { if (!cancelled) setURL(null); });
         return () => {

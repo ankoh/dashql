@@ -1,14 +1,14 @@
 import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import { WorkbookTestBackend, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { QueryCacheMissError } from '@ankoh/dashql-runtime/query/query_result_cache';
-import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
-import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import { TestLogger } from '../../testing/test_logger.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '../../connections/query_execution_args.js';
+import { WorkbookTestBackend, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../testing/workbook_test_backend.js';
+import { StorageWriter } from '../../storage/storage_writer.js';
+import { QueryCacheMissError } from '../../query/query_result_cache.js';
+import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.js';
+import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from './workbook_execution.js';
 import {
     APPLY_PLANNER_ANALYSIS,
     createEmptyScriptData,
@@ -22,18 +22,18 @@ import {
     SET_SCRIPT_EXECUTION_VISUALIZATION,
     SET_SCRIPT_TEXT,
     SET_WORKBOOK_ATTACHMENTS,
-} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
-import { createEmptyMetadata, createScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+} from './workbook_scripts.js';
+import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
+import { createEmptyMetadata, createScriptRef } from './script_types.js';
+import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/workbook_export.js';
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
-import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { importWorkbookQueryResults, retainWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
-import { computeQueryCacheKeyForConnection } from '@ankoh/dashql-runtime/connections/query_executor_service';
-import { decodeConnectionFromProto } from '@ankoh/dashql-runtime/connections/connection_import';
-import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { importWorkbookQueryResults, retainWorkbookQueryResults } from '../persistence/workbook_query_results.js';
+import { computeQueryCacheKeyForConnection } from '../../connections/query_executor_service.js';
+import { decodeConnectionFromProto } from '../../connections/connection_import.js';
+import type { ConnectionParams } from '../../connections/connection_params.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -44,15 +44,16 @@ const logger = new TestLogger();
 
 /// The embedded database that writes and reads the workbook archives
 let archiveDatabase: HyperDB;
-let disposeArchiveDatabase: (() => Promise<void>) | null = null;
+let terminateArchiveDatabase: (() => Promise<void>) | null = null;
 
 beforeAll(async () => {
     dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     nativePlan = dql.planSession.bind(dql);
-    ({ database: archiveDatabase, dispose: disposeArchiveDatabase } = await createTestHyperDB('dashql-workbook-execution'));
+    archiveDatabase = await openTestHyperDB('dashql-workbook-execution');
+    terminateArchiveDatabase = () => archiveDatabase.terminate();
 }, 60_000);
 afterAll(async () => {
-    await disposeArchiveDatabase?.();
+    await terminateArchiveDatabase?.();
 });
 afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 

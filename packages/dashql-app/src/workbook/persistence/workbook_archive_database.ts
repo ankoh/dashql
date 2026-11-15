@@ -1,17 +1,9 @@
 import * as React from 'react';
-import type { DashQL } from '@ankoh/dashql-core';
 
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import type { ParquetExportDatabase } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
-import { supportsParquetRead, type ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
-
-/// What writes the workbook tables of a `.dashql` file: the embedded database writes the Parquet files, the core reads
-/// the catalog files of the connections into their tables and functions
-export interface WorkbookArchiveWriter {
-    database: ParquetExportDatabase;
-    core: DashQL;
-}
+import type { WorkbookArchiveWriter } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
+import { supportsParquetRead, type ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_tables_parquet';
 
 /// Resolve the embedded database that writes and reads the workbook tables of a `.dashql` file, set up when needed
 export function useWorkbookArchiveDatabase(): (context: string) => Promise<ParquetReadDatabase> {

@@ -1,6 +1,6 @@
-import type { EmbeddedComputeDatabase, EmbeddedExternalFileDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { exportArrowTableAsParquet, supportsParquetExport, type ParquetExportDatabase } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
-import { workbookTableFromArrow, workbookTableToArrow, TABLE_FILE_EXTENSION, type WorkbookTableName, type WorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import type { EmbeddedComputeDatabase, EmbeddedExternalFileDatabase } from '../platform/database/embedded_database.js';
+import { exportArrowTableAsParquet, supportsParquetExport, type ParquetExportDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import { workbookTableFromArrow, workbookTableToArrow, TABLE_FILE_EXTENSION, type WorkbookTableName, type WorkbookTables } from './workbook_tables.js';
 
 /// A database that reads Parquet files: the embedded Hyper mounts a file and scans it
 export type ParquetReadDatabase = ParquetExportDatabase & EmbeddedExternalFileDatabase;

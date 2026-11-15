@@ -72,10 +72,13 @@ _TEST_DEPENDENCIES = [
     "//:node_modules/@ankoh/dashql-core",
     "//:node_modules/@ankoh/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",
+    "//:node_modules/@zip.js/zip.js",
     "//:node_modules/apache-arrow",
     "//:node_modules/flatbuffers",
     "//:node_modules/hyperdb-wasm",
     "//:node_modules/immutable",
+    # The tests read archives with it
+    "//:node_modules/jszip",
     "//:node_modules/vega-lite",
 ]
 

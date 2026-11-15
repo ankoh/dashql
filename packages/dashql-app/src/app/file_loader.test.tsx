@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PlatformFile } from '../platform/file/file.js';
-import type { ParquetReadDatabase } from '../storage/workbook_tables_parquet.js';
+import type { ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_tables_parquet';
 import type { PreparedPortableImport, WorkbookImportProgressConsumer } from '../workbook/persistence/workbook_import_provider.js';
 
 const state = {

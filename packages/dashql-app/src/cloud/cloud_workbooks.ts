@@ -25,7 +25,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
-import { exportWorkbookAsSharedTables } from '../workbook/persistence/workbook_export.js';
+import { exportWorkbookAsSharedTables } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { useWorkbookImport } from '../workbook/persistence/workbook_import_provider.js';
 import {
     isCloudPreview,

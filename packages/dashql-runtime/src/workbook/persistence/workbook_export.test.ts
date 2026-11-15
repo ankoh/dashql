@@ -2,38 +2,41 @@ import * as dashql from '@ankoh/dashql-core';
 import JSZip from 'jszip';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
-import { Crc32 } from '@ankoh/dashql-runtime/utils/crc32';
+import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { Crc32 } from '../../utils/crc32.js';
 import {
     createWorkbookZip,
     exportWorkbookAsSharedZip,
     exportConnectionAsUrl,
     exportWorkbookAsUrl,
     exportWorkbookAsZip,
-    WorkbookLinkTarget,
+    type WorkbookArchiveWriter,
 } from './workbook_export.js';
+import { DESKTOP_APP_LINK_BASE } from './workbook_link.js';
 import { importWorkbookFromZip, readWorkbookBundleFromZip } from './workbook_import.js';
-import { workbookBundlesEqual, type WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { workbookBundlesEqual, type WorkbookBundle } from '../../storage/workbook_bundle.js';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../testing/workbook_test_backend.js';
 import type { ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
-import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
-import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
+import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import { BlobReader, ZipReader } from './workbook_zip.js';
-import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '@ankoh/dashql-runtime/connections/catalog/catalog_structure';
+import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '../../connections/catalog/catalog_structure.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
+/// The web app that opens the links
+const WEB_APP = 'https://dashql.app';
+
 let database: ParquetReadDatabase;
 let writer: WorkbookArchiveWriter;
-let disposeDatabase: () => Promise<void>;
+let terminateDatabase: () => Promise<void>;
 beforeAll(async () => {
-    const test = await createTestHyperDB('dashql-workbook-export');
-    database = test.database;
-    disposeDatabase = test.dispose;
+    const test = await openTestHyperDB('dashql-workbook-export');
+    database = test;
+    terminateDatabase = () => test.terminate();
     writer = { database, core: await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }) };
 }, 60_000);
 afterAll(async () => {
-    await disposeDatabase?.();
+    await terminateDatabase?.();
 });
 
 /// A catalog file of relations with one table, as the app renders it
@@ -148,7 +151,7 @@ describe('workbook export', () => {
         });
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, manifest);
         const liveParams = new Map(manifest.connections.map(connection => [connection.connectionId, connection.params]));
-        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, liveParams, WorkbookLinkTarget.WEB);
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, liveParams, WEB_APP);
         const archives = [
             await exportWorkbookAsZip(TEST_WORKBOOK_ID, backend, writer),
             await exportWorkbookAsSharedZip(backend, writer, TEST_WORKBOOK_ID, liveParams),
@@ -268,7 +271,7 @@ describe('workbook export', () => {
     it('never carries query results in a link', async () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB, {
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WEB_APP, {
             queryResults: [{ key: 'a'.repeat(64), bytes: new Blob([new Uint8Array([1])]) }],
         });
         expect((await archiveNames(linkArchive(url))).filter(name => name.includes('result'))).toEqual([]);
@@ -277,8 +280,8 @@ describe('workbook export', () => {
     it('carries the archive of a link in the zip parameter, base64url-encoded once', async () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        for (const [target, protocol] of [[WorkbookLinkTarget.WEB, new URL(process.env.DASHQL_APP_URL!).protocol], [WorkbookLinkTarget.NATIVE, 'dashql:']] as const) {
-            const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), target);
+        for (const [linkBase, protocol] of [[WEB_APP, 'https:'], [DESKTOP_APP_LINK_BASE, 'dashql:']] as const) {
+            const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), linkBase);
             expect(url.protocol).toBe(protocol);
             expect([...url.searchParams.keys()]).toEqual(['zip']);
             const bundle = await readWorkbookBundleFromZip(linkArchive(url), database);
@@ -302,7 +305,7 @@ describe('workbook export', () => {
         await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', SCHEMA);
         await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', FUNCTIONS);
 
-        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB);
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WEB_APP);
         expect(await archiveNames(linkArchive(url))).not.toContain('connection_catalog_tables.parquet');
     });
 
@@ -429,7 +432,7 @@ describe('workbook export', () => {
         const backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
 
-        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WorkbookLinkTarget.WEB);
+        const url = await exportWorkbookAsUrl(backend, writer, TEST_WORKBOOK_ID, new Map(), WEB_APP);
         const exported = (await readWorkbookBundleFromZip(linkArchive(url), database)).workbook;
 
         expect(exported.workbookId).not.toBe(TEST_WORKBOOK_ID);
@@ -440,7 +443,7 @@ describe('workbook export', () => {
         const metadata = { authorization: 'bearer-secret' };
         const params = { trino: { endpoint: 'https://trino.example', catalogName: 'catalog', metadata } } as any;
 
-        const url = await exportConnectionAsUrl(writer, params, 'Warehouse', WorkbookLinkTarget.WEB);
+        const url = await exportConnectionAsUrl(writer, params, 'Warehouse', WEB_APP);
         const zip = linkArchive(url);
         const exported = (await readWorkbookBundleFromZip(zip, database)).workbook;
 

@@ -2,7 +2,8 @@ import * as React from 'react';
 
 import { useLocation } from 'react-router-dom';
 
-import { PlatformEventListener, EVENT_QUERY_PARAMETER, WORKBOOK_QUERY_PARAMETER, ZIP_QUERY_PARAMETER, readWorkbookUrlParameter } from './event_listener.js';
+import { PlatformEventListener, EVENT_QUERY_PARAMETER, WORKBOOK_QUERY_PARAMETER, readWorkbookUrlParameter } from './event_listener.js';
+import { ZIP_QUERY_PARAMETER } from '@ankoh/dashql-runtime/workbook/persistence/workbook_link';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS } from './legacy_links.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';

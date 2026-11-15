@@ -6,7 +6,7 @@ import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { exportWorkbookAsUrl, WorkbookLinkTarget } from './workbook_export.js';
+import { exportWorkbookAsUrl } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-runtime/connections/connection_params';
 import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useRouteContext } from '../../app/router/router.js';
@@ -69,7 +69,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
                         await archiveWriter('workbook_link'),
                         workbookScripts.workbookId,
                         params,
-                        WorkbookLinkTarget.WEB,
+                        process.env.DASHQL_APP_URL!,
                         { ...settings, connectionNames },
                     );
                 }

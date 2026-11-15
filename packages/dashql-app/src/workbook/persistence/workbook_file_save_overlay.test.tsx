@@ -21,7 +21,7 @@ import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
-import { readWorkbookBundleFromZip } from './workbook_import.js';
+import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 

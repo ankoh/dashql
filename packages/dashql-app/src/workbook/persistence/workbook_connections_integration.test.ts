@@ -15,8 +15,8 @@ import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration
 import { ANALYZE_OUTDATED_SCRIPT, analyzeScriptData, reduceWorkbookScripts, REORDER_SCRIPTS, scriptConnectionOf, workbookConnectionIds, SET_SCRIPT_CONNECTION, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { applyConnectionImportPlan, planConnectionImport, type ConnectionImportChoice } from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
-import { exportWorkbookAsSharedZip } from './workbook_export.js';
-import { readWorkbookBundleFromZip } from './workbook_import.js';
+import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
+import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';

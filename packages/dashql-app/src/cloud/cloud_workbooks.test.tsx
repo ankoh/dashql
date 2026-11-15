@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DashQL } from '@ankoh/dashql-core';
 
 import { WORKBOOK_TABLE } from '@ankoh/dashql-runtime/storage/workbook_tables';
-import { sharedWorkbookTables } from '../workbook/persistence/workbook_export.js';
+import { sharedWorkbookTables } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { findLinkedWorkbook, linkedWorkbookMetadata, useCloudPreviewCleanup } from './cloud_workbooks.js';
 import { testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';

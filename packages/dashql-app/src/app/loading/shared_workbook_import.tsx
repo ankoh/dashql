@@ -10,7 +10,7 @@ import { usePlatformEventListener } from '../../platform/events/event_listener_p
 import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from '../../platform/events/event.js';
 import { AppHost, getAppHost } from '@ankoh/dashql-runtime/platform/native_globals';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
-import { readWorkbookBundleFromZip } from '../../workbook/persistence/workbook_import.js';
+import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { useWorkbookArchiveDatabase } from '../../workbook/persistence/workbook_archive_database.js';
 import { useWorkbookImport } from '../../workbook/persistence/workbook_import_provider.js';
 import {

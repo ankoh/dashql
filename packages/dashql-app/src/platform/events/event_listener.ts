@@ -7,12 +7,11 @@ import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
 import { parseHyperLinkTarget, type HyperLinkTarget } from '@ankoh/dashql-runtime/platform/events/hyper_link_target';
 import { parseAgentSessionTarget, type AgentSessionTarget } from '@ankoh/dashql-runtime/session/agent_session_client';
+import { ZIP_QUERY_PARAMETER } from '@ankoh/dashql-runtime/workbook/persistence/workbook_link';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
 export const WORKBOOK_QUERY_PARAMETER = "workbook";
-/// The parameter of a link that carries a `.dashql` ZIP inline, base64url-encoded
-export const ZIP_QUERY_PARAMETER = "zip";
 
 /// Read the URL of a hosted workbook from the query parameters of a link, links of older versions
 /// use the legacy parameter

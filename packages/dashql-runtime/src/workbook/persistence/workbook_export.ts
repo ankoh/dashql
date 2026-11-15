@@ -1,27 +1,28 @@
-import type { StorageBackend, WorkbookData, ConnectionParams } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { validateDataFileName } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import { sanitizeConnectionParamsForSharing } from '@ankoh/dashql-runtime/connections/connection_params';
+import type { StorageBackend, WorkbookData, ConnectionParams } from '../../storage/storage_backend.js';
+import { validateDataFileName } from '../../storage/storage_backend.js';
+import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { WORKBOOK_FORMAT_VERSION } from '../../storage/migration/versions.js';
+import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
 import {
     pruneBundleConnections,
     readWorkbookBundle,
     regenerateBundleConnectionIds,
     type WorkbookBundle,
     type WorkbookBundleResult,
-} from '@ankoh/dashql-runtime/storage/workbook_bundle';
+} from '../../storage/workbook_bundle.js';
 import type { DashQL } from '@ankoh/dashql-core';
-import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { RESULT_TABLE_PREFIX, WORKBOOK_TABLE_NAMES, workbookBundleToTables, type WorkbookTables } from '../../storage/workbook_tables.js';
 import { workbookTableFileName, writeWorkbookTableParquet } from '../../storage/workbook_tables_parquet.js';
-import { parseCatalogSql } from '@ankoh/dashql-runtime/connections/catalog/catalog_structure';
-import type { WorkbookArchiveWriter } from './workbook_archive_database.js';
-import { ZIP_QUERY_PARAMETER } from '../../platform/events/event_listener.js';
+import { parseCatalogSql } from '../../connections/catalog/catalog_structure.js';
+import type { ParquetExportDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import { archiveError, BlobReader, BlobWriter, Uint8ArrayReader, ZipWriter } from './workbook_zip.js';
+import { ZIP_QUERY_PARAMETER } from './workbook_link.js';
 
-/// The target platform a shared workbook link points at.
-export enum WorkbookLinkTarget {
-    NATIVE,
-    WEB
+/// What writes the workbook tables of a `.dashql` file: the embedded database writes the Parquet files, the core reads
+/// the catalog files of the connections into their tables and functions
+export interface WorkbookArchiveWriter {
+    database: ParquetExportDatabase;
+    core: DashQL;
 }
 
 /// Options controlling how a workbook is exported to a ZIP.
@@ -207,7 +208,8 @@ export async function exportWorkbookAsUrl(
     writer: WorkbookArchiveWriter,
     workbookId: string,
     connectionParams: ReadonlyMap<string, ConnectionParams>,
-    target: WorkbookLinkTarget,
+    /// The URL of the app that opens the link, the web app or DESKTOP_APP_LINK_BASE
+    linkBase: string,
     options: SharedWorkbookExportOptions = {},
 ): Promise<URL> {
     const zipBlob = await exportWorkbookAsSharedZip(
@@ -218,7 +220,7 @@ export async function exportWorkbookAsUrl(
         // A link never carries query results, an import of a link adds nothing to the cache
         { ...options, withCatalog: options.withCatalog ?? false, queryResults: undefined },
     );
-    return await encodeWorkbookZipAsUrl(zipBlob, target);
+    return await encodeWorkbookZipAsUrl(zipBlob, linkBase);
 }
 
 /// Export a connection as a shareable link: the link carries an empty workbook that holds only the connection.
@@ -227,7 +229,8 @@ export async function exportConnectionAsUrl(
     writer: WorkbookArchiveWriter,
     params: ConnectionParams,
     name: string | null,
-    target: WorkbookLinkTarget,
+    /// The URL of the app that opens the link, the web app or DESKTOP_APP_LINK_BASE
+    linkBase: string,
     options: Pick<SharedWorkbookExportOptions, 'withLoginHint'> = {},
 ): Promise<URL> {
     const workbook: WorkbookData = {
@@ -242,16 +245,11 @@ export async function exportConnectionAsUrl(
         attachments: [],
         metadata: { createdAt: new Date().toISOString() },
     };
-    return await encodeWorkbookZipAsUrl(await createWorkbookZip(writer, { workbook, catalogs: [], scripts: [] }), target);
+    return await encodeWorkbookZipAsUrl(await createWorkbookZip(writer, { workbook, catalogs: [], scripts: [] }), linkBase);
 }
 
 /// Encode a workbook ZIP as a link that carries it inline, base64url-encoded once in the `zip` parameter
-async function encodeWorkbookZipAsUrl(zipBlob: Blob, target: WorkbookLinkTarget): Promise<URL> {
+async function encodeWorkbookZipAsUrl(zipBlob: Blob, linkBase: string): Promise<URL> {
     const zip = BASE64URL_CODEC.encode(await zipBlob.arrayBuffer());
-    switch (target) {
-        case WorkbookLinkTarget.WEB:
-            return new URL(`${process.env.DASHQL_APP_URL!}?${ZIP_QUERY_PARAMETER}=${zip}`);
-        case WorkbookLinkTarget.NATIVE:
-            return new URL(`dashql://localhost?${ZIP_QUERY_PARAMETER}=${zip}`);
-    }
+    return new URL(`${linkBase}?${ZIP_QUERY_PARAMETER}=${zip}`);
 }

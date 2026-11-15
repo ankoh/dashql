@@ -2,7 +2,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { exportArrowTableAsParquet } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { prepareHyperArrowInsert } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_arrow_insert';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import type { ParquetReadDatabase } from '../storage/workbook_tables_parquet.js';
+import type { ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_tables_parquet';
 import {
     ATTACHMENT_TABLE_PREFIX,
     ATTACHMENTS_TABLE,

@@ -24,7 +24,7 @@ describe('CatalogLoaderService queue', () => {
     const scriptsDispatch = vi.fn();
     const updateHyperCatalog = vi.fn<CatalogLoaderDependencies['updateHyperCatalog']>();
 
-    /// Hand the loader the current registry, as the provider of the app does when it changes, and let it schedule
+    /// Hand the loader the current registry, as the runtime does when it changes, and let it schedule
     async function handRegistry() {
         if (service == null) {
             service = new CatalogLoaderService(dependencies);

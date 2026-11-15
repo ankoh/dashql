@@ -9,7 +9,7 @@ import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_st
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { classNames } from '../../utils/classnames.js';
-import { exportWorkbookAsSharedZip } from './workbook_export.js';
+import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-runtime/connections/connection_params';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
@@ -25,7 +25,8 @@ import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQue
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
-import { useWorkbookArchiveWriter, type WorkbookArchiveWriter } from './workbook_archive_database.js';
+import { useWorkbookArchiveWriter } from './workbook_archive_database.js';
+import type { WorkbookArchiveWriter } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 
 const LOG_CTX = 'workbook_export';
 

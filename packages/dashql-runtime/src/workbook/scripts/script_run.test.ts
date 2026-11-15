@@ -451,7 +451,7 @@ describe('script runs', () => {
         expect(f.script('foo.sql').latestResultQueryId).toBe(1);
     });
 
-    it('runs scripts without cache and mounts without a workbook execution provider', async () => {
+    it('runs scripts without cache and mounts without a runtime', async () => {
         const f = fixture([['foo.sql', 'select 1 as a']]);
         await runWorkbookScript(f.workbook(), f.script('foo.sql'), f.executeQuery, f.modifyWorkbookScripts, logger);
         expect(f.calls).toEqual([expect.objectContaining({ sql: 'select 1 as a', cacheable: false })]);

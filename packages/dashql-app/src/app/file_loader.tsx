@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { PlatformFile } from '../platform/file/file.js';
 import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { readWorkbookBundleFromZip } from '../workbook/persistence/workbook_import.js';
+import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import { useWorkbookImport, type ConflictChoice, type PreparedPortableImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';

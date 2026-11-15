@@ -39,7 +39,7 @@ export interface ScriptRunServices {
     liveWorkbook?: (workbookId: string) => WorkbookScripts | null;
 }
 
-/// The services of a run without a workbook execution provider: no results of other connections are mounted and no
+/// The services of a run without a runtime: no results of other connections are mounted and no
 /// results are cached
 const PLAIN_SERVICES: ScriptRunServices = {
     createMounts: () => null,
@@ -187,7 +187,7 @@ export async function computeWorkbookResultCacheKeys(
     return keys.map(key => key?.reusable ? key.key : null);
 }
 
-/// The services of script runs, one per core instance, registered by the workbook execution provider
+/// The services of script runs, one per core instance, registered by the runtime (runtime.ts) for every workbook
 const runners = new WeakMap<core.DashQL, ScriptRunServices>();
 
 /// Register the services of the script runs of a core instance
@@ -196,7 +196,7 @@ export function registerScriptRunServices(instance: core.DashQL, services: Scrip
     else runners.set(instance, services);
 }
 
-/// The services of the script runs of a core instance. Without a workbook execution provider, runs neither mount the
+/// The services of the script runs of a core instance. Without a runtime, runs neither mount the
 /// results of other connections nor cache results.
 export function scriptRunServices(instance: core.DashQL): ScriptRunServices {
     return runners.get(instance) ?? PLAIN_SERVICES;

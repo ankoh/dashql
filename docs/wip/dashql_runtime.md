@@ -402,9 +402,13 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
   stopped unless a test asks for it, so it schedules no updates. The app keeps the
   tests of what React adds: hooks, rendering order, remounting and unmounting.
-- **What remains in the app** (the inventory of the test files): the tests of the compute tasks, which need the task processor in the runtime; workbook export and import with
-  `workbook_execution_integration`, which need `workbook_archive_database.ts` without React; the OPFS and composite
-  storage backends; the connector setups, which need a fake `OAuthFlow`; the snippets and the local cloud.
+- **Export and import in Node.** Writing and reading `.dashql` files (`workbook/persistence/workbook_export.ts`,
+  `workbook_import.ts`, `workbook_zip.ts`, `storage/workbook_tables_parquet.ts`) moved into the runtime with their
+  tests and `workbook_execution_integration.test.ts`; a link takes the URL of the app that opens it, the app passes its
+  own, `workbook_link.ts` has the one of the desktop app.
+- **What remains in the app** (the inventory of the test files): the tests of the compute tasks, which need the task
+  processor in the runtime; the OPFS and composite storage backends; the connector setups, which need a fake
+  `OAuthFlow`; the snippets and the local cloud.
 - **Compile time.** The runtime compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
   APIs it uses there, like `fetch`, `URL`, `TextEncoder`, `crypto` and `Blob`, Node has as well. The browser-only ones
   that remain are the named seams of the boundary test. Once they are gone, the lib can shrink to ES plus a few
