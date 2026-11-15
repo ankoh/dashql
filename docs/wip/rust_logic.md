@@ -44,7 +44,8 @@ Paths without a package are under `packages/dashql-app/src/` or `packages/dashql
 
 - **Reducers and schedulers** (`workbook/scripts/workbook_scripts.ts`, `compute/computation_state.ts`,
   `query/query_execution_state.ts`, `connections/connection_state.ts`): they hold wasm handles, free them while
-  reducing, and rely on object identity. A port needs handle tables and a crossing per state read.
+  reducing, and rely on object identity. A port needs handle tables and a crossing per state read. Under review for
+  the workbook scripts: state linked into the core module owns its handles, see [rust_runtime.md](rust_runtime.md).
 - **Graph scheduler** (`workbook/scripts/workbook_execution.ts`): already decided in
   [workbook_graph_execution.md](../design/workbook_graph_execution.md).
 - **Cell formatting** (`compute/arrow_formatter.ts`): depends on `Intl` and would cross per visible cell.

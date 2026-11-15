@@ -1,0 +1,38 @@
+# The state of DashQL in Rust on top of the core: the scripts of a workbook and the actions on them. A spike, see
+# docs/wip/rust_runtime.md.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "dashql_runtime",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_runtime",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-session:dashql_core_session",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
+
+rust_test(
+    name = "dashql_runtime_unit_tests",
+    size = "small",
+    crate = ":dashql_runtime",
+)
+
+rust_test(
+    name = "workbook_test",
+    size = "small",
+    srcs = ["tests/workbook_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_runtime",
+        "//packages/dashql-core:dashql_core",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
