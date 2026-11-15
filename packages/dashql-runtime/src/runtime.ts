@@ -82,46 +82,44 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
 
     const computations = createComputations(logger);
 
+    // The platform may set the compute database and the API of Salesforce later, the services read them when they use them
     let computeDatabase = platform.computeDatabase ?? null;
+    let salesforce = platform.salesforce ?? new SalesforceApiClient(logger, http);
     const resultCache = platform.resultCache ?? null;
-    const executorDependencies = () => ({
+    const executor = new QueryExecutorService({
         logger,
         http,
         readConnections: () => connections.store.current,
         dispatchConnection: connections.dispatch,
         dispatchComputation: computations.dispatch,
-        computeDatabase,
+        get computeDatabase() { return computeDatabase; },
         resultCache,
         setupCore: platform.setupCore,
     });
-    const executor = new QueryExecutorService(executorDependencies());
     const execute = executor.execute.bind(executor);
     const cancel = executor.cancel.bind(executor);
 
-    let salesforce = platform.salesforce ?? new SalesforceApiClient(logger, http);
-    const catalogLoaderDependencies = () => ({
+    const catalogLoader = new CatalogLoaderService({
         logger,
         dispatchConnection: connections.dispatch,
         execute,
-        salesforce,
+        get salesforce() { return salesforce; },
         updateHyperCatalog,
         // The scripts that use the connection are analyzed again with the new catalog
         onCatalogDidUpdate: (connectionId: string) => {
             void workbooks.dispatchConnection(connectionId, { type: CATALOG_DID_UPDATE, value: connectionId });
         },
     });
-    const catalogLoader = new CatalogLoaderService(catalogLoaderDependencies());
-    const executionDependencies = () => ({
+    const execution = new WorkbookExecutionService({
         logger,
         readWorkbooks: () => workbooks.store.current,
         readConnections: () => connections.store.current,
         executeQuery: execute,
         cancelQuery: cancel,
         dispatchWorkbookScripts: workbooks.dispatch,
-        computeDatabase,
+        get computeDatabase() { return computeDatabase; },
         resultCache,
     });
-    const execution = new WorkbookExecutionService(executionDependencies());
     const persistence = new ConnectionPersistenceService({
         storageWriter,
         readConnections: () => connections.store.current,
@@ -158,12 +156,9 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         persistence,
         setComputeDatabase(database) {
             computeDatabase = database;
-            executor.setDependencies(executorDependencies());
-            execution.setDependencies(executionDependencies());
         },
         setSalesforce(api) {
             salesforce = api;
-            catalogLoader.setDependencies(catalogLoaderDependencies());
         },
         async restore(progress = () => { }) {
             const instance = await platform.setupCore('runtime');

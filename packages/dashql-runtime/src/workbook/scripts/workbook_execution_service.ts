@@ -87,7 +87,7 @@ export function workbookExecutionIsBusy(state: WorkbookExecutionState | null | u
 /// Runs whole workbooks (Execute All) and serves the runs of single scripts: one run per workbook, on the connections
 /// that were online when it started, stopped when one of them drops or the workbook is gone.
 export class WorkbookExecutionService {
-    private deps: WorkbookExecutionDependencies;
+    private readonly deps: WorkbookExecutionDependencies;
     /// The states of the runs, by workbook
     readonly states = new Store<Map<string, WorkbookExecutionState>>(new Map());
     /// The runs by workbook, with the connections that were online when the run started: the run executes statements
@@ -129,11 +129,6 @@ export class WorkbookExecutionService {
             maxConcurrentQueries: connectionId => maxConcurrentQueries(service.deps.readConnections().connections.get(connectionId)),
             liveWorkbook: workbookId => service.deps.readWorkbooks().workbookScriptsMap.get(workbookId) ?? null,
         };
-    }
-
-    /// Replace the dependencies, running runs keep the ones they started with
-    setDependencies(deps: WorkbookExecutionDependencies): void {
-        this.deps = deps;
     }
 
     /// Can a run start? A run reads the cached results and the results of the queries with the compute database, a

@@ -53,7 +53,7 @@ export interface CatalogLoaderDependencies {
 /// The host passes every new connection registry with setRegistry(). The loader then reconsiders its queue at the end
 /// of the task, as it does after an enqueued request, a finished update and a retry timer.
 export class CatalogLoaderService {
-    private deps: CatalogLoaderDependencies;
+    private readonly deps: CatalogLoaderDependencies;
     private registry: Pick<ConnectionRegistry, 'connections'> = { connections: new Map() };
     /// The requested refreshes (connectionId -> forced)
     private readonly queue = new Map<string, boolean>();
@@ -70,12 +70,6 @@ export class CatalogLoaderService {
 
     constructor(deps: CatalogLoaderDependencies) {
         this.deps = deps;
-    }
-
-    /// Replace the dependencies, running updates keep the ones they started with
-    setDependencies(deps: CatalogLoaderDependencies): void {
-        this.deps = deps;
-        this.requestSchedule();
     }
 
     /// Follow a new connection registry

@@ -113,7 +113,7 @@ interface QueryExecutionRuntime {
 /// the relations that statements touch. One executor serves every connection, the queries of all of them share the
 /// ids of one sequence.
 export class QueryExecutorService {
-    private deps: QueryExecutorDependencies;
+    private readonly deps: QueryExecutorDependencies;
     private readonly runtimes = new Map<number, QueryExecutionRuntime>();
     private readonly resultComputations = new ResultComputations();
     // The progress models of the running queries, they need the core. The core is requested with the first
@@ -125,11 +125,6 @@ export class QueryExecutorService {
     private readonly cacheWrites = new Set<Promise<void>>();
 
     constructor(deps: QueryExecutorDependencies) {
-        this.deps = deps;
-    }
-
-    /// Replace the dependencies, the running queries keep the ones they started with
-    setDependencies(deps: QueryExecutorDependencies): void {
         this.deps = deps;
     }
 
