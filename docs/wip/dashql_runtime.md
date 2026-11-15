@@ -448,5 +448,5 @@ Planned:
   the commands without Hyper may run; that is untested. Run the runtime's tests without Hyper under Bun as well, and the
   rest once JavaScriptCore has memory64.
 - **A plain-JSON link.** A workbook without results as JSON in the fragment of the link, for agents without the CLI.
-- **The Node of Bazel.** The tests run on the pinned Node 24.4.1. Pinning 24.15 or later would drop the exnref flag
-  from the tests, and a Node with Web Locks would let `node/node_locks.ts` go.
+- **The locks of the process.** The Node of Bazel, 24.22.1, has Web Locks (`navigator.locks`), the first releases of
+  Node 24 don't. `node/node_locks.ts` can go once the embedded Hyper requires a Node with them.

@@ -4,8 +4,8 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /// The Node binary itself: in a js_test of Bazel, process.execPath is a wrapper that needs the environment of the test,
-/// which a harness doesn't pass to the commands of the agent. It is the Node of the toolchain, 24.4.1, which has
-/// exnref only behind a flag: the commands also check that hyperdb-edge sets it itself.
+/// which a harness doesn't pass to the commands of the agent. It is the Node of the toolchain, 24.22.1, which has
+/// exnref without a flag; that hyperdb-edge sets the flag on an older Node 24 is tested in src/node/runtime_check.test.ts.
 const NODE = process.env.JS_BINARY__NODE_BINARY ? resolve(process.env.JS_BINARY__NODE_BINARY) : process.execPath;
 
 /// The compiled command and the skill in the runfiles

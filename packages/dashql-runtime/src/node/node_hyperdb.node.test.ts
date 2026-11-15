@@ -14,7 +14,8 @@ function tempRoot(): string {
     return mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-root-'));
 }
 
-describe('the embedded Hyper of Node', () => {
+// Every test starts an engine of its own, which compiles hyperdb-wasm: a few seconds, more while other tests run
+describe('the embedded Hyper of Node', { timeout: 30_000 }, () => {
     afterEach(() => setOPFSRootProvider(null));
 
     it('writes and reads the query result cache in the folder of the root', async () => {

@@ -446,6 +446,4 @@ js_binary(
         "//:node_modules/hyperdb-wasm",
     ],
     entry_point = "utils/bench_hyperdb_wasm_backend.mjs",
-    # The Node of the toolchain compiles the exception handling of hyperdb-wasm only with the flag
-    node_options = ["--experimental-wasm-exnref"],
 )
