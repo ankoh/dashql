@@ -31,6 +31,8 @@ function mountHostFile(folder: string): MountFile {
             return {
                 path: resource.path,
                 refresh: () => resource.refresh(),
+                list: () => resource.list(),
+                readFile: (file: string) => resource.readFile(file),
                 close: async () => {
                     try {
                         await resource.close();

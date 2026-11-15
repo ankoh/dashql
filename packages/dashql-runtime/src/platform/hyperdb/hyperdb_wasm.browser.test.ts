@@ -238,6 +238,16 @@ class FakeHyperDBEngineClient implements HyperDBClient {
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
+    listMount(path: string): Promise<HyperDBResult> {
+        this.calls.push(`list:${path}`);
+        return Promise.resolve({ state: 'error', error: 'Listing a mount is not faked' });
+    }
+
+    readMountFile(path: string, file: string): Promise<HyperDBResult> {
+        this.calls.push(`read:${path}/${file}`);
+        return Promise.resolve({ state: 'error', error: 'Reading a mounted file is not faked' });
+    }
+
     pollQuery(query: number): Promise<HyperDBResult> {
         this.calls.push(`poll:${query}`);
         const results = this.queries.get(query);
