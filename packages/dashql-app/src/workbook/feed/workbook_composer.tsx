@@ -6,7 +6,11 @@ import * as styles from './workbook_composer.module.css';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { PaperAirplaneIcon } from '../../ui/foundations/symbol_icon.js';
+import { CopyToClipboardButton } from '../../ui/foundations/clipboard.js';
+import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
+import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
+import { agentConnectCommand, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
+import type { AgentConnect } from '../../agent/agent_session_provider.js';
 import { PromptEditor } from '../editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../editor/dashql_processor.js';
 import { insertMentionAtCursor } from '../editor/editor_focus.js';
@@ -26,6 +30,11 @@ const NO_SCRIPT_NAMES: readonly string[] = [];
 
 /// A draft without inputs
 const NO_INPUTS: SessionInput[] = [];
+
+const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
+
+/// The harnesses of the line to connect, in the order of their switch
+const CONNECT_HARNESSES: ConnectHarness[] = ['claude', 'codex'];
 
 /// The parts of the prompt that handle a click themselves: the editor places its cursor, the controls act
 const PROMPT_CONTROLS = '.cm-editor, button, a, input, select, textarea, [role="button"]';
@@ -49,9 +58,10 @@ export interface WorkbookComposerProps {
     keywordCase: core.buffers.formatting.KeywordCase;
     /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then.
     agentWorking?: boolean;
-    /// The session of an agent in the terminal. The agent writes the scripts, the prompt is closed while the page reaches
-    /// the session, edits of the page would race its writes.
+    /// The session of an agent in the terminal that the page follows
     session?: AgentSession | null;
+    /// The mode of the prompt and the line that connects an agent in the terminal, no switch to AI without
+    connect?: AgentConnect | null;
     /// Called with the draft when the user sends it, the draft is cleared before
     onSend: (text: string) => void;
     /// Called with whether the draft is blank, once on mount and whenever that changes
@@ -167,8 +177,10 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const offlineWorkbookId = props.offlineWorkbookId ?? null;
     const inputsRef = React.useRef<HTMLDivElement>(null);
+    // In AI, the agent in the terminal writes the scripts: the prompt keeps its draft but takes nothing
+    const ai = props.connect?.mode === ComposerMode.Ai;
     const send = React.useCallback(() => {
-        if (view == null) return;
+        if (view == null || ai) return;
         if (offlineWorkbookId != null) {
             connectionAttention?.request(offlineWorkbookId);
             return;
@@ -180,7 +192,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (text != null) {
             props.onSend(text);
         }
-    }, [props.onSend, view, offlineWorkbookId, connectionAttention]);
+    }, [props.onSend, view, ai, offlineWorkbookId, connectionAttention]);
     // A snippet replaces the draft right away, there is no script yet whose text could be compared
     const applySnippet = React.useCallback((text: string) => {
         if (view == null) return;
@@ -241,10 +253,9 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (hero) view?.focus();
     }, [view]);
 
-    // The prompt is closed while the page reaches the session of an agent, the agent writes the scripts
     const session = props.session != null && props.session.connected ? props.session : null;
-    const showDraftInputs = session == null && draftInputs.length > 0;
-    const blockedWorkbookId = offlineWorkbookId;
+    const showDraftInputs = !ai && draftInputs.length > 0;
+    const blockedWorkbookId = ai ? null : offlineWorkbookId;
     const blocked = blockedWorkbookId != null;
     // A blocked button stays clickable, it pulses the connections that are not connected
     const sendButton = (
@@ -255,17 +266,29 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             data-testid="composer-send"
             tooltipDirection="n"
             data-connect={blocked ? '' : undefined}
-            disabled={empty && !blocked}
+            disabled={ai || (empty && !blocked)}
             onClick={handleSendClick}
         >
             <PaperAirplaneIcon />
         </IconButton>
     );
-    const placeholder = hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line';
+    const placeholder = ai
+        ? 'An agent in the terminal writes the scripts of this workbook'
+        : (hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line');
+    const connect = props.connect ?? null;
+    const handleModeChange = React.useCallback((index: number) => {
+        connect?.setMode(index === 0 ? ComposerMode.Sql : ComposerMode.Ai);
+    }, [connect]);
+    const handleHarnessChange = React.useCallback((index: number) => {
+        connect?.setHarness(CONNECT_HARNESSES[index]);
+    }, [connect]);
+    const command = ai && connect?.target != null ? agentConnectCommand(connect.harness, connect.target) : null;
+    const commandId = React.useId();
     return (
         <div
             className={styles.composer}
             data-variant={hero ? 'hero' : 'docked'}
+            data-mode={ai ? 'ai' : 'sql'}
             data-agent={props.agentWorking ? 'working' : undefined}
         >
             {/* Empty without the bar of Wobble and inputs of the draft, the stylesheet hides it then */}
@@ -279,42 +302,89 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                     </div>
                 )}
             </div>
-            {session != null ? (
-                <div className={styles.composer_session} data-testid="composer-session">
-                    {harnessLabel(session.harness)} works on this workbook in the terminal
-                </div>
-            ) : (
-                <div className={styles.composer_prompt} onMouseDown={handlePromptMouseDown}>
-                    <PromptEditor
-                        className={styles.composer_editor}
-                        scriptSession={scriptSession}
-                        placeholder={placeholder}
-                        keywordCase={props.keywordCase}
-                        onSubmit={send}
-                        onTextChange={handleTextChange}
-                        onEditorUpdate={handleEditorUpdate}
-                        setView={handleView}
-                    />
-                    <div className={styles.composer_action_bar}>
-                        <div className={styles.composer_trailing_actions}>
-                            {props.connectionPicker}
-                            {props.snippetConnector != null && (
-                                <SnippetsOverlay
-                                    scriptName="the prompt"
-                                    connectorType={props.snippetConnector}
-                                    disabled={view == null}
-                                    onApply={applySnippet}
-                                    registry={props.snippetRegistry}
-                                    testId="composer-snippets"
-                                />
-                            )}
-                            {blockedWorkbookId != null
-                                ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
-                                : sendButton}
+            <div className={styles.composer_prompt} onMouseDown={ai ? undefined : handlePromptMouseDown}>
+                <PromptEditor
+                    className={styles.composer_editor}
+                    scriptSession={scriptSession}
+                    placeholder={placeholder}
+                    keywordCase={props.keywordCase}
+                    readOnly={ai}
+                    onSubmit={send}
+                    onTextChange={handleTextChange}
+                    onEditorUpdate={handleEditorUpdate}
+                    setView={handleView}
+                />
+                {ai && connect != null && (
+                    <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect">
+                        <div className={styles.composer_connect_line}>
+                            <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
+                                <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
+                                    Claude Code
+                                </SegmentedControl.Button>
+                                <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
+                                    Codex
+                                </SegmentedControl.Button>
+                            </SegmentedControl>
+                            <code id={commandId} className={styles.composer_connect_command} data-testid="composer-connect-command">
+                                {command}
+                            </code>
+                            <CopyToClipboardButton
+                                variant={ButtonVariant.Invisible}
+                                size={ButtonSize.Small}
+                                value={command ?? ''}
+                                disabled={command == null}
+                                logContext="composer"
+                                aria-label="Copy the command"
+                                aria-labelledby=""
+                                data-testid="composer-connect-copy"
+                            />
+                            <IconButton
+                                variant={ButtonVariant.Invisible}
+                                size={ButtonSize.Small}
+                                aria-label="Use a new port"
+                                aria-describedby={commandId}
+                                data-testid="composer-connect-renew"
+                                onClick={connect.renewTarget}
+                            >
+                                <SyncIcon />
+                            </IconButton>
+                        </div>
+                        <div className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
+                            {session != null
+                                ? `${harnessLabel(session.harness)} works on this workbook in the terminal`
+                                : 'Run the command in the folder of your project, the session shows here'}
                         </div>
                     </div>
+                )}
+                <div className={styles.composer_action_bar}>
+                    {connect != null && (
+                        <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
+                            <SegmentedControl.Button leadingVisual={CodeIcon} selected={!ai} data-testid="composer-mode" data-mode="sql">
+                                SQL
+                            </SegmentedControl.Button>
+                            <SegmentedControl.Button leadingVisual={SparklesFillIcon} selected={ai} data-testid="composer-mode" data-mode="ai">
+                                AI
+                            </SegmentedControl.Button>
+                        </SegmentedControl>
+                    )}
+                    <div className={styles.composer_trailing_actions}>
+                        {props.connectionPicker}
+                        {props.snippetConnector != null && (
+                            <SnippetsOverlay
+                                scriptName="the prompt"
+                                connectorType={props.snippetConnector}
+                                disabled={view == null || ai}
+                                onApply={applySnippet}
+                                registry={props.snippetRegistry}
+                                testId="composer-snippets"
+                            />
+                        )}
+                        {blockedWorkbookId != null
+                            ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
+                            : sendButton}
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

@@ -12,6 +12,8 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
+import type { AgentConnect } from '../../agent/agent_session_provider.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -333,14 +335,80 @@ describe('Workbook composer', () => {
         expect(editor.state.doc.toString()).toBe('select * from :"revenue-2" ');
     });
 
-    it('closes the prompt while an agent in the terminal works on the workbook', async () => {
-        const session = { harness: 'codex', folder: '/w', connected: true, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
-        act(() => root.render(<LoggerProvider>
-            <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session}
-                keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
-        </LoggerProvider>));
-        expect(container.querySelector('[data-testid="composer-session"]')!.textContent).toBe('Codex works on this workbook in the terminal');
-        expect(container.querySelector('[data-testid="composer-send"]')).toBeNull();
-        expect(view).toBeNull();
+    describe('AI', () => {
+        const TARGET = { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' };
+        const RENEWED = { endpoint: 'http://127.0.0.1:60001', token: 'z7q2' };
+        type Session = React.ComponentProps<typeof WorkbookComposer>['session'];
+
+        /// The composer with the connect state of a provider
+        const Connected: React.FC<{ initial: ComposerMode; session?: Session }> = ({ initial, session }) => {
+            const [mode, setMode] = React.useState(initial);
+            const [harness, setHarness] = React.useState<ConnectHarness>('claude');
+            const [target, setTarget] = React.useState(TARGET);
+            const connect: AgentConnect = { mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED) };
+            return (
+                <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} connect={connect}
+                    snippetConnector={ConnectorType.HYPER} snippetRegistry={buildSnippetRegistry(dql, {})}
+                    keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
+            );
+        };
+        async function renderConnected(initial: ComposerMode, session?: Session) {
+            act(() => root.render(<LoggerProvider><Connected initial={initial} session={session} /></LoggerProvider>));
+            await vi.waitFor(() => expect(view).not.toBeNull());
+            return view!;
+        }
+        const mode = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${name}"]`)!;
+        const command = () => container.querySelector('[data-testid="composer-connect-command"]')?.textContent ?? null;
+        const snippets = () => container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!;
+
+        it('greys the prompt, disables Run and the snippets and shows the line that launches a harness', async () => {
+            const editor = await renderConnected(ComposerMode.Sql);
+            act(() => type(editor, 'select 1'));
+            expect(command()).toBeNull();
+            act(() => mode('ai').click());
+            expect(container.querySelector(`.${styles.composer}`)!.getAttribute('data-mode')).toBe('ai');
+            expect(editor.state.readOnly).toBe(true);
+            expect(editor.contentDOM.getAttribute('contenteditable')).toBe('false');
+            expect(sendButton().disabled).toBe(true);
+            expect(snippets().disabled).toBe(true);
+            expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch claude --port 51234 --secret k3x9');
+            expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Run the command in the folder of your project, the session shows here');
+            // Enter sends nothing, the draft stays for SQL
+            act(() => press(editor, 'Enter'));
+            expect(onSend).not.toHaveBeenCalled();
+            act(() => mode('sql').click());
+            expect(editor.state.readOnly).toBe(false);
+            expect(editor.state.doc.toString()).toBe('select 1');
+            expect(sendButton().disabled).toBe(false);
+            expect(command()).toBeNull();
+        });
+
+        it('switches the line between the harnesses, copies it and renews the port', async () => {
+            const writeText = vi.fn(() => Promise.resolve());
+            Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+            await renderConnected(ComposerMode.Ai);
+            act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-harness"][data-harness="codex"]')!.click());
+            expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch codex --port 51234 --secret k3x9');
+            await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.click());
+            expect(writeText).toHaveBeenCalledWith('npx -y @ankoh/dashql-cli connect --launch codex --port 51234 --secret k3x9');
+            act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.click());
+            expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch codex --port 60001 --secret z7q2');
+        });
+
+        it('tells the harness of a connected session and keeps the SQL prompt open with it', async () => {
+            const session = { harness: 'codex', folder: '/w', connected: true, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
+            const editor = await renderConnected(ComposerMode.Ai, session);
+            expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Codex works on this workbook in the terminal');
+            act(() => mode('sql').click());
+            expect(editor.state.readOnly).toBe(false);
+            act(() => type(editor, 'select 2'));
+            act(() => press(editor, 'Enter'));
+            expect(onSend).toHaveBeenCalledWith('select 2');
+        });
+
+        it('has no switch without the connect state', async () => {
+            await render();
+            expect(container.querySelector('[data-testid="composer-mode"]')).toBeNull();
+        });
     });
 });

@@ -1,11 +1,30 @@
 # Agent Sessions
 
 Status: built. The hooks of Claude Code and Codex reach `dashql session serve`, the page follows the session through a
-link. The files of the agent are not yet the workbook of the page.
+link or through the line of the AI side of its prompt (`dashql connect`). The files of the agent are not yet the
+workbook of the page.
 
 An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the runtime
 (`docs/wip/dashql_runtime.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
 access per workbook and no prompt in natural language.
+
+## Connecting from the page
+
+The prompt switches between SQL and AI. AI greys the prompt, disables Run and the snippets, and shows a line to run in
+the folder of a project: `npx -y @ankoh/dashql-cli connect --launch claude --port <port> --secret <secret>`, with a
+switch between Claude Code and Codex on the left, copy and a new port on the right.
+
+- **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random
+  secret, and follows that target like the target of a link, trying it every 2 s until a server answers
+  (`agent/agent_connect.ts`, `AgentSessionProvider`). The tab keeps the target, the mode and the harness in the
+  storage of the tab, a reload waits on the same line.
+- **`dashql connect` listens and launches.** It runs the server of the session on that port with the secret as token
+  and launches the harness with the hooks of the session in its arguments, nothing is installed
+  (`packages/dashql-cli/README.md`). The session ends when the harness exits.
+- **The first state switches to AI**, the user can switch back to SQL. SQL opens the prompt while the bar keeps the
+  session, edits of the page can then race the writes of the agent.
+- The page waits with requests that fail until the server is up; the browser logs them. Chrome asks once for the local
+  network of a public page.
 
 ## The session
 
@@ -76,8 +95,7 @@ goes through a `dashql` command, so the commands tell what they changed.
 - **The bar of Wobble** shows the harness and its folder at the right end, and the log of the turns in its bubble
   (`agent/agent_prompt_panel.tsx`). A turn can be dismissed, not stopped.
 - **The feed** follows the agent to the scripts it edits and runs until the user scrolls, clicks or types in it.
-- **The composer** takes SQL only. While the page reaches a session its prompt is closed, edits of the page would race
-  the writes of the agent.
+- **The composer** takes SQL in SQL and nothing in AI, see [Connecting from the page](#connecting-from-the-page).
 - **Wobble** stays: the greeting of an empty workbook and the face of the bar.
 
 ## Tests
@@ -90,8 +108,9 @@ goes through a `dashql` command, so the commands tell what they changed.
   the progress and the results of a workbook in the workspace it is given.
 - `//packages/dashql-runtime:test_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
   a session with the log of the commands.
-- The page test `app_agent_session`: the app with a link to a server, the bar, the log, the closed prompt and its
-  reopening once the session ended.
+- The page test `app_agent_session`: the app with a link to a server, the bar, the log, AI and the switch back to SQL;
+  then a new port, Codex, and a server on the port and secret of the line.
+- `//packages/dashql-cli:test`: `dashql connect` with a harness of the test that runs the hooks it was given.
 
 ## Next
 
@@ -99,3 +118,6 @@ goes through a `dashql` command, so the commands tell what they changed.
   that workbook and its changes.
 - The browser reaches `127.0.0.1` from `https://dashql.app` only with the permission for the local network of the
   browser (Chrome asks), Safari doesn't; the desktop app reaches it directly.
+- `@ankoh/dashql-core` and `@ankoh/dashql-cli` are not on npm yet, the line of the prompt needs both published.
+- `dashql connect` without `--launch`: the server alone, for a harness that runs already or in an IDE, with hooks
+  installed once in its settings.

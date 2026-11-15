@@ -71,7 +71,7 @@ import { connectionReadsAttachments } from '@ankoh/dashql-runtime/connections/co
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
-import { useAgentSession } from '../../agent/agent_session_provider.js';
+import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
@@ -115,6 +115,7 @@ export interface WorkbookFeedDependencies {
     useKeyEvents: typeof useKeyEvents;
     runWorkbookScript: typeof runWorkbookScript;
     useAgentSession: typeof useAgentSession;
+    useAgentConnect: typeof useAgentConnect;
     WorkbookComposer: typeof WorkbookComposer;
     WorkbookStatusBar: typeof WorkbookStatusBar;
     ScriptFeedRow: typeof ScriptFeedRow;
@@ -130,6 +131,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useKeyEvents,
     runWorkbookScript,
     useAgentSession,
+    useAgentConnect,
     WorkbookComposer,
     WorkbookStatusBar,
     ScriptFeedRow,
@@ -723,6 +725,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         followScript: followAgentScript,
         showScript: handleShowAgentScript,
     });
+    const agentConnect = dependencies.useAgentConnect();
     // Every new question of the session follows the agent again
     const latestQuestionId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
     React.useEffect(() => {
@@ -960,6 +963,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         keywordCase={keywordCase}
                         agentWorking={session != null && isAgentWorking(session)}
                         session={session}
+                        connect={agentConnect}
                         onSend={handleComposerSend}
                         bar={statusBar(WorkbookStatusBarVariant.Prompt)}
                         setView={setComposerView}

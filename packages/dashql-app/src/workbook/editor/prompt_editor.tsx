@@ -90,6 +90,13 @@ export interface PromptEditorProps {
     assist?: Extension;
     /// Receives the CodeMirror view once it is mounted
     setView?: (view: EditorView | null) => void;
+    /// Does the prompt refuse edits? It keeps its text and doesn't take the focus then.
+    readOnly?: boolean;
+}
+
+/// The extensions of a prompt that refuses edits or takes them
+function editability(readOnly: boolean): Extension {
+    return [EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)];
 }
 
 /// A minimal SQL prompt backed by CodeMirror and wired with a DashQL script session.
@@ -106,6 +113,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     const compartments = React.useMemo(() => ({
         placeholder: new Compartment(),
         assist: new Compartment(),
+        editability: new Compartment(),
     }), []);
     React.useEffect(() => {
         if (editorNode == null) {
@@ -114,6 +122,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         const configurable = [
             compartments.placeholder.of(placeholder(props.placeholder)),
             compartments.assist.of(props.assist ?? SQL_ASSIST_EXTENSIONS),
+            compartments.editability.of(editability(props.readOnly ?? false)),
         ];
         const view = new EditorView({
             state: EditorState.create({ extensions: createPromptExtensions(configurable, callbacks) }),
@@ -126,10 +135,20 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         };
     }, [editorNode]);
 
-    // Swap the placeholder and the assistance without recreating the view
+    // Swap the placeholder, the assistance and the editability without recreating the view
     React.useEffect(() => {
         editorView?.dispatch({ effects: compartments.placeholder.reconfigure(placeholder(props.placeholder)) });
     }, [editorView, props.placeholder]);
+    React.useEffect(() => {
+        if (editorView == null || editorView.state.readOnly === (props.readOnly ?? false)) return;
+        editorView.dispatch({
+            effects: [
+                compartments.editability.reconfigure(editability(props.readOnly ?? false)),
+                // An open completion would still apply to a prompt that refuses edits
+                DashQLCompletionAbortEffect.of(null),
+            ],
+        });
+    }, [editorView, props.readOnly]);
     React.useEffect(() => {
         if (editorView == null) return;
         const next = props.assist ?? SQL_ASSIST_EXTENSIONS;

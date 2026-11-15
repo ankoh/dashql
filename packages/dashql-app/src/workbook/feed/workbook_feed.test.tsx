@@ -496,6 +496,7 @@ describe('Workbook feed composer', () => {
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         runWorkbookScript: feedState.runWorkbookScript as any,
         useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
+        useAgentConnect: () => null,
         WorkbookComposer: (props: WorkbookComposerProps) => {
             feedState.composerProps = props;
             if (props.submitRef) props.submitRef.current = feedState.submit;

@@ -9,6 +9,7 @@
 //
 // The pages run without WebGL, they have to work on machines without it.
 
+import assert from 'node:assert/strict';
 import http from 'node:http';
 import { join } from 'node:path';
 
@@ -154,18 +155,18 @@ async function testAppWorkbook(page, navigate) {
 }
 
 /// A server of the session of an agent, like `dashql session serve`, that streams the states that the test pushes
-async function startSessionServer() {
+async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     const streams = new Set();
     let state = { harness: 'claude', folder: '/work', ended: false, turns: [], version: 0 };
     const server = http.createServer((request, response) => {
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
-        if (!request.url.startsWith('/v1/stream?token=secret')) return response.writeHead(401).end();
+        if (request.url !== `/v1/stream?token=${encodeURIComponent(token)}`) return response.writeHead(401).end();
         response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
         response.write(`data: ${JSON.stringify(state)}\n\n`);
         streams.add(response);
         request.on('close', () => streams.delete(response));
     });
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
     return {
         port: server.address().port,
         push: next => {
@@ -180,7 +181,8 @@ async function startSessionServer() {
 }
 
 /// A link of `dashql session hook SessionStart` makes the page follow the session of an agent in the terminal: the bar
-/// shows the harness and its questions, the prompt is closed while the session runs
+/// shows the harness and its questions, the prompt switches to AI and back to SQL. The switch to AI shows the line of
+/// `dashql connect`, the page waits on its port and secret.
 async function testAppAgentSession(page, navigate) {
     const session = await startSessionServer();
     try {
@@ -189,7 +191,8 @@ async function testAppAgentSession(page, navigate) {
         session.push({ turns: [turn] });
         const data = Buffer.from(JSON.stringify({ agentSession: { endpoint: `http://127.0.0.1:${session.port}`, token: 'secret' } })).toString('base64url');
         await navigate(`/?data=${data}`);
-        await page.getByTestId('composer-session').getByText('Claude Code works on this workbook in the terminal').waitFor();
+        await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
+        assert.equal(await page.getByTestId('composer-send').isDisabled(), true);
         await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
         // The log opens by itself while the agent works
         await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
@@ -199,11 +202,29 @@ async function testAppAgentSession(page, navigate) {
         await page.getByRole('note').getByText('There are 42 orders').waitFor();
         await page.locator('[data-testid="workbook-agent-state"][data-state="connected"]').waitFor();
 
-        // Once the harness ended the session, the prompt opens again
+        // SQL opens the prompt, the bar keeps the session
         session.push({ ended: true });
-        await page.getByTestId('composer-send').waitFor();
+        await page.locator('[data-testid="composer-mode"][data-mode="sql"]').click();
+        await page.getByTestId('composer-connect').waitFor({ state: 'detached' });
+        await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
     } finally {
         await session.close();
+    }
+
+    // AI waits on a new port with a new secret, `dashql connect` starts the server there. The page tries the port before.
+    await page.context().route(url => url.hostname === '127.0.0.1' && url.port !== new URL(page.url()).port, route => route.continue());
+    await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
+    await page.getByTestId('composer-connect-renew').click();
+    await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();
+    const line = await page.getByTestId('composer-connect-command').textContent();
+    const match = /^npx -y @ankoh\/dashql-cli connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
+    assert.ok(match, line);
+    const connected = await startSessionServer({ port: Number(match[1]), token: match[2] });
+    try {
+        connected.push({ harness: 'codex' });
+        await page.getByTestId('composer-connect-status').getByText('Codex works on this workbook in the terminal').waitFor();
+    } finally {
+        await connected.close();
     }
 }
 
@@ -637,7 +658,15 @@ export async function runPageTests(browser, origin, { collectCoverage, outputs }
             return route.abort();
         });
         page.on('console', message => {
-            if (message.type() === 'error') errors.push(message.text());
+            if (message.type() !== 'error') return;
+            // A page in AI waits on the server of a session that `dashql connect` starts later on another port of
+            // this machine, its attempts fail until then. Chrome names the request in the location of the message,
+            // Firefox in its text.
+            const text = message.text();
+            const source = /http:\/\/127\.0\.0\.1:\d+\/v1\/stream\S*/.exec(text)?.[0] ?? message.location().url;
+            const waiting = /^Failed to load resource|CORS request did not succeed/.test(text)
+                && source.startsWith('http://127.0.0.1:') && new URL(source).origin !== origin;
+            if (!waiting) errors.push(text);
         });
         page.on('pageerror', error => errors.push(error.stack ?? error.message));
         const profiler = collectCoverage ? await context.newCDPSession(page) : null;
