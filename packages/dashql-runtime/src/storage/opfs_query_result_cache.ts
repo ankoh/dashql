@@ -15,8 +15,12 @@ const ACCESS_SUFFIX = '.last_access';
 /// The file of a key, `<key>.<uuid>.parquet`
 const KEY_FILE = /^([0-9a-f]{64})\.[0-9a-f-]{36}\.parquet$/;
 /// The suffix of a transient file, a result that can't be reused or a file that is being written. A transient file
-/// that nobody pins is garbage, every listing removes it.
+/// that nobody pins is garbage once it is older than `GARBAGE_AFTER_MS`, listings remove it.
 const TRANSIENT_SUFFIX = '.transient.parquet';
+/// The age of a transient or empty file that nobody pins after which it is garbage. Writing a file changes its time.
+/// The pins of a process of Node are not seen by another one on the same root (the locks are those of the process), so
+/// a younger file may be written right now.
+const GARBAGE_AFTER_MS = 60 * 60 * 1000;
 /// The Web Lock of a file, readers hold it shared, eviction and deletion take it exclusively if nobody holds it
 const LOCK_PREFIX = 'dashql-query-result-cache/';
 
@@ -30,6 +34,8 @@ export interface OPFSQueryResultCacheOptions {
     maxBytes?: number;
     /// The maximum number of files
     maxFiles?: number;
+    /// The current time in milliseconds since the epoch
+    now?: () => number;
 }
 
 /// The key of a file, null for transient files and files of other versions
@@ -48,10 +54,11 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
     const locks = options.locks ?? navigator.locks;
     const maxBytes = options.maxBytes ?? DEFAULT_CACHE_MAX_BYTES;
     const maxFiles = options.maxFiles ?? DEFAULT_CACHE_MAX_FILES;
+    const now = options.now ?? Date.now;
     const directory = async () => await (await getRoot()).getDirectoryHandle(QUERY_RESULT_CACHE_DIRECTORY, { create: true });
 
-    /// The Parquet files with their sizes and times. Transient files that nobody pins and markers without a file are
-    /// removed.
+    /// The Parquet files with their sizes and times. Old transient files that nobody pins and markers without a file
+    /// are removed.
     const listFiles = async (): Promise<CacheFileStat[]> => {
         const dir = await directory();
         const accessMs = new Map<string, number>();
@@ -68,11 +75,13 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
         }
         // The pinned transient files are written or read right now, they stay and count towards the limits. An empty
         // file of a key is being written without `move` or was left by a window that closed during the write: readers
-        // find no result in it.
+        // find no result in it. Young files stay as well, another process may write them.
         const removed = new Set<string>();
         const incomplete = (file: { name: string; size: number }) => file.size === 0 && cacheFileKey(file.name) != null;
+        const garbageBefore = now() - GARBAGE_AFTER_MS;
         for (const file of files) {
-            if ((isTransientCacheFile(file.name) || incomplete(file)) && await tryRemove(file.name)) removed.add(file.name);
+            if (!isTransientCacheFile(file.name) && !incomplete(file)) continue;
+            if (file.mtimeMs < garbageBefore && await tryRemove(file.name)) removed.add(file.name);
         }
         files = files.filter(file => !removed.has(file.name) && !incomplete(file));
         const names = new Set(files.map(file => file.name));

@@ -9,6 +9,13 @@ import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_R
 const KEY_A = 'a'.repeat(64);
 const KEY_B = 'b'.repeat(64);
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
+const HOUR_MS = 60 * 60 * 1000;
+
+/// The locks of another process of Node on the same root: they never see the pins of this one
+const UNSHARED_LOCKS = {
+    request: async (_name: string, ...args: unknown[]) => await (args[args.length - 1] as (lock: Lock) => Promise<unknown>)({ name: _name, mode: 'exclusive' } as Lock),
+    query: async () => ({ held: [], pending: [] }),
+} as unknown as LockManager;
 
 describe('OPFS query result cache', () => {
     let rootName: string;
@@ -25,6 +32,8 @@ describe('OPFS query result cache', () => {
     });
 
     const cache = () => createOPFSQueryResultCache({ getRoot: async () => root });
+    /// A cache whose clock is two hours ahead, the transient and empty files are old for it
+    const later = (locks?: LockManager) => createOPFSQueryResultCache({ getRoot: async () => root, locks, now: () => Date.now() + 2 * HOUR_MS });
     /// Write a file into the cache folder
     const put = async (name: string, size = 4) => {
         const writable = await (await folder.getFileHandle(name, { create: true })).createWritable();
@@ -66,9 +75,9 @@ describe('OPFS query result cache', () => {
         await release();
     });
 
-    it('removes transient files once nobody pins them, also those of other windows', async () => {
+    it('removes old transient files once nobody pins them, also those of other windows', async () => {
         const run = cache();
-        const other = cache();
+        const other = later();
         const pinned = await put(run.newTransientFileName());
         // A transient file of a window that was closed during its run
         const left = await put(other.newTransientFileName());
@@ -176,7 +185,20 @@ describe('OPFS query result cache', () => {
         expect(await files()).toContain(writing);
         await release();
         await c.list();
+        expect(await files()).toContain(writing);
+        await later().list();
         expect(await files()).toEqual([older]);
+    });
+
+    it('keeps young transient and empty files that another process may write', async () => {
+        const c = cache();
+        const writing = await put(c.newTransientFileName());
+        const empty = await put(c.newFileName(KEY_A), 0);
+        // The pins of this process are not seen there, the files are young
+        await createOPFSQueryResultCache({ getRoot: async () => root, locks: UNSHARED_LOCKS }).list();
+        expect(await files()).toEqual([empty, writing].sort());
+        await later(UNSHARED_LOCKS).list();
+        expect(await files()).toEqual([]);
     });
 
     it('reports the keys whose files stay because they are read', async () => {
