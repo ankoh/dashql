@@ -5,13 +5,14 @@ stored state, the persistence of connections and the storage format of workbooks
 `packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
 connection with the history of its queries, the query history of the shell and the computations, linked into the core
 module. `reduceWorkbookScripts`
-of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
-`reduceConnectionState` one over the connection (`connections/connection_native.ts`). The computations have no
-adapter: they are the first domain of the `Runtime` class of the module, the app reads their views through a store
-and dispatches to them (see [The computations](#the-computations) and [runtime_api.md](runtime_api.md)). The storage writer is the first service on a host
+of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`). The computations,
+the connections with the histories of their queries, the histories without a connection and the query executor have
+no adapter: they are the domains of the `Runtime` class of the module, the app reads their views through a store and
+dispatches to them (see [The computations](#the-computations), [The connections](#the-connections) and
+[runtime_api.md](runtime_api.md)). The storage writer is the first service on a host
 (`storage/storage_writer.ts` over `src/storage/`), the restore the second (`workbook/persistence/app_state_loader.ts`
 over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
-platform), the query executor the fourth (`QueryExecutorService` over `src/executor/`): Trino, Hyper over HTTP,
+platform), the query executor the fourth (`runtime/queries.rs` of the bindings over `src/executor/`): Trino, Hyper over HTTP,
 Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host, the
 catalog loader the fifth (`CatalogLoaderService` over `catalog_loader/service.rs`): it schedules the updates of the
 catalogs, runs their metadata queries through the query executor, fetches the metadata of Salesforce and registers the
@@ -23,11 +24,11 @@ the storage, the imports and the exports of the TypeScript runtime (`src/workboo
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
-schemas of `proto/fb`. The classes of the runtime (`Runtime`, `Workbook`, `Connection`, `QueryHistory`,
-`StorageWriter`, `AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`,
-`ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON, the ones of the
-computations, the workbook, the connections, the query histories, the storage writer, the restore and the persistence
-of connections as JS objects of views with generated types (see [runtime_projection.md](runtime_projection.md)).
+schemas of `proto/fb`. The classes of the runtime (`Runtime`, `Workbook`, `StorageWriter`, `AppRestore`,
+`CatalogLoader`, `WorkbookRun`, `ConnectionSetupRun`, `QueryProgressFollower`) belong to DashQL and change with it,
+their snapshots cross as JSON, the ones of the computations, the workbook, the connections, the queries, the storage
+writer, the restore and the saves of connections as JS objects of views with generated types (see
+[runtime_projection.md](runtime_projection.md)).
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -67,29 +68,29 @@ buffers in between. The boundary moves to what the UI reads.
   the same, its session handle while it keeps its session. Plain fields cross as JSON, editor updates, staged diffs and
   visualizations as packed FlatBuffers.
 - **Actions are method calls.** The class `Workbook` of the module (`packages/dashql-core-wasm/src/workbook.rs`) takes
-  typed arguments, `DashQLWorkbook` of `@ankoh/dashql-core` wraps it. The class `Connection`
-  (`packages/dashql-core-wasm/src/connection.rs`) holds the state of a connection and the history of its queries,
-  `DashQLConnection` wraps it. Params, errors, relation names, metadata, progress and metrics cross as JS objects of
-  the views of `connection/view.rs` and `query_history/view.rs`, the status, the health, the connector, the catalog
-  updates and the queries have numeric enums of the module.
+  typed arguments, `DashQLWorkbook` of `@ankoh/dashql-core` wraps it. The connections are a domain of `Runtime`
+  (`packages/dashql-core-wasm/src/runtime/connections.rs`), their actions are the ones of the union of the runtime.
+  Params, errors, relation names, metadata, progress and metrics cross as JS objects of the views of
+  `connection/view.rs` and `query_history/view.rs`, the status, the health, the connector, the catalog updates and
+  the queries have numeric enums of the module.
 - **A connection owns its catalog.** The connection holds its catalog with the entry ids of all catalogs of the module.
-  `DashQLConnection.catalog` is one `Catalog` handle per connection that shares it, the app hands it to the scripts of
-  workbooks, so the scripts publish into the catalog of the connection. The script with the functions of the
-  connection stays in Rust, the catalog loader replaces its text through the connection.
+  `Runtime.catalog(connectionId)` is a `Catalog` handle that shares it, `CoreRuntime.catalog` keeps one per connection
+  and the app hands it to the scripts of workbooks, so the scripts publish into the catalog of the connection. The
+  script with the functions of the connection stays in Rust, the catalog loader replaces its text through the
+  connection.
 - **Channels, tables and cancellations stay in JavaScript, under handles.** The channels, the result tables and the
-  records of catalog updates and queries (their abort controllers and errors) are objects of the one handle table of
-  the runtime (`store/handles.ts`, see [runtime_projection.md](runtime_projection.md#handles)). The progress of a
-  query is the one of the Rust history. The action that gives an object to the connection hands its handle over, the
-  connection keeps the handle where it keeps the object and lets go of it with an effect: `release`, `close` (a
-  channel) or `abort` (a catalog update, an active query). Cancelling the setup and invalidating the catalog batches
-  stay named effects. A reset or a delete stops the queries: the binding clears the history
-  (`QueryExecutionHistory::clear`), which aborts the active queries and releases the handles of all queries.
-- **A projected connection never changes.** `NativeConnection.project` reads the view of the connection when its
-  revision moved and the view of the queries when theirs moved, and shares their unchanged parts with the previous
-  views (`share`). The details and the catalog updates of the app are built again only when their parts changed, a
-  query keeps its state while its revision doesn't move (`RevisionCache`), and the maps and lists of the queries are
-  new objects when a query changed, started or finished. `restoreCatalogUpdates` changes the revision of the
-  connection and returns the next state, the state of the caller stays as it was.
+  records of catalog updates and of the queries that the host runs itself (their abort controllers) are objects of the
+  handle table of the platform of the runtime (`CoreRuntime.handles`, see
+  [runtime_projection.md](runtime_projection.md#handles)). The progress of a query is the one of the Rust history. The
+  action that gives an object to the connection hands its handle over, the connection keeps the handle where it keeps
+  the object and lets go of it with an effect: `release`, `close` (a channel) or `abort` (a catalog update, an active
+  query). Cancelling the setup is a call of the platform (`cancelSetup`). A reset or a delete stops the queries: the
+  registry clears the history (`QueryExecutionHistory::clear`), which aborts the active queries and releases the
+  handles of all queries, and the executor cancels the queries that it runs.
+- **A connection is a view.** The store reads the view of a connection when its slice changed: when the connection
+  changed, when a query started or finished, when the workbooks that use it or its save changed. The progress of a
+  query changes only the slice of the query. A view shares its unchanged parts with the previous view (`share`), the
+  app reads it as `ConnectionState`.
 - **No panics.** A panic traps the whole module, a thrown error of a reducer in TypeScript only drops the action.
   Actions return `Result`, a failed action leaves the workbook unchanged, and the crate avoids indexing and unwraps
   on input.
@@ -204,6 +205,32 @@ store of the views (`store/runtime_store.ts`) and attaches the runtime of the mo
   again until an input changes. An analysis whose computation is gone ends without an error. The tasks of an analysis
   log through the logger of the runtime.
 
+## The connections
+
+The connections are the second domain of `Runtime` (`runtime/connections.rs` of the bindings, see
+[runtime_api.md](runtime_api.md#step-2-as-built)). The registry of the crate (`connections/registry.rs`) holds them in
+the order they were registered with the histories of their queries, the histories without a connection (the one of
+the shell) by name, and hands out the ids of all queries from one sequence.
+
+- **The rules of the registry are Rust.** A connection that workbooks use is never deleted and switches its connector
+  only while one workbook uses it, the embedded Hyper is never deleted. The workbooks that use a connection come from
+  the registry of the workbooks of TypeScript (`setConnectionReferences`) until the workbooks are part of the runtime.
+- **The steps of the setups are actions.** A setup or a health check applies a step by the name of the action of its
+  connector (`setupStep`, read by `setup_action_from_json`, the inverse of `setup_action_json`); a channel crosses as a
+  handle that the connection takes, a step that fails releases it.
+- **The saves run in the runtime.** The runtime writes through the storage writer of the module that the host gives it
+  (`setStorageWriter`): a change of a connection schedules what storage keeps of it (`connection_writes`), a created
+  active connection writes its entry with its creation time, a deleted one leaves the app manifest. `saveConnection`
+  writes the entry of the app manifest, commits the params and writes the copies of the workbooks; `retrySave` writes
+  the copies of the last save again. The view of a connection shows its save.
+- **The restore adopts.** The restored connections go into the runtime (`adoptRestoredConnection`), a restore of a
+  single workbook adds the connections that it registered.
+- **The tests.** `connections/registry.rs` (the order, the ordinals, the rules, a reset that stops the queries, the
+  histories without a connection), `connection_setup/mod.rs` (a step read back from its JSON) and
+  `runtime_connections.test.ts` of `dashql-core-js` (the views, the steps of a setup with a channel, the catalog, a
+  Trino query into the history of its connection, cancelling, the memory of the module while a large result streams,
+  the structured progress, a reset that stops a query).
+
 ## The host and the executor
 
 `dashql_core_runtime::host` holds what every service asks of the platform: the trait `Host` with the clock (`now`),
@@ -288,9 +315,9 @@ of a folder through it. Their callers didn't change.
   cleared catalog files are durable writes of the app manifest and the files of the connections. Once they are
   written, the stale copies of the workbooks follow, then the script lists that changed and the promotion of an
   ephemeral workbook that holds scripts. A failed write is logged, the next restore attempts it again.
-- **Rust objects reach the registries as they are.** The result holds the connections and the workbooks of the module.
-  The adapter wraps a connection in a `NativeConnection` and projects its `ConnectionState`, and adopts a workbook with
-  the connections of its scripts (`NativeWorkbook.adopt`). The registries get the same `RestoredAppState` as before.
+- **Rust objects reach the runtime as they are.** The result holds the connections and the workbooks of the module.
+  The runtime adopts the connections (`adoptRestoredConnection`), the adapter adopts a workbook with the connections of
+  its scripts and their catalogs of the runtime (`NativeWorkbook.adopt`).
 - **Connections that the app holds.** A restore of a single workbook, e.g. an import or the folder of `dashql run`,
   resolves against the live connections, which the adapter passes with their catalogs, and returns the connections that
   the workbook registered.
@@ -301,16 +328,14 @@ of a folder through it. Their callers didn't change.
   `ConnectorType`), the progress, and the script and data files that the host lists are views of `restore/view.rs`.
   The connection entries of the app manifest and the stored params of a live connection cross as plain JS values.
 
-The persistence of connections is a module of the crate as well (`src/connection_persistence.rs`, bound as
-`ConnectionPersistence`). The registry of connections still applies the actions in TypeScript, and the module decides
-what storage keeps of a change from the persisted fields of the connection before it and the Rust connection after
+The persistence of connections is a module of the crate as well (`src/connection_persistence.rs`), the runtime
+decides what storage keeps of a change from the persisted fields of the connection before it and the connection after
 it: saved params go to the app manifest and to every workbook that references the connection, drafts, names and the
 caching choice to the app manifest with a longer debounce, and an active connection writes its catalog files after
 an update and its catalog state after statements and updates. A deleted active connection leaves the app manifest and
-its pending file writes are discarded. `ConnectionPersistenceService` saves through the module: the entry of the app
-manifest first, then the commit of the params, then the copies of the workbooks, all of them durable writes of the
-writer. A connection that the app created holds no id in Rust, the id comes with every call. The persisted fields, the
-change and the outcomes of a save are views of `connection_persistence/view.rs`, the saved params cross as objects.
+its pending file writes are discarded. `Runtime.saveConnection` saves: the entry of the app manifest first, then the
+commit of the params, then the copies of the workbooks, all of them durable writes of the writer. The outcomes of a
+save are views of `connection_persistence/view.rs`, the saved params cross as objects.
 
 - **Changed on purpose.** The restore parses the catalog files in the module and not in the batch worker, a file that
   doesn't parse publishes neither relations nor functions. A draft that can't be read is dropped with a warning
@@ -367,13 +392,13 @@ ordinal and string column.
 
 `CatalogLoaderService` of the TypeScript runtime is an adapter over the loader of the crate
 (`src/catalog_loader/service.rs`), bound as the class `CatalogLoader` of the module (`DashQLCatalogLoader` of
-`@ankoh/dashql-core`, created with `DashQL.createCatalogLoader` on the core of the first connection). Its API stayed,
-the runtime hands it every registry and requests refreshes as before.
+`@ankoh/dashql-core`, created with `DashQL.createCatalogLoader` on the core of the runtime). The runtime tells it when
+its connections changed and requests refreshes.
 
-- **The loader follows the Rust connections.** The binding of a connection holds its state and its query history
-  behind shared references, the loader keeps weak ones under the id of the registry (`follow`). The adapter tells it
-  when the registry changed (`observe`), the loader reads health, params, details, catalog updates and the number of
-  running queries of every connection then, and describes the connections that came online.
+- **The loader follows the connections of the runtime.** The registry of the runtime holds the state and the query
+  history of a connection behind shared references, the loader keeps weak ones (`follow(runtime)` follows them in their
+  order and forgets the others), reads health, params, details, catalog updates and the number of running queries of
+  every connection and describes the connections that came online.
 - **The scheduler and the updates run in Rust.** `CatalogLoader` decides what to start and to abort, the service runs
   an update as a task: it drives `CatalogUpdate`, parses its batches in the module (`CatalogBatch::process`, like the
   restore) and publishes into the catalog of the connection. A publication needs the connection to still run the
@@ -382,9 +407,8 @@ the runtime hands it every registry and requests refreshes as before.
 - **The queries go through the query executor.** The host runs a metadata query (`run_query`) with the executor of the
   runtime as a query of the app with the issuer `Catalog Update`, registers it with the update and hands the result
   back as Arrow IPC, the loader reads it with `arrow-rs`.
-- **The host keeps the registry and the cancellation.** The start and the end of an update are actions of the registry
-  (`update_started`, `update_finished`), so the connection, its persistence and the scripts that use it see them as
-  before. The host keeps an abort controller per update, an abort of the loader, of a reset or of a caller cancels the
+- **The host keeps the cancellation.** The start and the end of an update are actions of the runtime (`updateCatalog`,
+  `catalogUpdateFinished`), so the connection, its persistence and the scripts that use it see them. The host keeps an abort controller per update, an abort of the loader, of a reset or of a caller cancels the
   task (`cancel`) and the queries of the update.
 - **Salesforce over fetch.** The metadata of a data space comes from the instance over `HttpHost::fetch`
   (`SalesforceMetadataLoad`, three requests at once). An API of Salesforce that the platform passes, e.g. the mock of
@@ -575,10 +599,12 @@ the context of the connection holds them.
 
 ## The query executor
 
-`QueryExecutorService` of the TypeScript runtime is an adapter over the executor of the crate (`src/executor/`), bound
-as the class `QueryExecutor` of the module (`DashQLQueryExecutor` of `@ankoh/dashql-core`, created with
-`DashQL.createQueryExecutor` on the core of the connection of the first query). Its API stayed, its callers and the hooks of the app didn't
-change.
+The executor of the crate (`src/executor/`) runs the queries of the connections of `Runtime`, its host is Rust
+(`runtime/queries.rs` of the bindings). `executeQuery` registers a query in the history of its connection and runs it
+once the host described where it runs; `QueryPlatform` of the TypeScript runtime (`query/query_platform.ts`) is the
+host half: the description from the view of the connection and the channel of its handle, the channels that the
+module doesn't speak and the query result cache. `CoreRuntime.execute` keeps the signature of the executor of today,
+its callers and the hooks of the app didn't change.
 
 - **One HTTP layer.** `src/http/` holds the request, the response with a body of bytes, the headers that compare names
   without case and the URL module of every connector. `Url` parses as the browsers do where the origin check of client
@@ -591,7 +617,9 @@ change.
 - **A query is a task.** `QueryExecutor::execute` runs a query that the host registered in the history of its
   connection: it serves a result from the query result cache or sends the query, reports the progress and the batches,
   touches the relations of the statement, analyzes the result and writes it into the cache after the query. The task
-  reports `QueryEvent`s, the adapter applies them to the Rust connection through the dispatch of the registry.
+  reports `QueryEvent`s, the host applies them to the history of the connection right away: the relations of a
+  statement come from the core (`touched_relations`), the analysis runs on the computations of the runtime and a result
+  replaces the computation of the earlier result of its owner.
   Cancelling cancels the token: the requests stop, the query is cancelled at the backend and the task ends as
   cancelled.
 - **The connectors.** Trino runs on `TrinoQuery` with the requests and timers of the host and keeps a refreshed access
@@ -601,9 +629,9 @@ change.
 - **Channels of the host.** A channel that the module doesn't speak stays with the host: the gRPC channel of Hyper in
   the desktop app (through its native proxy), the embedded Hyper, the channels of tests. A Trino channel of the
   TypeScript runtime only holds the endpoint, the token and the defaults of the session, the TypeScript protocols of
-  Trino and of client functions are gone. The task asks the host to run the query and follows the metrics of its
-  batches, the batches stay with the host. The host learns of the views of the profile and of the cancellation right
-  away.
+  Trino and of client functions are gone. The task asks the platform to run the query (`channels.open`, `next`,
+  `cancel` by query) and follows the metrics of its batches, the batches go into the table of the query. The host
+  learns of the views of the profile and of the cancellation right away.
 - **Results never live in the core module.** A result passes through the module at most one page at a time, where a
   protocol needs a conversion. It lives in JavaScript and in hyperdb-wasm (through the data frames), held by handle.
   - Hyper over HTTP: the chunks are parts of one Arrow IPC stream. The executor fetches them with
@@ -616,11 +644,12 @@ change.
     it grew by 200 MB when the executor collected the batches (`query_executor.test.ts` of `dashql-core-js`).
   - A channel of the host (the embedded Hyper, gRPC, a channel of a test) keeps its record batches, the executor sees
     their metrics.
-  - Once the stream ended, `ExecutorHost::finish_result` asks the host for the table: `QueryResultStream` of the
-    TypeScript runtime frames the parts (a message may span parts, a repeated schema and an end-of-stream marker are
-    skipped) and decodes them with `apache-arrow`. A part that doesn't end on a message is an error of the query. The
-    action of all batches hands the table to the history as a handle of the handle table. The host keeps the result
-    tables, the Parquet files of the cache and the analysis on the compute database.
+  - The parts go into a table of the platform that was opened for the query (`tables.open`, `tables.push`); once the
+    stream ended, `ExecutorHost::finish_result` finishes it (`tables.finish`): `QueryResultStream` of the TypeScript
+    runtime frames the parts (a message may span parts, a repeated schema and an end-of-stream marker are skipped) and
+    decodes them with `apache-arrow`. A part that doesn't end on a message is an error of the query. The history takes
+    the table by its handle, the analysis a handle of its own (`handles.duplicate`). The platform keeps the result
+    tables and the Parquet files of the cache.
 - **Changed on purpose.** A query that is cancelled before the executor started it rejects with the reason of the
   cancellation. A failure before the query reached the executor, e.g. a spec of client functions that doesn't load,
   rejects. The metrics of a Hyper result over HTTP count its chunks while it streams, and the batches and rows of its
@@ -638,19 +667,18 @@ holds the structured progress that the app reads, the TypeScript progress model 
   query profile of `dashql-core-profile`, the progress update carries the structured progress instead of the payload:
   the packed `QueryProfile` with its version, the execution state and the revision. The model ends with the task. A
   malformed payload is logged and changes nothing, the update keeps the structured progress of the previous one.
-- **The update crosses as a value of the module.** The executor reports a progress as `QueryProgressUpdate`, the
-  adapter hands it to the history of the connection (`queryProgressUpdated`) through the dispatch of the registry,
-  nothing of it is read in JavaScript. `QueryExecutor.setProgressLayout` sets the layout of the plans, the adapter
-  sets the left-to-right layout of the progress panels (`createProgressLayoutConfig`).
-- **The view of a query carries it.** `QueryView.latestProgress` has the plain fields and the structured progress
+- **The update stays in the module.** The executor reports a progress into the history of the connection, nothing of it
+  crosses. `Runtime.setProgressLayout` sets the layout of the plans, `CoreRuntime` sets the left-to-right layout of the
+  progress panels (`createProgressLayoutConfig`).
+- **The view of a query carries it.** `QueryView.latestProgressUpdate` has the plain fields and the structured progress
   (`QueryProfileProgressView`): the packed `QueryProfile` and the execution state as packed `QueryProfileEvents`, one
-  event per entity with state. The projection passes the keys that it holds (the revision and the version of the
-  structure) and the module leaves those payloads out, so an update of the execution state crosses only the events
-  and a batch crosses neither. `QueryProjection` folds the events into the `ProfileExecutionState` of the views and
-  keeps the projected progress while its revision doesn't move.
+  event per entity with state. The store passes the keys that it holds (the revision and the version of the
+  structure, `known` of the `query` kind) and the module leaves those payloads out, so an update of the execution
+  state crosses only the events and a batch crosses neither. `queryProgress` of `query/query_progress.ts` folds the
+  events into the `ProfileExecutionState` that the panels read, once per view of the progress.
 - **The recording stays with the progress.** The model records the payloads of the engine with the milliseconds since
   the first one, the progress of every update shares the recording (`SharedRecording`), so a finished query keeps it.
-  `queryProgressRecording` returns it as JSON for the download of the panel, `ProfileRecording::from_json` reads it
+  `Runtime.queryProgressRecording` returns it as JSON for the download of the panel, `ProfileRecording::from_json` reads it
   and the recordings of the Trino test harness, `replayQueryProgress` replays it up to a point in time. A
   `QueryProgressFollower` replays it with a layout of its own, the panel rotates the plan with it and applies the
   later payloads as they come.
@@ -660,28 +688,23 @@ holds the structured progress that the app reads, the TypeScript progress model 
 
 ## The query history of the shell
 
-`ShellQueryExecutionTracker` of the TypeScript runtime (`query/shell_query_execution.ts`) is an adapter over a query
-history of its own, bound as the class `QueryHistory` of the module (`packages/dashql-core-wasm/src/query_history.rs`,
-`DashQLQueryHistory` of `@ankoh/dashql-core`, created with `DashQL.createQueryHistory`). It kept its API, the shell of
-the app didn't change. `reduceQueryAction` of TypeScript is gone, `query/query_execution_state.ts` keeps the types of a
-query execution and its actions.
+The shell tracks its queries in a history without a connection of its runtime of the module (`StandaloneCoreRuntime`
+of the app): `{ history: 'shell-<n>' }`, created with `createHistory` and dropped with the component. The class
+`QueryHistory` of the module and `ShellQueryExecutionTracker` went.
 
-- **A history without a connection.** `QueryHistory` holds a `QueryExecutionHistory` of the crate and takes the query
-  actions of a connection, its queries read like the ones of a connection. `Connection` shares the actions and the
-  views of its queries with it (one macro of the bindings, `DashQLQueryActions` of `@ankoh/dashql-core`), and the
-  adapters share the mapping of the actions and the projection of the queries (`QueryProjection` in
-  `query/query_history_native.ts`): a query keeps its state while its revision doesn't move.
+- **The queries that the host runs.** `executeTrackedQuery` of `query/tracked_query_execution.ts` tracks a query that
+  the host runs itself in a history of the runtime, of a connection or without one (`trackQuery` and the steps of its
+  lifecycle): the shell, and the SQLFrame queries of the computations in the history of the connection of their
+  result. The history hands out the id and keeps the record of the host under a handle, an abort of the handle (a
+  reset of the connection) cancels it.
 - **The last 100 queries.** `QueryExecutionHistory::with_limit` keeps at most a number of queries: a query that starts
   beyond the limit drops the oldest finished queries, then the oldest active ones, and releases their result tables.
   A later action on a dropped query changes nothing. The history of a connection has no limit.
-- **The JavaScript objects stay in the handle table.** The result tables and the records of the queries (the
-  cancellations and the errors) are handles, the effects of the history release them; the tracker lists the finished
-  queries before the active ones. A result that the shell shows keeps its table after its query left the history.
-- **The core comes with the first action.** The tracker takes the core or a function that sets it up. The provider of
-  the shell sets up the core of the app, the actions before the core is there wait for it. The provider frees the
-  history with the component.
-- **Changed on purpose.** An action that changes nothing, e.g. a late failure of a finished query, keeps the snapshot
-  and doesn't notify the subscribers. A query id that the history knows is refused instead of replacing the query.
+- **Read as views.** The shell reads its history (`history` slice, the finished queries then the active ones) and its
+  queries (`query` slices) through the store. A result that the shell shows keeps its computation after its query left
+  the history.
+- **Changed on purpose.** The history exists once the runtime has its core; a query of the shell before that runs
+  untracked. A query id that the history knows is refused instead of replacing the query.
 
 ## The runs of workbooks
 
@@ -764,20 +787,19 @@ statistics of the script with a call and an unpacking each.
 ## Open
 
 - The actions of the success of a task and the scheduler tasks that the host would run remain in the state of the
-  crate for its tests; the host can't reach them. `ResultComputations` of the query executor stays in TypeScript, the
-  crate has its port.
+  crate for its tests; the host can't reach them.
 - A result crosses from the query executor to the computations as Arrow IPC that `apache-arrow` writes
   (`tables.read` of the platform), and the compute platform imports it through `insertArrowTable`, which writes it
   again. The parts of the stream could go to the compute database as they arrive instead.
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
-- The connections of a native workbook that changed on disk are still created in TypeScript
-  (`connections/connection_restore.ts`), the restore of a single workbook could take them over.
-- The registry of connections applies its actions in TypeScript, only the decisions of their persistence are Rust.
-- The planned statement of a query stays in TypeScript.
-- The executor reports into the history through the dispatch of the registry, the history and the executor are not
-  one Rust value yet. The query result cache, the analysis of results and the relations of a statement are calls of
-  the host.
+- The connections of a native workbook that changed on disk are read from the copies of its file in TypeScript
+  (`connections/connection_restore.ts`) and created in the runtime, the restore of a single workbook could take them
+  over.
+- The workbooks that use a connection come from the registry of the workbooks of TypeScript.
+- The query executor reads where a query runs from the host (`QueryPlatform`): the target of the channel of the
+  connection and the key of the query result cache. The key needs the signature of the params of the connector and
+  SHA-256 of the platform.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
 - The mock setup of Salesforce (`salesforce_connection_setup_mock.ts`, the mock config of the app) stays in TypeScript,
   it answers from `SalesforceAPIClientMock` without requests. The owner of the cancellation of a setup per connection
@@ -787,8 +809,8 @@ statistics of the script with a call and an unpacking each.
 - The service of the runs (`WorkbookExecutionService`: one run per workbook, the connections that a run takes, the
   changes of inputs that wait for the workbook, stopping a run when a connection drops) and the holds of workbooks stay
   in TypeScript, the run itself is Rust.
-- A statement of a run reaches the query executor of the crate through its adapter, which registers the query in the
-  history of its connection and keeps the result table; the run and the executor are not one Rust value yet.
+- A statement of a run reaches the query executor of the runtime through `CoreRuntime.execute`, the run and the runtime
+  are not one Rust value yet.
 - The batches of a catalog update parse on the main thread. A host call to a worker with a core of its own would move
   the bundled functions of Hyper off the event loop.
 
@@ -801,8 +823,7 @@ statistics of the script with a call and an unpacking each.
   an action until a registry of workbooks moves too.
 - The states of the app share the Rust workbook: only the latest state of a workbook can be reduced, like the registry
   does. An older state still reads its scripts as they were, but an action on it acts on the latest workbook.
-- The states of a connection share the Rust connection like the ones of a workbook. A spread over a state is lost with
-  the next action, the options of `createConnectionState` set the name, the caching and whether it is active.
+- A new connection is created with its name, its caching choice and whether it is active (`createConnection`).
 - The script with the functions of a deleted connection is gone with the connection, the catalog of a deleted
   connection is cleared and other holders see it empty.
 - The link to a published workbook stays whole in TypeScript (the workbook file holds more than its ids), the Rust

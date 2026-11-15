@@ -20,6 +20,8 @@ import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persis
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
 import { workbookScriptsResolutionChanged } from '@ankoh/dashql-runtime/workbook/persistence/workbook_script_connections';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -71,10 +73,15 @@ describe('Workbook connections', () => {
     beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
     afterEach(() => { dql.resetUnsafe(); });
 
-    const restore = (backend: WorkbookTestBackend | CompositeStorageBackend) => restoreAppState(dql, backend, logger, () => {});
+    /// A restored app state with the runtime that holds its connections, every restoration starts a new app
+    type RestoredApp = RestoredAppState & { runtime: CoreRuntime };
+    const restore = async (backend: WorkbookTestBackend | CompositeStorageBackend): Promise<RestoredApp> => {
+        const runtime = testCoreRuntime(dql);
+        return { ...await restoreAppState(runtime, backend, logger, () => {}), runtime };
+    };
 
     /// The restored scripts of the workbook
-    const workbookOf = (restored: RestoredAppState, workbookId: string = WORKBOOK_ID): WorkbookScripts => {
+    const workbookOf = (restored: RestoredApp, workbookId: string = WORKBOOK_ID): WorkbookScripts => {
         const workbook = restored.workbookScripts.get(workbookId);
         if (workbook == null) throw new Error(`Workbook ${workbookId} was not restored`);
         return workbook;
@@ -98,19 +105,16 @@ describe('Workbook connections', () => {
     };
 
     /// Run a script on another connection the way the connection picker of the feed does
-    const pickConnection = (workbook: WorkbookScripts, restored: RestoredAppState, writer: StorageWriter, fileName: string, connectionId: string): WorkbookScripts =>
+    const pickConnection = (workbook: WorkbookScripts, restored: RestoredApp, writer: StorageWriter, fileName: string, connectionId: string): WorkbookScripts =>
         reduceWorkbookScripts(workbook, {
             type: SET_SCRIPT_CONNECTION,
-            value: { fileName, connection: scriptConnectionOf(restored.connectionStates.get(connectionId)!) },
+            value: { fileName, connection: scriptConnectionOf(restored.runtime, restored.runtime.connection(connectionId)!) },
         }, writer, logger);
 
     /// The connection registry of a restored app state
-    const connectionRegistryOf = (restored: RestoredAppState): ConnectionRegistry => ({
-        connections: restored.connectionStates,
-        connectionsByType: restored.connectionStatesByType,
-    });
+    const connectionRegistryOf = (restored: RestoredApp): ConnectionRegistry => restored.runtime.registry();
     /// The connections that the workbooks of a restored app state use
-    const referencesOf = (restored: RestoredAppState): ConnectionReferences => workbookConnectionReferences({
+    const referencesOf = (restored: RestoredApp): ConnectionReferences => workbookConnectionReferences({
         current: { workbookScriptsMap: restored.workbookScripts, workbookScriptsByConnection: restored.workbookScriptsByConnection, invalidWorkbooks: restored.invalidWorkbooks },
         subscribe: () => () => { },
     });
@@ -127,8 +131,8 @@ describe('Workbook connections', () => {
             const workbook = workbookOf(restored);
 
             expect(workbook.scriptOrder).toEqual(['define.sql', 'remote.sql', 'local.sql']);
-            expect(scriptOf(workbook, 'remote.sql').connection.catalog).toBe(restored.connectionStates.get(TRINO_ID)!.catalog);
-            expect(scriptOf(workbook, 'local.sql').connection.catalog).toBe(restored.connectionStates.get(HYPER_ID)!.catalog);
+            expect(scriptOf(workbook, 'remote.sql').connection.catalog).toBe(restored.runtime.catalog(TRINO_ID));
+            expect(scriptOf(workbook, 'local.sql').connection.catalog).toBe(restored.runtime.catalog(HYPER_ID));
             // Only the scripts of the same connection see the table
             expect(unresolvedReferences(workbook, 'local.sql')).toBe(0);
             expect(unresolvedReferences(workbook, 'remote.sql')).toBe(1);
@@ -152,7 +156,7 @@ describe('Workbook connections', () => {
             const restored = await restore(backend);
 
             expect(scriptOf(workbookOf(restored), 'remote.sql').connection.connectionId).toBe(TRINO_ID);
-            expect(restored.connectionStates.get(TRINO_ID)?.connectorInfo.connectorType).toBe(ConnectorType.TRINO);
+            expect(restored.runtime.connection(TRINO_ID)?.connectorType).toBe(ConnectorType.TRINO);
             expect(backend.connections!.map(entry => entry.id)).toEqual([HYPER_ID, TRINO_ID]);
         });
 
@@ -164,7 +168,7 @@ describe('Workbook connections', () => {
             expect(workbookConnectionIds(workbookOf(restored))).toEqual([HYPER_ID]);
             expect(backend.workbooks.get(WORKBOOK_ID)!.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
             // The connection itself stays a connection of the app
-            expect(restored.connectionStates.has(TRINO_ID)).toBe(true);
+            expect(restored.runtime.connection(TRINO_ID)).not.toBeNull();
         });
     });
 
@@ -290,7 +294,7 @@ describe('Workbook connections', () => {
             await seedWorkbook(backend, [['query.sql', HYPER_ID, 'select 1']]);
             backend.connections = backend.connections!.filter(entry => entry.id !== TRINO_ID);
             const restored = await restore(backend);
-            expect(restored.connectionStates.has(TRINO_ID)).toBe(false);
+            expect(restored.runtime.connection(TRINO_ID)).toBeNull();
 
             // A pull adds a script on a connection that the app doesn't know
             const pulled: WorkbookData = {
@@ -298,7 +302,7 @@ describe('Workbook connections', () => {
                 connections: [{ connectionId: HYPER_ID, params: HYPER_PARAMS }, { connectionId: TRINO_ID, params: TRINO_PARAMS }],
                 scripts: [{ name: 'query.sql', connectionId: HYPER_ID }, { name: 'remote.sql', connectionId: TRINO_ID }],
             };
-            const stored = readStoredWorkbookScripts(connectionRegistryOf(restored), pulled, [
+            const stored = readStoredWorkbookScripts(restored.runtime, connectionRegistryOf(restored), pulled, [
                 { name: 'query.sql', sql: 'select 1' },
                 { name: 'remote.sql', sql: 'select 2' },
             ])!;
@@ -374,8 +378,8 @@ describe('Workbook connections', () => {
             expect(scriptOf(imported, 'define.sql').connection.connectionId).toBe(HYPER_ID);
             const remote = scriptOf(imported, 'remote.sql').connection.connectionId;
             expect(remote).not.toBe(TRINO_ID);
-            expect(restored.connectionStates.get(remote)?.connectorInfo.connectorType).toBe(ConnectorType.TRINO);
-            expect(restored.connectionStates.get(remote)?.catalog).not.toBe(restored.connectionStates.get(TRINO_ID)!.catalog);
+            expect(restored.runtime.connection(remote)?.connectorType).toBe(ConnectorType.TRINO);
+            expect(restored.runtime.catalog(remote)).not.toBe(restored.runtime.catalog(TRINO_ID));
         });
 
         it('imports a shared workbook that links its connections to the connections of the app', async () => {
@@ -396,7 +400,7 @@ describe('Workbook connections', () => {
             const restored = await restore(backend);
             const imported = workbookOf(restored, IMPORTED_WORKBOOK_ID);
             // Both workbooks share the connections of the app
-            expect(scriptOf(imported, 'remote.sql').connection.catalog).toBe(restored.connectionStates.get(TRINO_ID)!.catalog);
+            expect(scriptOf(imported, 'remote.sql').connection.catalog).toBe(restored.runtime.catalog(TRINO_ID));
             expect(referencesOf(restored).workbooksOf(TRINO_ID)).toEqual([WORKBOOK_ID, IMPORTED_WORKBOOK_ID]);
         });
     });

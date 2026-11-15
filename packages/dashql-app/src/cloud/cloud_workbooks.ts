@@ -58,6 +58,7 @@ import {
     type CloudListRequest,
     type CloudPage,
 } from './cloud_folders.js';
+import { useQueryReader } from '../connections/query_executor.js';
 
 // The published workbooks of the cloud in the app: opening a version read-only, importing it, publishing a local
 // workbook. See docs/design/cloud.md.
@@ -208,6 +209,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     const deleteScripts = useWorkbookScriptsDeletion();
     const deleteComputation = useDeleteComputation();
     const connectionStore = useConnectionRegistryStore();
+    const readQuery = useQueryReader();
     const references = useConnectionReferences();
     const storageReader = useStorageReader();
     const storageWriter = useStorageWriter();
@@ -232,7 +234,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             for (const connectionId of connections) {
                 const connection = connectionStore.current.connections.get(connectionId);
                 if (connection == null) continue;
-                for (const queryId of findWorkbookQueries(connection, workbookId)) {
+                for (const queryId of findWorkbookQueries(connection, workbookId, readQuery)) {
                     deleteComputation(queryId);
                 }
             }

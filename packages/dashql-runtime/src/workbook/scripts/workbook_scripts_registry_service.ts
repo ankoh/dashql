@@ -13,7 +13,8 @@ import {
 } from '../../storage/storage_writer.js';
 import { workbookConnectionFromState, type ConnectionReferences } from '../../connections/connection_registry_state.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
-import { createWorkbookScripts, destroyWorkbookScripts, newScriptConnection, scriptConnectionOf, workbookConnectionIds, workbookScriptListWrite, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
+import type * as core from '@ankoh/dashql-core';
+import { createWorkbookScripts, destroyWorkbookScripts, newScriptConnection, scriptConnectionOf, workbookConnectionIds, workbookScriptListWrite, type ConnectionCatalogs, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
 import { createEmptyMetadata } from './script_types.js';
 import {
     addWorkbookScriptsForConnection,
@@ -99,14 +100,15 @@ export class WorkbookScriptsRegistryService {
 
     /// Create a workbook without scripts on a connection and write its first manifest. A new workbook starts without
     /// scripts, the feed greets it with the landing prompt of the composer.
-    create = (connection: ConnectionState, name: string, ephemeral: boolean): WorkbookScripts => {
+    create = (runtime: ConnectionCatalogs & { core: core.DashQL | null }, connection: ConnectionState, name: string, ephemeral: boolean): WorkbookScripts => {
         const workbookId = crypto.randomUUID();
+        if (runtime.core == null) throw new Error('the runtime has no core yet');
         const [, scripts] = this.allocate(createWorkbookScripts({
             workbookMetadata: { ...createEmptyMetadata(), ...(ephemeral ? { ephemeral } : {}) },
-            instance: connection.instance,
+            instance: runtime.core,
             workbookId,
             name,
-            pendingConnection: scriptConnectionOf(connection),
+            pendingConnection: scriptConnectionOf(runtime, connection),
             scripts: [],
         }));
         void this.deps.storageWriter.write(

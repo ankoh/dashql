@@ -1,10 +1,6 @@
-import * as dashql from '@ankoh/dashql-core';
-
 import { TracedLogger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import type { AppStateRestorationProgress, RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
-import { SetConnectionRegistryAction } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { SetWorkbookScriptsRegistryAction } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { ProgressCounter } from '@ankoh/dashql-runtime/utils/progress';
@@ -24,8 +20,8 @@ export interface AppLoadingResult {
     invalidWorkbooks: Map<string, InvalidWorkbook>;
     /// Valid restored workbooks in persisted manifest order.
     restoredWorkbooks: ReadonlyMap<string, WorkbookScripts>;
-    /// The restored connections
-    restoredConnections: Map<string, ConnectionState>;
+    /// The connections that the runtime restored, in the order of the app manifest
+    restoredConnections: string[];
 }
 
 /// The workbook that the app opens with: the restored workbook of the path, otherwise the app opens the greeter
@@ -59,12 +55,12 @@ export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<
 
 /// Restores the persisted app state
 export interface AppStateRestorer {
-    /// Restore the connections and workbooks
-    restoreAppState(core: dashql.DashQL, progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
+    /// Restore the connections into the runtime and the workbooks
+    restoreAppState(progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
 }
 
 /// Main logic to setup the application
-export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage: AppStateRestorer, resetConnections: Dispatch<SetConnectionRegistryAction>, resetWorkbookScripts: Dispatch<SetWorkbookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
+export async function loadApp(logger: TracedLogger, storage: AppStateRestorer, resetWorkbookScripts: Dispatch<SetWorkbookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
     const traced = logger.childSpan();
     traced.info("Loading application", {}, "app_loading");
     const appLoadStartTime = performance.now();
@@ -86,23 +82,14 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
     const restoreStartTime = performance.now();
 
     /// First restore the previous app state
-    const state = await storage.restoreAppState(core, partialProgressConsumer);
+    const state = await storage.restoreAppState(partialProgressConsumer);
 
     const restoreDuration = performance.now() - restoreStartTime;
     traced.info("Restored application state", {
-        connections: state.connectionStates.size.toString(),
+        connections: state.connectionIds.length.toString(),
         workbooks: state.workbookScripts.size.toString(),
         durationMs: restoreDuration.toFixed(2)
     }, "app_loading");
-
-    // Reset the connection registry
-    traced.info("Updating connection registry", {
-        connectionCount: state.connectionStates.size.toString()
-    }, "app_loading");
-    resetConnections({
-        connections: state.connectionStates,
-        connectionsByType: state.connectionStatesByType,
-    });
 
     // Reset the workbook scripts registry
     traced.info("Updating workbook scripts registry", {
@@ -122,6 +109,6 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
     return {
         invalidWorkbooks: state.invalidWorkbooks,
         restoredWorkbooks: state.workbookScripts,
-        restoredConnections: state.connectionStates,
+        restoredConnections: state.connectionIds,
     };
 }

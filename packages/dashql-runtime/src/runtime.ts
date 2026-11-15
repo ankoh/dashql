@@ -9,10 +9,7 @@ import type { StorageBackend } from './storage/storage_backend.js';
 import { StorageWriter } from './storage/storage_writer.js';
 import type { QueryResultCache } from './query/query_result_cache.js';
 import { CoreRuntime } from './core_runtime.js';
-import { ConnectionRegistryService } from './connections/connection_registry_service.js';
-import { QueryExecutorService } from './connections/query_executor_service.js';
 import { CatalogLoaderService } from './connections/catalog/catalog_loader_service.js';
-import { ConnectionPersistenceService } from './connections/connection_persistence_service.js';
 import { SalesforceApiClient, type SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
 import { CATALOG_DID_UPDATE } from './workbook/scripts/workbook_scripts.js';
 import { WorkbookScriptsRegistryService } from './workbook/scripts/workbook_scripts_registry_service.js';
@@ -44,26 +41,25 @@ export interface RuntimePlatform {
     salesforce?: SalesforceApiClientInterface;
 }
 
-/// The logic of DashQL without a user interface: the registries of workbooks and connections and the services on them.
-/// The app binds it to React, the command line tool uses it as it is.
+/// The logic of DashQL without a user interface: the runtime of the module with the connections, their queries and the
+/// computations, the registry of the workbooks and the services on them. The app binds it to React, the command line
+/// tool uses it as it is.
 export interface Runtime {
     platform: RuntimePlatform;
     logger: Logger;
     storageWriter: StorageWriter;
     workbooks: WorkbookScriptsRegistryService;
-    connections: ConnectionRegistryService;
-    /// The runtime of the module: the computations of results, read through its store
+    /// The runtime of the module: the connections with their queries, the query executor, the saves of the connections
+    /// and the computations of results, read through its store
     coreRuntime: CoreRuntime;
-    executor: QueryExecutorService;
     catalogLoader: CatalogLoaderService;
     execution: WorkbookExecutionService;
-    persistence: ConnectionPersistenceService;
     /// Set the database of the computations once the platform has set it up, e.g. in the app after the settings loaded.
     /// The queries and runs that start later use it.
     setComputeDatabase(database: EmbeddedComputeDatabase | null): void;
     /// Set the API of Salesforce once the platform knows it, e.g. in the app after the config chose a mock
     setSalesforce(salesforce: SalesforceApiClientInterface): void;
-    /// Load the stored connections and workbooks into the registries
+    /// Load the stored connections into the runtime and the stored workbooks into the registry
     restore(progress?: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     /// Write what is pending and stop the services
     destroy(): Promise<void>;
@@ -71,9 +67,10 @@ export interface Runtime {
 
 /// Create the runtime of a platform. The app creates it in its RuntimeProvider, the command line tool on its own.
 ///
-/// The workbooks come first, the connections read from them which workbooks use a connection; then the query executor
-/// on the connections and the computations, the catalog loader and the runs of workbooks on the executor. The core is
-/// instantiated when the runtime restores the stored state, the services ask the platform for it when they need it.
+/// The runtime of the module holds the connections and runs their queries; the workbooks tell it which connections
+/// they use. The catalog loader follows the connections of the runtime, the runs of workbooks run on its executor. The
+/// core is instantiated when the runtime restores the stored state, the services ask the platform for it when they
+/// need it.
 export function createRuntime(platform: RuntimePlatform): Runtime {
     const { logger, storage, http, scheduler } = platform;
     // The writer of the platform may exist before the core, it sets one up the way the platform does
@@ -81,31 +78,23 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
     storageWriter.provideCore(platform.setupCore);
 
     const workbooks = new WorkbookScriptsRegistryService({ logger, storageWriter }, scheduler);
-    const connections = new ConnectionRegistryService({ logger, storageWriter, references: workbooks.references }, scheduler);
-
-    const coreRuntime = new CoreRuntime({ logger, scheduler, setupCore: platform.setupCore, computeDatabase: platform.computeDatabase ?? null });
+    const coreRuntime = new CoreRuntime({
+        logger,
+        scheduler,
+        setupCore: platform.setupCore,
+        computeDatabase: platform.computeDatabase ?? null,
+        http,
+        resultCache: platform.resultCache ?? null,
+    });
 
     // The platform may set the compute database and the API of Salesforce later, the services read them when they use them
     let computeDatabase = platform.computeDatabase ?? null;
     let salesforce = platform.salesforce ?? new SalesforceApiClient(logger, http);
     const resultCache = platform.resultCache ?? null;
-    const executor = new QueryExecutorService({
-        logger,
-        http,
-        readConnections: () => connections.store.current,
-        dispatchConnection: connections.dispatch,
-        computations: coreRuntime,
-        get computeDatabase() { return computeDatabase; },
-        resultCache,
-        setupCore: platform.setupCore,
-    });
-    const execute = executor.execute.bind(executor);
-    const cancel = executor.cancel.bind(executor);
 
     const catalogLoader = new CatalogLoaderService({
         logger,
-        dispatchConnection: connections.dispatch,
-        execute,
+        runtime: coreRuntime,
         http,
         get salesforce() { return salesforce; },
         // The scripts that use the connection are analyzed again with the new catalog
@@ -116,34 +105,40 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
     const execution = new WorkbookExecutionService({
         logger,
         readWorkbooks: () => workbooks.store.current,
-        readConnections: () => connections.store.current,
-        executeQuery: execute,
-        cancelQuery: cancel,
+        readConnections: () => coreRuntime.registry(),
+        executeQuery: coreRuntime.execute,
+        cancelQuery: coreRuntime.cancel,
         dispatchWorkbookScripts: workbooks.dispatch,
         get computeDatabase() { return computeDatabase; },
         resultCache,
     });
-    const persistence = new ConnectionPersistenceService({
-        storageWriter,
-        readConnections: () => connections.store.current,
-        references: workbooks.references,
-        dispatchConnection: connections.dispatch,
-    });
 
-    // The services follow the registries, like the effects of their providers
+    // The services follow the registry of the workbooks and the connections of the runtime, like the effects of their
+    // providers
     let scriptRunInstances = new Set<core.DashQL>();
+    let references: Map<string, string[]> | null = null;
     const followWorkbooks = () => {
-        const next = new Set([...workbooks.store.current.workbookScriptsMap.values()].map(workbook => workbook.instance));
+        const current = workbooks.store.current;
+        const next = new Set([...current.workbookScriptsMap.values()].map(workbook => workbook.instance));
         for (const instance of scriptRunInstances) if (!next.has(instance)) registerScriptRunServices(instance, null);
         for (const instance of next) registerScriptRunServices(instance, execution.scriptRunServices);
         scriptRunInstances = next;
-        execution.followRegistries(workbooks.store.current, connections.store.current);
+        // The runtime knows the workbooks that use a connection, e.g. it refuses to delete one that a workbook uses
+        if (current.workbookScriptsByConnection !== references) {
+            references = current.workbookScriptsByConnection;
+            coreRuntime.setConnectionReferences([...references]);
+        }
+        execution.followRegistries(current, coreRuntime.registry());
     };
     const followConnections = () => {
-        catalogLoader.setRegistry(connections.store.current);
-        execution.followRegistries(workbooks.store.current, connections.store.current);
+        catalogLoader.follow();
+        execution.followRegistries(workbooks.store.current, coreRuntime.registry());
     };
-    const unsubscribe = [workbooks.store.subscribe(followWorkbooks), connections.store.subscribe(followConnections)];
+    const unsubscribe = [
+        workbooks.store.subscribe(followWorkbooks),
+        coreRuntime.store.subscribeKind('connectionList', followConnections),
+        coreRuntime.store.subscribeKind('connection', followConnections),
+    ];
     catalogLoader.start();
 
     return {
@@ -151,12 +146,9 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         logger,
         storageWriter,
         workbooks,
-        connections,
         coreRuntime,
-        executor,
         catalogLoader,
         execution,
-        persistence,
         setComputeDatabase(database) {
             computeDatabase = database;
             coreRuntime.setComputeDatabase(database);
@@ -168,11 +160,9 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
             const instance = await platform.setupCore('runtime');
             coreRuntime.setCore(instance);
             storageWriter.provideCore(instance);
-            const restored = await restoreAppState(instance, storage, logger, progress, storageWriter);
-            connections.store.update({
-                connections: restored.connectionStates,
-                connectionsByType: restored.connectionStatesByType,
-            });
+            // The connections save through the writer of the platform
+            await storageWriter.withNativeWriter(async native => coreRuntime.setStorageWriter(native));
+            const restored = await restoreAppState(coreRuntime, storage, logger, progress, storageWriter);
             workbooks.store.update({
                 workbookScriptsMap: restored.workbookScripts,
                 workbookScriptsByConnection: restored.workbookScriptsByConnection,
@@ -186,10 +176,9 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
             catalogLoader.stop();
             for (const instance of scriptRunInstances) registerScriptRunServices(instance, null);
             // The results of the last queries may still be written into the query result cache
-            await executor.flushCacheWrites();
+            await coreRuntime.flushCacheWrites();
             await storageWriter.flush();
             workbooks.dispose();
-            connections.dispose();
             coreRuntime.destroy();
         },
     };

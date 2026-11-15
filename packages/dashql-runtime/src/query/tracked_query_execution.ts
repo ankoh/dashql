@@ -1,35 +1,34 @@
-import {
-    EXECUTE_QUERY,
-    QUERY_CANCELLED,
-    QUERY_FAILED,
-    QUERY_RUNNING,
-    QUERY_SENDING,
-    QUERY_SUCCEEDED,
-    type QueryExecutionAction,
-    createQueryExecutionState,
-    type QueryExecutionMetrics,
-    type QueryExecutionState,
-    type QueryExecutionTracker,
-    type QueryMetadata,
-} from './query_execution_state.js';
+import type * as arrow from 'apache-arrow';
+import type * as core from '@ankoh/dashql-core';
+
+import type { QueryExecutionMetrics, QueryMetadata } from './query_execution_state.js';
 import { LoggableException, stringifyError } from '../platform/logger/logger.js';
 import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
+import type { HandleTable } from '../store/handles.js';
 
-let NEXT_QUERY_ID = 1;
-
-export function allocateQueryId(): number {
-    return NEXT_QUERY_ID++;
+/// Where the host tracks the queries that it runs itself, e.g. the queries of the computations or of the shell: the
+/// history of a connection or a history without a connection of a runtime
+export interface QueryTracker {
+    /// The runtime that holds the history
+    runtime: {
+        readonly handles: HandleTable;
+        dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome;
+    };
+    /// The history: a connection or a history without one, e.g. `{ history: 'shell' }`
+    target: core.Target;
 }
 
 export interface TrackedQueryExecutionContext {
     readonly queryId: number;
     readonly trace: TraceContext;
     readonly cancellation: AbortController;
-    readonly initialState: QueryExecutionState;
     readonly isDone: () => boolean;
-    readonly dispatch: (action: QueryExecutionAction) => void;
     readonly sending: () => void;
     readonly running: () => void;
+    /// The result arrived, the history keeps the table
+    readonly receivedAllBatches: (table: arrow.Table, metrics?: QueryExecutionMetrics | null) => void;
+    readonly processingResults: () => void;
+    readonly processedResults: () => void;
     readonly succeed: () => void;
     readonly fail: (error: unknown, metrics?: QueryExecutionMetrics | null) => void;
     readonly cancel: (error: unknown, metrics?: QueryExecutionMetrics | null) => void;
@@ -38,9 +37,8 @@ export interface TrackedQueryExecutionContext {
 export interface TrackedQueryExecutionArgs<T> {
     query: string;
     metadata: QueryMetadata;
-    tracker: QueryExecutionTracker;
+    tracker: QueryTracker;
     execute: (context: TrackedQueryExecutionContext) => Promise<T>;
-    queryId?: number;
     trace?: TraceContext;
     cancellation?: AbortController;
     autoStart?: boolean;
@@ -53,40 +51,57 @@ function asLoggableException(error: unknown, target: string): LoggableException 
         : new LoggableException(stringifyError(error), {}, target);
 }
 
+/// Run a query that the host runs itself and track it in a history of the runtime: the history hands out its id and
+/// keeps its record under a handle, an abort of the handle (a reset of the connection) cancels it
 export async function executeTrackedQuery<T>(args: TrackedQueryExecutionArgs<T>): Promise<T> {
-    const queryId = args.queryId ?? allocateQueryId();
+    const { runtime, target } = args.tracker;
     const trace = args.trace ?? createTrace();
     const cancellation = args.cancellation ?? new AbortController();
-    const initialState = createQueryExecutionState(
-        queryId,
-        trace.traceId,
-        args.query,
-        args.metadata,
-        cancellation,
-    );
-    let done = false;
-    const dispatch = (action: QueryExecutionAction) => args.tracker.dispatch(action);
-    const finish = (action: QueryExecutionAction) => {
-        if (done) return;
-        done = true;
-        dispatch(action);
+    const record = { abort: (reason?: unknown) => cancellation.abort(reason) };
+    const handle = runtime.handles.register(record);
+    const tracked = runtime.dispatch(target, {
+        kind: 'trackQuery',
+        value: { traceId: trace.traceId, text: args.query, metadata: args.metadata as core.QueryMetadataView, handle },
+    });
+    // A query without a history runs untracked
+    if (!tracked.ok) runtime.handles.release(handle);
+    const queryId = typeof tracked.id === 'number' ? tracked.id : 0;
+    let done = !tracked.ok;
+    const dispatch = (action: core.RuntimeAction) => {
+        if (tracked.ok) runtime.dispatch(target, action);
     };
     const errorTarget = args.errorTarget ?? 'query_execution';
+    const ended = (kind: 'queryFailed' | 'queryCancelled', error: unknown, metrics: QueryExecutionMetrics | null = null) => {
+        if (done) return;
+        done = true;
+        const exception = asLoggableException(error, errorTarget);
+        const details = Object.keys(exception.keyValues ?? {}).length === 0 ? undefined : JSON.stringify(exception.keyValues);
+        dispatch({ kind, value: { queryId, message: exception.message, details, metrics: metrics ?? undefined } });
+    };
     const context: TrackedQueryExecutionContext = {
         queryId,
         trace,
         cancellation,
-        initialState,
         isDone: () => done,
-        dispatch,
-        sending: () => dispatch({ type: QUERY_SENDING, value: [queryId] }),
-        running: () => dispatch({ type: QUERY_RUNNING, value: [queryId] }),
-        succeed: () => finish({ type: QUERY_SUCCEEDED, value: [queryId] }),
-        fail: (error, metrics = null) => finish({ type: QUERY_FAILED, value: [queryId, asLoggableException(error, errorTarget), metrics] }),
-        cancel: (error, metrics = null) => finish({ type: QUERY_CANCELLED, value: [queryId, asLoggableException(error, errorTarget), metrics] }),
+        sending: () => dispatch({ kind: 'querySending', value: { queryId } }),
+        running: () => dispatch({ kind: 'queryRunning', value: { queryId } }),
+        receivedAllBatches: (table, metrics = null) => {
+            if (!tracked.ok) return;
+            dispatch({
+                kind: 'queryReceivedAllBatches',
+                value: { queryId, table: runtime.handles.register(table), rows: table.numRows, metrics: metrics ?? undefined },
+            });
+        },
+        processingResults: () => dispatch({ kind: 'queryProcessingResults', value: { queryId } }),
+        processedResults: () => dispatch({ kind: 'queryProcessedResults', value: { queryId } }),
+        succeed: () => {
+            if (done) return;
+            done = true;
+            dispatch({ kind: 'querySucceeded', value: { queryId } });
+        },
+        fail: (error, metrics) => ended('queryFailed', error, metrics),
+        cancel: (error, metrics) => ended('queryCancelled', error, metrics),
     };
-
-    dispatch({ type: EXECUTE_QUERY, value: [queryId, initialState] });
     if (args.autoStart !== false) {
         context.sending();
         context.running();

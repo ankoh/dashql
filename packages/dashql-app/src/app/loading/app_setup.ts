@@ -2,7 +2,8 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router/router.js';
-import { useConnectionAllocator, useConnectionRegistrySetter } from '../../connections/connection_registry.js';
+import { useConnectionAllocator } from '../../connections/connection_registry.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
 import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
@@ -70,7 +71,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     const pathname = useLocation().pathname;
     const [storageReader] = useStorage();
     const allocateConnection = useConnectionAllocator();
-    const setConnReg = useConnectionRegistrySetter();
+    const coreRuntime = useCoreRuntime();
     const setWorkbookScriptsRegistry = useWorkbookScriptsRegistrySetter();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
@@ -143,9 +144,14 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             traced.info("Loading application state and workbooks", {}, LOG_CTX);
             const loaded = await trackInitialization(
                 "Application state",
-                loadApp(traced, core, {
-                    restoreAppState: (core, progressConsumer) => restoreAppState(core, storageReader.backend, logger, progressConsumer),
-                }, setConnReg, setWorkbookScriptsRegistry, setProgress),
+                loadApp(traced, {
+                    restoreAppState: async progressConsumer => {
+                        // The connections of the runtime restore into it and save through the writer of the app
+                        coreRuntime.setCore(core);
+                        await storageWriter.withNativeWriter(async native => coreRuntime.setStorageWriter(native));
+                        return await restoreAppState(coreRuntime, storageReader.backend, logger, progressConsumer);
+                    },
+                }, setWorkbookScriptsRegistry, setProgress),
             );
 
             // The scripts registry lists the workbooks that were refused a load. This is just an
@@ -170,8 +176,8 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
 
             // Workbooks fall back to the embedded Hyper and the user can't attach one, the app always holds it.
             // The restored state lacks it when no workbook uses it, e.g. when every workbook runs on the Hyper of a link.
-            const connections = new Map(loaded.restoredConnections);
-            const embedded = embeddedConnection(connections.values(), allocateConnection, core);
+            const connections = new Map(coreRuntime.registry().connections);
+            const embedded = embeddedConnection(connections.values(), allocateConnection);
             connections.set(embedded.connectionId, embedded);
 
             // The app holds exactly one ephemeral workbook, whatever it opens below
@@ -181,7 +187,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             }, (workbookId, error) => {
                 traced.warn("Failed to delete a surplus ephemeral workbook", { workbookId, error: stringifyError(error) }, LOG_CTX);
             });
-            const greeter = ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, core, getHyperLinkTabState().current));
+            const greeter = ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, getHyperLinkTabState().current));
 
             if (await shouldFinishInitialNavigation(initialImport.current)) {
                 const workbookId = selectStartupWorkbook(workbookIdFromPathname(pathname), loaded.restoredWorkbooks);

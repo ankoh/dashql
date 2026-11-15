@@ -1,15 +1,9 @@
 import * as arrow from 'apache-arrow';
 
-import {
-    QUERY_PROCESSED_RESULTS,
-    QUERY_PROCESSING_RESULTS,
-    QUERY_RECEIVED_ALL_BATCHES,
-    createQueryResponseStreamMetrics,
-    type QueryExecutionTracker,
-} from '@ankoh/dashql-runtime/query/query_execution_state';
+import { createQueryResponseStreamMetrics } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { DashQLShellEnvironment } from '../shell/api.js';
-import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
+import { executeTrackedQuery, type QueryTracker } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';
 
 interface EmbeddedDatabaseShellEnvironmentOptions {
@@ -18,9 +12,18 @@ interface EmbeddedDatabaseShellEnvironmentOptions {
     afterStatement?: (query: string) => Promise<void>;
 }
 
+/// The queries of a shell without a history run untracked
+const UNTRACKED: QueryTracker = {
+    runtime: {
+        handles: { register: () => 0, release: () => { } } as unknown as QueryTracker['runtime']['handles'],
+        dispatch: () => ({ ok: false, changed: false, error: 'the shell has no query history', id: null }),
+    },
+    target: { history: 'untracked' },
+};
+
 export function createEmbeddedDatabaseShellEnvironment(
     connection: EmbeddedConnection,
-    queryExecutions?: QueryExecutionTracker,
+    queryExecutions?: QueryTracker,
     options: EmbeddedDatabaseShellEnvironmentOptions = {},
 ): DashQLShellEnvironment {
     return {
@@ -30,7 +33,7 @@ export function createEmbeddedDatabaseShellEnvironment(
             const abort = () => cancellation.abort();
             if (signal?.aborted) abort();
             else signal?.addEventListener('abort', abort, { once: true });
-            const tracker = queryExecutions ?? { dispatch: () => {} };
+            const tracker = queryExecutions ?? UNTRACKED;
             try {
                 return await executeTrackedQuery({
                     query,
@@ -57,22 +60,13 @@ export function createEmbeddedDatabaseShellEnvironment(
                             metrics.totalDataBytesReceived = table.batches.reduce((bytes, batch) => bytes + batch.data.byteLength, 0);
                             metrics.totalBatchesReceived = table.batches.length;
                             metrics.totalRowsReceived = table.numRows;
-                            tracked.dispatch({
-                                type: QUERY_RECEIVED_ALL_BATCHES,
-                                value: [tracked.queryId, table, metrics],
-                            });
+                            tracked.receivedAllBatches(table, metrics);
                             if (table.numCols === 0) return;
                             if (options.prepareResult != null) {
-                                tracked.dispatch({
-                                    type: QUERY_PROCESSING_RESULTS,
-                                    value: [tracked.queryId],
-                                });
+                                tracked.processingResults();
                                 await options.prepareResult(tracked.queryId, table);
                                 cancellation.signal.throwIfAborted();
-                                tracked.dispatch({
-                                    type: QUERY_PROCESSED_RESULTS,
-                                    value: [tracked.queryId],
-                                });
+                                tracked.processedResults();
                             }
                             onResult?.(tracked.queryId, table.numRows);
                         } finally {

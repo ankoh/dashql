@@ -9,8 +9,9 @@ import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_datab
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, restoreCatalogUpdates, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
@@ -70,14 +71,23 @@ function fixture(workbookId: string, deferStream = false) {
     });
     // The runs of the workbook on the Rust runtime
     const plan = vi.spyOn(workbook.native!.workbook, 'run');
-    // A connection on the Rust connection of the core, online with a channel and a catalog that describes it
-    let database: ConnectionState = createTestConnection(dql, {
+    // A connection of the runtime of the test, online with a channel and a catalog that describes it
+    const database = {
         connectionId: `${workbookId}-database`,
-        params: { hyper: {} } as any,
-        channel: { executeQuery },
-    });
-    database = restoreCatalogUpdates(database, true, null);
-    expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
+        online: true,
+        create(runtime: CoreRuntime) {
+            if (runtime.connection(this.connectionId) != null) return;
+            const state = createTestConnection(runtime, {
+                connectionId: this.connectionId,
+                params: { hyper: {} } as any,
+                channel: this.online ? { executeQuery } : undefined,
+                online: this.online,
+            });
+            runtime.dispatch({ connection: this.connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
+            runtime.flush();
+            expect(state.connectionHealth).toBe(this.online ? ConnectionHealth.ONLINE : ConnectionHealth.NOT_STARTED);
+        },
+    };
     const modify = vi.fn<ModifyWorkbookScripts>(() => {});
     return { workbook, database, plan, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,
         get signal() { return signal; } };
@@ -119,26 +129,17 @@ function RunServicesProbe(props: { workbookId: string; capture: (registered: boo
     return null;
 }
 
-/// Changes the connections of the registry, e.g. a connection that drops
-let setConnections: ReturnType<typeof useConnectionRegistry>[1] = () => {};
-
 function SeedRegistries(props: { fixtures: Fixture[]; children: React.ReactNode }) {
     const [, setWorkbooks] = useWorkbookScriptsRegistry();
-    const [, setRegistryConnections] = useConnectionRegistry();
-    setConnections = setRegistryConnections;
+    const runtime = useCoreRuntime();
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
         setWorkbooks(registry => ({ ...registry,
             workbookScriptsMap: new Map(props.fixtures.map(f => [f.workbook.workbookId, f.workbook])),
         }));
-        setRegistryConnections(registry => ({ ...registry,
-            connections: new Map(props.fixtures.map(f => [f.database.connectionId, f.database])),
-            attachedDatabasesByWorkbook: new Map(props.fixtures.map(f => [f.workbook.workbookId, {
-                mainDatabaseId: f.database.connectionId, attachedDatabaseIds: [],
-            }])),
-        }));
+        for (const f of props.fixtures) f.database.create(runtime);
         setReady(true);
-    }, [props.fixtures, setWorkbooks, setRegistryConnections]);
+    }, [props.fixtures, setWorkbooks, runtime]);
     return ready ? props.children : null;
 }
 
@@ -248,7 +249,7 @@ describe('the runs of workbooks in the app', () => {
             return { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase;
         });
         // A run without a connection would find no cached result, it doesn't start
-        fixtures[0].database.connectionHealth = ConnectionHealth.NOT_STARTED;
+        fixtures[0].database.online = false;
         const rendering = render();
         await vi.waitFor(() => expect(early).not.toBeNull());
         expect(early!.ready).toBe(false);

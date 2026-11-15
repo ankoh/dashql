@@ -1,10 +1,8 @@
-import * as dashql from '@ankoh/dashql-core';
 import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 
 import { CONNECTOR_INFOS, ConnectorType, ConnectorInfo } from './connector_info.js';
-import { ConnectionStateWithoutId, createConnectionState, type ConnectionStateOptions } from './connection_state.js';
-import { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf, connectionStateDetailsOf, connectorOfDetails, connectorOfParams, connectorParams } from './connector_descriptor.js';
+import type { ConnectionState, NewConnection } from './connection_state.js';
+import { CONNECTOR_DESCRIPTORS, connectionParamsOf, connectorOf, connectorOfParams, connectorParams } from './connector_descriptor.js';
 
 // Re-export connection param types from JSON Schema
 export type ConnectionParams = app_workbook.ConnectionParams;
@@ -60,14 +58,10 @@ export function connectionCatalogIsDurable(params: ConnectionParams): boolean {
     return connector.catalogIsDurable(connectorParams(connector, params));
 }
 
-export function getConnectionStateDetailsFromParams(params: ConnectionParams): ConnectionStateDetailsVariant {
-    const connector = connectorOfParams(params);
-    return connectionStateDetailsOf(connector, connectorParams(connector, params));
-}
-
-export function getConnectionParamsFromStateDetails(details: ConnectionStateDetailsVariant): ConnectionParams | null {
-    const setupParams = details.value.proto.setupParams;
-    return setupParams ? connectionParamsOf(connectorOfDetails(details), setupParams) : null;
+/// The params of the setup of a connection, null before a setup
+export function getConnectionSetupParams(connection: Pick<ConnectionState, 'connectorType' | 'details'>): ConnectionParams | null {
+    const setupParams = connection.details.setupParams;
+    return setupParams ? connectionParamsOf(connectorOf(connection), setupParams as never) : null;
 }
 
 /// Strip sensitive credentials from connection params before they are encoded into a shared
@@ -99,17 +93,18 @@ export function createConnectionParamsSignature(params: ConnectionParams): unkno
     return connector.cacheSignature(connectorParams(connector, params));
 }
 
-/// The options of a connection that is created with params: whether it is active and its name. The Rust connection
-/// holds them, a spread over the state would be lost with the next action.
-export type ConnectionStateFromParamsOptions = Pick<ConnectionStateOptions, 'active' | 'name'>;
+/// The options of a connection that is created with params: whether it is active and its name
+export type NewConnectionOptions = Pick<NewConnection, 'active' | 'name'>;
 
-export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams, options: ConnectionStateFromParamsOptions = {}): ConnectionStateWithoutId {
-    return createConnectionState(dql, connectorOfParams(params).info, getConnectionStateDetailsFromParams(params), { ...options, params });
+/// A new connection with params, its setup starts with them
+export function newConnectionFromParams(params: ConnectionParams, options: NewConnectionOptions = {}): NewConnection {
+    const connector = connectorOfParams(params);
+    return { connectorType: connector.info.connectorType, setupParams: connectorParams(connector, params), params, ...options };
 }
 
-export function createDefaultHyperWasmConnectionState(dql: dashql.DashQL, options: ConnectionStateFromParamsOptions = {}): ConnectionStateWithoutId {
-    const connector = CONNECTOR_INFOS[ConnectorType.HYPER];
-    return createConnectionStateFromParams(dql, createDefaultConnectionParamsForConnector(connector), options);
+/// A new connection to the embedded Hyper
+export function newDefaultHyperWasmConnection(options: NewConnectionOptions = {}): NewConnection {
+    return newConnectionFromParams(createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), options);
 }
 
 export function createDefaultConnectionParamsForConnector(info: ConnectorInfo): ConnectionParams {

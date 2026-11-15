@@ -76,7 +76,7 @@ export function recordingDispatch() {
     const actions: core.RuntimeAction[] = [];
     const dispatch = vi.fn((action: core.RuntimeAction): core.DispatchOutcome => {
         actions.push(action);
-        return { ok: true, changed: true, error: null };
+        return { ok: true, changed: true, error: null, id: null };
     });
     const ofKind = <K extends core.RuntimeAction['kind']>(kind: K) =>
         actions.filter((action): action is Extract<core.RuntimeAction, { kind: K }> => action.kind === kind);

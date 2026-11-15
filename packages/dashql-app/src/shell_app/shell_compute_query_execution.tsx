@@ -9,11 +9,11 @@ import { useShellQueryHistory } from './shell_query_history.js';
 const LOG_CTX = 'scheduler';
 
 export function ShellComputeQueryExecutionProvider(props: React.PropsWithChildren) {
-    const queryExecutions = useShellQueryHistory();
+    const tracker = useShellQueryHistory();
     const createExecution = React.useCallback((task: ComputeTaskContext) => {
         const execution: ComputeQueryExecution = (query, execute) => executeTrackedQuery({
             query,
-            tracker: queryExecutions,
+            tracker,
             metadata: {
                 queryType: QueryType.INTERNAL_SQLFRAME,
                 title: task.title,
@@ -25,7 +25,7 @@ export function ShellComputeQueryExecutionProvider(props: React.PropsWithChildre
             errorTarget: LOG_CTX,
         });
         return execution;
-    }, [queryExecutions]);
+    }, [tracker]);
 
     return (
         <ComputeQueryExecutionProvider createExecution={createExecution}>

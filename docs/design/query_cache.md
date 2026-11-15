@@ -232,7 +232,7 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - Key derivation: `packages/dashql-runtime/src/query/query_result_cache_key.ts`
 - Cache contract: `packages/dashql-runtime/src/query/query_result_cache.ts`
 - OPFS implementation: `packages/dashql-runtime/src/storage/opfs_query_result_cache.ts`
-- Executor integration: `packages/dashql-runtime/src/connections/query_executor_service.ts`
+- Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime) and `packages/dashql-runtime/src/query/query_platform.ts` (the key and the files of the platform)
 - Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, driven by `packages/dashql-runtime/src/storage/query_result_cache_eviction.ts`
 - Files of runs: `createExecutionMounts` in `packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts`
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`

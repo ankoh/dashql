@@ -9,15 +9,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { ComputeConnectionProvider } from '../../compute/compute_connection_provider.js';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
 import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_client_functions';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { DashQLShell, type DashQLShellOptions } from '../../shell/api.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
@@ -50,37 +50,56 @@ function loadRelations(catalog: dashql.DashQLCatalog, sql: string): void {
     catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
 }
 
+/// A connection of a test: online, its catalog describes it
+interface TestShellConnection {
+    connectionId: string;
+    /// The catalog of the connection, once the runtime of the test holds it
+    readonly catalog: dashql.DashQLCatalog;
+    /// Create it in the runtime of the test
+    create(runtime: CoreRuntime): void;
+}
+
 function createConnection(connectionId: string, options: {
     setupParams?: object;
     relationsSql?: string;
-    queriesFinished?: Map<number, unknown>;
-} = {}): ConnectionState {
-    const catalog = core.createCatalog();
-    if (options.relationsSql != null) loadRelations(catalog, options.relationsSql);
+    clientFunctions?: string;
+} = {}): TestShellConnection {
+    let runtime: CoreRuntime | null = null;
     return {
         connectionId,
-        active: false,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionHealth: ConnectionHealth.ONLINE,
-        metrics: createConnectionMetrics(),
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: options.setupParams ?? { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } } },
-        catalog,
-        catalogUpdates: { described: true },
-        queriesActive: new Map(),
-        queriesActiveOrdered: [],
-        queriesFinished: options.queriesFinished ?? new Map(),
-        queriesFinishedOrdered: [],
-    } as unknown as ConnectionState;
+        get catalog() {
+            const catalog = runtime?.catalog(connectionId) ?? null;
+            if (catalog == null) throw new Error(`the runtime holds no connection ${connectionId}`);
+            return catalog;
+        },
+        create(into: CoreRuntime) {
+            runtime = into;
+            if (into.connection(connectionId) != null) return;
+            addTestConnection(into, {
+                connectionId,
+                params: { hyper: options.setupParams ?? { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as never,
+                active: false,
+                health: ConnectionHealth.ONLINE,
+            });
+            into.dispatch({ connection: connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
+            into.flush();
+            if (options.relationsSql != null) loadRelations(this.catalog, options.relationsSql);
+            if (options.clientFunctions != null) this.catalog.registerClientFunctions(options.clientFunctions);
+        },
+    };
 }
 
-function finishedQuery(queryId: number, resultTable: arrow.Table) {
-    return { queryId, status: QueryExecutionStatus.SUCCEEDED, resultTable, queryMetadata: { workbookId: WORKBOOK_ID } };
+/// A finished query of a workbook on a connection
+function finishedQuery(runtime: CoreRuntime, connectionId: string): number {
+    return trackTestQuery(runtime, { connection: connectionId }, 'select * from t;', {
+        queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId: WORKBOOK_ID,
+    }, true);
 }
 
 /// What the tests reach through the providers
 interface Api {
-    setConnections(connections: ConnectionState[]): void;
+    runtime: CoreRuntime;
+    setConnections(connections: TestShellConnection[]): void;
     computations(): number[];
     createComputation(queryId: number, table: arrow.Table): void;
     mode(): WorkbookViewMode;
@@ -88,19 +107,14 @@ interface Api {
 }
 
 function Capture(props: { capture: (api: Api) => void; children: React.ReactElement }) {
-    const [, setRegistry] = useConnectionRegistry();
     const coreRuntime = useCoreRuntime();
     const { mode } = useWorkbookViewMode();
     const reconfigure = useAppReconfigure();
     props.capture({
-        setConnections: connections => setRegistry(prev => {
-            const next = { ...prev, connections: new Map(prev.connections), connectionsByType: CONNECTOR_TYPES.map(() => [] as string[]) };
-            for (const connection of connections) {
-                next.connections.set(connection.connectionId, connection);
-                next.connectionsByType[connection.connectorInfo.connectorType].push(connection.connectionId);
-            }
-            return next;
-        }),
+        runtime: coreRuntime,
+        setConnections: connections => {
+            for (const connection of connections) connection.create(coreRuntime);
+        },
         computations: () => coreRuntime.store.ids('computation'),
         // The analysis starts the computation of the result, without a compute database it stops after that
         createComputation: (queryId, table) => {
@@ -258,7 +272,7 @@ describe('WorkbookShellPage', () => {
     );
 
     /// Mount the page and wait until its terminal shows the prompt
-    async function open(connections: ConnectionState[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
+    async function open(connections: TestShellConnection[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
         render(props);
         act(() => api.setConnections(connections));
         await vi.waitFor(() => expect(screen()).toContain(prompt), WAIT);
@@ -362,13 +376,10 @@ describe('WorkbookShellPage', () => {
         });
 
         /// Run a query that the overlay shows
-        async function showResult(table: arrow.Table, connections: ConnectionState[]): Promise<number> {
-            const queryId = nextQueryId;
-            for (const connection of connections) {
-                connection.queriesFinished.set(queryId, finishedQuery(queryId, table) as never);
-            }
+        async function showResult(table: arrow.Table): Promise<number> {
+            const queryId = finishedQuery(api.runtime, MAIN);
             act(() => api.createComputation(queryId, table));
-            execute.mockImplementationOnce(() => [nextQueryId++, Promise.resolve(table)]);
+            execute.mockImplementationOnce(() => [queryId, Promise.resolve(table)]);
             run('select * from t;');
             return queryId;
         }
@@ -380,7 +391,7 @@ describe('WorkbookShellPage', () => {
             const table = tableFromArrays({ answer: [42] });
             await open([connection]);
 
-            const queryId = await showResult(table, [connection]);
+            const queryId = await showResult(table);
             await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
             expect(screen()).toContain('Query completed (1 row)');
             expect(api.computations()).toContain(queryId);
@@ -407,7 +418,7 @@ describe('WorkbookShellPage', () => {
             await open([connection]);
 
             resultFails = true;
-            const failed = await showResult(table, [connection]);
+            const failed = await showResult(table);
             await vi.waitFor(() => expect(screen()).toContain('Failed to show the result: boom'), WAIT);
             expect(overlay()).toBeNull();
             await vi.waitFor(() => expect(api.computations()).not.toContain(failed), WAIT);
@@ -416,7 +427,7 @@ describe('WorkbookShellPage', () => {
 
             // The next result opens again
             resultFails = false;
-            await showResult(table, [connection]);
+            await showResult(table);
             await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
         });
 
@@ -425,9 +436,9 @@ describe('WorkbookShellPage', () => {
             const table = tableFromArrays({ answer: [42] });
             await open([connection]);
 
-            const first = await showResult(table, [connection]);
+            const first = await showResult(table);
             await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
-            const second = await showResult(table, [connection]);
+            const second = await showResult(table);
             await vi.waitFor(() => expect(api.computations()).not.toContain(first), WAIT);
             expect(api.computations()).toContain(second);
         });
@@ -492,8 +503,7 @@ describe('WorkbookShellPage', () => {
     describe('with client functions', () => {
         /// A connection whose catalog has the Data 360 client functions
         async function openWithSpec() {
-            const connection = createConnection(MAIN);
-            connection.catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));
+            const connection = createConnection(MAIN, { clientFunctions: JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()) });
             await open([connection]);
         }
         const lastArgs = () => execute.mock.calls[execute.mock.calls.length - 1][1] as { query: string; clientFunctionCall?: unknown };
@@ -708,9 +718,8 @@ describe('WorkbookShellPage', () => {
             const connections = [createConnection(MAIN), createConnection(OTHER)];
             await open(connections);
             const table = tableFromArrays({ answer: [42] });
-            const queryId = nextQueryId;
-            connections[0].queriesFinished.set(queryId, finishedQuery(queryId, table) as never);
-            execute.mockImplementationOnce(() => [nextQueryId++, Promise.resolve(table)]);
+            const queryId = finishedQuery(api.runtime, MAIN);
+            execute.mockImplementationOnce(() => [queryId, Promise.resolve(table)]);
             run('select * from t;');
             await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull(), WAIT);
 

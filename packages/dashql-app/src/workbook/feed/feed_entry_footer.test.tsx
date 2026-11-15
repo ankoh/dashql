@@ -13,9 +13,9 @@ import * as dashql from '@ankoh/dashql-core';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
-import { replayProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
-import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
-import { StandaloneCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { CoreRuntimeProvider, StandaloneCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -86,10 +86,12 @@ describe('FeedEntryFooter', () => {
         // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
             <StandaloneCoreRuntime>
-                <FooterWithTabs
-                    queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
-                    visualizeQuery={visualizeQuery}
-                />
+                <WithResultTables>
+                    <FooterWithTabs
+                        queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(resultTable) } as any}
+                        visualizeQuery={visualizeQuery}
+                    />
+                </WithResultTables>
             </StandaloneCoreRuntime>,
         ));
     }
@@ -192,16 +194,13 @@ describe('FeedEntryFooter', () => {
             ...dependencies,
             useResultRowCount: () => ({ hasResult: false, totalRows: null }),
         } as unknown as FeedEntryFooterDependencies;
-        const profileProgress = {
-            structure: { read: () => ({ fragmentsLength: () => 0, operatorsLength: () => 0, engine: () => 0 }) },
-            execution: ProfileExecutionState.EMPTY,
-        } as unknown as QueryProfileProgress;
+        // A query with a profile, without a runtime that reads it the plan is not known yet
         const queryState = {
             queryId: 43,
             traceId: 10,
             status: QueryExecutionStatus.RUNNING,
-            metrics: { queryRequestedAt: new Date() },
-            latestProgressUpdate: { phase: 'RUNNING', profileProgress },
+            metrics: { queryRequestedAt: Date.now() },
+            latestProgressUpdate: { phase: 'RUNNING', profile: { structure: new Uint8Array(0), execution: null, revision: 1, structureVersion: 1 } },
         } as unknown as QueryExecutionState;
         const Footer = () => {
             const tabs = useFeedEntryTabs(queryState, null, running);
@@ -226,16 +225,19 @@ describe('FeedEntryFooter', () => {
         const plan = { id: '1', name: 'Output', children: [{ id: '2', name: 'TableScan', descriptor: { table: 'tpch:sf1:lineitem' }, children: [] }] };
         const info = { queryId: 'q', stages: { stages: [{ stageId: 'q.0', plan: { jsonRepresentation: JSON.stringify(plan) } }] } };
         const recording = { version: 1, payloads: [{ elapsedMs: 0, payload: { kind: 'trino_query_info', info, receivedAt: 1 } }] };
-        const profileProgress = replayProgressRecording(core, JSON.stringify(recording))!;
+        // The progress of the query as its view holds it, the runtime reads it with its core
+        const profileView = core.replayQueryProgress(JSON.stringify(recording), Number.MAX_SAFE_INTEGER);
         const queryState = {
             queryId: 44,
             traceId: 11,
             status: QueryExecutionStatus.RUNNING,
-            metrics: { queryRequestedAt: new Date() },
-            latestProgressUpdate: { phase: 'RUNNING', profileProgress },
+            metrics: { queryRequestedAt: Date.now() },
+            latestProgressUpdate: { phase: 'RUNNING', profile: profileView },
         } as unknown as QueryExecutionState;
         act(() => root.render(
-            <FeedEntryFooter workbookId="workbook" queryState={queryState} visualizeQuery={null} selectedTab={FeedEntryTab.Progress} dependencies={dependencies} />,
+            <CoreRuntimeProvider value={testCoreRuntime(core)}>
+                <FeedEntryFooter workbookId="workbook" queryState={queryState} visualizeQuery={null} selectedTab={FeedEntryTab.Progress} dependencies={dependencies} />
+            </CoreRuntimeProvider>,
         ));
         const profile = container.querySelector<HTMLElement>('[data-testid="query-progress-profile"]');
         expect(profile?.style.height).toEqual('240px');

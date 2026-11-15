@@ -15,6 +15,7 @@ import { ChartSpecBuilder } from './chart_spec_builder.js';
 import { ChartSpecJsonEditor } from './chart_spec_json_editor.js';
 import { encodedFields, inlineSharedEncoding, NEW_CHART_SPEC, type ChartSpec } from './chart_spec_paths.js';
 import * as styles from './chart_builder.module.css';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 const VEGA_LITE_SCHEMA = 'https://vega.github.io/schema/vega-lite/v6.json';
@@ -95,7 +96,8 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
     }, [spec]);
 
     const query = props.queryState;
-    const resultTable = query?.status === QueryExecutionStatus.SUCCEEDED ? query.resultTable : null;
+    const queryResult = useQueryResultTable(query);
+    const resultTable = query?.status === QueryExecutionStatus.SUCCEEDED ? queryResult : null;
     const columns = React.useMemo(() => chartColumns(resultTable?.schema ?? null, encodedFields(spec)), [resultTable, spec]);
     const previewSpec = React.useMemo(() => ({ $schema: VEGA_LITE_SCHEMA, ...spec }) as unknown as TopLevelSpec, [spec]);
 

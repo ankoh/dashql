@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { ConnectionTree } from './connection_tree.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -27,12 +27,11 @@ function connection(connectionId: string, connector: ConnectorType.HYPER | Conne
     return {
         connectionId,
         connectionHealth: ConnectionHealth.ONLINE,
-        connectorInfo: CONNECTOR_INFOS[connector],
+        connectorType: connector,
         details: connector === ConnectorType.HYPER
-            ? { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } }
-            : { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } },
-        catalog,
-        catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
+            ? { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } }
+            : { setupParams: {}, channel: null, connector: { kind: 'trino' } },
+        catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
     } as unknown as ConnectionState;
 }
 
@@ -57,6 +56,7 @@ describe('ConnectionTree sections', () => {
         act(() => root.render(
             <ConnectionTree
                 databases={[hyper, trino]}
+                catalogOf={() => catalog as never}
                 onOpenSettings={vi.fn()}
                 initiallyExpanded={() => true}
                 {...props}

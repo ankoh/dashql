@@ -5,23 +5,20 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as dashql from '@ankoh/dashql-core';
 import type * as arrow from 'apache-arrow';
 
-import { CatalogLoaderService, type CatalogLoaderDependencies } from './catalog_loader_service.js';
-import type { ConnectionRegistry, DynamicConnectionDispatch } from '../connection_registry_state.js';
-import { CATALOG_UPDATE_CANCELLED, CATALOG_UPDATE_FAILED, CATALOG_UPDATE_REGISTER_QUERY, CATALOG_UPDATE_SUCCEEDED, COMMIT_CONNECTION_PARAMS,
-    createConnectionState, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, reduceConnectionState, RESET_CONNECTION, restoreCatalogUpdates,
-    UPDATE_CATALOG, type ConnectionAction, type ConnectionState } from '../connection_state.js';
+import { CatalogLoaderService } from './catalog_loader_service.js';
+import { COMMIT_CONNECTION_PARAMS, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION, relationNames, type ConnectionAction } from '../connection_state.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from './catalog_update_state.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
-import { createConnectionStateDetails } from '../connection_state_details.js';
+import { ConnectorType } from '../connector_info.js';
 import type { HyperConnectionParams } from '@ankoh/dashql-jsonschema/connection.js';
 import { HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_STARTED } from '../hyper/hyper_connection_state.js';
 import type { HyperDatabaseChannel } from '../hyper/hyperdb_grpc_client.js';
 import type { RelationName } from './catalog_sql_generator.js';
 import type { QueryExecutionArgs, QueryExecutor } from '../query_execution_args.js';
-import { createQueryExecutionState, EXECUTE_QUERY, QUERY_CANCELLED, QueryType } from '../../query/query_execution_state.js';
-import { LoggableException } from '../../platform/logger/logger.js';
+import { QueryType } from '../../query/query_execution_state.js';
 import { TestLogger } from '../../testing/test_logger.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
+import type { CoreRuntime } from '../../core_runtime.js';
+import { connectorState, testCoreRuntime } from '../../testing/mocks/connector_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -42,16 +39,16 @@ const pgRows = (table: string) => tableFromArrays({
 });
 
 describe('CatalogLoaderService', () => {
-    let registry: ConnectionRegistry;
+    let runtime: CoreRuntime;
     let service: CatalogLoaderService;
     const queries: Array<{ args: QueryExecutionArgs; resolve: (table: arrow.Table | null) => void; reject: (error: unknown) => void }> = [];
-    const dispatch = vi.fn<DynamicConnectionDispatch>();
+    let dispatch: { mock: { calls: [dashql.Target, dashql.RuntimeAction][] } };
     const scriptsDispatch = vi.fn();
 
-    /// Hand the loader the current registry, as the runtime does when it changes, and let it schedule
+    /// Tell the loader that the connections changed, as the runtime does, and let it schedule
     async function handRegistry() {
-        registry = { ...registry };
-        service.setRegistry(registry);
+        runtime.flush();
+        service.follow();
         await settle();
     }
     async function enqueue(force: boolean) {
@@ -64,14 +61,29 @@ describe('CatalogLoaderService', () => {
         await settle();
     }
 
-    function connectionOf(connectorType: ConnectorType, setupParams: object = {}): ConnectionState {
-        const details = createConnectionStateDetails(connectorType);
-        (details.value.proto as { setupParams?: object }).setupParams = setupParams;
-        return { ...createConnectionState(dql, CONNECTOR_INFOS[connectorType], details), connectionId: 'database' };
+    /// A runtime with the connection `database` of a connector and a loader on it, the queries go to the fake executor
+    function setup(connectorType: ConnectorType, setupParams: object = {}) {
+        runtime = testCoreRuntime(dql);
+        connectorState(runtime, connectorType, setupParams, 'database');
+        // Deliberately do not tell the loader on dispatch: the end of an update itself must wake the queue
+        dispatch = vi.spyOn(runtime, 'dispatch') as unknown as typeof dispatch;
+        const execute: QueryExecutor = (_connectionId, args) => [queries.length + 1, new Promise<arrow.Table | null>((resolve, reject) => {
+            queries.push({ args, resolve, reject });
+            args.abortSignal?.addEventListener('abort', () => reject(args.abortSignal!.reason), { once: true });
+        })];
+        runtime.execute = execute;
+        service = new CatalogLoaderService({ logger: new TestLogger(), runtime, http: null, salesforce: null, onCatalogDidUpdate: scriptsDispatch });
+        service.start();
     }
-    /// Apply an action to the connection of the registry
+    async function teardown() {
+        service.stop();
+        for (const query of queries) query.reject(new DOMException('Test cleanup', 'AbortError'));
+        await settle();
+        runtime.destroy();
+    }
+    /// Apply an action to the connection of the runtime
     function act(action: ConnectionAction, connectionId = 'database') {
-        registry.connections.set(connectionId, reduceConnectionState(registry.connections.get(connectionId)!, action, new TestLogger()));
+        expect(runtime.dispatchConnection(connectionId, action).ok).toBe(true);
     }
     function connect(params: HyperConnectionParams) {
         act({ type: COMMIT_CONNECTION_PARAMS, value: { hyper: params } });
@@ -83,10 +95,12 @@ describe('CatalogLoaderService', () => {
         act({ type: HEALTH_CHECK_SUCCEEDED, value: null });
     }
     function restore(described: boolean, touched: RelationName[] | null = null) {
-        registry.connections.set('database', restoreCatalogUpdates(registry.connections.get('database')!, described, touched));
+        runtime.dispatch({ connection: 'database' }, { kind: 'restoreCatalogUpdates', value: { described, touchedRelations: touched == null ? undefined : relationNames(touched) } });
     }
-    const updates = () => registry.connections.get('database')!.catalogUpdates;
-    const dispatched = (type: symbol) => dispatch.mock.calls.filter(([, action]) => action.type === type);
+    const updates = () => runtime.connection('database')!.catalogUpdates;
+    /// The actions of a kind that were dispatched, the final status of an update narrows them
+    const dispatched = (kind: dashql.RuntimeAction['kind'], status?: CatalogUpdateTaskStatus) => dispatch.mock.calls.filter(([, action]) =>
+        action.kind === kind && (status == null || (action.kind === 'catalogUpdateFinished' && action.value.status === status)));
 
     beforeAll(async () => {
         dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
@@ -94,41 +108,17 @@ describe('CatalogLoaderService', () => {
 
     beforeEach(() => {
         queries.length = 0;
-        dispatch.mockReset();
         scriptsDispatch.mockReset();
-        registry = { connections: new Map([['database', connectionOf(ConnectorType.HYPER)]]), connectionsByType: [] };
-        // Deliberately do not hand over a new registry on dispatch: the end of an update itself must wake the queue
-        dispatch.mockImplementation((id, action) => {
-            registry.connections.set(id!, reduceConnectionState(registry.connections.get(id!)!, action, new TestLogger()));
-        });
-        const execute: QueryExecutor = (_connectionId, args) => [queries.length + 1, new Promise<arrow.Table | null>((resolve, reject) => {
-            queries.push({ args, resolve, reject });
-            args.abortSignal?.addEventListener('abort', () => reject(args.abortSignal!.reason), { once: true });
-        })];
-        const dependencies: CatalogLoaderDependencies = {
-            logger: new TestLogger(),
-            dispatchConnection: dispatch,
-            execute,
-            http: null,
-            salesforce: null,
-            onCatalogDidUpdate: scriptsDispatch,
-        };
-        service = new CatalogLoaderService(dependencies);
-        service.start();
+        setup(ConnectorType.HYPER);
     });
 
-    afterEach(async () => {
-        service.stop();
-        for (const query of queries) query.reject(new DOMException('Test cleanup', 'AbortError'));
-        await settle();
-        dql.resetUnsafe();
-    });
+    afterEach(teardown);
 
     it('aborts a running refresh once, keeps a pending force, and starts its replacement after the cancellation', async () => {
         await handRegistry();
         await enqueue(false);
         expect(queries).toHaveLength(1);
-        const task = updates().tasksRunning.values().next().value!;
+        const task = runtime.handles.get<{ cancellation: AbortController }>(updates().tasksRunning[0].handle)!;
         const abort = vi.spyOn(task.cancellation, 'abort');
 
         await enqueue(true);
@@ -138,27 +128,26 @@ describe('CatalogLoaderService', () => {
         expect(queries[0].args.abortSignal!.aborted).toBe(true);
         expect(queries[0].args.abortSignal!.reason.name).toBe('AbortError');
         expect(abort).toHaveBeenCalledTimes(1);
-        expect(dispatched(CATALOG_UPDATE_CANCELLED)).toHaveLength(1);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.CANCELLED)).toHaveLength(1);
         await vi.waitFor(() => expect(queries).toHaveLength(2));
         expect(queries[1].args.abortSignal!.aborted).toBe(false);
         expect(queries[1].args.metadata).toMatchObject({ issuer: 'Catalog Update', queryType: QueryType.CATALOG_QUERY_PG_ATTRIBUTE, userProvided: false });
         await handRegistry();
         expect(queries).toHaveLength(2);
         await answer(1, pgRows('orders'));
-        expect(dispatched(CATALOG_UPDATE_SUCCEEDED)).toHaveLength(1);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.SUCCEEDED)).toHaveLength(1);
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
         // The query is registered with the update, the relations and the bundled functions are in the catalog
-        expect(dispatched(CATALOG_UPDATE_REGISTER_QUERY).map(([, action]) => (action.value as number[])[1])).toEqual([1, 2]);
-        expect(registry.connections.get('database')!.catalogFunctionScript.toString()).toContain('CREATE FUNCTION');
+        expect(dispatched('catalogUpdateRegisterQuery').map(([, action]) => (action as { value: { queryId: number } }).value.queryId)).toEqual([1, 2]);
+        expect(runtime.runtime!.functionScriptText('database')).toContain('CREATE FUNCTION');
         expect(updates().described).toBe(true);
     });
 
     it('registers the client functions of a Salesforce connection and announces them', async () => {
-        const salesforce = { ...connectionOf(ConnectorType.SALESFORCE_DATA_CLOUD), connectionId: 'salesforce' };
-        registry.connections.set('salesforce', salesforce);
+        connectorState(runtime, ConnectorType.SALESFORCE_DATA_CLOUD, {}, 'salesforce');
         await handRegistry();
         await vi.waitFor(() => expect(scriptsDispatch).toHaveBeenCalledWith('salesforce'), { timeout: 5000 });
-        const script = dql.createScript(salesforce.catalog);
+        const script = dql.createScript(runtime.catalog('salesforce')!);
         script.insertTextAt(0, 'call cdp.segment_list ();');
         script.analyze();
         expect(script.getAnalyzed().read().clientFunctionCallsLength()).toEqual(1);
@@ -168,7 +157,8 @@ describe('CatalogLoaderService', () => {
     });
 
     it('describes a Database.com connection with the Hyper catalog of its attached database', async () => {
-        registry.connections.set('database', connectionOf(ConnectorType.DBCOM, { databaseName: 'sales' }));
+        await teardown();
+        setup(ConnectorType.DBCOM, { databaseName: 'sales' });
         await handRegistry();
         await enqueue(true);
         expect(queries).toHaveLength(1);
@@ -177,7 +167,7 @@ describe('CatalogLoaderService', () => {
         await answer(0, tableFromArrays({
             schema_name: ['sales'], table_name: ['orders'], column_name: ['id'], ordinal_position: [1], data_type: ['bigint'],
         }));
-        expect(dispatched(CATALOG_UPDATE_SUCCEEDED)).toHaveLength(1);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.SUCCEEDED)).toHaveLength(1);
     });
 
     describe('the relations of executed statements', () => {
@@ -188,38 +178,34 @@ describe('CatalogLoaderService', () => {
         /// Lookups of the relations that failed, they come back every time
         const failLookups = (count: number) => {
             for (let i = 1; i <= count; ++i) {
-                act({ type: UPDATE_CATALOG, value: [100 + i, {
-                    taskId: 100 + i,
-                    taskVariant: CatalogUpdateVariant.RELATION_REFRESH,
-                    status: CatalogUpdateTaskStatus.STARTED,
-                    cancellation: new AbortController(),
-                    queries: [],
-                    error: null,
-                    startedAt: new Date(),
-                    finishedAt: null,
-                    touchedRelations: [ORDERS],
-                }] });
-                act({ type: CATALOG_UPDATE_FAILED, value: [100 + i, new Error('down')] });
+                const handle = runtime.handles.register({ abort: () => { } });
+                runtime.dispatch({ connection: 'database' }, {
+                    kind: 'updateCatalog',
+                    value: { taskId: 100 + i, handle, variant: CatalogUpdateVariant.RELATION_REFRESH, startedAt: Date.now(), touchedRelations: [ORDERS] },
+                });
+                runtime.dispatch({ connection: 'database' }, { kind: 'catalogUpdateFinished', value: { taskId: 100 + i, status: CatalogUpdateTaskStatus.FAILED, error: { message: 'down' } } });
             }
         };
 
         it('are asked about once the connection has room for another query', async () => {
             touch();
             const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
-            for (const queryId of [1, 2, 3, 4]) {
-                act({ type: EXECUTE_QUERY, value: [queryId, createQueryExecutionState(queryId, 0, 'select 1', metadata, new AbortController())] });
+            const queryIds: number[] = [];
+            for (let i = 0; i < 4; ++i) {
+                const tracked = runtime.dispatch({ connection: 'database' }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata } });
+                queryIds.push(tracked.id as number);
             }
             await handRegistry();
             expect(queries).toHaveLength(0);
-            for (const queryId of [1, 2, 3, 4]) {
-                act({ type: QUERY_CANCELLED, value: [queryId, new LoggableException('cancelled'), null] });
+            for (const queryId of queryIds) {
+                runtime.dispatch({ connection: 'database' }, { kind: 'queryCancelled', value: { queryId, message: 'cancelled' } });
             }
             await handRegistry();
             await vi.waitFor(() => expect(queries).toHaveLength(1));
             expect(queries[0].args.query).toContain(`c.relname = 'orders'`);
-            const started = dispatched(UPDATE_CATALOG)[0][1] as { value: [number, { taskVariant: CatalogUpdateVariant; touchedRelations: RelationName[] }] };
-            expect(started.value[1].taskVariant).toBe(CatalogUpdateVariant.RELATION_REFRESH);
-            expect(started.value[1].touchedRelations).toEqual([ORDERS]);
+            const started = dispatched('updateCatalog')[0][1] as { value: { variant: CatalogUpdateVariant; touchedRelations: RelationName[] } };
+            expect(started.value.variant).toBe(CatalogUpdateVariant.RELATION_REFRESH);
+            expect(started.value.touchedRelations).toEqual([ORDERS]);
             await answer(0, pgRows('orders'));
             expect(scriptsDispatch).toHaveBeenCalledTimes(1);
             expect(updates().touchedRelations).toEqual([]);
@@ -273,7 +259,7 @@ describe('CatalogLoaderService', () => {
         expect(queries).toHaveLength(1);
         queries[0].reject(new Error('metadata unavailable'));
         await settle();
-        expect(dispatched(CATALOG_UPDATE_FAILED)).toHaveLength(1);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.FAILED)).toHaveLength(1);
         expect(scriptsDispatch).not.toHaveBeenCalled();
         await vi.waitFor(() => expect(queries).toHaveLength(2));
         await answer(1, pgRows('orders'));
@@ -305,7 +291,7 @@ describe('CatalogLoaderService', () => {
         await enqueue(true);
         await enqueue(false);
         await answer(0, pgRows('orders'));
-        expect(dispatched(CATALOG_UPDATE_SUCCEEDED)).toHaveLength(1);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.SUCCEEDED)).toHaveLength(1);
         expect(queries).toHaveLength(1);
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
         await handRegistry();
@@ -328,7 +314,7 @@ describe('CatalogLoaderService', () => {
         expect(queries).toHaveLength(2);
         expect(queries[1].args.metadata.queryType).toBe(QueryType.CATALOG_QUERY_PG_PROC);
         await answer(1, null);
-        expect(dispatched(CATALOG_UPDATE_SUCCEEDED)).toHaveLength(1);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.SUCCEEDED)).toHaveLength(1);
         await handRegistry();
         expect(queries).toHaveLength(2);
 
@@ -370,10 +356,10 @@ describe('CatalogLoaderService', () => {
         await handRegistry();
         await enqueue(true);
         expect(queries).toHaveLength(1);
-        dispatch('database', { type: RESET_CONNECTION, value: null });
+        act({ type: RESET_CONNECTION, value: null });
         await settle();
         expect(queries[0].args.abortSignal!.aborted).toBe(true);
         await settle();
-        expect(dispatched(CATALOG_UPDATE_SUCCEEDED)).toHaveLength(0);
+        expect(dispatched('catalogUpdateFinished', CatalogUpdateTaskStatus.SUCCEEDED)).toHaveLength(0);
     });
 });

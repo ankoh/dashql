@@ -159,7 +159,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const connectionAttention = useWorkbookConnectionAttention(props.workbookScripts.workbookId, connectionHealthKey(barConnections));
     // A connection that is connecting holds the run, it would join a moment later
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
-        connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActive?.size ?? 0) === 0);
+        connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActiveOrdered?.length ?? 0) === 0);
     const execution = dependencies.useWorkbookExecution(props.workbookScripts.workbookId);
     const run = execution.state;
     const [executionDetailsOpen, setExecutionDetailsOpen] = React.useState(false);

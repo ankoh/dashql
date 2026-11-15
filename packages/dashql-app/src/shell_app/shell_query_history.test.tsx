@@ -1,14 +1,21 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
+import * as core from '@ankoh/dashql-core';
 
-import { EXECUTE_QUERY, QUERY_SUCCEEDED, QueryExecutionStatus, QueryType, createQueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import {
     SHELL_DATABASE_ID,
     ShellQueryHistoryProvider,
     shellQueryEntries,
+    useShellQueries,
     useShellQueryHistory,
 } from './shell_query_history.js';
+import { StandaloneCoreRuntime, useCoreRuntime } from '../runtime/runtime_hooks.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('ShellQueryHistoryProvider', () => {
     let container: HTMLDivElement;
@@ -27,40 +34,44 @@ describe('ShellQueryHistoryProvider', () => {
 
     it('lists the queries of the shell as entries of the query history', async () => {
         let history: ReturnType<typeof useShellQueryHistory> | null = null;
+        let runtime: ReturnType<typeof useCoreRuntime> | null = null;
+        let queries: QueryExecutionState[] = [];
         const Probe = () => {
             history = useShellQueryHistory();
+            runtime = useCoreRuntime();
+            queries = useShellQueries();
             return null;
         };
 
         act(() => root.render(
-            <ShellQueryHistoryProvider>
-                <Probe />
-            </ShellQueryHistoryProvider>
+            <StandaloneCoreRuntime>
+                <ShellQueryHistoryProvider>
+                    <Probe />
+                </ShellQueryHistoryProvider>
+            </StandaloneCoreRuntime>
         ));
 
-        const query = createQueryExecutionState(
-            1,
-            1,
-            'SELECT 1',
-            {
-                queryType: QueryType.USER_PROVIDED,
-                title: 'Shell Query',
-                description: null,
-                issuer: 'DashQL Shell',
-                userProvided: true,
-            },
-            new AbortController(),
-        );
-        act(() => {
-            history!.dispatch({ type: EXECUTE_QUERY, value: [query.queryId, query] });
-            history!.dispatch({ type: QUERY_SUCCEEDED, value: [query.queryId] });
+        // The history waits for the core of the shell
+        await act(async () => { await runtime!.ready(); });
+        await act(async () => {
+            await executeTrackedQuery({
+                query: 'SELECT 1',
+                metadata: {
+                    queryType: QueryType.USER_PROVIDED,
+                    title: 'Shell Query',
+                    description: null,
+                    issuer: 'DashQL Shell',
+                    userProvided: true,
+                },
+                tracker: history!,
+                execute: async () => null,
+            });
         });
 
-        // The history waits for the core of the shell
-        await vi.waitFor(() => expect(history!.getSnapshot()).toHaveLength(1));
-        const entries = shellQueryEntries(history!.getSnapshot());
+        await vi.waitFor(() => expect(queries).toHaveLength(1));
+        const entries = shellQueryEntries(queries);
         expect(entries).toHaveLength(1);
-        expect(entries[0]).toMatchObject({ connectionId: SHELL_DATABASE_ID, sourceName: 'Hyper', queryId: query.queryId });
+        expect(entries[0]).toMatchObject({ connectionId: SHELL_DATABASE_ID, sourceName: 'Hyper', queryId: queries[0].queryId });
         expect(entries[0].query).toMatchObject({
             queryText: 'SELECT 1',
             status: QueryExecutionStatus.SUCCEEDED,

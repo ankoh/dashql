@@ -1,13 +1,13 @@
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
-import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
-import { connectorState, fakeChannel, reduceConnector, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../testing/mocks/connector_state.js';
+import { ConnectorType } from '../connector_info.js';
+import { connectorState, fakeChannel, reduceConnector, testCoreRuntime, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../testing/mocks/connector_state.js';
+import type { CoreRuntime } from '../../core_runtime.js';
 import type { TrinoChannelInterface } from './trino_channel.js';
 import {
-    createTrinoConnectionStateDetails,
     GENERATED_PKCE_CHALLENGE,
     GENERATING_PKCE_CHALLENGE,
     getTrinoConnectionDetails,
@@ -34,14 +34,22 @@ const ACCESS_TOKEN = { accessToken: 'token' } as unknown as connection.TrinoAcce
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
+let runtime: CoreRuntime;
 beforeAll(async () => { dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
-afterEach(() => dql.resetUnsafe());
+beforeEach(() => { runtime = testCoreRuntime(dql); });
+afterEach(() => runtime.destroy());
 
-const initial = () => connectorState(dql, TRINO_CONNECTOR, createTrinoConnectionStateDetails(PARAMS));
-const reduce = (state: ConnectionState, action: TrinoConnectorAction) => reduceConnector(state, action);
-const proto = (state: ConnectionState) => getTrinoConnectionDetails(state)!.proto;
+const initial = (connectionId = 'test') => connectorState(runtime, ConnectorType.TRINO, PARAMS, connectionId);
+const reduce = (state: ConnectionState, action: TrinoConnectorAction) => reduceConnector(runtime, state, action)!;
+const details = (state: ConnectionState) => getTrinoConnectionDetails(state)!;
+const trino = (state: ConnectionState) => {
+    const connector = details(state).connector;
+    if (connector.kind !== 'trino') throw new Error('no Trino connection');
+    return connector;
+};
 
-// The Rust connection of the runtime applies the actions, `packages/dashql-core-runtime/src/connections/trino.rs`
+// The runtime applies the actions, `packages/dashql-core-runtime/src/connections/trino.rs`, after `runtimeActionOf`
+// mapped them
 describe('the setup of Trino connections', () => {
     it.each([
         [OAUTH_STARTED, PARAMS, ConnectionStatus.AUTH_STARTED, ConnectionHealth.CONNECTING, 'oauthStartedAt'],
@@ -60,7 +68,7 @@ describe('the setup of Trino connections', () => {
         const next = reduce(initial(), { type, value } as TrinoConnectorAction);
         expect(next.connectionStatus).toEqual(status);
         expect(next.connectionHealth).toEqual(health);
-        expect(proto(next).setupTimings[timing]).toBeDefined();
+        expect(details(next).setupTimings[timing]).toBeDefined();
     });
 
     it('collects the OAuth state of the steps', () => {
@@ -68,30 +76,35 @@ describe('the setup of Trino connections', () => {
         state = reduce(state, { type: GENERATED_PKCE_CHALLENGE, value: TEST_PKCE });
         state = reduce(state, { type: RECEIVED_OAUTH_CODE, value: TEST_AUTH_CODE });
         state = reduce(state, { type: RECEIVED_ACCESS_TOKEN, value: ACCESS_TOKEN });
-        expect(proto(state).oauthState).toEqual({ oauthPkce: TEST_PKCE, authCode: TEST_AUTH_CODE, accessToken: ACCESS_TOKEN });
+        // The token is opaque JSON
+        expect(trino(state).oauthState).toEqual({ oauthPkce: TEST_PKCE, authCode: TEST_AUTH_CODE, accessToken: JSON.stringify(ACCESS_TOKEN) });
     });
 
     it('stores the channel error and clears it on the next channel setup', () => {
         const failed = reduce(initial(), { type: TRINO_CHANNEL_SETUP_FAILED, value: TEST_ERROR });
-        expect(proto(failed).channelError).toEqual(TEST_ERROR);
-        expect(proto(reduce(failed, { type: TRINO_CHANNEL_SETUP_STARTED, value: PARAMS })).channelError).toBeUndefined();
+        expect(details(failed).channelError).toEqual(TEST_ERROR);
+        expect(details(reduce(failed, { type: TRINO_CHANNEL_SETUP_STARTED, value: PARAMS })).channelError).toBeNull();
     });
 
     it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('%s closes the channel and clears the setup', type => {
         const channel = fakeChannel<TrinoChannelInterface>();
         const ready = reduce(reduce(initial(), { type: OAUTH_STARTED, value: PARAMS }), { type: TRINO_CHANNEL_READY, value: channel });
-        expect(getTrinoConnectionDetails(ready)!.channel).toBe(channel);
+        expect(runtime.channel(ready)).toBe(channel);
 
-        const reset = reduce(ready, { type, value: null });
+        const reset = reduceConnector(runtime, ready, { type, value: null });
         expect(channel.close).toHaveBeenCalledTimes(1);
-        expect(getTrinoConnectionDetails(reset)!.channel).toBeNull();
-        expect(proto(reset)).toEqual({ ...proto(initial()), setupTimings: {} });
+        if (type === DELETE_CONNECTION) {
+            expect(reset).toBeNull();
+            return;
+        }
+        expect(details(reset!)).toEqual({ ...details(initial('fresh')), setupTimings: {} });
     });
 
     it('refuses unknown actions and the actions of other connectors', () => {
         expect(() => reduce(initial(), { type: Symbol('OTHER'), value: null } as unknown as TrinoConnectorAction)).toThrow();
-        expect(() => reduce(connectorState(dql, HYPER_CONNECTOR, {}), { type: OAUTH_BROWSER_OPENED, value: null })).toThrow();
-        expect(getTrinoConnectionDetails(connectorState(dql, HYPER_CONNECTOR, {}))).toBeNull();
+        const hyper = connectorState(runtime, ConnectorType.HYPER, {}, 'hyper');
+        expect(() => reduce(hyper, { type: OAUTH_BROWSER_OPENED, value: null })).toThrow();
+        expect(getTrinoConnectionDetails(hyper)).toBeNull();
         expect(getTrinoConnectionDetails(null)).toBeNull();
     });
 });

@@ -1,9 +1,9 @@
 //! The wasm-bindgen API of the catalog loader (`dashql_core_runtime::catalog_loader::service`).
 //!
 //! The host is a JavaScript object (`CatalogLoaderHost`): the clock, timers, the log, fetch through the HTTP client of
-//! the platform, the registry of connections that applies the start and the end of an update, the query executor that
-//! runs the metadata queries and the specs of the client functions. The loader follows the Rust connections of the
-//! registry (`follow`), the host tells it when the registry changed (`observe`).
+//! the platform, the runtime that applies the start and the end of an update to its connections, the query executor that runs
+//! the metadata queries and the specs of the client functions. The loader follows the connections of the runtime
+//! (`follow`), the host calls it again when the list of the connections changed.
 
 use std::cell::Cell;
 use std::future::Future;
@@ -22,8 +22,8 @@ use serde_json::{json, Map, Value};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
 
-use super::connection::Connection;
-use super::query_executor::{host_call, host_error, request_value, response_of};
+use super::runtime::Runtime;
+use super::host::{host_call, host_error, request_value, response_of};
 
 #[wasm_bindgen(typescript_custom_section)]
 const CATALOG_LOADER_HOST: &str = r#"
@@ -55,7 +55,7 @@ export interface CatalogLoaderHost {
     /** Log a message, the details are a JSON object of strings */
     log(level: 'debug' | 'info' | 'warn' | 'error', message: string, details: string, target: string): void;
     /** Send a request, `abortFetch` with its id stops it */
-    fetch(requestId: number, request: QueryExecutorHttpRequest): Promise<QueryExecutorHttpResponse>;
+    fetch(requestId: number, request: RuntimeHttpRequest): Promise<RuntimeHttpResponse>;
     abortFetch(requestId: number): void;
     /** An update started, `variant` 0 is a full refresh and 1 a lookup of the relations, a JSON array */
     updateStarted(connectionId: string, taskId: number, variant: number, relations: string): void;
@@ -335,14 +335,17 @@ impl CatalogLoader {
         CatalogLoader { service: CatalogLoaderService::new(host) }
     }
 
-    /// Follow the Rust connection of a connection of the registry, it replaces another connection of the id
-    pub fn follow(&self, connection_id: &str, connection: &Connection) {
-        self.service.follow(connection_id, &connection.followed());
-    }
-
-    /// The registry changed and holds the connections of the ids, in their order
-    pub fn observe(&self, connection_ids: Vec<String>) {
-        self.service.observe(&connection_ids);
+    /// Follow the connections of a runtime in their order, e.g. after its list of connections changed. The loader
+    /// forgets the connections that left, describes the ones that came online and schedules.
+    pub fn follow(&self, runtime: &Runtime) {
+        let connections = runtime.followed_connections();
+        for (connection_id, connection) in &connections {
+            if !self.service.follows(connection_id, &connection.state) {
+                self.service.follow(connection_id, connection);
+            }
+        }
+        let ids: Vec<String> = connections.into_iter().map(|(id, _)| id).collect();
+        self.service.observe(&ids);
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update

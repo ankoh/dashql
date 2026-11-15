@@ -20,6 +20,7 @@ pub mod import;
 pub mod label;
 mod params;
 pub mod refresh;
+pub mod registry;
 mod salesforce;
 pub mod setup_check;
 mod trino;

@@ -20,6 +20,9 @@ import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/wo
 import { NativeWorkbookSync, readStoredWorkbookScripts } from './native_workbook_sync_react.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 import { TestRuntime } from '../../tests/test_runtime.js';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -40,30 +43,32 @@ interface Api {
     workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
 }
 
-/// The app after its restoration: the registries hold what the restoration read, the storage writer has the core of
-/// the restoration like the writer of the app has the core of the app
-function App(props: { core: core.DashQL; restored: RestoredAppState; capture: (api: Api) => void }) {
+/// The app after its restoration: the restoration loads the connections into the runtime of the app, the registry of
+/// the workbooks holds what it read, the storage writer has the core of the restoration like the writer of the app
+function App(props: { core: core.DashQL; restore: (runtime: CoreRuntime) => Promise<RestoredAppState>; capture: (api: Api) => void }) {
     const [, writer] = useStorage();
     const logger = useLogger();
-    const [connections, setConnections] = useConnectionRegistry();
+    const coreRuntime = useCoreRuntime();
+    const [connections] = useConnectionRegistry();
     const [workbooks, setWorkbooks] = useWorkbookScriptsRegistry();
+    const [restored, setRestored] = React.useState<RestoredAppState | null>(null);
     React.useEffect(() => {
         writer.provideCore(props.core);
-        setConnections(registry => ({
-            ...registry,
-            connections: props.restored.connectionStates,
-            connectionsByType: props.restored.connectionStatesByType,
-        }));
+        void props.restore(coreRuntime).then(setRestored);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    React.useEffect(() => {
+        if (restored == null) return;
         setWorkbooks(registry => ({
             ...registry,
-            workbookScriptsMap: props.restored.workbookScripts,
-            workbookScriptsByConnection: props.restored.workbookScriptsByConnection,
+            workbookScriptsMap: restored.workbookScripts,
+            workbookScriptsByConnection: restored.workbookScriptsByConnection,
         }));
-    }, [props.core, props.restored, setConnections, setWorkbooks, writer]);
+    }, [restored, setWorkbooks]);
     React.useLayoutEffect(() => {
-        props.capture({ writer, logger, connections, workbooks });
+        if (restored != null) props.capture({ writer, logger, connections, workbooks });
     });
-    return <NativeWorkbookSync />;
+    return restored != null ? <NativeWorkbookSync /> : null;
 }
 
 describe('NativeWorkbookSync', () => {
@@ -114,19 +119,24 @@ describe('NativeWorkbookSync', () => {
     async function renderApp(options: { waitForFirstCheck?: boolean; afterRestore?: () => void } = {}): Promise<void> {
         const folder = backend.nativeWorkbookFolder(WORKBOOK_ID);
         const acknowledged = folder == null ? null : vi.spyOn(folder, 'acknowledgeScripts');
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => { });
-        options.afterRestore?.();
+        const restore = async (runtime: CoreRuntime) => {
+            const restored = await restoreAppState(runtime, backend, new TestLogger(), () => { });
+            options.afterRestore?.();
+            return restored;
+        };
+        api = null!;
         await act(async () => {
             root!.render(
                 <LoggerProvider>
                     <StorageProvider backend={backend}>
                         <TestRuntime>
-                            <App core={dql} restored={restored} capture={next => { api = next; }} />
+                            <App core={dql} restore={restore} capture={next => { api = next; }} />
                         </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>,
             );
         });
+        await vi.waitFor(() => expect(api).not.toBeNull());
         if (options.waitForFirstCheck !== false && acknowledged != null) {
             await vi.waitFor(() => expect(acknowledged).toHaveBeenCalledOnce());
             await settled();
@@ -478,20 +488,27 @@ describe('NativeWorkbookSync', () => {
     describe('what it leaves alone', () => {
         it('does nothing in a browser', async () => {
             await seedFolder();
-            const restored = await restoreAppState(dql, backend, new TestLogger(), () => { });
+            let restoring!: Promise<RestoredAppState>;
+            // The app restores the folder, then runs in a browser
+            const restore = (runtime: CoreRuntime) => (restoring = restoreAppState(runtime, backend, new TestLogger(), () => { }).then(restored => {
+                delete globalThis.dashqlElectron;
+                return restored;
+            }));
             const stamp = vi.spyOn(backend.nativeWorkbookFolder(WORKBOOK_ID)!, 'stampFolder');
-            delete globalThis.dashqlElectron;
             await act(async () => {
                 root!.render(
                     <LoggerProvider>
                         <StorageProvider backend={backend}>
                             <TestRuntime>
-                                <App core={dql} restored={restored} capture={next => { api = next; }} />
+                                <App core={dql} restore={restore} capture={next => { api = next; }} />
                             </TestRuntime>
                         </StorageProvider>
                     </LoggerProvider>,
                 );
             });
+            await act(async () => { await restoring; });
+            // The restoration stamps the folder as well, only the checks of the sync count
+            stamp.mockClear();
             await focusWindow();
             expect(stamp).not.toHaveBeenCalled();
         });
@@ -521,8 +538,9 @@ describe('NativeWorkbookSync', () => {
 });
 
 describe('readStoredWorkbookScripts', () => {
-    it('reads nothing while the app has no embedded connection, scripts on unknown connections need it', () => {
+    it('reads nothing while the app has no embedded connection, scripts on unknown connections need it', async () => {
         const workbook = testWorkbook({ workbookId: WORKBOOK_ID, connections: [], scripts: [] });
-        expect(readStoredWorkbookScripts({ connections: new Map(), connectionsByType: [] }, workbook, [])).toBeNull();
+        const runtime = testCoreRuntime(await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }));
+        expect(readStoredWorkbookScripts(runtime, { connections: new Map(), connectionsByType: [] }, workbook, [])).toBeNull();
     });
 });

@@ -16,8 +16,9 @@ import {
     useConnectionReferences,
     useConnectionRegistry,
     useConnectionRegistryStore,
+    useScriptConnectionOf,
 } from '../../connections/connection_registry.js';
-import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
 import { connectionLabelParts, connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
@@ -26,6 +27,7 @@ import { ConnectionLabelView } from '../../connections/connection_label_view.js'
 import { useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 /// The fields of a connection that a script shows
 export interface ScriptConnectionView {
@@ -49,7 +51,7 @@ export function scriptConnectionView(connection: ConnectionState, labelParts: Co
         connectionId: connection.connectionId,
         connectionHealth: connection.connectionHealth,
         details: connection.details,
-        connectorInfo: connection.connectorInfo,
+        connectorInfo: connectorInfoOf(connection),
         label: connectionLabelText(labelParts),
         labelParts,
     };
@@ -60,31 +62,34 @@ export function scriptConnectionView(connection: ConnectionState, labelParts: Co
 /// follow the script.
 export function usePickScriptConnection(_workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts): (fileName: string, connectionId: string) => void {
     const registryStore = useConnectionRegistryStore();
+    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((fileName: string, connectionId: string) => {
         const connection = registryStore.current.connections.get(connectionId);
         if (connection == null) return;
         modifyWorkbookScripts({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: scriptConnectionOf(connection) } });
-    }, [modifyWorkbookScripts, registryStore]);
+    }, [modifyWorkbookScripts, registryStore, scriptConnectionOf]);
 }
 
 /// Create the next script of a workbook on a connection
 export function usePickPendingConnection(modifyWorkbookScripts: ModifyWorkbookScripts): (connectionId: string) => void {
     const registryStore = useConnectionRegistryStore();
+    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((connectionId: string) => {
         const connection = registryStore.current.connections.get(connectionId);
         if (connection == null) return;
         modifyWorkbookScripts({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(connection) });
-    }, [modifyWorkbookScripts, registryStore]);
+    }, [modifyWorkbookScripts, registryStore, scriptConnectionOf]);
 }
 
 /// Create the next script of a workbook on a new connection of a connector, returns the id of the connection
 export function useAttachPendingConnection(instance: core.DashQL, modifyWorkbookScripts: ModifyWorkbookScripts): (connector: ConnectorType) => string {
     const attach = useConnectionAttach();
+    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((connector: ConnectorType) => {
-        const connection = attach(instance, connector);
+        const connection = attach(connector);
         modifyWorkbookScripts({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(connection) });
         return connection.connectionId;
-    }, [attach, instance, modifyWorkbookScripts]);
+    }, [attach, instance, modifyWorkbookScripts, scriptConnectionOf]);
 }
 
 /// The logo of the database of a connector, see useConnectorIcon
@@ -241,7 +246,7 @@ export function ConnectionMenu(props: MenuProps) {
             onClick={() => props.onPick(connection.connectionId)}
         >
             <ActionList.Leading>
-                <ConnectorIcon connectorInfo={connection.connectorInfo} />
+                <ConnectorIcon connectorInfo={connectorInfoOf(connection)} />
             </ActionList.Leading>
             <ActionList.ItemText>
                 <ActionList.ItemTextTitle>

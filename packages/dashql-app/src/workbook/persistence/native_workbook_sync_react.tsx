@@ -1,6 +1,8 @@
 import * as React from 'react';
 
-import { connectionEntryFromState, registerConnection, useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { replaceWorkbookScriptsInRegistry, useWorkbookScriptsDispatch, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { workbookScriptsMatchStorageSnapshot, replaceWorkbookScriptsFromStorage, scriptConnectionOf, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
@@ -11,7 +13,7 @@ import { useStorage } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { WorkbookScriptsStorageSnapshot, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { NamedFileStamp } from '@ankoh/dashql-runtime/storage/native_storage_backend';
-import { connectionStateFromStorage, destroyUnregisteredConnection } from '@ankoh/dashql-runtime/connections/connection_restore';
+import { connectionFromStorage } from '@ankoh/dashql-runtime/connections/connection_restore';
 import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from '@ankoh/dashql-runtime/workbook/persistence/workbook_script_connections';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { findEmbeddedConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
@@ -19,12 +21,10 @@ import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_v
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_WORKBOOK_WRITE,
-    groupConnectionEntryWrites,
     groupScriptWrites,
     groupWorkbookAttachmentListWrites,
     groupWorkbookScriptListWrites,
     REFRESH_WORKBOOK_ATTACHMENTS,
-    WRITE_CONNECTION_ENTRY,
     WRITE_SCRIPT,
     WRITE_WORKBOOK_SCRIPTS,
     type StorageWriter,
@@ -39,8 +39,8 @@ const LOG_CTX = 'native_workbook_sync';
 
 /// The scripts of a workbook as its folder holds them, resolved like the restoration of the app does.
 /// A connection that the app doesn't know is created from the copy of the workbook file, e.g. after
-/// pulling a script on a new connection. It is registered when the reload is applied and must be
-/// destroyed otherwise.
+/// pulling a script on a new connection. The runtime holds it right away, it is deleted again unless the reload is
+/// applied.
 export interface StoredWorkbookScripts {
     /// The scripts as the workbook scripts take them
     snapshot: WorkbookScriptsStorageSnapshot;
@@ -51,6 +51,7 @@ export interface StoredWorkbookScripts {
 }
 
 export function readStoredWorkbookScripts(
+    runtime: CoreRuntime,
     registry: ConnectionRegistry,
     workbook: WorkbookData,
     scripts: ScriptData[],
@@ -63,7 +64,7 @@ export function readStoredWorkbookScripts(
         const known = registry.connections.get(connectionId)
             ?? (copy != null && isLocalHyperWasmParams(copy.params) ? embedded : null);
         if (known != null || copy == null) return known ?? null;
-        const connection = connectionStateFromStorage(embedded.instance, connectionId, copy);
+        const connection = runtime.createConnection(connectionFromStorage(connectionId, copy), connectionId);
         created.push(connection);
         return connection;
     });
@@ -73,7 +74,7 @@ export function readStoredWorkbookScripts(
             scripts: resolved.scripts.map(entry => ({
                 name: entry.name,
                 sql: sqlByName.get(entry.name) ?? '',
-                connection: scriptConnectionOf(entry.connection),
+                connection: scriptConnectionOf(runtime, entry.connection),
                 ...(entry.unresolvedConnectionId == null ? {} : { unresolvedConnectionId: entry.unresolvedConnectionId }),
             })),
         },
@@ -131,7 +132,8 @@ export const NativeWorkbookSync: React.FC = () => {
     const logger = useLogger();
     const appName = useAppFlavor().displayName;
     const [reader, writer] = useStorage();
-    const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
+    const [connectionRegistry] = useConnectionRegistry();
+    const coreRuntime = useCoreRuntime();
     const [workbookScriptsRegistry, setWorkbookScriptsRegistry] = useWorkbookScriptsRegistry();
     const dispatchWorkbookScripts = useWorkbookScriptsDispatch();
     const connectionRegistryRef = React.useRef(connectionRegistry);
@@ -189,7 +191,7 @@ export const NativeWorkbookSync: React.FC = () => {
             // newer stamp than the acknowledged one and is checked again.
             const scripts = await reader.backend.loadScripts(workbookId);
             workbookFile ??= await reader.backend.loadWorkbook(workbookId);
-            stored = readStoredWorkbookScripts(connectionRegistryRef.current, workbookFile, scripts);
+            stored = readStoredWorkbookScripts(coreRuntime, connectionRegistryRef.current, workbookFile, scripts);
             if (stored == null) {
                 return;
             }
@@ -231,21 +233,17 @@ export const NativeWorkbookSync: React.FC = () => {
                 writer.cancelPendingWritesForWorkbook(workbookId, isReloadedKey);
             }
             folder.acknowledgeScripts(stamps.scripts);
-            // Connections that the workbook file brought along join the app before the scripts use them
-            const created = stored.created;
-            if (created.length > 0) {
-                setConnectionRegistry(registry => {
-                    for (const connection of created) registerConnection(registry, connection);
-                    return { ...registry };
-                });
-                for (const connection of created) {
-                    void writer.write(
-                        groupConnectionEntryWrites(connection.connectionId),
-                        { type: WRITE_CONNECTION_ENTRY, value: { ...connectionEntryFromState(connection), createdAt: new Date().toISOString() } },
-                    );
-                }
-            }
+            // The connections that the workbook file brought along joined the runtime, the scripts use them now. Their
+            // entries join the app manifest, the runtime writes a connection only when it changes.
             registered = true;
+            for (const connection of stored.created) {
+                void coreRuntime.saveConnection(connection.connectionId).catch(error => {
+                    logger.warn('failed to save a connection of the workbook file', {
+                        connectionId: connection.connectionId,
+                        error: stringifyError(error),
+                    }, LOG_CTX);
+                });
+            }
             // Files that were added or removed outside the app change the script list
             if (workbookScriptsResolutionChanged(workbookFile, stored.workbook)) {
                 const { scripts, connections } = stored.workbook;
@@ -275,7 +273,7 @@ export const NativeWorkbookSync: React.FC = () => {
             }, LOG_CTX);
         } finally {
             if (!registered) {
-                for (const connection of stored?.created ?? []) destroyUnregisteredConnection(connection);
+                for (const connection of stored?.created ?? []) coreRuntime.dispatch({ connection: connection.connectionId }, { kind: 'deleteConnection' });
             }
             writer.resumeWorkbook(workbookId);
         }

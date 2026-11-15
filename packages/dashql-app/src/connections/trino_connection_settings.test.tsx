@@ -10,7 +10,7 @@ import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_f
 import { useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { SETUP_CTX as TRINO_SETUP_CTX } from './trino/trino_connector.js';
@@ -21,23 +21,29 @@ import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 
 const CONNECTION_ID = 'trino-settings-test';
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
+/// A connection that a test creates in the runtime of the app once it rendered
+type TestConnection = (runtime: CoreRuntime) => ConnectionState;
+let coreRuntime: CoreRuntime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// A connection on the Rust connection of the core, an online one has a channel
-function trinoDatabase(params: connection.TrinoConnectionParams, health = ConnectionHealth.NOT_STARTED): ConnectionState {
+function trinoDatabase(params: connection.TrinoConnectionParams, health = ConnectionHealth.NOT_STARTED): TestConnection {
     const connectionParams: ConnectionParams = { trino: params };
     const channel = health === ConnectionHealth.ONLINE ? { close: vi.fn() } : undefined;
-    const state = createTestConnection(dql, { connectionId: CONNECTION_ID, params: connectionParams, channel });
-    expect(state.connectionHealth).toBe(health);
-    expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
-    return state;
+    return runtime => {
+        const state = createTestConnection(runtime, { connectionId: CONNECTION_ID, params: connectionParams, channel });
+        expect(state.connectionHealth).toBe(health);
+        expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
+        return state;
+    };
 }
 
 const RESTORED: connection.TrinoConnectionParams = {
@@ -66,10 +72,11 @@ describe('TrinoConnectorSettings', () => {
 
     function Capture() {
         registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         return null;
     }
 
-    async function render(database: ConnectionState | null, trinoSetup: TrinoSetupApi | null = { setup, reset }) {
+    async function render(database: TestConnection | null, trinoSetup: TrinoSetupApi | null = { setup, reset }) {
         const tree = (showSettings: boolean) => (
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
@@ -86,10 +93,7 @@ describe('TrinoConnectorSettings', () => {
         );
         await act(async () => root.render(tree(false)));
         if (database != null) {
-            await act(async () => registry![1](reg => {
-                reg.connections.set(CONNECTION_ID, database);
-                return { ...reg };
-            }));
+            await act(async () => { database(coreRuntime!); });
         }
         await act(async () => root.render(tree(true)));
     }
@@ -180,7 +184,7 @@ describe('TrinoConnectorSettings', () => {
         expect(warning('Secret')).toBeNull();
         expect(container.querySelector('[data-testid="connection-setup"]')?.textContent).toContain('Connect');
         // Nothing is edited yet
-        expect(current().paramsDraft).toBeUndefined();
+        expect(current().paramsDraft).toBeNull();
     });
 
     it('restores the legacy catalog name and schema names as catalogs', async () => {
@@ -218,7 +222,7 @@ describe('TrinoConnectorSettings', () => {
         await render(trinoDatabase(RESTORED));
         await click(button('Basic'));
         expect(input('Username').value).toBe('alice');
-        expect(current().paramsDraft).toBeUndefined();
+        expect(current().paramsDraft).toBeNull();
     });
 
     it('switches between basic and OAuth and writes the OAuth fields', async () => {
@@ -362,7 +366,7 @@ describe('TrinoConnectorSettings', () => {
         expect(button('OAuth 2.0').disabled).toBe(true);
         // A frozen auth type is not switched
         await click(button('OAuth 2.0'));
-        expect(current().paramsDraft).toBeUndefined();
+        expect(current().paramsDraft).toBeNull();
 
         await click(container.querySelector<HTMLButtonElement>('[data-testid="connection-cancel"]')!);
         expect(setupSignal!.aborted).toBe(true);

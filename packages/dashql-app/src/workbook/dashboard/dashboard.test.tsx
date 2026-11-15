@@ -24,6 +24,7 @@ import {
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -99,7 +100,7 @@ describe('Dashboard', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         state.queries = new Map<number, unknown>([
-            [20, { queryId: 20, status: QueryExecutionStatus.SUCCEEDED, resultTable: { schema: { fields: [{ name: 'region' }, { name: 'revenue' }] } } }],
+            [20, { queryId: 20, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf({ schema: { fields: [{ name: 'region' }, { name: 'revenue' }] } } as never) }],
             [30, { queryId: 30, status: QueryExecutionStatus.RUNNING }],
         ]);
         modify = vi.fn();
@@ -142,13 +143,13 @@ describe('Dashboard', () => {
             <LoggerProvider>
                 <StorageProvider backend={backend}>
                     <TestRuntime {...executor}>
-                        <Dashboard
+                        <WithResultTables><Dashboard
                             workbookScripts={workbookScripts}
                             modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
                             scriptConnections={extra.scriptConnections ?? online}
                             draftRenameRef={extra.draftRenameRef}
                             dependencies={dependencies}
-                        />
+                        /></WithResultTables>
                     </TestRuntime>
                 </StorageProvider>
             </LoggerProvider>,
@@ -291,7 +292,7 @@ describe('Dashboard', () => {
 
     it('opens no overlay when the renderer cannot be written', () => {
         const broken = script(4, '4_broken.sql', { vis: { renderer: 'table' }, latestQueryId: 40 });
-        state.queries.set(40, { queryId: 40, status: QueryExecutionStatus.SUCCEEDED, resultTable: { schema: { fields: [] } } });
+        state.queries.set(40, { queryId: 40, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf({ schema: { fields: [] } } as never) });
         (broken.scriptSession as unknown as { rewriteVisRenderer: () => string }).rewriteVisRenderer = () => { throw new Error('cannot rewrite'); };
         render(workbook(broken));
         act(() => cardButton(4, 'dashboard-card-renderer-chart').click());

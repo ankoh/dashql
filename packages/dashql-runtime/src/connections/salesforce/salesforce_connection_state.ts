@@ -4,39 +4,16 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import type { DetailedError } from '../../utils/error.js';
 
 import { VariantKind } from '../../utils/variant.js';
-import { SalesforceDatabaseChannel } from './salesforce_api_client.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
+import type { SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { ConnectorType } from '../connector_info.js';
 import type { ConnectionState, DELETE_CONNECTION, RESET_CONNECTION } from '../connection_state.js';
 
-/// The Salesforce connection state, the Rust connection of the runtime applies the actions of its setup
-/// (`packages/dashql-core-runtime/src/connections/salesforce.rs`)
-export interface SalesforceConnectionStateDetails {
-    /// The connection details
-    proto: connection.SalesforceConnectionDetails;
-    /// The Hyper connection
-    channel: SalesforceDatabaseChannel | null;
-}
+// The runtime applies the steps of the setup of a Salesforce or Database.com connection
+// (`packages/dashql-core-runtime/src/connections/salesforce.rs`)
 
-/// Create the connection state details
-export function createSalesforceConnectionStateDetails(params: connection.SalesforceConnectionParams): SalesforceConnectionStateDetails {
-    return {
-        proto: {
-            setupTimings: {},
-            setupParams: params
-        },
-        channel: null
-    };
-}
-
-/// Unpack the connection state from the variant
-export function getSalesforceConnectionDetails(state: ConnectionState | null): SalesforceConnectionStateDetails | null {
-    if (state == null) return null;
-    switch (state.details.type) {
-        case SALESFORCE_DATA_CLOUD_CONNECTOR:
-        case DBCOM_CONNECTOR:
-            return state.details.value;
-        default: return null;
-    }
+/// The details of a Salesforce or Database.com connection, null for another connector
+export function getSalesforceConnectionDetails(state: ConnectionState | null): ConnectionState['details'] | null {
+    return state?.connectorType === ConnectorType.SALESFORCE_DATA_CLOUD || state?.connectorType === ConnectorType.DBCOM ? state.details : null;
 }
 
 export const SETUP_CANCELLED = Symbol('AUTH_CANCELLED');

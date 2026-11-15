@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
+import { useConnectionReferences, useConnectionRegistryStore, useScriptConnectionOf } from '../connections/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { REPLACE_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
@@ -33,6 +33,7 @@ export function useReplaceConnection(): ConnectionReplace {
     const registryStore = useConnectionRegistryStore();
     const references = useConnectionReferences();
     const scriptsDispatch = useConnectionScriptsDispatch();
+    const scriptConnectionOf = useScriptConnectionOf();
     const storage = useStorageWriter();
     const deleteConnection = useDeleteConnection();
     const logger = useLogger();
@@ -43,7 +44,7 @@ export function useReplaceConnection(): ConnectionReplace {
             return { removed: false };
         }
         const moving = references.workbooksOf(sourceId).length;
-        await scriptsDispatch(sourceId, { type: REPLACE_CONNECTION, value: { from: sourceId, into: target } });
+        await scriptsDispatch(sourceId, { type: REPLACE_CONNECTION, value: { from: sourceId, into: scriptConnectionOf(target) } });
 
         // The workbooks of the target include the workbooks that moved before and whose files were not written then
         const workbookIds = new Set([...references.workbooksOf(sourceId), ...references.workbooksOf(targetId)]);
@@ -62,5 +63,5 @@ export function useReplaceConnection(): ConnectionReplace {
         await deleteConnection(sourceId);
         logger.info('replaced connection', { connectionId: sourceId, target: targetId, workbooks: moving.toString() }, LOG_CTX);
         return { removed: !registryStore.current.connections.has(sourceId) };
-    }, [deleteConnection, logger, references, registryStore, scriptsDispatch, storage]);
+    }, [deleteConnection, logger, references, registryStore, scriptConnectionOf, scriptsDispatch, storage]);
 }

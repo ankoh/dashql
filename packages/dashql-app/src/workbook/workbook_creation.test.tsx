@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
@@ -15,11 +14,13 @@ import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/wor
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('workbook creation', () => {
     it('picks the first workbook name no other workbook has', () => {
@@ -31,19 +32,12 @@ describe('workbook creation', () => {
     it('registers the scripts of a new workbook and writes its workbook file with the default connection', async () => {
         const backend = new WorkbookTestBackend();
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
-        const database = {
-            connectionId: TEST_CONNECTION_ID,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            instance: dql,
-            catalog: dql.createCatalog(),
-            catalogFunctionScript: { toString: () => '' },
-            params,
-            details: { type: HYPER_CONNECTOR, value: { proto: {} } },
-        } as unknown as ConnectionState;
+        let coreRuntime!: CoreRuntime;
         let createWorkbook!: WorkbookCreation;
         let registry!: WorkbookScriptsRegistry;
         let writer!: StorageWriter;
         function Harness() {
+            coreRuntime = useCoreRuntime();
             createWorkbook = useWorkbookCreation();
             [registry] = useWorkbookScriptsRegistry();
             writer = useStorageWriter();
@@ -54,6 +48,8 @@ describe('workbook creation', () => {
             await act(async () => root.render(
                 <LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>,
             ));
+            // The embedded database of the runtime of the test
+            const database = createTestConnection(coreRuntime, { connectionId: TEST_CONNECTION_ID, params });
             let workbookId = '';
             await act(async () => { workbookId = createWorkbook(database, 'Default').workbookId; });
             expect(registry.workbookScriptsMap.get(workbookId)?.name).toBe('Default');
@@ -80,21 +76,15 @@ describe('workbook creation', () => {
         sessionStorage.removeItem('dashql.hyper_links');
         const backend = new WorkbookTestBackend();
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
-        const connection = (connectionId: string) => ({
-            connectionId,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            instance: dql,
-            catalog: dql.createCatalog(),
-            catalogFunctionScript: { toString: () => '' },
-            params,
-            details: { type: HYPER_CONNECTOR, value: { proto: {} } },
-        } as unknown as ConnectionState);
-        const database = connection(TEST_CONNECTION_ID);
+        let coreRuntime!: CoreRuntime;
+        /// A connection of the runtime of the test
+        const connection = (connectionId: string): ConnectionState => createTestConnection(coreRuntime, { connectionId, params });
         let createWorkbook!: WorkbookCreation;
         let ephemeralWorkbook!: ReturnType<typeof useEphemeralWorkbook>;
         let registry!: WorkbookScriptsRegistry;
         let writer!: StorageWriter;
         function Harness() {
+            coreRuntime = useCoreRuntime();
             createWorkbook = useWorkbookCreation();
             ephemeralWorkbook = useEphemeralWorkbook();
             [registry] = useWorkbookScriptsRegistry();
@@ -106,6 +96,7 @@ describe('workbook creation', () => {
             await act(async () => root.render(
                 <LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>,
             ));
+            const database = connection(TEST_CONNECTION_ID);
             let firstId = '';
             let secondId = '';
             let namedId = '';

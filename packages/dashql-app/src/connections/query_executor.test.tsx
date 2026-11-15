@@ -8,40 +8,32 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { LoggableException, type Logger, type TracedLogger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
-import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '@ankoh/dashql-runtime/query/query_result_cache';
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionStatus,
     QueryType,
     type QueryExecutionProgress,
     type QueryExecutionResponseStream,
-    type QueryExecutionState,
 } from '@ankoh/dashql-runtime/query/query_execution_state';
 
 import { vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
-import { useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
-import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import { computeQueryCacheKeyForConnection, logQueryFailure } from '@ankoh/dashql-runtime/connections/query_executor_service';
+import type { QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { useQueryExecutor, useQueryProfileDetail, useQueryState } from './query_executor.js';
-import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import type { WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
+import type { WatchQueryProfile } from '@ankoh/dashql-runtime/query/query_platform';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const CONNECTION_ID = 'hyper';
-const SIGNATURE = 'script-signature';
 const SCHEMA = new arrow.Schema([new arrow.Field('n', new arrow.Int32())]);
 
 function batchOf(values: number[]): arrow.RecordBatch {
@@ -51,8 +43,6 @@ function batchOf(values: number[]): arrow.RecordBatch {
         children: [vectorFromArray(values, new arrow.Int32()).data[0]],
     }));
 }
-
-const tableOf = (values: number[]) => new arrow.Table(SCHEMA, [batchOf(values)]);
 
 /// A result stream under the control of a test
 class TestStream implements QueryExecutionResponseStream {
@@ -97,71 +87,39 @@ class TestStream implements QueryExecutionResponseStream {
 
 interface Api {
     execute: QueryExecutor;
-    connection: ConnectionState;
-    logger: Logger;
 }
 
-function Capture(props: { database: ConnectionState; capture: (api: Api) => void }) {
-    const [registry, setRegistry] = useConnectionRegistry();
+/// Create the connection in the runtime of the test and capture the executor once the compute database is set up
+function Capture(props: { database: (runtime: CoreRuntime) => void; capture: (api: Api) => void }) {
+    const runtime = useCoreRuntime();
     const execute = useQueryExecutor();
     const compute = useComputeDatabase();
-    const logger = useLogger();
+    const [created, setCreated] = React.useState(false);
     React.useEffect(() => {
-        setRegistry(prev => {
-            const next = { ...prev, connections: new Map(prev.connections), connectionsByType: CONNECTOR_TYPES.map(() => [] as string[]) };
-            next.connections.set(props.database.connectionId, props.database);
-            next.connectionsByType[props.database.connectorInfo.connectorType].push(props.database.connectionId);
-            return next;
-        });
-    }, [props.database, setRegistry]);
-    const connection = registry.connections.get(props.database.connectionId);
+        if (runtime.connection(CONNECTION_ID) == null) props.database(runtime);
+        setCreated(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [runtime]);
     React.useLayoutEffect(() => {
-        if (compute && connection) props.capture({ execute, connection, logger });
+        if (compute && created) props.capture({ execute });
     });
     return null;
 }
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-/// The core of the connections of the tests
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-/// A Hyper connection on the Rust connection of the core, online with a channel that runs the queries. Other setup
-/// params than those of the connection are only read by the tests.
-function createDatabase(executeQuery: unknown, setupParams?: object | null): ConnectionState {
-    const state = createTestConnection(dql, {
-        connectionId: CONNECTION_ID,
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
-        channel: { executeQuery, close: vi.fn() },
-    });
-    expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
-    if (setupParams === undefined) return state;
-    const proto = { ...state.details.value.proto, setupParams: setupParams ?? undefined };
-    return { ...state, details: { ...state.details, value: { ...state.details.value, proto } } } as ConnectionState;
+/// A Hyper connection of the runtime of the test, online with a channel that runs the queries
+function createDatabase(executeQuery: unknown): (runtime: CoreRuntime) => void {
+    return runtime => {
+        const state = createTestConnection(runtime, {
+            connectionId: CONNECTION_ID,
+            params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
+            channel: { executeQuery, close: vi.fn() },
+        });
+        expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
+    };
 }
-
-function createCache(overrides: Partial<QueryResultCache> = {}): QueryResultCache {
-    const entry: QueryResultCacheEntry = { name: 'key.uuid.parquet', key: 'key', size: 1, cachedAtMs: 1234, lastAccessMs: 1234 };
-    return {
-        mountPath: '/cache',
-        lookup: vi.fn(async () => null),
-        has: vi.fn(async () => false),
-        retain: vi.fn(async () => null),
-        list: vi.fn(async () => []),
-        touch: vi.fn(async () => { }),
-        delete: vi.fn(async () => true),
-        clear: vi.fn(async () => []),
-        pin: vi.fn(async () => async () => { }),
-        newFileName: vi.fn((key: string) => `${key}.new.parquet`),
-        newTransientFileName: vi.fn(() => 'transient.parquet'),
-        mount: vi.fn(async () => { }),
-        writeTable: vi.fn(async () => new File([], entry.name)),
-        readTable: vi.fn(async () => tableOf([7])),
-        remove: vi.fn(async () => { }),
-        ...overrides,
-    } as QueryResultCache;
-}
-const CACHE_HIT: QueryResultCacheEntry = { name: 'key.uuid.parquet', key: 'key', size: 1, cachedAtMs: 1234, lastAccessMs: 1234 };
 
 const METADATA = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
 const argsOf = (overrides: Partial<QueryExecutionArgs> = {}): QueryExecutionArgs => ({
@@ -169,10 +127,8 @@ const argsOf = (overrides: Partial<QueryExecutionArgs> = {}): QueryExecutionArgs
     metadata: METADATA,
     ...overrides,
 });
-const cacheableArgs = (overrides: Partial<QueryExecutionArgs> = {}) => argsOf({ cacheable: true, cacheSignature: SIGNATURE, ...overrides });
 
-// The behavior of the executor is tested in the runtime (connections/query_executor_service.test.ts), these are the
-// hooks of the app on it
+// The behavior of the executor is tested in the runtime, these are the hooks of the app on it
 describe('the query executor of the app', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -189,59 +145,15 @@ describe('the query executor of the app', () => {
         container.remove();
     });
 
-    /// Render the executor. A compute database that holds Parquet files makes results cacheable.
-    async function renderExecutor(executeQuery: unknown, options: {
-        cache?: QueryResultCache;
-        database?: ConnectionState;
-        compute?: object;
-    } = {}) {
-        const database = options.database ?? createDatabase(executeQuery);
-        const compute = options.compute ?? {};
-        const setupDatabase = async () => ({ terminate: vi.fn(), ...compute }) as unknown as EmbeddedComputeDatabase;
-        const tree = (
-            <TestRuntime>
-                <HyperLogMetricsProvider>
-                    <Capture database={database} capture={next => { api = next; }} />
-                </HyperLogMetricsProvider>
-            </TestRuntime>
-        );
-        await act(async () => {
-            root.render(<LoggerProvider>
-                <HttpClientProvider>
-                    <StorageProvider backend={new WorkbookTestBackend()}>
-                        <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                            <ComputeConnectionProvider>
-                                {options.cache != null ? <QueryResultCacheProvider cache={options.cache}>{tree}</QueryResultCacheProvider> : tree}
-                            </ComputeConnectionProvider>
-                        </EmbeddedDatabaseProvider>
-                    </StorageProvider>
-                </HttpClientProvider>
-            </LoggerProvider>);
-        });
-        await vi.waitFor(() => expect(api).not.toBeNull());
-    }
-    const parquetDatabase = {
-        registerExternalDirectory: vi.fn(),
-        removeExternalDirectory: vi.fn(),
-        registerExternalFile: vi.fn(),
-        removeExternalFile: vi.fn(),
-        refreshExternalDirectory: vi.fn(),
-    };
-
     /// Run a query to its end
-    async function run(args: QueryExecutionArgs): Promise<{ queryId: number; table: arrow.Table | null }> {
+    async function run(args: QueryExecutionArgs): Promise<{ queryId: number }> {
         let queryId = 0;
-        let table: arrow.Table | null = null;
         await act(async () => {
             const [id, execution] = api!.execute(CONNECTION_ID, args);
             queryId = id;
-            table = await execution;
+            await execution;
         });
-        return { queryId, table };
-    }
-    async function finished(queryId: number): Promise<QueryExecutionState> {
-        await vi.waitFor(() => expect(api!.connection.queriesFinished.has(queryId)).toBe(true));
-        return api!.connection.queriesFinished.get(queryId)!;
+        return { queryId };
     }
 
     describe('useQueryState', () => {

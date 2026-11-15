@@ -13,6 +13,7 @@ import { LockIcon } from '../../ui/foundations/symbol_icon.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useConnectionLabeler } from '../connection_labels.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 interface Props {
     /// The connections that the scripts of the workbook and the next script run on
@@ -70,7 +71,7 @@ export function WorkbookConnectionButtons(props: Props & { dependencies?: Workbo
                     >
                         <span className={styles.logo}>
                             <svg width="16px" height="16px" aria-hidden="true">
-                                <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
+                                <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(connection))}`} style={CONNECTOR_ICON_STYLE} />
                             </svg>
                             {locked ? (
                                 <span className={styles.lock} aria-hidden="true"><LockIcon size={10} /></span>

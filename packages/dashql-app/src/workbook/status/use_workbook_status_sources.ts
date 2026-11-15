@@ -11,6 +11,8 @@ import { getQueryStatusText } from '../entry_status_model.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
+import { useQueryReader } from '../../connections/query_executor.js';
+import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 
 /// The latest query of a script
 export interface ScriptQuery {
@@ -26,7 +28,7 @@ export interface ScriptQuery {
 }
 
 /// The latest queries of the scripts of a workbook, in the order of the scripts
-export function scriptQueries(workbookScripts: WorkbookScripts, connections: ReadonlyMap<string, ConnectionState>): ScriptQuery[] {
+export function scriptQueries(workbookScripts: WorkbookScripts, connections: ReadonlyMap<string, ConnectionState>, readQuery: (queryId: number) => QueryExecutionState | null): ScriptQuery[] {
     const queries: ScriptQuery[] = [];
     for (const fileName of workbookScripts.scriptOrder) {
         const scriptKey = workbookScripts.scriptRefs[fileName]?.scriptId;
@@ -35,7 +37,7 @@ export function scriptQueries(workbookScripts: WorkbookScripts, connections: Rea
         if (scriptKey == null || script == null || queryId == null) continue;
         for (const connection of connections.values()) {
             // Fakes of connections may leave out the queries
-            const query = connection.queriesActive?.get(queryId) ?? connection.queriesFinished?.get(queryId);
+            const query = connection.queriesActiveOrdered?.includes(queryId) || connection.queriesFinishedOrdered?.includes(queryId) ? readQuery(queryId) : null;
             if (query == null) continue;
             queries.push({
                 scriptKey,
@@ -66,7 +68,7 @@ export function workbookConnectionStatuses(connections: ReadonlyMap<string, Conn
         connectionId: connection.connectionId,
         name: label(connection).name,
         health: connection.connectionHealth,
-        refreshingCatalog: (connection.catalogUpdates?.tasksRunning.size ?? 0) > 0,
+        refreshingCatalog: (connection.catalogUpdates?.tasksRunning.length ?? 0) > 0,
     }));
 }
 
@@ -234,7 +236,8 @@ export function useWorkbookStatusSources(args: {
     publish: CloudPublishStatus | null;
 }): void {
     const workbookId = args.workbookScripts.workbookId;
-    const queries = useStable(scriptQueries(args.workbookScripts, args.connections));
+    const readQuery = useQueryReader();
+    const queries = useStable(scriptQueries(args.workbookScripts, args.connections, readQuery));
     const connections = useStable(workbookConnectionStatuses(args.connections, args.label));
     const execution = args.execution;
     const executing = execution != null && RUNNING_PHASES.has(execution.phase);

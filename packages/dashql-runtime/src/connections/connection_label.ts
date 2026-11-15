@@ -1,20 +1,23 @@
 import type { ConnectionState } from './connection_state.js';
-import { getConnectorInfoForParams, HYPER_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, getConnectorInfoForParams } from './connector_info.js';
 import { embeddedCloudDatabases } from './hyper/local_cloud.js';
 import type { ConnectionParams } from './connection_params.js';
 
 /// Is the connection the embedded Hyper of the app? A connection of the embedded Hyper that attaches a database of the
 /// clouds folder, the local cloud, is a connection of its own like one to a server.
-export function isHyperWasmConnection(database: ConnectionState): boolean {
-    const setupParams = database.details.type === HYPER_CONNECTOR ? database.details.value.proto.setupParams : null;
-    return database.details.type === HYPER_CONNECTOR
+export function isHyperWasmConnection(database: Pick<ConnectionState, 'connectorType' | 'details'>): boolean {
+    const setupParams = database.connectorType === ConnectorType.HYPER ? database.details.setupParams as HyperSetupParams | null : null;
+    return database.connectorType === ConnectorType.HYPER
         && (setupParams?.protocol ?? 'WASM') === 'WASM'
         && embeddedCloudDatabases(setupParams).length === 0;
 }
 
+/// The setup params of a Hyper connection
+type HyperSetupParams = Parameters<typeof embeddedCloudDatabases>[0] & { protocol?: string };
+
 /// Does a connection offer an operational overview?
-export function supportsConnectionOverview(database: ConnectionState): boolean {
-    return database.details.type === HYPER_CONNECTOR;
+export function supportsConnectionOverview(database: Pick<ConnectionState, 'connectorType'>): boolean {
+    return database.connectorType === ConnectorType.HYPER;
 }
 
 /// The label of a connection, its name and the protocol it speaks
@@ -35,17 +38,17 @@ function protocolLabel(protocol: string | undefined): string {
 /// The parts of the label of a connection.
 /// A connection is called by the name the user gave it, otherwise after its connector. The ordinal
 /// tells it apart from other connections of the same connector, see `connectionOrdinals`.
-export function connectionLabelParts(database: ConnectionState, ordinal: number | null = null): ConnectionLabelParts {
+export function connectionLabelParts(database: Pick<ConnectionState, 'connectorType' | 'details' | 'name'>, ordinal: number | null = null): ConnectionLabelParts {
     let detail = 'Http';
-    if (database.details.type === HYPER_CONNECTOR) {
-        detail = protocolLabel(database.details.value.proto.setupParams?.protocol ?? 'WASM');
+    if (database.connectorType === ConnectorType.HYPER) {
+        detail = protocolLabel((database.details.setupParams?.protocol as string | undefined) ?? 'WASM');
     }
-    const connector = database.connectorInfo.names.displayLong;
+    const connector = CONNECTOR_INFOS[database.connectorType as ConnectorType].names.displayLong;
     return { name: database.name ?? (ordinal == null ? connector : `${connector} #${ordinal}`), connector, detail };
 }
 
 /// The label of a connection as plain text, e.g. "Hyper #2 Wasm"
-export function connectionLabel(database: ConnectionState, ordinal: number | null = null): string {
+export function connectionLabel(database: Pick<ConnectionState, 'connectorType' | 'details' | 'name'>, ordinal: number | null = null): string {
     return connectionLabelText(connectionLabelParts(database, ordinal));
 }
 

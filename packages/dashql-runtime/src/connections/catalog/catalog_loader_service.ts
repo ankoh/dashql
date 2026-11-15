@@ -2,26 +2,16 @@ import * as arrow from 'apache-arrow';
 
 import type * as core from '@ankoh/dashql-core';
 
-import type { ConnectionRegistry, DynamicConnectionDispatch } from '../connection_registry_state.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
-import {
-    CATALOG_UPDATE_CANCELLED,
-    CATALOG_UPDATE_FAILED,
-    CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
-    CATALOG_UPDATE_REGISTER_QUERY,
-    CATALOG_UPDATE_SUCCEEDED,
-    UPDATE_CATALOG,
-} from '../connection_state.js';
+import { relationNames } from '../connection_state.js';
 import { SalesforceApiClient, type SalesforceApiClientInterface } from '../salesforce/salesforce_api_client.js';
-import type { SalesforceConnectionStateDetails } from '../salesforce/salesforce_connection_state.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
-import type { QueryExecutor } from '../query_execution_args.js';
+import { ConnectorType } from '../connector_info.js';
 import type { QueryType } from '../../query/query_execution_state.js';
 import type { Logger } from '../../platform/logger/logger.js';
 import type { HttpClient } from '../../platform/http/http_client.js';
 import type { RelationName } from './catalog_sql_generator.js';
 import { loadClientFunctionSpec } from '../clfn/clfn_specs.js';
-import type { NativeConnection } from '../connection_native.js';
+import type { CoreRuntime } from '../../core_runtime.js';
 
 /// The issuer of the metadata queries
 const CATALOG_QUERY_ISSUER = 'Catalog Update';
@@ -37,8 +27,8 @@ export type CatalogLoader = (connectionId: string, args: CatalogLoaderArgs) => [
 /// What the catalog loader needs, replaced in tests
 export interface CatalogLoaderDependencies {
     logger: Logger;
-    dispatchConnection: DynamicConnectionDispatch;
-    execute: QueryExecutor | null;
+    /// The runtime that holds the connections and runs the metadata queries
+    runtime: CoreRuntime;
     /// The HTTP client of the platform, the loader fetches the metadata of Salesforce with it
     http: HttpClient | null;
     /// The API of Salesforce of the platform. One that isn't the client over `http`, e.g. a mock, answers the metadata.
@@ -47,11 +37,12 @@ export interface CatalogLoaderDependencies {
     onCatalogDidUpdate?: (connectionId: string) => void;
 }
 
-/// What the adapter keeps of an update
+/// What the adapter keeps of an update, the connection keeps it under a handle: an abort of the handle cancels the update
 interface TaskRecord {
     connectionId: string;
     /// Aborted by the loader, the connection and the caller, it cancels the update in the loader
     cancellation: AbortController;
+    abort(reason?: unknown): void;
 }
 
 /// The reason of a cancellation as text
@@ -78,15 +69,13 @@ function anySignal(signals: AbortSignal[]): AbortSignal {
 /// and asks a connection about the relations that executed statements touched.
 ///
 /// An adapter over the catalog loader of the Rust runtime (`dashql_core_runtime::catalog_loader::service`): the loader
-/// follows the Rust connections of the registry, schedules the updates, runs their metadata queries through the query
-/// executor and publishes into the catalogs. The adapter hands it the registry, applies the start and the end of an
-/// update to the connection, keeps the cancellation of an update and runs the queries.
+/// follows the connections of the runtime, schedules the updates, runs their metadata queries through the query
+/// executor and publishes into the catalogs. The adapter tells it when the connections changed, applies the start and
+/// the end of an update to the connection, keeps the cancellation of an update and runs the queries. The setups and
+/// the catalog loader become commands of the runtime in step 3 of docs/wip/runtime_api.md.
 export class CatalogLoaderService {
     private readonly deps: CatalogLoaderDependencies;
-    private registry: Pick<ConnectionRegistry, 'connections'> = { connections: new Map() };
     private native: core.DashQLCatalogLoader | null = null;
-    /// The Rust connections that the loader follows by connection id
-    private readonly followed = new Map<string, NativeConnection>();
     /// The running updates by task id
     private readonly tasks = new Map<number, TaskRecord>();
     /// The cancellations of the queries and requests of the loader by request id
@@ -100,40 +89,23 @@ export class CatalogLoaderService {
         this.deps = deps;
     }
 
-    /// The loader of the core of the connections, created with the first connection. The cores of the connections are
-    /// instances of one module.
-    private nativeOf(registry: Pick<ConnectionRegistry, 'connections'>): core.DashQLCatalogLoader | null {
+    /// The loader on the core of the runtime, created once the runtime has its core
+    private nativeOf(): core.DashQLCatalogLoader | null {
         if (this.native != null) return this.native;
-        for (const conn of registry.connections.values()) {
-            if (conn.native == null) continue;
-            const native = conn.instance.createCatalogLoader(this.createHost());
-            this.native = native;
-            if (this.started) native.start();
-            for (const [connectionId, force] of this.pending.splice(0)) native.enqueue(connectionId, force);
-            return native;
-        }
-        return null;
+        const instance = this.deps.runtime.core;
+        if (instance == null || this.deps.runtime.runtime == null) return null;
+        const native = instance.createCatalogLoader(this.createHost());
+        this.native = native;
+        if (this.started) native.start();
+        for (const [connectionId, force] of this.pending.splice(0)) native.enqueue(connectionId, force);
+        return native;
     }
 
-    /// Follow a new connection registry
-    setRegistry(registry: Pick<ConnectionRegistry, 'connections'>): void {
-        this.registry = registry;
-        const native = this.nativeOf(registry);
-        if (native == null) return;
-        const ids: string[] = [];
-        for (const [connectionId, conn] of registry.connections) {
-            // A state without a Rust connection, e.g. of a test, has no catalog to load
-            if (conn.native == null) continue;
-            ids.push(connectionId);
-            if (this.followed.get(connectionId) !== conn.native) {
-                native.follow(connectionId, conn.native.connection);
-                this.followed.set(connectionId, conn.native);
-            }
-        }
-        for (const connectionId of [...this.followed.keys()]) {
-            if (!registry.connections.has(connectionId)) this.followed.delete(connectionId);
-        }
-        native.observe(ids);
+    /// Follow the connections of the runtime, e.g. after they changed
+    follow(): void {
+        const native = this.nativeOf();
+        const runtime = this.deps.runtime.runtime;
+        if (native != null && runtime != null) native.follow(runtime);
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update
@@ -147,13 +119,10 @@ export class CatalogLoaderService {
 
     /// Start an update of a connection right away, outside of the schedule
     update: CatalogLoader = (connectionId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
-        const native = this.nativeOf(this.registry);
-        if (native == null) return [0, Promise.reject(new Error(`couldn't find a connection with id ${connectionId}`))];
-        const conn = this.registry.connections.get(connectionId);
-        if (conn?.native != null && this.followed.get(connectionId) !== conn.native) {
-            native.follow(connectionId, conn.native.connection);
-            this.followed.set(connectionId, conn.native);
-        }
+        const native = this.nativeOf();
+        const runtime = this.deps.runtime.runtime;
+        if (native == null || runtime == null) return [0, Promise.reject(new Error(`couldn't find a connection with id ${connectionId}`))];
+        native.follow(runtime);
         return native.update(connectionId, args.relations);
     };
 
@@ -173,14 +142,14 @@ export class CatalogLoaderService {
     private taskOf(connectionId: string, taskId: number): TaskRecord | null {
         const task = this.tasks.get(taskId);
         if (task != null) return task;
-        const running = this.registry.connections.get(connectionId)?.catalogUpdates.tasksRunning.get(taskId);
-        return running == null ? null : { connectionId, cancellation: running.cancellation };
+        const running = this.deps.runtime.connection(connectionId)?.catalogUpdates.tasksRunning.find(task => task.taskId === taskId);
+        return this.deps.runtime.handles.get<TaskRecord>(running?.handle) ?? null;
     }
 
     /// The host of the loader
     private createHost(): core.CatalogLoaderHost {
-        const { logger } = this.deps;
-        const dispatch = (connectionId: string, action: Parameters<DynamicConnectionDispatch>[1]) => this.deps.dispatchConnection(connectionId, action);
+        const { logger, runtime } = this.deps;
+        const dispatch = (connectionId: string, action: core.RuntimeAction) => runtime.dispatch({ connection: connectionId }, action);
         return {
             now: () => Date.now(),
             setTimer: (ms, callback) => setTimeout(callback, ms),
@@ -217,21 +186,21 @@ export class CatalogLoaderService {
                 cancellation.signal.addEventListener('abort', () => {
                     this.native?.cancel(taskId, reasonOf(cancellation.signal.reason));
                 }, { once: true });
-                this.tasks.set(taskId, { connectionId, cancellation });
-                dispatch(connectionId, {
-                    type: UPDATE_CATALOG,
-                    value: [taskId, {
+                const record: TaskRecord = { connectionId, cancellation, abort: reason => cancellation.abort(reason) };
+                this.tasks.set(taskId, record);
+                // The connection keeps the record under its handle, a reset of the connection aborts it
+                const handle = runtime.handles.register(record);
+                const outcome = dispatch(connectionId, {
+                    kind: 'updateCatalog',
+                    value: {
                         taskId,
-                        taskVariant: variant === 0 ? CatalogUpdateVariant.FULL_CATALOG_REFRESH : CatalogUpdateVariant.RELATION_REFRESH,
-                        status: CatalogUpdateTaskStatus.STARTED,
-                        cancellation,
-                        queries: [],
-                        error: null,
-                        startedAt: new Date(),
-                        finishedAt: null,
-                        touchedRelations: JSON.parse(relations) as RelationName[],
-                    }],
+                        handle,
+                        variant: variant === 0 ? CatalogUpdateVariant.FULL_CATALOG_REFRESH : CatalogUpdateVariant.RELATION_REFRESH,
+                        startedAt: Date.now(),
+                        touchedRelations: relationNames(JSON.parse(relations) as RelationName[]),
+                    },
                 });
+                if (!outcome.ok) runtime.handles.release(handle);
             },
             abortUpdate: (connectionId, taskId, reason) => {
                 const task = this.taskOf(connectionId, taskId);
@@ -244,18 +213,18 @@ export class CatalogLoaderService {
                 this.tasks.delete(taskId);
                 switch (outcome.status) {
                     case 'succeeded':
-                        dispatch(connectionId, { type: CATALOG_UPDATE_SUCCEEDED, value: [taskId, outcome.catalogChanged] });
+                        dispatch(connectionId, { kind: 'catalogUpdateFinished', value: { taskId, status: CatalogUpdateTaskStatus.SUCCEEDED, changed: outcome.catalogChanged } });
                         break;
                     case 'partiallySucceeded':
-                        dispatch(connectionId, { type: CATALOG_UPDATE_PARTIALLY_SUCCEEDED, value: [taskId, new Error(outcome.error ?? '')] });
+                        dispatch(connectionId, { kind: 'catalogUpdateFinished', value: { taskId, status: CatalogUpdateTaskStatus.PARTIALLY_SUCCEEDED, error: { message: outcome.error ?? '' } } });
                         break;
                     case 'failed':
-                        dispatch(connectionId, { type: CATALOG_UPDATE_FAILED, value: [taskId, new Error(outcome.error ?? '')] });
+                        dispatch(connectionId, { kind: 'catalogUpdateFinished', value: { taskId, status: CatalogUpdateTaskStatus.FAILED, error: { message: outcome.error ?? '' } } });
                         break;
                     case 'cancelled': {
                         const reason = task?.cancellation.signal.reason;
-                        const error = reason instanceof Error ? reason : new DOMException(outcome.error ?? 'Catalog refresh was cancelled', 'AbortError');
-                        dispatch(connectionId, { type: CATALOG_UPDATE_CANCELLED, value: [taskId, error] });
+                        const message = reason instanceof Error ? reason.message : (outcome.error ?? 'Catalog refresh was cancelled');
+                        dispatch(connectionId, { kind: 'catalogUpdateFinished', value: { taskId, status: CatalogUpdateTaskStatus.CANCELLED, error: { message } } });
                         break;
                     }
                 }
@@ -263,8 +232,7 @@ export class CatalogLoaderService {
                 if (outcome.announces) this.deps.onCatalogDidUpdate?.(connectionId);
             },
             runQuery: async (requestId, connectionId, taskId, query) => {
-                const execute = this.deps.execute;
-                if (execute == null) throw new Error('the catalog loader has no query executor');
+                const execute = runtime.execute;
                 const abort = new AbortController();
                 this.queryAborts.set(requestId, abort);
                 try {
@@ -283,7 +251,7 @@ export class CatalogLoaderService {
                             userProvided: false,
                         },
                     });
-                    dispatch(connectionId, { type: CATALOG_UPDATE_REGISTER_QUERY, value: [taskId, queryId] });
+                    dispatch(connectionId, { kind: 'catalogUpdateRegisterQuery', value: { taskId, queryId } });
                     const table = await execution;
                     return table == null ? null : arrow.tableToIPC(table, 'stream');
                 } finally {
@@ -297,11 +265,11 @@ export class CatalogLoaderService {
                 // The client over the HTTP client of the platform is what the loader does itself
                 const api = this.deps.salesforce;
                 if (api == null || api instanceof SalesforceApiClient) return null;
-                const conn = this.registry.connections.get(connectionId);
-                if (conn?.details.type !== SALESFORCE_DATA_CLOUD_CONNECTOR) return null;
-                const details = conn.details.value as SalesforceConnectionStateDetails;
-                const coreAccessToken = details.proto.oauthState?.coreAccessToken;
-                if (coreAccessToken == null) throw new Error('Salesforce core access token is missing');
+                const conn = runtime.connection(connectionId);
+                if (conn?.connectorType !== ConnectorType.SALESFORCE_DATA_CLOUD || conn.details.connector.kind !== 'salesforce') return null;
+                const token = conn.details.connector.oauthState?.coreAccessToken;
+                if (token == null) throw new Error('Salesforce core access token is missing');
+                const coreAccessToken = JSON.parse(token);
                 const metadata = await api.getDataCloudMetadata(coreAccessToken, dataSpace, new AbortController().signal);
                 return JSON.stringify(metadata);
             },

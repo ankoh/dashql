@@ -11,8 +11,9 @@ import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/dat
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
 import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
@@ -25,8 +26,7 @@ import { TestRuntime } from '../tests/test_runtime.js';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// A Hyper connection whose queries run until they are cancelled
 function connection(connectionId: string) {
@@ -39,12 +39,15 @@ function connection(connectionId: string) {
             abort?.throwIfAborted();
         }),
     };
-    const database: ConnectionState = createTestConnection(dql, {
-        connectionId,
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
-        channel: { executeQuery: async () => stream, close: vi.fn() },
-    });
-    expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
+    /// Create the connection in the runtime of the test
+    const database = (runtime: CoreRuntime) => {
+        const state: ConnectionState = createTestConnection(runtime, {
+            connectionId,
+            params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
+            channel: { executeQuery: async () => stream, close: vi.fn() },
+        });
+        expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
+    };
     return { database, stream };
 }
 
@@ -55,22 +58,17 @@ interface Api {
     connections: ReadonlyMap<string, ConnectionState>;
 }
 
-function Capture(props: { databases: ConnectionState[]; capture: (api: Api) => void }) {
-    const [registry, setRegistry] = useConnectionRegistry();
+function Capture(props: { databases: ((runtime: CoreRuntime) => void)[]; capture: (api: Api) => void }) {
+    const [registry] = useConnectionRegistry();
+    const coreRuntime = useCoreRuntime();
     const execute = useQueryExecutor();
     const merge = useMergeConnections();
     const logMetrics = useHyperLogMetrics()!;
     const compute = useComputeDatabase();
     React.useEffect(() => {
-        setRegistry(prev => {
-            const next = { ...prev, connections: new Map(prev.connections), connectionsByType: CONNECTOR_TYPES.map(() => [] as string[]) };
-            for (const database of props.databases) {
-                next.connections.set(database.connectionId, database);
-                next.connectionsByType[database.connectorInfo.connectorType].push(database.connectionId);
-            }
-            return next;
-        });
-    }, [props.databases, setRegistry]);
+        for (const create of props.databases) create(coreRuntime);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [coreRuntime]);
     React.useLayoutEffect(() => {
         if (compute) props.capture({ execute, merge, logMetrics, connections: registry.connections });
     });

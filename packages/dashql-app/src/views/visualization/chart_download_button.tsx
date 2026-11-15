@@ -9,6 +9,7 @@ import { renderVegaLitePng } from '../../ui/vegalite/vegalite_image.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 interface Props {
     query: QueryExecutionState;
@@ -32,13 +33,14 @@ export function ChartDownloadButton({ query, spec, dependencies = DEFAULT_DEPEND
     const fileDownloader = dependencies.useFileDownloader();
     const logger = dependencies.useLogger();
     const [downloading, setDownloading] = React.useState(false);
-    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && query.resultTable != null;
+    const resultTable = useQueryResultTable(query);
+    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
 
     const download = async () => {
         if (!hasResult || downloading) return;
         setDownloading(true);
         try {
-            const image = await dependencies.renderVegaLitePng(spec, arrowTableToRows(query.resultTable!));
+            const image = await dependencies.renderVegaLitePng(spec, arrowTableToRows(resultTable!));
             await fileDownloader.downloadBufferAsFile(image.png, `chart-${query.queryId}.png`);
         } catch (error) {
             logger.error('Failed to download chart', { error: stringifyError(error) }, 'chart_download');

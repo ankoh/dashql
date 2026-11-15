@@ -6,10 +6,8 @@ import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
-import { DashQLConnection, type ConnectorType, type DashQLConnectionOptions } from './connection.js';
-import { DashQLQueryHistory, DashQLQueryProgressFollower } from './query_history.js';
+import { DashQLQueryProgressFollower } from './query_history.js';
 import { DashQLStorageWriter } from './storage_writer.js';
-import { DashQLQueryExecutor } from './query_executor.js';
 import { DashQLCatalogLoader } from './catalog_loader.js';
 import { DashQLAppRestore } from './restore.js';
 import { DashQLWorkbookFormat } from './workbook_format.js';
@@ -37,16 +35,12 @@ export type DashQLBindings = Pick<
     | 'installPanicHook'
     | 'Shell'
     | 'Workbook'
-    | 'Connection'
-    | 'QueryHistory'
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
     | 'Runtime'
     | 'StorageWriter'
-    | 'QueryExecutor'
     | 'CatalogLoader'
     | 'AppRestore'
-    | 'ConnectionPersistence'
     | 'workbookFormat'
     | 'encodeWorkbookTable'
     | 'decodeWorkbookTable'
@@ -454,19 +448,6 @@ export class DashQL {
         return DashQLWorkbook.create(this, id, name, offsetUnit);
     }
 
-    /// Create a connection with the history of its queries in the Rust runtime. Created through the instance, the
-    /// catalog handle of the connection is the class of the instance also where a bundle holds two copies of this
-    /// package.
-    public createConnection(connectionId: string, connector: ConnectorType, options: DashQLConnectionOptions = {}, now = Date.now()): DashQLConnection {
-        return DashQLConnection.create(this, connectionId, connector, options, now);
-    }
-
-    /// Create a history of queries of its own in the Rust runtime, e.g. the one of the shell, through the instance
-    /// like a workbook. It keeps at most `limit` queries, every query without.
-    public createQueryHistory(limit: number | null = null): DashQLQueryHistory {
-        return DashQLQueryHistory.create(this, limit);
-    }
-
     /// Create the runtime of DashQL on a platform (docs/wip/runtime_api.md), through the instance like a workbook. The
     /// runtime is a class of the module, its methods take and return the generated views, actions and change sets;
     /// `free()` frees it after `destroy()`.
@@ -474,15 +455,17 @@ export class DashQL {
         return this.bindings.Runtime.create(platform);
     }
 
+    /// The catalog of a connection of a runtime of this instance, shared with the connection and the scripts that
+    /// analyze with it. Null for an unknown connection. Every call is a handle of its own that the caller destroys.
+    public runtimeCatalog(runtime: glue.Runtime, connectionId: string): DashQLCatalog | null {
+        const native = runtime.catalog(connectionId);
+        return native == null ? null : new DashQLCatalog(new Ptr(CATALOG_TYPE, this, native));
+    }
+
     /// Create the storage writer of the Rust runtime on a host, through the instance like a workbook. It writes workbook
     /// files of the given format version.
     public createStorageWriter(host: glue.StorageWriterHost, formatVersion: number): DashQLStorageWriter {
         return DashQLStorageWriter.create(this, host, formatVersion);
-    }
-
-    /// Create the query executor of the Rust runtime on a host, through the instance like a workbook
-    public createQueryExecutor(host: glue.QueryExecutorHost): DashQLQueryExecutor {
-        return DashQLQueryExecutor.create(this, host);
     }
 
     /// Create a follower of the progress of queries with a layout of its plans, e.g. the other orientation

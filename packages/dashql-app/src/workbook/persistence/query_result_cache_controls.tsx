@@ -73,9 +73,9 @@ function executedAtMs(query: QueryExecutionState | null): number | null {
         return null;
     }
     if (query.servedFromCache && query.cachedAt != null) {
-        return query.cachedAt.getTime();
+        return query.cachedAt;
     }
-    return query.metrics?.querySucceededAt?.getTime() ?? null;
+    return query.metrics?.querySucceededAt ?? null;
 }
 
 /// The execution age label shown in the entry status bar: "Executed <relative time>" (e.g.

@@ -9,8 +9,28 @@ import { destroyWorkbookScripts, isEphemeralWorkbook, workbookConnectionIds } fr
 import type { WorkbookRegistryBackend } from '../../storage/storage_backend.js';
 import { StorageBackendType } from '../../storage/storage_backend.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../testing/workbook_test_backend.js';
+import type { CoreRuntime } from '../../core_runtime.js';
+import type { ConnectionState } from '../../connections/connection_state.js';
+import { testCoreRuntime } from '../../testing/mocks/connector_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+/// The runtimes of a test, the restore adopts the connections into the latest one
+const runtimes: CoreRuntime[] = [];
+let runtime: CoreRuntime;
+/// A new runtime to restore into
+function fresh(dql: dashql.DashQL): CoreRuntime {
+    runtime = testCoreRuntime(dql);
+    runtimes.push(runtime);
+    return runtime;
+}
+function destroyRuntimes() {
+    for (const created of runtimes.splice(0)) created.destroy();
+}
+/// The catalog of a restored connection
+const catalogOf = (connection: ConnectionState) => runtime.catalog(connection.connectionId)!;
+/// The text of the script with the functions of a restored connection
+const functionScript = (connection: ConnectionState) => runtime.runtime!.functionScriptText(connection.connectionId);
 
 describe('V2 app state loader', () => {
     let backend: WorkbookRegistryBackend;
@@ -22,6 +42,7 @@ describe('V2 app state loader', () => {
     });
     afterEach(() => {
         vi.restoreAllMocks();
+        destroyRuntimes();
         core.resetUnsafe();
     });
 
@@ -29,7 +50,6 @@ describe('V2 app state loader', () => {
         // The restore of the Rust runtime creates the connections, catalogs and workbooks, the core of JavaScript isn't
         // asked for any
         vi.spyOn(core, 'createCatalog');
-        vi.spyOn(core, 'createConnection');
         connectionFiles = new Map();
         backend = {
             getBackendType: () => StorageBackendType.OPFS,
@@ -54,9 +74,9 @@ describe('V2 app state loader', () => {
     const functionsFile = `${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`;
 
     it('restores one attached database and flat scripts with natural initial focus', async () => {
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         expect(workbookConnectionIds(result.workbookScripts.get(TEST_WORKBOOK_ID)!)).toEqual([TEST_CONNECTION_ID]);
-        expect(result.connectionStatesByType[ConnectorType.HYPER]).toEqual([TEST_CONNECTION_ID]);
+        expect([...runtime.connections().values()].filter(c => c.connectorType === ConnectorType.HYPER).map(c => c.connectionId)).toEqual([TEST_CONNECTION_ID]);
         const scripts = result.workbookScripts.get(TEST_WORKBOOK_ID)!;
         // Files without an entry in the workbook file are appended in natural order
         expect(scripts.scriptOrder).toEqual(['2_first.sql', '10_last.sql']);
@@ -78,7 +98,7 @@ describe('V2 app state loader', () => {
                 { name: '2_first.sql', connectionId: '99999999-9999-4999-8999-999999999999' },
             ],
         }));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         const scripts = result.workbookScripts.get(TEST_WORKBOOK_ID)!;
         expect(scripts.scriptOrder).toEqual(['10_last.sql', '2_first.sql']);
         expect(scripts.scripts[scripts.scriptRefs['10_last.sql'].scriptId].connection.connectionId).toBe(remoteId);
@@ -99,10 +119,10 @@ describe('V2 app state loader', () => {
             ...testConnections({ connectionId: remoteId, params: { trino: { endpoint: 'https://trino.example' } } as any } as any, { connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any }),
             scripts: [{ name: '2_first.sql', connectionId: TEST_CONNECTION_ID }],
         }));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         // The workbook uses the connections of its scripts, a copy that no script uses is not registered
         expect(workbookConnectionIds(result.workbookScripts.get(TEST_WORKBOOK_ID)!)).toEqual([TEST_CONNECTION_ID]);
-        expect([...result.connectionStates.keys()]).toEqual([TEST_CONNECTION_ID]);
+        expect([...runtime.connections().keys()]).toEqual([TEST_CONNECTION_ID]);
         expect(result.workbookScripts.get(TEST_WORKBOOK_ID)?.pendingConnection).toBeNull();
     });
 
@@ -112,12 +132,12 @@ describe('V2 app state loader', () => {
         vi.mocked(backend.loadWorkbook).mockResolvedValue(testWorkbook({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params, paramsDraft } as any),
         }));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
-        const restored = result.connectionStates.get(TEST_CONNECTION_ID)!;
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
+        const restored = runtime.connections().get(TEST_CONNECTION_ID)!;
         expect(restored.params).toEqual(params);
         expect(restored.paramsDraft).toEqual(paramsDraft);
-        expect(restored.details.value.proto.setupParams).toEqual(params.salesforce);
-        expect('oauthState' in restored.details.value.proto).toBe(false);
+        expect(restored.details.setupParams).toEqual(params.salesforce);
+        expect(restored.details.connector).toEqual({ kind: 'salesforce', setupError: null, oauthState: null });
     });
 
     it('restores partially typed raw draft rows after manifest serialization', async () => {
@@ -128,9 +148,9 @@ describe('V2 app state loader', () => {
             paramsDraft: { hyper: { protocol: 'V3_HTTP', endpoint: 'unfinished', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }, draftRows: { metadata: rows, queryParameters: rows } } },
         } as any));
         vi.mocked(backend.loadWorkbook).mockResolvedValue(JSON.parse(JSON.stringify(manifest)));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
-        expect(result.connectionStates.get(TEST_CONNECTION_ID)?.paramsDraft).toEqual(manifest.connections[0].paramsDraft);
-        expect(result.connectionStates.get(TEST_CONNECTION_ID)?.params).toEqual(manifest.connections[0].params);
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
+        expect(runtime.connections().get(TEST_CONNECTION_ID)?.paramsDraft).toEqual(manifest.connections[0].paramsDraft);
+        expect(runtime.connections().get(TEST_CONNECTION_ID)?.params).toEqual(manifest.connections[0].params);
     });
 
     it('runs the unlisted script files of a workbook without scripts on its first connection', async () => {
@@ -138,7 +158,7 @@ describe('V2 app state loader', () => {
         vi.mocked(backend.loadWorkbook).mockResolvedValue(testWorkbook({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any } as any, { connectionId: remoteId, params: { trino: { endpoint: 'https://trino.example' } } as any }),
         }));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         const workbook = result.workbookScripts.get(TEST_WORKBOOK_ID)!;
         expect(Object.values(workbook.scripts).map(script => script.connection.connectionId)).toEqual([TEST_CONNECTION_ID, TEST_CONNECTION_ID]);
         expect(workbookConnectionIds(workbook)).toEqual([TEST_CONNECTION_ID]);
@@ -148,14 +168,14 @@ describe('V2 app state loader', () => {
         const workbook = testWorkbook();
         vi.mocked(backend.loadWorkbook).mockResolvedValue({ ...workbook, scripts: [], metadata: { ...workbook.metadata, ephemeral: true } });
         vi.mocked(backend.loadScripts).mockResolvedValue([]);
-        const empty = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const empty = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         expect(isEphemeralWorkbook(empty.workbookScripts.get(TEST_WORKBOOK_ID)!)).toBe(true);
         expect(backend.saveWorkbookManifest).not.toHaveBeenCalled();
 
         // The app stopped after the script was written, before the promotion was
         vi.mocked(backend.loadWorkbook).mockResolvedValue({ ...workbook, metadata: { ...workbook.metadata, ephemeral: true } });
         vi.mocked(backend.loadScripts).mockResolvedValue([{ name: '1.sql', sql: 'SELECT 1' }]);
-        const crashed = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const crashed = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         expect(isEphemeralWorkbook(crashed.workbookScripts.get(TEST_WORKBOOK_ID)!)).toBe(false);
         const written = vi.mocked(backend.saveWorkbookManifest).mock.lastCall!;
         expect(written[0]).toBe(TEST_WORKBOOK_ID);
@@ -174,14 +194,14 @@ describe('V2 app state loader', () => {
         connectionFiles.set(relationsFile, schemaSQL);
         connectionFiles.set(functionsFile, functionsSQL);
 
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
-        const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
-        expect(connection.catalogFunctionScript.toString()).toBe(functionsSQL);
-        const entries = connection.catalog.describeEntries().unpack().entries as dashql.buffers.catalog.CatalogEntryT[];
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
+        const connection = runtime.connections().get(TEST_CONNECTION_ID)!;
+        expect(functionScript(connection)).toBe(functionsSQL);
+        const entries = catalogOf(connection).describeEntries().unpack().entries as dashql.buffers.catalog.CatalogEntryT[];
         expect(entries.map(entry => entry.catalogEntryId).sort((a, b) => a - b)).toEqual([
-            connection.catalogRelationEntryId, connection.catalogFunctionScript.catalog_entry_id,
+            connection.catalogRelationEntryId, connection.functionScriptEntryId!,
         ].sort((a, b) => a - b));
-        expect(connection.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+        expect(catalogOf(connection).flatten().read().catalogReader.tablesLength()).toBe(1);
         expect(connection.catalogUpdates.described).toBe(true);
     });
 
@@ -191,12 +211,12 @@ describe('V2 app state loader', () => {
         connectionFiles.set(relationsFile, source === 'relations' ? 'CREATE TABLE broken(' : 'CREATE TABLE restored(id int);');
         connectionFiles.set(functionsFile, source === 'functions' ? 'CREATE FUNCTION broken(' : 'CREATE FUNCTION restored_fn() RETURNS int;');
         const logger = new TestLogger();
-        const result = await restoreAppState(core, backend, logger, () => {});
-        const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
+        const result = await restoreAppState(fresh(core), backend, logger, () => {});
+        const connection = runtime.connections().get(TEST_CONNECTION_ID)!;
         // The batch reads both files before it publishes either
-        expect(connection.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
+        expect(catalogOf(connection).flatten().read().catalogReader.tablesLength()).toBe(0);
         // The Rust connection writes the header of the script, the restore leaves the text alone
-        expect(connection.catalogFunctionScript.toString()).toContain('DashQL Connection Functions');
+        expect(functionScript(connection)).toContain('DashQL Connection Functions');
         expect(connection.catalogUpdates.described).toBe(false);
         expect(result.workbookScripts.has(TEST_WORKBOOK_ID)).toBe(true);
         const warnings = [...Array(logger.buffer.length).keys()].map(i => logger.buffer.at(i)!)
@@ -206,27 +226,26 @@ describe('V2 app state loader', () => {
 
     it('strictly refuses V1 before connection, catalog, scripts, or index mutation', async () => {
         vi.mocked(backend.loadWorkbook).mockResolvedValue({ ...testWorkbook(), formatVersion: 1 } as any);
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         expect(result.invalidWorkbooks.get(TEST_WORKBOOK_ID)?.error).toBe('unsupported_format_version');
-        expect(result.connectionStates.size).toBe(0);
+        expect(runtime.connections().size).toBe(0);
         expect(result.workbookScripts.size).toBe(0);
         expect(core.createCatalog).not.toHaveBeenCalled();
-        expect(core.createConnection).not.toHaveBeenCalled();
         expect(backend.loadScripts).not.toHaveBeenCalled();
         expect(backend.saveWorkbookManifest).not.toHaveBeenCalled();
     });
 
     it('surfaces an unreadable workbook without allowing it into live registries', async () => {
         vi.mocked(backend.loadWorkbook).mockRejectedValue(new Error('missing files'));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         expect(result.invalidWorkbooks.get(TEST_WORKBOOK_ID)?.error).toBe('workbook_unreadable');
-        expect(result.connectionStates.size).toBe(0);
+        expect(runtime.connections().size).toBe(0);
         expect(result.workbookScripts.size).toBe(0);
     });
 
     it('surfaces a workbook whose scripts fail to load as invalid', async () => {
         vi.mocked(backend.loadScripts).mockRejectedValue(new Error('unreadable scripts'));
-        const result = await restoreAppState(core, backend, new TestLogger(), () => {});
+        const result = await restoreAppState(fresh(core), backend, new TestLogger(), () => {});
         expect(result.workbookScripts.size).toBe(0);
         expect(result.invalidWorkbooks.get(TEST_WORKBOOK_ID)).toMatchObject({ workbookId: TEST_WORKBOOK_ID, error: 'workbook_not_restored' });
     });
@@ -239,7 +258,7 @@ describe('V2 app state loader', () => {
             ? testWorkbook(testConnections({ connectionId: TEST_CONNECTION_ID, params: { trino: 'broken' } as any }))
             : { ...testWorkbook(), workbookId: id });
         const logger = new TestLogger();
-        const result = await restoreAppState(core, backend, logger, () => {});
+        const result = await restoreAppState(fresh(core), backend, logger, () => {});
         expect(result.invalidWorkbooks.get(TEST_WORKBOOK_ID)).toMatchObject({ workbookId: TEST_WORKBOOK_ID, error: 'workbook_not_restored' });
         expect([...result.workbookScripts.keys()]).toEqual([second]);
         const warnings = [...Array(logger.buffer.length).keys()].map(i => logger.buffer.at(i)!)
@@ -256,6 +275,7 @@ describe('real-core startup catalog restoration', () => {
     });
     afterEach(() => {
         vi.restoreAllMocks();
+        destroyRuntimes();
         dql.resetUnsafe();
     });
 
@@ -267,9 +287,9 @@ describe('real-core startup catalog restoration', () => {
         const schema = 'CREATE TABLE "hyper"."public"."kept"(id integer);';
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, schema);
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, '-- Catalog changes of executed statements\n\nDROP TABLE "hyper"."public"."kept";\n');
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
-        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        const main = runtime.connections().get(TEST_CONNECTION_ID)!;
+        expect(catalogOf(main).flatten().read().catalogReader.tablesLength()).toBe(1);
         // No refresh: the connection is asked about the relation
         expect(main.catalogUpdates.described).toBe(true);
         expect(main.catalogUpdates.touchedRelations).toEqual([{ databaseName: 'hyper', schemaName: 'public', tableName: 'kept' }]);
@@ -287,8 +307,8 @@ describe('real-core startup catalog restoration', () => {
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "c"."s"."kept"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, 'CREATE TABLE "c"."s"."kept"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`, JSON.stringify({ pending: [{ databaseName: 'c', schemaName: 's', tableName: 'kept' }], gone: [] }));
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.catalogUpdates.touchedRelations).toEqual([]);
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        expect(runtime.connections().get(TEST_CONNECTION_ID)!.catalogUpdates.touchedRelations).toEqual([]);
     });
 
     it('restores the relations it has to ask about and those that are gone', async () => {
@@ -300,11 +320,11 @@ describe('real-core startup catalog restoration', () => {
         const gone = { databaseName: 'hyper', schemaName: 'public', tableName: 'dropped' };
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."kept"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`, JSON.stringify({ pending: [pending], gone: [gone] }));
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        const main = runtime.connections().get(TEST_CONNECTION_ID)!;
         expect(main.catalogUpdates.touchedRelations).toEqual([pending]);
-        expect(main.catalog.absentRelations().map(name => name.tableName)).toEqual(['dropped']);
-        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+        expect(catalogOf(main).absentRelations().map(name => name.tableName)).toEqual(['dropped']);
+        expect(catalogOf(main).flatten().read().catalogReader.tablesLength()).toBe(1);
     });
 
     it('reads nothing from a catalog state that it can not read', async () => {
@@ -313,8 +333,8 @@ describe('real-core startup catalog restoration', () => {
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } } as any }),
         }));
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-state.json`, 'not json');
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.catalogUpdates.touchedRelations).toEqual([]);
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        expect(runtime.connections().get(TEST_CONNECTION_ID)!.catalogUpdates.touchedRelations).toEqual([]);
     });
 
     it('drops the persisted relations and changes of an embedded connection that only a workbook knows', async () => {
@@ -326,17 +346,17 @@ describe('real-core startup catalog restoration', () => {
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."gone"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, '-- Catalog changes of executed statements\n\nCREATE TABLE "hyper"."public"."created" ("a" unknown);\n');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        const main = runtime.connections().get(TEST_CONNECTION_ID)!;
 
-        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
-        expect(main.catalogFunctionScript.toString()).toBe(functions);
+        expect(catalogOf(main).flatten().read().catalogReader.tablesLength()).toBe(0);
+        expect(functionScript(main)).toBe(functions);
         // The catalog is refreshed on connect instead
         expect(main.catalogUpdates.described).toBe(false);
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(functions);
-        destroyRestoredWorkbook({ workbookId: TEST_WORKBOOK_ID, databases: [main],
+        destroyRestoredWorkbook({ workbookId: TEST_WORKBOOK_ID, connectionIds: [],
             workbookScripts: restored.workbookScripts.get(TEST_WORKBOOK_ID)! });
     });
 
@@ -349,16 +369,16 @@ describe('real-core startup catalog restoration', () => {
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE "hyper"."public"."gone"(id integer);');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`, '-- Catalog changes of executed statements\n\nCREATE TABLE "hyper"."public"."created" ("a" unknown);\n');
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`, functions);
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        const main = restored.connectionStates.get(TEST_CONNECTION_ID)!;
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        const main = runtime.connections().get(TEST_CONNECTION_ID)!;
 
-        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
-        expect(main.catalogFunctionScript.toString()).toBe(functions);
+        expect(catalogOf(main).flatten().read().catalogReader.tablesLength()).toBe(0);
+        expect(functionScript(main)).toBe(functions);
         expect(main.catalogUpdates.described).toBe(false);
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-changes.sql`)).toBe('');
         expect(backend.connectionFiles.get(`${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`)).toBe(functions);
-        destroyRestoredWorkbook({ workbookId: TEST_WORKBOOK_ID, databases: [main],
+        destroyRestoredWorkbook({ workbookId: TEST_WORKBOOK_ID, connectionIds: [],
             workbookScripts: restored.workbookScripts.get(TEST_WORKBOOK_ID)! });
     });
 
@@ -374,21 +394,21 @@ describe('real-core startup catalog restoration', () => {
         backend.connectionFiles.set(`${remoteId}/dashql-catalog-relations.sql`, schema);
         backend.connectionFiles.set(`${remoteId}/dashql-catalog-functions.sql`, functions);
         backend.scripts.set(TEST_WORKBOOK_ID, new Map([['01_query.sql', 'SELECT id FROM db.public.restored_items;'], ['02_local.sql', 'SELECT 1;']]));
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
-        const main = restored.connectionStates.get(remoteId)!;
-        const attached = restored.connectionStates.get(TEST_CONNECTION_ID)!;
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
+        const main = runtime.connections().get(remoteId)!;
+        const attached = runtime.connections().get(TEST_CONNECTION_ID)!;
         const workbook = restored.workbookScripts.get(TEST_WORKBOOK_ID)!;
-        expect(main.catalogFunctionScript.toString()).toBe(functions);
-        expect(workbook.scripts[workbook.scriptRefs['01_query.sql'].scriptId].connection.catalog).toBe(main.catalog);
-        const entries = main.catalog.describeEntries().unpack().entries as dashql.buffers.catalog.CatalogEntryT[];
+        expect(functionScript(main)).toBe(functions);
+        expect(workbook.scripts[workbook.scriptRefs['01_query.sql'].scriptId].connection.catalog).toBe(catalogOf(main));
+        const entries = catalogOf(main).describeEntries().unpack().entries as dashql.buffers.catalog.CatalogEntryT[];
         expect(entries.map(entry => entry.catalogEntryId).sort((a, b) => a - b)).toEqual([
-            main.catalogRelationEntryId, main.catalogFunctionScript.catalog_entry_id,
+            main.catalogRelationEntryId, main.functionScriptEntryId!,
         ].sort((a, b) => a - b));
         expect(entries.every(entry => entry.catalogEntryType === dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL)).toBe(true);
-        expect(main.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
-        expect(attached.catalog.flatten().read().catalogReader.tablesLength()).toBe(0);
+        expect(catalogOf(main).flatten().read().catalogReader.tablesLength()).toBe(1);
+        expect(catalogOf(attached).flatten().read().catalogReader.tablesLength()).toBe(0);
         expect(main.catalogUpdates.described).toBe(true);
-        const query = dql.createScript(main.catalog);
+        const query = dql.createScript(catalogOf(main));
         query.replaceText('SELECT id FROM db.public.restored_items;');
         query.analyze();
         expect(query.getAnalyzed().unpack().tableReferences[0].resolvedTable.catalogTableId)
@@ -402,7 +422,7 @@ describe('real-core startup catalog restoration', () => {
         expect(candidate.catalogObjects[0].objectType).toBe(dashql.buffers.completion.CompletionCandidateObjectType.FUNCTION);
         expect(candidate.catalogObjects[0].qualifiedName).toEqual(['db', 'public', 'restored_function']);
         query.destroy();
-        destroyRestoredWorkbook({ workbookId: TEST_WORKBOOK_ID, databases: [main, attached],
+        destroyRestoredWorkbook({ workbookId: TEST_WORKBOOK_ID, connectionIds: [],
             workbookScripts: workbook });
     });
 });
@@ -417,6 +437,7 @@ describe('global connections', () => {
     });
     afterEach(() => {
         vi.restoreAllMocks();
+        destroyRuntimes();
         dql.resetUnsafe();
     });
     function seed(backend: WorkbookTestBackend, workbookId: string, connectionId: string, params: object, paramsDraft?: object) {
@@ -431,10 +452,10 @@ describe('global connections', () => {
         backend.connections = [{ id: TEST_CONNECTION_ID, params: trino('https://saved') }];
         seed(backend, TEST_WORKBOOK_ID, TEST_CONNECTION_ID, trino('https://stale'));
         seed(backend, OTHER_WORKBOOK_ID, TEST_CONNECTION_ID, trino('https://stale'));
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
 
-        expect([...restored.connectionStates.keys()]).toEqual([TEST_CONNECTION_ID]);
-        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.params).toEqual(trino('https://saved'));
+        expect([...runtime.connections().keys()]).toEqual([TEST_CONNECTION_ID]);
+        expect(runtime.connections().get(TEST_CONNECTION_ID)!.params).toEqual(trino('https://saved'));
         for (const workbookId of [TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]) {
             expect(backend.workbooks.get(workbookId)!.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: trino('https://saved') }]);
         }
@@ -447,12 +468,12 @@ describe('global connections', () => {
         seed(backend, TEST_WORKBOOK_ID, TEST_CONNECTION_ID, trino('https://unknown'));
         // E.g. an imported workbook seeded the catalog of the connection
         backend.connectionFiles.set(`${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`, 'CREATE TABLE db.public.seeded(id integer);');
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
 
-        const connection = restored.connectionStates.get(TEST_CONNECTION_ID)!;
+        const connection = runtime.connections().get(TEST_CONNECTION_ID)!;
         expect(connection.params).toEqual(trino('https://unknown'));
         expect(backend.connections).toMatchObject([{ id: TEST_CONNECTION_ID, params: trino('https://unknown') }]);
-        expect(connection.catalog.flatten().read().catalogReader.tablesLength()).toBe(1);
+        expect(catalogOf(connection).flatten().read().catalogReader.tablesLength()).toBe(1);
         expect(connection.catalogUpdates.described).toBe(true);
         for (const workbook of restored.workbookScripts.values()) destroyWorkbookScripts(workbook);
     });
@@ -471,11 +492,11 @@ describe('global connections', () => {
             ],
         }));
         backend.scripts.set(TEST_WORKBOOK_ID, new Map([['01_new.sql', 'SELECT 1'], ['02_known.sql', 'SELECT 2']]));
-        const restored = await restoreAppState(dql, backend, new TestLogger(), () => {});
+        const restored = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
 
         // A new connection is registered with its name, a known connection keeps its own
-        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.name).toBe('Production');
-        expect(restored.connectionStates.get(OTHER_CONNECTION_ID)!.name).toBe('Mine');
+        expect(runtime.connections().get(TEST_CONNECTION_ID)!.name).toBe('Production');
+        expect(runtime.connections().get(OTHER_CONNECTION_ID)!.name).toBe('Mine');
         expect(backend.connections).toMatchObject([
             { id: OTHER_CONNECTION_ID, name: 'Mine' },
             { id: TEST_CONNECTION_ID, name: 'Production' },
@@ -488,7 +509,7 @@ describe('global connections', () => {
     it('restores an imported workbook against the live connections and registers the unknown ones', async () => {
         const backend = new WorkbookTestBackend();
         backend.connections = [{ id: OTHER_CONNECTION_ID, params: trino('https://known') }];
-        const live = await restoreAppState(dql, backend, new TestLogger(), () => {});
+        const live = await restoreAppState(fresh(dql), backend, new TestLogger(), () => {});
         backend.workbooks.set(TEST_WORKBOOK_ID, testWorkbook({
             ...testConnections(
                 { connectionId: OTHER_CONNECTION_ID, params: trino('https://known') },
@@ -501,9 +522,11 @@ describe('global connections', () => {
         }));
         backend.scripts.set(TEST_WORKBOOK_ID, new Map([['01_known.sql', 'SELECT 1'], ['02_new.sql', 'SELECT 2']]));
 
-        const restored = await restoreSingleWorkbook(dql, backend, new TestLogger(), TEST_WORKBOOK_ID, { connections: live.connectionStates });
+        const restored = await restoreSingleWorkbook(runtime, backend, new TestLogger(), TEST_WORKBOOK_ID, runtime.registry());
         expect(restored.workbookId).toBe(TEST_WORKBOOK_ID);
-        expect(restored.databases.map(database => database.connectionId)).toEqual([TEST_CONNECTION_ID]);
+        // The runtime adopted the new connection next to the live one
+        expect(restored.connectionIds).toEqual([TEST_CONNECTION_ID]);
+        expect([...runtime.connections().keys()]).toEqual([OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
         expect(workbookConnectionIds(restored.workbookScripts)).toEqual([OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
         destroyRestoredWorkbook(restored);
         for (const workbook of live.workbookScripts.values()) destroyWorkbookScripts(workbook);
@@ -512,7 +535,7 @@ describe('global connections', () => {
     it('rejects an imported workbook that is not stored', async () => {
         const backend = new WorkbookTestBackend();
         backend.connections = [];
-        await expect(restoreSingleWorkbook(dql, backend, new TestLogger(), TEST_WORKBOOK_ID, { connections: new Map() })).rejects.toThrow();
+        await expect(restoreSingleWorkbook(fresh(dql), backend, new TestLogger(), TEST_WORKBOOK_ID, { connections: new Map() })).rejects.toThrow();
     });
 });
 

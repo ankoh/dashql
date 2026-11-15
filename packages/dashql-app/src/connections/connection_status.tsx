@@ -4,6 +4,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { Button, ButtonVariant } from '../ui/foundations/button.js';
 import { STATUS_COLOR_FAILED, STATUS_COLOR_IN_PROGRESS, STATUS_COLOR_OTHER, STATUS_COLOR_SUCCESS } from '../ui/foundations/status_indicator.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 interface ButtonProps {
     workbookId?: string;
@@ -30,9 +31,9 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 
 export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
     const health = props.conn.connectionHealth ?? 0;
-    const connectorIcon = props.conn.connectorInfo.icons.outlines;
+    const connectorIcon = connectorInfoOf(props.conn).icons.outlines;
 
-    const connStatusText = props.conn.connectorInfo.names.displayShort;
+    const connStatusText = connectorInfoOf(props.conn).names.displayShort;
     const connStatusColor = CONNECTION_HEALTH_COLORS[health];
 
     const handleClick = () => {

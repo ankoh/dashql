@@ -6,7 +6,6 @@ import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { allocateQueryId } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { DataTable } from '../views/query_result/data_table.js';
 import { TableColumnHeader } from '../views/query_result/data_table_cell.js';
 
@@ -55,7 +54,9 @@ function useQueryComputation(
         const current = state.current;
         current.next = async () => {
             const table = await runQuery(sql);
-            const id = allocateQueryId();
+            // A runtime without the runtime of the app, e.g. of the shell, gets its core with the first command
+            await runtime.ready();
+            const id = runtime.allocateId();
             try {
                 // The table has no connection, the client context attributes the queries of its computation. It is
                 // ordered like the previous one, an ordering of fields that the table doesn't have is skipped.

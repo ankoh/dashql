@@ -1,8 +1,8 @@
 import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '../../connections/connection_state.js';
 import type { ConnectionRegistry } from '../../connections/connection_registry_state.js';
-import { connectorOfDetails } from '../../connections/connector_descriptor.js';
+import { connectionMaxConcurrentQueries } from '../../connections/connector_descriptor.js';
 import type { CancelQuery, QueryExecutor } from '../../connections/query_execution_args.js';
-import { computeQueryCacheKeyForConnection } from '../../connections/query_executor_service.js';
+import { computeQueryCacheKeyForConnection } from '../../query/query_platform.js';
 import { isHyperWasmConnection } from '../../connections/connection_label.js';
 import type { ModifyWorkbookScripts, WorkbookScriptsRegistry } from './workbook_scripts_registry_state.js';
 import { createExecutionMounts, isWorkbookExecutionRunning, runWorkbookExecution, type WorkbookExecutionState } from './workbook_execution.js';
@@ -44,17 +44,12 @@ export interface WorkbookExecutionDependencies {
 }
 
 /// The number of statements of a workbook run that a connection executes at once
-function maxConcurrentQueries(connection: ConnectionState | undefined): number {
-    return connection == null ? 1 : connectorOfDetails(connection.details).maxConcurrentQueries(connection.details.value);
-}
+const maxConcurrentQueries = connectionMaxConcurrentQueries;
 
 /// Does a connection run a query? The SQLFrame queries of computations run on the compute database,
 /// the connection only tracks them.
 function runsQueries(connection: ConnectionState): boolean {
-    for (const query of connection.queriesActive.values()) {
-        if (query.queryMetadata.queryType !== QueryType.INTERNAL_SQLFRAME) return true;
-    }
-    return false;
+    return connection.queriesRunning > 0;
 }
 
 /// The attempts to wait for a run of a workbook to leave its connections
@@ -119,7 +114,7 @@ export class WorkbookExecutionService {
             },
             cacheKey: async (connectionId, signature) => {
                 const connection = service.deps.readConnections().connections.get(connectionId);
-                return connection == null ? null : await computeQueryCacheKeyForConnection(connection.details, signature);
+                return connection == null ? null : await computeQueryCacheKeyForConnection(connection, signature);
             },
             cachesResults: connectionId => {
                 const connection = service.deps.readConnections().connections.get(connectionId);

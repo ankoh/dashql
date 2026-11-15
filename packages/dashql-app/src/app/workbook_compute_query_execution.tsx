@@ -5,7 +5,6 @@ import { clientContextOf, type ComputeQueryExecution, type ComputeTaskContext } 
 import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
-import { useConnectionDispatch } from '../connections/connection_registry.js';
 import { sqlframeClientContext } from '../connections/hyper/hyper_log_metrics.js';
 
 const LOG_CTX = 'scheduler';
@@ -15,15 +14,14 @@ export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChil
     // Resolve the connection when the task starts, subscribing to the computations would re-create the
     // execution factory and re-render the scheduler for every task step.
     const runtime = useOptionalCoreRuntime();
-    const dispatch = useConnectionDispatch();
     const createExecution = React.useCallback((task: ComputeTaskContext) => {
         const computation = runtime?.store.get('computation', task.tableId) ?? null;
         const connectionId = computation?.connectionId ?? null;
         const execution: ComputeQueryExecution = (query, execute) => {
-            if (connectionId == null) return execute(clientContextOf(computation?.clientContext));
+            if (connectionId == null || runtime == null) return execute(clientContextOf(computation?.clientContext));
             return executeTrackedQuery({
                 query,
-                tracker: { dispatch: action => dispatch(connectionId, action) },
+                tracker: { runtime, target: { connection: connectionId } },
                 metadata: {
                     queryType: QueryType.INTERNAL_SQLFRAME,
                     title: task.title,
@@ -37,7 +35,7 @@ export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChil
             });
         };
         return execution;
-    }, [runtime, dispatch]);
+    }, [runtime]);
 
     return (
         <ComputeQueryExecutionProvider createExecution={createExecution}>

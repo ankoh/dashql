@@ -1,4 +1,4 @@
-import { QueryExecutionState, QueryExecutionStatus, queryIsDone } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus, queryErrorDetails, queryIsDone, type QueryExecutionProgress } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { summarizeQueryProgress } from '../views/query_progress/query_progress_format.js';
 
@@ -33,12 +33,11 @@ function getQueryErrorDetail(query: QueryExecutionState, message: string): Recor
     return compactObject({
         status: query.status === QueryExecutionStatus.FAILED ? 'failed' : 'cancelled',
         message,
-        target: error?.target,
         queryId: query.queryId,
         traceId: query.traceId,
         query: query.queryText,
         metadata: query.queryMetadata,
-        details: error != null && Object.keys(error.keyValues).length > 0 ? error.keyValues : undefined,
+        details: queryErrorDetails(error) ?? undefined,
     });
 }
 
@@ -72,15 +71,16 @@ export function getQueryStatusText(status: QueryExecutionStatus): string {
 }
 
 /// Derive the status bar contents for a workbook entry from its query execution.
-export function deriveEntryStatus(query: QueryExecutionState | null): EntryStatus {
+/// The progress is the one of the query with its structured progress (`useQueryProgress`).
+export function deriveEntryStatus(query: QueryExecutionState | null, progress: QueryExecutionProgress | null = null): EntryStatus {
     if (query != null && !queryIsDone(query.status)) {
         const statusText = getQueryStatusText(query.status);
         // Engines with structured progress add the phase, the progress and the throughput
-        const progress = summarizeQueryProgress(query.latestProgressUpdate);
+        const summary = summarizeQueryProgress(progress);
         return {
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Running,
-            message: progress == null ? statusText : `${statusText} · ${progress}`,
+            message: summary == null ? statusText : `${statusText} · ${summary}`,
             traceId: query.traceId,
             errorDetail: null,
         };

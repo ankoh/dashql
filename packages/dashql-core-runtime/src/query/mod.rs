@@ -167,68 +167,8 @@ pub enum QueryType {
     CloudStore,
 }
 
-/// A run of the whole workbook or of a script
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PlannedRun {
-    /// A run of the whole workbook
-    Workbook,
-    /// A run of a script
-    Script,
-}
-
-/// A materialized result of a script of another connection that a planned statement scans
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlannedScan {
-    /// The script of the result
-    pub script: String,
-    /// The file of the result
-    pub path: String,
-    /// Does the host provide the file of an earlier run?
-    pub cached: bool,
-}
-
-/// A node of the plan that a planned statement runs after
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlannedDependency {
-    /// The node
-    pub node: u32,
-    /// Why the statement runs after it
-    pub reason: String,
-}
-
-/// A statement of a plan of workbook scripts (`docs/design/planner_dependencies.md`)
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlannedStatement {
-    /// A run of the whole workbook or of a script
-    pub run: PlannedRun,
-    /// The script that a run of a script runs
-    pub target: Option<String>,
-    /// The node of the plan
-    pub node: u32,
-    /// The script of the statement
-    pub script: String,
-    /// The statement within the statements of the script in the plan, from 1
-    pub statement: u32,
-    /// The statements of the script in the plan
-    pub statements: u32,
-    /// The type of the statement, e.g. SELECT
-    pub statement_type: String,
-    /// Is the statement the result of its script?
-    pub result: bool,
-    /// Is the statement the cached result of its script? The executor reads the file instead of running it.
-    pub cached: bool,
-    /// The scripts whose queries the statement inlines as common table expressions
-    pub inlined: Vec<String>,
-    /// The materialized results of the scripts of other connections that the statement scans
-    pub scans: Vec<PlannedScan>,
-    /// The file that the result of the statement is written to, for statements of other connections
-    pub materializes: Option<String>,
-    /// The nodes the statement runs after and why
-    pub after: Vec<PlannedDependency>,
-}
-
 /// What a query is and who issued it
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct QueryMetadata {
     /// The kind of the query
     pub query_type: QueryType,
@@ -246,8 +186,9 @@ pub struct QueryMetadata {
     /// The owner of the result, e.g. a script of a workbook. A succeeded query releases the result tables of the
     /// earlier queries of its owner, the owner shows only its latest result.
     pub result_owner: Option<String>,
-    /// Where a statement of a plan of workbook scripts comes from
-    pub planned: Option<PlannedStatement>,
+    /// Where a statement of a plan of workbook scripts comes from, as the host holds it (`PlannedStatement` of the
+    /// TypeScript runtime)
+    pub planned: Option<serde_json::Value>,
 }
 
 impl QueryMetadata {

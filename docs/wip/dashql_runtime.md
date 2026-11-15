@@ -51,10 +51,8 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 ### The reducers take their dependencies as arguments
 
 - `reduceWorkbookScripts(state, action, storage, logger)` (`workbook/scripts/workbook_scripts.ts`, 29 actions)
-- `reduceConnectionState(prev, action, logger)` (`connections/connection_state.ts`), an adapter over the Rust connection
-  (`connections/connection_native.ts`, see [core_runtime.md](core_runtime.md))
-- the computations are views of the runtime of the module (`core_runtime.ts`); the query history of the shell is an adapter over a Rust history
-  (`query/shell_query_execution.ts`, see [core_runtime.md](core_runtime.md))
+- the computations, the connections with their queries and the query history of the shell are views of the runtime of
+  the module (`core_runtime.ts`, see [core_runtime.md](core_runtime.md) and [runtime_api.md](runtime_api.md))
 
 ### Imports that pulled UI code into the domain
 
@@ -203,12 +201,10 @@ interface Runtime {
     logger: Logger;
     storageWriter: StorageWriter;
     workbooks: WorkbookScriptsRegistryService;
-    connections: ConnectionRegistryService;
-    computations: RuntimeComputations;
-    executor: QueryExecutorService;
+    /// The runtime of the module: the connections with their queries, the executor, the saves, the computations
+    coreRuntime: CoreRuntime;
     catalogLoader: CatalogLoaderService;
     execution: WorkbookExecutionService;
-    persistence: ConnectionPersistenceService;
     restore(progress?: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     destroy(): Promise<void>;
 }
@@ -268,13 +264,15 @@ Each step ships on its own and keeps the behavior.
    Node. The app imports from `@ankoh/dashql-runtime`. Done.
 3. **Services out of providers.** Done for four services of the runtime, each a class with its dependencies passed in
    and its state as a `Store`:
-   - `QueryExecutorService` (`connections/query_executor_service.ts`), with the computations, the result cache, the
-     tracked execution and the profile layout of the query progress (`query/profile/`);
+   - `QueryExecutorService`, with the computations, the result cache, the tracked execution and the profile layout of
+     the query progress (`query/profile/`), since step 2 of [runtime_api.md](runtime_api.md) the executor of the
+     runtime of the module with `query/query_platform.ts` as its host half;
    - `CatalogLoaderService` (`connections/catalog/catalog_loader_service.ts`), with the update of Hyper catalogs. The
      runtime passes each new registry, the loader reconsiders its queue in a microtask;
    - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the runs of single scripts;
      the engine of the runs is Rust (`docs/wip/core_runtime.md`, The runs of workbooks);
-   - `ConnectionPersistenceService` (`connections/connection_persistence_service.ts`).
+   - `ConnectionPersistenceService`, since step 2 of [runtime_api.md](runtime_api.md) the saves of the runtime of the
+     module.
 
    The rest waited for the seams of step 4, with the runtime object that replaced the nesting of providers.
 4. **Platform seams and Node.** An OAuth flow, done: `oauth/oauth_flow.ts` of the runtime opens the authorization page
@@ -287,8 +285,9 @@ Each step ships on its own and keeps the behavior.
    `KeyValueStorage` (`platform/key_value_storage.ts`) that the platform passes in; the app holds the one of its tab
    over `sessionStorage` in `connections/hyper/hyper_link_tab.ts`, with the hooks. The test helpers `TestLogger` and
    `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. The runtime object, done: the registries of
-   the workbook scripts and the connections are services of the runtime (`workbook_scripts_registry_service.ts`,
-   `connection_registry_service.ts`) with the store, the queue, dispatch, allocation and the creation of a workbook;
+   the workbook scripts and the connections are services of the runtime (`workbook_scripts_registry_service.ts`, the
+   connections since step 2 of [runtime_api.md](runtime_api.md) in the runtime of the module) with the store, the queue,
+   dispatch, allocation and the creation of a workbook;
    `createRuntime(platform)` in `runtime.ts` wires the registries, the computations and the four services of step 3,
    `restore()` loads the stored state into the registries and `destroy()` writes what is pending. `runtime.test.ts`
    writes a workbook with one runtime and restores it with a second one in Node. The app creates it in its
@@ -397,10 +396,10 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   with the layout of OPFS (`useNodeRoot`), so `getOPFSRoot()` works, and the locks of the process where Node has no Web
   Locks.
 - **The services in Node.** The tests of the providers of the app became tests of the services of the runtime:
-  `QueryExecutorService` (queries, client function calls, failures, cancelling, profiles, the query result cache),
   `WorkbookExecutionService` (starting and stopping runs, the connections a run needs, previews, changes of inputs),
-  `CatalogLoaderService` (the queue of refreshes and lookups), `ConnectionRegistryService` with the storage writer and
-  `ConnectionPersistenceService`, and `WorkbookScriptsRegistryService`. `createTestRuntime()` (`src/testing/test_runtime.ts`)
+  `CatalogLoaderService` (the queue of refreshes and lookups) and `WorkbookScriptsRegistryService`; the connections,
+  the queries and their saves are tested on the runtime of the module (`runtime_connections.test.ts` of
+  `dashql-core-js`) and through `CoreRuntime` (the handles, the storage writer, the tracked queries). `createTestRuntime()` (`src/testing/test_runtime.ts`)
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
   stopped unless a test asks for it, so it schedules no updates. The app keeps the
   tests of what React adds: hooks, rendering order, remounting and unmounting.

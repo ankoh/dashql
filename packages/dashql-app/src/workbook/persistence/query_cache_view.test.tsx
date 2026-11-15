@@ -1,15 +1,11 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
-import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryCacheView } from './query_cache_view.js';
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import {
-    createQueryExecutionState, EXECUTE_QUERY, QUERY_CACHE_RECORDED, QUERY_SUCCEEDED, QueryType,
-} from '@ankoh/dashql-runtime/query/query_execution_state';
-import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -21,43 +17,50 @@ import { TestRuntime } from '../../tests/test_runtime.js';
 
 const CONNECTION_ID = 'query-cache-view-test';
 
-type Registry = ReturnType<typeof useConnectionRegistry>;
+/// A finished query that advertises the result of a cache key
+interface CachedQuery { queryId: number; cacheKey: string; cacheDeleted: boolean }
 
-/// A connection with finished queries that advertise the results of cache keys
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
-
-/// A connection on the Rust connection of the core with finished queries that advertise the results of cache keys
-function connectionWithQueries(cacheKeys: string[]): ConnectionState {
-    let state = createTestConnection(dql, { connectionId: CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any });
-    expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
-    expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
-    const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
-    cacheKeys.forEach((cacheKey, i) => {
-        const queryId = i + 1;
-        state = reduceTestConnection(state, { type: EXECUTE_QUERY, value: [queryId, createQueryExecutionState(queryId, 0, 'select 1', metadata, new AbortController())] });
-        state = reduceTestConnection(state, { type: QUERY_SUCCEEDED, value: [queryId] });
-        state = reduceTestConnection(state, { type: QUERY_CACHE_RECORDED, value: [queryId, cacheKey, false, null] });
+/// Finished queries of a connection that advertise the results of cache keys. The queries get their keys when the
+/// executor caches their results (tested in the runtime), the runtime of the test lists them on a connection and
+/// marks them when the view deletes their results.
+function withCachedQueries(runtime: CoreRuntime, cacheKeys: string[]): Map<number, CachedQuery> {
+    const queries = new Map(cacheKeys.map((cacheKey, i): [number, CachedQuery] => [i + 1, { queryId: i + 1, cacheKey, cacheDeleted: false }]));
+    const registry = runtime.registry.bind(runtime);
+    vi.spyOn(runtime, 'registry').mockImplementation(() => {
+        const current = registry();
+        const connection = { connectionId: CONNECTION_ID, queriesFinishedOrdered: [...queries.keys()] } as unknown as ConnectionState;
+        return { ...current, connections: new Map([...current.connections, [CONNECTION_ID, connection]]) };
     });
-    expect([...state.queriesFinished.values()].map(query => [query.cacheKey, query.cacheDeleted])).toEqual(cacheKeys.map(key => [key, false]));
-    return state;
+    const get = runtime.store.get.bind(runtime.store);
+    vi.spyOn(runtime.store, 'get').mockImplementation(((kind: string, id: unknown) => kind === 'query' && queries.has(id as number)
+        ? queries.get(id as number)
+        : (get as (kind: string, id: unknown) => unknown)(kind, id)) as typeof runtime.store.get);
+    const dispatch = runtime.dispatch.bind(runtime);
+    vi.spyOn(runtime, 'dispatch').mockImplementation((target, action) => {
+        if (action.kind === 'queryCacheDeleted' && queries.has(action.value.queryId)) {
+            queries.get(action.value.queryId)!.cacheDeleted = true;
+            return { ok: true } as ReturnType<CoreRuntime['dispatch']>;
+        }
+        return dispatch(target, action);
+    });
+    return queries;
 }
 
 describe('QueryCacheView', () => {
     let root: ReturnType<typeof createTestRoot>;
     let cache: ReturnType<typeof memoryQueryResultCache>;
-    let registry: Registry | null;
+    let coreRuntime: CoreRuntime | null;
+    let cached: Map<number, CachedQuery> | null;
     let logger: Logger;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
-        registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         logger = useLogger();
         return null;
     }
 
-    async function render(showView: boolean = true, connection: ConnectionState | null = null) {
+    async function render(showView: boolean = true, cacheKeys: string[] | null = null) {
         const tree = (show: boolean) => (
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
@@ -73,12 +76,7 @@ describe('QueryCacheView', () => {
             </LoggerProvider>
         );
         await root.render(tree(false));
-        if (connection != null) {
-            await act(async () => registry![1](reg => {
-                reg.connections.set(CONNECTION_ID, connection);
-                return { ...reg };
-            }));
-        }
+        if (cacheKeys != null) cached = withCachedQueries(coreRuntime!, cacheKeys);
         if (showView) await root.render(tree(true));
     }
 
@@ -87,7 +85,7 @@ describe('QueryCacheView', () => {
         .filter(cell => cell.parentElement?.querySelector('button[aria-label="Delete cache entry"]') != null);
     const keys = () => [...new Set(rows().map(cell => cell.parentElement!.firstElementChild!.textContent))];
     const summary = () => root.container.textContent?.match(/\d+ entr(y|ies) · [^K]+/)?.[0] ?? null;
-    const query = (id: number) => registry![0].connections.get(CONNECTION_ID)!.queriesFinished.get(id)!;
+    const query = (id: number) => cached!.get(id)!;
     const records = () => [...Array(logger.buffer.length).keys()].map(i => logger.buffer.at(i)!);
 
     beforeEach(() => {
@@ -96,7 +94,8 @@ describe('QueryCacheView', () => {
         root.container.style.height = '400px';
         root.container.style.display = 'flex';
         cache = memoryQueryResultCache();
-        registry = null;
+        coreRuntime = null;
+        cached = null;
         onClose = vi.fn<() => void>();
     });
 
@@ -132,7 +131,7 @@ describe('QueryCacheView', () => {
     it('deletes an entry and marks the queries of its results', async () => {
         cache.put('a');
         cache.put('b');
-        await render(true, connectionWithQueries(['a', 'b']));
+        await render(true, ['a', 'b']);
         await vi.waitFor(() => expect(keys()).toEqual(['b', 'a']));
 
         const deleteA = rows().find(cell => cell.textContent === 'a')!.parentElement!.querySelector<HTMLButtonElement>('button[aria-label="Delete cache entry"]')!;
@@ -147,7 +146,7 @@ describe('QueryCacheView', () => {
     it('keeps the queries of an entry that is still read', async () => {
         cache.put('a');
         cache.delete.mockResolvedValueOnce(false);
-        await render(true, connectionWithQueries(['a']));
+        await render(true, ['a']);
         await vi.waitFor(() => expect(keys()).toEqual(['a']));
         await act(async () => root.container.querySelector<HTMLButtonElement>('button[aria-label="Delete cache entry"]')!.click());
         await vi.waitFor(() => expect(cache.delete).toHaveBeenCalledWith('a'));
@@ -159,7 +158,7 @@ describe('QueryCacheView', () => {
     it('clears the cache and marks the queries of every result', async () => {
         cache.put('a');
         cache.put('b');
-        await render(true, connectionWithQueries(['a', 'b', 'c']));
+        await render(true, ['a', 'b', 'c']);
         await vi.waitFor(() => expect(keys()).toEqual(['b', 'a']));
         await act(async () => button('Clear the query cache').click());
         await vi.waitFor(() => expect(root.container.textContent).toContain('Nothing to see here'));

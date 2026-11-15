@@ -5,7 +5,7 @@ import { afterEach, beforeEach, vi } from 'vitest';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, connectorInfoOf, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 
 describe('ConnectionInlineHeader', () => {
@@ -25,7 +25,7 @@ describe('ConnectionInlineHeader', () => {
 
     it('offers selection with an embedded engine label instead of health status', () => {
         const connection = {
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            connectorType: ConnectorType.HYPER,
             connectionHealth: ConnectionHealth.NOT_STARTED,
             connectionStatus: ConnectionStatus.NOT_STARTED,
             details: { type: Symbol('test'), value: null },
@@ -35,7 +35,7 @@ describe('ConnectionInlineHeader', () => {
         act(() => root.render(
             <LoggerProvider>
                 <ConnectionInlineHeader
-                    connector={connection.connectorInfo}
+                    connector={connectorInfoOf(connection)}
                     connection={connection}
                     wrongPlatform={false}
                     setupConnection={setupConnection}
@@ -52,7 +52,7 @@ describe('ConnectionInlineHeader', () => {
 
     it('keeps connect and health status for remote connectors', () => {
         const connection = {
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            connectorType: ConnectorType.TRINO,
             connectionHealth: ConnectionHealth.NOT_STARTED,
             connectionStatus: ConnectionStatus.NOT_STARTED,
             details: { type: Symbol('test'), value: null },
@@ -61,7 +61,7 @@ describe('ConnectionInlineHeader', () => {
         act(() => root.render(
             <LoggerProvider>
                 <ConnectionInlineHeader
-                    connector={connection.connectorInfo}
+                    connector={connectorInfoOf(connection)}
                     connection={connection}
                     wrongPlatform={false}
                     setupConnection={() => {}}
@@ -99,7 +99,7 @@ describe('ConnectionInlineHeader', () => {
         [ConnectionHealth.ONLINE, true],
     ] as const)('locks the protocol with health %s: %s', (health, locked) => {
         const connection = {
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            connectorType: ConnectorType.HYPER,
             connectionHealth: health,
             connectionStatus: ConnectionStatus.NOT_STARTED,
             details: { type: Symbol('test'), value: null },
@@ -109,7 +109,7 @@ describe('ConnectionInlineHeader', () => {
         act(() => root.render(
             <LoggerProvider>
                 <ConnectionInlineHeader
-                    connector={connection.connectorInfo}
+                    connector={connectorInfoOf(connection)}
                     connection={connection}
                     wrongPlatform={false}
                     protocol="WASM"

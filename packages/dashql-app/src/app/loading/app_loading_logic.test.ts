@@ -79,15 +79,12 @@ describe('shouldFinishInitialNavigation', () => {
 describe('loadApp', () => {
     it('restores empty state without creating a connection or workbook', async () => {
         const restored = {
-            connectionStates: new Map(),
-            attachedDatabasesByWorkbook: new Map(),
-            connectionStatesByType: [[], [], [], []],
+            connectionIds: [],
             workbookScripts: new Map(),
             workbookScriptsByConnection: new Map(),
             invalidWorkbooks: new Map(),
         };
         const storage = { restoreAppState: vi.fn().mockResolvedValue(restored) };
-        const resetConnections = vi.fn();
         const resetWorkbookScripts = vi.fn();
         const logger = {
             childSpan: () => ({
@@ -97,15 +94,12 @@ describe('loadApp', () => {
 
         const result = await loadApp(
             logger as any,
-            {} as any,
             storage as any,
-            resetConnections,
             resetWorkbookScripts,
             vi.fn(),
         );
 
-        expect(resetConnections).toHaveBeenCalledOnce();
-        expect(resetConnections.mock.calls[0][0].connections.size).toBe(0);
+        expect(result.restoredConnections).toEqual([]);
         expect(resetWorkbookScripts).toHaveBeenCalledOnce();
         expect(resetWorkbookScripts.mock.calls[0][0].workbookScriptsMap.size).toBe(0);
         expect(result.invalidWorkbooks.size).toBe(0);
@@ -114,18 +108,14 @@ describe('loadApp', () => {
 
     it('preserves the restored workbook manifest order', async () => {
         const restored = {
-            connectionStates: new Map(),
-            attachedDatabasesByWorkbook: new Map(),
-            connectionStatesByType: [[], [], [], []],
+            connectionIds: [],
             workbookScripts: new Map([['second', {}], ['first', {}]]),
             workbookScriptsByConnection: new Map(),
             invalidWorkbooks: new Map(),
         };
         const result = await loadApp(
             { childSpan: () => ({ info: vi.fn() }) } as any,
-            {} as any,
             { restoreAppState: vi.fn().mockResolvedValue(restored) } as any,
-            vi.fn(),
             vi.fn(),
             vi.fn(),
         );

@@ -9,7 +9,7 @@ import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useConnectionAllocator, useConnectionById, useConnectionRegistry } from '../connections/connection_registry.js';
-import { createConnectionStateFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { newConnectionFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useConnectionAttach } from '../connections/attached_connection.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
@@ -23,6 +23,7 @@ import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import type { CloudInstallation } from './cloud_store_schema.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 // The page that sets up the cloud, a card like the one of the app loader, shown before the workbench. See
 // docs/design/cloud.md.
@@ -102,7 +103,7 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
         case 'configure':
             content = (
                 <div className={styles.settings} data-testid="cloud-setup-settings">
-                    {cloud!.connectorInfo.connectorType === ConnectorType.DBCOM
+                    {cloud!.connectorType === ConnectorType.DBCOM
                         ? <SalesforceConnectorSettings connectionId={cloud!.connectionId} connector={ConnectorType.DBCOM} onClose={() => setConfiguring(false)} />
                         : <HyperConnectorSettings connectionId={cloud!.connectionId} onClose={() => setConfiguring(false)} />}
                 </div>
@@ -224,14 +225,13 @@ function ChooseCloudConnection(props: { onChoose: (connectionId: string, configu
         props.onChoose(connectionId, configure);
     };
     const add = async (connector: ConnectorType) => {
-        const connection = attach(await setupCore('cloud_setup'), connector);
+        const connection = attach(connector);
         use(connection.connectionId, true);
     };
     // There is one local cloud, a connection of the embedded Hyper to the database of the local cloud
     const hasLocalCloud = capable.some(connection => isLocalCloud(connection.params));
     const addLocalCloud = async () => {
-        const state = createConnectionStateFromParams(await setupCore('cloud_setup'), createLocalCloudParams(), { name: LOCAL_CLOUD_NAME, active: true });
-        const connection = allocate(state);
+        const connection = allocate(newConnectionFromParams(createLocalCloudParams(), { name: LOCAL_CLOUD_NAME, active: true }));
         use(connection.connectionId, false);
     };
     return (

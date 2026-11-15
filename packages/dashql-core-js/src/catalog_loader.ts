@@ -1,9 +1,9 @@
 import { DashQL, Ptr } from './api.js';
-import type { ConnectionRelationName, DashQLConnection } from './connection.js';
+import type { ConnectionRelationName } from './connection.js';
 import type * as glue from './wasm/dashql_core.js';
 
 /// The catalog loader of the Rust runtime (`packages/dashql-core-runtime/src/catalog_loader/service.rs`, see
-/// docs/wip/core_runtime.md): it follows the Rust connections of a registry, schedules the updates of their catalogs,
+/// docs/wip/core_runtime.md): it follows the connections of a runtime, schedules the updates of their catalogs,
 /// runs them over the query executor and the HTTP client of the host and publishes into their catalogs. The host applies
 /// the start and the end of an update to the connection and keeps its cancellation.
 
@@ -27,14 +27,9 @@ export class DashQLCatalogLoader {
         this.ptr.destroy();
     }
 
-    /// Follow the Rust connection of a connection of the registry under its id
-    public follow(connectionId: string, connection: DashQLConnection): void {
-        this.ptr.assertNotNull().follow(connectionId, connection.ptr.assertNotNull());
-    }
-
-    /// The registry changed and holds the connections of the ids, in their order
-    public observe(connectionIds: string[]): void {
-        this.ptr.assertNotNull().observe(connectionIds);
+    /// Follow the connections of a runtime in their order, e.g. again after its list of connections changed
+    public follow(runtime: glue.Runtime): void {
+        this.ptr.assertNotNull().follow(runtime);
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update

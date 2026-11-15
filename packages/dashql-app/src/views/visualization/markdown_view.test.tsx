@@ -1,15 +1,14 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { buffers } from '@ankoh/dashql-core';
 import { MarkdownView, type MarkdownViewDependencies } from './markdown_view.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const Node = buffers.visualization.MarkdownNodeT;
 const NodeType = buffers.visualization.MarkdownNodeType;
@@ -22,14 +21,6 @@ function node(nodeType: buffers.visualization.MarkdownNodeType, options: Partial
 const dependencies: MarkdownViewDependencies = {
     logger: { warn: vi.fn() } as any,
 };
-
-function succeededQuery(table: arrow.Table): QueryExecutionState {
-    return {
-        queryId: 1,
-        status: QueryExecutionStatus.SUCCEEDED,
-        resultTable: table,
-    } as QueryExecutionState;
-}
 
 describe('MarkdownView', () => {
     let container: HTMLDivElement;
@@ -53,7 +44,7 @@ describe('MarkdownView', () => {
         });
 
         act(() => root.render(
-            <MarkdownView
+            <WithResultTables><MarkdownView
                 query={succeededQuery(table)}
                 spec={new Spec('', ['product', 'revenue'], node(NodeType.DOCUMENT, { children: [
                     node(NodeType.HEADING, { level: 2, children: [node(NodeType.FIELD, { value: 'product' })] }),
@@ -63,7 +54,7 @@ describe('MarkdownView', () => {
                     ] }),
                 ] }))}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(container.querySelectorAll('[data-markdown-row]')).toHaveLength(2);
@@ -76,7 +67,7 @@ describe('MarkdownView', () => {
         const table = tableFromArrays({ value: ['**owned** [click](javascript:alert(1))\n# heading'] });
 
         act(() => root.render(
-            <MarkdownView
+            <WithResultTables><MarkdownView
                 query={succeededQuery(table)}
                 spec={new Spec('', ['value'], node(NodeType.DOCUMENT, { children: [
                     node(NodeType.PARAGRAPH, { children: [
@@ -85,7 +76,7 @@ describe('MarkdownView', () => {
                     ] }),
                 ] }))}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(container.querySelector('script')).toBeNull();
@@ -99,7 +90,7 @@ describe('MarkdownView', () => {
         const table = tableFromArrays({ product: ['Alpha'] });
 
         act(() => root.render(
-            <MarkdownView
+            <WithResultTables><MarkdownView
                 query={succeededQuery(table)}
                 spec={new Spec('', ['product'], node(NodeType.DOCUMENT, { children: [
                     node(NodeType.PARAGRAPH, { children: [
@@ -108,7 +99,7 @@ describe('MarkdownView', () => {
                     ] }),
                 ] }))}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(container.querySelector('a')).toMatchObject({ target: '_blank', rel: 'noopener noreferrer' });

@@ -1,6 +1,4 @@
-import type * as dashql from '@ankoh/dashql-core';
-
-import { createConnectionStateFromParams, type ConnectionParams } from '../connection_params.js';
+import { newConnectionFromParams, type ConnectionParams } from '../connection_params.js';
 import type { ConnectionAllocator } from '../connection_registry_state.js';
 import type { KeyValueStorage } from '../../platform/key_value_storage.js';
 import type { ConnectionState } from '../connection_state.js';
@@ -105,7 +103,6 @@ export function bindHyperLink(
     target: HyperLinkTarget,
     connections: Iterable<ConnectionState>,
     allocate: ConnectionAllocator,
-    dql: dashql.DashQL,
     recentConnectionId: string | null,
     confirmReuse: (connection: ConnectionState) => boolean,
 ): HyperLinkBinding {
@@ -118,7 +115,7 @@ export function bindHyperLink(
         return { connection: recent, params: { hyper: { ...recent.params.hyper, endpoint: target.endpoint } } };
     }
     return {
-        connection: allocate(createConnectionStateFromParams(dql, createHyperLinkConnectionParams(target.endpoint), { active: true })),
+        connection: allocate(newConnectionFromParams(createHyperLinkConnectionParams(target.endpoint), { active: true })),
         params: null,
     };
 }

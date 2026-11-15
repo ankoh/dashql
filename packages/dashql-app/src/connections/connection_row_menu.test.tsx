@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 
 const refreshCatalog = vi.fn();
 
@@ -24,13 +24,14 @@ function database(connector: symbol = HYPER_CONNECTOR): ConnectionState {
     return {
         connectionId: 'database-1',
         connectionHealth: ConnectionHealth.ONLINE,
-        details: { type: connector, value: { proto: { setupParams: {} } } },
+        connectorType: connector === TRINO_CONNECTOR ? ConnectorType.TRINO : ConnectorType.HYPER,
+        details: { setupParams: {}, channel: null, connector: { kind: connector === TRINO_CONNECTOR ? 'trino' : 'hyper' } },
         params: connector === TRINO_CONNECTOR ? { trino: { endpoint: 'https://trino.example' } } : { hyper: {} },
         catalogUpdates: {
             currentFullRefresh: null,
-            tasksRunning: new Map(),
+            tasksRunning: [],
         },
-    } as ConnectionState;
+    } as unknown as ConnectionState;
 }
 
 describe('ConnectionRowMenu', () => {

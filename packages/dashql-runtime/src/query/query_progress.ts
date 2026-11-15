@@ -1,5 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import { ProfileExecutionState } from './profile_execution_state.js';
+import type { QueryExecutionProgress } from './query_execution_state.js';
 
 /// The progress model of a query runs in the query executor of the core (`dashql_core_runtime::query::progress`): the
 /// executor applies the progress payloads of the engines and reports the structured progress with every progress
@@ -19,9 +20,9 @@ export interface HyperQueryStatus {
     executionStats: { wallClockTime: number; rowsProcessed: number } | null;
 }
 
-/// The query and the history that hold a progress, its recording and its followers read it there
+/// The query and the runtime that hold a progress, its recording and its followers read it there
 export interface QueryProgressSource {
-    readonly history: dashql.DashQLQueryActions;
+    readonly runtime: dashql.Runtime;
     readonly queryId: number;
 }
 
@@ -69,10 +70,49 @@ export function projectProfileProgress(
 export function readProgressRecording(progress: QueryProfileProgress): string | null {
     if (progress.source == null) return null;
     try {
-        return progress.source.history.queryProgressRecording(progress.source.queryId);
+        return progress.source.runtime.queryProgressRecording(progress.source.queryId) ?? null;
     } catch {
         return null;
     }
+}
+
+/// The structures of the progress of queries by their bytes, a structure that didn't change keeps its bytes
+const STRUCTURES = new WeakMap<Uint8Array, dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>>();
+/// The progress of queries by the view of their latest progress, a view that didn't change keeps its object
+const PROGRESSES = new WeakMap<dashql.QueryLatestProgressView, QueryExecutionProgress>();
+
+/// The progress of a query of a runtime with its structured progress, the same object while the view of the progress
+/// doesn't change. The source names the query, its recording and its followers read it there.
+export function queryProgress(core: dashql.DashQL, view: dashql.QueryLatestProgressView | null | undefined, source: QueryProgressSource | null): QueryExecutionProgress | null {
+    if (view == null) return null;
+    const cached = PROGRESSES.get(view);
+    if (cached != null) return cached;
+    const profile = view.profile;
+    let profileProgress: QueryProfileProgress | null = null;
+    if (profile?.structure != null) {
+        const bytes = profile.structure;
+        let structure = STRUCTURES.get(bytes);
+        if (structure == null) {
+            structure = core.readQueryProfile(bytes);
+            STRUCTURES.set(bytes, structure);
+        }
+        const execution = profile.execution != null
+            ? ProfileExecutionState.EMPTY.withEvents(dashql.readFlatBuffer(profile.execution, bb => dashql.buffers.profile.QueryProfileEvents.getRootAsQueryProfileEvents(bb)))
+            : ProfileExecutionState.EMPTY;
+        profileProgress = { revision: profile.revision, structureVersion: profile.structureVersion, structure, execution, source };
+    }
+    const progress: QueryExecutionProgress = {
+        isQueued: view.isQueued,
+        progressPercent: view.progressPercent,
+        resultRows: view.resultRows,
+        rowsProcessed: view.rowsProcessed,
+        executionTimeMs: view.executionTimeMs,
+        metrics: view.metrics,
+        phase: view.phase,
+        profileProgress,
+    };
+    PROGRESSES.set(view, progress);
+    return progress;
 }
 
 /// Replay a recording of the progress of a query (JSON) up to a point in time in milliseconds since its first payload,
@@ -94,7 +134,7 @@ export class QueryProgressFollower {
     private readonly native: dashql.DashQLQueryProgressFollower;
     private previous: QueryProfileProgress | null = null;
 
-    public constructor(core: dashql.DashQL, layout: dashql.buffers.profile.ProfileLayoutConfigT) {
+    public constructor(private readonly core: dashql.DashQL, layout: dashql.buffers.profile.ProfileLayoutConfigT) {
         this.native = core.createQueryProgressFollower(layout);
     }
 
@@ -105,10 +145,10 @@ export class QueryProgressFollower {
         if (source == null) return null;
         // The progress of another query starts over
         const held = this.previous?.source;
-        const previous = held != null && held.history === source.history && held.queryId === source.queryId ? this.previous : null;
+        const previous = held != null && held.runtime === source.runtime && held.queryId === source.queryId ? this.previous : null;
         try {
-            const view = source.history.followQueryProgress(source.queryId, this.native, profileKeys(previous));
-            this.previous = view == null ? null : projectProfileProgress(view, previous, source, bytes => source.history.readQueryProfile(bytes));
+            const view = this.native.follow(source.runtime, source.queryId, profileKeys(previous));
+            this.previous = view == null ? null : projectProfileProgress(view, previous, source, bytes => this.core.readQueryProfile(bytes));
         } catch {
             this.previous = null;
         }

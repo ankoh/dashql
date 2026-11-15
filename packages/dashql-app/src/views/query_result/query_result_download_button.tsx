@@ -13,6 +13,7 @@ import { exportArrowTableAsParquet, supportsParquetExport } from '@ankoh/dashql-
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const enum DownloadFormat {
     Arrow = 'arrow',
@@ -44,7 +45,8 @@ export function QueryResultDownloadButton({ query, dependencies = DEFAULT_DEPEND
     const [open, setOpen] = React.useState(false);
     const [downloading, setDownloading] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && query.resultTable != null;
+    const resultTable = useQueryResultTable(query);
+    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
 
     const downloadResult = async (format: DownloadFormat) => {
         setOpen(false);
@@ -53,13 +55,13 @@ export function QueryResultDownloadButton({ query, dependencies = DEFAULT_DEPEND
         try {
             switch (format) {
                 case DownloadFormat.Arrow: {
-                    const bytes = arrow.tableToIPC(query.resultTable!, 'file');
+                    const bytes = arrow.tableToIPC(resultTable!, 'file');
                     await fileDownloader.downloadBufferAsFile(bytes, `query-result-${query.queryId}.arrow`);
                     break;
                 }
                 case DownloadFormat.Parquet: {
                     if (parquetDatabase == null) throw new Error('compute database cannot export Parquet');
-                    const bytes = await dependencies.exportArrowTableAsParquet(parquetDatabase, query.resultTable!);
+                    const bytes = await dependencies.exportArrowTableAsParquet(parquetDatabase, resultTable!);
                     await fileDownloader.downloadBufferAsFile(bytes, `query-result-${query.queryId}.parquet`);
                     break;
                 }

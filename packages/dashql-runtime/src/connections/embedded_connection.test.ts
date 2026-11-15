@@ -1,43 +1,47 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState, ConnectionStateWithoutId } from './connection_state.js';
-import { createAttachedConnectionParamsForConnector, createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from './connection_params.js';
+import type { ConnectionState, NewConnection } from './connection_state.js';
+import { createAttachedConnectionParamsForConnector, newConnectionFromParams, newDefaultHyperWasmConnection } from './connection_params.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
 import { isHyperWasmConnection } from './connection_label.js';
+import type { CoreRuntime } from '../core_runtime.js';
+import { testCoreRuntime } from '../testing/mocks/connector_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
+let runtime: CoreRuntime;
 
 beforeAll(async () => {
     dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
 });
+beforeEach(() => { runtime = testCoreRuntime(dql); });
 afterEach(() => {
     vi.restoreAllMocks();
-    dql.resetUnsafe();
+    runtime.destroy();
 });
 
-/// Allocate connections with ids in call order
+/// Create connections in the runtime with ids in call order
 function allocator() {
     let next = 0;
-    return vi.fn((state: ConnectionStateWithoutId): ConnectionState => ({ ...state, connectionId: `allocated-${next++}` }));
+    return vi.fn((connection: NewConnection): ConnectionState => runtime.createConnection(connection, `allocated-${next++}`));
 }
 
 describe('embedded connection', () => {
     it('reuses the known connection to the embedded Hyper', () => {
-        const server = { ...createConnectionStateFromParams(dql, createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER])), connectionId: 'server' };
-        const embedded = { ...createDefaultHyperWasmConnectionState(dql), connectionId: 'embedded' };
+        const server = runtime.createConnection(newConnectionFromParams(createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER])), 'server');
+        const embedded = runtime.createConnection(newDefaultHyperWasmConnection(), 'embedded');
         const allocate = allocator();
         expect(findEmbeddedConnection([server])).toBeNull();
-        expect(embeddedConnection([server, embedded], allocate, dql)).toBe(embedded);
+        expect(embeddedConnection([server, embedded], allocate)).toBe(embedded);
         expect(allocate).not.toHaveBeenCalled();
     });
 
     it('allocates an active connection to the embedded Hyper when none is known', () => {
         const allocate = allocator();
-        const connection = embeddedConnection([], allocate, dql);
+        const connection = embeddedConnection([], allocate);
         expect(allocate).toHaveBeenCalledTimes(1);
         expect(connection.active).toBe(true);
         expect(isHyperWasmConnection(connection)).toBe(true);
@@ -45,24 +49,27 @@ describe('embedded connection', () => {
 });
 
 describe('new workbook connection', () => {
-    const embedded = () => ({ ...createDefaultHyperWasmConnectionState(dql), connectionId: 'embedded' });
-    const linked = () => ({ ...createConnectionStateFromParams(dql, createHyperLinkConnectionParams('http://127.0.0.1:7484')), connectionId: 'linked' });
-    const cloud = () => ({ ...createConnectionStateFromParams(dql, { hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484', tls: {} } } as any), connectionId: 'cloud' });
+    const connections = () => {
+        const embedded = runtime.createConnection(newDefaultHyperWasmConnection(), 'embedded');
+        const linked = runtime.createConnection(newConnectionFromParams(createHyperLinkConnectionParams('http://127.0.0.1:7484')), 'linked');
+        const cloud = runtime.createConnection(newConnectionFromParams({ hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484', tls: {} } } as any), 'cloud');
+        return { embedded, linked, cloud, all: new Map([['embedded', embedded], ['linked', linked], ['cloud', cloud]]) };
+    };
 
     it('starts new workbooks on the embedded Hyper without a link, also with a cloud', () => {
-        const connection = embedded();
-        expect(newWorkbookConnection(new Map([['embedded', connection], ['linked', linked()], ['cloud', cloud()]]), allocator(), dql, null)).toBe(connection);
+        const { embedded, all } = connections();
+        expect(newWorkbookConnection(all, allocator(), null)).toBe(embedded);
     });
 
     it('starts new workbooks on the connection of the latest link of the tab', () => {
-        const connection = linked();
+        const { linked, all } = connections();
         const allocate = allocator();
-        expect(newWorkbookConnection(new Map([['embedded', embedded()], ['linked', connection], ['cloud', cloud()]]), allocate, dql, 'linked')).toBe(connection);
+        expect(newWorkbookConnection(all, allocate, 'linked')).toBe(linked);
         expect(allocate).not.toHaveBeenCalled();
     });
 
     it('falls back to the embedded Hyper when the connection of the link is gone', () => {
-        const connection = embedded();
-        expect(newWorkbookConnection(new Map([['embedded', connection]]), allocator(), dql, 'deleted')).toBe(connection);
+        const { embedded } = connections();
+        expect(newWorkbookConnection(new Map([['embedded', embedded]]), allocator(), 'deleted')).toBe(embedded);
     });
 });

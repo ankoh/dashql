@@ -10,6 +10,7 @@ import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-ru
 import type { ResolvedVisualizeQuery } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { authoredChartSpec, ChartBuilderOverlay, type ChartBuilderOverlayDependencies } from './chart_builder_overlay.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -45,14 +46,14 @@ describe('ChartBuilderOverlay', () => {
     function render(props: Partial<React.ComponentProps<typeof ChartBuilderOverlay>> & { onChange: (spec: string) => void }) {
         act(() => root.render(
             <LoggerProvider>
-                <ChartBuilderOverlay
+                <WithResultTables><ChartBuilderOverlay
                     scriptName="sales"
                     visualizeQuery={null}
                     queryState={null}
                     onClose={vi.fn()}
                     dependencies={dependencies}
                     {...props}
-                />
+                /></WithResultTables>
             </LoggerProvider>,
         ));
     }
@@ -94,7 +95,7 @@ describe('ChartBuilderOverlay', () => {
     it('lists the columns of the result in the field dropdown', () => {
         const onChange = vi.fn();
         const resultTable = tableFromArrays({ region: ['a', 'b'], revenue: Float64Array.from([1, 2]) });
-        const queryState = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable } as unknown as QueryExecutionState;
+        const queryState = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(resultTable) } as unknown as QueryExecutionState;
         render({ onChange, queryState });
         expect(Array.from(document.querySelectorAll('[data-testid="chart-column"]')).map(c => c.textContent)).toEqual(['Nregion', 'Qrevenue']);
         pick('chart-channel-y-field', 'revenue');

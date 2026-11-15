@@ -25,6 +25,14 @@ import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import * as core from '@ankoh/dashql-core';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { addTestConnections } from '../../tests/test_connections.js';
+
+let coreRuntime: CoreRuntime | null = null;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -62,6 +70,7 @@ describe('WorkbookFileSaveOverlay', () => {
 
     function Capture() {
         registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         workbooks = useWorkbookScriptsRegistry();
         return null;
     }
@@ -85,10 +94,7 @@ describe('WorkbookFileSaveOverlay', () => {
         );
         await root.render(tree(false));
         await act(async () => {
-            registry![1](reg => {
-                reg.connections.set(TEST_CONNECTION_ID, CONNECTION);
-                return { ...reg };
-            });
+            addTestConnections(coreRuntime!, [CONNECTION]);
             if (known) workbooks![1](reg => ({ ...reg, workbookScriptsMap: new Map([[TEST_WORKBOOK_ID, WORKBOOK]]) }));
         });
         await root.render(tree(true));

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
 
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -20,7 +21,10 @@ import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing
 import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookImportProvider, useWorkbookImport } from './workbook_import_provider.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
-import { TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {
@@ -76,7 +80,7 @@ interface Api {
     writer: StorageWriter;
     logger: Logger;
     connections: ReadonlyMap<string, ConnectionState>;
-    setConnections: ReturnType<typeof useConnectionRegistry>[1];
+    coreRuntime: CoreRuntime;
     workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
 }
 
@@ -84,10 +88,11 @@ function Capture(props: { capture: (api: Api) => void }) {
     const importer = useWorkbookImport();
     const [, writer] = useStorage();
     const logger = useLogger();
-    const [registry, setConnections] = useConnectionRegistry();
+    const [registry] = useConnectionRegistry();
+    const coreRuntime = useCoreRuntime();
     const [workbooks] = useWorkbookScriptsRegistry();
     React.useLayoutEffect(() => {
-        props.capture({ importer, writer, logger, connections: registry.connections, setConnections, workbooks });
+        props.capture({ importer, writer, logger, connections: registry.connections, coreRuntime, workbooks });
     });
     return <div data-testid="app-content" />;
 }
@@ -101,6 +106,10 @@ function buttonWithText(text: string): HTMLButtonElement {
     if (button == null) throw new Error(`No button "${text}"`);
     return button;
 }
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+// The runtime of the test holds the connections with this core
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('WorkbookImportProvider', () => {
     let container: HTMLDivElement;
@@ -357,13 +366,7 @@ describe('WorkbookImportProvider', () => {
             // The manifest still has the old endpoint, only the live connection matches the workbook
             registry.connections = [{ id: KNOWN_TRINO_ID, params: { trino: { endpoint: 'https://old.example' } }, name: 'Production' } as never];
             await renderProvider();
-            await act(async () => {
-                api.setConnections(current => {
-                    const connections = new Map(current.connections);
-                    connections.set(KNOWN_TRINO_ID, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS, details: { type: TRINO_CONNECTOR, value: {} } } as never);
-                    return { ...current, connections };
-                });
-            });
+            await act(async () => { addTestConnection(api.coreRuntime, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS as never }); });
             let result!: Promise<string | null>;
             await act(async () => { result = api.importer.importPortableBundle(trinoSession(), CENTERED); });
             await vi.waitFor(() => expect(document.body.textContent).toContain('Use Production'));
@@ -510,23 +513,19 @@ describe('WorkbookImportProvider', () => {
         await renderProvider();
         await act(async () => { await api.importer.importPortableBundle(bundleOf(), CENTERED); });
         await vi.waitFor(() => expect(api.connections.has(HYPER_ID)).toBe(true));
+        const queries: number[] = [];
         await act(async () => {
-            api.setConnections(current => {
-                const connections = new Map(current.connections);
-                const query = (workbookId: string) => ({ queryMetadata: { workbookId } });
-                connections.set(HYPER_ID, {
-                    ...connections.get(HYPER_ID)!,
-                    queriesActive: new Map([[1, query(WORKBOOK_ID)], [2, query(OTHER_WORKBOOK_ID)]]),
-                    queriesActiveOrdered: [1, 2],
-                } as never);
-                return { ...current, connections };
+            const metadata = (workbookId: string) => ({
+                queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId,
             });
+            queries.push(trackTestQuery(api.coreRuntime, { connection: HYPER_ID }, 'select 1', metadata(WORKBOOK_ID), false));
+            queries.push(trackTestQuery(api.coreRuntime, { connection: HYPER_ID }, 'select 1', metadata(OTHER_WORKBOOK_ID), false));
         });
-        await vi.waitFor(() => expect(api.connections.get(HYPER_ID)?.queriesActiveOrdered).toEqual([1, 2]));
+        await vi.waitFor(() => expect(api.connections.get(HYPER_ID)?.queriesActiveOrdered).toEqual(queries));
         const { result } = await askConflict(() => api.importer.importPortableBundle(bundleOf({}, 'select 2'), CENTERED));
         await click(byTestId('workbook-import-replace'));
         expect(await result).toBe(WORKBOOK_ID);
-        expect(cancelQuery.mock.calls).toEqual([[HYPER_ID, 1]]);
+        expect(cancelQuery.mock.calls).toEqual([[HYPER_ID, queries[0]]]);
     });
 
     describe('findPortableBundleConflict', () => {

@@ -13,6 +13,7 @@ import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_tool
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { formatResultDetail } from './query_result_header.js';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 export interface QueryResultDetailsDependencies {
     QueryResultToolbar: typeof QueryResultToolbar;
@@ -59,13 +60,14 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
     const clearCrossFilters = React.useCallback(() => {
         computationDispatch({ kind: 'clearCrossFilters' });
     }, [computationDispatch]);
+    const resultTable = useQueryResultTable(query);
     return (
         <div className={classNames(styles.root, { [styles.root_fit_height]: fitHeight })}>
             <TabHeader
                 title="Query Results"
                 detail={formatResultDetail(searchRows.matchingRows == null
                     ? formatRowCountDetail(searchRows.totalRows)
-                    : `${searchRows.matchingRows} of ${searchRows.currentRows ?? searchRows.totalRows ?? 0} rows`, query.resultTable)}
+                    : `${searchRows.matchingRows} of ${searchRows.currentRows ?? searchRows.totalRows ?? 0} rows`, resultTable)}
                 actions={(
                     <>
                         <QueryResultToolbarComponent query={query} />

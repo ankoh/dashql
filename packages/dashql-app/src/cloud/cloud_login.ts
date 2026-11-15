@@ -11,6 +11,7 @@ import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_che
 import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useSalesforceSetup } from '../connections/salesforce/salesforce_connector.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 // The login to the cloud connection with its saved settings, the same setup that Connect of its settings runs.
 // Database.com logs in with OAuth in a popup, so the login runs on a click. A Hyper server connects with the endpoint and
@@ -33,7 +34,7 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
     const salesforceSetup = useSalesforceSetup();
     const executor = useQueryExecutor();
 
-    const connector = connectionState?.connectorInfo.connectorType;
+    const connector = connectionState?.connectorType;
     const available = connector === ConnectorType.HYPER ? hyperSetup != null
         : connector === ConnectorType.DBCOM ? salesforceSetup != null
         : false;
@@ -69,8 +70,8 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
 
 /// The error of the last login of a connection
 export function connectionError(connection: ConnectionState): string | null {
-    const proto = (connection.details.value as { proto?: { setupError?: { message?: string }; healthCheckError?: { message?: string } } }).proto;
-    return proto?.setupError?.message ?? proto?.healthCheckError?.message ?? null;
+    const setupError = connection.details.connector.kind === 'salesforce' ? connection.details.connector.setupError : null;
+    return setupError?.message ?? connection.details.healthCheckError?.message ?? null;
 }
 
 /// Log in to the local cloud without a click, it needs no credentials. Once per connection.

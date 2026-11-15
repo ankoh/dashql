@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -36,7 +37,7 @@ describe('DashboardCard', () => {
         root = createRoot(container);
         act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={script}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
@@ -56,7 +57,7 @@ describe('DashboardCard', () => {
                     onRun={vi.fn()}
                     onStop={vi.fn()}
                     dependencies={dependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
     });
@@ -71,7 +72,7 @@ describe('DashboardCard', () => {
         const onRemoveVisualization = vi.fn();
         act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={script}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 2, height: 1 }}
@@ -91,7 +92,7 @@ describe('DashboardCard', () => {
                     onRun={vi.fn()}
                     onStop={vi.fn()}
                     dependencies={dependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
 
@@ -110,7 +111,7 @@ describe('DashboardCard', () => {
         const onDelete = vi.fn();
         act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={script}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
@@ -132,7 +133,7 @@ describe('DashboardCard', () => {
                     onRename={onRename}
                     onDelete={onDelete}
                     dependencies={dependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
         const group = container.querySelector('[role="group"][aria-label="Actions of 1_sales"]')!;
@@ -166,7 +167,7 @@ describe('DashboardCard', () => {
         } as ScriptData;
         const render = (card: ScriptData, queryState: unknown) => act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={card}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
@@ -186,14 +187,14 @@ describe('DashboardCard', () => {
                     onRun={vi.fn()}
                     onStop={vi.fn()}
                     dependencies={{ ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
         const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
 
         // A table offers the chart and Markdown, the selected renderer does nothing
         const result = { schema: { fields: [{ name: 'region' }, { name: 'revenue' }] } };
-        render(tableScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: result });
+        render(tableScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(result as never) });
         expect(button('dashboard-card-chart-builder')).toBeNull();
         act(() => button('dashboard-card-renderer-table')!.click());
         expect(onVisualize).not.toHaveBeenCalled();
@@ -223,7 +224,7 @@ describe('DashboardCard', () => {
         const staged = { ...script, pendingDiff: { priorText: 'select 1', diffBuffer: null } } as unknown as ScriptData;
         act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={staged}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
@@ -243,7 +244,7 @@ describe('DashboardCard', () => {
                     onRun={vi.fn()}
                     onStop={vi.fn()}
                     dependencies={dependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
         const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
@@ -265,7 +266,7 @@ describe('DashboardCard', () => {
         const onStop = vi.fn();
         const render = (queryState: unknown, runnable: boolean) => act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={script}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
@@ -285,7 +286,7 @@ describe('DashboardCard', () => {
                     onRun={onRun}
                     onStop={onStop}
                     dependencies={{ ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
         const run = () => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-run"]')!;
@@ -320,7 +321,7 @@ describe('DashboardCard', () => {
         } as ScriptData;
         act(() => root.render(
             <DndContext>
-                <DashboardCard
+                <WithResultTables><DashboardCard
                     workbookId="workbook"
                     script={tableScript}
                     placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
@@ -340,7 +341,7 @@ describe('DashboardCard', () => {
                     onRun={vi.fn()}
                     onStop={vi.fn()}
                     dependencies={dependencies}
-                />
+                /></WithResultTables>
             </DndContext>,
         ));
 
@@ -361,7 +362,7 @@ describe('DashboardCard', () => {
             const collapsedDependencies = { ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies;
             act(() => root.render(
                 <DndContext>
-                    <DashboardCard
+                    <WithResultTables><DashboardCard
                         workbookId="workbook"
                         script={card}
                         placement={{ id: 1, section: 'scripts', row: 0, column: 0, width: 6, height: 1 }}
@@ -373,7 +374,7 @@ describe('DashboardCard', () => {
                         runnable={false}
                         {...callbacks}
                         dependencies={collapsedDependencies}
-                    />
+                    /></WithResultTables>
                 </DndContext>,
             ));
         }
@@ -388,7 +389,7 @@ describe('DashboardCard', () => {
 
         it('collapses to its header with the renderers and an editor', () => {
             const result = { schema: { fields: [{ name: 'region' }, { name: 'revenue' }, { name: 'year' }] } };
-            renderCollapsed(plainScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: result });
+            renderCollapsed(plainScript, { queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(result as never) });
             expect(container.querySelector('[data-testid="output"]')).toBeNull();
             // An offline card does not run
             expect(button('dashboard-card-run').disabled).toBe(true);

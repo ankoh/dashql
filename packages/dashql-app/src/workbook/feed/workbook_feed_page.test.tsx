@@ -134,21 +134,21 @@ describe('WorkbookFeedPage', () => {
             workbookScripts={scripts()} modifyWorkbookScripts={modify} connection={connection} active dependencies={dependencies} />));
         render(null);
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
-        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map() });
+        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [] });
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!.click());
         expect(state.execution.start).toHaveBeenCalledWith(modify);
-        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map([[1, {}]]) });
+        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [1] });
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
         // A connection that is connecting would join a moment later, the run waits for it
-        render({ connectionId: 'main', connectionHealth: ConnectionHealth.CONNECTING, queriesActive: new Map() });
+        render({ connectionId: 'main', connectionHealth: ConnectionHealth.CONNECTING, queriesActiveOrdered: [] });
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
     });
 
     it('runs while the connections of the scripts are not connected, they serve their cached results', () => {
         const modify = vi.fn();
-        const main = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map() } as any;
-        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
-        const unused = { connectionId: 'unused', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        const main = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [] } as any;
+        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
+        const unused = { connectionId: 'unused', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         const workbook = scripts();
         workbook.scripts[1].connection = { connectionId: 'lake' };
         const render = (connections: any[]) => act(() => root.render(<WorkbookFeedPage
@@ -174,7 +174,7 @@ describe('WorkbookFeedPage', () => {
     });
 
     it('points at the connections once a run skipped the scripts that need them', async () => {
-        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         const workbook = scripts();
         workbook.scripts[1].connection = { connectionId: 'lake' };
         const render = (phase: string, skippedScripts: number, connection = lake) => {
@@ -207,7 +207,7 @@ describe('WorkbookFeedPage', () => {
     });
 
     it('shows the connection picked for the next script in the top bar without running it', () => {
-        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         // An empty workbook runs nothing yet, the composer drafts its first script on the picked connection
         const workbook = { ...scripts(), scriptRefs: {}, scriptOrder: [], scripts: {}, pendingConnection: { connectionId: 'lake' } };
         act(() => root.render(<WorkbookFeedPage

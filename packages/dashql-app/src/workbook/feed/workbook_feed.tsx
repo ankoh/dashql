@@ -255,7 +255,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const pinnedDataFiles = dataFiles?.workbookId === workbookId ? dataFiles.files : [];
     // A read-only workbook adds no scripts and no attachments
     const readOnly = useWorkbookReadOnly();
-    const attachmentsEnabled = !readOnly && connectionReadsAttachments(props.conn?.details);
+    const attachmentsEnabled = !readOnly && connectionReadsAttachments(props.conn);
     // The files that are being attached, the status of the workbook tells them
     const [attaching, setAttaching] = React.useState<{ workbookId: string; files: number } | null>(null);
     const reportOutcomes = useReportWorkbookOutcomes();

@@ -4,17 +4,18 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { WorkbookShellsPage, type WorkbookShellsPageDependencies } from './workbook_shells_page.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-function fakeConnection(connectionId: string, connector: string) {
+function fakeConnection(connectionId: string) {
     return {
         connectionId,
         connectionHealth: ConnectionHealth.ONLINE,
-        connectorInfo: { names: { displayLong: connector, displayShort: connector }, icons: { colored: 'database', uncolored: 'database' } },
-        details: { type: null },
+        connectorType: ConnectorType.HYPER,
+        details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
     };
 }
 
@@ -67,8 +68,8 @@ describe('WorkbookShellsPage', () => {
 
     beforeEach(() => {
         state.connections = new Map([
-            ['main', fakeConnection('main', 'Hyper')],
-            ['attached', fakeConnection('attached', 'Hyper')],
+            ['main', fakeConnection('main')],
+            ['attached', fakeConnection('attached')],
         ]);
         state.ordinals = new Map([['main', 1], ['attached', 2]]);
         state.shellMounts = [];

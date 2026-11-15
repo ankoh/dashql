@@ -8,7 +8,7 @@ import { XIcon, TrashIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js'
 import { ButtonVariant, ButtonSize, IconButton } from '../../ui/foundations/button.js';
 import type { QueryResultCacheEntry } from '@ankoh/dashql-runtime/query/query_result_cache';
 import { markDeletedQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/query_result_cache_clear';
-import { useDynamicConnectionDispatch } from '../../connections/connection_registry.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
@@ -74,9 +74,7 @@ export function QueryCacheView(props: { onClose: () => void; }) {
     const logger = useLogger();
     const cache = useQueryResultCache();
     // The finished queries learn about deleted results, the registry is read after the delete
-    const [databaseRegistry, databaseDispatch] = useDynamicConnectionDispatch();
-    const databaseRegistryRef = React.useRef(databaseRegistry);
-    databaseRegistryRef.current = databaseRegistry;
+    const coreRuntime = useOptionalCoreRuntime();
 
 
     const [entries, setEntries] = React.useState<QueryResultCacheEntry[]>([]);
@@ -106,12 +104,12 @@ export function QueryCacheView(props: { onClose: () => void; }) {
         }
         try {
             // A file that is read right now stays, the key is still cached
-            if (await cache.delete(key)) markDeletedQueryResults(databaseRegistryRef.current, databaseDispatch, [key]);
+            if (await cache.delete(key)) (coreRuntime == null ? 0 : markDeletedQueryResults(coreRuntime, [key]));
         } catch (e: any) {
             logger.warn('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
         }
         await refresh();
-    }, [cache, logger, refresh, databaseDispatch]);
+    }, [cache, logger, refresh, coreRuntime]);
 
     const clearAll = React.useCallback(async () => {
         if (cache == null) {
@@ -119,7 +117,7 @@ export function QueryCacheView(props: { onClose: () => void; }) {
         }
         try {
             const keys = await cache.clear();
-            const queries = markDeletedQueryResults(databaseRegistryRef.current, databaseDispatch, keys);
+            const queries = (coreRuntime == null ? 0 : markDeletedQueryResults(coreRuntime, keys));
             logger.info('cleared the query result cache', {
                 entries: String(keys.length),
                 queries: String(queries),
@@ -128,7 +126,7 @@ export function QueryCacheView(props: { onClose: () => void; }) {
             logger.warn('failed to clear the query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
         }
         await refresh();
-    }, [cache, logger, refresh, databaseDispatch]);
+    }, [cache, logger, refresh, coreRuntime]);
 
     // Aggregate totals for the header summary.
     const totalBytes = React.useMemo(() => entries.reduce((sum, e) => sum + e.size, 0), [entries]);

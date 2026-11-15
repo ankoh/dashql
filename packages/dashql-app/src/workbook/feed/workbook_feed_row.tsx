@@ -18,7 +18,7 @@ import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useCancelQuery, useQueryState } from '../../connections/query_executor.js';
+import { useCancelQuery, useQueryProgress, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { getScriptRefs, type WorkbookScripts, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
@@ -200,7 +200,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
 
     // The result header persists for active and terminal execution states. It can collapse the
     // result body without affecting its cancel, cache, and rerun actions.
-    const entryStatus = deriveEntryStatus(queryState);
+    const queryProgress = useQueryProgress(queryState);
+    const entryStatus = deriveEntryStatus(queryState, queryProgress);
     const scriptKey = props.scriptData?.scriptKey ?? null;
     // The result tabs live in the status bar, their panel below it
     const resultTabs = useFeedEntryTabs(queryState, props.scriptData?.annotations.visualizeQuery ?? null);

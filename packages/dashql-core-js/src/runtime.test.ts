@@ -26,14 +26,31 @@ function platform() {
             release: handle => {
                 objects.delete(handle);
             },
+            get: handle => objects.get(handle),
+            duplicate: handle => {
+                objects.set(next, objects.get(handle));
+                return next++;
+            },
         },
         tables: {
             begin: () => { throw new Error('no tables'); },
             append: () => { throw new Error('no tables'); },
             finish: () => { throw new Error('no tables'); },
             read: () => { throw new Error('no tables'); },
+            open: () => { throw new Error('no tables'); },
+            push: () => { throw new Error('no tables'); },
         },
         compute: null,
+        http: { fetch: () => Promise.reject(new Error('no http')), abort: () => { } },
+        channels: {
+            open: () => Promise.reject(new Error('no channels')),
+            next: () => Promise.reject(new Error('no channels')),
+            cancel: async () => { },
+            profileDetail: () => { },
+        },
+        resultCache: null,
+        crypto: { randomUuid: () => 'uuid' },
+        cancelSetup: () => { },
         changed: urgent => {
             changed.push(urgent);
         },
@@ -53,7 +70,7 @@ describe('DashQL runtime', () => {
     it('applies an action to a slice that is not there without a change', () => {
         const { platform: host, changed } = platform();
         const runtime = dql!.createRuntime(host);
-        expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' })).toEqual({ ok: true, changed: false, error: null });
+        expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' })).toEqual({ ok: true, changed: false, error: null, id: null });
         expect(runtime.dispatch({ computation: 1 }, { kind: 'orderBy', value: { constraints: [{ field: 'a', ascending: false }] } }).changed).toBe(false);
         expect(runtime.dispatch({ computation: 1 }, { kind: 'histogramFilter', value: { columnGroup: 1, selection: [0, 2] } }).ok).toBe(true);
         expect(runtime.dispatch({ computation: 1 }, { kind: 'setResultSearchPattern', value: { search: 'data', pattern: 'x' } }).ok).toBe(true);

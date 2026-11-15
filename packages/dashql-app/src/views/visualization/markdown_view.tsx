@@ -7,6 +7,7 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import * as styles from './markdown_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 type MarkdownNode = buffers.visualization.MarkdownNodeT;
 type MarkdownSpec = buffers.visualization.MarkdownSpecT;
@@ -106,7 +107,8 @@ export function MarkdownView(props: Props): React.ReactElement {
     const contextLogger = useLogger();
     const logger = props.dependencies?.logger ?? contextLogger;
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
-    const table = succeeded ? props.query?.resultTable ?? null : null;
+    const queryResult = useQueryResultTable(props.query);
+    const table = succeeded ? queryResult : null;
 
     const renderedRows = React.useMemo(() => {
         if (props.spec == null || table == null) return null;

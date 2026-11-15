@@ -51,6 +51,9 @@ function getStatusLabel(status: QueryExecutionStatus): string {
     }
 }
 
+/// A point in time in milliseconds since epoch in ISO 8601, null for none
+const iso = (ms: number | null) => ms == null ? null : new Date(ms).toISOString();
+
 function entryToObject(entry: QueryEntry): object {
     const q = entry.query;
     const m = q.metrics;
@@ -63,18 +66,18 @@ function entryToObject(entry: QueryEntry): object {
         queryText: q.queryText,
         metadata: q.queryMetadata,
         metrics: {
-            queryRequestedAt: m.queryRequestedAt?.toISOString() ?? null,
-            querySendingStartedAt: m.querySendingStartedAt?.toISOString() ?? null,
-            queryQueuedStartedAt: m.queryQueuedStartedAt?.toISOString() ?? null,
-            queryRunningStartedAt: m.queryRunningStartedAt?.toISOString() ?? null,
-            receivedFirstBatchAt: m.receivedFirstBatchAt?.toISOString() ?? null,
-            receivedLastBatchAt: m.receivedLastBatchAt?.toISOString() ?? null,
-            receivedAllBatchesAt: m.receivedAllBatchesAt?.toISOString() ?? null,
-            processingResultsStartedAt: m.processingResultsStartedAt?.toISOString() ?? null,
-            processedResultsAt: m.processedResultsAt?.toISOString() ?? null,
-            querySucceededAt: m.querySucceededAt?.toISOString() ?? null,
-            queryFailedAt: m.queryFailedAt?.toISOString() ?? null,
-            queryCancelledAt: m.queryCancelledAt?.toISOString() ?? null,
+            queryRequestedAt: iso(m.queryRequestedAt),
+            querySendingStartedAt: iso(m.querySendingStartedAt),
+            queryQueuedStartedAt: iso(m.queryQueuedStartedAt),
+            queryRunningStartedAt: iso(m.queryRunningStartedAt),
+            receivedFirstBatchAt: iso(m.receivedFirstBatchAt),
+            receivedLastBatchAt: iso(m.receivedLastBatchAt),
+            receivedAllBatchesAt: iso(m.receivedAllBatchesAt),
+            processingResultsStartedAt: iso(m.processingResultsStartedAt),
+            processedResultsAt: iso(m.processedResultsAt),
+            querySucceededAt: iso(m.querySucceededAt),
+            queryFailedAt: iso(m.queryFailedAt),
+            queryCancelledAt: iso(m.queryCancelledAt),
             durationMs: m.queryDurationMs,
             progressUpdatesReceived: m.progressUpdatesReceived,
         },
@@ -99,7 +102,7 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
 
     const isSelected = rowIndex === selectedIndex;
     const lastUpdatedAt = entry.query.metrics.lastUpdatedAt;
-    const time = lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString('en-GB', { hour12: false }) : '—';
+    const time = lastUpdatedAt != null ? new Date(lastUpdatedAt).toLocaleTimeString('en-GB', { hour12: false }) : '—';
 
     return (
         <div

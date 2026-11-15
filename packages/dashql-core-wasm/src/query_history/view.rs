@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::views::{app_enum, FlatBufferBytes};
+use crate::views::{app_enum, FlatBufferBytes, JsonValue};
 
 app_enum! {
     "The status of the execution of a query"
@@ -256,8 +256,9 @@ impl QueryLatestProgressView {
     }
 }
 
-/// What a query is and who issued it. A planned statement stays with the host.
-#[derive(Clone, Debug, Deserialize, Tsify)]
+/// What a query is and who issued it. A planned statement of a run of a workbook is opaque JSON
+/// (`PlannedStatement` of the app).
+#[derive(Clone, Debug, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct QueryMetadataView {
@@ -267,10 +268,15 @@ pub struct QueryMetadataView {
     pub description: Option<String>,
     pub issuer: Option<String>,
     pub user_provided: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub workbook_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub result_owner: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(optional, type = "unknown")]
+    pub planned: Option<JsonValue>,
 }
 
 impl From<QueryMetadataView> for QueryMetadata {
@@ -282,7 +288,23 @@ impl From<QueryMetadataView> for QueryMetadata {
         metadata.user_provided = m.user_provided;
         metadata.workbook_id = m.workbook_id;
         metadata.result_owner = m.result_owner;
+        metadata.planned = m.planned.map(|planned| planned.0).filter(|planned| !planned.is_null());
         metadata
+    }
+}
+
+impl From<&QueryMetadata> for QueryMetadataView {
+    fn from(m: &QueryMetadata) -> Self {
+        QueryMetadataView {
+            query_type: m.query_type.into(),
+            title: m.title.clone(),
+            description: m.description.clone(),
+            issuer: m.issuer.clone(),
+            user_provided: m.user_provided,
+            workbook_id: m.workbook_id.clone(),
+            result_owner: m.result_owner.clone(),
+            planned: m.planned.clone().map(JsonValue),
+        }
     }
 }
 
@@ -328,13 +350,19 @@ pub struct QueryResultTableView {
     pub rows: u64,
 }
 
-/// The plain fields of a query and its latest progress. The text and the metadata stay with the host, in the record
-/// of the query under its handle.
+/// A query, the slice `query` of the runtime: its text, what it is, its status and its latest progress. The field names
+/// are the ones the app reads. The result table is a table of the handle table of the platform.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct QueryView {
     pub query_id: u64,
+    /// The connection of the query, null for a query of a history without a connection
+    pub connection_id: Option<String>,
+    /// The trace of the log messages of the query
+    pub trace_id: u64,
+    pub query_text: String,
+    pub query_metadata: QueryMetadataView,
     #[tsify(type = "QueryExecutionStatus")]
     pub status: QueryExecutionStatus,
     pub metrics: QueryMetricsView,
@@ -344,7 +372,7 @@ pub struct QueryView {
     pub served_from_cache: bool,
     pub cache_deleted: bool,
     pub cached_at: Option<i64>,
-    pub latest_progress: Option<QueryLatestProgressView>,
+    pub latest_progress_update: Option<QueryLatestProgressView>,
     pub revision: u64,
     /// The handle of the record of the query at the host
     pub handle: Option<u32>,
@@ -352,10 +380,14 @@ pub struct QueryView {
 
 impl QueryView {
     /// The view of a query, the payloads of its structured progress that the host holds don't cross
-    pub fn of(query: &QueryExecutionState, known: QueryProfileKeys) -> Self {
+    pub fn of(query: &QueryExecutionState, connection_id: Option<&str>, known: QueryProfileKeys) -> Self {
         let m = &query.metrics;
         QueryView {
             query_id: query.query_id,
+            connection_id: connection_id.map(str::to_string),
+            trace_id: query.trace_id,
+            query_text: query.query_text.clone(),
+            query_metadata: (&query.query_metadata).into(),
             status: query.status.into(),
             metrics: QueryMetricsView {
                 query_requested_at: m.query_requested_at,
@@ -382,7 +414,7 @@ impl QueryView {
             served_from_cache: query.served_from_cache,
             cache_deleted: query.cache_deleted,
             cached_at: query.cached_at,
-            latest_progress: query.latest_progress_update.as_ref().map(|progress| QueryLatestProgressView::of(progress, known)),
+            latest_progress_update: query.latest_progress_update.as_ref().map(|progress| QueryLatestProgressView::of(progress, known)),
             revision: query.revision,
             handle: query.handle,
         }
@@ -423,34 +455,17 @@ pub struct QueryHistoryMetrics {
     pub failed_queries: QueryOutcomeMetrics,
 }
 
-/// The queries of a history: the active ones in the order they started and the finished ones in the order they
-/// finished, each as `[id, revision]`
+/// The queries of a history without a connection, the slice `history`: the finished queries in the order they finished,
+/// then the active ones in the order they started
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
-pub struct QueriesView {
-    pub revision: u64,
-    pub active: Vec<(u64, u64)>,
-    pub finished: Vec<(u64, u64)>,
-    /// Changes whenever a query starts or finishes
-    pub snapshot: u64,
-    pub metrics: QueryHistoryMetrics,
+pub struct QueryHistoryView {
+    pub queries: Vec<u64>,
 }
 
-impl From<&QueryExecutionHistory> for QueriesView {
+impl From<&QueryExecutionHistory> for QueryHistoryView {
     fn from(history: &QueryExecutionHistory) -> Self {
-        let list = |ids: &[u64]| ids.iter().map(|id| (*id, history.query(*id).map(|query| query.revision).unwrap_or(0))).collect();
-        let metrics = history.metrics();
-        QueriesView {
-            revision: history.revision(),
-            active: list(history.active_ids()),
-            finished: list(history.finished_ids()),
-            snapshot: history.snapshot_queries_active_finished(),
-            metrics: QueryHistoryMetrics {
-                successful_queries: (&metrics.successful_queries).into(),
-                canceled_queries: (&metrics.canceled_queries).into(),
-                failed_queries: (&metrics.failed_queries).into(),
-            },
-        }
+        QueryHistoryView { queries: history.finished_ids().iter().chain(history.active_ids()).copied().collect() }
     }
 }

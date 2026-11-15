@@ -10,6 +10,7 @@ import { ConnectionLabelView } from './connection_label_view.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import * as styles from './connection_replace_picker.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 interface Props {
     /// The connection that is replaced
@@ -40,7 +41,7 @@ export const ConnectionReplacePicker: React.FC<Props> = ({ source, candidates, l
         >
             <ActionList.Leading>
                 <svg className={styles.connector_icon} width="16px" height="16px" aria-hidden="true">
-                    <use xlinkHref={`${symbols}#${connectorIcon(connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
+                    <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(connection))}`} style={CONNECTOR_ICON_STYLE} />
                 </svg>
             </ActionList.Leading>
             <ActionList.ItemText>
@@ -65,7 +66,7 @@ export const ConnectionReplacePicker: React.FC<Props> = ({ source, candidates, l
                 {/* The list takes elements only, the fragments wrap the optional groups */}
                 <>{candidates.sameConnector.length > 0 && (
                     <>
-                        <ActionList.GroupHeading>{source.connectorInfo.names.displayShort}</ActionList.GroupHeading>
+                        <ActionList.GroupHeading>{connectorInfoOf(source).names.displayShort}</ActionList.GroupHeading>
                         {candidates.sameConnector.map(renderItem)}
                     </>
                 )}</>

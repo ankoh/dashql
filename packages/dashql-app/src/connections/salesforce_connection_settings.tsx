@@ -22,9 +22,9 @@ import {
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { classNames } from '../utils/classnames.js';
 import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql-runtime/connections/connector_descriptor';
-import { ConnectionStateDetailsVariant } from '@ankoh/dashql-runtime/connections/connection_state_details';
+import type { ConnectionDetailsView } from '@ankoh/dashql-core';
 import type { DetailedError } from '@ankoh/dashql-runtime/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { collectSalesforceAuthInfo } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
@@ -109,18 +109,8 @@ export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
     }
 }
 
-export function getConnectionError(status: ConnectionStateDetailsVariant | null): (DetailedError | null) {
-    switch (status?.type) {
-        case TRINO_CONNECTOR:
-            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
-        case SALESFORCE_DATA_CLOUD_CONNECTOR:
-        case DBCOM_CONNECTOR:
-            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
-        case HYPER_CONNECTOR:
-            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
-        default:
-            return null;
-    }
+export function getConnectionError(details: ConnectionDetailsView | null): (DetailedError | null) {
+    return (details?.channelError ?? details?.healthCheckError ?? null) as DetailedError | null;
 }
 
 interface Props {
@@ -440,8 +430,10 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     }
 
     // Read the auth info
-    const coreAccessToken = salesforceConnection?.proto.oauthState?.coreAccessToken;
-    const dcAccessToken = salesforceConnection?.proto.oauthState?.dataCloudAccessToken;
+    // The tokens are opaque JSON of the runtime
+    const oauthState = salesforceConnection?.connector.kind === 'salesforce' ? salesforceConnection.connector.oauthState : null;
+    const coreAccessToken = oauthState?.coreAccessToken == null ? null : JSON.parse(oauthState.coreAccessToken);
+    const dcAccessToken = oauthState?.dataCloudAccessToken == null ? null : JSON.parse(oauthState.dataCloudAccessToken);
     const dcAuthInfo = coreAccessToken && dcAccessToken
         ? collectSalesforceAuthInfo(coreAccessToken, dcAccessToken)
         : null;

@@ -1,7 +1,8 @@
 import * as React from 'react';
+import * as core from '@ankoh/dashql-core';
 
 import type { CancelQuery, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import type { WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_executor_service';
+import type { WatchQueryProfile } from '@ankoh/dashql-runtime/query/query_platform';
 
 import { RuntimeProvider, useRuntime } from '../runtime/runtime_provider.js';
 
@@ -16,6 +17,8 @@ interface TestRuntimeProps extends TestQueryExecutorFunctions {
     /// Keep the catalog loader running. It asks connections that come online about their catalogs, the tests of
     /// components stop it like the tests of the runtime (packages/dashql-runtime/src/testing/test_runtime.ts).
     catalogLoader?: boolean;
+    /// The core of the runtime, by default the one that the package instantiated, e.g. in a `beforeAll` of the test
+    core?: core.DashQL;
     children?: React.ReactNode;
 }
 
@@ -35,6 +38,13 @@ function TestRuntimeSetup(props: TestRuntimeProps) {
     // Before the components below render and fill the registries
     React.useState(() => {
         if (!props.catalogLoader) runtime.catalogLoader.stop();
+        // The connections are slices of the runtime of the module, it needs its core before they are created
+        const instance = props.core ?? core.DashQL.instantiated();
+        if (instance != null) {
+            runtime.coreRuntime.setCore(instance);
+            runtime.storageWriter.provideCore(instance);
+            void runtime.storageWriter.withNativeWriter(async native => runtime.coreRuntime.setStorageWriter(native)).catch(() => { });
+        }
     });
     return <TestQueryExecutor execute={props.execute} cancel={props.cancel} watchProfile={props.watchProfile}>{props.children}</TestQueryExecutor>;
 }
@@ -42,7 +52,7 @@ function TestRuntimeSetup(props: TestRuntimeProps) {
 /// Replace functions of the query executor of the runtime for the components below, before they render. The hooks
 /// of the app call the executor of the runtime, the services of the runtime keep the real one.
 export function TestQueryExecutor(props: TestQueryExecutorFunctions & { children?: React.ReactNode }) {
-    const executor = useRuntime().executor;
+    const executor = useRuntime().coreRuntime;
     if (props.execute) executor.execute = props.execute;
     if (props.cancel) executor.cancel = props.cancel;
     if (props.watchProfile) executor.watchProfile = props.watchProfile;

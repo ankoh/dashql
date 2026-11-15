@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
 import type { VegaLiteViewDependencies } from './vegalite_view.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const dependencies = {
@@ -34,14 +34,10 @@ describe('VegaLitePreview', () => {
     });
 
     it('fits the chart into its box with smaller text and without legends', async () => {
-        const query = {
-            queryId: 1,
-            status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: tableFromArrays({ region: ['EU'], amount: [1] }),
-        } as QueryExecutionState;
+        const query = succeededQuery(tableFromArrays({ region: ['EU'], amount: [1] }));
         await act(async () => {
             root.render(
-                <VegaLitePreview
+                <WithResultTables><VegaLitePreview
                     query={query}
                     vegaLiteSpec={{
                         data: { values: [] },
@@ -51,7 +47,7 @@ describe('VegaLitePreview', () => {
                     width={262}
                     height={198}
                     dependencies={dependencies}
-                />,
+                /></WithResultTables>,
             );
             await Promise.resolve();
         });

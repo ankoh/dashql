@@ -7,6 +7,8 @@ import { WorkbookScripts, WorkbookScriptsAction } from '@ankoh/dashql-runtime/wo
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { storeWithoutRuntime, useStoreState } from '../../utils/store_hooks.js';
 import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { InvalidWorkbook } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import {
     type ModifyConnectionWorkbookScripts,
@@ -90,9 +92,13 @@ export function useInvalidWorkbooks(): InvalidWorkbooks {
 }
 
 /// Create a workbook without scripts on a connection and write its first manifest
-export function useWorkbookScriptsCreation(): WorkbookScriptsRegistryService['create'] {
+export function useWorkbookScriptsCreation(): (connection: ConnectionState, name: string, ephemeral: boolean) => WorkbookScripts {
     const service = useLazyWorkbooks();
-    return React.useCallback((...args: Parameters<WorkbookScriptsRegistryService['create']>) => service().create(...args), [service]);
+    const runtime = useOptionalCoreRuntime();
+    return React.useCallback((connection: ConnectionState, name: string, ephemeral: boolean) => {
+        if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
+        return service().create(runtime, connection, name, ephemeral);
+    }, [service, runtime]);
 }
 
 /// Delete the scripts of a workbook and free their Wasm, before the connection is deleted, see

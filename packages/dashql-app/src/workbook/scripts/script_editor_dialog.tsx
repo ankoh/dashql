@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import * as styles from './script_editor_dialog.module.css';
 
 import { type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useCancelQuery, useQueryState } from '../../connections/query_executor.js';
+import { useCancelQuery, useQueryProgress, useQueryState } from '../../connections/query_executor.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
@@ -53,7 +53,8 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
         [workbookScripts, scriptKey],
     );
     const queryState = useQueryState(workbookId, script?.latestQueryId ?? null);
-    const status = deriveEntryStatus(queryState);
+    const queryProgress = useQueryProgress(queryState);
+    const status = deriveEntryStatus(queryState, queryProgress);
     const cancelQuery = useCancelQuery();
     const workbookExecution = useWorkbookExecution(workbookId);
     const cancel = React.useCallback(() => {

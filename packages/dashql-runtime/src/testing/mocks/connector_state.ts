@@ -2,30 +2,29 @@ import type * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import type * as core from '@ankoh/dashql-core';
 import { vi } from 'vitest';
 
-import { createConnectionState, reduceConnectionState, type ConnectionAction, type ConnectionState } from '../../connections/connection_state.js';
-import type { ConnectionStateDetailsVariant } from '../../connections/connection_state_details.js';
-import { CONNECTOR_INFOS, ConnectorType, DBCOM_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connections/connector_info.js';
+import type { ConnectionAction, ConnectionState } from '../../connections/connection_state.js';
+import { ConnectorType } from '../../connections/connector_info.js';
+import { CoreRuntime } from '../../core_runtime.js';
+import { TASK_UPDATE_SCHEDULER } from '../../store/store.js';
 import type { DetailedError } from '../../utils/error.js';
 import { TestLogger } from '../test_logger.js';
 
-const CONNECTOR_TYPES = new Map<symbol, ConnectorType>([
-    [HYPER_CONNECTOR, ConnectorType.HYPER],
-    [SALESFORCE_DATA_CLOUD_CONNECTOR, ConnectorType.SALESFORCE_DATA_CLOUD],
-    [TRINO_CONNECTOR, ConnectorType.TRINO],
-    [DBCOM_CONNECTOR, ConnectorType.DBCOM],
-]);
-
-/// The state of a new connection of a connector with the setup params of its details, on the Rust connection of the
-/// core
-export function connectorState(dql: core.DashQL, type: symbol, details: unknown): ConnectionState {
-    const connectorType = CONNECTOR_TYPES.get(type)!;
-    const variant = { type, value: details } as ConnectionStateDetailsVariant;
-    return { ...createConnectionState(dql, CONNECTOR_INFOS[connectorType], variant), connectionId: 'test' };
+/// A runtime of the module of a test without a platform beyond the core
+export function testCoreRuntime(dql: core.DashQL): CoreRuntime {
+    return new CoreRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql });
 }
 
-/// Apply a connector action
-export function reduceConnector<A>(state: ConnectionState, action: A): ConnectionState {
-    return reduceConnectionState(state, action as unknown as ConnectionAction, new TestLogger());
+/// A new connection of a connector with setup params in the runtime
+export function connectorState(runtime: CoreRuntime, connectorType: ConnectorType, setupParams: unknown, connectionId = 'test'): ConnectionState {
+    return runtime.createConnection({ connectorType, setupParams }, connectionId);
+}
+
+/// Apply a connector action, throws if the runtime refused it. A deleted connection is null.
+export function reduceConnector<A>(runtime: CoreRuntime, state: Pick<ConnectionState, 'connectionId'>, action: A): ConnectionState | null {
+    const outcome = runtime.dispatchConnection(state.connectionId, action as unknown as ConnectionAction);
+    if (!outcome.ok) throw new Error(outcome.error ?? 'the action was refused');
+    runtime.flush();
+    return runtime.connection(state.connectionId);
 }
 
 /// A channel that only records that it was closed

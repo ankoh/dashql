@@ -1,25 +1,25 @@
 import * as React from 'react';
 
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
-import type { ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
+import { useQuery } from '../connections/query_executor.js';
 
 /// The result that the overlay of the shell shows. Closing the overlay keeps the result so that it can open again, the
-/// computation of a result is released once another result replaces it.
-export function useShellQueryResult(queryExecutions: ShellQueryExecutionTracker, releaseResult: (queryId: number) => void) {
-    const [lastQuery, setLastQuery] = React.useState<QueryExecutionState | null>(null);
+/// computation of a result is released once another result replaces it. The query is the view of the runtime, a result
+/// whose query left the history of the shell keeps its computation.
+export function useShellQueryResult(releaseResult: (queryId: number) => void) {
+    const [lastQueryId, setLastQueryId] = React.useState<number | null>(null);
     const [open, setOpen] = React.useState(false);
-    const lastQueryRef = React.useRef(lastQuery);
-    lastQueryRef.current = lastQuery;
-    const lastQueryId = lastQuery?.queryId ?? null;
+    const lastQuery: QueryExecutionState | null = useQuery(lastQueryId);
+    const lastQueryRef = React.useRef(lastQueryId);
+    lastQueryRef.current = lastQueryId;
     React.useEffect(() => {
         if (lastQueryId == null) return;
         return () => releaseResult(lastQueryId);
     }, [lastQueryId, releaseResult]);
     const showResultQuery = React.useCallback((queryId: number) => {
-        const query = queryExecutions.getSnapshot().find(candidate => candidate.queryId === queryId) ?? null;
-        setLastQuery(query);
-        setOpen(query != null);
-    }, [queryExecutions]);
+        setLastQueryId(queryId);
+        setOpen(true);
+    }, []);
     const closeResultQuery = React.useCallback(() => setOpen(false), []);
     const reopenResultQuery = React.useCallback(() => {
         if (lastQueryRef.current == null) return false;
@@ -28,7 +28,7 @@ export function useShellQueryResult(queryExecutions: ShellQueryExecutionTracker,
     }, []);
     /// A result that failed to render doesn't open again
     const dropResultQuery = React.useCallback(() => {
-        setLastQuery(null);
+        setLastQueryId(null);
         setOpen(false);
     }, []);
 

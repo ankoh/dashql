@@ -27,6 +27,8 @@ import { useShellFiles } from '../../shell/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/shell_examples.js';
 import { splitShellScript } from '../../shell/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 
 const LOG_CTX = 'workbook_shell_page';
 
@@ -54,6 +56,9 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const activeRef = React.useRef(active);
     activeRef.current = active;
     const [connection] = useConnectionById(connectionId);
+    // The shell runs on the catalog of its connection, the runtime shares it
+    const coreRuntime = useOptionalCoreRuntime();
+    const catalog = connection == null ? null : coreRuntime?.catalog(connection.connectionId) ?? null;
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const keywordCaseRef = React.useRef(keywordCase);
     keywordCaseRef.current = keywordCase;
@@ -97,12 +102,12 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
         controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
     };
-    const connectorName = connection?.connectorInfo.names.displayShort ?? '';
+    const connectorName = (connection == null ? undefined : connectorInfoOf(connection))?.names.displayShort ?? '';
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
     const shellName = connection == null ? 'Shell' : `${connectionLabelText(connectionLabelParts(connection, ordinal))} Shell`;
     const prompt = `${connectorName.toLowerCase()}${ordinal == null ? '' : `#${ordinal}`}> `;
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
-        connection?.connectorInfo.connectorType ?? ConnectorType.HYPER,
+        connection?.connectorType ?? ConnectorType.HYPER,
     );
 
     // The shell mounts files into the embedded Hyper that a Hyper WASM connection queries.
@@ -122,7 +127,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     }, [connection?.connectionId, database, logger, mountsFiles]);
 
     React.useEffect(() => {
-        if (connection == null || containerRef.current == null) return;
+        if (connection == null || catalog == null || containerRef.current == null) return;
         const generation = ++generationRef.current;
         let cancelled = false;
         const environment = createWorkbookShellEnvironment(
@@ -131,7 +136,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             (connectionId, args) => executorRef.current.execute(connectionId, args),
             (connectionId, queryId) => executorRef.current.cancel(connectionId, queryId),
             releaseResult,
-            query => resolveClientFunctionCall(connection.catalog, query),
+            query => resolveClientFunctionCall(catalog, query),
         );
         const lastCommand = createShellLastCommand(() => {
             if (resultQueryRef.current == null) return false;
@@ -151,8 +156,8 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         setStatus('Instantiating Shell');
         // The shell runs on the catalog of its connection, so it follows the catalog as it changes
         void DashQLShell.create({
-            core: connection.catalog.ptr.api,
-            catalog: connection.catalog,
+            core: catalog.ptr.api,
+            catalog,
             environment,
             commands: mountsFiles ? [examplesCommand, lastCommand, filesCommand] : [examplesCommand, lastCommand],
         }).then(async nextShell => {
@@ -207,7 +212,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, connection?.catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult]);
+    }, [connection?.connectionId, catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

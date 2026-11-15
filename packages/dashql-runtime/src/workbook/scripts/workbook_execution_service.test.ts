@@ -3,10 +3,10 @@
 import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, restoreCatalogUpdates, type ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionHealth, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, type ConnectionAction } from '../../connections/connection_state.js';
 import type { ConnectionParams } from '../../connections/connection_params.js';
 import { createTestConnection } from '../../testing/connection_fixtures.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import { createTestRuntime, testCore, type TestRuntime } from '../../testing/test_runtime.js';
@@ -65,17 +65,16 @@ function fixture(workbookId: string, deferStream = false) {
     const scriptKey = workbook.scriptRefs['1_commands.sql'].scriptId;
     /// The latest query of the script
     const latestQueryId = () => workbook.native!.workbook.scriptView(scriptKey, { editorUpdate: null, pendingDiff: null, visualization: null, statistics: null }).latestQueryId;
-    // A connection on the Rust connection of the core, online with a channel. The catalog loader of the runtime follows
-    // the connections that come online: their params and catalog updates.
-    let database: ConnectionState = createTestConnection(dql, {
-        connectionId: `${workbookId}-database`,
-        // Without a protocol the connection runs one statement at a time
-        params: { hyper: { endpoint: 'http://hyper' } } as ConnectionParams,
-        channel: { executeQuery },
-    });
-    database = restoreCatalogUpdates(database, true, null);
-    expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
     const modify = vi.fn<ModifyWorkbookScripts>(() => {});
+    /// The connection of the workbook, the runtime creates it with the health and the protocol of the fixture
+    const database = {
+        connectionId: `${workbookId}-database`,
+        health: ConnectionHealth.ONLINE,
+        // Without a protocol the connection runs one statement at a time
+        protocol: null as string | null,
+        /// The kinds of the queries that the connection runs when the workbook opens
+        activeQueries: [] as QueryType[],
+    };
     return { workbook, database, plan, latestQueryId, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,
         get signal() { return signal; } };
 }
@@ -120,9 +119,32 @@ describe('WorkbookExecutionService', () => {
         };
     }
 
-    /// Change the connections of the registry, e.g. a connection that drops
-    function setConnections(update: (registry: TestRuntime['connections']['store']['current']) => TestRuntime['connections']['store']['current']) {
-        runtime!.connections.store.update(update);
+    /// Change a connection of the runtime, e.g. a connection that drops, the services follow the store
+    function act(f: Fixture, action: ConnectionAction) {
+        runtime!.coreRuntime.dispatchConnection(f.database.connectionId, action);
+        runtime!.coreRuntime.flush();
+    }
+
+    /// Create the connection of a fixture in the runtime: online with a channel, connecting, failed or not started
+    function addConnection(rt: TestRuntime, f: Fixture) {
+        const { connectionId, health, protocol } = f.database;
+        const params = { hyper: { endpoint: 'http://hyper', ...(protocol == null ? {} : { protocol }) } } as ConnectionParams;
+        createTestConnection(rt.coreRuntime, {
+            connectionId,
+            params,
+            channel: health === ConnectionHealth.NOT_STARTED ? undefined : { executeQuery: f.executeQuery },
+            online: health === ConnectionHealth.ONLINE || health === ConnectionHealth.FAILED,
+        });
+        // The catalog describes the connection, the runs don't wait for the catalog loader
+        rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
+        if (health === ConnectionHealth.FAILED) act(f, { type: HEALTH_CHECK_FAILED, value: { message: 'down' } });
+        if (health === ConnectionHealth.CONNECTING) act(f, { type: HEALTH_CHECK_STARTED, value: null });
+        const metadata = { title: null, description: null, issuer: null, userProvided: true };
+        for (const queryType of f.database.activeQueries) {
+            rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata: { ...metadata, queryType } } });
+        }
+        rt.coreRuntime.flush();
+        expect(rt.connection(connectionId).connectionHealth).toBe(health);
     }
 
     /// A runtime with the workbooks and the connections of the fixtures, the runs of a workbook as `current`
@@ -135,10 +157,7 @@ describe('WorkbookExecutionService', () => {
             rt.workbooks.store.update(registry => ({ ...registry,
                 workbookScriptsMap: new Map(fixtures.map(f => [f.workbook.workbookId, f.workbook])),
             }));
-            // The connections of the fixtures carry what a run reads, not the params of a registration
-            rt.connections.store.update(registry => ({ ...registry,
-                connections: new Map(fixtures.map(f => [f.database.connectionId, f.database])),
-            }));
+            for (const f of fixtures) addConnection(rt, f);
         }
         current = executionOf(runtime, workbookId);
     }
@@ -154,7 +173,7 @@ describe('WorkbookExecutionService', () => {
     }
 
     it('starts no run without the compute database that reads the cached results', async () => {
-        fixtures[0].database.connectionHealth = ConnectionHealth.NOT_STARTED;
+        fixtures[0].database.health = ConnectionHealth.NOT_STARTED;
         await openWorkbook('first', { computeDatabase: false });
         expect(current.ready).toBe(false);
         step(() => current.start(fixtures[0].modify));
@@ -287,7 +306,7 @@ describe('WorkbookExecutionService', () => {
 
     it('does not start with an active query', async () => {
         const f = fixtures[0];
-        f.database.queriesActive.set(99, { queryMetadata: { queryType: QueryType.USER_PROVIDED } } as never);
+        f.database.activeQueries.push(QueryType.USER_PROVIDED);
         await openWorkbook();
         step(() => current.start(f.modify));
         expect(f.plan).not.toHaveBeenCalled();
@@ -299,7 +318,7 @@ describe('WorkbookExecutionService', () => {
 
     it('runs every script while the connection is not connected and skips the statements that need it', async () => {
         const f = fixtures[0];
-        f.database.connectionHealth = ConnectionHealth.FAILED;
+        f.database.health = ConnectionHealth.FAILED;
         await openWorkbook();
         step(() => current.start(f.modify));
         await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
@@ -313,7 +332,7 @@ describe('WorkbookExecutionService', () => {
         const [embedded, remote] = fixtures;
         for (const f of fixtures) Object.assign(f.workbook, { workbookMetadata: { cloud: preview } });
         // The second connection is a Hyper server, it is online but a preview doesn't run on it
-        (remote.database.details.value as { proto: object }).proto = { setupParams: { protocol: 'V3_HTTP' } };
+        remote.database.protocol = 'V3_HTTP';
         await openWorkbook();
         step(() => current.start(embedded.modify));
         await vi.waitFor(() => expect(embedded.stream.produce).toHaveBeenCalledTimes(1));
@@ -326,7 +345,7 @@ describe('WorkbookExecutionService', () => {
 
     it('runs a change of inputs while the connection is not connected', async () => {
         const f = fixtures[0];
-        f.database.connectionHealth = ConnectionHealth.NOT_STARTED;
+        f.database.health = ConnectionHealth.NOT_STARTED;
         await openWorkbook();
         step(() => current.start(f.modify, { inputs: ['min'] }));
         // The fixture core derives no dataflow, the run starts and settles
@@ -335,17 +354,13 @@ describe('WorkbookExecutionService', () => {
 
     it('waits for a connection that is connecting, a change of inputs starts once it is online', async () => {
         const f = fixtures[0];
-        f.database.connectionHealth = ConnectionHealth.CONNECTING;
+        f.database.health = ConnectionHealth.CONNECTING;
         await openWorkbook();
         step(() => current.start(f.modify));
         expect(current.state).toBeNull();
         step(() => current.start(f.modify, { inputs: ['min'] }));
         expect(current.state).toBeNull();
-        await step(async () => setConnections(registry => {
-            const connections = new Map(registry.connections);
-            connections.set(f.database.connectionId, { ...f.database, connectionHealth: ConnectionHealth.ONLINE });
-            return { ...registry, connections };
-        }));
+        await step(async () => act(f, { type: HEALTH_CHECK_SUCCEEDED, value: null }));
         await vi.waitFor(() => expect(current.state).not.toBeNull());
     });
 
@@ -353,17 +368,13 @@ describe('WorkbookExecutionService', () => {
         await openWorkbook();
         await start();
         const f = fixtures[0];
-        await step(async () => setConnections(registry => {
-            const connections = new Map(registry.connections);
-            connections.set(f.database.connectionId, { ...f.database, connectionHealth: ConnectionHealth.FAILED });
-            return { ...registry, connections };
-        }));
+        await step(async () => act(f, { type: HEALTH_CHECK_FAILED, value: { message: 'down' } }));
         expect(f.signal?.aborted).toBe(true);
     });
 
     it('starts while computations of the workbook query the compute database', async () => {
         const f = fixtures[0];
-        f.database.queriesActive.set(99, { queryMetadata: { queryType: QueryType.INTERNAL_SQLFRAME } } as never);
+        f.database.activeQueries.push(QueryType.INTERNAL_SQLFRAME);
         await openWorkbook();
         step(() => current.start(f.modify));
         await vi.waitFor(() => expect(f.plan).toHaveBeenCalledTimes(1));

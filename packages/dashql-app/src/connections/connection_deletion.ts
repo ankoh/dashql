@@ -2,9 +2,10 @@ import * as React from 'react';
 
 import { useConnectionDispatch, useConnectionReferences, useConnectionRegistryStore } from './connection_registry.js';
 import { DELETE_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
-import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { embeddedCloudDatabases } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
-import type { HyperConnectionDetails } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
+import type { HyperDatabaseChannel } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
 import { useCancelQuery } from './query_executor.js';
 import { dropsAttachedDatabases } from '@ankoh/dashql-runtime/platform/database/embedded_database';
@@ -30,13 +31,14 @@ export function useDeleteConnection(): DeleteConnection {
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const logger = useLogger();
     const references = useConnectionReferences();
+    const runtime = useOptionalCoreRuntime();
 
     return React.useCallback(async (connectionId: string) => {
         const database = registryStore.current.connections.get(connectionId);
         if (database == null) return;
         await Promise.all(database.queriesActiveOrdered.map(queryId => cancelQuery(connectionId, queryId)));
         await logMetrics?.forget(connectionId);
-        const hyper = database.details.type === HYPER_CONNECTOR ? database.details.value as HyperConnectionDetails : null;
+        const hyper = database.connectorType === ConnectorType.HYPER ? { channel: runtime?.channel<HyperDatabaseChannel>(database) ?? null } : null;
         // The registry refuses to delete a connection that workbooks reference, its databases stay then
         const deleted = references.workbooksOf(connectionId).length === 0;
         const attached = hyper == null || !deleted ? [] : embeddedCloudDatabases(database.params != null && 'hyper' in database.params ? database.params.hyper : null);
@@ -49,7 +51,7 @@ export function useDeleteConnection(): DeleteConnection {
         const attachedElsewhere = new Set(others.flatMap(other => embeddedCloudDatabases(other.params != null && 'hyper' in other.params ? other.params.hyper : null)
             .map(database => database.path)));
         await dropCloudDatabases(await setupEmbeddedDatabase('hyper_wasm_connector'), attached.map(database => database.path).filter(path => !attachedElsewhere.has(path)), logger);
-    }, [cancelQuery, connectionDispatch, logMetrics, logger, references, registryStore, setupEmbeddedDatabase]);
+    }, [cancelQuery, connectionDispatch, logMetrics, logger, references, registryStore, runtime, setupEmbeddedDatabase]);
 }
 
 /// Drop databases of the clouds folder through the embedded Hyper, the sessions that attach them must be closed
@@ -71,17 +73,18 @@ export function useDropAllCloudDatabases(): () => Promise<void> {
     const registryStore = useConnectionRegistryStore();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const logger = useLogger();
+    const runtime = useOptionalCoreRuntime();
     return React.useCallback(async () => {
         const paths = new Set<string>();
         // Outside the runtime, e.g. in a test of the settings, there are none
         for (const connection of registryStore.current?.connections.values() ?? []) {
             const attached = embeddedCloudDatabases(connection.params != null && 'hyper' in connection.params ? connection.params.hyper : null);
             if (attached.length === 0) continue;
-            const hyper = connection.details.type === HYPER_CONNECTOR ? connection.details.value as HyperConnectionDetails : null;
-            await hyper?.channel?.close().catch(() => {});
+            const channel = connection.connectorType === ConnectorType.HYPER ? runtime?.channel<HyperDatabaseChannel>(connection) ?? null : null;
+            await channel?.close().catch(() => {});
             for (const { path } of attached) paths.add(path);
         }
         if (paths.size === 0 || setupEmbeddedDatabase == null) return;
         await dropCloudDatabases(await setupEmbeddedDatabase('hyper_wasm_connector'), [...paths], logger);
-    }, [logger, registryStore, setupEmbeddedDatabase]);
+    }, [logger, registryStore, runtime, setupEmbeddedDatabase]);
 }

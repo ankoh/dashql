@@ -7,7 +7,7 @@ import { fakeReactWindowModule, ResizeObserverMock } from '../tests/mocks/view_m
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
-import { createQueryExecutionState, QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import {
     getQueryTarget,
     QueryHistoryViewer,
@@ -18,20 +18,20 @@ import {
 
 const dependencies = fakeReactWindowModule(React, vi.fn()) as QueryHistoryViewerDependencies;
 
-function createExecution(queryType: QueryType, userProvided: boolean) {
-    return createQueryExecutionState(
-        1,
-        1,
-        'SELECT 1',
-        {
+/// A queued query as far as the history viewer reads it
+function createExecution(queryType: QueryType, userProvided: boolean): QueryExecutionState {
+    return {
+        queryId: 1,
+        status: QueryExecutionStatus.QUEUED,
+        queryMetadata: {
             queryType,
             title: 'Shell Query',
             description: null,
             issuer: 'DashQL Shell',
             userProvided,
         },
-        new AbortController(),
-    );
+        metrics: { lastUpdatedAt: null },
+    } as unknown as QueryExecutionState;
 }
 
 describe('QueryHistoryViewer', () => {

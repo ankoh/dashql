@@ -47,6 +47,7 @@ import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
 import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const FitIcon = SymbolIcon('graph_align');
 
@@ -791,7 +792,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
     const name = scriptDisplayName(box.script.fileName);
     const scriptKey = box.script.scriptKey;
     const terminal = box.rows.length - 1;
-    const result = query?.resultTable;
+    const result = useQueryResultTable(query);
     // A new script reads the whole script, so the add button sits at the vertical middle of the box
     const addY = box.y + box.height / 2;
     const labelChars = (badgeWidth: number) => Math.max(4, Math.floor((box.width - 2 * config.rowPadding - 16 - badgeWidth - 8) / LABEL_CHAR_WIDTH));

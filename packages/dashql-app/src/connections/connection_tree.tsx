@@ -48,6 +48,8 @@ import { isCloudCapable } from './cloud_connection.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 /// No clouds
@@ -464,7 +466,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         : undefined}
                     icon={(
                         <svg width="14" height="14">
-                            <use xlinkHref={`${symbols}#${connectorIcon(row.database.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
+                            <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(row.database))}`} style={CONNECTOR_ICON_STYLE} />
                         </svg>
                     )}
                 >
@@ -566,6 +568,8 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
 
 interface ConnectionTreeProps {
     databases: ConnectionState[];
+    /// The catalogs of the connections, the ones of the runtime by default
+    catalogOf?: (connectionId: string) => core.DashQLCatalog | null;
     /// Open the settings of a connection
     onOpenSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
     /// Describe how workbooks use a connection
@@ -649,18 +653,21 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onRename,
     cloudConnectionIds = NO_CLOUDS,
     onSetCloud,
+    catalogOf,
 }) => {
+    const runtime = useOptionalCoreRuntime();
     // The database states change with every query event while the catalogs rarely change.
     // A catalog caches its flat form until its version changes, so its identity tells us when the trees
     // must be rebuilt.
     const connectionIds = useShallowStableArray(databases.map(database => database.connectionId));
-    const flatCatalogs = useShallowStableArray(databases.map(database => database.catalog.flatten()));
+    const catalog = (connectionId: string) => catalogOf != null ? catalogOf(connectionId) : runtime?.catalog(connectionId) ?? null;
+    const flatCatalogs = useShallowStableArray(databases.map(database => catalog(database.connectionId)?.flatten() ?? null));
     const catalogTrees = React.useMemo(() => connectionIds.map((connectionId, i) => {
-        const reader = flatCatalogs[i].read();
+        const reader = flatCatalogs[i]?.read() ?? null;
         return {
             connectionId,
             reader,
-            roots: createCatalogTree(reader, catalogKey(connectionId)),
+            roots: reader == null ? [] : createCatalogTree(reader, catalogKey(connectionId)),
         };
     }), [connectionIds, flatCatalogs]);
     const [expanded, setExpanded] = React.useState<ReadonlySet<string>>(() => {
@@ -695,7 +702,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     }, [connectionIds]);
     const catalogRows = React.useMemo(() => catalogTrees.map(tree => (
         expanded.has(connectionKey(tree.connectionId)) && expanded.has(catalogKey(tree.connectionId))
-            ? flattenCatalogRows(tree.reader, tree.roots, expanded)
+            ? (tree.reader == null ? [] : flattenCatalogRows(tree.reader, tree.roots, expanded))
             : []
     )), [catalogTrees, expanded]);
     const rows = React.useMemo(() => {

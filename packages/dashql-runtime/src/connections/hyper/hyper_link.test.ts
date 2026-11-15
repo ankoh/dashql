@@ -1,8 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState, ConnectionStateWithoutId } from '../connection_state.js';
-import { createConnectionStateFromParams, createDefaultHyperWasmConnectionState } from '../connection_params.js';
+import type { ConnectionState, NewConnection } from '../connection_state.js';
+import { newConnectionFromParams, newDefaultHyperWasmConnection } from '../connection_params.js';
+import type { CoreRuntime } from '../../core_runtime.js';
+import { testCoreRuntime } from '../../testing/mocks/connector_state.js';
 import {
     bindHyperLink,
     confirmHyperLink,
@@ -17,12 +19,14 @@ import type { KeyValueStorage } from '../../platform/key_value_storage.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
+let runtime: CoreRuntime;
 
 beforeAll(async () => {
     dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
 });
+beforeEach(() => { runtime = testCoreRuntime(dql); });
 afterEach(() => {
-    dql.resetUnsafe();
+    runtime.destroy();
 });
 
 const TLS = { clientKeyPath: '', clientCertPath: '', caCertsPath: '' };
@@ -98,14 +102,14 @@ describe('Hyper link target', () => {
 describe('binding a Hyper link', () => {
     const target = { endpoint: 'http://127.0.0.1:2222', token: 'second' };
     const linked = (connectionId: string, endpoint: string): ConnectionState =>
-        ({ ...createConnectionStateFromParams(dql, createHyperLinkConnectionParams(endpoint)), connectionId });
-    const embedded = (): ConnectionState => ({ ...createDefaultHyperWasmConnectionState(dql), connectionId: 'embedded' });
-    const allocator = () => vi.fn((state: ConnectionStateWithoutId): ConnectionState => ({ ...state, connectionId: 'allocated' }));
+        runtime.createConnection(newConnectionFromParams(createHyperLinkConnectionParams(endpoint)), connectionId);
+    const embedded = (): ConnectionState => runtime.createConnection(newDefaultHyperWasmConnection(), 'embedded');
+    const allocator = () => vi.fn((connection: NewConnection): ConnectionState => runtime.createConnection(connection, 'allocated'));
 
     it('reuses the connection to the endpoint of the link without asking', () => {
         const same = linked('same', target.endpoint);
         const confirm = vi.fn(() => true);
-        const binding = bindHyperLink(target, [embedded(), linked('other', 'http://127.0.0.1:1111'), same], allocator(), dql, 'other', confirm);
+        const binding = bindHyperLink(target, [embedded(), linked('other', 'http://127.0.0.1:1111'), same], allocator(), 'other', confirm);
         expect(binding).toEqual({ connection: same, params: null });
         expect(confirm).not.toHaveBeenCalled();
     });
@@ -114,7 +118,7 @@ describe('binding a Hyper link', () => {
         const first = linked('first', 'http://127.0.0.1:1111');
         const latest = linked('latest', 'http://127.0.0.1:3333');
         const confirm = vi.fn(() => true);
-        const binding = bindHyperLink(target, [first, latest], allocator(), dql, 'latest', confirm);
+        const binding = bindHyperLink(target, [first, latest], allocator(), 'latest', confirm);
         expect(confirm).toHaveBeenCalledWith(latest);
         expect(binding.connection).toBe(latest);
         expect(binding.params).toEqual({ hyper: { protocol: 'V3_HTTP_LINK', endpoint: target.endpoint, tls: TLS } });
@@ -122,12 +126,14 @@ describe('binding a Hyper link', () => {
 
     it('creates another connection if the user declines, or if there is none', () => {
         const allocate = allocator();
-        const declined = bindHyperLink(target, [linked('first', 'http://127.0.0.1:1111')], allocate, dql, null, () => false);
+        const declined = bindHyperLink(target, [linked('first', 'http://127.0.0.1:1111')], allocate, null, () => false);
         expect(declined.connection.connectionId).toBe('allocated');
         expect(declined.connection.active).toBe(true);
         expect(declined.params).toBeNull();
         const confirm = vi.fn(() => true);
-        const created = bindHyperLink(target, [embedded()], allocate, dql, null, confirm);
+        runtime.destroy();
+        runtime = testCoreRuntime(dql);
+        const created = bindHyperLink(target, [embedded()], allocator(), null, confirm);
         expect(isHyperLinkParams(created.connection.params)).toBe(true);
         expect(JSON.stringify(created.connection.params)).not.toContain(target.token);
         expect(confirm).not.toHaveBeenCalled();

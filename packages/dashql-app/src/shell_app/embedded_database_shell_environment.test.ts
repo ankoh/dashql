@@ -2,7 +2,7 @@
 import * as core from '@ankoh/dashql-core';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
+import { testShellHistory } from '../tests/test_shell_history.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -130,50 +130,50 @@ describe('embedded database shell environment', () => {
 
     it('tracks successful queries with their row count', async () => {
         const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [1, 2, 3] }));
-        const tracker = new ShellQueryExecutionTracker(dql);
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
+        const tracker = testShellHistory(dql);
+        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker.tracker);
 
         await environment.executeQuery('SELECT * FROM values');
 
-        expect(tracker.getSnapshot()).toMatchObject([{
+        expect(tracker.queries()).toMatchObject([{
             queryText: 'SELECT * FROM values',
             status: QueryExecutionStatus.SUCCEEDED,
             error: null,
         }]);
-        expect(tracker.getSnapshot()[0].resultTable?.numRows).toBe(3);
-        expect(tracker.getSnapshot()[0].metrics.querySucceededAt).toBeInstanceOf(Date);
-        expect(tracker.getSnapshot()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
+        expect(tracker.queries()[0].resultTable?.rows).toBe(3);
+        expect(tracker.queries()[0].metrics.querySucceededAt).toEqual(expect.any(Number));
+        expect(tracker.queries()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('tracks failed queries', async () => {
         const query = vi.fn().mockRejectedValue(new Error('syntax error'));
-        const tracker = new ShellQueryExecutionTracker(dql);
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
+        const tracker = testShellHistory(dql);
+        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker.tracker);
 
         await expect(environment.executeQuery('SELEC 1')).rejects.toThrow('syntax error');
 
-        expect(tracker.getSnapshot()).toMatchObject([{
+        expect(tracker.queries()).toMatchObject([{
             status: QueryExecutionStatus.FAILED,
             resultTable: null,
         }]);
-        expect(tracker.getSnapshot()[0].error?.message).toBe('syntax error');
-        expect(tracker.getSnapshot()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
+        expect(tracker.queries()[0].error?.message).toBe('syntax error');
+        expect(tracker.queries()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('tracks cancelled queries', async () => {
         const query = vi.fn();
-        const tracker = new ShellQueryExecutionTracker(dql);
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
+        const tracker = testShellHistory(dql);
+        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker.tracker);
         const abort = new AbortController();
         abort.abort();
 
         await expect(environment.executeQuery('SELECT 42', abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
 
-        expect(tracker.getSnapshot()).toMatchObject([{
+        expect(tracker.queries()).toMatchObject([{
             status: QueryExecutionStatus.CANCELLED,
             resultTable: null,
         }]);
-        expect(tracker.getSnapshot()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
+        expect(tracker.queries()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
         expect(query).not.toHaveBeenCalled();
     });
 });

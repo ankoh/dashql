@@ -16,12 +16,9 @@ import {
 describe('connection labels', () => {
     it('labels the mandatory local database by its connector and Wasm', () => {
         const database = {
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            details: {
-                type: HYPER_CONNECTOR,
-                value: { proto: { setupParams: { protocol: 'WASM' } } },
-            },
-        } as ConnectionState;
+            connectorType: ConnectorType.HYPER,
+            details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
+        } as unknown as ConnectionState;
 
         expect(connectionLabel(database)).toBe('Hyper Wasm');
         expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Wasm' });
@@ -29,12 +26,9 @@ describe('connection labels', () => {
 
     it('keeps the connector and protocol label for remote Hyper databases', () => {
         const database = {
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            details: {
-                type: HYPER_CONNECTOR,
-                value: { proto: { setupParams: { protocol: 'V3_HTTP' } } },
-            },
-        } as ConnectionState;
+            connectorType: ConnectorType.HYPER,
+            details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
+        } as unknown as ConnectionState;
 
         expect(connectionLabel(database)).toBe('Hyper Http');
         expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Http' });
@@ -43,12 +37,9 @@ describe('connection labels', () => {
     it('labels a named connection by its name instead of its connector and ordinal', () => {
         const database = {
             name: 'Production',
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            details: {
-                type: HYPER_CONNECTOR,
-                value: { proto: { setupParams: { protocol: 'V3_HTTP' } } },
-            },
-        } as ConnectionState;
+            connectorType: ConnectorType.HYPER,
+            details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
+        } as unknown as ConnectionState;
 
         expect(connectionLabel(database, 2)).toBe('Production Http');
         expect(connectionLabelParts(database, 2)).toEqual({ name: 'Production', connector: 'Hyper', detail: 'Http' });
@@ -57,14 +48,14 @@ describe('connection labels', () => {
     it('initially collapses Memory only when another database exists', () => {
         const memory = {
             connectionId: 'memory',
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } },
-        } as ConnectionState;
+            connectorType: ConnectorType.HYPER,
+            details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
+        } as unknown as ConnectionState;
         const remote = {
             connectionId: 'remote',
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } },
-        } as ConnectionState;
+            connectorType: ConnectorType.TRINO,
+            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } },
+        } as unknown as ConnectionState;
 
         expect(isConnectionInitiallyExpanded(memory, 1)).toBe(true);
         expect(isConnectionInitiallyExpanded(memory, 2)).toBe(false);
@@ -76,19 +67,19 @@ describe('connections of the same connector', () => {
     const hyper = (connectionId: string, extra: Partial<ConnectionState> = {}) => ({
         connectionId,
         active: true,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } },
+        connectorType: ConnectorType.HYPER,
+        details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
         ...extra,
-    }) as ConnectionState;
+    }) as unknown as ConnectionState;
     const trino = (connectionId: string) => ({
         connectionId,
         active: true,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-        details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } },
-    }) as ConnectionState;
+        connectorType: ConnectorType.TRINO,
+        details: { setupParams: {}, channel: null, connector: { kind: 'trino' } },
+    }) as unknown as ConnectionState;
     const registryOf = (databases: ConnectionState[]) => {
         const connectionsByType: string[][] = [[], [], []];
-        for (const database of databases) connectionsByType[database.connectorInfo.connectorType].push(database.connectionId);
+        for (const database of databases) connectionsByType[database.connectorType].push(database.connectionId);
         return {
             connections: new Map(databases.map(database => [database.connectionId, database])),
             connectionsByType,

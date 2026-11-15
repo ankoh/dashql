@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { QueryResultPanel, type QueryResultPanelDependencies } from './query_result_header.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -21,7 +20,7 @@ const dependencies = {
     },
 } as unknown as QueryResultPanelDependencies;
 const lastView = () => viewProps[viewProps.length - 1];
-const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: tableFromArrays({ value: [1, 2, 3] }) } as QueryExecutionState;
+const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: { id: 1, rows: 3 } } as unknown as QueryExecutionState;
 
 describe('QueryResultPanel', () => {
     let container: HTMLDivElement;

@@ -55,6 +55,7 @@ import { useCloudWorkbooks, type CloudWorkbooks } from './cloud_workbooks.js';
 import { CLOUD_PAGE_SIZE, type CloudCursor, type CloudEntry, type CloudFolder } from './cloud_folders.js';
 import type { CloudWorkbook, CloudWorkbookVersion } from './cloud_store.js';
 import * as styles from './cloud_overview_page.module.css';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 // The overview of a cloud in place of the feed: the cloud connection with its login and the installation of DashQL,
 // the counts of the cloud, and its folders and workbooks. See docs/design/cloud.md.
@@ -141,7 +142,7 @@ const CloudHeader: React.FC<{ cloud: CloudState }> = ({ cloud }) => {
     return (
         <header className={styles.header}>
             <svg width="16" height="16" aria-hidden="true">
-                <use xlinkHref={`${symbols}#${connectorIcon(cloud.connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
+                <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(cloud.connection))}`} style={CONNECTOR_ICON_STYLE} />
             </svg>
             <h2 className={styles.title}>
                 <span className={styles.title_name}>{connectionLabel(cloud.connection)}</span>

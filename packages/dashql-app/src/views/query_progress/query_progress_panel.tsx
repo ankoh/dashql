@@ -5,7 +5,7 @@ import * as styles from './query_progress_panel.module.css';
 import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
-import { useQueryProfileDetail } from '../../connections/query_executor.js';
+import { useQueryProfileDetail, useQueryProgress } from '../../connections/query_executor.js';
 import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@ankoh/dashql-runtime/query/profile/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
@@ -33,7 +33,7 @@ function isActive(status: QueryExecutionStatus): boolean {
 }
 
 /// The end of a query, null while it runs
-function finishedAt(query: QueryExecutionState): Date | null {
+function finishedAt(query: QueryExecutionState): number | null {
     return query.metrics.querySucceededAt ?? query.metrics.queryFailedAt ?? query.metrics.queryCancelledAt;
 }
 
@@ -46,8 +46,8 @@ function useElapsed(query: QueryExecutionState): number {
         const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
     }, [active]);
-    const start = query.metrics.queryRequestedAt?.getTime() ?? now;
-    const end = finishedAt(query)?.getTime() ?? now;
+    const start = query.metrics.queryRequestedAt ?? now;
+    const end = finishedAt(query) ?? now;
     return Math.max(0, end - start);
 }
 
@@ -176,7 +176,7 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const { query } = props;
     // The connector fetches the plan and its statistics only while a profile is shown
     useQueryProfileDetail(query.queryId, props.showProfile === true);
-    const progress = query.latestProgressUpdate;
+    const progress = useQueryProgress(query);
     const profileProgress = progress?.profileProgress ?? null;
     const queryState = profileProgress?.execution.query ?? null;
     const active = isActive(query.status);
@@ -251,5 +251,5 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
 
 /// Does a query have structured progress to show?
 export function hasQueryProgress(query: QueryExecutionState | null): boolean {
-    return query?.latestProgressUpdate?.profileProgress != null;
+    return query?.latestProgressUpdate?.profile?.structure != null;
 }

@@ -6,6 +6,7 @@ import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connecti
 import { connectionLabel } from '@ankoh/dashql-runtime/connections/connection_label';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 // A connection of the cloud setup in one line: the logo of its connector, its name, its health and actions.
 
@@ -16,7 +17,7 @@ export function CloudConnectionRow(props: { connection: ConnectionState; childre
     return (
         <div className={styles.row} data-testid="cloud-connection-row">
             <svg className={styles.icon} width="16px" height="16px" aria-hidden="true">
-                <use xlinkHref={`${symbols}#${connectorIcon(props.connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
+                <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(props.connection))}`} style={CONNECTOR_ICON_STYLE} />
             </svg>
             <span className={styles.name}>{connectionLabel(props.connection)}</span>
             <svg className={styles.health} width="8px" height="8px" viewBox="0 0 8 8" role="img" aria-label={healthName}>

@@ -1,6 +1,6 @@
-import type { DashQL } from '@ankoh/dashql-core';
-import { destroyConnectionState, type ConnectionState } from './connection_state.js';
-import { decodeConnectionFromProto, restoreConnectionState } from './connection_import.js';
+import type { NewConnection } from './connection_state.js';
+import { decodeConnectionFromProto } from './connection_import.js';
+import type { ConnectionParams } from './connection_params.js';
 import type { WorkbookConnection } from '../storage/storage_backend.js';
 
 /// The connections of storage that the restore of the Rust runtime doesn't create, e.g. the connections of a native
@@ -14,17 +14,15 @@ export type StoredConnection = Pick<WorkbookConnection, 'params' | 'paramsDraft'
     cacheQueryResults?: boolean;
 };
 
-/// Create the state of a connection from its stored params.
-/// The connection is neither registered nor written, see `destroyUnregisteredConnection`.
-export function connectionStateFromStorage(core: DashQL, connectionId: string, stored: StoredConnection): ConnectionState {
-    const [connectorInfo, details] = decodeConnectionFromProto(stored.params as any, connectionId);
-    return restoreConnectionState(core, connectionId, connectorInfo, details, stored.paramsDraft, {
+/// A connection of its stored params as the runtime creates it: active, with the draft, the name and the caching
+/// choice of storage
+export function connectionFromStorage(connectionId: string, stored: StoredConnection): NewConnection {
+    return {
+        ...decodeConnectionFromProto(stored.params as any, connectionId),
+        active: true,
+        params: stored.params as ConnectionParams,
+        paramsDraft: stored.paramsDraft as ConnectionParams | undefined,
         name: stored.name,
         cacheQueryResults: stored.cacheQueryResults,
-    });
-}
-
-/// Destroy a connection that was created but never registered
-export function destroyUnregisteredConnection(connection: ConnectionState): void {
-    destroyConnectionState(connection);
+    };
 }

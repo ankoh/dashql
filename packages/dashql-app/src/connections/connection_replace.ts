@@ -1,6 +1,7 @@
 import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 /// The connections that can replace a connection, grouped by their connector
 export interface ConnectionReplaceCandidates {
@@ -24,7 +25,7 @@ export function connectionReplaceCandidates(
     if (source == null) return candidates;
     for (const [connectionId, connection] of registry.connections) {
         if (connectionId === sourceId || !isListedConnection(registry, references, connectionId)) continue;
-        if (connection.connectorInfo.connectorType === source.connectorInfo.connectorType) {
+        if (connection.connectorType === source.connectorType) {
             candidates.sameConnector.push(connection);
         } else {
             candidates.otherConnectors.push(connection);

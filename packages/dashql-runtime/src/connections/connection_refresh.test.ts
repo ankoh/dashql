@@ -6,7 +6,7 @@ function database(overrides: Partial<ConnectionState> = {}): ConnectionState {
         connectionHealth: ConnectionHealth.ONLINE,
         catalogUpdates: {
             currentFullRefresh: null,
-            tasksRunning: new Map(),
+            tasksRunning: [],
         },
         ...overrides,
     } as ConnectionState;
@@ -19,7 +19,7 @@ describe('attached database catalog refresh', () => {
         expect(canRefreshConnection(database({
             catalogUpdates: {
                 currentFullRefresh: 7,
-                tasksRunning: new Map([[7, {} as any]]),
+                tasksRunning: [{ taskId: 7 }],
             } as any,
         }))).toBe(false);
     });

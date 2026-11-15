@@ -10,7 +10,7 @@ import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_e
 import { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { classNames } from '../../utils/classnames.js';
 import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
-import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-runtime/connections/connection_params';
+import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
@@ -161,7 +161,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
 
     const connections = useWorkbookConnections(props.workbookScripts?.workbookId ?? null);
     const hasLoginHint = React.useMemo(
-        () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details))),
+        () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionSetupParams(connection))),
         [connections],
     );
 

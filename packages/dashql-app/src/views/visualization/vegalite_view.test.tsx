@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useNearViewport, VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter = {
@@ -43,15 +43,11 @@ describe('VegaLiteView', () => {
     });
 
     it('reserves an explicit chart height while Vega loads', () => {
-        const query = {
-            queryId: 1,
-            status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: tableFromArrays({ value: [1] }),
-        } as QueryExecutionState;
+        const query = succeededQuery(tableFromArrays({ value: [1] }));
 
         act(() => {
             root.render(
-                <VegaLiteView
+                <WithResultTables><VegaLiteView
                     query={query}
                     vegaLiteSpec={{
                         data: { values: [] },
@@ -60,7 +56,7 @@ describe('VegaLiteView', () => {
                     }}
                     height={180}
                     dependencies={dependencies}
-                />,
+                /></WithResultTables>,
             );
         });
 
@@ -70,13 +66,9 @@ describe('VegaLiteView', () => {
     });
 
     it('does not rebuild Vega for an equivalent analyzed spec', async () => {
-        const query = {
-            queryId: 1,
-            status: QueryExecutionStatus.SUCCEEDED,
-            resultTable: tableFromArrays({ value: [1] }),
-        } as QueryExecutionState;
+        const query = succeededQuery(tableFromArrays({ value: [1] }));
         const render = (spec: object) => root.render(
-            <VegaLiteView query={query} vegaLiteSpec={spec as any} height={180} dependencies={dependencies} />,
+            <WithResultTables><VegaLiteView query={query} vegaLiteSpec={spec as any} height={180} dependencies={dependencies} /></WithResultTables>,
         );
 
         await act(async () => {
@@ -118,20 +110,16 @@ describe('VegaLiteView', () => {
         const intersectionObserver = globalThis.IntersectionObserver;
         globalThis.IntersectionObserver = StubIntersectionObserver as unknown as typeof IntersectionObserver;
         try {
-            const query = {
-                queryId: 1,
-                status: QueryExecutionStatus.SUCCEEDED,
-                resultTable: tableFromArrays({ value: [1] }),
-            } as QueryExecutionState;
+            const query = succeededQuery(tableFromArrays({ value: [1] }));
 
             await act(async () => {
                 root.render(
-                    <VegaLiteView
+                    <WithResultTables><VegaLiteView
                         query={query}
                         vegaLiteSpec={{ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } }}
                         height={180}
                         dependencies={{ ...dependencies, useNearViewport }}
-                    />,
+                    /></WithResultTables>,
                 );
                 await Promise.resolve();
             });

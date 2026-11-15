@@ -5,7 +5,7 @@ import { createRuntime, type Runtime, type RuntimePlatform } from './runtime.js'
 import { TASK_UPDATE_SCHEDULER } from './store/store.js';
 import { TestLogger } from './testing/test_logger.js';
 import { WorkbookTestBackend } from './testing/workbook_test_backend.js';
-import { createDefaultHyperWasmConnectionState } from './connections/connection_params.js';
+import { newDefaultHyperWasmConnection } from './connections/connection_params.js';
 import type { OAuthFlow } from './oauth/oauth_flow.js';
 import type { HttpClient } from './platform/http/http_client.js';
 
@@ -41,11 +41,11 @@ describe('the runtime', () => {
         try {
             expect((await first.restore()).workbookScripts.size).toBe(0);
 
-            const connection = first.connections.allocate({ ...createDefaultHyperWasmConnectionState(core), active: true });
-            const workbook = first.workbooks.create(connection, 'Sales', false);
+            const connection = first.coreRuntime.createConnection(newDefaultHyperWasmConnection({ active: true }));
+            const workbook = first.workbooks.create(first.coreRuntime, connection, 'Sales', false);
             await settle();
             expect(first.workbooks.store.current.workbookScriptsMap.get(workbook.workbookId)?.name).toBe('Sales');
-            expect(first.connections.store.current.connections.get(connection.connectionId)).toBe(connection);
+            expect(first.coreRuntime.registry().connections.get(connection.connectionId)?.workbooks).toEqual([workbook.workbookId]);
             await first.destroy();
             first = null;
 
@@ -53,7 +53,9 @@ describe('the runtime', () => {
             const restored = await second.restore();
             expect([...restored.workbookScripts.keys()]).toEqual([workbook.workbookId]);
             expect(second.workbooks.store.current.workbookScriptsMap.get(workbook.workbookId)?.name).toBe('Sales');
-            expect(second.connections.store.current.connections.has(connection.connectionId)).toBe(true);
+            // The runtime of the module adopted the stored connection, the store shows it
+            expect(second.coreRuntime.registry().connections.has(connection.connectionId)).toBe(true);
+            expect(second.coreRuntime.catalog(connection.connectionId)).not.toBeNull();
         } finally {
             await first?.destroy();
             await second?.destroy();

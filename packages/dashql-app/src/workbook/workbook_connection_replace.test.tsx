@@ -8,8 +8,9 @@ import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 
 import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
@@ -32,21 +33,24 @@ beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQ
 
 const WORKBOOK_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
-/// A Trino connection without a channel
-function connection(connectionId: string, endpoint: string): ConnectionState {
-    const state = createTestConnection(dql, { connectionId, params: { trino: { endpoint } } as any, active: true });
+const SOURCE_PARAMS = { trino: { endpoint: 'http://old' } } as any;
+const TARGET_PARAMS = { trino: { endpoint: 'http://new' } } as any;
+
+/// A Trino connection without a channel in the runtime of the test
+function connection(runtime: CoreRuntime, connectionId: string, params: any): ConnectionState {
+    const state = createTestConnection(runtime, { connectionId, params, active: true });
     expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
     return state;
 }
 
 /// A workbook whose next script runs on a connection
-function workbook(on: ConnectionState): WorkbookScripts {
+function workbook(runtime: CoreRuntime, on: ConnectionState): WorkbookScripts {
     return createWorkbookScripts({
         instance: dql,
         workbookId: WORKBOOK_ID,
         name: null,
         workbookMetadata: createEmptyMetadata(),
-        pendingConnection: scriptConnectionOf(on),
+        pendingConnection: scriptConnectionOf(runtime, on),
         scripts: [],
         dataFiles: [],
     });
@@ -59,27 +63,23 @@ interface Api {
     workbooks: ReadonlyMap<string, WorkbookScripts>;
 }
 
-function Capture(props: { databases: ConnectionState[]; workbook: WorkbookScripts; capture: (api: Api) => void }) {
-    const [registry, setRegistry] = useConnectionRegistry();
+function Capture(props: { capture: (api: Api) => void }) {
+    const [registry] = useConnectionRegistry();
+    const coreRuntime = useCoreRuntime();
     const [scripts, setScripts] = useWorkbookScriptsRegistry();
     const replace = useReplaceConnection();
     const writer = useStorageWriter();
     const compute = useComputeDatabase();
     React.useEffect(() => {
-        setRegistry(prev => {
-            const next = { ...prev, connections: new Map(prev.connections), connectionsByType: CONNECTOR_TYPES.map(() => [] as string[]) };
-            for (const database of props.databases) {
-                next.connections.set(database.connectionId, database);
-                next.connectionsByType[database.connectorInfo.connectorType].push(database.connectionId);
-            }
-            return next;
-        });
+        const source = connection(coreRuntime, 'source', SOURCE_PARAMS);
+        connection(coreRuntime, 'target', TARGET_PARAMS);
+        const scripts = workbook(coreRuntime, source);
         setScripts(prev => ({
             ...prev,
-            workbookScriptsMap: new Map([[props.workbook.workbookId, props.workbook]]),
-            workbookScriptsByConnection: new Map([[props.workbook.pendingConnection!.connectionId, [props.workbook.workbookId]]]),
+            workbookScriptsMap: new Map([[scripts.workbookId, scripts]]),
+            workbookScriptsByConnection: new Map([[scripts.pendingConnection!.connectionId, [scripts.workbookId]]]),
         }));
-    }, [props.databases, props.workbook, setRegistry, setScripts]);
+    }, [coreRuntime, setScripts]);
     React.useLayoutEffect(() => {
         if (compute) props.capture({ replace, writer, connections: registry.connections, workbooks: scripts.workbookScriptsMap });
     });
@@ -91,12 +91,8 @@ describe('useReplaceConnection', () => {
     let root: Root;
     let api: Api | null;
     let backend: WorkbookTestBackend;
-    let source: ConnectionState;
-    let target: ConnectionState;
 
     beforeEach(async () => {
-        source = connection('source', 'http://old');
-        target = connection('target', 'http://new');
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -104,7 +100,7 @@ describe('useReplaceConnection', () => {
         backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(WORKBOOK_ID, testWorkbook({
             workbookId: WORKBOOK_ID,
-            connections: [{ connectionId: 'source', params: source.params! }],
+            connections: [{ connectionId: 'source', params: SOURCE_PARAMS }],
         }));
         const setupDatabase = async () => ({ terminate: vi.fn() }) as unknown as EmbeddedComputeDatabase;
         await act(async () => {
@@ -114,7 +110,7 @@ describe('useReplaceConnection', () => {
                         <ComputeConnectionProvider>
                             <TestRuntime>
                                 <HyperLogMetricsProvider>
-                                    <Capture databases={[source, target]} workbook={workbook(source)} capture={next => { api = next; }} />
+                                    <Capture capture={next => { api = next; }} />
                                 </HyperLogMetricsProvider>
                             </TestRuntime>
                         </ComputeConnectionProvider>

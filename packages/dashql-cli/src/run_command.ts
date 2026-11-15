@@ -24,7 +24,6 @@ import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_stora
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
-    mergeRestoredWorkbookIntoConnections,
     mergeRestoredWorkbookIntoScripts,
     restoreSingleWorkbook,
 } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
@@ -189,7 +188,7 @@ function connectionLabel(conn: ConnectionState): string {
 /// embedded Hyper, also a local cloud on it
 async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvironment, hyper: NodeComputeDatabase | null, signal: AbortSignal): Promise<string | null> {
     const params = conn.params;
-    const dispatch = (action: ConnectionAction) => rt.connections.dispatch(conn.connectionId, action);
+    const dispatch = (action: ConnectionAction) => { rt.coreRuntime.dispatchConnection(conn.connectionId, action); };
     if ('hyper' in params && (params.hyper.protocol ?? 'WASM') === 'WASM') {
         if (hyper == null) return 'the script runs on the embedded Hyper, which did not start';
         const hyperParams = params.hyper as connection.HyperConnectionParams;
@@ -197,7 +196,7 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
             dispatch({ type: HYPER_CHANNEL_SETUP_STARTED, value: hyperParams });
             const channel = await connectEmbeddedHyper(hyper.database, hyperParams);
             dispatch({ type: HYPER_CHANNEL_READY, value: [channel, hyperParams] });
-            await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'hyper', channel }, dispatch, signal);
+            await performHealthCheck(rt.coreRuntime.execute, conn.connectionId, { type: 'hyper', channel }, dispatch, signal);
         } catch (error) {
             dispatch({ type: HYPER_CHANNEL_SETUP_FAILED, value: { message: describeError(error) } });
             return describeError(error);
@@ -229,7 +228,7 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
         action.type === TRINO_CHANNEL_SETUP_STARTED ? { type: TRINO_CHANNEL_SETUP_STARTED, value: stored } : action);
     try {
         const channel = await setupTrinoConnection(trinoDispatch, logger, trino, http, oauthFlow, false, signal);
-        await performHealthCheck(rt.executor.execute, conn.connectionId, { type: 'trino', channel }, trinoDispatch, signal);
+        await performHealthCheck(rt.coreRuntime.execute, conn.connectionId, { type: 'trino', channel }, trinoDispatch, signal);
     } catch (error) {
         return describeError(error);
     }
@@ -248,8 +247,11 @@ async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise
     // The folder is the workbook, its file names its id
     const { workbookId } = await storage.loadWorkbook('');
     const core = await rt.platform.setupCore('run');
-    const restored = await restoreSingleWorkbook(core, storage, rt.logger, workbookId, rt.connections.store.current, rt.storageWriter);
-    rt.connections.store.update(registry => mergeRestoredWorkbookIntoConnections(registry, restored));
+    rt.coreRuntime.setCore(core);
+    rt.storageWriter.provideCore(core);
+    // The connections save through the writer of the runtime
+    await rt.storageWriter.withNativeWriter(async native => rt.coreRuntime.setStorageWriter(native));
+    const restored = await restoreSingleWorkbook(rt.coreRuntime, storage, rt.logger, workbookId, rt.coreRuntime.registry(), rt.storageWriter);
     rt.workbooks.store.update(registry => mergeRestoredWorkbookIntoScripts(registry, restored));
     return restored.workbookScripts;
 }
@@ -358,7 +360,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         // The connections are set up before the first statement, all at once. A failure is reported here, the run
         // leaves out the scripts of the connection.
         const prepareConnection = async (connectionId: string) => {
-            const conn = runtime.connections.store.current.connections.get(connectionId);
+            const conn = runtime.coreRuntime.connection(connectionId);
             if (conn == null) throw new Error(`the workbook has no connection ${connectionId}`);
             const label = connectionLabel(conn);
             const started = performance.now();
@@ -377,7 +379,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         // The statement that failed in a script, the error points into it
         const failedStatements = new Map<string, string>();
         const execute: QueryExecutor = (connectionId, queryArgs) => {
-            const [queryId, execution] = runtime.executor.execute(connectionId, { ...queryArgs, analyzeResults: false });
+            const [queryId, execution] = runtime.coreRuntime.execute(connectionId, { ...queryArgs, analyzeResults: false });
             const script = scriptOfOwner.get(queryArgs.metadata.resultOwner ?? '') ?? null;
             queries.set(queryId, { connectionId, script, statement: queryArgs.query, execution });
             running.add(queryId);
@@ -396,7 +398,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             for (const queryId of running) {
                 const query = queries.get(queryId)!;
                 if (query.script == null) continue;
-                const update = runtime.connections.store.current.connections.get(query.connectionId)?.queriesActive.get(queryId)?.latestProgressUpdate;
+                const update = runtime.coreRuntime.query(queryId)?.latestProgressUpdate;
                 if (update == null) continue;
                 const progress = { phase: update.phase ?? null, percent: update.progressPercent ?? null, rows: update.rowsProcessed ?? null };
                 const text = JSON.stringify(progress);
@@ -424,7 +426,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             const ms = elapsed(script);
             const table = queryId == null ? null : await (queries.get(queryId)?.execution ?? Promise.resolve(null));
             // The executor writes the result into the cache after the query resolved
-            await runtime.executor.flushCacheWrites();
+            await runtime.coreRuntime.flushCacheWrites();
             const entry = hyper == null || key == null ? null : await hyper.resultCache.lookup(key);
             const file = entry == null ? null : path.join(hyper!.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name);
             return { type: 'script_done', script, ms, table, cached, key: entry?.key ?? null, file };
@@ -472,7 +474,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
                 getWorkbook: () => runtime.workbooks.store.current.workbookScriptsMap.get(workbookId) ?? null,
                 targets: requested.size === 0 ? undefined : selected.map(file => files.indexOf(file)),
                 executeQuery: execute,
-                cancelQuery: (connectionId, queryId) => runtime.executor.cancel(connectionId, queryId),
+                cancelQuery: (connectionId, queryId) => runtime.coreRuntime.cancel(connectionId, queryId),
                 modifyWorkbookScripts: action => runtime.workbooks.dispatch(workbookId, action),
                 signal: stop.signal,
                 onState: next => { state = next; },

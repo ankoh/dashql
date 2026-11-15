@@ -1,10 +1,9 @@
 import * as arrow from 'apache-arrow';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { QueryExecutionStatus, QueryType, type QueryProgressUpdate } from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql-core';
+import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-core';
 
 import { AsyncConsumer } from '../utils/async_consumer.js';
-import { LoggableException } from '../platform/logger/logger.js';
-import { VariantKind } from '../utils/variant.js';
 import type { EngineProgressPayload, QueryProfileProgress } from './query_progress.js';
 
 /// The status of the execution of a query, a numeric enum of the module
@@ -21,27 +20,11 @@ export function queryIsDone(status: QueryExecutionStatus) {
     }
 }
 
-export interface QueryExecutionMetrics {
-    /// The total data bytes
-    totalDataBytesReceived: number;
-    /// The total batches received
-    totalBatchesReceived: number;
-    /// The total batches received
-    totalRowsReceived: number;
+/// The metrics of the response stream of a query, as the connector counts them
+export type QueryExecutionMetrics = core.QueryStreamMetrics;
 
-    /// The query requests that started
-    totalQueryRequestsStarted: number;
-    /// The query requests that finished
-    totalQueryRequestsSucceeded: number;
-    /// The query requests that failed
-    totalQueryRequestsFailed: number
-    /// The total request duration of all requests that failed or succeeded
-    totalQueryRequestDurationMs: number;
-
-    /// The duration until the first batch
-    durationUntilFirstBatchMs: number | null;
-}
-
+/// The progress of a query: the plain fields and the structured progress of the progress model of the query in the
+/// runtime (`queryProgress` of `query_progress.ts`)
 export interface QueryExecutionProgress {
     /// Is queued?
     isQueued: boolean | null;
@@ -57,11 +40,10 @@ export interface QueryExecutionProgress {
     metrics: QueryExecutionMetrics;
     /// The phase the engine reports, e.g. the Trino query state (QUEUED, PLANNING, RUNNING, FINISHING)
     phase?: string | null;
-    /// The raw progress payload of the engine that a channel of the host reports, the query executor of the core
+    /// The raw progress payload of the engine that a channel of the host reports, the query executor of the runtime
     /// feeds it into the progress model of the query
     engineProgress?: EngineProgressPayload | null;
-    /// The structured progress (stages, pipelines, the plan) of the progress model of the query, projected from the
-    /// query history of the core
+    /// The structured progress (stages, pipelines, the plan) of the progress model of the query
     profileProgress?: QueryProfileProgress | null;
 }
 
@@ -76,43 +58,6 @@ export interface QueryExecutionResponseStream {
     getSchema(): Promise<arrow.Schema | null>;
     /// Await the next record batch
     produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void>;
-}
-
-export interface QueryMetrics {
-    /// The time at which we requested the query (if any)
-    queryRequestedAt: Date | null;
-    /// The time at which the query was sent (if any)
-    querySendingStartedAt: Date | null;
-    /// The time at which the query was queued (if any)
-    queryQueuedStartedAt: Date | null;
-    /// The time at which we the query started running (if any)
-    queryRunningStartedAt: Date | null;
-    /// Received the frist batch at (if any)
-    receivedFirstBatchAt: Date | null;
-    /// Received all batches at (if any)
-    receivedLastBatchAt: Date | null;
-    /// Received all batches at (if any)
-    receivedAllBatchesAt: Date | null;
-    /// The time at which we started processed the results
-    processingResultsStartedAt: Date | null;
-    /// The time at which we processed the results
-    processedResultsAt: Date | null;
-    /// The time at which the query execution finished (if any)
-    querySucceededAt: Date | null;
-    /// The time at which the query execution failed (if any)
-    queryFailedAt: Date | null;
-    /// The time at which the query execution was cancelled (if any)
-    queryCancelledAt: Date | null;
-    /// The time at which the query execution was last updated
-    lastUpdatedAt: Date | null;
-    /// The number of query_status updates received
-    progressUpdatesReceived: number;
-    /// The total query duration
-    queryDurationMs: number | null;
-    /// The text length in characters
-    textLength: number | null;
-    /// The stream metrics
-    streamMetrics: QueryExecutionMetrics;
 }
 
 /// The kind of a query, a numeric enum of the module
@@ -170,118 +115,24 @@ export interface PlannedStatement {
     after: Array<{ node: number; reason: string }>;
 }
 
-export interface QueryExecutionState {
-    /// The query id
-    queryId: number;
-    /// The trace id for this query execution
-    traceId: number;
-    /// The query text
-    queryText: string;
-    /// The query metadata
+/// A query, the view of the slice `query` of the runtime (docs/wip/runtime_api.md). The points in time are
+/// milliseconds since epoch, the result table is a handle of the handle table of the runtime (`useTable`).
+export type QueryExecutionState = Omit<core.QueryView, 'queryMetadata'> & {
     queryMetadata: QueryMetadata;
-    /// The current status
-    status: QueryExecutionStatus;
-    /// The query metric counters
-    metrics: QueryMetrics;
-    /// The cancellation signal
-    cancellation: AbortController;
-    /// The loading error (if any)
-    error: LoggableException | null;
-    /// The latest update for the query execution
-    latestProgressUpdate: QueryExecutionProgress | null;
-    /// The result query_result iff the query succeeded
-    resultTable: arrow.Table | null;
-    /// The file-based query result cache key for this execution, or null when the query is not
-    /// cacheable (or no key could be derived). Recorded so the UI can offer a "delete cached" action.
-    cacheKey: string | null;
-    /// Whether this result was served from the query result cache instead of the backend.
-    servedFromCache: boolean;
-    /// Whether the cached `.arrow` entry for this query has been deleted (via the UI). Used to
-    /// disable the "delete cached" button once there is nothing left to delete.
-    cacheDeleted: boolean;
-    /// When the cache entry backing this result was written (`.arrow` file mtime), or null when the
-    /// result did not come from the cache. Lets the UI show how old a cached result is. Note that a
-    /// cache hit does not re-touch the file, so this is the write time, not a last-access time.
-    cachedAt: Date | null;
+};
+
+/// The details of the error of a failed or cancelled query, null without any
+export function queryErrorDetails(error: core.QueryErrorView | null | undefined): Record<string, string> | null {
+    if (error?.details == null) return null;
+    try {
+        const details = JSON.parse(error.details) as Record<string, string>;
+        return Object.keys(details).length > 0 ? details : null;
+    } catch {
+        return null;
+    }
 }
 
-export interface QueryExecutionTracker {
-    dispatch(action: QueryExecutionAction): void;
-}
-
-export const EXECUTE_QUERY = Symbol('EXECUTE_QUERY');
-export const QUERY_SENDING = Symbol('QUERY_SENDING');
-export const QUERY_RUNNING = Symbol('QUERY_RUNNING');
-export const QUERY_PROGRESS_UPDATED = Symbol('QUERY_PROGRESS_UPDATED');
-export const QUERY_RECEIVED_BATCH = Symbol('QUERY_RECEIVED_BATCH');
-export const QUERY_RECEIVED_ALL_BATCHES = Symbol('QUERY_RECEIVED_ALL_BATCHES');
-export const QUERY_PROCESSING_RESULTS = Symbol('QUERY_PROCESSING_RESULTS');
-export const QUERY_PROCESSED_RESULTS = Symbol('QUERY_PROCESSED_RESULTS');
-export const QUERY_SUCCEEDED = Symbol('QUERY_SUCCEEDED');
-export const QUERY_FAILED = Symbol('QUERY_FAILED');
-export const QUERY_CANCELLED = Symbol('QUERY_CANCELLED');
-export const QUERY_CACHE_RECORDED = Symbol('QUERY_CACHE_RECORDED');
-export const QUERY_CACHE_DELETED = Symbol('QUERY_CACHE_DELETED');
-
-export type QueryExecutionAction =
-    | VariantKind<typeof EXECUTE_QUERY, [number, QueryExecutionState]>
-    | VariantKind<typeof QUERY_SENDING, [number]>
-    | VariantKind<typeof QUERY_RUNNING, [number]>
-    | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryProgressUpdate]>
-    | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, QueryExecutionMetrics]>
-    | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, QueryExecutionMetrics]>
-    | VariantKind<typeof QUERY_PROCESSING_RESULTS, [number]>
-    | VariantKind<typeof QUERY_PROCESSED_RESULTS, [number]>
-    | VariantKind<typeof QUERY_SUCCEEDED, [number]>
-    | VariantKind<typeof QUERY_FAILED, [number, LoggableException, QueryExecutionMetrics | null]>
-    | VariantKind<typeof QUERY_CANCELLED, [number, LoggableException, QueryExecutionMetrics | null]>
-    | VariantKind<typeof QUERY_CACHE_RECORDED, [number, string, boolean, number | null]>
-    | VariantKind<typeof QUERY_CACHE_DELETED, [number]>;
-
-export function createQueryExecutionState(
-    queryId: number,
-    traceId: number,
-    queryText: string,
-    queryMetadata: QueryMetadata,
-    cancellation: AbortController,
-): QueryExecutionState {
-    const requestedAt = new Date();
-    return {
-        queryId,
-        traceId,
-        queryText,
-        queryMetadata,
-        status: QueryExecutionStatus.REQUESTED,
-        cancellation,
-        error: null,
-        metrics: {
-            textLength: queryText.length,
-            queryRequestedAt: requestedAt,
-            querySendingStartedAt: null,
-            queryQueuedStartedAt: null,
-            queryRunningStartedAt: null,
-            receivedFirstBatchAt: null,
-            receivedLastBatchAt: null,
-            receivedAllBatchesAt: null,
-            processingResultsStartedAt: null,
-            processedResultsAt: null,
-            querySucceededAt: null,
-            queryFailedAt: null,
-            queryCancelledAt: null,
-            lastUpdatedAt: requestedAt,
-            progressUpdatesReceived: 0,
-            queryDurationMs: null,
-            streamMetrics: createQueryResponseStreamMetrics(),
-        },
-        latestProgressUpdate: null,
-        resultTable: null,
-        cacheKey: null,
-        servedFromCache: false,
-        cacheDeleted: false,
-        cachedAt: null,
-    };
-}
-
+/// The metrics of the response stream of a query that received nothing yet
 export function createQueryResponseStreamMetrics(): QueryExecutionMetrics {
     return {
         totalDataBytesReceived: 0,
@@ -297,28 +148,14 @@ export function createQueryResponseStreamMetrics(): QueryExecutionMetrics {
     };
 }
 
+/// The metrics of the finished queries of a connection without one
 export function createQueryExecutionMetrics(): connection.ConnectionMetrics {
-    return {
-        successfulQueries: {
-            totalQueries: 0,
-            totalBatchesReceived: 0,
-            totalRowsReceived: 0,
-            accumulatedTimeUntilFirstBatch: 0,
-            accumulatedQueryDuration: 0,
-        },
-        canceledQueries: {
-            totalQueries: 0,
-            totalBatchesReceived: 0,
-            totalRowsReceived: 0,
-            accumulatedTimeUntilFirstBatch: 0,
-            accumulatedQueryDuration: 0,
-        },
-        failedQueries: {
-            totalQueries: 0,
-            totalBatchesReceived: 0,
-            totalRowsReceived: 0,
-            accumulatedTimeUntilFirstBatch: 0,
-            accumulatedQueryDuration: 0,
-        },
-    };
+    const none = () => ({
+        totalQueries: 0,
+        totalBatchesReceived: 0,
+        totalRowsReceived: 0,
+        accumulatedTimeUntilFirstBatch: 0,
+        accumulatedQueryDuration: 0,
+    });
+    return { successfulQueries: none(), canceledQueries: none(), failedQueries: none() };
 }

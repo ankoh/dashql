@@ -1,13 +1,7 @@
-import type { CatalogNameDefaults } from '@ankoh/dashql-core';
+import type { ConnectionDetailsView } from '@ankoh/dashql-core';
 
 import type { ConnectionParams, HyperConnectionParams, SalesforceConnectionParams, TrinoConnectionParams } from './connection_params.js';
-import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import type { HyperConnectionDetails } from './hyper/hyper_connection_state.js';
-import type { SalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
-import type { TrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { ConnectorType, type ConnectorInfo } from './connector_info.js';
-import type { QueryExecutionArgs } from './query_execution_args.js';
-import type { QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
 import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
 import { SALESFORCE_CONNECTOR_DESCRIPTOR, DBCOM_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
@@ -23,17 +17,6 @@ export interface ConnectorParamsMap {
     dbcom: SalesforceConnectionParams;
     /// Trino connections
     trino: TrinoConnectionParams;
-}
-/// The details of the connection state of the connectors
-interface ConnectorDetailsMap {
-    /// Direct-to-Hyper connections
-    hyper: HyperConnectionDetails;
-    /// Salesforce Data Cloud connections
-    salesforce: SalesforceConnectionStateDetails;
-    /// Database.com connections
-    dbcom: SalesforceConnectionStateDetails;
-    /// Trino connections
-    trino: TrinoConnectionStateDetails;
 }
 /// The field of the connection params that holds the params of a connector, e.g. `{ hyper: ... }`
 export type ConnectorParamsKey = keyof ConnectorParamsMap;
@@ -55,12 +38,8 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     info: ConnectorInfo;
     /// The field of the connection params that holds the params of the connector
     paramsKey: K;
-    /// The variant type of the details of the connection state
-    detailsType: ConnectionStateDetailsVariant['type'];
     /// The params of a new connection
     defaultParams(): ConnectorParamsMap[K];
-    /// Create the details of the connection state
-    createDetails(params: ConnectorParamsMap[K]): ConnectorDetailsMap[K];
     /// Remove the raw form rows, they belong only to the local draft
     withoutDraftRows(params: ConnectorParamsMap[K]): ConnectorParamsMap[K];
     /// Strip the secrets before the params are shared, the login hint only if `withLoginHint` is false
@@ -69,18 +48,14 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     loginHint(params: ConnectorParamsMap[K]): string | null;
     /// The params that identify the results of a query in the query result cache
     cacheSignature(params: ConnectorParamsMap[K]): unknown;
-    /// The database and schema of the relations that unqualified statements create or drop.
-    /// They match the names that the catalog loader gives the relations of the connection.
-    catalogNameDefaults(details: ConnectorDetailsMap[K]): CatalogNameDefaults;
-    /// Execute a query on the channel of a connection, a channel override of the connector wins
-    executeQuery(details: ConnectorDetailsMap[K], args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream>;
-    /// The number of statements of a workbook run that a connection executes at once
-    maxConcurrentQueries(details: ConnectorDetailsMap[K]): number;
+    /// The number of statements of a workbook run that a connection executes at once, the details are the ones of the
+    /// view of the connection
+    maxConcurrentQueries(details: ConnectionDetailsView): number;
     /// Does the catalog of a connection outlive the page? The relations of a database that is created anew with
     /// every page load and the catalog changes of its statements are neither persisted nor restored.
     catalogIsDurable(params: ConnectorParamsMap[K]): boolean;
     /// Can the queries of a connection read the data files that are attached to a workbook?
-    readsAttachments(details: ConnectorDetailsMap[K]): boolean;
+    readsAttachments(details: ConnectionDetailsView): boolean;
     /// The client functions of the connections, undefined if they have none
     clientFunctions?: ClientFunctionBinding;
 }
@@ -103,9 +78,9 @@ export function connectorOfParams(params: ConnectionParams): ConnectorDescriptor
     return connector;
 }
 
-/// The connector of the details of a connection state
-export function connectorOfDetails(details: ConnectionStateDetailsVariant): ConnectorDescriptor {
-    return DESCRIPTORS.find(connector => connector.detailsType === details.type)!;
+/// The connector of a connection
+export function connectorOf(connection: { connectorType: number }): ConnectorDescriptor {
+    return CONNECTOR_DESCRIPTORS[connection.connectorType as ConnectorType];
 }
 
 /// The params of the connector of connection params
@@ -118,17 +93,12 @@ export function connectionParamsOf(connector: ConnectorDescriptor, params: Conne
     return { [connector.paramsKey]: params } as unknown as ConnectionParams;
 }
 
-/// The details of a connection state with connection params
-export function connectionStateDetailsOf(connector: ConnectorDescriptor, params: ConnectorParamsMap[ConnectorParamsKey]): ConnectionStateDetailsVariant {
-    return { type: connector.detailsType, value: connector.createDetails(params) } as ConnectionStateDetailsVariant;
-}
-
-/// The database and schema of the relations that unqualified statements create or drop on a connection
-export function catalogNameDefaults(details: ConnectionStateDetailsVariant): CatalogNameDefaults {
-    return connectorOfDetails(details).catalogNameDefaults(details.value);
-}
-
 /// Can the queries of a connection read the data files that are attached to a workbook?
-export function connectionReadsAttachments(details: ConnectionStateDetailsVariant | null | undefined): boolean {
-    return details != null && connectorOfDetails(details).readsAttachments(details.value);
+export function connectionReadsAttachments(connection: { connectorType: number; details: ConnectionDetailsView } | null | undefined): boolean {
+    return connection != null && connectorOf(connection).readsAttachments(connection.details);
+}
+
+/// The number of statements of a workbook run that a connection executes at once
+export function connectionMaxConcurrentQueries(connection: { connectorType: number; details: ConnectionDetailsView } | null | undefined): number {
+    return connection == null ? 1 : connectorOf(connection).maxConcurrentQueries(connection.details);
 }

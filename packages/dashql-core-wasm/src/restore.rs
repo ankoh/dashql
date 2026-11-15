@@ -1,8 +1,9 @@
 //! The wasm-bindgen API of the restore of the stored state (`dashql_core_runtime::restore`).
 //!
 //! The host is the host of the storage writer with the reads of the restore (`RestoreHost`), the restore writes through
-//! a `StorageWriter` of the module. The restored connections and workbooks cross as the classes of the module
-//! (`Connection`, `Workbook`), what the registries need next to them and the progress as views (`view.rs`).
+//! a `StorageWriter` of the module. The restored connections go into the `Runtime` (`adoptRestoredConnection`), the
+//! workbooks cross as the class `Workbook` of the module, what the registries need next to them and the progress as
+//! views (`view.rs`).
 
 use std::future::Future;
 
@@ -25,7 +26,6 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
-use super::connection::Connection;
 use super::storage_writer::{host_call, JsHost, JsStorageWriterHost, StorageWriter};
 use super::views::{from_js, to_js, JsonValue};
 use super::workbook::view::WorkbookDataFile;
@@ -196,6 +196,13 @@ pub struct RestoredState {
     view: RestoredStateView,
 }
 
+impl RestoredState {
+    /// Take a restored connection, none if it was taken. The runtime adopts it (`Runtime.adoptRestoredConnection`).
+    pub(crate) fn take_connection(&mut self, index: u32) -> Option<ConnectionState> {
+        self.connections.get_mut(index as usize).and_then(Option::take)
+    }
+}
+
 impl From<RuntimeState> for RestoredState {
     fn from(state: RuntimeState) -> Self {
         let view = RestoredStateView::from(&state);
@@ -214,11 +221,6 @@ impl RestoredState {
         to_js(&self.view)
     }
 
-    /// Take a restored connection, none if it was taken
-    #[wasm_bindgen(js_name = takeConnection)]
-    pub fn take_connection(&mut self, index: u32) -> Option<Connection> {
-        self.connections.get_mut(index as usize).and_then(Option::take).map(Connection::from_state)
-    }
 
     /// Take a restored workbook, none if it was taken
     #[wasm_bindgen(js_name = takeWorkbook)]

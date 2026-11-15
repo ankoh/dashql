@@ -36,7 +36,7 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
     const readOnly = useWorkbookReadOnly();
     const [renaming, setRenaming] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
-    const enabled = connectionReadsAttachments(props.conn?.details);
+    const enabled = connectionReadsAttachments(props.conn);
     const disabled = !enabled || busy;
     // An attachment is the table parameter of its name, scripts read `sales.parquet` as `:sales`
     const parameter = attachmentParameterName(props.file.name) ?? props.file.name;

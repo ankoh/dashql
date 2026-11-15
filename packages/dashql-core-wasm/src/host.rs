@@ -1,19 +1,29 @@
 //! The platform of the runtime: one JavaScript object that the runtime calls for its I/O (docs/wip/runtime_api.md),
 //! and `JsPlatform`, the host of the services of the crate over it.
 //!
-//! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock and the log. The
-//! runtime tells it that its state changed (`changed`), the store of the app then takes the changes and reads the
-//! views. Every call into the platform catches: a member that throws or is missing fails the call of the service with a
-//! `HostError` and never unwinds through the module. No borrow of the platform is held while it calls JavaScript, so
-//! the platform may call the runtime again from any of its members.
+//! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
+//! the channels of the host, the query result cache and the cancellation of setups. The runtime tells it that its state
+//! changed (`changed`), the store of the app then takes the changes and reads the views. Every call into the platform
+//! catches: a member that throws or is missing fails the call of the service with a `HostError` and never unwinds
+//! through the module. No borrow of the platform is held while it calls JavaScript, so the platform may call the
+//! runtime again from any of its members.
+//!
+//! The helpers of the other hosts of the bindings (the setups, the catalog loader) live here as well: reading the
+//! fields of JS values, awaiting the promises of the host, requests and responses.
 
-use std::cell::RefCell;
+use std::any::Any;
+use std::cell::{Cell, RefCell};
+use std::future::Future;
 use std::rc::Rc;
 
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, RunId};
 use dashql_core_runtime::compute::ComputationEffect;
+use dashql_core_runtime::connections::registry::RegistryEffect;
+use dashql_core_runtime::executor::HostTable;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
+use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::Serialize;
 use tsify::{Ts, Tsify};
@@ -29,16 +39,38 @@ const RUNTIME_PLATFORM: &str = r#"
 export interface RuntimePlatform {
     /** The clock in milliseconds since epoch, and timers */
     clock: { now(): number; sleep(ms: number): Promise<void> };
-    /** Log a message with its details as key value pairs */
-    log(level: 'debug' | 'info' | 'warn' | 'error', message: string, details: [string, string][]): void;
+    /** Log a message with its details as key value pairs, on a target of the log */
+    log(level: 'debug' | 'info' | 'warn' | 'error', message: string, details: [string, string][], target?: string): void;
     /** The handle table of the host objects that the runtime names by a number */
-    handles: { register(object: unknown): number; release(handle: number): void };
+    handles: RuntimeHandles;
     /** The Arrow tables of the host by handle, result data never enters the module */
     tables: RuntimeTables;
     /** The compute database of the computations, null until the host set it up */
     readonly compute: ComputePlatform | null;
+    /** Send requests with the HTTP client of the platform */
+    http: RuntimeHttp;
+    /** The channels of the host that run queries themselves: the embedded Hyper, gRPC through the native proxy, the channels of tests */
+    channels: RuntimeChannels;
+    /** The query result cache, null without one */
+    readonly resultCache: RuntimeResultCache | null;
+    /** Random ids */
+    crypto: { randomUuid(): string };
+    /** Cancel the setup of a connection that runs, e.g. its OAuth flow */
+    cancelSetup(connectionId: string): void;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
     changed(urgent: boolean): void;
+}
+
+/** The handle table of the host */
+export interface RuntimeHandles {
+    /** Keep an object under a new handle */
+    register(object: unknown): number;
+    /** Forget the object of a handle */
+    release(handle: number): void;
+    /** The object of a handle */
+    get(handle: number): unknown;
+    /** Keep the object of a handle under a new handle as well, e.g. a result table that a computation takes too */
+    duplicate(handle: number): number;
 }
 
 /** The Arrow tables of the host by handle */
@@ -47,10 +79,63 @@ export interface RuntimeTables {
     begin(ipc: Uint8Array): number;
     /** Append the batches of an Arrow IPC stream to a table that began */
     append(table: number, ipc: Uint8Array): void;
+    /** Open a table that streams in parts of one Arrow IPC stream, a message may span parts. A channel of the host pushes its batches into it. */
+    open(): number;
+    /** Push the next part of the Arrow IPC stream of a table that was opened */
+    push(table: number, part: Uint8Array): void;
     /** Finish a table, it is a table of the handle table from then on */
-    finish(table: number): { rows: number; bytes: number };
+    finish(table: number): { rows: number; bytes: number; columns: number; batches: number };
     /** A table of the handle table as an Arrow IPC stream */
     read(table: number): Uint8Array;
+}
+
+/** A request of the runtime for the HTTP client of the host */
+export interface RuntimeHttpRequest {
+    method: string;
+    url: string;
+    headers: [string, string][];
+    body: string | null;
+}
+/** A response of the HTTP client of the host */
+export interface RuntimeHttpResponse {
+    status: number;
+    statusText: string;
+    headers: [string, string][];
+    body: Uint8Array;
+}
+/** Fetch of the platform: `abort` with the id of a request stops it */
+export interface RuntimeHttp {
+    fetch(id: number, request: RuntimeHttpRequest): Promise<RuntimeHttpResponse>;
+    abort(id: number): void;
+}
+
+/** What a channel of the host reports while it streams a result, the batches go into the table of the query */
+export type RuntimeChannelMessage =
+    | { type: 'progress'; progress: QueryProgressView }
+    | { type: 'batch'; metrics: QueryStreamMetrics }
+    | { type: 'end'; metrics: QueryStreamMetrics };
+/** The channels of the host by query: the host knows the channel of a query from the query it described */
+export interface RuntimeChannels {
+    /** Run a query on its channel, its batches go into the table that was opened for it. False if the channel returned no result. */
+    open(queryId: number, table: number): Promise<boolean>;
+    /** The next message of the stream of a query */
+    next(queryId: number): Promise<RuntimeChannelMessage>;
+    /** Cancel the query of a channel at the backend */
+    cancel(queryId: number): Promise<void>;
+    /** Is the profile of the query shown? A channel fetches the plan and its statistics only then. */
+    profileDetail(queryId: number, shown: boolean): void;
+}
+
+/** The query result cache of the platform, Parquet files that the compute database reads and writes */
+export interface RuntimeResultCache {
+    /** The newest file of a key, null on a miss */
+    lookup(key: string): Promise<{ name: string; cachedAt: number } | null>;
+    /** Read a file into a table of the handle table */
+    read(name: string): Promise<{ table: number; rows: number; columns: number }>;
+    /** Record a read of a file */
+    touch(name: string): Promise<void>;
+    /** Write a table of the handle table as the newest file of a key */
+    write(key: string, table: number): Promise<void>;
 }
 
 /** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Tables cross as Arrow IPC streams. */
@@ -82,6 +167,8 @@ extern "C" {
 pub enum HandleEffect {
     /// Forget the object of a handle
     Release { handle: u32 },
+    /// Close the object of a handle, e.g. a channel, and forget it
+    Close { handle: u32 },
     /// Abort the object of a handle, it stays until a release
     Abort { handle: u32, reason: String },
 }
@@ -98,6 +185,8 @@ struct Pending {
 struct Inner {
     object: JsRuntimePlatform,
     pending: RefCell<Pending>,
+    /// The id of the last request
+    last_request: Cell<f64>,
 }
 
 /// The host of the services of the crate over the platform object. Clones share the object and the pending changes.
@@ -112,8 +201,28 @@ pub(crate) fn message_of(value: &JsValue) -> String {
     message.or_else(|| value.as_string()).unwrap_or_else(|| "the platform failed".to_string())
 }
 
-fn host_error(value: JsValue) -> HostError {
+/// A host error that keeps what JS failed with
+pub(crate) fn host_error(value: JsValue) -> HostError {
     HostError::new(message_of(&value)).with_value(Rc::new(value))
+}
+
+/// What JS failed with, undefined for an error of the module
+pub(crate) fn host_value(value: Option<&Rc<dyn Any>>) -> JsValue {
+    value.and_then(|value| value.downcast_ref::<JsValue>()).cloned().unwrap_or(JsValue::UNDEFINED)
+}
+
+/// A field of a JS value, none for undefined and null
+pub(crate) fn field(value: &JsValue, name: &str) -> Option<JsValue> {
+    if !value.is_object() {
+        return None;
+    }
+    Reflect::get(value, &JsValue::from_str(name)).ok().filter(|value| !value.is_undefined() && !value.is_null())
+}
+
+/// Await a host call that returns a promise
+pub(crate) async fn host_call(result: Result<JsValue, JsValue>) -> Result<JsValue, HostError> {
+    let value = result.map_err(host_error)?;
+    JsFuture::from(Promise::resolve(&value)).await.map_err(host_error)
 }
 
 /// A member of an object
@@ -141,9 +250,74 @@ fn as_handle(value: &JsValue) -> Option<Handle> {
     value.as_f64().filter(|value| *value > 0.0 && *value <= Handle::MAX as f64 && value.fract() == 0.0).map(|value| value as Handle)
 }
 
+/// The headers of a request or a response as `[name, value]` pairs
+fn headers_value(headers: &Headers) -> Array {
+    headers.iter().map(|(name, value)| Array::of2(&JsValue::from_str(name), &JsValue::from_str(value))).collect()
+}
+
+/// A request as the HTTP client of the host takes it
+pub(crate) fn request_value(request: &HttpRequest) -> JsValue {
+    let object = Object::new();
+    let set = |key: &str, value: &JsValue| {
+        let _ = Reflect::set(&object, &JsValue::from_str(key), value);
+    };
+    set("method", &JsValue::from_str(request.method.as_str()));
+    set("url", &JsValue::from_str(&request.url));
+    set("headers", &headers_value(&request.headers));
+    set("body", &request.body.as_deref().map(JsValue::from_str).unwrap_or(JsValue::NULL));
+    object.into()
+}
+
+/// A response of the host, its body copied into the module
+pub(crate) fn response_of(value: &JsValue) -> Result<HttpResponse, HostError> {
+    response_keeping(value, false)
+}
+
+/// A response of the host. A successful one may keep its body with the host, the module passes it on unread.
+pub(crate) fn response_keeping(value: &JsValue, keep_body: bool) -> Result<HttpResponse, HostError> {
+    let status = field(value, "status").and_then(|status| status.as_f64()).ok_or_else(|| HostError::new("a response without a status"))?;
+    let mut response = HttpResponse::new(status.clamp(0.0, 999.0) as u16, Vec::new());
+    response.status_text = field(value, "statusText").and_then(|text| text.as_string()).unwrap_or_default();
+    if let Some(headers) = field(value, "headers").filter(Array::is_array) {
+        for pair in Array::from(&headers).iter() {
+            let pair = Array::from(&pair);
+            if let (Some(name), Some(value)) = (pair.get(0).as_string(), pair.get(1).as_string()) {
+                response.headers.append(&name, &value);
+            }
+        }
+    }
+    if let Some(body) = field(value, "body") {
+        match body.dyn_ref::<Uint8Array>() {
+            // The same object goes back to the host
+            Some(bytes) if keep_body && response.status < 400 => {
+                let length = bytes.length() as usize;
+                response.host_body = Some(HostBytes::new(Rc::new(body), length));
+            }
+            Some(bytes) => response.body = bytes.to_vec(),
+            None => response.body = Uint8Array::new(&body).to_vec(),
+        }
+    }
+    Ok(response)
+}
+
+/// A count of a JS object
+fn count_of(value: &JsValue, key: &str) -> u64 {
+    field(value, key).and_then(|n| n.as_f64()).unwrap_or_default().max(0.0) as u64
+}
+
+/// A table of the host with its counts
+pub(crate) fn host_table(value: &JsValue) -> HostTable {
+    HostTable { rows: count_of(value, "rows"), columns: count_of(value, "columns"), batches: count_of(value, "batches") }
+}
+
+/// The details of a log message as `[key, value]` pairs
+fn details_value(details: &[(&str, &str)]) -> Array {
+    details.iter().map(|(key, value)| Array::of2(&JsValue::from_str(key), &JsValue::from_str(value))).collect()
+}
+
 impl JsPlatform {
     pub fn new(object: JsRuntimePlatform) -> Self {
-        Self { inner: Rc::new(Inner { object, pending: RefCell::new(Pending::default()) }) }
+        Self { inner: Rc::new(Inner { object, pending: RefCell::new(Pending::default()), last_request: Cell::new(0.0) }) }
     }
 
     fn object(&self) -> &JsValue {
@@ -182,6 +356,26 @@ impl JsPlatform {
         }
     }
 
+    /// Collect the effects of the connections and the queries on handles, returns whether a setup is cancelled
+    pub fn push_registry_effects(&self, effects: &[RegistryEffect]) -> bool {
+        let mut cancel_setup = false;
+        let mut pending = self.inner.pending.borrow_mut();
+        for effect in effects {
+            match *effect {
+                RegistryEffect::Release { handle } => pending.effects.push(HandleEffect::Release { handle }),
+                RegistryEffect::Close { handle } => pending.effects.push(HandleEffect::Close { handle }),
+                RegistryEffect::Abort { handle, reason } => pending.effects.push(HandleEffect::Abort { handle, reason: reason.to_string() }),
+                RegistryEffect::CancelSetup => cancel_setup = true,
+            }
+        }
+        cancel_setup
+    }
+
+    /// Release a handle with the next changes
+    pub fn push_release(&self, handle: Handle) {
+        self.inner.pending.borrow_mut().effects.push(HandleEffect::Release { handle });
+    }
+
     /// Take the effects on handles, the host is told again with the next change
     pub fn take_effects(&self) -> Vec<HandleEffect> {
         let mut pending = self.inner.pending.borrow_mut();
@@ -189,10 +383,27 @@ impl JsPlatform {
         std::mem::take(&mut pending.effects)
     }
 
+    /// Log a message on a target
+    pub fn log_on(&self, level: LogLevel, message: &str, details: &[(&str, &str)], target: &str) {
+        let args = [JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into(), JsValue::from_str(target)];
+        let _ = call(self.object(), "log", &args);
+    }
+
     /// Keep an object in the handle table of the host
     pub fn register(&self, object: &JsValue) -> Result<Handle, HostError> {
         let handles = member(self.object(), "handles")?;
         as_handle(&call(&handles, "register", std::slice::from_ref(object))?).ok_or_else(|| HostError::new("the handle table returned no handle"))
+    }
+
+    /// The object of a handle, undefined for none
+    pub fn handle(&self, handle: Handle) -> JsValue {
+        member(self.object(), "handles").and_then(|handles| call(&handles, "get", &[JsValue::from_f64(handle as f64)])).unwrap_or(JsValue::UNDEFINED)
+    }
+
+    /// Keep the object of a handle under a new handle as well
+    pub fn duplicate(&self, handle: Handle) -> Result<Handle, HostError> {
+        let handles = member(self.object(), "handles")?;
+        as_handle(&call(&handles, "duplicate", &[JsValue::from_f64(handle as f64)])?).ok_or_else(|| HostError::new("the handle table returned no handle"))
     }
 
     /// Read a table of the handle table as an Arrow IPC stream
@@ -206,9 +417,130 @@ impl JsPlatform {
         Ok(Uint8Array::new(&ipc).to_vec())
     }
 
+    /// Open a table that streams in parts
+    pub fn open_table(&self) -> Result<Handle, HostError> {
+        let tables = member(self.object(), "tables")?;
+        as_handle(&call(&tables, "open", &[])?).ok_or_else(|| HostError::new("the tables returned no handle"))
+    }
+
+    /// Push the next part of a table that streams
+    pub fn push_table(&self, table: Handle, part: &JsValue) -> Result<(), HostError> {
+        let tables = member(self.object(), "tables")?;
+        call(&tables, "push", &[JsValue::from_f64(table as f64), part.clone()])?;
+        Ok(())
+    }
+
+    /// Finish a table, it is a table of the handle table from then on
+    pub fn finish_table(&self, table: Handle) -> Result<HostTable, HostError> {
+        let tables = member(self.object(), "tables")?;
+        Ok(host_table(&call(&tables, "finish", &[JsValue::from_f64(table as f64)])?))
+    }
+
+    /// Cancel the setup of a connection that runs
+    pub fn cancel_setup(&self, connection_id: &str) {
+        let _ = call(self.object(), "cancelSetup", &[JsValue::from_str(connection_id)]);
+    }
+
+    /// A random id
+    pub fn random_uuid(&self) -> Result<String, HostError> {
+        let crypto = member(self.object(), "crypto")?;
+        call(&crypto, "randomUuid", &[])?.as_string().ok_or_else(|| HostError::new("the platform returned no id"))
+    }
+
     /// The compute database, an error until the host set it up
     fn compute(&self) -> Result<JsValue, HostError> {
         member(self.object(), "compute").map_err(|_| HostError::new("the platform has no compute database"))
+    }
+
+    /// Is there a compute database?
+    pub fn has_compute(&self) -> bool {
+        self.compute().is_ok()
+    }
+
+    /// The query result cache, an error without one
+    fn result_cache(&self) -> Result<JsValue, HostError> {
+        member(self.object(), "resultCache").map_err(|_| HostError::new("the platform has no query result cache"))
+    }
+
+    /// Call a member of the channels of the host
+    fn channels(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
+        call(&member(self.object(), "channels")?, name, args)
+    }
+
+    /// Run a query on its channel of the host, the batches go into the table
+    pub fn channel_open(&self, query_id: f64, table: Handle) -> impl Future<Output = Result<bool, HostError>> + 'static {
+        let call = self.channels("open", &[JsValue::from_f64(query_id), JsValue::from_f64(table as f64)]);
+        async move { settled(call).await.map(|value| value.is_truthy()) }
+    }
+
+    /// The next message of the stream of a query on a channel
+    pub fn channel_next(&self, query_id: f64) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let call = self.channels("next", &[JsValue::from_f64(query_id)]);
+        settled(call)
+    }
+
+    /// Cancel the query of a channel at the backend
+    pub fn channel_cancel(&self, query_id: f64) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let call = self.channels("cancel", &[JsValue::from_f64(query_id)]);
+        async move { settled(call).await.map(|_| ()) }
+    }
+
+    /// Is the profile of a query on a channel shown?
+    pub fn channel_profile_detail(&self, query_id: f64, shown: bool) {
+        let _ = self.channels("profileDetail", &[JsValue::from_f64(query_id), JsValue::from_bool(shown)]);
+    }
+
+    /// Look up a key in the query result cache
+    pub fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "lookup", &[JsValue::from_str(key)]));
+        settled(call)
+    }
+
+    /// Read a cached file into a table
+    pub fn cache_read(&self, name: &str) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "read", &[JsValue::from_str(name)]));
+        settled(call)
+    }
+
+    /// Record a read of a cached file
+    pub fn cache_touch(&self, name: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "touch", &[JsValue::from_str(name)]));
+        async move { settled(call).await.map(|_| ()) }
+    }
+
+    /// Write a table as the newest file of a key. The host takes the table when it is called.
+    pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
+        async move { settled(call).await.map(|_| ()) }
+    }
+
+    /// Send a request with the fetch of the platform, a successful response may keep its body with the host
+    pub fn send(&self, request: HttpRequest, cancellation: &CancellationToken, keep_body: bool) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+        let id = self.inner.last_request.get() + 1.0;
+        self.inner.last_request.set(id);
+        let http = member(self.object(), "http");
+        let token = cancellation.clone();
+        let sent = if token.is_cancelled() {
+            None
+        } else {
+            Some(http.clone().and_then(|http| call(&http, "fetch", &[JsValue::from_f64(id), request_value(&request)])))
+        };
+        async move {
+            let Some(sent) = sent else {
+                return Err(HostError::new(CANCELLED_MESSAGE));
+            };
+            let promise = Promise::resolve(&sent?);
+            match token.run(JsFuture::from(promise)).await {
+                None => {
+                    if let Ok(http) = http {
+                        let _ = call(&http, "abort", &[JsValue::from_f64(id)]);
+                    }
+                    Err(HostError::new(CANCELLED_MESSAGE))
+                }
+                Some(Ok(value)) => response_keeping(&value, keep_body),
+                Some(Err(value)) => Err(host_error(value)),
+            }
+        }
     }
 }
 
@@ -245,8 +577,13 @@ impl Host for JsPlatform {
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        let pairs: Array = details.iter().map(|(key, value)| Array::of2(&JsValue::from_str(key), &JsValue::from_str(value))).collect();
-        let _ = call(self.object(), "log", &[JsValue::from_str(level.name()), JsValue::from_str(message), pairs.into()]);
+        let _ = call(self.object(), "log", &[JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into()]);
+    }
+}
+
+impl HttpHost for JsPlatform {
+    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+        self.send(request, cancellation, false)
     }
 }
 

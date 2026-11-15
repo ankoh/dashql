@@ -29,7 +29,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
 
-use super::query_executor::{field, host_call, host_error, request_value, response_of};
+use super::host::{field, host_call, host_error, request_value, response_of};
 
 #[wasm_bindgen(typescript_custom_section)]
 const CONNECTION_SETUP_HOST: &str = r#"
@@ -75,7 +75,7 @@ export interface ConnectionSetupHost {
     /** Log a message, the details are a JSON object of strings */
     log(level: 'debug' | 'info' | 'warn' | 'error', message: string, details: string, target: string): void;
     /** Send a request, `abortFetch` with its id stops it */
-    fetch(requestId: number, request: QueryExecutorHttpRequest): Promise<QueryExecutorHttpResponse>;
+    fetch(requestId: number, request: RuntimeHttpRequest): Promise<RuntimeHttpResponse>;
     abortFetch(requestId: number): void;
     /** A PKCE challenge: a random verifier and the base64url of its SHA-256 digest */
     generatePkce(): Promise<{ value: string; verifier: string }>;

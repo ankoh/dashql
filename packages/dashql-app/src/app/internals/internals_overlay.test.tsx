@@ -1,15 +1,13 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js';
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
-import { createQueryExecutionState, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
@@ -18,37 +16,29 @@ import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
 import { createTestRoot } from '../../tests/react_root.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
+import * as core from '@ankoh/dashql-core';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
+let coreRuntime: CoreRuntime | null = null;
 
-function query(queryId: number, queryType: QueryType): QueryExecutionState {
-    return createQueryExecutionState(queryId, queryId, `select ${queryId}`, {
-        queryType,
-        title: `Query ${queryId}`,
-        description: null,
-        issuer: 'test',
-        userProvided: queryType === QueryType.USER_PROVIDED,
-    }, new AbortController());
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// The metadata of a query of the test
+function metadata(queryId: number, queryType: QueryType) {
+    return { queryType, title: `Query ${queryId}`, description: null, issuer: 'test', userProvided: queryType === QueryType.USER_PROVIDED };
 }
 
 /// A Hyper connection with a finished user query, a finished SQLFrame query and an active query
-function connectionWithQueries(): ConnectionState {
-    return {
-        connectionId: 'internals-test',
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        params: {},
-        details: { type: HYPER_CONNECTOR, value: {} },
-        active: false,
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: ConnectionHealth.NOT_STARTED,
-        catalog: { clear: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map() },
-        queriesFinished: new Map([[1, query(1, QueryType.USER_PROVIDED)], [2, query(2, QueryType.INTERNAL_SQLFRAME)]]),
-        // The id 4 of a query that is gone is skipped
-        queriesFinishedOrdered: [1, 2, 4],
-        queriesActive: new Map([[3, query(3, QueryType.USER_PROVIDED)]]),
-        queriesActiveOrdered: [3],
-    } as unknown as ConnectionState;
+function connectionWithQueries(runtime: CoreRuntime): void {
+    addTestConnection(runtime, { connectionId: 'internals-test', params: { hyper: {} } as never });
+    const target = { connection: 'internals-test' };
+    trackTestQuery(runtime, target, 'select 1', metadata(1, QueryType.USER_PROVIDED), true);
+    trackTestQuery(runtime, target, 'select 2', metadata(2, QueryType.INTERNAL_SQLFRAME), true);
+    trackTestQuery(runtime, target, 'select 3', metadata(3, QueryType.USER_PROVIDED), false);
 }
 
 describe('InternalsViewer', () => {
@@ -59,6 +49,7 @@ describe('InternalsViewer', () => {
 
     function Capture() {
         registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         config = useAppConfig();
         return null;
     }
@@ -110,10 +101,7 @@ describe('InternalsViewer', () => {
 
     it('switches between the tabs', async () => {
         await root.render(tree(null));
-        await act(async () => registry![1](reg => {
-            reg.connections.set('internals-test', connectionWithQueries());
-            return { ...reg };
-        }));
+        await act(async () => connectionWithQueries(coreRuntime!));
         await vi.waitFor(() => expect(config).not.toBeNull());
         await root.render(tree(<InternalsViewer workbookId={null} onClose={onClose} />));
 

@@ -1,7 +1,9 @@
 # The API between the app and the runtime
 
 Status: decided on 2026-11-15 (see [Decisions](#decisions)). Step 1 is built: the frame (`Runtime`, `JsPlatform`,
-`RuntimeStore`, the hooks) with the computations as its first domain, see [Step 1 as built](#step-1-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+`RuntimeStore`, the hooks) with the computations as its first domain, see [Step 1 as built](#step-1-as-built). Step 2
+is built: the connections with their query histories, the query executor and the saves of connections, see
+[Step 2 as built](#step-2-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -418,7 +420,7 @@ deletes more than it adds.
    (decision 3). Deletes `computation_native.ts`, `compute/computations.ts`, `data_frame.ts`, `analyze_table.ts`,
    `computation_tasks.ts`, most of `computation_state.ts` and `computation_types.ts`, `computations.rs` of the bindings
    and its wrapper. TypeScript about −2,000, +700.
-2. **Connections, query histories, the executor and the saves.** The connections enter the runtime with their
+2. **Connections, query histories, the executor and the saves** (done, see [Step 2 as built](#step-2-as-built)). The connections enter the runtime with their
    histories; the executor reports into them; the platform gets `http`, `channels`, `resultCache`, `crypto`;
    `executeQuery`, `cancelQuery`, `watchProfile`, `saveConnection`. The 52 files of `ConnectionState`, the 27 of
    `QueryExecutionState`, the shell's history. Deletes `connection_native.ts`, the registry service and state,
@@ -510,6 +512,111 @@ What step 2 needs of the frame: a `Target` and the actions of the connections, t
 platform and in `JsPlatform`, the handle table of the connections on the platform instead of `handlesOf(instance)`,
 and the executor reporting into the runtime instead of the `analyzeTable` command (`QueryExecutorService` calls
 `coreRuntime.analyzeTable` and `deleteComputation` until then).
+
+### Step 2 as built
+
+The connections, their query histories, the query executor and the saves of connections, built on `d8ab9080f` (step 1).
+
+- **`Runtime` holds the connections** (`packages/dashql-core-wasm/src/runtime/connections.rs`): the registry of the
+  crate (`connections::registry::ConnectionRegistry`) keeps the connections in the order they were registered, the
+  histories without a connection (the shell) by name, and hands out the ids of all queries from one sequence; a query
+  id names a query of one history. It applies the rules of the TypeScript registry: a connection that workbooks use is
+  never deleted and switches its connector only while one workbook uses it, the embedded Hyper is never deleted. The
+  workbooks that use a connection come from the host (`setConnectionReferences`, from the registry of the workbooks)
+  until the workbooks are part of the runtime (step 4).
+- **The unions.** `Target` gained `{ connection: string }`, `{ history: string }` and `'app'`. `RuntimeAction` gained the
+  actions of a connection (`setDraft`, `discardDraft`, `commitParams`, `rename`, `setQueryResultCaching`,
+  `deleteConnection`, `resetConnection`, `switchConnectorType`, `relationsTouched`, `updateCatalog`,
+  `catalogUpdateRegisterQuery`, `catalogUpdateFinished`, `restoreCatalogUpdates`, `replaceFunctionScriptText`), one
+  `setupStep` for every step of a setup and of a health check by the name of the action of its connector
+  (`setup_action_from_json` of the crate reads it, the inverse of `setup_action_json`; a channel crosses as a handle
+  that the connection takes), the lifecycle of the queries that the host runs itself (`trackQuery`, `querySending`,
+  `queryRunning`, `queryProcessingResults`, `queryProcessedResults`, `querySucceeded`, `queryFailed`,
+  `queryCancelled`, `queryReceivedAllBatches`, `queryCacheDeleted`), `createHistory`, `dropHistory`, and the actions
+  of the runtime (`createConnection`, `setConnectionReferences`). The outcome names what an action created (`id`: the
+  id of a connection or of a query).
+- **The views.** `connectionList` (`'root'`: the connections in order with whether they are listed and their ordinal,
+  the ids by connector), `connection` (by id: the fields with the names the app reads, `connectionId`,
+  `connectionStatus`, `connectionHealth`, `connectorType`, `params`, `paramsDraft`, `details` with the channel as a
+  handle, `catalogUpdates`, `catalogRelationEntryId`, `catalogNameDefaults`, `metrics`, the queries as
+  `queriesActiveOrdered`/`queriesFinishedOrdered`, `queriesRunning` (the active queries that are not the SQLFrame
+  queries of computations), `workbooks` and `save`), `query` (by id: the text, the metadata with the planned
+  statement as opaque JSON, the trace, the status, the metrics in milliseconds, the error, the latest progress with
+  its structured progress, the result table as a handle) and `history` (by name: the queries of a history without a
+  connection). A connection changes when it is set up, saved or refreshed and when a query starts or finishes; the
+  progress and the batches of a query change only the slice of the query. The store passes the keys of the structured
+  progress that it holds (`known` of the `query` kind) and keeps the payloads that don't cross again.
+- **The executor reports into the runtime.** `executeQuery(connectionId, args, request, failure, events)` registers the
+  query in the history of its connection right away and returns `{ queryId, done }`; it runs once the host described
+  where it runs (the request: the target of a channel that the module speaks or of the host, the cache key, whether it
+  publishes and analyzes its result). The host of the executor is Rust (`runtime/queries.rs`): the events go into the
+  history, the parts of a result into a table of the platform (`tables.open`, `push`, `finish`), the analysis of a
+  result onto the computations of the runtime (`analyze_table` with a handle of its own, `handles.duplicate`), a result
+  replaces the computation of the earlier result of its owner in Rust, and the relations that a statement touched come
+  from the core (`touched_relations`) and go into the connection. `cancelQuery`, `watchProfile(queryId, shown)`,
+  `setProgressLayout`, `flushCacheWrites`, `queryProgressRecording` and `followQueryProgress` complete it.
+  `QueryPlatform` of the runtime package (`query/query_platform.ts`) is the host half: it describes the request from the
+  view of the connection and the channel of its handle, runs the queries of the channels that the module doesn't speak
+  (`channels` by query: `open`, `next`, `cancel`, `profileDetail`) and keeps the query result cache over the compute
+  database (`resultCache`: `lookup`, `read`, `touch`, `write`).
+- **`JsPlatform` grew** `http` (`fetch` and `abort` by id), `channels`, `resultCache`, `crypto.randomUuid`,
+  `cancelSetup`, `handles.get` and `handles.duplicate`, `tables.open` and `tables.push`, and a target for the log. The
+  hosts of the executor and of the history of the shell in the bindings went. The handle table of the connections is
+  the one of the platform (`CoreRuntime.handles`), `handlesOf(instance)` went.
+- **The saves run in the runtime.** `setStorageWriter(writer)` gives the runtime the writer of the module; every change
+  of a connection schedules what storage keeps of it (`connection_writes` of the crate) and a created active
+  connection writes its entry. `saveConnection(connectionId, params)` writes the app manifest, commits the params and
+  writes the copies of the workbooks, `retrySave(connectionId, workbookIds)` writes the copies again; the view of the
+  connection shows the save (`save: { saving, outcome }`).
+- **The catalog loader and the setups** (step 3) stay services with hosts of their own on the runtime: the loader
+  follows the connections of the runtime (`CatalogLoader.follow(runtime)`) and applies the start and the end of an
+  update as actions of the runtime; a setup applies its steps through `setupStep`, `runtimeActionOf` of
+  `connections/connection_state.ts` maps the action symbols of the setups (and the few of the settings) to the union.
+  The restore adopts its connections into the runtime (`adoptRestoredConnection`).
+- **The shell** tracks its queries in a history without a connection of its `StandaloneCoreRuntime`
+  (`{ history: 'shell-<n>' }`, at most 100 queries), the computations of its results run on the same runtime; the
+  bindings `QueryHistory` and `QueryExecutor` went.
+- **TypeScript.** `CoreRuntime` (`core_runtime.ts`) has the commands (`execute`, `cancel`, `watchProfile`,
+  `createConnection`, `dispatchConnection`, `saveConnection`, `retrySave`, `catalog`, `channel`, `allocateId`) and
+  reads the connections of the last flush as a registry (`registry()`, a map of the views that keeps its identity until
+  a connection changes) or as the runtime holds them now (`connection`, `connections`, `query`). `ConnectionState` and
+  `QueryExecutionState` are the generated views with the params typed as the app's params; the reducer, the
+  projection and the registry service went. The store has subscriptions to a kind (`subscribeKind`, `all`).
+- **Hooks** (`connection_registry.tsx`, `query_executor.tsx`, `connection_persistence.tsx` of the app):
+  `useConnection(id)`, `useQuery(id)`, `useQueryProgress(query)`, `useQueryResultTable(query)`, `useQueryReader()`,
+  `useAllQueries()`, `useScriptConnectionOf()`; the hooks of today keep their names over the runtime
+  (`useConnectionById`, `useConnectionRegistry`, `useConnectionDispatch`, `useQueryExecutor`, `useQueryState`,
+  `useConnectionSave`). `useQueryState` reads the slice of one query instead of scanning every connection.
+- **Changed on purpose.** The progress and the batches of a query render only the components of that query, a
+  component that lists the queries of a connection renders when one starts or finishes. A switched connection keeps its
+  place in the order of registration. A query that needs the analysis without a compute database fails in its history
+  instead of before it. A query that is cancelled before the host described it ends as cancelled without a request.
+  The connections of a native workbook that changed on disk join the runtime when they are read and leave it again if
+  the reload is declined. The error of a query keeps its message and its details (`queryErrorDetails`), not the target
+  of the log. A catalog update keeps the message of its error, not the error object.
+
+Measured (`git diff --numstat`, sources without tests):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 2,947 | 1,359 | 2,346 | 645 |
+| `dashql-core-js` | 658 | 56 | 445 | 428 |
+| `dashql-core-wasm` | 1,676 | 2,512 | | |
+| `dashql-core-runtime` | 65 | 514 | | |
+| `dashql-app` | 434 | 580 | 743 | 789 |
+
+TypeScript lost 4,039 lines and gained 1,995 without tests, Rust gained 1,285 net (the registry in the crate, the
+executor host and the connections of the runtime object in the bindings, the unit tests of the crate counted as
+source). The release module grew from 12,848,617 to 13,142,874 bytes (+2.3%), gzip (`-9`) from 3,537,360 to 3,626,774
+bytes (+2.5%): most of it is the reader of the roughly 40 variants of `RuntimeAction` (serde) and the host of the
+executor; folding the lifecycle actions of a query into one variant is the next saving.
+
+What step 3 needs: the setups move into the runtime as commands (`setupConnection`, `cancelSetup`) on the connections
+and the executor that are there now; `runtimeActionOf` with the action symbols of the setups, `SetupRun` and the host of
+`connection_setup.rs` go. The catalog loader becomes a service of the runtime on the registry it follows already
+(`refreshCatalog`), its host with `updateStarted`, `updateFinished` and `runQuery` goes; it runs its metadata queries
+on the executor of the runtime instead of `CoreRuntime.execute`. The platform gets `oauth` and `extensions` (the specs
+of the client functions, which `QueryPlatform` loads today when it describes a call).
 
 ### The order
 

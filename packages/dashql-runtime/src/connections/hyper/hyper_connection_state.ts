@@ -2,28 +2,11 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { DetailedError } from '../../utils/error.js';
 
+// The runtime applies the steps of the setup of a Hyper connection (`packages/dashql-core-runtime/src/connections/hyper.rs`)
+
 import { VariantKind } from '../../utils/variant.js';
-import { HyperDatabaseChannel } from './hyperdb_grpc_client.js';
+import type { HyperDatabaseChannel } from './hyperdb_grpc_client.js';
 import type { RESET_CONNECTION, DELETE_CONNECTION } from '../connection_state.js';
-
-/// The details of a Hyper connection, the Rust connection of the runtime applies the actions of its setup
-/// (`packages/dashql-core-runtime/src/connections/hyper.rs`)
-export interface HyperConnectionDetails {
-    /// The protobuf
-    proto: connection.HyperConnectionDetails;
-    /// The hyper channel
-    channel: HyperDatabaseChannel | null;
-}
-
-export function createHyperConnectionStateDetails(params: connection.HyperConnectionParams): HyperConnectionDetails {
-    return {
-        proto: {
-            setupTimings: {},
-            setupParams: params,
-        },
-        channel: null
-    };
-}
 
 export const HYPER_CHANNEL_SETUP_CANCELLED = Symbol('HYPER_CHANNEL_SETUP_CANCELLED');
 export const HYPER_CHANNEL_SETUP_FAILED = Symbol('HYPER_CHANNEL_SETUP_FAILED');

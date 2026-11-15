@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import type { ConnectionState } from '../connections/connection_state.js';
-import { registerConnection } from '../connections/connection_registry_state.js';
+import { createTestConnection, type TestConnectionOptions } from './connection_fixtures.js';
 import type { OAuthFlow } from '../oauth/oauth_flow.js';
 import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import type { HttpClient } from '../platform/http/http_client.js';
@@ -39,9 +39,9 @@ export interface TestRuntimeOptions {
 /// browsers alike
 export interface TestRuntime extends Runtime {
     logger: TestLogger;
-    /// Register a connection with the registry, as a workbook or a setup would
-    addConnection(connection: ConnectionState): void;
-    /// The connection as the registry holds it now
+    /// Create a connection in the runtime, with a channel ready and online if the options have one
+    addConnection(options: TestConnectionOptions): ConnectionState;
+    /// The connection as the runtime holds it now
     connection(connectionId: string): ConnectionState;
 }
 
@@ -61,17 +61,16 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
     };
     const runtime = createRuntime(platform);
     if (!options.catalogLoader) runtime.catalogLoader.stop();
+    // The runtime of the module has the core of the tests from the start
+    runtime.coreRuntime.setCore(instance);
     return Object.assign(runtime, {
         logger,
-        addConnection(connection: ConnectionState) {
-            runtime.connections.store.update(registry => {
-                registerConnection(registry, connection);
-                return { ...registry };
-            });
+        addConnection(connection: TestConnectionOptions) {
+            return createTestConnection(runtime.coreRuntime, connection);
         },
         connection(connectionId: string) {
-            const connection = runtime.connections.store.current.connections.get(connectionId);
-            if (connection == null) throw new Error(`the registry has no connection ${connectionId}`);
+            const connection = runtime.coreRuntime.connection(connectionId);
+            if (connection == null) throw new Error(`the runtime has no connection ${connectionId}`);
             return connection;
         },
     });

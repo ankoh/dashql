@@ -25,21 +25,18 @@ function database(connectionId: string, params: any, options: { active?: boolean
         params,
         active: options.active ?? true,
         connectionHealth: ConnectionHealth.NOT_STARTED,
-        connectorInfo: CONNECTOR_INFOS[connectorType],
-        details: {
-            type: connectorType === ConnectorType.HYPER ? HYPER_CONNECTOR : TRINO_CONNECTOR,
-            value: { proto: { setupParams: Object.values(params)[0] } },
-        },
-        catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
+        connectorType,
+        details: { setupParams: Object.values(params)[0], channel: null, connector: { kind: connectorType === ConnectorType.HYPER ? 'hyper' : 'trino' } },
+        catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
         queriesActiveOrdered: Array.from({ length: options.queries ?? 0 }, (_, i) => i),
     } as unknown as ConnectionState;
 }
 
 function registry(...databases: ConnectionState[]): ConnectionRegistry {
-    const reg: ConnectionRegistry = { connections: new Map(), connectionsByType: CONNECTOR_TYPES.map(() => []) };
+    const reg = { connections: new Map<string, ConnectionState>(), connectionsByType: CONNECTOR_TYPES.map((): string[] => []) };
     for (const db of databases) {
         reg.connections.set(db.connectionId, db);
-        reg.connectionsByType[db.connectorInfo.connectorType].push(db.connectionId);
+        reg.connectionsByType[db.connectorType].push(db.connectionId);
     }
     return reg;
 }

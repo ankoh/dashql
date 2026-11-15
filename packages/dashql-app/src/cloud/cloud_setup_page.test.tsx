@@ -13,7 +13,7 @@ import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } fr
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
@@ -23,12 +23,18 @@ import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { createTestRoot } from '../tests/react_root.js';
+import * as core from '@ankoh/dashql-core';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { addTestConnection, setTestConnectionHealth } from '../tests/test_connections.js';
 
 // The page of the cloud setup on the embedded Hyper of the tests: a Hyper server and a local cloud, each with a session
 // that the query executor runs their statements on, with a database attached as "dashql".
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
+let coreRuntime: CoreRuntime | null = null;
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let database: HyperDB;
 let dispose: () => Promise<void>;
 /// The session of the Hyper server
@@ -37,6 +43,7 @@ let connection: HyperDBConnection;
 let localCloud: HyperDBConnection;
 
 beforeAll(async () => {
+    await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     const test = await createTestHyperDB('dashql-cloud-setup');
     database = test.database;
     dispose = test.dispose;
@@ -61,17 +68,15 @@ function hyperConnection(connectionId: string, health: ConnectionHealth, local =
     return {
         connectionId,
         name: local ? 'Trial' : 'Server',
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: params.hyper, ...(setupError ? { setupError: { message: setupError } } : {}) } } },
+        connectorType: ConnectorType.HYPER,
+        details: { setupParams: params.hyper, channel: null, healthCheckError: setupError ? { message: setupError } : null, connector: { kind: 'hyper' } },
         params,
         active: true,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: health,
         catalog: { clear: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map() },
-        queriesFinished: new Map(),
+        catalogUpdates: { tasksRunning: [] },
         queriesFinishedOrdered: [],
-        queriesActive: new Map(),
         queriesActiveOrdered: [],
     } as unknown as ConnectionState;
 }
@@ -86,6 +91,7 @@ describe('cloud setup page', () => {
 
     function Capture() {
         registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
         clouds = useClouds();
@@ -101,10 +107,9 @@ describe('cloud setup page', () => {
         return [0, result];
     };
 
-    const setHealth = async (connectionId: string, health: ConnectionHealth) => await act(async () => registry![1](reg => {
-        reg.connections.set(connectionId, { ...reg.connections.get(connectionId)!, connectionHealth: health });
-        return { ...reg };
-    }));
+    const setHealth = async (connectionId: string, health: ConnectionHealth) => await act(async () => {
+        setTestConnectionHealth(coreRuntime!, connectionId, health);
+    });
 
     /// Logging in brings the connection online
     const dependencies: CloudSetupPageDependencies = {
@@ -157,10 +162,14 @@ describe('cloud setup page', () => {
     async function prepare(connections: ConnectionState[], cloudConnectionId: string | null) {
         await root.render(tree(null));
         await vi.waitFor(() => expect(config).not.toBeNull());
-        await act(async () => registry![1](reg => {
-            for (const c of connections) reg.connections.set(c.connectionId, c);
-            return { ...reg };
-        }));
+        await act(async () => {
+            for (const c of connections) {
+                addTestConnection(coreRuntime!, {
+                    connectionId: c.connectionId, params: c.params, name: c.name ?? undefined, active: true,
+                    health: c.connectionHealth, error: c.details.healthCheckError?.message,
+                });
+            }
+        });
         if (cloudConnectionId != null) {
             await act(async () => reconfigure!(value => value == null ? null : { ...value, settings: { ...value.settings, cloudConnectionIds: [cloudConnectionId] } }));
         }

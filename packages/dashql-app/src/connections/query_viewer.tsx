@@ -7,18 +7,21 @@ import {
 } from '../query/query_history_viewer.js';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useConnectionRegistry } from './connection_registry.js';
+import { useAllQueries } from './query_executor.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 export function QueryViewer(props: {
     onClose: () => void;
 }) {
     const [connReg] = useConnectionRegistry();
+    const queries = useAllQueries();
     const entries = React.useMemo(() => {
         const next: QueryEntry[] = [];
         for (const [connectionId, conn] of connReg.connections) {
-            const connectorName = conn.connectorInfo.names.displayShort;
+            const connectorName = connectorInfoOf(conn).names.displayShort;
             for (const queryIds of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
                 for (const queryId of queryIds) {
-                    const query = conn.queriesActive.get(queryId) ?? conn.queriesFinished.get(queryId);
+                    const query = queries.get(queryId);
                     if (query == null) continue;
                     const sourceName = query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
                         ? 'SQLFrame'
@@ -34,7 +37,7 @@ export function QueryViewer(props: {
             }
         }
         return next;
-    }, [connReg]);
+    }, [connReg, queries]);
 
     return <QueryHistoryViewer entries={entries} onClose={props.onClose} />;
 }

@@ -13,6 +13,7 @@ import {
     type ShellQueryResultOverlayDependencies,
 } from './shell_query_result_overlay.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
@@ -75,12 +76,12 @@ describe('ShellQueryResultOverlay', () => {
         act(() => root.render(
             <>
                 <span data-testid="sibling" />
-                <ShellQueryResultOverlay
+                <WithResultTables><ShellQueryResultOverlay
                     query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                     onClose={onClose}
                     onError={onError}
                     dependencies={{ ...dependencies, QueryResultDetails: () => { throw error; } }}
-                />
+                /></WithResultTables>
             </>,
         ));
         expect(onError.mock.calls[0][0]).toBe(error);
@@ -93,12 +94,12 @@ describe('ShellQueryResultOverlay', () => {
     it('does not dismiss on outside mouse events when disabled', () => {
         const onClose = vi.fn();
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 onClose={onClose}
                 dismissOnClickOutside={false}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
@@ -110,11 +111,11 @@ describe('ShellQueryResultOverlay', () => {
     it('retains outside mouse dismissal by default', () => {
         const onClose = vi.fn();
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 onClose={onClose}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
@@ -124,11 +125,11 @@ describe('ShellQueryResultOverlay', () => {
 
     it('initially focuses the dialog rather than its close button', () => {
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(document.activeElement).toBe(dialog());
@@ -137,15 +138,15 @@ describe('ShellQueryResultOverlay', () => {
     it('adds and selects a Plan tab for a valid 1x1 plan result', () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: tableFromArrays({ value: [plan] }),
+                    resultTable: resultTableOf(tableFromArrays({ value: [plan] })),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         const planButton = tabButton(PLAN_TAB)!;
@@ -173,15 +174,15 @@ describe('ShellQueryResultOverlay', () => {
 
     it('keeps only the Data tab for ordinary 1x1 JSON results', () => {
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: tableFromArrays({ value: ['{"key":1}'] }),
+                    resultTable: resultTableOf(tableFromArrays({ value: ['{"key":1}'] })),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(tabButton(PLAN_TAB)).toBeNull();
@@ -193,15 +194,15 @@ describe('ShellQueryResultOverlay', () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 272 } as DOMRect);
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: tableFromArrays({ value: [plan] }),
+                    resultTable: resultTableOf(tableFromArrays({ value: [plan] })),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         const overlayExpanded = () => dialog().closest('[data-expanded]')!.getAttribute('data-expanded');
@@ -232,15 +233,15 @@ describe('ShellQueryResultOverlay', () => {
             .mockReturnValue({ height: 272 } as DOMRect);
 
         act(() => root.render(
-            <ShellQueryResultOverlay
+            <WithResultTables><ShellQueryResultOverlay
                 query={{
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: tableFromArrays({ value: [plan] }),
+                    resultTable: resultTableOf(tableFromArrays({ value: [plan] })),
                 } as any}
                 onClose={vi.fn()}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(dialog().style.height).toBe('272px');

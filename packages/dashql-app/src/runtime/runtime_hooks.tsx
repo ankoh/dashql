@@ -55,7 +55,7 @@ export function useDispatch(target: core.Target | null): (action: core.RuntimeAc
     const key = target == null ? null : JSON.stringify(target);
     return React.useCallback((action: core.RuntimeAction) => {
         if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneCoreRuntime');
-        if (key == null) return { ok: false, changed: false, error: 'no target' };
+        if (key == null) return { ok: false, changed: false, error: 'no target', id: null };
         return runtime.dispatch(JSON.parse(key) as core.Target, action);
     }, [runtime, key]);
 }
@@ -87,7 +87,12 @@ export function StandaloneCoreRuntime(props: { children?: React.ReactNode }) {
     const setupCore = useDashQLCoreSetup();
     const computeDatabase = useComputeDatabase();
     const [runtime] = React.useState(() => new CoreRuntime({ logger, scheduler: FRAME_UPDATE_SCHEDULER, setupCore, computeDatabase }));
-    // The compute database starts after the settings loaded, the tasks that start later use it
-    runtime.setComputeDatabase(computeDatabase);
+    // The compute database starts after the settings loaded, the tasks that start later use it. Only a change of the
+    // provider is passed on, a page may set the database of its own, e.g. the shell its embedded database.
+    const attached = React.useRef(computeDatabase);
+    if (attached.current !== computeDatabase) {
+        attached.current = computeDatabase;
+        runtime.setComputeDatabase(computeDatabase);
+    }
     return <CoreRuntimeProvider value={runtime}>{props.children}</CoreRuntimeProvider>;
 }

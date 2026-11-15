@@ -29,10 +29,10 @@ describe('getQueryStatusText', () => {
             status: QueryExecutionStatus.FAILED,
             queryText: 'select * from missing',
             queryMetadata: { title: 'Missing relation' },
+            // The details of an error of the runtime are a JSON object
             error: {
                 message: 'relation does not exist',
-                keyValues: { sqlState: '42P01', hint: 'Check the table name' },
-                target: 'trino',
+                details: JSON.stringify({ sqlState: '42P01', hint: 'Check the table name' }),
             },
             metrics: null,
             traceId: 42,
@@ -42,7 +42,6 @@ describe('getQueryStatusText', () => {
         expect(status.errorDetail).toEqual({
             status: 'failed',
             message: 'relation does not exist',
-            target: 'trino',
             queryId: 7,
             traceId: 42,
             query: 'select * from missing',
@@ -57,7 +56,7 @@ describe('getQueryStatusText', () => {
             status: QueryExecutionStatus.FAILED,
             queryText: 'select 1',
             queryMetadata: null,
-            error: { message: 'connection lost', keyValues: {} },
+            error: { message: 'connection lost', details: null },
             metrics: null,
             traceId: 42,
         } as any);
@@ -91,13 +90,11 @@ describe('deriveEntryStatus', () => {
             0n, 0n, 2_400_000n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 21n, 50n,
         );
         const execution = new ProfileExecutionState({ status: profile.ProfileExecutionStatus.RUNNING, stats }, [], [], [], []);
-        const running = (phase: string) => ({
-            queryId: 8,
-            status: QueryExecutionStatus.RUNNING,
-            latestProgressUpdate: { phase, executionTimeMs: 2000, profileProgress: { execution } },
-        }) as unknown as QueryExecutionState;
-        expect(deriveEntryStatus(running('RUNNING')).message).toBe('Executing query · 42% · 1.2M rows/s');
-        expect(deriveEntryStatus(running('FINISHING')).message).toBe('Executing query · Finishing · 42% · 1.2M rows/s');
+        const running = { queryId: 8, status: QueryExecutionStatus.RUNNING } as unknown as QueryExecutionState;
+        // The progress of a query comes from the executor, next to its view
+        const progress = (phase: string) => ({ phase, executionTimeMs: 2000, profileProgress: { execution } }) as never;
+        expect(deriveEntryStatus(running, progress('RUNNING')).message).toBe('Executing query · 42% · 1.2M rows/s');
+        expect(deriveEntryStatus(running, progress('FINISHING')).message).toBe('Executing query · Finishing · 42% · 1.2M rows/s');
     });
 });
 

@@ -10,6 +10,7 @@ import { ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
 import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.js';
 import { useConnectionOrdinals } from '../connection_labels.js';
 import { WorkbookShellPage } from './workbook_shell_page.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 export interface WorkbookShellsPageDependencies {
     useConnectionRegistry: typeof useConnectionRegistry;
@@ -82,7 +83,7 @@ export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
                             {/* The monochrome icon takes the white of the dark header */}
                             {connection != null && (
                                 <svg className={styles.trigger_icon} width="16px" height="16px" aria-hidden="true">
-                                    <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.uncolored}`} />
+                                    <use xlinkHref={`${symbols}#${connectorInfoOf(connection).icons.uncolored}`} />
                                 </svg>
                             )}
                             <span className={styles.trigger_label}>{labelParts?.name ?? label}</span>

@@ -7,7 +7,7 @@ import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/persistence/workbook_export_settings_view.js';
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
 import { exportConnectionAsUrl } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
-import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '@ankoh/dashql-runtime/connections/connection_params';
+import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useWorkbookArchiveWriter } from '../workbook/persistence/workbook_archive_database.js';
 
@@ -46,8 +46,8 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
     }, [params, name, settings.withLoginHint, isOpen, archiveWriter]);
 
     const hasLoginHint = React.useMemo(
-        () => isOpen && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(database.details)),
-        [database.details, isOpen],
+        () => isOpen && connectionParamsHaveLoginHint(getConnectionSetupParams(database)),
+        [database, isOpen],
     );
 
     return (

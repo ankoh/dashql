@@ -1,15 +1,12 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
-import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '../connector_info.js';
-import { createTrinoConnectionStateDetails } from './trino_connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { trinoSessionDefaults } from './trino_catalogs.js';
 
 /// Trino connections
 export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
     info: CONNECTOR_INFOS[ConnectorType.TRINO],
     paramsKey: 'trino',
-    detailsType: TRINO_CONNECTOR,
     defaultParams: () => ({ endpoint: '', catalogs: [], auth: { authType: 'AUTH_BASIC' } }),
-    createDetails: createTrinoConnectionStateDetails,
     withoutDraftRows: ({ draftRows: _rows, ...params }) => params,
     sanitizeForSharing(params, withLoginHint) {
         // Keep endpoint, catalogs and the basic-auth username; drop the basic-auth secret /
@@ -41,15 +38,6 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
         // The defaults resolve the names that statements leave out, the catalogs only decide what the catalog loader reads
         defaults: trinoSessionDefaults(params),
     }),
-    // The relations of statements get the defaults of the requests
-    catalogNameDefaults: details => {
-        const defaults = details.proto.setupParams ? trinoSessionDefaults(details.proto.setupParams) : null;
-        return { databaseName: defaults?.catalog ?? '', schemaName: defaults?.schema ?? '' };
-    },
-    // The query executor of the core runs the queries of a Trino channel itself
-    executeQuery: async () => {
-        throw new Error('Trino queries run in the query executor of the core');
-    },
     maxConcurrentQueries: () => 1,
     catalogIsDurable: () => true,
     readsAttachments: () => false,

@@ -176,7 +176,7 @@ const NO_STATEMENT: u32 = u32::MAX;
 
 /// The next revision. Revisions of all workbooks, scripts, connections and queries come from one counter: a script that replaces another
 /// under its key, e.g. one that moved to another connection, never shows a revision of the script it replaced.
-pub(crate) fn next_revision() -> u64 {
+pub fn next_revision() -> u64 {
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
     NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }

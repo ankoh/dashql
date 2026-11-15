@@ -97,7 +97,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const releaseResult = React.useCallback((queryId: number) => {
         coreRuntime.deleteComputation(queryId);
     }, [coreRuntime]);
-    const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(queryExecutions, releaseResult);
+    const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(releaseResult);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
         dropResultQuery();
         // The terminal says what happened, an error would also raise a toast

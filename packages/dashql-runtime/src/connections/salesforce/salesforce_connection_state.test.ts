@@ -1,13 +1,13 @@
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
-import { connectorState, fakeChannel, reduceConnector, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../testing/mocks/connector_state.js';
+import { ConnectorType } from '../connector_info.js';
+import { connectorState, fakeChannel, reduceConnector, testCoreRuntime, TEST_AUTH_CODE, TEST_ERROR, TEST_PKCE } from '../../testing/mocks/connector_state.js';
+import type { CoreRuntime } from '../../core_runtime.js';
 import type { SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import {
-    createSalesforceConnectionStateDetails,
     GENERATED_PKCE_CHALLENGE,
     GENERATING_PKCE_CHALLENGE,
     getSalesforceConnectionDetails,
@@ -41,16 +41,23 @@ const DATA_CLOUD_TOKEN = { createdAt: '2026-01-01T00:00:00.000Z' } as connection
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
+let runtime: CoreRuntime;
 beforeAll(async () => { dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
-afterEach(() => dql.resetUnsafe());
+beforeEach(() => { runtime = testCoreRuntime(dql); });
+afterEach(() => runtime.destroy());
 
-const initial = (type: symbol = SALESFORCE_DATA_CLOUD_CONNECTOR) => connectorState(dql, type, createSalesforceConnectionStateDetails(PARAMS));
-const reduce = (state: ConnectionState, action: SalesforceConnectionStateAction) => reduceConnector(state, action);
-const proto = (state: ConnectionState) => getSalesforceConnectionDetails(state)!.proto;
+const initial = (type: ConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD) => connectorState(runtime, type, PARAMS);
+const reduce = (state: ConnectionState, action: SalesforceConnectionStateAction) => reduceConnector(runtime, state, action)!;
+const details = (state: ConnectionState) => getSalesforceConnectionDetails(state)!;
+const oauthState = (state: ConnectionState) => {
+    const connector = details(state).connector;
+    return connector.kind === 'salesforce' ? connector.oauthState : null;
+};
 const userInfo = (info: Partial<connection.SalesforceCoreUserInfo>) =>
     ({ type: RECEIVED_CORE_USER_INFO, value: info as connection.SalesforceCoreUserInfo }) as const;
 
-// The Rust connection of the runtime applies the actions, `packages/dashql-core-runtime/src/connections/salesforce.rs`
+// The runtime applies the actions, `packages/dashql-core-runtime/src/connections/salesforce.rs`, after `runtimeActionOf`
+// mapped them
 describe('the setup of Salesforce connections', () => {
     it.each([
         [SETUP_STARTED, PARAMS, ConnectionStatus.AUTH_STARTED, ConnectionHealth.CONNECTING, 'authStartedAt'],
@@ -73,12 +80,12 @@ describe('the setup of Salesforce connections', () => {
         const next = reduce(initial(), { type, value } as SalesforceConnectionStateAction);
         expect(next.connectionStatus).toEqual(status);
         expect(next.connectionHealth).toEqual(health);
-        expect(proto(next).setupTimings[timing]).toBeDefined();
+        expect(details(next).setupTimings[timing]).toBeDefined();
     });
 
     it('collects the OAuth state of the steps', () => {
         let state = reduce(initial(), { type: SETUP_STARTED, value: PARAMS });
-        const oauthParams = proto(state).oauthState!.oauthParams;
+        const oauthParams = oauthState(state)!.oauthParams!;
         expect(oauthParams.instanceUrl).toEqual(PARAMS.instanceUrl);
         expect(oauthParams.expiresAt - oauthParams.requestedAt).toEqual(2 * 60 * 60 * 1000);
 
@@ -86,44 +93,51 @@ describe('the setup of Salesforce connections', () => {
         state = reduce(state, { type: RECEIVED_CORE_AUTH_CODE, value: TEST_AUTH_CODE });
         state = reduce(state, { type: RECEIVED_CORE_AUTH_TOKEN, value: CORE_TOKEN });
         state = reduce(state, { type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN, value: DATA_CLOUD_TOKEN });
-        expect(proto(state).oauthState).toEqual({
+        // The tokens are opaque JSON
+        expect(oauthState(state)).toEqual({
             oauthParams,
             oauthPkce: TEST_PKCE,
             coreAuthCode: TEST_AUTH_CODE,
-            coreAccessToken: CORE_TOKEN,
-            dataCloudAccessToken: DATA_CLOUD_TOKEN,
+            coreAccessToken: JSON.stringify(CORE_TOKEN),
+            dataCloudAccessToken: JSON.stringify(DATA_CLOUD_TOKEN),
         });
     });
 
     it('stores the login of the user info, the username before the email', () => {
         const byUsername = reduce(initial(), userInfo({ preferredUsername: 'user@example.com', email: 'mail@example.com' }));
-        expect(proto(byUsername).setupParams?.login).toEqual('user@example.com');
-        const byEmail = reduce(initial(), userInfo({ email: 'mail@example.com' }));
-        expect(proto(byEmail).setupParams?.login).toEqual('mail@example.com');
-        expect(proto(reduce(byEmail, userInfo({}))).setupParams?.login).toEqual('mail@example.com');
+        expect(details(byUsername).setupParams?.login).toEqual('user@example.com');
+        const other = connectorState(runtime, ConnectorType.SALESFORCE_DATA_CLOUD, PARAMS, 'other');
+        const byEmail = reduce(other, userInfo({ email: 'mail@example.com' }));
+        expect(details(byEmail).setupParams?.login).toEqual('mail@example.com');
+        expect(details(reduce(byEmail, userInfo({}))).setupParams?.login).toEqual('mail@example.com');
     });
 
-    it('keeps the details type of Database.com connections', () => {
-        expect(reduce(initial(DBCOM_CONNECTOR), { type: SETUP_STARTED, value: PARAMS }).details.type).toBe(DBCOM_CONNECTOR);
+    it('keeps the connector of Database.com connections', () => {
+        expect(reduce(initial(ConnectorType.DBCOM), { type: SETUP_STARTED, value: PARAMS }).connectorType).toBe(ConnectorType.DBCOM);
     });
 
     it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('%s closes the channel and clears the setup', type => {
         const channel = fakeChannel<SalesforceDatabaseChannel>();
         const failed = reduce(initial(), { type: SETUP_FAILED, value: TEST_ERROR });
         const ready = reduce(failed, { type: SF_CHANNEL_READY, value: channel });
-        expect(getSalesforceConnectionDetails(ready)!.channel).toBe(channel);
+        expect(runtime.channel(ready)).toBe(channel);
 
-        const reset = reduce(ready, { type, value: null });
+        const reset = reduceConnector(runtime, ready, { type, value: null });
         expect(channel.close).toHaveBeenCalledTimes(1);
-        expect(getSalesforceConnectionDetails(reset)!.channel).toBeNull();
-        expect(proto(reset).setupTimings).toEqual({});
-        expect(proto(reset).setupError).toBeUndefined();
+        if (type === DELETE_CONNECTION) {
+            expect(reset).toBeNull();
+            return;
+        }
+        expect(details(reset!).channel).toBeNull();
+        expect(details(reset!).setupTimings).toEqual({});
+        expect(details(reset!).connector).toMatchObject({ kind: 'salesforce', setupError: null });
     });
 
     it('refuses unknown actions and the actions of other connectors', () => {
         expect(() => reduce(initial(), { type: Symbol('OTHER'), value: null } as unknown as SalesforceConnectionStateAction)).toThrow();
-        expect(() => reduce(connectorState(dql, HYPER_CONNECTOR, {}), { type: OAUTH_WEB_WINDOW_OPENED, value: null })).toThrow();
-        expect(getSalesforceConnectionDetails(connectorState(dql, HYPER_CONNECTOR, {}))).toBeNull();
+        const hyper = connectorState(runtime, ConnectorType.HYPER, {}, 'hyper');
+        expect(() => reduce(hyper, { type: OAUTH_WEB_WINDOW_OPENED, value: null })).toThrow();
+        expect(getSalesforceConnectionDetails(hyper)).toBeNull();
         expect(getSalesforceConnectionDetails(null)).toBeNull();
     });
 });

@@ -1,10 +1,9 @@
 import * as core from '@ankoh/dashql-core';
 
-import { catalogNameDefaults } from '../../connections/connector_descriptor.js';
 import * as Immutable from 'immutable';
 
 import type { DashQLPendingDiff, ScriptSessionUpdate } from './script_editor_state.js';
-import { ConnectorInfo, ConnectorType } from '../../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType } from '../../connections/connector_info.js';
 import { VariantKind } from '../../utils/variant.js';
 import type { StorageWriter, WorkbookScriptList } from '../../storage/storage_writer.js';
 import type { ConnectionParams, WorkbookCloudLink, WorkbookConnection, WorkbookScript } from '../../storage/storage_backend.js';
@@ -78,12 +77,22 @@ export interface ScriptConnection {
     catalogNameDefaults?: core.CatalogNameDefaults;
 }
 
-/// The connection of a script that runs on a connection of the app
-export function scriptConnectionOf(connection: ConnectionState): ScriptConnection {
+/// The catalogs of the connections of the runtime
+export interface ConnectionCatalogs {
+    catalog(connectionId: string): core.DashQLCatalog | null;
+}
+
+/// The connection of a script that runs on a connection of the runtime, with the catalog of the connection
+export function scriptConnectionOf(catalogs: ConnectionCatalogs, connection: ConnectionState): ScriptConnection {
+    const catalog = catalogs.catalog(connection.connectionId);
+    if (catalog == null) throw new Error(`the runtime holds no connection ${connection.connectionId}`);
     return {
-        connectionId: connection.connectionId, connectorInfo: connection.connectorInfo, catalog: connection.catalog, params: connection.params,
+        connectionId: connection.connectionId,
+        connectorInfo: CONNECTOR_INFOS[connection.connectorType as ConnectorType],
+        catalog,
+        params: connection.params,
         local: isHyperWasmConnection(connection),
-        catalogNameDefaults: catalogNameDefaults(connection.details),
+        catalogNameDefaults: connection.catalogNameDefaults,
     };
 }
 
@@ -297,7 +306,7 @@ export type WorkbookScriptsAction =
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
     | VariantKind<typeof SET_PENDING_CONNECTION, ScriptConnection>
     /// The scripts and the pending connection of the workbook on one connection move to another
-    | VariantKind<typeof REPLACE_CONNECTION, { from: string, into: ConnectionState }>
+    | VariantKind<typeof REPLACE_CONNECTION, { from: string, into: ScriptConnection }>
     | VariantKind<typeof DETACH_CONNECTION, { from: string, into: ScriptConnection }>
     /// The data files of the workbook as the storage lists them
     | VariantKind<typeof SET_WORKBOOK_ATTACHMENTS, DataFile[]>
@@ -554,7 +563,7 @@ export function reduceWorkbookScripts(state: WorkbookScripts, action: WorkbookSc
             return settle(state, [workbook.detachConnection(action.value.from, native.connection(action.value.into))], storage);
         case REPLACE_CONNECTION: {
             const { from, into } = action.value;
-            return settle(state, [workbook.replaceConnection(from, native.connection(scriptConnectionOf(into)))], storage);
+            return settle(state, [workbook.replaceConnection(from, native.connection(into))], storage);
         }
     }
 }

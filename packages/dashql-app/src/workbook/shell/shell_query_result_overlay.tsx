@@ -18,6 +18,7 @@ import { getPlanResultText } from '../../shell/shell_result.js';
 import { detectPlanEngine } from '../../views/query_profile/plan_engine.js';
 import { classNames } from '../../utils/classnames.js';
 import * as styles from './shell_query_result_overlay.module.css';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 export interface ShellQueryResultOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;
@@ -76,7 +77,8 @@ const ResultOverlay: React.FC<Props> = ({
     const dialogRef = React.useRef<HTMLElement>(null);
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
-    const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
+    const resultTable = useQueryResultTable(query);
+    const planText = React.useMemo(() => getPlanResultText(resultTable), [resultTable]);
     const planEngine = detectPlanEngine(planText) ?? dashql.buffers.profile.ProfileEngine.HYPER;
     const { plan, execution, rotate } = dependencies.useQueryProfile(planEngine, planText);
     const hasPlan = plan != null;

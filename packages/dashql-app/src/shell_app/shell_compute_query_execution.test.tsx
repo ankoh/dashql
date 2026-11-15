@@ -1,11 +1,16 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
+import * as core from '@ankoh/dashql-core';
 
 import { useCreateComputeQueryExecution } from '../compute/compute_query_execution.js';
-import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ShellComputeQueryExecutionProvider } from './shell_compute_query_execution.js';
-import { ShellQueryHistoryProvider, useShellQueryHistory } from './shell_query_history.js';
+import { ShellQueryHistoryProvider, useShellQueries } from './shell_query_history.js';
+import { StandaloneCoreRuntime, useCoreRuntime } from '../runtime/runtime_hooks.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('ShellComputeQueryExecutionProvider', () => {
     let container: HTMLDivElement;
@@ -24,29 +29,34 @@ describe('ShellComputeQueryExecutionProvider', () => {
 
     it('tracks aggregation queries in the shell query history', async () => {
         let createExecution: ReturnType<typeof useCreateComputeQueryExecution> = null;
-        let history: ReturnType<typeof useShellQueryHistory> | null = null;
+        let runtime: ReturnType<typeof useCoreRuntime> | null = null;
+        let queries: QueryExecutionState[] = [];
         const Probe = () => {
             createExecution = useCreateComputeQueryExecution();
-            history = useShellQueryHistory();
+            runtime = useCoreRuntime();
+            queries = useShellQueries();
             return null;
         };
 
         act(() => root.render(
-            <ShellQueryHistoryProvider>
-                <ShellComputeQueryExecutionProvider>
-                    <Probe />
-                </ShellComputeQueryExecutionProvider>
-            </ShellQueryHistoryProvider>,
+            <StandaloneCoreRuntime>
+                <ShellQueryHistoryProvider>
+                    <ShellComputeQueryExecutionProvider>
+                        <Probe />
+                    </ShellComputeQueryExecutionProvider>
+                </ShellQueryHistoryProvider>
+            </StandaloneCoreRuntime>,
         ));
 
+        // The history waits for the core of the shell
+        await act(async () => { await runtime!.ready(); });
         const task = { tableId: 1, title: 'Table aggregation' };
         await act(async () => {
             await createExecution!(task)('SELECT count(*) FROM input', async () => 42);
         });
 
-        // The history waits for the core of the shell
-        await vi.waitFor(() => expect(history!.getSnapshot()).toHaveLength(1));
-        expect(history!.getSnapshot()).toMatchObject([{
+        await vi.waitFor(() => expect(queries).toHaveLength(1));
+        expect(queries).toMatchObject([{
             queryText: 'SELECT count(*) FROM input',
             queryMetadata: {
                 queryType: QueryType.INTERNAL_SQLFRAME,

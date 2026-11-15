@@ -57,7 +57,7 @@ export function useHyperLinks(opened: Promise<void>): void {
         const known = connections.some(connection => isHyperLinkParams(connection.params)
             && 'hyper' in connection.params && connection.params.hyper.endpoint === target.endpoint);
         if (!known && !confirmHyperLink(target)) return;
-        const binding = bindHyperLink(target, connections, allocate, dql, getHyperLinkTabState().current,
+        const binding = bindHyperLink(target, connections, allocate, getHyperLinkTabState().current,
             connection => confirmReuse(connection, target));
         if (binding.params != null) await saveConnection(binding.connection.connectionId, binding.params);
         setHyperLinkToken(binding.connection.connectionId, target.token);

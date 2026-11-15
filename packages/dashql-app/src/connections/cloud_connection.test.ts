@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { cloudConnectionIdsOf, createLocalCloudParams, findCloudConnections, isCloudCapable, isLocalCloud } from './cloud_connection.js';
 import { LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
-import { getConnectionStateDetailsFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 
@@ -46,7 +46,7 @@ describe('cloud connection', () => {
         // Workbooks that name the embedded Hyper don't take the local cloud for it
         expect(isLocalHyperWasmParams(local as any)).toBe(false);
         expect(isLocalHyperWasmParams(embedded)).toBe(true);
-        const connection = (params: any) => ({ details: getConnectionStateDetailsFromParams(params) }) as ConnectionState;
+        const connection = (params: any) => ({ connectorType: ConnectorType.HYPER, details: { setupParams: params.hyper } }) as unknown as ConnectionState;
         expect(isHyperWasmConnection(connection(local))).toBe(false);
         expect(isHyperWasmConnection(connection(embedded))).toBe(true);
     });

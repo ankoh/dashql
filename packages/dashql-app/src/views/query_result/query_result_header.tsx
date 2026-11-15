@@ -12,6 +12,7 @@ import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { fittingRowCount } from './data_table.js';
 import { QueryStatusPlaceholder } from '../card_placeholder.js';
 import { formatBytes } from '../../utils/format.js';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 export interface QueryResultHeaderDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
@@ -90,10 +91,11 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
     const counts = dependencies.useQueryResultRowCounts(props.query);
     const maxRows = props.maxRows ?? Infinity;
     const displayedRows = counts.matchingRows ?? counts.totalRows;
+    const resultTable = useQueryResultTable(props.query);
     return (
         <TabHeader
             title="Query Results"
-            detail={formatResultDetail(formatResultRowCount(counts, maxRows), props.query.resultTable)}
+            detail={formatResultDetail(formatResultRowCount(counts, maxRows), resultTable)}
             onClick={props.onShowTable}
             detailIsLink={displayedRows != null && displayedRows > maxRows}
             actions={(

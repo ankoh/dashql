@@ -10,7 +10,6 @@ import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_s
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
-import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
@@ -95,8 +94,8 @@ describe('V2 workbook feed rows', () => {
             conn: null, storageReader: { backend: new WorkbookTestBackend() } as any, onRemoved: vi.fn(),
         };
         for (const conn of [null,
-            { details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } } },
-            { details: { type: TRINO_CONNECTOR, value: {} } },
+            { connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } } },
+            { connectorType: ConnectorType.TRINO, details: { setupParams: null, channel: null, connector: { kind: 'trino' } } },
         ]) {
             act(() => root.render(<LoggerProvider>
                 <WorkbookDataCard {...props} conn={conn as any} />
@@ -117,7 +116,7 @@ describe('V2 workbook feed rows', () => {
     it('mentions and renames the table parameter of a Parquet attachment and flags a script of the same name', async () => {
         const onMention = vi.fn();
         const onRename = vi.fn();
-        const wasm = { details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any;
+        const wasm = { connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any;
         act(() => root.render(<LoggerProvider>
             <WorkbookDataCard workbookId="workbook" file={{ name: 'sales.parquet', sizeBytes: 3 }} conn={wasm}
                 storageReader={{ backend: new WorkbookTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
@@ -148,7 +147,7 @@ describe('V2 workbook feed rows', () => {
         try {
             act(() => root.render(<LoggerProvider>
                 <WorkbookDataCard workbookId="workbook" file={{ name: 'sales.parquet', sizeBytes: 3 }}
-                    conn={{ details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any}
+                    conn={{ connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
                     storageReader={{ backend } as any} onRemoved={onRemoved} />
             </LoggerProvider>));
             const downloadButton = container.querySelector<HTMLButtonElement>('[data-testid="data-file-download"]');
@@ -195,7 +194,7 @@ describe('V2 workbook feed rows', () => {
         props.scripts[1] = { ...props.scripts[1], latestQueryId: 42, analysisOutdated: false } as any;
         Object.assign(props, {
             connections: new Map([['database', {
-                connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { type: TRINO_CONNECTOR, value: {} },
+                connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } },
                 connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino', labelParts: { name: 'Trino', detail: '' },
             }]]),
             computeCacheKey: vi.fn(async () => 'key'),
@@ -278,7 +277,7 @@ describe('V2 workbook feed rows', () => {
     it('shows the connection instead of the file name and edits the file in the storage view', () => {
         const props = baseProps();
         Object.assign(props, { connections: new Map([['database', {
-            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: null, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } }, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             label: 'Trino Http', labelParts: { name: 'Trino', detail: 'Http' },
         }]]) });
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
@@ -363,7 +362,7 @@ describe('V2 workbook feed rows', () => {
     it('keeps Play available for SQL with parser diagnostics', () => {
         const props = baseProps();
         Object.assign(props, { connections: new Map([['database', {
-            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: null, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino Http',
+            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } }, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino Http',
             labelParts: { name: 'Trino', detail: 'Http' },
         }]]) });
         props.scripts[1] = { ...props.scripts[1], analysisOutdated: false,
@@ -530,8 +529,8 @@ describe('Workbook feed composer', () => {
     };
     const onlineConn = {
         connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        details: { type: HYPER_CONNECTOR, value: { proto: {} } },
+        connectorType: ConnectorType.HYPER,
+        details: { setupParams: null, channel: null, connector: { kind: 'hyper' } },
     } as any;
 
     function workbook(fileNames: string[] = []): WorkbookScripts {

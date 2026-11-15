@@ -2,7 +2,8 @@ import * as React from 'react';
 import { act, waitForRender } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
 
 import { useHyperLinks } from './hyper_links.js';
 import { useConnectionRegistry, type ConnectionRegistry } from '../connections/connection_registry.js';
@@ -21,6 +22,10 @@ import { TestRuntime } from '../tests/test_runtime.js';
 const LOCAL_LINK = { endpoint: 'http://127.0.0.1:7484', token: 'first' };
 const REMOTE_LINK = { endpoint: 'https://hyper.example.com:7484', token: 'remote' };
 const MOVED_LINK = { endpoint: 'https://hyper.example.com:7485', token: 'moved' };
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+// The runtime of the test creates the connections of the links with this core
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('following Hyper links', () => {
     let root: Root;

@@ -31,7 +31,7 @@ import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
 import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { importWorkbookQueryResults, retainWorkbookQueryResults } from '../persistence/workbook_query_results.js';
-import { computeQueryCacheKeyForConnection } from '../../connections/query_executor_service.js';
+import { computeQueryCacheKeyForConnection } from '../../query/query_platform.js';
 import { decodeConnectionFromProto } from '../../connections/connection_import.js';
 import type { ConnectionParams } from '../../connections/connection_params.js';
 
@@ -437,8 +437,9 @@ call clfn.item_get (id => :id, size => 2);`]]);
             } } as unknown as ConnectionParams;
             // The keys of the app: the connection as storage restores it, the signature that the executor gets
             const keysOf = (params: ConnectionParams) => {
-                const [, details] = decodeConnectionFromProto(params as never, '');
-                return async (_connectionId: string, signature: string) => await computeQueryCacheKeyForConnection(details, signature);
+                const { connectorType, setupParams } = decodeConnectionFromProto(params as never, '');
+                const connection = { connectorType, details: { setupParams } } as unknown as Parameters<typeof computeQueryCacheKeyForConnection>[0];
+                return async (_connectionId: string, signature: string) => await computeQueryCacheKeyForConnection(connection, signature);
             };
             const files: Array<[string, string]> = [
                 ['1_foo.sql', 'select 1 as id;'],

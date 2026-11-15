@@ -15,6 +15,7 @@ import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -44,7 +45,7 @@ function query(columns: Record<string, unknown[]>, owner: string | null, status 
     return {
         queryId: 1,
         status,
-        resultTable: status === QueryExecutionStatus.SUCCEEDED ? tableFromArrays(columns) : null,
+        resultTable: status === QueryExecutionStatus.SUCCEEDED ? resultTableOf(tableFromArrays(columns)) : null,
         queryMetadata: { workbookId: owner == null ? null : 's1', resultOwner: owner },
     } as unknown as QueryExecutionState;
 }
@@ -84,7 +85,7 @@ describe('QueryResultActionMenu', () => {
                     <StorageProvider backend={new WorkbookTestBackend()}>
                         <TestRuntime>
                             <Seed workbooks={workbooks}>
-                                <div data-testid="menu-host"><QueryResultActionMenu query={result} /></div>
+                                <div data-testid="menu-host"><WithResultTables><QueryResultActionMenu query={result} /></WithResultTables></div>
                             </Seed>
                         </TestRuntime>
                     </StorageProvider>

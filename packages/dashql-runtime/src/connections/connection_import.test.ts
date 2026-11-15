@@ -1,35 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
 import { decodeConnectionFromProto } from './connection_import.js';
-import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { ConnectorType } from './connector_info.js';
 import { LoggableException } from '../platform/logger/logger.js';
 
 describe('decodeConnectionFromProto', () => {
     const cases = [
-        ['salesforce', ConnectorType.SALESFORCE_DATA_CLOUD, SALESFORCE_DATA_CLOUD_CONNECTOR, { instanceUrl: 'https://example.my.salesforce.com' }],
-        ['dbcom', ConnectorType.DBCOM, DBCOM_CONNECTOR, { databases: ['main'] }],
-        ['hyper', ConnectorType.HYPER, HYPER_CONNECTOR, { endpoint: 'http://127.0.0.1:7484' }],
-        ['trino', ConnectorType.TRINO, TRINO_CONNECTOR, { endpoint: 'http://127.0.0.1:8080', catalog: 'tpch' }],
+        ['salesforce', ConnectorType.SALESFORCE_DATA_CLOUD, { instanceUrl: 'https://example.my.salesforce.com' }],
+        ['dbcom', ConnectorType.DBCOM, { databases: ['main'] }],
+        ['hyper', ConnectorType.HYPER, { endpoint: 'http://127.0.0.1:7484' }],
+        ['trino', ConnectorType.TRINO, { endpoint: 'http://127.0.0.1:8080', catalog: 'tpch' }],
     ] as const;
 
-    for (const [key, connectorType, detailsType, params] of cases) {
-        it(`wraps flat ${key} params into the setup params`, () => {
-            const [info, details] = decodeConnectionFromProto({ [key]: params } as never, 'workbook');
-            expect(info.connectorType).toBe(connectorType);
-            expect(details.type).toBe(detailsType);
-            expect(details.value).toEqual({ proto: { setupTimings: {}, setupParams: params }, channel: null });
+    for (const [key, connectorType, params] of cases) {
+        it(`reads flat ${key} params as the setup params`, () => {
+            expect(decodeConnectionFromProto({ [key]: params } as never, 'workbook')).toEqual({ connectorType, setupParams: params });
         });
 
-        it(`keeps ${key} details that carry their setup params`, () => {
+        it(`reads the setup params of ${key} details`, () => {
             const proto = { setupTimings: { startedAt: 1 }, setupParams: params };
-            const [, details] = decodeConnectionFromProto({ [key]: proto } as never, 'workbook');
-            expect(details.type).toBe(detailsType);
-            expect((details.value as { proto: unknown }).proto).toBe(proto);
+            expect(decodeConnectionFromProto({ [key]: proto } as never, 'workbook').setupParams).toBe(params);
         });
 
         it(`reads empty ${key} params`, () => {
-            const [, details] = decodeConnectionFromProto({ [key]: null } as never, 'workbook');
-            expect((details.value as { proto: unknown }).proto).toEqual({ setupTimings: {}, setupParams: {} });
+            expect(decodeConnectionFromProto({ [key]: null } as never, 'workbook')).toEqual({ connectorType, setupParams: {} });
         });
     }
 

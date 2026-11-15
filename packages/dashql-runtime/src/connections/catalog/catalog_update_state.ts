@@ -37,5 +37,5 @@ export function isCatalogOutOfDate(connection: ConnectionState): boolean {
 export function isCatalogRefreshRunning(connection: ConnectionState | null): boolean {
     if (connection == null) return false;
     const refreshId = connection.catalogUpdates.currentFullRefresh;
-    return refreshId != null && connection.catalogUpdates.tasksRunning.has(refreshId);
+    return refreshId != null && connection.catalogUpdates.tasksRunning.some(task => task.taskId === refreshId);
 }

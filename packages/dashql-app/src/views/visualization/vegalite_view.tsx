@@ -21,6 +21,7 @@ import {
     VegaCrossFilterUpdater,
     VegaStableScaleDomain,
 } from './vegalite_crossfilter.js';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 type VegaEmbed = typeof import('vega-embed').default;
 type VegaExpressionInterpreter = typeof import('vega-interpreter').expressionInterpreter;
@@ -166,7 +167,8 @@ export function VegaLiteView(props: Props): React.ReactElement {
     // to the raw result table when there is no computation registered. The analyzed table is a
     // superset of the result columns (system columns are ignored by the spec).
     const tableComputation = dependencies.useResultComputation(queryId);
-    const dataTable = tableComputation?.tables.dataTable ?? (succeeded ? props.query?.resultTable ?? null : null);
+    const queryResult = useQueryResultTable(props.query);
+    const dataTable = tableComputation?.tables.dataTable ?? (succeeded ? queryResult : null);
     const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
 
     const filterTable = tableComputation?.tables.filterTable ?? null;

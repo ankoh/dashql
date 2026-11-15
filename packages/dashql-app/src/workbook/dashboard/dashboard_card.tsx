@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { QueryResultPanel } from '../../views/query_result/query_result_header.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
-import { useQueryState } from '../../connections/query_executor.js';
+import { useQueryResultTable, useQueryState } from '../../connections/query_executor.js';
 import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { ScriptEditor } from '../scripts/script_editor.js';
@@ -163,8 +163,9 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     }, [props.placement, props.onResize, props.script.scriptKey, collapsed]);
 
     // The Markdown template starts with the columns of the latest result
+    const queryResult = useQueryResultTable(query);
     const resultColumns = query?.status === QueryExecutionStatus.SUCCEEDED
-        ? query.resultTable?.schema.fields.map(field => field.name) ?? []
+        ? queryResult?.schema.fields.map(field => field.name) ?? []
         : [];
     const template = markdownTemplate(resultColumns);
     // A visualized card shows a query, the tag can be on a statement before the last one

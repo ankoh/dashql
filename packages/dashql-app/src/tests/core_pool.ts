@@ -17,12 +17,18 @@ export async function createPrecompiledTestCore(bytes: Promise<Uint8Array>): Pro
 
 export function installSharedCoreTestPool(): void {
     const create = DashQL.create.bind(DashQL);
+    const instantiated = DashQL.instantiated.bind(DashQL);
     let shared: Promise<DashQL> | undefined;
+    let resolved: DashQL | null = null;
     // This override exists only in the test iframe, never in a production entry point.
     DashQL.create = async (options?: DashQLModuleOptions) => {
         shared ??= globalThis.__DASHQL_TEST_CORE_FACTORY__?.(options) ?? create(options);
         const instance = await shared;
+        resolved = instance;
         globalThis.__DASHQL_TEST_RESET_CORE_INSTANCE__ = () => instance.resetUnsafe();
         return instance;
     };
+    // The shared core may come from the module of the dashboard, the module of the frame then never instantiates.
+    // Whoever asks for the instantiated core, e.g. the runtime of a test, gets the shared one once it is created.
+    DashQL.instantiated = () => resolved ?? instantiated();
 }

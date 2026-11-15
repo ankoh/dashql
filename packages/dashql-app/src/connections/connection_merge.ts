@@ -1,6 +1,7 @@
 import { connectionParamsShareEqual } from '@ankoh/dashql-runtime/connections/connection_params';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 /// The connections that can be merged into a connection.
 ///
@@ -14,7 +15,7 @@ export function connectionMergeCandidates(
 ): ConnectionState[] {
     const target = registry.connections.get(targetId);
     if (target == null) return [];
-    return registry.connectionsByType[target.connectorInfo.connectorType]
+    return registry.connectionsByType[target.connectorType]
         .filter(connectionId => connectionId !== targetId && isListedConnection(registry, references, connectionId))
         .map(connectionId => registry.connections.get(connectionId)!)
         .filter(candidate => connectionParamsShareEqual(candidate.params, target.params));

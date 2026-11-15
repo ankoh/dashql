@@ -10,7 +10,7 @@ import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_f
 import { useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { createDefaultConnectionParamsForConnector, getConnectionStateDetailsFromParams, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { SETUP_CTX as HYPER_SETUP_CTX, type HyperSetupApi } from './hyper/hyper_connection_setup.js';
@@ -22,23 +22,29 @@ import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 
 const CONNECTION_ID = 'hyper-settings-test';
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
+/// A connection that a test creates in the runtime of the app once it rendered
+type TestConnection = (runtime: CoreRuntime) => ConnectionState;
+let coreRuntime: CoreRuntime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// A connection on the Rust connection of the core, an online one has a channel
-function hyperDatabase(params: connection.HyperConnectionParams, health = ConnectionHealth.NOT_STARTED): ConnectionState {
+function hyperDatabase(params: connection.HyperConnectionParams, health = ConnectionHealth.NOT_STARTED): TestConnection {
     const connectionParams: ConnectionParams = { hyper: params };
     const channel = health === ConnectionHealth.ONLINE ? { close: vi.fn() } : undefined;
-    const state = createTestConnection(dql, { connectionId: CONNECTION_ID, params: connectionParams, channel });
-    expect(state.connectionHealth).toBe(health);
-    expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
-    return state;
+    return runtime => {
+        const state = createTestConnection(runtime, { connectionId: CONNECTION_ID, params: connectionParams, channel });
+        expect(state.connectionHealth).toBe(health);
+        expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
+        return state;
+    };
 }
 
 function embeddedParams(): connection.HyperConnectionParams {
@@ -79,6 +85,7 @@ describe('HyperConnectorSettings', () => {
 
     function Capture() {
         registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         return null;
     }
 
@@ -88,7 +95,7 @@ describe('HyperConnectorSettings', () => {
         hyperSetup?: HyperSetupApi | null;
     }
 
-    async function render(database: ConnectionState | null, options: RenderOptions = {}) {
+    async function render(database: TestConnection | null, options: RenderOptions = {}) {
         const hyperSetup = options.hyperSetup === undefined ? { setup, reset } : options.hyperSetup;
         const tree = (showSettings: boolean) => {
             const settings = (
@@ -113,10 +120,7 @@ describe('HyperConnectorSettings', () => {
         };
         await act(async () => root.render(tree(false)));
         if (database != null) {
-            await act(async () => registry![1](reg => {
-                reg.connections.set(CONNECTION_ID, database);
-                return { ...reg };
-            }));
+            await act(async () => { database(coreRuntime!); });
         }
         await act(async () => root.render(tree(true)));
     }
@@ -233,7 +237,7 @@ describe('HyperConnectorSettings', () => {
             expect(protocolOptions()).toEqual([]);
             expect(testId('connection-setup')?.textContent).toContain('Connect');
             expect(testId('connection-setup')?.disabled).toBe(false);
-            expect(current().paramsDraft).toBeUndefined();
+            expect(current().paramsDraft).toBeNull();
         });
 
         it('writes edits of the endpoint and the lists into the draft', async () => {
@@ -420,7 +424,7 @@ describe('HyperConnectorSettings', () => {
             const http = container.querySelector<HTMLButtonElement>('[data-protocol="V3_HTTP"]')!;
             expect(http.disabled).toBe(true);
             await click(http);
-            expect(current().paramsDraft).toBeUndefined();
+            expect(current().paramsDraft).toBeNull();
         });
     });
 });

@@ -1,18 +1,18 @@
 import * as React from 'react';
 
 import {
-    ConnectionState,
-    ConnectionAction,
-    ConnectionStateWithoutId,
     SET_CONNECTION_DRAFT,
     DISCARD_CONNECTION_DRAFT,
+    type ConnectionAction,
+    type ConnectionState,
+    type NewConnection,
 } from '@ankoh/dashql-runtime/connections/connection_state';
-import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
-import { storeWithoutRuntime, useStoreState } from '../utils/store_hooks.js';
-import { ConnectionRegistryService } from '@ankoh/dashql-runtime/connections/connection_registry_service';
 import { useOptionalRuntime } from '../runtime/runtime_provider.js';
+import { useOptionalCoreRuntime, useView } from '../runtime/runtime_hooks.js';
+import { scriptConnectionOf, type ScriptConnection } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import {
+    connectionRegistryOf,
     NO_CONNECTION_REFERENCES,
     resolveWorkbookConnections,
     type ConnectionAllocator,
@@ -22,14 +22,15 @@ import {
     type DynamicConnectionDispatch,
 } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 
-// The state of the registry and its reducer are in connection_registry_state.ts, this module binds them to React
+// The connections are slices of the runtime of the module (docs/wip/runtime_api.md): a component reads the view of a
+// connection, which renders it again when the connection changes. A connection changes when it is set up, saved or
+// refreshed and when a query starts or finishes; the progress of a query changes only the slice of the query.
 export {
     connectionEntryFromState,
     connectionOrdinals,
     findWorkbookQueries,
     isListedConnection,
     NO_CONNECTION_REFERENCES,
-    registerConnection,
     resolveWorkbookConnections,
     workbookConnectionFromState,
     type ConnectionAllocator,
@@ -37,12 +38,8 @@ export {
     type ConnectionReferences,
     type DynamicConnectionDispatch,
 } from '@ankoh/dashql-runtime/connections/connection_registry_state';
-/// The connection registry, see connection_registry_state.ts
+/// The connections by id, see connection_registry_state.ts
 export type ConnectionRegistry = ConnectionRegistryState;
-
-// The registry is a service of the runtime (packages/dashql-runtime/src/connections/connection_registry_service.ts) that
-// the RuntimeProvider provides. The scripts own the references to their connections, the registry of the workbook
-// scripts keeps them.
 
 /// Get the references without subscribing to their changes
 export function useConnectionReferences(): ConnectionReferences {
@@ -56,43 +53,30 @@ export function useConnectionReferencesSelector<T>(select: (references: Connecti
     return React.useSyncExternalStore(references.subscribe, () => select(references));
 }
 
-export type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
-
-/// A stable handle to the latest registry.
-///
-/// The registry changes with every query lifecycle event (including the internal SQLFrame queries of
-/// computations), which re-renders every context consumer.
-/// Components that only care about a small slice of the registry subscribe to the store instead.
+/// A stable handle to the latest connections, the views of the last flush of the store of the runtime
 export interface ConnectionRegistryStore {
-    /// The latest registry
-    current: ConnectionRegistry;
-    /// Subscribe to registry changes
+    /// The latest connections
+    readonly current: ConnectionRegistry;
+    /// Subscribe to changes of the connections and of their list
     subscribe: (listener: () => void) => () => void;
 }
 
-// The hooks resolve the service when their function is called, a test may render a component without the runtime as
-// long as it doesn't call them
-function useLazyConnections(): () => ConnectionRegistryService {
-    const runtime = useOptionalRuntime();
-    return React.useCallback(() => {
-        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
-        return runtime.connections;
+const EMPTY_REGISTRY: ConnectionRegistry = connectionRegistryOf(null, () => null);
+const NO_CONNECTION_STORE: ConnectionRegistryStore = { current: EMPTY_REGISTRY, subscribe: () => () => { } };
+
+/// Get the connections without subscribing to their changes
+export function useConnectionRegistryStore(): ConnectionRegistryStore {
+    const runtime = useOptionalCoreRuntime();
+    return React.useMemo(() => runtime == null ? NO_CONNECTION_STORE : {
+        get current() { return runtime.registry(); },
+        subscribe: (listener: () => void) => {
+            const stops = [runtime.store.subscribeKind('connection', listener), runtime.store.subscribeKind('connectionList', listener)];
+            return () => { for (const stop of stops) stop(); };
+        },
     }, [runtime]);
 }
 
-/// The store of the registry, without a runtime one without state
-function useConnectionStore() {
-    return useOptionalRuntime()?.connections.store ?? NO_CONNECTION_STORE;
-}
-const NO_CONNECTION_STORE = storeWithoutRuntime<ConnectionRegistry>('the connections');
-
-
-/// Get the registry store without subscribing to registry changes
-export function useConnectionRegistryStore(): ConnectionRegistryStore {
-    return useConnectionStore();
-}
-
-/// Subscribe to a slice of the registry.
+/// Subscribe to a slice of the connections.
 /// The component only re-renders when the selected value changes.
 /// The selector must return values that keep their identity while unchanged.
 export function useConnectionRegistrySelector<T>(select: (registry: ConnectionRegistry) => T): T {
@@ -100,37 +84,35 @@ export function useConnectionRegistrySelector<T>(select: (registry: ConnectionRe
     return React.useSyncExternalStore(store.subscribe, () => select(store.current));
 }
 
-/// Modify the registry without subscribing to registry changes
-export function useConnectionRegistrySetter(): Dispatch<SetConnectionRegistryAction> {
-    const service = useLazyConnections();
-    return React.useCallback((action: SetConnectionRegistryAction) => service().store.update(action), [service]);
+/// The connections, the component renders again when a connection or the list changes
+export function useConnectionRegistry(): [ConnectionRegistry] {
+    return [useConnectionRegistrySelector(registry => registry)];
 }
 
-
-/// Allocate a new connection that no workbook references yet.
+/// Create a connection that no workbook references yet.
 /// A workbook references the connection once its scripts use it.
 /// Active connections are written into the app manifest right away.
 export function useConnectionAllocator(): ConnectionAllocator {
-    const service = useLazyConnections();
-    return React.useCallback((state: ConnectionStateWithoutId, fixedId?: string) => service().allocate(state, fixedId), [service]);
-}
-
-export function useConnectionRegistry(): [ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] {
-    const store = useConnectionStore();
-    return [useStoreState(store), store.update];
+    const runtime = useOptionalCoreRuntime();
+    return React.useCallback((connection: NewConnection, fixedId?: string) => {
+        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
+        return runtime.createConnection(connection, fixedId);
+    }, [runtime]);
 }
 
 export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConnectionDispatch] {
-    const registry = useStoreState(useConnectionStore());
+    const [registry] = useConnectionRegistry();
     const dispatch = useConnectionDispatch();
     return [registry, dispatch];
 }
 
-/// Dispatch actions to connections without subscribing to registry changes.
-/// The dispatches of all components are applied in order through the queue of the registry.
+/// Dispatch actions to connections without subscribing to their changes
 export function useConnectionDispatch(): DynamicConnectionDispatch {
-    const service = useLazyConnections();
-    return React.useCallback((connectionId: string | null, action: ConnectionAction) => service().dispatch(connectionId, action), [service]);
+    const runtime = useOptionalCoreRuntime();
+    return React.useCallback((connectionId: string | null, action: ConnectionAction) => {
+        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
+        runtime.dispatchConnection(connectionId, action);
+    }, [runtime]);
 }
 
 /// The connections that the scripts of a workbook use
@@ -148,13 +130,28 @@ export function useWorkbookConnections(workbookId: string | null): ConnectionSta
     return latest.current;
 }
 
-export function useConnectionById(connectionId: string | null): [ConnectionState | null, ConnectionDispatch] {
-    const [registry, dispatch] = useDynamicConnectionDispatch();
-    const capturingDispatch = React.useCallback((action: ConnectionAction) => dispatch(connectionId, action), [connectionId, dispatch]);
-    return [connectionId == null ? null : registry.connections.get(connectionId) ?? null, capturingDispatch];
+/// The connection that a script runs on, with the catalog of the connection of the runtime
+export function useScriptConnectionOf(): (connection: ConnectionState) => ScriptConnection {
+    const runtime = useOptionalCoreRuntime();
+    return React.useCallback((connection: ConnectionState) => {
+        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
+        return scriptConnectionOf(runtime, connection);
+    }, [runtime]);
 }
 
-/// Editing dispatches immediately; the registry debounces only the durable manifest write.
+/// The view of a connection, it renders again when the connection changes
+export function useConnection(connectionId: string | null | undefined): ConnectionState | null {
+    return useView('connection', connectionId) as ConnectionState | null;
+}
+
+export function useConnectionById(connectionId: string | null): [ConnectionState | null, ConnectionDispatch] {
+    const connection = useConnection(connectionId);
+    const dispatch = useConnectionDispatch();
+    const capturingDispatch = React.useCallback((action: ConnectionAction) => dispatch(connectionId, action), [connectionId, dispatch]);
+    return [connection, capturingDispatch];
+}
+
+/// Editing dispatches immediately; the runtime debounces only the durable manifest write.
 export function useConnectionDraft(connectionId: string | null) {
     const [database, dispatch] = useConnectionById(connectionId);
     const setDraft = React.useCallback((params: ConnectionParams) => {
@@ -163,7 +160,7 @@ export function useConnectionDraft(connectionId: string | null) {
     const discard = React.useCallback(() => {
         dispatch({ type: DISCARD_CONNECTION_DRAFT, value: null });
     }, [dispatch]);
-    return { params: database?.params ?? null, paramsDraft: database?.paramsDraft, setDraft, discard };
+    return { params: database?.params ?? null, paramsDraft: database?.paramsDraft ?? undefined, setDraft, discard };
 }
 
 /// Forms write from user actions, never from hydration effects (which could resurrect a draft).

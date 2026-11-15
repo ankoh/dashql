@@ -1,6 +1,5 @@
 import type * as glue from './wasm/dashql_core.js';
 import { DashQL, Ptr } from './api.js';
-import { DashQLConnection } from './connection.js';
 import type { DashQLStorageWriter } from './storage_writer.js';
 import { connectionArgs, DashQLWorkbook, type WorkbookConnection } from './workbook.js';
 
@@ -18,10 +17,8 @@ export type {
 
 const APP_RESTORE_TYPE = Symbol('APP_RESTORE_TYPE');
 
-/// A restored connection with the Rust connection
-export interface RestoredConnection extends glue.RestoredConnectionView {
-    connection: DashQLConnection;
-}
+/// A restored connection, the runtime adopted it under its id
+export type RestoredConnection = glue.RestoredConnectionView;
 
 /// A restored workbook with the Rust workbook
 export interface RestoredWorkbook extends glue.RestoredWorkbookView {
@@ -34,16 +31,15 @@ export interface DashQLRestoredState extends glue.RestoredStateView {
     workbooks: RestoredWorkbook[];
 }
 
-/// Take the connections and workbooks out of a restored state of the module
-function readState(api: DashQL, state: glue.RestoredState): DashQLRestoredState {
+/// Take the connections and workbooks out of a restored state of the module, the runtime adopts the connections
+function readState(api: DashQL, state: glue.RestoredState, runtime: glue.Runtime): DashQLRestoredState {
     try {
         const view = state.view();
         return {
             ...view,
             connections: view.connections.map((info, index) => {
-                const native = state.takeConnection(index);
-                if (native == null) throw new Error(`the restore holds no connection ${info.connectionId}`);
-                return { ...info, connection: DashQLConnection.adopt(api, native) };
+                if (runtime.adoptRestoredConnection(state, index) == null) throw new Error(`the restore holds no connection ${info.connectionId}`);
+                return info;
             }),
             workbooks: view.workbooks.map((info, index) => {
                 const native = state.takeWorkbook(index);
@@ -80,21 +76,22 @@ export class DashQLAppRestore {
         this.ptr.assertNotNull().addLiveConnection(connectionId, params, ...rest);
     }
 
-    /// Restore the connections of the app manifest and the workbooks of the workbook tree
-    public async restore(): Promise<DashQLRestoredState> {
+    /// Restore the connections of the app manifest into a runtime and the workbooks of the workbook tree
+    public async restore(runtime: glue.Runtime): Promise<DashQLRestoredState> {
         try {
             const state = await this.ptr.assertNotNull().restore() as glue.RestoredState;
-            return readState(this.ptr.api, state);
+            return readState(this.ptr.api, state, runtime);
         } finally {
             this.destroy();
         }
     }
 
-    /// Restore a single stored workbook against the live connections, rejects if it can't be restored
-    public async restoreWorkbook(workbookId: string): Promise<DashQLRestoredState> {
+    /// Restore a single stored workbook against the live connections, its new connections go into the runtime.
+    /// Rejects if it can't be restored.
+    public async restoreWorkbook(workbookId: string, runtime: glue.Runtime): Promise<DashQLRestoredState> {
         try {
             const state = await this.ptr.assertNotNull().restoreWorkbook(workbookId) as glue.RestoredState;
-            return readState(this.ptr.api, state);
+            return readState(this.ptr.api, state, runtime);
         } finally {
             this.destroy();
         }

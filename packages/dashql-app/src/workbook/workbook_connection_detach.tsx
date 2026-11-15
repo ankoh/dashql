@@ -2,7 +2,8 @@ import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 
 import { useEmbeddedConnection } from '../connections/embedded_connection_hooks.js';
-import { DETACH_CONNECTION, scriptConnectionOf } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { DETACH_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useScriptConnectionOf } from '../connections/connection_registry.js';
 import { useConnectionScriptsDispatch } from './scripts/workbook_scripts_registry.js';
 
 /// Detach a connection from the workbooks
@@ -15,9 +16,10 @@ export type ConnectionDetach = (dql: core.DashQL, connectionId: string) => Promi
 export function useDetachConnection(): ConnectionDetach {
     const resolveEmbeddedConnection = useEmbeddedConnection();
     const scriptsDispatch = useConnectionScriptsDispatch();
-    return React.useCallback(async (dql: core.DashQL, connectionId: string) => {
-        const embedded = resolveEmbeddedConnection(dql);
+    const scriptConnectionOf = useScriptConnectionOf();
+    return React.useCallback(async (_dql: core.DashQL, connectionId: string) => {
+        const embedded = resolveEmbeddedConnection();
         if (embedded.connectionId === connectionId) return;
         await scriptsDispatch(connectionId, { type: DETACH_CONNECTION, value: { from: connectionId, into: scriptConnectionOf(embedded) } });
-    }, [resolveEmbeddedConnection, scriptsDispatch]);
+    }, [resolveEmbeddedConnection, scriptsDispatch, scriptConnectionOf]);
 }

@@ -13,7 +13,11 @@ use dashql_core_runtime::connections::{
     self as rt, CatalogUpdateTask, ConnectionDetails, ConnectionParams, ConnectionState, ConnectorDetails, DetailedError, JsonObject,
     OAuthPkceChallenge, RelationName, SetupTimings, TemporaryToken,
 };
-use dashql_core_runtime::query::QueryExecutionEffect;
+use dashql_core_runtime::connections::registry::ListedConnection;
+use dashql_core_runtime::query::QueryExecutionHistory;
+
+use crate::connection_persistence::view::ConnectionSaveOutcome;
+use crate::query_history::view::QueryHistoryMetrics;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -405,41 +409,88 @@ pub struct ConnectionCatalogUpdates {
     pub touched_failures: u32,
 }
 
-/// The plain fields of a connection. The queries are read on their own.
+/// The database and schema of the relations that unqualified statements of a connection create or drop
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionNameDefaults {
+    pub database_name: String,
+    pub schema_name: String,
+}
+
+/// The state of saving a connection: whether it saves and the outcome of the last save
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionSaveView {
+    /// Is the connection being saved?
+    pub saving: bool,
+    /// The outcome of the last save, null before one
+    pub outcome: Option<ConnectionSaveOutcome>,
+}
+
+/// A connection, the slice `connection` of the runtime. The field names are the ones the app reads. The queries are
+/// listed by id, each one is a slice `query` of its own: the connection changes when a query starts or finishes, not
+/// with the progress of a query.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null, hashmap_as_object)]
 pub struct ConnectionView {
-    /// Changes with every change of the connection, not of its queries
-    pub revision: u64,
+    pub connection_id: String,
+    /// Does the connection belong to a committed workbook or was it online once?
     pub active: bool,
     #[tsify(type = "ConnectionStatus")]
-    pub status: ConnectionStatus,
+    pub connection_status: ConnectionStatus,
     #[tsify(type = "ConnectionHealth")]
-    pub health: ConnectionHealth,
+    pub connection_health: ConnectionHealth,
     #[tsify(type = "ConnectorType")]
     pub connector_type: ConnectorType,
+    /// The name the user gave the connection, the label falls back to the connector without it
     pub name: Option<String>,
+    /// Does the connection cache query results? Null for the default of the connector.
     pub cache_query_results: Option<bool>,
     pub details: ConnectionDetailsView,
+    /// The params of the last successful setup, the initial ones until then
     pub params: JsonParams,
+    /// The local settings of the form
     pub params_draft: Option<JsonParams>,
+    /// The params of the running setup, never saved
     pub setup_attempt_params: Option<JsonParams>,
+    /// The draft when the running setup started
     pub setup_attempt_draft: Option<JsonParams>,
     pub catalog_updates: ConnectionCatalogUpdates,
-    pub relation_entry_id: u32,
+    /// The catalog entry of the relations of the connection
+    pub catalog_relation_entry_id: u32,
+    /// The database and schema of the relations that unqualified statements create or drop
+    pub catalog_name_defaults: ConnectionNameDefaults,
     /// The script with the functions of the connection, null once it is deleted
     pub function_script_entry_id: Option<u32>,
+    /// The metrics of the finished queries
+    pub metrics: QueryHistoryMetrics,
+    /// The active queries in the order they started
+    pub queries_active_ordered: Vec<u64>,
+    /// The active queries that run on the connection, not the queries of the computations that it only tracks
+    pub queries_running: u32,
+    /// The finished queries in the order they finished
+    pub queries_finished_ordered: Vec<u64>,
+    /// Changes whenever a query starts or finishes
+    pub snapshot_queries_active_finished: u64,
+    /// The workbooks that use the connection
+    pub workbooks: Vec<String>,
+    /// Saving the connection
+    pub save: ConnectionSaveView,
 }
 
-impl From<&ConnectionState> for ConnectionView {
-    fn from(state: &ConnectionState) -> Self {
+impl ConnectionView {
+    /// The view of a connection with its queries, the workbooks that use it and its save
+    pub fn of(state: &ConnectionState, queries: &QueryExecutionHistory, workbooks: &[String], save: ConnectionSaveView) -> Self {
         let updates = state.catalog_updates();
+        let metrics = queries.metrics();
         ConnectionView {
-            revision: state.revision(),
+            connection_id: state.connection_id().to_string(),
             active: state.active(),
-            status: state.status().into(),
-            health: state.health().into(),
+            connection_status: state.status().into(),
+            connection_health: state.health().into(),
             connector_type: state.connector_type().into(),
             name: state.name().map(str::to_string),
             cache_query_results: state.cache_query_results(),
@@ -456,46 +507,77 @@ impl From<&ConnectionState> for ConnectionView {
                 touched_relations: relations(&updates.touched_relations),
                 touched_failures: updates.touched_failures,
             },
-            relation_entry_id: state.relation_entry_id(),
+            catalog_relation_entry_id: state.relation_entry_id(),
+            catalog_name_defaults: {
+                let defaults = state.details().catalog_name_defaults();
+                ConnectionNameDefaults { database_name: defaults.database_name, schema_name: defaults.schema_name }
+            },
             function_script_entry_id: state.function_script().map(|script| script.catalog_entry_id()),
+            metrics: QueryHistoryMetrics {
+                successful_queries: (&metrics.successful_queries).into(),
+                canceled_queries: (&metrics.canceled_queries).into(),
+                failed_queries: (&metrics.failed_queries).into(),
+            },
+            queries_active_ordered: queries.active_ids().to_vec(),
+            queries_running: queries
+                .active_ids()
+                .iter()
+                .filter_map(|id| queries.query(*id))
+                .filter(|query| query.query_metadata.query_type != dashql_core_runtime::query::QueryType::InternalSqlframe)
+                .count() as u32,
+            queries_finished_ordered: queries.finished_ids().to_vec(),
+            snapshot_queries_active_finished: queries.snapshot_queries_active_finished(),
+            workbooks: workbooks.to_vec(),
+            save,
         }
     }
 }
 
-/// What the host does after an action, in this order. The channels, the catalog updates, the queries and their result
-/// tables are handles of the host.
+/// A connection of the list of connections
 #[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
-#[tsify(missing_as_null)]
-pub enum ConnectionEffect {
-    /// Cancel the setup of the connection that is running, e.g. an OAuth flow
-    CancelSetup,
-    /// Let the pending publications of catalog batches into the catalog fail
-    InvalidateCatalogBatch,
-    /// Abort a handle with a reason: a running catalog update, an active query of a stopped connection
-    Abort { handle: u32, reason: String },
-    /// Close a handle, a channel, and release it
-    Close { handle: u32 },
-    /// Release a handle: a channel, a catalog update, a query or a result table that the connection let go of
-    Release { handle: u32 },
-}
-
-impl From<&QueryExecutionEffect> for ConnectionEffect {
-    fn from(effect: &QueryExecutionEffect) -> Self {
-        match *effect {
-            QueryExecutionEffect::Abort { handle, reason } => ConnectionEffect::Abort { handle, reason: reason.to_string() },
-            QueryExecutionEffect::Release { handle } => ConnectionEffect::Release { handle },
-        }
-    }
-}
-
-/// What an action did: whether it changed the connection or its queries, and the effects for the host
-#[derive(Clone, Debug, Default, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
-pub struct ConnectionOutcome {
-    /// Did the action change the connection or its queries?
-    pub changed: bool,
-    /// The effects for the host, in order
-    pub effects: Vec<ConnectionEffect>,
+pub struct ConnectionListEntry {
+    pub connection_id: String,
+    #[tsify(type = "ConnectorType")]
+    pub connector_type: ConnectorType,
+    pub active: bool,
+    /// Is the connection listed next to the workbooks? Connections that workbooks use are, as are active ones.
+    pub listed: bool,
+    /// The number of the connection among the listed connections of its connector from 1, null if it is the only one
+    pub ordinal: Option<u32>,
+}
+
+impl From<&ListedConnection> for ConnectionListEntry {
+    fn from(connection: &ListedConnection) -> Self {
+        ConnectionListEntry {
+            connection_id: connection.connection_id.clone(),
+            connector_type: connection.connector_type.into(),
+            active: connection.active,
+            listed: connection.listed,
+            ordinal: connection.ordinal,
+        }
+    }
+}
+
+/// The connections of the runtime, the slice `connectionList`
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionListView {
+    /// The connections in the order they were registered
+    pub connections: Vec<ConnectionListEntry>,
+    /// The ids of the connections by connector, in the order they were registered
+    pub connections_by_type: Vec<Vec<String>>,
+}
+
+impl ConnectionListView {
+    pub fn of(listed: &[ListedConnection]) -> Self {
+        let connections: Vec<ConnectionListEntry> = listed.iter().map(Into::into).collect();
+        let connections_by_type = rt::CONNECTOR_TYPES
+            .iter()
+            .map(|connector| listed.iter().filter(|c| c.connector_type == *connector).map(|c| c.connection_id.clone()).collect())
+            .collect();
+        ConnectionListView { connections, connections_by_type }
+    }
 }

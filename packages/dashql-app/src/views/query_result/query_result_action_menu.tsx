@@ -13,6 +13,7 @@ import { SET_SCRIPT_TEXT, scriptResultOwner, type ScriptData, type WorkbookScrip
 import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
+import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ProjectionIcon = SymbolIcon('columns_16');
@@ -64,14 +65,15 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
     const [projection, setProjection] = React.useState<{ scriptKey: number; text: string } | ResultProjectionError | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
 
-    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && query.resultTable != null;
+    const resultTable = useQueryResultTable(query);
+    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
 
     const openMenu = () => {
         setProjection(null);
         setOpen(true);
         const workbookScripts = readRegistry().workbookScriptsMap.get(workbookId);
         const script = workbookScripts == null ? null : findResultScript(workbookScripts, owner);
-        if (workbookScripts == null || script == null || query.resultTable == null) return;
+        if (workbookScripts == null || script == null || resultTable == null) return;
         const formatConfig = createScriptFormatConfig(
             dashql.buffers.formatting.FormattingMode.PRETTY,
             false,
@@ -79,7 +81,7 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
             getKeywordCase(config?.settings),
             formattingDialectForConnector(script.connection.connectorInfo.connectorType),
         );
-        const columnNames = query.resultTable.schema.fields.map(field => field.name);
+        const columnNames = resultTable.schema.fields.map(field => field.name);
         const text = addResultProjection(workbookScripts.instance, script.scriptSession.getText(), columnNames, formatConfig);
         // The errors are strings as well
         setProjection(isProjectionError(text) ? text : { scriptKey: script.scriptKey, text });

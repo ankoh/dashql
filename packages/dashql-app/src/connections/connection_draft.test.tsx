@@ -3,13 +3,16 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
-import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 import {
     ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, HEALTH_CHECK_FAILED,
     HEALTH_CHECK_CANCELLED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION, SET_CONNECTION_DRAFT,
-    reduceConnectionState, type ConnectionState, type ConnectionAction,
+    type ConnectionState, type ConnectionAction,
 } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useConnectionRegistry, useConnectionById, useConnectionDraftForm } from './connection_registry.js';
+import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
 import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { HYPER_CHANNEL_SETUP_STARTED, HYPER_CHANNEL_READY, HYPER_CHANNEL_SETUP_FAILED, HYPER_CHANNEL_SETUP_CANCELLED } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
@@ -22,7 +25,6 @@ import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { TestRuntime } from '../tests/test_runtime.js';
 import { useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
@@ -36,10 +38,14 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-/// A new connection of a connector on the Rust connection of the core
-function database(type: ConnectorType, active = false): ConnectionState {
+/// The runtime of the last connection of `database`, the actions of `reduce` go to it
+let runtime: CoreRuntime;
+
+/// A new connection of a connector in a runtime, by default a new one
+function database(type: ConnectorType, active = false, into: CoreRuntime = testCoreRuntime(dql)): ConnectionState {
+    runtime = into;
     const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[type]);
-    const state = createTestConnection(dql, { connectionId: TEST_CONNECTION_ID, params, active });
+    const state = createTestConnection(runtime, { connectionId: TEST_CONNECTION_ID, params, active });
     expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
     expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
     return state;
@@ -59,7 +65,7 @@ function withWorkbookOnConnection(registry: WorkbookScriptsRegistry): WorkbookSc
 }
 
 function reduce(state: ConnectionState, action: ConnectionAction) {
-    return reduceConnectionState(state, action, {} as Logger);
+    return reduceTestConnection(runtime, state, action);
 }
 function edited(params: ConnectionParams, endpoint: string): ConnectionParams {
     if ('hyper' in params) return { hyper: { ...params.hyper, protocol: 'V3_HTTP', endpoint } };
@@ -96,7 +102,8 @@ describe('durable connection drafts', () => {
         state = reduce(state, start(draft));
         expect(state.params).toEqual(committed);
         expect(state.paramsDraft).toEqual(draft);
-        expect(reduce(state, { type: DISCARD_CONNECTION_DRAFT, value: null })).toBe(state);
+        // A discard while the setup runs keeps the draft
+        expect(reduce(state, { type: DISCARD_CONNECTION_DRAFT, value: null })).toEqual(state);
         const newer = edited(committed, 'newer incomplete edit');
         state = reduce(state, { type: SET_CONNECTION_DRAFT, value: newer });
         state = reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
@@ -105,7 +112,7 @@ describe('durable connection drafts', () => {
         state = reduce(state, start(newer));
         state = reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
         expect(state.params).toEqual(newer);
-        expect(state.paramsDraft).toBeUndefined();
+        expect(state.paramsDraft).toBeNull();
     });
 
     it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM])('preserves %s draft and committed parameters on failure, cancellation and reset', type => {
@@ -127,16 +134,16 @@ describe('durable connection drafts', () => {
             const next = reduce(state, action);
             expect(next.params).toEqual(initial.params);
             expect(next.paramsDraft).toEqual(draft);
-            expect(next.setupAttemptParams).toBeUndefined();
-            expect(next.details.value.proto.setupParams).not.toEqual(
+            expect(next.setupAttemptParams).toBeNull();
+            expect(next.details.setupParams).not.toEqual(
                 'hyper' in initial.params ? initial.params.hyper : 'trino' in initial.params ? initial.params.trino : 'dbcom' in initial.params ? initial.params.dbcom : initial.params.salesforce,
             );
         }
         state = reduce(state, { type: HEALTH_CHECK_FAILED, value: { message: 'failed' } });
         state = reduce(state, { type: DISCARD_CONNECTION_DRAFT, value: null });
-        expect(state.paramsDraft).toBeUndefined();
+        expect(state.paramsDraft).toBeNull();
         expect(state.params).toEqual(initial.params);
-        expect(state.details.value.proto.healthCheckError).toBeUndefined();
+        expect(state.details.healthCheckError).toBeNull();
     });
 
     it('promotes embedded Hyper when its local channel becomes ready', () => {
@@ -145,13 +152,13 @@ describe('durable connection drafts', () => {
         state = reduce(state, start(state.params));
         state = reduce(state, { type: HYPER_CHANNEL_READY, value: [{} as any, 'hyper' in state.params ? state.params.hyper as any : undefined] });
         expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
-        expect(state.paramsDraft).toBeUndefined();
+        expect(state.paramsDraft).toBeNull();
         expect(state.active).toBe(true);
     });
 
     it.each([false, true])('saves invalid edits with active=%s into the app manifest and does not resurrect a discarded draft', async active => {
         const backend = new WorkbookTestBackend();
-        let setRegistry!: ReturnType<typeof useConnectionRegistry>[1];
+        let coreRuntime!: CoreRuntime;
         let setWorkbooks!: ReturnType<typeof useWorkbookScriptsRegistry>[1];
         let edit!: React.Dispatch<React.SetStateAction<string>>;
         let dispatch!: ReturnType<typeof useConnectionById>[1];
@@ -159,7 +166,7 @@ describe('durable connection drafts', () => {
         let current!: ConnectionState;
         let value = '';
         function Harness() {
-            [, setRegistry] = useConnectionRegistry();
+            coreRuntime = useCoreRuntime();
             [, setWorkbooks] = useWorkbookScriptsRegistry();
             [current, dispatch] = useConnectionById(TEST_CONNECTION_ID) as [ConnectionState, typeof dispatch];
             [value, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
@@ -173,10 +180,7 @@ describe('durable connection drafts', () => {
             await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>));
             await act(async () => {
                 setWorkbooks(withWorkbookOnConnection);
-                setRegistry(reg => {
-                    reg.connections.set(TEST_CONNECTION_ID, database(ConnectorType.TRINO, active));
-                    return { ...reg };
-                });
+                database(ConnectorType.TRINO, active, coreRuntime);
             });
             await act(async () => edit('not a URL'));
             expect(current.active).toBe(active);
@@ -203,14 +207,14 @@ describe('durable connection drafts', () => {
 
     it('persists and rehydrates incomplete duplicate header rows without flattening the form', async () => {
         const backend = new WorkbookTestBackend();
-        let setRegistry!: ReturnType<typeof useConnectionRegistry>[1];
+        let coreRuntime!: CoreRuntime;
         let setWorkbooks!: ReturnType<typeof useWorkbookScriptsRegistry>[1];
         let edit!: React.Dispatch<React.SetStateAction<HyperConnectionPageState>>;
         let dispatch!: ReturnType<typeof useConnectionById>[1];
         let form!: HyperConnectionPageState;
         let writer!: StorageWriter;
         function Harness() {
-            [, setRegistry] = useConnectionRegistry();
+            coreRuntime = useCoreRuntime();
             [, setWorkbooks] = useWorkbookScriptsRegistry();
             [, dispatch] = useConnectionById(TEST_CONNECTION_ID);
             [form, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
@@ -224,10 +228,7 @@ describe('durable connection drafts', () => {
             await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>));
             await act(async () => {
                 setWorkbooks(withWorkbookOnConnection);
-                setRegistry(reg => {
-                    reg.connections.set(TEST_CONNECTION_ID, database(ConnectorType.HYPER));
-                    return { ...reg };
-                });
+                database(ConnectorType.HYPER, false, coreRuntime);
             });
             const rows = [{ key: '', value: 'unfinished' }, { key: '', value: '' }];
             await act(async () => edit(prev => ({ ...prev, endpoint: 'invalid', gRPCMetadata: rows })));
@@ -238,11 +239,8 @@ describe('durable connection drafts', () => {
             const persisted = JSON.parse(JSON.stringify(globalDraft(backend)));
             expect(buildHyperConnectionPageState(persisted.hyper).gRPCMetadata).toEqual(rows);
             expect(buildHyperConnectionPageState(persisted.hyper).endpoint).toBe('invalid');
-            await act(async () => setRegistry(reg => {
-                const current = reg.connections.get(TEST_CONNECTION_ID)!;
-                reg.connections.set(TEST_CONNECTION_ID, { ...current, paramsDraft: persisted });
-                return { ...reg };
-            }));
+            // The draft comes back as the app reads it from its manifest
+            await act(async () => dispatch({ type: SET_CONNECTION_DRAFT, value: persisted }));
             expect(form.gRPCMetadata).toEqual(rows);
             expect(form.endpoint).toBe('invalid');
             await act(async () => dispatch({ type: DISCARD_CONNECTION_DRAFT, value: null }));
@@ -268,7 +266,7 @@ describe('durable connection drafts', () => {
         hyper = reduce(hyper, { type: SET_CONNECTION_DRAFT, value: draft });
         hyper = reduce(hyper, start(draft));
         hyper = reduce(hyper, { type: HEALTH_CHECK_SUCCEEDED, value: null });
-        expect(hyper.paramsDraft).toBeUndefined();
+        expect(hyper.paramsDraft).toBeNull();
         expect(JSON.stringify(hyper.params)).not.toContain('draftRows');
     });
 

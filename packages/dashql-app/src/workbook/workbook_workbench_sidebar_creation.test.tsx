@@ -10,6 +10,8 @@ import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../app/router/router.js';
 import { SET_PENDING_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { CoreRuntimeProvider } from '../runtime/runtime_hooks.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -22,7 +24,7 @@ const state = {
     modifyWorkbookScripts: vi.fn(),
     write: vi.fn<() => Promise<boolean>>(),
     refreshCatalog: vi.fn(),
-    createConnectionStateFromParams: vi.fn(),
+    newConnectionFromParams: vi.fn(),
     deleteWorkbook: vi.fn(),
     allocateConnection: vi.fn(),
     resolveNewWorkbookConnection: vi.fn(),
@@ -52,7 +54,7 @@ const references = {
 /// The connection ids of the fake registry by connector type
 function connectionsByType(): string[][] {
     const byType: string[][] = [[], [], []];
-    for (const database of state.connections.values()) (byType[database.connectorInfo?.connectorType ?? 0] ??= []).push(database.connectionId);
+    for (const database of state.connections.values()) (byType[database.connectorType ?? 0] ??= []).push(database.connectionId);
     return byType;
 }
 
@@ -117,10 +119,16 @@ const dependencies = {
     usePlatformType: () => 0,
     useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
     useNewWorkbookConnection: () => state.resolveNewWorkbookConnection,
-    createConnectionStateFromParams: (...args: unknown[]) => state.createConnectionStateFromParams(...args),
+    newConnectionFromParams: (...args: unknown[]) => state.newConnectionFromParams(...args),
     useClouds: () => ({ clouds: [], openSetup: vi.fn(), setupRequest: null }),
     CloudsFolder: () => null,
 } as unknown as WorkbookWorkbenchSidebarDependencies;
+
+/// The scripts run on the catalogs of the connections, a runtime of the module that has one for every connection
+const CATALOGS = { catalog: () => EMPTY_CATALOG.catalog } as unknown as CoreRuntime;
+function WithCatalogs(props: { children: React.ReactNode }) {
+    return <CoreRuntimeProvider value={CATALOGS}>{props.children}</CoreRuntimeProvider>;
+}
 
 /// The catalog of a connection without relations
 const EMPTY_CATALOG = {
@@ -129,7 +137,7 @@ const EMPTY_CATALOG = {
             read: () => ({ catalogReader: { databasesLength: () => 0 } }),
         }),
     },
-    catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
+    catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
 };
 
 describe('WorkbookWorkbenchSidebar workbook creation', () => {
@@ -150,7 +158,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.ensureEphemeralWorkbook.mockReset();
         state.write.mockReset().mockResolvedValue(true);
         state.refreshCatalog.mockReset();
-        state.createConnectionStateFromParams.mockReset().mockReturnValue({ type: 'remote' });
+        state.newConnectionFromParams.mockReset().mockReturnValue({ type: 'remote' });
         state.deleteWorkbook.mockReset();
         state.overlayProps = null;
         state.shareProps = null;
@@ -159,11 +167,11 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.attachedDatabasesByWorkbook.clear();
         state.workbookScriptsMap.clear();
         state.workbookAttachedDatabases = null;
-        state.local = { connectionId: 'local-database' } as ConnectionState;
+        state.local = { connectionId: 'local-database' } as unknown as ConnectionState;
         state.local = {
             connectionId: 'local-database',
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } },
+            connectorType: ConnectorType.HYPER,
+            details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
             params: { hyper: { protocol: 'WASM' } },
             queriesActiveOrdered: [],
             ...EMPTY_CATALOG,
@@ -173,10 +181,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.detachConnection.mockReset().mockResolvedValue();
         state.deleteConnection.mockReset().mockResolvedValue();
         vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000001');
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
     });
 
     afterEach(() => {
@@ -202,14 +210,14 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     it('shows workbook and connection counts', () => {
         const main = {
             ...state.local!,
-            connectorInfo: { connectorType: ConnectorType.HYPER, icons: { colored: 'database' }, names: { displayLong: 'Hyper' } },
+            connectorType: ConnectorType.HYPER,
             catalog: {
                 flatten: () => ({
                     read: () => ({ catalogReader: { databasesLength: () => 0 } }),
                 }),
             },
-            catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
-        } as ConnectionState;
+            catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+        } as unknown as ConnectionState;
         const attached = { ...main, connectionId: 'attached-database' };
         state.connections.set(main.connectionId, main);
         state.connections.set(attached.connectionId, attached);
@@ -225,10 +233,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         });
         state.workbookAttachedDatabases = { main, attached: [attached] };
 
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         expect(byTestId('workbook-count')?.textContent).toBe('1');
         expect(byTestId('connection-count')?.textContent).toBe('2');
@@ -238,16 +246,16 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         const main = {
             ...state.local!,
             connectionHealth: ConnectionHealth.ONLINE,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            connectorType: ConnectorType.HYPER,
             catalog: { flatten: () => ({
                 read: () => ({ catalogReader: { databasesLength: () => 0 } }),
             }) },
-            catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
-        } as ConnectionState;
+            catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+        } as unknown as ConnectionState;
         state.workbookAttachedDatabases = { main, attached: [] };
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
         click('connection-row-menu');
         act(() => {
             (document.querySelector('[data-testid="connection-menu-item"][data-action="settings"]') as HTMLButtonElement).click();
@@ -266,13 +274,13 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         expect(state.openGreeter).toHaveBeenCalledTimes(1);
         expect(state.createWorkbook).not.toHaveBeenCalled();
         expect(state.allocateConnection).not.toHaveBeenCalled();
-        expect(state.createConnectionStateFromParams).not.toHaveBeenCalled();
+        expect(state.newConnectionFromParams).not.toHaveBeenCalled();
         expect(state.overlayProps?.isOpen).toBe(false);
     });
 
     it('creates a connection that the next script of the current workbook runs on', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } }, params: { trino: {} } } as unknown as ConnectionState;
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } }, params: { trino: {} } } as unknown as ConnectionState;
         state.allocateConnection.mockReturnValue(trino);
         act(() => (container.querySelector('[aria-label="Create connection"]') as HTMLButtonElement).click());
         act(() => {
@@ -281,8 +289,8 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
                 .click();
         });
         // The Rust connection of the state is created active, a spread over the state would be lost with its next action
-        expect(state.createConnectionStateFromParams).toHaveBeenCalledWith(expect.anything(), expect.anything(), { active: true });
-        expect(state.allocateConnection).toHaveBeenCalledWith(state.createConnectionStateFromParams.mock.results[0].value);
+        expect(state.newConnectionFromParams).toHaveBeenCalledWith(expect.anything(), { active: true });
+        expect(state.allocateConnection).toHaveBeenCalledWith(state.newConnectionFromParams.mock.results[0].value);
         expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({
             type: SET_PENDING_CONNECTION,
             value: expect.objectContaining({ connectionId: trino.connectionId }),
@@ -294,11 +302,8 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         const database = {
             connectionId: 'salesforce-database',
             connectionHealth,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD],
-            details: {
-                type: SALESFORCE_DATA_CLOUD_CONNECTOR,
-                value: { proto: { setupParams: {} } },
-            },
+            connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
+            details: { setupParams: {}, channel: null, connector: { kind: 'salesforce' } },
             ...EMPTY_CATALOG,
         } as unknown as ConnectionState;
         state.connections.set(database.connectionId, database);
@@ -312,10 +317,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookMetadata: {},
             scripts: {},
         });
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         act(() => {
             Array.from(container.querySelectorAll('button'))
@@ -343,10 +348,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookMetadata: { originalFileName: 'current' },
             scripts: {},
         });
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         click('workbook-row-menu');
         const share = document.querySelector('[data-testid="workbook-menu-item"][data-action="share-url"]') as HTMLButtonElement;
@@ -370,10 +375,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookMetadata: { originalFileName: 'current' },
             scripts: {},
         });
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         click('workbook-row-menu');
         act(() => (document.querySelector('[data-testid="workbook-menu-item"][data-action="rename"]') as HTMLButtonElement).click());
@@ -412,10 +417,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookMetadata: { originalFileName: 'current' },
             scripts: {},
         });
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         const name = container.querySelector('[aria-label="Workbooks"] button[aria-current]') as HTMLButtonElement;
         act(() => name.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
@@ -436,10 +441,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookMetadata: { originalFileName: 'current' },
             scripts: {},
         });
-        const render = (openOverviewId: string | null) => act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        const render = (openOverviewId: string | null) => act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} openOverviewId={openOverviewId} onOpenOverview={() => {}} dependencies={dependencies} />));
+        } as any} openOverviewId={openOverviewId} onOpenOverview={() => {}} dependencies={dependencies} /></WithCatalogs>));
         const selected = () => document.querySelectorAll('ul[aria-label="Workbooks"] [aria-current="page"]').length;
 
         render(null);
@@ -461,10 +466,10 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookMetadata: { originalFileName: 'current' },
             scripts: {},
         });
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         click('workbook-row-menu');
         const exportItem = document.querySelector('[data-testid="workbook-menu-item"][data-action="export"]') as HTMLButtonElement;
@@ -480,8 +485,8 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     });
 
     it('lists the connections of other workbooks', () => {
-        const other = { ...state.local!, connectionId: 'trino-database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } } } as unknown as ConnectionState;
+        const other = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
         state.connections.set(state.local!.connectionId, state.local!);
         state.connections.set(other.connectionId, other);
         state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
@@ -492,18 +497,18 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scripts: {} });
         }
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         // The shell connection is not referenced by a workbook of the registry
         expect(byTestId('connection-count')?.textContent).toBe('2');
     });
 
     it('groups the connections of the workbook and numbers connections of the same connector', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } } } as unknown as ConnectionState;
-        const secondHyper = { ...state.local!, connectionId: 'second-hyper' } as ConnectionState;
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
+        const secondHyper = { ...state.local!, connectionId: 'second-hyper' } as unknown as ConnectionState;
         for (const database of [state.local!, trino, secondHyper]) state.connections.set(database.connectionId, database);
         state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
         state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [secondHyper.connectionId] });
@@ -511,9 +516,9 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scripts: {} });
         }
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         expect(groups()).toEqual(['workbook', 'other']);
         const rowLabel = (connectionId: string) => container
@@ -523,9 +528,9 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     });
 
     it('groups the active connections that no workbook uses apart', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } } } as unknown as ConnectionState;
-        const unused = { ...state.local!, connectionId: 'unused-hyper', active: true } as ConnectionState;
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
+        const unused = { ...state.local!, connectionId: 'unused-hyper', active: true } as unknown as ConnectionState;
         for (const database of [state.local!, unused, trino]) state.connections.set(database.connectionId, database);
         state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
         state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [] });
@@ -533,9 +538,9 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scripts: {} });
         }
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
 
         // The unused connection is listed after the connections of other workbooks
         expect(groups()).toEqual(['workbook', 'other', 'unused']);
@@ -546,7 +551,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         const server = {
             ...state.local!,
             connectionId: 'hyper-server',
-            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } },
+            details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
             params: { hyper: { protocol: 'V3_HTTP' } },
         } as unknown as ConnectionState;
         for (const database of [state.local!, server]) state.connections.set(database.connectionId, database);
@@ -559,9 +564,9 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         });
         state.workbookScriptsMap.set('current-workbook', { workbookId: 'current-workbook', name: 'Current', workbookMetadata: {}, scripts });
         state.workbookAttachedDatabases = { main: server, attached: usesLocal ? [state.local!] : [] };
-        act(() => root.render(<WorkbookWorkbenchSidebar workbookScripts={{
+        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} />));
+        } as any} dependencies={dependencies} /></WithCatalogs>));
         return server;
     }
 

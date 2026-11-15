@@ -15,6 +15,7 @@ import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 const CheckIcon = SymbolIcon('check_16');
 
@@ -37,7 +38,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const { saving, result: saveResult, save, retry } = useConnectionSave(props.connectionId);
     const connecting = conn?.connectionHealth === ConnectionHealth.CONNECTING;
 
-    const currentConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.HYPER;
+    const currentConnectorType = conn?.connectorType ?? ConnectorType.HYPER;
 
     const completedDatabaseId = React.useRef<string | null>(null);
     React.useEffect(() => {

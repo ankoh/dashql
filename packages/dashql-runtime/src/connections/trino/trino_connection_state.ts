@@ -4,9 +4,9 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import type { DetailedError } from '../../utils/error.js';
 
 import { VariantKind } from '../../utils/variant.js';
-import { TRINO_CONNECTOR } from '../connector_info.js';
+import { ConnectorType } from '../connector_info.js';
 import type { ConnectionState, RESET_CONNECTION, DELETE_CONNECTION } from '../connection_state.js';
-import { TrinoChannelInterface } from "./trino_channel.js";
+import type { TrinoChannelInterface } from "./trino_channel.js";
 
 // The Rust connection of the runtime applies the actions of the setup
 // (`packages/dashql-core-runtime/src/connections/trino.rs`)
@@ -22,29 +22,9 @@ export const RECEIVED_OAUTH_CODE = Symbol('RECEIVED_OAUTH_CODE');
 export const REQUESTING_ACCESS_TOKEN = Symbol('REQUESTING_ACCESS_TOKEN');
 export const RECEIVED_ACCESS_TOKEN = Symbol('RECEIVED_ACCESS_TOKEN');
 
-export interface TrinoConnectionStateDetails {
-    /// The proto
-    proto: connection.TrinoConnectionDetails;
-    /// The channel
-    channel: TrinoChannelInterface | null;
-}
-
-export function createTrinoConnectionStateDetails(params: connection.TrinoConnectionParams): TrinoConnectionStateDetails {
-    return {
-        proto: {
-            setupTimings: {},
-            setupParams: params,
-        },
-        channel: null
-    };
-}
-
-export function getTrinoConnectionDetails(state: ConnectionState | null): TrinoConnectionStateDetails | null {
-    if (state == null) return null;
-    switch (state.details.type) {
-        case TRINO_CONNECTOR: return state.details.value;
-        default: return null;
-    }
+/// The details of a Trino connection, null for another connector
+export function getTrinoConnectionDetails(state: ConnectionState | null): ConnectionState['details'] | null {
+    return state?.connectorType === ConnectorType.TRINO ? state.details : null;
 }
 
 export const TRINO_CHANNEL_SETUP_CANCELLED = Symbol('TRINO_CHANNEL_SETUP_CANCELLED');

@@ -34,17 +34,24 @@ import { workbookBundleToTables } from '@ankoh/dashql-runtime/storage/workbook_t
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '../tests/react_root.js';
 import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
+import * as core from '@ankoh/dashql-core';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { addTestConnection } from '../tests/test_connections.js';
 
 // The overview of a local cloud on the embedded Hyper of the tests: the statements of the cloud state go through the
 // query executor to the session of the local cloud, the listings of the page run against the same tables
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
+let coreRuntime: CoreRuntime | null = null;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let database: HyperDB;
 let dispose: () => Promise<void>;
 let connection: HyperDBConnection;
 
 beforeAll(async () => {
+    await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     const test = await createTestHyperDB('dashql-cloud-overview');
     database = test.database;
     dispose = test.dispose;
@@ -74,24 +81,9 @@ async function publish(name: string, folderId: string | null = null, sql = 'sele
     return await publishCloudWorkbook(query, database, tables, { folderId: folderId ?? undefined });
 }
 
-/// The local cloud as a connection of the registry
-function cloudConnection(health: ConnectionHealth): ConnectionState {
-    return {
-        connectionId: 'trial',
-        name: 'Trial',
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: (createLocalCloudParams() as { hyper: unknown }).hyper } } },
-        params: createLocalCloudParams(),
-        active: true,
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: health,
-        catalog: { clear: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map() },
-        queriesFinished: new Map(),
-        queriesFinishedOrdered: [],
-        queriesActive: new Map(),
-        queriesActiveOrdered: [],
-    } as unknown as ConnectionState;
+/// The local cloud as a connection of the runtime
+function cloudConnection(runtime: CoreRuntime, health: ConnectionHealth): void {
+    addTestConnection(runtime, { connectionId: 'trial', name: 'Trial', params: createLocalCloudParams(), active: true, health });
 }
 
 /// The published workbooks of the cloud on the session of the test, every change looks at the cloud again
@@ -133,6 +125,7 @@ describe('CloudOverviewPage', () => {
 
     function Capture() {
         registry = useConnectionRegistry();
+        coreRuntime = useCoreRuntime();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
         return null;
@@ -178,10 +171,7 @@ describe('CloudOverviewPage', () => {
     async function renderCloud(health: ConnectionHealth) {
         await root.render(tree(null));
         await vi.waitFor(() => expect(config).not.toBeNull());
-        await act(async () => registry![1](reg => {
-            reg.connections.set('trial', cloudConnection(health));
-            return { ...reg };
-        }));
+        await act(async () => cloudConnection(coreRuntime!, health));
         await act(async () => reconfigure!(value => value == null ? null : { ...value, settings: { ...value.settings, cloudConnectionIds: ['trial'] } }));
         await root.render(tree(page));
     }

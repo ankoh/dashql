@@ -25,11 +25,11 @@ import {
     type StorageWriteTaskVariant,
 } from './storage_writer.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
-import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
-import { ConnectionHealth, ConnectionStatus, createConnectionState, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
-import type { ConnectionStateDetailsVariant } from '../connections/connection_state_details.js';
+import { ConnectorType } from '../connections/connector_info.js';
+import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, type ConnectionState } from '../connections/connection_state.js';
+import { newConnectionFromParams } from '../connections/connection_params.js';
 import { testCore } from '../testing/test_runtime.js';
-import { CONNECTOR_INFOS } from '../connections/connector_info.js';
+import { testCoreRuntime } from '../testing/mocks/connector_state.js';
 import { workbookConnectionFromState } from '../connections/connection_registry_state.js';
 import { testConnections, testWorkbook, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '../testing/workbook_test_backend.js';
 
@@ -168,29 +168,27 @@ describe('V2 storage writer flat mutations', () => {
     });
 
     it('writes drafts into the app manifest and never into workbooks', async () => {
+        // The runtime decides what storage keeps of a connection and writes it through the writer
         const backend = new WorkbookTestBackend();
         const logger = new TestLogger();
-        const writer = new StorageWriter(logger, backend);
+        const writer = new StorageWriter(logger, backend, await testCore());
+        const runtime = testCoreRuntime(await testCore());
+        await writer.withNativeWriter(async native => runtime.setStorageWriter(native));
         const params = { trino: { endpoint: 'committed', catalogName: '', auth: { authType: 'AUTH_BASIC' as const } } };
         const paramsDraft = { trino: { ...params.trino, endpoint: 'unfinished' } };
-        const details = { type: TRINO_CONNECTOR, value: { proto: { setupParams: params.trino, setupTimings: {} } } } as ConnectionStateDetailsVariant;
-        let state: ConnectionState = {
-            ...createConnectionState(await testCore(), CONNECTOR_INFOS[ConnectorType.TRINO], details, { params }),
-            connectionId: TEST_CONNECTION_ID,
-        };
+        const state = runtime.createConnection({ ...newConnectionFromParams(params), active: true }, TEST_CONNECTION_ID);
         expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
         expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
         for (const discard of [false, true]) {
-            state = reduceConnectionState(state, discard
+            runtime.dispatchConnection(TEST_CONNECTION_ID, discard
                 ? { type: DISCARD_CONNECTION_DRAFT, value: null }
-                : { type: SET_CONNECTION_DRAFT, value: paramsDraft }, logger);
-            await writer.write(groupConnectionEntryWrites(TEST_CONNECTION_ID), {
-                type: WRITE_CONNECTION_ENTRY,
-                value: { id: TEST_CONNECTION_ID, params: state.params, ...(state.paramsDraft ? { paramsDraft: state.paramsDraft } : {}) },
-            });
-            expect(backend.connections).toEqual([{ id: TEST_CONNECTION_ID, params, ...(discard ? {} : { paramsDraft }) }]);
+                : { type: SET_CONNECTION_DRAFT, value: paramsDraft });
+            await writer.flush();
+            expect(backend.connections).toEqual([expect.objectContaining({ id: TEST_CONNECTION_ID, params })]);
+            expect((backend.connections![0] as { paramsDraft?: unknown }).paramsDraft).toEqual(discard ? undefined : paramsDraft);
         }
         expect(backend.workbooks.size).toBe(0);
+        runtime.destroy();
     });
     it('persists only committed settings, not drafts, attempted params or OAuth runtime state', async () => {
         const backend = new WorkbookTestBackend();
@@ -201,10 +199,10 @@ describe('V2 storage writer flat mutations', () => {
             connectionId,
             params: { trino: { endpoint: 'committed' } },
             paramsDraft: { trino: { endpoint: '' } },
-            details: { type: TRINO_CONNECTOR, value: { proto: {
+            details: {
                 setupParams: { endpoint: 'attempted' },
-                oauthState: { accessToken: { accessToken: 'runtime-secret' } },
-            } } },
+                connector: { kind: 'trino', oauthState: { accessToken: JSON.stringify({ accessToken: 'runtime-secret' }) } },
+            },
         } as unknown as ConnectionState;
         await writer.write(workbookId, { type: WRITE_WORKBOOK_MANIFEST, value: [workbookId, [workbookConnectionFromState(state)]] });
         const saved = await backend.loadWorkbook(workbookId);
@@ -217,11 +215,9 @@ describe('V2 storage writer flat mutations', () => {
         const workbookId = '11111111-2222-4333-8444-555555555555';
         const state = (connectionId: string, connectorType: ConnectorType, setupParams: object) => ({
             connectionId,
-            connectorInfo: { connectorType },
+            connectorType,
             params: connectorType === ConnectorType.HYPER ? { hyper: setupParams } : { trino: setupParams },
-            details: connectorType === ConnectorType.HYPER
-                ? { type: HYPER_CONNECTOR, value: { proto: { setupParams } } }
-                : { type: TRINO_CONNECTOR, value: { proto: { setupParams } } },
+            details: { setupParams },
         }) as unknown as ConnectionState;
         // A script of the workbook runs on the local connection
         backend.workbooks.set(workbookId, testWorkbook({ scripts: [{ name: 'local.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }] }));

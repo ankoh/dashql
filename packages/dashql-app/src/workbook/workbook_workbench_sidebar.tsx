@@ -59,7 +59,7 @@ import {
     useDynamicConnectionDispatch,
 } from '../connections/connection_registry.js';
 import {
-    createConnectionStateFromParams,
+    newConnectionFromParams,
     createAttachedConnectionParamsForConnector,
 } from '@ankoh/dashql-runtime/connections/connection_params';
 import { useNewWorkbookConnection } from '../connections/embedded_connection_hooks.js';
@@ -81,13 +81,12 @@ import { useStorageReader, useStorageWriter } from '../storage/storage_provider.
 import { readWorkbookBundleFromBrowserFolder } from './persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '../storage/workbook_transfer.js';
 import {
-    mergeRestoredWorkbookIntoConnections,
     mergeRestoredWorkbookIntoScripts,
     restoreSingleWorkbook,
 } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
 import { describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
-import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptsOnConnection, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from './scripts/script_selection.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { renameScript } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
@@ -138,6 +137,9 @@ import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useScriptConnectionOf } from '../connections/connection_registry.js';
+import { useQueryReader } from '../connections/query_executor.js';
 
 interface WorkbookItem {
     workbookId: string;
@@ -252,7 +254,7 @@ export interface WorkbookWorkbenchSidebarDependencies {
     useInvalidWorkbooks: typeof useInvalidWorkbooks;
     useWorkbookConnections: typeof useWorkbookConnections;
     useNewWorkbookConnection: typeof useNewWorkbookConnection;
-    createConnectionStateFromParams: typeof createConnectionStateFromParams;
+    newConnectionFromParams: typeof newConnectionFromParams;
     ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
     WorkbookStorageOverlay: typeof WorkbookStorageOverlay;
     WorkbookURLShareOverlay: typeof WorkbookURLShareOverlay;
@@ -289,7 +291,7 @@ const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarD
     useInvalidWorkbooks,
     useWorkbookConnections,
     useNewWorkbookConnection,
-    createConnectionStateFromParams,
+    newConnectionFromParams,
     ConnectionSettingsOverlay,
     WorkbookStorageOverlay,
     WorkbookURLShareOverlay,
@@ -779,7 +781,10 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const route = dependencies.useRouteContext();
     const [databaseRegistry, connectionDispatch] = dependencies.useDynamicConnectionDispatch();
     const [scriptsRegistry, setScriptsRegistry] = dependencies.useWorkbookScriptsRegistry();
-    const [, setDatabaseRegistry] = dependencies.useConnectionRegistry();
+    // Only duplicating a workbook needs the runtime, the tests of the sidebar render it without one
+    const coreRuntime = useOptionalCoreRuntime();
+    const scriptConnectionOf = useScriptConnectionOf();
+    const readQuery = useQueryReader();
     const references = dependencies.useConnectionReferences();
     const allocateConnection = dependencies.useConnectionAllocator();
     const createWorkbook = dependencies.useWorkbookCreation();
@@ -1071,7 +1076,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     /// Create a workbook in a folder on the embedded Hyper, or on the Hyper of the link that the app was opened with.
     /// Its scripts attach other connections.
     const createWorkbookInFolder = React.useCallback((folderPath: string[]) => {
-        const { workbookId } = createWorkbook(resolveNewWorkbookConnection(props.workbookScripts.instance));
+        const { workbookId } = createWorkbook(resolveNewWorkbookConnection());
         moveWorkbook(workbookId, folderPath, Number.MAX_SAFE_INTEGER);
         navigate({ type: SELECT_WORKBOOK, value: workbookId });
         props.closeAfterSelection?.();
@@ -1101,12 +1106,11 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const createConnection = React.useCallback((connector: ConnectorType) => {
         setCreateConnectionOpen(false);
         const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
-        const initialDatabase = dependencies.createConnectionStateFromParams(props.workbookScripts.instance, params, { active: true });
-        const database = allocateConnection(initialDatabase);
+        const database = allocateConnection(dependencies.newConnectionFromParams(params, { active: true }));
         void modifyCurrentWorkbook({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(database) });
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
         setConnectionOverlayDatabaseId(database.connectionId);
-    }, [allocateConnection, dependencies, modifyCurrentWorkbook, props.workbookScripts.instance]);
+    }, [allocateConnection, dependencies, modifyCurrentWorkbook, scriptConnectionOf]);
 
     /// Rename a connection, a blank name restores the default label
     const renameConnection = React.useCallback((connectionId: string, name: string) => {
@@ -1173,16 +1177,16 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const duplicateWorkbook = React.useCallback(async (item: WorkbookItem) => {
         const newWorkbookId = crypto.randomUUID();
         try {
-            const coreInstance = await setupCore('workbook_duplicate');
+            if (coreRuntime == null) throw new Error('the runtime needs a RuntimeProvider');
+            await setupCore('workbook_duplicate');
             await cloneWorkbook(item.workbookId, storageReader.backend, storageWriter.backend, newWorkbookId, logger);
             const restored = await restoreSingleWorkbook(
-                coreInstance,
+                coreRuntime,
                 storageWriter.backend,
                 logger,
                 newWorkbookId,
                 databaseRegistry,
             );
-            setDatabaseRegistry(registry => mergeRestoredWorkbookIntoConnections(registry, restored));
             setScriptsRegistry(registry => mergeRestoredWorkbookIntoScripts(registry, restored));
         } catch (error) {
             logger.warn('failed to duplicate workbook', {
@@ -1190,7 +1194,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                 error: String(error),
             }, 'workbook_workbench');
         }
-    }, [databaseRegistry, logger, setDatabaseRegistry, setScriptsRegistry, setupCore, storageReader.backend, storageWriter.backend]);
+    }, [coreRuntime, databaseRegistry, logger, setScriptsRegistry, setupCore, storageReader.backend, storageWriter.backend]);
 
     const openWorkbookFolder = React.useCallback(async () => {
         if (storageReader.workbookFolders == null) return;
@@ -1243,7 +1247,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         // Connections outlive the workbooks that reference them, only the workbook's own
         // computations are dropped.
         for (const database of item.connections) {
-            for (const queryId of findWorkbookQueries(database, item.workbookId)) {
+            for (const queryId of findWorkbookQueries(database, item.workbookId, readQuery)) {
                 deleteComputation(queryId);
             }
         }
@@ -1253,7 +1257,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             if (next != null) navigate({ type: OPEN_WORKBOOK, value: next.workbookId });
             else openGreeter();
         }
-    }, [deleteComputation, deleteWorkbookScripts, navigate, openGreeter, workbooks, props.workbookScripts.workbookId, storageWriter]);
+    }, [deleteComputation, deleteWorkbookScripts, navigate, openGreeter, readQuery, workbooks, props.workbookScripts.workbookId, storageWriter]);
 
     const openWorkbook = React.useCallback((item: WorkbookItem) => {
         navigate({ type: SELECT_WORKBOOK, value: item.workbookId });

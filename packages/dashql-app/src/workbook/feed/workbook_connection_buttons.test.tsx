@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkbookConnectionButtons, type WorkbookConnectionButtonsDependencies } from './workbook_connection_buttons.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -13,9 +13,9 @@ function trino(connectionId: string, health: ConnectionHealth): ConnectionState 
     return {
         connectionId,
         connectionHealth: health,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+        connectorType: ConnectorType.TRINO,
         params: { trino: { endpoint: 'https://trino.example' } },
-        details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: { endpoint: 'https://trino.example' } } } },
+        details: { setupParams: { endpoint: 'https://trino.example' }, channel: null, connector: { kind: 'trino' } },
     } as unknown as ConnectionState;
 }
 

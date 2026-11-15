@@ -19,6 +19,7 @@ import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_executio
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 const dependencies = {
     QueryResultToolbar: () => null,
@@ -82,12 +83,12 @@ describe('QueryResultDetails', () => {
         };
 
         act(() => root.render(
-            <QueryResultDetails
+            <WithResultTables><QueryResultDetails
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 debugMode={false}
                 actions={<button type="button" data-testid="test-action">Close</button>}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         const clearButton = clearCrossFiltersButton(container);
@@ -112,11 +113,11 @@ describe('QueryResultDetails', () => {
         };
 
         act(() => root.render(
-            <QueryResultDetails
+            <WithResultTables><QueryResultDetails
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 debugMode={false}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         expect(clearCrossFiltersButton(container)?.disabled).toBe(true);
@@ -134,11 +135,11 @@ describe('QueryResultDetails', () => {
             },
         };
         act(() => root.render(
-            <QueryResultDetails
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
+            <WithResultTables><QueryResultDetails
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(resultTable) } as any}
                 debugMode={false}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         const button = downloadButton(container);
@@ -157,11 +158,11 @@ describe('QueryResultDetails', () => {
     it('disables download until a successful result table exists', () => {
         mockState.computationState = { tableComputations: {} };
         const render = (status: QueryExecutionStatus, resultTable: arrow.Table | null) => act(() => root.render(
-            <QueryResultDetails
-                query={{ queryId: 42, status, resultTable } as any}
+            <WithResultTables><QueryResultDetails
+                query={{ queryId: 42, status, resultTable: resultTableOf(resultTable) } as any}
                 debugMode={false}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
         const button = () => downloadButton(container);
 
@@ -175,11 +176,11 @@ describe('QueryResultDetails', () => {
     it('disables the Parquet download without a compute database', () => {
         mockState.computationState = { tableComputations: {} };
         act(() => root.render(
-            <QueryResultDetails
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: tableFromArrays({ value: [1] }) } as any}
+            <WithResultTables><QueryResultDetails
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(tableFromArrays({ value: [1] })) } as any}
                 debugMode={false}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         act(() => downloadButton(container).click());
@@ -191,11 +192,11 @@ describe('QueryResultDetails', () => {
         mockState.computationState = { tableComputations: {} };
         mockState.download.mockRejectedValueOnce(new Error('Disk full'));
         act(() => root.render(
-            <QueryResultDetails
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: tableFromArrays({ value: [1] }) } as any}
+            <WithResultTables><QueryResultDetails
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(tableFromArrays({ value: [1] })) } as any}
                 debugMode={false}
                 dependencies={dependencies}
-            />,
+            /></WithResultTables>,
         ));
 
         const button = downloadButton(container);

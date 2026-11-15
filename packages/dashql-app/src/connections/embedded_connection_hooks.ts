@@ -1,5 +1,4 @@
 import * as React from 'react';
-import type * as dashql from '@ankoh/dashql-core';
 
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
@@ -7,21 +6,21 @@ import { useConnectionAllocator, useConnectionRegistryStore } from './connection
 import { getHyperLinkTabState } from './hyper/hyper_link_tab.js';
 
 /// Resolve the connection that new workbooks start on, see `newWorkbookConnection`
-export function useNewWorkbookConnection(): (dql: dashql.DashQL) => ConnectionState {
+export function useNewWorkbookConnection(): () => ConnectionState {
     const registryStore = useConnectionRegistryStore();
     const allocate = useConnectionAllocator();
     return React.useCallback(
-        (dql: dashql.DashQL) => newWorkbookConnection(registryStore.current.connections, allocate, dql, getHyperLinkTabState().current),
+        () => newWorkbookConnection(registryStore.current.connections, allocate, getHyperLinkTabState().current),
         [allocate, registryStore],
     );
 }
 
 /// Resolve the connection to the embedded Hyper, see `embeddedConnection`
-export function useEmbeddedConnection(): (dql: dashql.DashQL) => ConnectionState {
+export function useEmbeddedConnection(): () => ConnectionState {
     const registryStore = useConnectionRegistryStore();
     const allocate = useConnectionAllocator();
     return React.useCallback(
-        (dql: dashql.DashQL) => embeddedConnection(registryStore.current.connections.values(), allocate, dql),
+        () => embeddedConnection(registryStore.current.connections.values(), allocate),
         [allocate, registryStore],
     );
 }

@@ -7,11 +7,6 @@ import type {
     QueryExecutionProgress,
     QueryExecutionResponseStream,
 } from '../query/query_execution_state.js';
-import { LogLevel } from '../platform/logger/log_buffer.js';
-import { TestLogger } from '../testing/test_logger.js';
-import { createTrace } from '../platform/logger/trace_context.js';
-import { HyperHttpError } from './hyper/hyperdb_http_client.js';
-import { logQueryFailure } from './query_executor_service.js';
 import { consumeQueryResponseStream } from './query_execution.js';
 import { tableFromArrays } from '../testing/arrow_fixtures.js';
 
@@ -92,34 +87,5 @@ describe('consumeQueryResponseStream', () => {
         });
 
         expect(events).toEqual(['execution', 'schema']);
-    });
-});
-
-describe('logQueryFailure', () => {
-    it('records HTTP diagnostics at warn level on the query trace', () => {
-        const logger = new TestLogger();
-        const trace = createTrace();
-        const failure = new HyperHttpError(400, null, {
-            status: '400',
-            hyperdbStatusPresent: 'false',
-            bodyType: 'array',
-            bodyKeys: 'message,errorCode',
-        });
-
-        logQueryFailure(logger.withTrace(trace), failure, 2, 'workbook-1');
-
-        expect(logger.buffer.collectTraceLogs(trace.traceId)).toMatchObject([{
-            level: LogLevel.Warn,
-            target: 'hyperdb_http_client',
-            message: 'HTTP 400',
-            keyValues: {
-                queryId: '2',
-                workbookId: 'workbook-1',
-                status: '400',
-                hyperdbStatusPresent: 'false',
-                bodyType: 'array',
-                bodyKeys: 'message,errorCode',
-            },
-        }]);
     });
 });

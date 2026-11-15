@@ -72,7 +72,6 @@ mod query_history;
 mod host;
 mod runtime;
 mod storage_writer;
-mod query_executor;
 mod restore;
 mod connection_persistence;
 mod workbook_run;

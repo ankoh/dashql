@@ -1,8 +1,7 @@
-import type * as core from '@ankoh/dashql-core';
-
 /// The handles of the JavaScript objects that the Rust runtime names by a number (docs/wip/runtime_projection.md): the
-/// channels of the connections, the records of catalog updates and queries, the Arrow tables of results and
-/// computations, the lifetimes of computations.
+/// channels of the connections, the records of catalog updates and of the queries that the host runs, the Arrow tables
+/// of results and computations, the lifetimes of computations. The handle table is the one of the platform of the
+/// runtime (`CoreRuntime.handles`).
 ///
 /// The adapter registers an object and hands its handle over with the action that gives the object to a state. From
 /// then on the state owns the handle: it keeps the handle where it keeps the object and lets go of it with an effect,
@@ -40,6 +39,12 @@ export class HandleTable {
         const handle = this.nextHandle++;
         this.objects.set(handle, object);
         return handle;
+    }
+
+    /// Keep the object of a handle under a new handle as well, e.g. a result table that a computation takes too
+    duplicate(handle: number): number {
+        if (!this.objects.has(handle)) throw new Error(`the handle ${handle} is unknown`);
+        return this.register(this.objects.get(handle));
     }
 
     /// Replace the object of a handle, e.g. a table that was built under its handle
@@ -98,18 +103,4 @@ export class HandleTable {
     get size(): number {
         return this.objects.size;
     }
-}
-
-/// The handle tables of the core instances, one per runtime
-const tables = new WeakMap<core.DashQL, HandleTable>();
-
-/// The handle table of the runtime of a core instance: the connections, the query histories and the computations of
-/// an instance share it
-export function handlesOf(instance: core.DashQL): HandleTable {
-    let table = tables.get(instance);
-    if (table == null) {
-        table = new HandleTable();
-        tables.set(instance, table);
-    }
-    return table;
 }

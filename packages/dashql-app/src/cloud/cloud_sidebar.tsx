@@ -34,6 +34,7 @@ import { useCloudRemoval } from './cloud_deletion.js';
 import { useClouds, type CloudState } from './cloud_state.js';
 import { useCloudWorkbooks } from './cloud_workbooks.js';
 import { useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
+import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 // The clouds in the workbook list of the sidebar: a folder Clouds at the top level, above the folder of the local
 // workbooks, with a row per cloud. See docs/design/cloud.md.
@@ -184,7 +185,7 @@ const CloudRow: React.FC<CloudRowProps> = ({ cloud, selected, onOpen }) => {
                 onClick={onOpen}
             >
                 <svg width="14" height="14" aria-hidden="true">
-                    <use xlinkHref={`${symbols}#${connectorIcon(cloud.connection.connectorInfo)}`} style={CONNECTOR_ICON_STYLE} />
+                    <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(cloud.connection))}`} style={CONNECTOR_ICON_STYLE} />
                 </svg>
                 <span className={sidebarStyles.workbook_name}>{name}</span>
                 <svg className={styles.health} width="6px" height="6px" viewBox="0 0 8 8" role="img" aria-label={CONNECTION_HEALTH_NAMES[health]}>
