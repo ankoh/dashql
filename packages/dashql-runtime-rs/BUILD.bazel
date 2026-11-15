@@ -16,6 +16,7 @@ rust_library(
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-core-session:dashql_core_session",
+        "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:arrow-array",
         "@core_crates//:arrow-cast",
@@ -164,6 +165,20 @@ rust_test(
     deps = [
         ":dashql_runtime",
         "@core_crates//:base64",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "workbook_format_test",
+    size = "small",
+    srcs = ["tests/workbook_format_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_runtime",
+        "//packages/dashql-core:dashql_core",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
         "@core_crates//:serde_json",
     ],
 )

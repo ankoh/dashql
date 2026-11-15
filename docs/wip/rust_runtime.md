@@ -197,6 +197,33 @@ pointers and timestamps follow the browser where the origin check and the reques
 other than UTC are not known. The tests answer with made-up responses and run the examples of the Data 360 spec through
 the core and `EXPLAIN`.
 
+## The format of workbooks
+
+`src/workbook_format/` holds the storage format of workbooks without I/O, the app doesn't use it yet: the layout of the
+storage, the workbook file with its validation and migrations, the file lists, the workbook tree, bundles, the workbook
+tables, the archives of imports and exports, the eviction of the query result cache and the decisions of the restore.
+It takes the contents of files and returns parsed values, validation results, migrated files and the files to write.
+
+- **Files as values.** `WorkbookData` reads a workbook file leniently: a field of the wrong type reads as absent, a
+  malformed entry of the lists of scripts and attachments is left out and marks the lists, and fields the schema
+  doesn't know are written again. Validation runs on the JSON (`validate_workbook_json`).
+- **Migrations in memory.** The host reads the top-level files of a workbook folder (`MIGRATION_FILES`) into a
+  `MigrationFolder`, the steps change it in memory, and the host writes `changes()`: the writes, then the removals. An
+  import doesn't write them back.
+- **Archives stay with the host.** The host lists the entries of a `.dashql` file, `plan_archive` says what each entry
+  is and what the host reads of it. Workbook tables cross as Arrow IPC (`arrow-rs`), the embedded Hyper writes and
+  scans their Parquet files. `workbook_archive_entries` orders the entries of an export with their compression. The
+  bytes of attachments and results are a type of the host, e.g. a handle of a file or of a slice of an archive.
+- **Catalogs as a trait.** The workbook tables carry catalogs as rows, reading and rendering the SQL of catalog files is
+  a `CatalogSql` of the catalog of a connection.
+- **The restore decides, the host acts.** `RestorePlanner` validates workbooks, resolves their copies to connections
+  (the manifest wins, unknown ones are registered, the embedded database is a single connection), names the catalogs to
+  restore and collects the writes after the restore. `script_list_patch`, `promotion_patch`, `connection_copy_patch`
+  and `manifest_connections_patch` build them.
+- **Changed on purpose.** Names aren't normalized to NFC, the host passes the names of its listings normalized. The
+  natural order follows ICU for ASCII and folds the accents of Latin-1. Bundles and params compare as values, the order
+  of keys doesn't count. A field of the wrong type is dropped when a file is written again.
+
 ## Typing
 
 Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,

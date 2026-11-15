@@ -14,3 +14,4 @@ pub mod query;
 pub mod salesforce;
 pub mod trino;
 pub mod workbook;
+pub mod workbook_format;
