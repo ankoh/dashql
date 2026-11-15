@@ -2,6 +2,8 @@ import type * as core from '@ankoh/dashql-core';
 
 import { ReportStyle } from '@ankoh/dashql-runtime/sql/sql_report';
 
+import type { Terminal } from './term.js';
+
 /// What a command takes from the process, the tests pass their own
 export interface CliProcess {
     /// The directory the user invoked the command from
@@ -16,6 +18,9 @@ export interface CliProcess {
     setupCore: () => Promise<core.DashQL>;
     /// Aborted when the user interrupts the command, e.g. with Ctrl-C
     interrupt?: AbortSignal;
+    /// The terminal of stdout, absent when stdout is a pipe or a file, e.g. for an agent: a command prints plain lines
+    /// then
+    terminal?: Terminal | null;
 }
 
 /// The exit codes of the commands

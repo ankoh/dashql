@@ -5,6 +5,7 @@ import { createDashQLCoreSetup } from '@ankoh/dashql-runtime/node/node_core';
 import { runDashQL } from './cli.js';
 import { EXIT_INTERRUPTED, readProcessStdin, stdoutStyle } from './cli_process.js';
 import { workingDirectory } from './inputs.js';
+import { ANSI, stdoutTerminal } from './term.js';
 
 const argv = process.argv.slice(2);
 // The commands that stop and clean up when the user interrupts them, e.g. cancel their queries. The first interrupt
@@ -20,6 +21,10 @@ if (INTERRUPTIBLE.has(argv[0])) {
     }
 }
 
+// The live view of a command hides the cursor while it draws, it comes back however the process ends
+const terminal = stdoutTerminal();
+if (terminal != null) process.on('exit', () => { process.stdout.write(ANSI.showCursor); });
+
 const setupCore = createDashQLCoreSetup();
 process.exitCode = await runDashQL(argv, {
     cwd: workingDirectory(),
@@ -29,4 +34,5 @@ process.exitCode = await runDashQL(argv, {
     style: stdoutStyle(),
     setupCore: () => setupCore('dashql'),
     interrupt: interrupt.signal,
+    terminal,
 });

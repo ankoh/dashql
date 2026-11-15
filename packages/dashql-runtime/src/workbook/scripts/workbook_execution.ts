@@ -162,13 +162,25 @@ export function createExecutionMounts(cache: QueryResultCache, database: Parquet
     };
 }
 
-/// The outcome of a script with a result in a run
-export interface ScriptResultOutcome {
-    /// The key of its result in the query result cache, null if the result is not reusable
-    key: string | null;
-    /// Did the cache serve the result instead of the connection of the script?
-    cached: boolean;
-}
+/// What happens to a script in a run. A script of the plan is `planned`, or `cached`, or `skipped`. A planned script
+/// may still be skipped if its connection can't be set up. A planned script that starts is then `done`, `failed` or
+/// `cancelled`. A planned script that never starts, e.g. because the run stopped first, gets no further event.
+export type ScriptRunEvent =
+    /// It runs once the scripts that it follows in the plan are done
+    | { type: 'planned'; follows: string[] }
+    /// The cache served its result instead of its connection, the query reads the cached file
+    | { type: 'cached'; key: string; queryId: number }
+    /// It doesn't run: its connection can't run or could not be set up, or it follows a script that doesn't run
+    | { type: 'skipped'; reason: string }
+    /// Its first statement started
+    | { type: 'started' }
+    /// Its statements are done: the key of its result in the query result cache if the key is reusable, the query of
+    /// its last output, null without one
+    | { type: 'done'; key: string | null; queryId: number | null }
+    /// A statement of the script failed, the run stops
+    | { type: 'failed'; error: unknown }
+    /// The run stopped the script while it ran, e.g. after another script failed
+    | { type: 'cancelled' };
 
 /// The result key of a script of a plan
 interface ScriptResultKey {
@@ -426,6 +438,8 @@ export async function runExecutionGraph(args: {
     resultQueryArgs?: (scriptIndex: number) => Partial<QueryExecutionArgs>;
     /// The nodes that don't run, e.g. those of a connection that isn't connected, with every node that follows them
     skip?: ReadonlySet<number>;
+    /// What happens to the scripts with statements: `started`, then `done` (without the key), `failed` or `cancelled`
+    onScript?: (script: number, event: ScriptRunEvent) => void;
 
     /// The run of the plan, the logs and the query history show where the statements come from
     run: PlanRun;
@@ -467,6 +481,14 @@ export async function runExecutionGraph(args: {
     const outputNodeIndexes = scripts.map(() => -1);
     const outputQueryIds = scripts.map(() => null as number | null);
     const settledStatementCounts = scripts.map(() => 0);
+    // The scripts that started and those that are done, failed or were cancelled, each reported once
+    const startedScripts = new Set<number>();
+    const endedScripts = new Set<number>();
+    const endScript = (scriptIndex: number, event: ScriptRunEvent) => {
+        if (endedScripts.has(scriptIndex)) return;
+        endedScripts.add(scriptIndex);
+        args.onScript?.(scriptIndex, event);
+    };
     for (const [nodeIndex, node] of graph.nodes.entries()) {
         statementIndexes[node.script].push(nodeIndex);
         if (node.producesOutput) outputNodeIndexes[node.script] = nodeIndex;
@@ -506,6 +528,10 @@ export async function runExecutionGraph(args: {
             activeStatementIndex: statementIndex + 1, activeStatementCount: statementIndexes[scriptIndex].length });
         running[node.connection]++;
         runningTotal++;
+        if (!startedScripts.has(scriptIndex)) {
+            startedScripts.add(scriptIndex);
+            args.onScript?.(scriptIndex, { type: 'started' });
+        }
         const planned = plannedStatements[nodeIndex];
         const extra = node.scriptResult ? args.resultQueryArgs?.(scriptIndex) ?? {} : {};
         const [queryId, execution] = args.executeQuery(connectionId, {
@@ -554,7 +580,10 @@ export async function runExecutionGraph(args: {
             }
             args.emit({}, { statements: 1 });
             settledStatementCounts[scriptIndex]++;
-            if (settledStatementCounts[scriptIndex] === statementIndexes[scriptIndex].length) args.emit({}, { scripts: 1 });
+            if (settledStatementCounts[scriptIndex] === statementIndexes[scriptIndex].length) {
+                args.emit({}, { scripts: 1 });
+                endScript(scriptIndex, { type: 'done', key: null, queryId: outputQueryIds[scriptIndex] });
+            }
             if (++settled % EXECUTION_YIELD_INTERVAL === 0) await args.cooperate();
             wake();
         }).catch(error => {
@@ -566,7 +595,11 @@ export async function runExecutionGraph(args: {
                 workbookId, query: queryId.toString(), connectionId, ...plannedStatementLogFields(planned),
                 error: error instanceof Error ? error.message : String(error),
             }, LOG_CTX);
-            if (first) { failure = error; args.cancelActive(); }
+            if (first) {
+                failure = error;
+                endScript(scriptIndex, { type: 'failed', error });
+                args.cancelActive();
+            }
             wake();
             throw error;
         });
@@ -593,6 +626,8 @@ export async function runExecutionGraph(args: {
         if (runningTotal > 0) logger?.info('Cancelling the running statements of the plan', { workbookId, running: runningTotal.toString() }, LOG_CTX);
         args.cancelActive();
         await Promise.allSettled(completions);
+        // The scripts that started and didn't finish were stopped by the run
+        for (const scriptIndex of startedScripts) endScript(scriptIndex, { type: 'cancelled' });
         throw failure ?? signal.reason ?? new DOMException('Aborted', 'AbortError');
     }
     if (ready.length > 0) throw new Error('Execution plan has a cycle');
@@ -748,12 +783,12 @@ export async function runWorkbookPlan(args: {
     /// serve their cached results, the others are skipped with the scripts that follow them. All run if absent.
     canRun?: (connectionId: string) => boolean;
     maxConcurrentQueries?: (connectionId: string) => number;
-    /// Set up a connection before the first statement that runs on it, e.g. a connection of the command line tool.
-    /// Results served from the cache need no connection. A failure fails the run.
+    /// Set up the connections that statements run on before the first statement, all at once, e.g. the connections of
+    /// the command line tool. Results served from the cache need no connection. The scripts of a connection that can't
+    /// be set up are skipped like those of a connection that can't run.
     prepareConnection?: (connectionId: string) => Promise<void>;
-    /// The outcome of every script with a result: its key in the query result cache if it is reusable, and whether
-    /// the cache served it instead of its connection
-    onScriptResult?: (script: number, result: ScriptResultOutcome) => void;
+    /// What happens to the scripts of the plan, by their file names
+    onScript?: (file: string, event: ScriptRunEvent) => void;
     logger?: LoggerLike;
 }): Promise<Array<number | null>> {
     const { workbook, signal, queries, cooperate, emit, mounts, cache, run } = args;
@@ -867,7 +902,7 @@ export async function runWorkbookPlan(args: {
                 if (served == null) continue;
                 runs[index] = false;
                 cachedFiles.set(index, file.entry.name);
-                args.onScriptResult?.(index, { key: key.key, cached: true });
+                args.onScript?.(files[index], { type: 'cached', key: key.key, queryId });
                 await args.modifyWorkbookScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });
                 await args.modifyWorkbookScripts({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [script.scriptKey, visualization] });
                 if (served.table != null) await args.modifyWorkbookScripts({ type: REGISTER_SCRIPT_RESULT, value: [script.scriptKey, queryId] });
@@ -894,16 +929,50 @@ export async function runWorkbookPlan(args: {
         // A materialized result is the file of its key already
         const materialized = new Set(plan.graph.materializations.map(m => m.script));
         const graph = plan.graph;
-        const done = counted.filter(index => !graph.nodes.some(node => node.script === index)).length;
-        if (done > 0) emit({}, { scripts: done });
-        const skip = skippedNodes(graph, plan.connectionIds, canRun);
+        const empty = counted.filter(index => !graph.nodes.some(node => node.script === index));
+        if (empty.length > 0) emit({}, { scripts: empty.length });
+        for (const index of empty) {
+            if (!cachedFiles.has(index)) args.onScript?.(files[index], { type: 'done', key: null, queryId: null });
+        }
+        let skip = skippedNodes(graph, plan.connectionIds, canRun);
+        // The scripts that run, with the scripts that they follow
+        const follows = new Map<number, Set<number>>();
+        for (const [index, node] of graph.nodes.entries()) {
+            if (!skip.has(index) && !follows.has(node.script)) follows.set(node.script, new Set());
+        }
+        for (const edge of graph.edges) {
+            const from = graph.nodes[edge.from].script, to = graph.nodes[edge.to].script;
+            if (from !== to) follows.get(to)?.add(from);
+        }
+        for (const [index, earlier] of follows) {
+            args.onScript?.(files[index], { type: 'planned', follows: [...earlier].sort((a, b) => a - b).map(script => files[script]) });
+        }
+        // The connections that statements run on are set up at once, the scripts of a connection that can't be set
+        // up are skipped
+        const failedSetups = new Map<string, unknown>();
+        if (args.prepareConnection != null) {
+            const prepare = args.prepareConnection;
+            const needed = new Set(graph.nodes.flatMap((node, index) => skip.has(index) ? [] : [plan.connectionIds[node.connection]]));
+            await Promise.all([...needed].map(connectionId => prepare(connectionId).catch((error: unknown) => {
+                failedSetups.set(connectionId, error);
+                args.logger?.warn('A connection of the run could not be set up', {
+                    workbookId, connectionId, error: error instanceof Error ? error.message : String(error),
+                }, LOG_CTX);
+            })));
+            signal.throwIfAborted();
+            if (failedSetups.size > 0) {
+                skip = skippedNodes(graph, plan.connectionIds, connectionId => canRun(connectionId) && !failedSetups.has(connectionId));
+            }
+        }
         if (skip.size > 0) {
             const skipped = [...new Set([...skip].map(node => graph.nodes[node].script))];
             emit({ skippedScripts: skipped.length, skippedFiles: skipped.map(index => files[index]) });
             // Why a script didn't serve a result, with the key it looked for: a key of an imported file that differs,
             // e.g. from another version of the app or another connection, shows here
             const reason = (index: number) => {
-                if (canRun(scripts[index].connection.connectionId)) return 'follows a skipped script';
+                const connectionId = scripts[index].connection.connectionId;
+                if (failedSetups.has(connectionId)) return 'its connection could not be set up';
+                if (canRun(connectionId)) return 'follows a skipped script';
                 const key = keys[index];
                 if (key == null) return 'no result key';
                 if (!key.reusable) return `result not reusable, key ${key.key}`;
@@ -912,12 +981,7 @@ export async function runWorkbookPlan(args: {
             args.logger?.info('Skipping the scripts that need a connection', {
                 workbookId, scripts: skipped.map(index => `${files[index]} (${reason(index)})`).join(', '),
             }, LOG_CTX);
-        }
-        if (args.prepareConnection != null) {
-            for (const connectionId of new Set(graph.nodes.flatMap((node, index) => skip.has(index) ? [] : [plan.connectionIds[node.connection]]))) {
-                await args.prepareConnection(connectionId);
-                signal.throwIfAborted();
-            }
+            for (const index of skipped) args.onScript?.(files[index], { type: 'skipped', reason: reason(index) });
         }
         const outputs = await runExecutionGraph({
             plan, scripts, files, workbookId,
@@ -931,10 +995,11 @@ export async function runWorkbookPlan(args: {
             resultQueryArgs: index => keys[index]?.reusable && !materialized.has(index)
                 ? { cacheable: true, refreshCache: true, cacheSignature: keys[index]!.signature }
                 : {},
+            // A script with a result node writes the file of its reusable key
+            onScript: (index, event) => args.onScript?.(files[index], event.type !== 'done' ? event : {
+                ...event, key: keys[index]?.reusable && graph.nodes.some(node => node.script === index && node.scriptResult) ? keys[index]!.key : null,
+            }),
         });
-        for (const index of new Set(graph.nodes.flatMap((node, n) => !skip.has(n) && node.scriptResult ? [node.script] : []))) {
-            args.onScriptResult?.(index, { key: keys[index]?.reusable ? keys[index]!.key : null, cached: false });
-        }
         return outputs;
     } finally {
         await mounts?.release();
@@ -963,10 +1028,16 @@ export async function runWorkbookExecution(args: {
     cache?: QueryResultCache | null;
     /// Read no cached results: every script runs, the results with reusable keys become the newest files of their keys
     refresh?: boolean;
+    /// Run only these scripts with what they need, by their indexes in the order of the workbook
+    targets?: number[];
     /// Run only the scripts that the change of these inputs affects
     inputs?: readonly string[];
     /// Can the statements of a connection run? See `runWorkbookPlan`.
     canRun?: (connectionId: string) => boolean;
+    /// Set up the connections that statements run on, see `runWorkbookPlan`
+    prepareConnection?: (connectionId: string) => Promise<void>;
+    /// What happens to the scripts of the plan, see `runWorkbookPlan`
+    onScript?: (file: string, event: ScriptRunEvent) => void;
     /// Allows tests to control cooperative scheduling without relying on timer timing.
     yieldToBrowser?: () => Promise<void>;
     /// Maximum concurrently running backend queries on a connection.
@@ -1013,13 +1084,14 @@ export async function runWorkbookExecution(args: {
     signal.addEventListener('abort', stop, { once: true });
     try {
         await runWorkbookPlan({
-            workbook, getWorkbook: args.getWorkbook, inputs: args.inputs, run: { kind: 'workbook', target: null },
+            workbook, getWorkbook: args.getWorkbook, targets: args.targets, inputs: args.inputs, run: { kind: 'workbook', target: null },
             executeQuery: args.executeQuery, modifyWorkbookScripts: args.modifyWorkbookScripts,
             signal, queries, cancelActive, cooperate, emit,
             mounts: args.mounts ?? null, mountAttachments: args.mountAttachments,
             resultKey: args.resultKey ?? (async () => null), cachesResults: args.cachesResults ?? (() => false),
             cache: args.cache ?? null, refresh: args.refresh ?? false, canRun: args.canRun,
             maxConcurrentQueries: args.maxConcurrentQueries, logger: args.logger,
+            prepareConnection: args.prepareConnection, onScript: args.onScript,
         });
         signal.throwIfAborted();
         signal.removeEventListener('abort', stop);

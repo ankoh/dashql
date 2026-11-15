@@ -154,6 +154,8 @@ describe('dashql run', () => {
   2  | pear
   3  | NULL
   ${path.join(home, 'cache', cached)}
+
+1 ok
 `);
         // The instance of the embedded Hyper is gone, the cache stays
         expect(readdirSync(path.join(home, 'instances'))).toEqual([]);
@@ -163,14 +165,17 @@ describe('dashql run', () => {
         expect(trino.users).toEqual(['ann', 'ann']);
     });
 
-    it('stops at the first script that fails and prints the error of Trino', async () => {
+    it('stops at the first script that fails and prints the error of Trino at its statement', async () => {
         const dir = trinoWorkbook(trino.endpoint, [BROKEN, ORDERS]);
         const output = await run(dir, [dir]);
         expect(output.code).toBe(1);
-        expect(output.stdout).toBe(`02_broken.sql  failed
+        expect(output.stdout.replace(/failed {2}\d+\.\d s/, 'failed  0.1 s')).toBe(`02_broken.sql  failed  0.1 s
   line 1:8: Column 'fail' cannot be resolved
+  │ select fail from orders
+  │        ^^^^
+01_orders.sql  not run  the run stopped
 
-1 script not run
+1 failed, 1 not run
 `);
     });
 
@@ -252,17 +257,23 @@ describe('dashql run', () => {
         expect(records.some(record => record.target !== 'workbook_journal')).toBe(true);
         const markers = records.filter(record => record.target === 'workbook_journal')
             .map(record => [record.message, record.keyValues.script ?? null, record.keyValues]);
-        expect(markers.map(([message, script]) => [message, script])).toEqual([
-            ['Workbook files', null],
-            ['Script started', '01_orders.sql'],
-            ['Script result', '01_orders.sql'],
-            ['Script started', '02_broken.sql'],
-            ['Script result', '02_broken.sql'],
+        // The files first, every script starts before its result; the next script may start before the result of
+        // the one before it is written
+        const names = markers.map(([message, script]) => `${message}: ${script ?? ''}`);
+        expect(names[0]).toBe('Workbook files: ');
+        expect([...names].sort()).toEqual([
+            'Script result: 01_orders.sql', 'Script result: 02_broken.sql',
+            'Script started: 01_orders.sql', 'Script started: 02_broken.sql',
+            'Workbook files: ',
         ]);
+        for (const script of ['01_orders.sql', '02_broken.sql']) {
+            expect(names.indexOf(`Script started: ${script}`)).toBeLessThan(names.indexOf(`Script result: ${script}`));
+        }
+        const result = (script: string) => markers[names.indexOf(`Script result: ${script}`)][2];
         const [cached] = cacheFiles(home);
         expect(markers[0][2]).toMatchObject({ workbook: '.', workbook_id: WORKBOOK_ID, files: ['dashql-workbook.json', 'scripts/01_orders.sql', 'scripts/02_broken.sql'] });
-        expect(markers[2][2]).toMatchObject({ key: cached.split('.')[0], result_rows: '3', error: '', cached: 'false' });
-        expect(markers[4][2]).toMatchObject({ key: '', result_rows: '', error: "line 1:8: Column 'fail' cannot be resolved" });
+        expect(result('01_orders.sql')).toMatchObject({ key: cached.split('.')[0], result_rows: '3', error: '', cached: 'false' });
+        expect(result('02_broken.sql')).toMatchObject({ key: '', result_rows: '', error: "line 1:8: Column 'fail' cannot be resolved" });
     });
 
     it('finds the session in the workspace that it is given, not above the invoking directory', async () => {
@@ -295,12 +306,40 @@ describe('dashql run', () => {
         expect(progress[0].keyValues).toMatchObject({ script: 'slow.sql', phase: 'RUNNING', percent: '50', rows: '1000' });
     });
 
-    it('fails before the scripts when the connection rejects the password', async () => {
+    it('leaves out the scripts of a connection that rejects the password', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
         const output = await run(dir, ['.'], { trinoPassword: 'wrong' });
         expect(output.code).toBe(1);
-        expect(output.stdout).toBe(`trino ${trino.endpoint}  failed\n  Query failed (401 Unauthorized)\n\n1 script not run\n`);
+        expect(output.stdout).toBe(`trino ${trino.endpoint}  failed
+  Query failed (401 Unauthorized)
+01_orders.sql  not run  its connection could not be set up
+
+1 not run
+`);
         expect(trino.statements).toEqual([]);
+    });
+
+    it('runs the scripts of the other connections when a connection fails', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        withHyperScripts(dir, [['02_one.sql', 'select 1 as one\n']]);
+        const output = await run(dir, ['.'], { trinoPassword: 'wrong' });
+        expect(output.code).toBe(1);
+        expect(output.stdout).toContain(`trino ${trino.endpoint}  failed\n`);
+        expect(output.stdout).toMatch(/^02_one\.sql {2}ok {2}1 row /m);
+        expect(output.stdout).toContain('01_orders.sql  not run  its connection could not be set up\n');
+        expect(output.stdout).toMatch(/\n1 ok, 1 not run\n$/);
+    });
+
+    it('runs the scripts of different connections at the same time', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [['01_slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
+        withHyperScripts(dir, [['02_one.sql', 'select 1 as one\n']]);
+        const output = await run(dir, ['.']);
+        expect(output.stderr).toBe('');
+        expect(output.code).toBe(0);
+        // The script on the embedded Hyper is done while the slow one runs on Trino
+        const order = output.stdout.split('\n').filter(line => /^\S+\.sql {2}/.test(line)).map(line => line.split(' ')[0]);
+        expect(order).toEqual(['02_one.sql', '01_slow.sql']);
+        expect(output.stdout).toMatch(/\n2 ok\n$/);
     });
 
     it('takes the user from the environment and never writes the password', async () => {
@@ -327,7 +366,8 @@ describe('dashql run', () => {
         const output = await runWith((runArgs, cli) => runRun(runArgs, { ...cli, interrupt: interrupt.signal }, { home, ...PASSWORD }), dir, ['.']);
         clearInterval(watch);
         expect(output.code).toBe(130);
-        expect(output.stderr).toBe('interrupted, 2 scripts not run\n');
+        expect(output.stderr).toBe('interrupted\n');
+        expect(output.stdout).toBe('slow.sql  cancelled\n01_orders.sql  not run  interrupted\n\n1 cancelled, 1 not run\n');
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
         expect(readdirSync(path.join(home, 'instances'), { withFileTypes: true }).filter(entry => entry.isDirectory())).toEqual([]);
     });

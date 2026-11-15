@@ -74,4 +74,7 @@ test('runs a workbook with the runtime and names the connection it can not reach
     const output = dashql(dir, ['run', '.']);
     assert.equal(output.status, 1, output.stderr);
     assert.ok(output.stdout.startsWith(`trino ${endpoint}  failed\n  fetch failed: connect ECONNREFUSED`), output.stdout);
+    assert.ok(output.stdout.endsWith('a.sql  not run  its connection could not be set up\n\n1 not run\n'), output.stdout);
+    // A pipe gets plain lines, no live view
+    assert.ok(!output.stdout.includes('\x1b'), JSON.stringify(output.stdout));
 });
