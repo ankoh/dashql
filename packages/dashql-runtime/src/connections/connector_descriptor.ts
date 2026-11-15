@@ -8,7 +8,6 @@ import type { TrinoConnectionStateDetails } from './trino/trino_connection_state
 import { ConnectorType, type ConnectorInfo } from './connector_info.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import type { QueryExecutionResponseStream } from '../query/query_execution_state.js';
-import type { ClientFunctionHostTarget } from './clfn/clfn_runtime.js';
 import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
 import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
 import { SALESFORCE_CONNECTOR_DESCRIPTOR, DBCOM_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
@@ -38,6 +37,12 @@ interface ConnectorDetailsMap {
 }
 /// The field of the connection params that holds the params of a connector, e.g. `{ hyper: ... }`
 export type ConnectorParamsKey = keyof ConnectorParamsMap;
+
+/// Where a host of a spec is, and what every request to it carries
+export interface ClientFunctionHostTarget {
+    baseUrl: URL;
+    headers: Record<string, string>;
+}
 
 /// The client functions that a connector enables on its connections
 export interface ClientFunctionBinding<Details = unknown> {

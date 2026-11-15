@@ -51,7 +51,6 @@ export function replaceWorkbookScriptsInRegistry(reg: WorkbookScriptsRegistry, p
     return copy;
 }
 
-export type WorkbookScriptsAllocator = (scripts: WorkbookScripts) => [string, WorkbookScripts];
 export type ModifyWorkbookScripts = (action: WorkbookScriptsAction) => Promise<WorkbookScripts | null> | void;
 /// Resolves once the action was applied to the workbooks
 export type ModifyConnectionWorkbookScripts = (conn: string, action: WorkbookScriptsAction) => Promise<void>;

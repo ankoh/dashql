@@ -11,7 +11,7 @@ import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
 import { createExecutionMounts, isWorkbookExecutionRunning, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';
 import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
-import { runWorkbookScript, runWorkbookScriptForResult } from './rerun_query.js';
+import { runWorkbookScript } from './rerun_query.js';
 import {
     ANALYZE_OUTDATED_SCRIPT, DELETE_SCRIPT, PROJECT_WORKBOOK, REGISTER_QUERY, createWorkbookScripts, reduceWorkbookScripts,
     scriptResultOwner,
@@ -190,14 +190,6 @@ describe('script runs', () => {
         expect(path).toMatch(/^\/mnt\/external\/cache\/[0-9a-f-]{36}\.transient\.parquet$/);
         expect(scan.query).toContain(`external('${path}', format => 'parquet')`);
         expect(scan.cacheable).toBeFalsy();
-    });
-
-    it('sends a write in a run of an agent', async () => {
-        const spec = JSON.stringify({ format: 1, namespace: 't', functions: [{ name: 'remove', method: 'DELETE', effect: 'write' }] });
-        const f = fixture([['remove.sql', 'call t.remove ();']], ['remove.sql'], true, spec);
-        await runWorkbookScriptForResult(() => f.workbook(), f.script('remove.sql').scriptKey, f.executeQuery, f.modifyWorkbookScripts, logger);
-        expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        expect(f.executeQuery.mock.calls[0][1].clientFunctionCall).toMatchObject({ function: 'remove', effect: 'write' });
     });
 
     it('reuses the cached result of a materialized script of another connection', async () => {

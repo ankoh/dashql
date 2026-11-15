@@ -129,7 +129,7 @@ bazel run //extensions/d360-api:update
 - `docs_up_to_date_test` fails if a family document isn't what the YAML generates.
 - `spec_test` loads the spec into the core. Every `CALL` example in the reference and every snippet has to parse and pass the checks, and completion has to offer exactly the functions, the options of every function and the attributes of every object option.
 
-**In the browser tests of the app,** `clfn_examples.test.ts` runs the example of every function through the core and the `EXPLAIN` of the runtime, so a request can be built from each of them.
+**In the tests of the core runtime,** `clfn_spec_test.rs` (`//packages/dashql-core-runtime`) runs the example of every function through the core and the `EXPLAIN` of the runtime, so a request can be built from each of them.
 
 Passing means an example has the shape the spec describes, not that the server accepts it. No response of Data 360 has been recorded yet. The first real exchange gets a file in `clfn/tests/` and a test that reads it, and it must not contain tokens or the data of an org.
 

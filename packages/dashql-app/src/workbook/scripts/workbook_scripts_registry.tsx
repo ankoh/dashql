@@ -11,7 +11,6 @@ import type { InvalidWorkbook } from '@ankoh/dashql-runtime/storage/workbook_val
 import {
     type ModifyConnectionWorkbookScripts,
     type ModifyWorkbookScripts,
-    type WorkbookScriptsAllocator,
     type WorkbookScriptsRegistry,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
 import { WorkbookScriptsRegistryService } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_service';
@@ -31,7 +30,6 @@ export {
     workbookReplacement,
     type ModifyConnectionWorkbookScripts,
     type ModifyWorkbookScripts,
-    type WorkbookScriptsAllocator,
     type WorkbookScriptsRegistry,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
 
@@ -95,11 +93,6 @@ export function useInvalidWorkbooks(): InvalidWorkbooks {
 export function useWorkbookScriptsCreation(): WorkbookScriptsRegistryService['create'] {
     const service = useLazyWorkbooks();
     return React.useCallback((...args: Parameters<WorkbookScriptsRegistryService['create']>) => service().create(...args), [service]);
-}
-
-export function useWorkbookScriptsAllocator(): WorkbookScriptsAllocator {
-    const service = useLazyWorkbooks();
-    return React.useCallback((scripts: WorkbookScripts) => service().allocate(scripts), [service]);
 }
 
 /// Delete the scripts of a workbook and free their Wasm, before the connection is deleted, see

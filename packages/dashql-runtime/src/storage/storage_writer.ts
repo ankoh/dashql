@@ -3,55 +3,12 @@ import * as Immutable from 'immutable';
 
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
-import type { StorageBackend, WorkbookData, WorkbookCloudLink, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
+import type { StorageBackend, WorkbookCloudLink, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_CONNECTIONS_FOLDER, isWorkbookRegistryBackend } from './storage_backend.js';
 import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
 import { provideWorkbookFormatCore, workbookFormat } from './workbook_format.js';
 
 const LOG_CTX = 'storage_writer';
-
-/// Order-independent deep equality for plain JSON values (objects, arrays, primitives).
-/// Workbook manifests are plain JSON (no Dates/Maps/functions), so this is sufficient.
-function jsonDeepEqual(a: any, b: any): boolean {
-    if (a === b) {
-        return true;
-    }
-    if (typeof a !== typeof b || a === null || b === null || typeof a !== 'object') {
-        return false;
-    }
-    if (Array.isArray(a) || Array.isArray(b)) {
-        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
-            return false;
-        }
-        return a.every((v, i) => jsonDeepEqual(v, b[i]));
-    }
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
-    if (aKeys.length !== bKeys.length) {
-        return false;
-    }
-    return aKeys.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonDeepEqual(a[k], b[k]));
-}
-
-/// Compare the manifest fields the writer owns (formatVersion, workbookId, name, connections, scripts, attachments, metadata).
-/// Other fields (storageType/nativePath/workbookPath) are display- or registry-only and are not
-/// written into the workbook file, so they're deliberately ignored.
-///
-/// Both sides are round-tripped through JSON first so this compares exactly what would be
-/// persisted: serialization drops `undefined`-valued keys, so a freshly built params object with
-/// `{ foo: undefined }` must compare equal to the reloaded `{}` it serializes to.
-function workbookManifestEquals(a: WorkbookData, b: WorkbookData): boolean {
-    const project = (s: WorkbookData) => JSON.parse(JSON.stringify({
-        formatVersion: s.formatVersion,
-        workbookId: s.workbookId,
-        name: s.name,
-        connections: s.connections,
-        scripts: s.scripts,
-        attachments: s.attachments,
-        metadata: s.metadata,
-    }));
-    return jsonDeepEqual(project(a), project(b));
-}
 
 export const DEBOUNCE_DURATION_WORKBOOK_WRITE = 100;
 export const DEBOUNCE_DURATION_SCRIPT_WRITE = 100;
@@ -194,18 +151,6 @@ export type StorageWriteResult =
     /// Executing the task failed
     | { status: 'failed'; error: unknown };
 
-/// The chain key of a write key, tasks with the same chain key are executed one after another.
-/// Workbook keys chain per workbook (`<workbookId>/…`), so mutations and their index rebuilds cannot
-/// overlap. Global keys start with `@` and chain per entity
-/// (`@manifest/…`, `@connections/<id>/…`). The writer of the core chains by the same rule (`storage::keys::chain_key`).
-export function storageWriteChainKey(key: StorageWriteKey): string {
-    const parts = key.split('/');
-    if (key.startsWith('@connections/') && parts.length > 1) {
-        return `${parts[0]}/${parts[1]}`;
-    }
-    return parts[0];
-}
-
 export interface StorageWriterStatistics {
     /// The number of writes we scheduled
     totalScheduledWrites: number;
@@ -236,51 +181,6 @@ export class WorkbookUnavailableError extends Error {
 
 /// Subscriber for scripts that changed outside the app
 export type ExternalScriptChangeSubscriber = (workbookId: string) => void;
-
-// The loader patches workbook files and connection entries with the helpers below, the writer of the core has its own
-// (`storage::workbook_file`). They go when the restore moves to the core.
-
-/// Replace the copies of a connection's params in a workbook.
-/// References of the replaced connections (connections that were merged into this one) are rewritten
-/// to the connection id. Returns null when the workbook doesn't reference the connection or the copies
-/// are up to date.
-export function patchWorkbookConnection(workbook: WorkbookData, copy: WorkbookConnection, replaced: readonly string[] = []): WorkbookData | null {
-    const connectionId = copy.connectionId;
-    const references = (id: string) => id === connectionId || replaced.includes(id);
-    const next: WorkbookData = {
-        ...workbook,
-        connections: dedupeConnections(workbook.connections.map(connection =>
-            references(connection.connectionId) ? copy : connection)),
-        scripts: workbook.scripts.map(script => replaced.includes(script.connectionId) ? { ...script, connectionId } : script),
-    };
-    return workbookManifestEquals(workbook, next) ? null : next;
-}
-
-/// Drop connections that an earlier connection of the list references already.
-/// Consolidated connections can turn distinct references into the same one.
-export function dedupeConnections<T extends { connectionId: string }>(connections: T[]): T[] {
-    const seen = new Set<string>();
-    return connections.filter(connection => {
-        if (seen.has(connection.connectionId)) return false;
-        seen.add(connection.connectionId);
-        return true;
-    });
-}
-
-/// Insert or replace a connection entry, keeping its creation time
-export function upsertConnectionEntry(connections: ConnectionEntry[] | undefined, entry: ConnectionEntry): ConnectionEntry[] | null {
-    const entries = connections ?? [];
-    const index = entries.findIndex(e => e.id === entry.id);
-    const prev = index >= 0 ? entries[index] : null;
-    const next: ConnectionEntry = {
-        ...entry,
-        ...(entry.createdAt == null && prev?.createdAt != null ? { createdAt: prev.createdAt } : {}),
-    };
-    if (prev != null && jsonDeepEqual(JSON.parse(JSON.stringify(prev)), JSON.parse(JSON.stringify(next)))) {
-        return null;
-    }
-    return index >= 0 ? entries.map((e, i) => (i === index ? next : e)) : [...entries, next];
-}
 
 /// Set up the core of the storage writer
 export type SetupStorageWriterCore = (context: string) => Promise<core.DashQL>;

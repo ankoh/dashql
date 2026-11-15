@@ -14,7 +14,6 @@ import { ConnectionPersistenceService, type ConnectionSaveResult } from './conne
 import { ConnectionRegistryService } from './connection_registry_service.js';
 import {
     connectionEntryFromState,
-    didPersistedConnectionChange,
     resolveWorkbookConnections,
     type ConnectionReferences,
     type ConnectionRegistry,
@@ -138,27 +137,9 @@ describe('workbook manifest persistence', () => {
         },
     } as unknown as ConnectionState);
 
-    it('ignores transient connection state changes', () => {
-        const prev = state(true, 'https://db.example.com');
-        const next = { ...prev, snapshotQueriesActiveFinished: 2 };
-        expect(didPersistedConnectionChange(prev, next)).toBe(false);
-    });
-
-    it('persists activation and connection parameter changes', () => {
-        expect(didPersistedConnectionChange(
-            state(false, 'https://db.example.com'),
-            state(true, 'https://db.example.com'),
-        )).toBe(true);
-        expect(didPersistedConnectionChange(
-            state(true, 'https://db.example.com'),
-            state(true, 'https://other.example.com'),
-        )).toBe(true);
-    });
-
     it('persists the name in the app manifest entry', () => {
         const prev = state(true, 'https://db.example.com');
         const next = { ...prev, name: 'Production' };
-        expect(didPersistedConnectionChange(prev, next)).toBe(true);
         expect(connectionEntryFromState(next).name).toBe('Production');
         expect('name' in connectionEntryFromState(prev)).toBe(false);
     });
@@ -166,7 +147,6 @@ describe('workbook manifest persistence', () => {
     it('persists the choice whether the connection caches query results in the app manifest entry', () => {
         const prev = state(true, 'https://db.example.com');
         const next = { ...prev, cacheQueryResults: false };
-        expect(didPersistedConnectionChange(prev, next)).toBe(true);
         expect(connectionEntryFromState(next).cacheQueryResults).toBe(false);
         // A connection without a choice keeps the default of its connector
         expect('cacheQueryResults' in connectionEntryFromState(prev)).toBe(false);

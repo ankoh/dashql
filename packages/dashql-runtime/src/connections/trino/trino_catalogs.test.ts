@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { parseTrinoCatalogEntry, trinoSessionDefaults, withTrinoCatalogFields } from './trino_catalogs.js';
+import { trinoSessionDefaults, withTrinoCatalogFields } from './trino_catalogs.js';
 
 const params = (fields: Partial<connection.TrinoConnectionParams>): connection.TrinoConnectionParams => ({
     endpoint: 'https://trino.example.com',
@@ -10,15 +10,6 @@ const params = (fields: Partial<connection.TrinoConnectionParams>): connection.T
 });
 
 describe('Trino catalog entries', () => {
-    it('splits an entry at the first dot', () => {
-        expect(parseTrinoCatalogEntry('hive')).toEqual({ catalog: 'hive', schema: null });
-        expect(parseTrinoCatalogEntry(' hive . sales ')).toEqual({ catalog: 'hive', schema: 'sales' });
-        expect(parseTrinoCatalogEntry('hive.')).toEqual({ catalog: 'hive', schema: null });
-        expect(parseTrinoCatalogEntry('hive.a.b')).toEqual({ catalog: 'hive', schema: 'a.b' });
-        expect(parseTrinoCatalogEntry('')).toBeNull();
-        expect(parseTrinoCatalogEntry('.sales')).toBeNull();
-    });
-
     it('reads the catalog and schemas of params that predate the entries', () => {
         const fields = (legacy: Partial<connection.TrinoConnectionParams>) => {
             const { defaultCatalog, defaultSchema, catalogs, catalogName, schemaNames } = withTrinoCatalogFields(params(legacy)) as connection.TrinoConnectionParams;

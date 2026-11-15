@@ -15,21 +15,10 @@ import {
 } from './connection_state.js';
 import { isHyperWasmConnection } from './connection_label.js';
 import type { Logger } from '../platform/logger/logger.js';
-import {
-    DEBOUNCE_DURATION_WORKBOOK_WRITE,
-    groupConnectionEntryWrites,
-    groupWorkbookConnectionCopyWrites,
-    WRITE_CONNECTION_ENTRY,
-    PATCH_WORKBOOK_CONNECTION,
-    type StorageWriter,
-} from '../storage/storage_writer.js';
+import type { StorageWriter } from '../storage/storage_writer.js';
 import type { ConnectionEntry, WorkbookConnection } from '../storage/storage_backend.js';
-import { connectionParamsEqual } from './connection_params.js';
 
 const LOG_CTX = 'connection_registry';
-
-/// Drafts are written to the app manifest only, edits arrive with every keystroke
-export const DEBOUNCE_DURATION_CONNECTION_DRAFT_WRITE = 250;
 
 /// The connection registry
 ///
@@ -123,35 +112,6 @@ export function workbookConnectionFromState(database: ConnectionState): Workbook
         connectionId: database.connectionId,
         params: database.params,
     };
-}
-
-/// Did the saved params change?
-export function didConnectionParamsChange(prev: ConnectionState, next: ConnectionState): boolean {
-    return !connectionParamsEqual(prev.params, next.params);
-}
-
-
-/// Did the persisted connection entry change?
-export function didPersistedConnectionChange(prev: ConnectionState, next: ConnectionState): boolean {
-    if (!prev.active && next.active) return true;
-    return didConnectionParamsChange(prev, next) || !connectionParamsEqual(prev.paramsDraft, next.paramsDraft) || prev.name !== next.name || prev.cacheQueryResults !== next.cacheQueryResults;
-}
-
-/// Write the saved params of a connection into the app manifest and into every workbook that
-/// references it. The writes are debounced and not awaited, Save awaits them explicitly.
-export function scheduleConnectionParamsWrites(references: ConnectionReferences, database: ConnectionState, storageWriter: StorageWriter): void {
-    void storageWriter.write(
-        groupConnectionEntryWrites(database.connectionId),
-        { type: WRITE_CONNECTION_ENTRY, value: connectionEntryFromState(database) },
-        DEBOUNCE_DURATION_WORKBOOK_WRITE,
-    );
-    for (const workbookId of references.workbooksOf(database.connectionId)) {
-        void storageWriter.write(
-            groupWorkbookConnectionCopyWrites(workbookId, database.connectionId),
-            { type: PATCH_WORKBOOK_CONNECTION, value: [workbookId, workbookConnectionFromState(database)] },
-            DEBOUNCE_DURATION_WORKBOOK_WRITE,
-        );
-    }
 }
 
 /// The ordinals of the connections that share their connector with other connections, 1-based in

@@ -44,24 +44,6 @@ export function isCatalogOutOfDate(connection: ConnectionState): boolean {
     return connection.catalogUpdates.touchedFailures >= MAX_TOUCHED_ATTEMPTS;
 }
 
-/// Merge relation names, every relation once
-export function mergeRelationNames(into: RelationName[], names: RelationName[]): RelationName[] {
-    const out = [...into];
-    for (const name of names) {
-        if (!out.some(r => r.databaseName === name.databaseName && r.schemaName === name.schemaName && r.tableName === name.tableName)) out.push(name);
-    }
-    return out;
-}
-
-/// The relations that nothing has answered about yet, also those of a running update
-export function pendingRelations(connection: ConnectionState): RelationName[] {
-    let pending = connection.catalogUpdates.touchedRelations;
-    for (const task of connection.catalogUpdates.tasksRunning.values()) {
-        pending = mergeRelationNames(pending, task.touchedRelations ?? []);
-    }
-    return pending;
-}
-
 export function isCatalogRefreshRunning(connection: ConnectionState | null): boolean {
     if (connection == null) return false;
     const refreshId = connection.catalogUpdates.currentFullRefresh;

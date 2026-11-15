@@ -259,9 +259,7 @@ provided results, to compute the result keys, and again with the cached results 
 (`plan_and_run` in `workbook_run/engine.rs`).
 
 One run holds a workbook at a time (`acquireWorkbookExecution`), a run of the whole workbook or of one of its scripts.
-The app disables the runs of a held workbook, a run that starts meanwhile fails. A run for the result of a script
-(`runWorkbookScriptForResult`) waits for the run of another script to end (`waitForWorkbookExecution`) and fails only
-while the whole workbook runs. A failed
+The app disables the runs of a held workbook, a run that starts meanwhile fails. A failed
 statement cancels the other statements of a run, and the run settles once they are done, before it releases the files
 of its materializations.
 

@@ -2,7 +2,6 @@ import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 import type { TopLevelSpec } from 'vega-lite';
 
 import type * as core_buffers from '@ankoh/dashql-core/buffers';
-import { randomScriptName } from './script_name.js';
 
 export interface DashboardSpec {
     row?: number | null;
@@ -18,7 +17,6 @@ export interface DashboardSpec {
 
 // Re-export storage format types from JSON Schema
 export type WorkbookMetadata = app_workbook.WorkbookMetadata;
-export type WorkbookOriginType = NonNullable<app_workbook.WorkbookMetadata['originType']>;
 
 /// A query with `@vis` tags resolved against the workbook. Discriminated on the
 /// renderer named by the tag: `vegalite` carries a parsed Vega-Lite spec,
@@ -125,41 +123,6 @@ const SCRIPT_EXTENSION_RE = /\.sql$/i;
 /// "01_extract.sql" -> "01_extract". Used for tab/feed/details labels and to pre-fill the rename input.
 export function scriptDisplayName(fileName: string): string {
     return fileName.replace(SCRIPT_EXTENSION_RE, '');
-}
-
-/// Return a script base name (no extension) that is unique among the display names of the existing
-/// scripts and the other names of table parameters, e.g. those of attachments, suffixing "-2", "-3", ... on
-/// collision. Names are compared in lower case, like the core finds a table parameter.
-export function uniqueScriptBase(
-    base: string,
-    existingScripts: { [fileName: string]: ScriptRef },
-    excludeFileName: string = '',
-    takenNames: Iterable<string> = [],
-): string {
-    const taken = new Set<string>();
-    for (const key of Object.keys(existingScripts)) {
-        if (key === excludeFileName) continue;
-        taken.add(scriptDisplayName(key).toLowerCase());
-    }
-    for (const name of takenNames) taken.add(name.toLowerCase());
-    let candidate = base;
-    for (let suffix = 2; taken.has(candidate.toLowerCase()); ++suffix) {
-        candidate = `${base}-${suffix}`;
-    }
-    return candidate;
-}
-
-/// Helper to generate a script file name that doesn't collide with existing entries, a random
-/// "<adjective>_<animal>" name by default or the explicit `base` if given, e.g. "brave_otter.sql".
-/// The order of the scripts lives in the workbook file, not in the file names.
-export function generateScriptFileName(
-    existingScripts: { [fileName: string]: ScriptRef },
-    base?: string,
-    takenNames: Iterable<string> = [],
-): string {
-    const taken = [...takenNames];
-    const requested = base ?? randomScriptName(new Set([...Object.keys(existingScripts).map(scriptDisplayName), ...taken]));
-    return `${uniqueScriptBase(requested, existingScripts, '', taken)}.sql`;
 }
 
 /// Helper to create a committed script entry.

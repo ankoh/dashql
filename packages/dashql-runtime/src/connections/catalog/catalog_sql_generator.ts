@@ -137,14 +137,6 @@ ${generateCatalogTablesSQL(tables)}
 `;
 }
 
-/// What the file with the relations of a connection doesn't say
-export interface CatalogStateFile {
-    /// The relations of executed statements that the connection didn't answer about yet
-    pending: RelationName[];
-    /// The relations that the connection reported as gone, a declaration in a script doesn't provide them
-    gone: RelationName[];
-}
-
 /// A relation name of the core
 export function readRelationName(name: dashql.buffers.analyzer.QualifiedTableNameT, defaultDatabase = ''): RelationName {
     return {
@@ -153,26 +145,3 @@ export function readRelationName(name: dashql.buffers.analyzer.QualifiedTableNam
         tableName: String(name.tableName ?? ''),
     };
 }
-
-/// Read the file with the catalog state, a file that can't be read holds nothing
-export function parseCatalogStateFile(text: string | null): CatalogStateFile {
-    const isRelation = (r: any): r is RelationName => typeof r?.databaseName === 'string' && typeof r?.schemaName === 'string' && typeof r?.tableName === 'string';
-    try {
-        const parsed = JSON.parse(text ?? '');
-        return {
-            pending: Array.isArray(parsed?.pending) ? parsed.pending.filter(isRelation) : [],
-            gone: Array.isArray(parsed?.gone) ? parsed.gone.filter(isRelation) : [],
-        };
-    } catch {
-        return { pending: [], gone: [] };
-    }
-}
-
-export enum CatalogSource {
-    InformationSchema = 0,
-    PgClass = 1,
-    SalesforceMetadataApi = 2,
-    Hyper = 3,
-    Unknown = 4,
-}
-

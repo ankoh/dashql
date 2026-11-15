@@ -555,8 +555,9 @@ change.
   the connection, Salesforce Data Cloud with its bearer token. A client function call runs on `ClientFunctionCallRun`
   with the spec of the connector and the tokens of the channel.
 - **Channels of the host.** A channel that the module doesn't speak stays with the host: the gRPC channel of Hyper in
-  the desktop app (through its native proxy), the embedded Hyper, a Trino channel on another API client, the channels
-  of tests. The task asks the host to run the query and reads every batch as an Arrow IPC stream, the host learns of
+  the desktop app (through its native proxy), the embedded Hyper, the channels of tests. A Trino channel of the
+  TypeScript runtime only holds the endpoint, the token and the defaults of the session, the TypeScript protocols of
+  Trino and of client functions are gone. The task asks the host to run the query and reads every batch as an Arrow IPC stream, the host learns of
   the views of the profile and of the cancellation right away.
 - **Results.** A result crosses to the host once, as one Arrow IPC stream with the event of all batches, and
   `apache-arrow` decodes it. The host keeps the result tables, the Parquet files of the cache, the analysis on the
@@ -595,8 +596,8 @@ query execution and its actions.
 `runWorkbookExecution`, `runPlannedScript` and the result keys of scripts (`computeScriptResultCacheKey`,
 `computeWorkbookResultCacheKeys`) of the TypeScript runtime are adapters over the runs of the crate
 (`src/workbook_run/`), bound as `Workbook.run` of the module, which returns a `WorkbookRun` (`DashQLWorkbook.run` and
-`DashQLWorkbookRun` of `@ankoh/dashql-core`). `WorkbookExecutionService`, `runWorkbookScript` and
-`runWorkbookScriptForResult` kept their APIs, the hooks of the app didn't change.
+`DashQLWorkbookRun` of `@ankoh/dashql-core`). `WorkbookExecutionService` and `runWorkbookScript` kept their APIs, the
+hooks of the app didn't change.
 
 - **A run is a task on the workbook.** The module shares the workbook with its runs (`Rc<RefCell<Workbook>>`). A run
   analyzes every script and publishes its declarations, then analyzes every script again at the catalog revisions that

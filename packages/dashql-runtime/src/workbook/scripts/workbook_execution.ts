@@ -49,29 +49,6 @@ export function releaseWorkbookExecution(workbook: WorkbookScripts | string): vo
     for (const listener of [...activeWorkbookListeners]) listener();
 }
 
-/// Wait until no run holds a workbook and hold it for a run of a script, e.g. a run of the agent, which can't see
-/// that the workbook runs. Rejects if a run of the whole workbook holds it: that run takes every script and the user
-/// decides when it ends.
-export function waitForWorkbookExecution(workbookId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        let unsubscribe = () => {};
-        const attempt = () => {
-            const holder = activeWorkbooks.get(workbookId);
-            if (holder === 'workbook') {
-                unsubscribe();
-                reject(new Error('The workbook is running'));
-            } else if (holder == null) {
-                // The first waiter holds the workbook once it is released, before anybody else can start a run
-                unsubscribe();
-                acquireWorkbookExecution(workbookId);
-                resolve();
-            }
-        };
-        unsubscribe = subscribeWorkbookExecutions(attempt);
-        attempt();
-    });
-}
-
 export interface WorkbookExecutionState {
     phase: 'planning' | 'running' | 'stopping' | 'succeeded' | 'failed' | 'cancelled';
     totalScripts: number;

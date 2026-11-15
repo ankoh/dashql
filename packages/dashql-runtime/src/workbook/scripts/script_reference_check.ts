@@ -88,27 +88,6 @@ export interface ScriptTextChange {
     insert: string;
 }
 
-/// What a table parameter reads, by file name: a script or an attachment
-export type TableParameterTarget = { script: string } | { attachment: string };
-
-/// The changes that rename the references to a script or an attachment: every table parameter that reads it reads
-/// `reference` instead, e.g. `:"foo-2"`
-export function renameReferenceChanges(
-    reports: ReadonlyMap<number, ScriptReferenceReport>,
-    target: TableParameterTarget,
-    reference: string,
-): Map<number, ScriptTextChange[]> {
-    const reads = (mark: ScriptReferenceMark) => 'script' in target ? mark.target === target.script : mark.attachment === target.attachment;
-    const out = new Map<number, ScriptTextChange[]>();
-    for (const [scriptKey, report] of reports) {
-        const changes = report.marks
-            .filter(mark => reads(mark) && mark.parameter.length > 0)
-            .map(mark => ({ from: mark.from, to: mark.to, insert: reference }));
-        if (changes.length > 0) out.set(scriptKey, changes);
-    }
-    return out;
-}
-
 /// Apply changes to a text
 export function applyScriptTextChanges(text: string, changes: readonly ScriptTextChange[]): string {
     let out = text;

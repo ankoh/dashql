@@ -403,14 +403,6 @@ function settle(state: WorkbookScripts, outcomes: readonly core.WorkbookOutcome[
     return next;
 }
 
-/// The workbook without the marker of the ephemeral workbook, e.g. one that storage holds with scripts. Writes nothing.
-export function dropEphemeralMarker(state: WorkbookScripts): WorkbookScripts {
-    const native = nativeOf(state);
-    native.workbook.setEphemeral(false);
-    const { ephemeral: _promoted, ...workbookMetadata } = state.workbookMetadata;
-    return native.project({ ...state, workbookMetadata });
-}
-
 /// Promote an ephemeral workbook with scripts to a full workbook: it drops the marker and takes a free name.
 /// Every path that adds a script ends here, also the commands of the agent.
 export function promoteEphemeralWorkbook(state: WorkbookScripts, workbooks: Iterable<WorkbookScripts>, storage: WorkbookScriptsStorage): WorkbookScripts {

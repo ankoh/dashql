@@ -1,19 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getLogLevelName, LogBuffer, LogLevel, parseLogLevel } from './log_buffer.js';
+import { LogBuffer, LogLevel } from './log_buffer.js';
 import { testLogRecord } from '../../testing/test_logger.js';
 
 const traced = (traceId: number, message = `trace ${traceId}`) =>
     testLogRecord({ message, tracing: { traceId, spanId: 1, parentSpanId: null } });
-
-describe('log levels', () => {
-    it('round-trips the level names', () => {
-        for (const level of [LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error]) {
-            expect(parseLogLevel(getLogLevelName(level))).toEqual(level);
-        }
-        expect(parseLogLevel('verbose')).toBeNull();
-    });
-});
 
 describe('LogBuffer', () => {
     it('drops records below the minimum level', () => {

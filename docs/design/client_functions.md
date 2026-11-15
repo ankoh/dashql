@@ -436,7 +436,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - **No backend judges a call,** so an error of its [checks](#checks) fails the plan, where the same error on a backend statement is only a diagnostic. A warning doesn't.
 - **A script with a call isn't cacheable,** `EXPLAIN` included, since it asks a service and not the backend. The result cache never sees it.
 
-**The executor** gets the description as `clientFunctionCall` of its arguments, and `executeConnectionQuery` hands it to the runtime instead of the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
+**The executor** gets the description as `clientFunctionCall` of its arguments and runs the call itself instead of sending it over the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
 
 **The shell of a connection** has no plan. `resolveClientFunctionCall` (`workbook/shell/workbook_shell_environment.ts`) analyzes each statement on the connection's catalog and passes the description to the executor. `startsClientFunctionCall` comes from the tokens, so a call that doesn't parse, `EXPLAIN (analyze) CALL` included, also fails here and never reaches the backend. As in a plan, an error of the checks stops the call. The shell has no inputs, so a parameter is an error.
 
@@ -683,21 +683,24 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 
 ## The runtime
 
-`packages/dashql-runtime/src/connections/clfn/` holds the generic client. It knows no service.
+`packages/dashql-core-runtime/src/clfn/` holds the generic client. It knows no service.
 
 | File | What it does |
 |---|---|
-| `clfn_spec.ts` | The types of the document and of the core's description |
-| `clfn_specs.ts` | `loadClientFunctionSpec` loads a bundled spec as a chunk of its own, for `loadSpec` of a binding |
-| `clfn_request.ts` | Builds a request from a description: API names, path encoding, query styles, body formats, followed URLs and the origin check |
-| `clfn_runtime.ts` | `runClientFunctionCall` sends it through an `HttpClient`, with paging, polling and errors, and returns the result table. `explainClientFunctionCall` returns the request and sends nothing |
-| `clfn_result_stream.ts` | The result as a `QueryExecutionResponseStream`, like every other query result |
+| `spec.rs` | The spec as the runtime reads it: hosts, API names, locations, body formats, paging, pending results and errors |
+| `request.rs` | Builds a request from a description: API names, path encoding, query styles, body formats, followed URLs and the origin check |
+| `runtime.rs` | `ClientFunctionCallRun` is a state machine over the requests of a call, with paging, polling and errors, and returns the result table. `explain_client_function_call` returns the request and sends nothing |
+| `result.rs` | The result table: its columns, the values of the responses converted to the column types, the table as Arrow |
+| `connection.rs` | Connects it to a connection: the binding of the connector, the spec on the catalog of the connection, a call of the connection |
 
-`executeConnectionClientFunction` (`connections/connection_client_functions.ts`) connects it to a connection: it takes the binding of the connector, loads the spec and returns the stream.
+The query executor of the crate runs a call as a task over the HTTP client of the host, the result reaches the host as
+Arrow IPC like every other query result. In TypeScript, `packages/dashql-runtime/src/connections/clfn/` keeps the types of
+the document and of the core's description (`clfn_spec.ts`) and `loadClientFunctionSpec` (`clfn_specs.ts`), which loads
+a bundled spec as a chunk of its own, for `loadSpec` of a binding.
 
 **The runtime doesn't gate writes.** Which runs include a write is decided before, by the planner, see [Writes](#writes). `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
 
-**The tests use a mock `HttpClient`,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_examples.test.ts` runs the example of every function of the real Data 360 spec through the core and `EXPLAIN`, `query_executor.test.tsx` runs a call through the executor without touching the backend, and `clfn_result_stream.hyper.test.ts` analyzes a result in Hyper.
+**The tests use a fake host,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_test.rs` runs calls against made-up specs and responses, `clfn_spec_test.rs` runs the example of every function of the real Data 360 spec through the core and `EXPLAIN`, and `query_executor.test.tsx` runs a call through the executor without touching the backend.
 
 ## What was checked
 

@@ -181,7 +181,7 @@ packages/dashql-runtime             @ankoh/dashql-runtime, a source package: `@a
   src/workbook/                     workbook scripts and their registry service, script runs, execution, attachments,
                                     inputs, persistence and the restore
   src/connections/                  connection state and registry service, connector setups and clients, the catalog
-                                    loader, the query executor service, client functions
+                                    loader, the query executor service, the specs of client functions
   src/query/, src/compute/          query execution state and profiles, computations and data frames
   src/storage/                      workbook tables, the storage writer, the query result cache, migrations
   src/session/                      the journal of an agent session and its state
@@ -383,9 +383,9 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   `node/node_file_system.node.test.ts`. A test that needs a browser is named `*.browser.test.ts` and runs only in the
   browsers: `hyperdb_wasm.browser.test.ts` (the HyperDB adapter over the browser build of hyperdb-wasm with a fake
   worker client).
-- **What they cover.** 99 test files, about 1100 tests in Node: the workbook scripts, script runs and workbook
-  execution, the storage writer, native storage, bundles and the query result cache, the connection state, client
-  functions, the Trino, Salesforce and Hyper HTTP clients, the catalog queries and updates, the computations and data
+- **What they cover.** 92 test files, about 900 tests in Node: the workbook scripts, script runs and workbook
+  execution, the storage writer, native storage, bundles and the query result cache, the connection state, the
+  Salesforce and Hyper HTTP clients, the catalog queries and updates, the computations and data
   frames, the services, the embedded Hyper of Node and the journal of a session. Tests of the app that need parts of
   the app stay in the app until those parts move.
 - **The embedded Hyper in tests.** `openTestHyperDB(context)` (`src/testing/test_hyperdb.ts`) returns a HyperDB with

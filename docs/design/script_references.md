@@ -236,4 +236,4 @@ An attachment renames the same way (`renameAttachment`, `RENAME_ATTACHMENT`): th
 input of the name, the file moves first, then the scripts whose table parameters read the attachment and the draft
 read the new name. The new name takes no name of a script or another attachment, `sales` becomes `sales-2` then, and
 the file keeps its extension. The rewrite of the references is the one of a script rename, matched on the attachment
-instead of the script (`renameReferenceChanges`).
+instead of the script.

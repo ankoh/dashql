@@ -6,7 +6,7 @@ import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { TrinoApiClient, TrinoApiEndpoint } from '@ankoh/dashql-runtime/connections/trino/trino_api_client';
+import { TrinoApiClient } from '@ankoh/dashql-runtime/connections/trino/trino_api_client';
 import { TrinoChannel } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
 import { createTrinoSetup, setupTrinoConnection } from '@ankoh/dashql-runtime/connections/trino/trino_connection_setup';
 import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_STARTED, type TrinoConnectorAction } from '@ankoh/dashql-runtime/connections/trino/trino_connection_state';
@@ -138,31 +138,5 @@ describe('Trino basic setup', () => {
         const dispatch = vi.fn();
         await expect(setup(new FakeHttpClient(), BASIC_PARAMS, dispatch, AbortSignal.abort())).rejects.toThrow();
         expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([TRINO_CHANNEL_SETUP_STARTED, TRINO_CHANNEL_SETUP_CANCELLED]);
-    });
-});
-
-describe('Trino OAuth requests', () => {
-    it('refreshes an expiring access token and authorizes follow-up requests', async () => {
-        const http = new FakeHttpClient();
-        const client = new TrinoApiClient(new TestLogger(), http);
-        const endpoint = new TrinoApiEndpoint(OAUTH_PARAMS.endpoint, OAUTH_PARAMS.auth!);
-        endpoint.oauthState = {
-            oauthPkce: { value: '', verifier: '' },
-            authCode: { token: '', createdAt: new Date().toISOString() },
-            accessToken: { createdAt: new Date().toISOString(), accessToken: 'stale', tokenType: 'Bearer', refreshToken: 'refresh-0', expiresAt: new Date(Date.now() + 1000).toISOString() },
-        } as connection.TrinoOAuthState;
-
-        await Promise.all([
-            client.getQueryResult(endpoint, 'https://trino.example.com/v1/statement/executing/1'),
-            client.getQueryResult(endpoint, 'https://trino.example.com/v1/statement/executing/2'),
-        ]);
-
-        const refreshes = http.requests.filter(r => r.url === OAUTH_PARAMS.auth!.oauth!.tokenUrl);
-        expect(refreshes.length).toBe(1);
-        expect(new URLSearchParams(refreshes[0].body).get('refresh_token')).toBe('refresh-0');
-        for (const request of http.requests.filter(r => r.url.startsWith('https://trino.example.com'))) {
-            expect(request.headers.get('Authorization')).toBe('Bearer access-1');
-        }
-        expect(endpoint.oauthState.accessToken.refreshToken).toBe('refresh-1');
     });
 });

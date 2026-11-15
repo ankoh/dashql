@@ -120,14 +120,6 @@ export interface GetQueryChunkParams {
     omitSchema?: boolean;
 }
 
-export interface GetQueryRowsParams {
-    queryId: string;
-    offset: number;
-    limit?: number;
-    byteLimit?: number;
-    omitSchema?: boolean;
-}
-
 // ---------------------------------------------------------------------------
 // Optional request headers
 // ---------------------------------------------------------------------------
@@ -408,26 +400,4 @@ export class HyperDatabaseHttpClient {
         return { status, response };
     }
 
-    /// GET /api/v3/query/{queryId}/row
-    async getQueryRows(params: GetQueryRowsParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<HttpFetchResult> {
-        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/row`, this.endpointUrl);
-        url.searchParams.set("offset", params.offset.toString());
-        if (params.limit !== undefined) {
-            url.searchParams.set("limit", params.limit.toString());
-        }
-        if (params.byteLimit !== undefined) {
-            url.searchParams.set("byteLimit", params.byteLimit.toString());
-        }
-        if (params.omitSchema) {
-            url.searchParams.set("omitSchema", "true");
-        }
-        const headers = await this.buildHeaders(extra);
-        const response = await this.httpClient.fetch(url, {
-            method: "GET",
-            headers,
-            signal: abort,
-        });
-        await this.throwIfError(response);
-        return response;
-    }
 }

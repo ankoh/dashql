@@ -13,14 +13,6 @@ export interface TrinoSessionDefaults {
     schema: string | null;
 }
 
-/// A catalog entry `catalog` or `catalog.schema`, split at the first dot. Null if the entry names no catalog.
-export function parseTrinoCatalogEntry(entry: string): { catalog: string; schema: string | null } | null {
-    const dot = entry.indexOf('.');
-    const catalog = (dot < 0 ? entry : entry.substring(0, dot)).trim();
-    const schema = dot < 0 ? '' : entry.substring(dot + 1).trim();
-    return catalog.length === 0 ? null : { catalog, schema: schema.length === 0 ? null : schema };
-}
-
 /// The params with the fields that replaced `catalogName` and `schemaNames`.
 /// The catalog name was the default catalog, the schema names were the schemas of it that the catalog loader reads.
 export function withTrinoCatalogFields<P extends TrinoCatalogParams>(params: P): Omit<P, 'catalogName' | 'schemaNames'> {

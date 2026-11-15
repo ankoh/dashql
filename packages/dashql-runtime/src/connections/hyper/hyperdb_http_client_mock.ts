@@ -129,11 +129,6 @@ export class HyperHttpClientMock implements HttpClient {
             return this.handleGetChunk(decodeURIComponent(chunkMatch[1]), parseInt(chunkMatch[2], 10));
         }
 
-        const rowMatch = path.match(/^\/api\/v3\/query\/([^/]+)\/row$/);
-        if (method === 'GET' && rowMatch) {
-            return this.handleGetRows(decodeURIComponent(rowMatch[1]), url);
-        }
-
         return makeErrorResult(404, { error: 'NOT_FOUND', message: `No mock for ${method} ${path}` });
     }
 
@@ -207,15 +202,6 @@ export class HyperHttpClientMock implements HttpClient {
         return makeArrowResult(200, q.arrowBytes, statusHeader(qs));
     }
 
-    private handleGetRows(queryId: string, url: URL): HttpFetchResult {
-        const q = this.queries.get(queryId);
-        if (!q) {
-            return makeErrorResult(404, { error: 'NOT_FOUND', message: `Query ${queryId} not found` });
-        }
-        // offset/limit/byteLimit are query params the real server uses; the mock
-        // returns the full arrowBytes slice since Arrow streaming handles framing.
-        return makeArrowResult(200, q.arrowBytes, {});
-    }
 }
 
 // ---------------------------------------------------------------------------

@@ -26,10 +26,6 @@ export function connectionMonitoringDatabasePath(connectionId: string): string {
 export const STORAGE_CATALOG_RELATIONS = 'dashql-catalog-relations.sql';
 /// The functions of the catalog
 export const STORAGE_CATALOG_FUNCTIONS = 'dashql-catalog-functions.sql';
-/// What the relations of a connection don't say: the relations to ask the connection about and those that are gone
-export const STORAGE_CATALOG_STATE = 'dashql-catalog-state.json';
-/// Older versions of the app kept the changes of executed statements here, the file is cleared when it is found
-export const STORAGE_CATALOG_CHANGES = 'dashql-catalog-changes.sql';
 
 export interface DataFile {
     name: string;
@@ -70,10 +66,8 @@ export type StorageManifest = app_manifest.StorageManifest;
 export type AppSettings = app_manifest.AppSettings;
 export type ConnectionEntry = app_manifest.ConnectionEntry;
 export type WorkbookData = app_workbook.WorkbookData;
-export type WorkbookMetadata = app_workbook.WorkbookMetadata;
 export type WorkbookCloudLink = app_workbook.WorkbookCloudLink;
 export type WorkbookScript = app_workbook.WorkbookScript;
-export type WorkbookAttachment = app_workbook.WorkbookAttachment;
 export type WorkbookConnection = app_workbook.WorkbookConnection;
 export type ConnectionParams = WorkbookConnection['params'];
 

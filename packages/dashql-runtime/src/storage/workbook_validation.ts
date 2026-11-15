@@ -44,11 +44,6 @@ export function validateWorkbookData(data: WorkbookData): WorkbookValidationResu
     return error == null ? { ok: true } : { ok: false, error: error as WorkbookValidationError };
 }
 
-/// Whether a string is a syntactically valid UUID.
-export function isValidUuid(value: string): boolean {
-    return workbookFormat().isValidUuid(value);
-}
-
 /// Are the params those of the embedded Hyper of the app? A local cloud attaches a database of the clouds folder and is a
 /// connection of its own.
 export function isLocalHyperWasmParams(params: WorkbookData['connections'][number]['params']): boolean {

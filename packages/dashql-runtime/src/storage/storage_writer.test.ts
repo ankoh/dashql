@@ -22,7 +22,6 @@ import {
     groupWorkbookWrites,
     REPLACE_WORKBOOK_SCRIPTS,
     WRITE_WORKBOOK_SCRIPTS,
-    storageWriteChainKey,
     type StorageWriteTaskVariant,
 } from './storage_writer.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
@@ -306,13 +305,6 @@ describe('V2 storage writer flat mutations', () => {
 });
 
 describe('storage writer outcomes', () => {
-    it('chains global keys per entity and workbook keys per workbook', () => {
-        expect(storageWriteChainKey(`${TEST_WORKBOOK_ID}/scripts/01.sql`)).toBe(TEST_WORKBOOK_ID);
-        expect(storageWriteChainKey(groupWorkbookConnectionCopyWrites(TEST_WORKBOOK_ID, TEST_CONNECTION_ID))).toBe(TEST_WORKBOOK_ID);
-        expect(storageWriteChainKey(groupConnectionEntryWrites(TEST_CONNECTION_ID))).toBe('@manifest');
-        expect(storageWriteChainKey(`@connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(`@connections/${TEST_CONNECTION_ID}`);
-    });
-
     it('writes durably without debouncing and defers while paused', async () => {
         const backend = new WorkbookTestBackend();
         const writer = new StorageWriter(new TestLogger(), backend);

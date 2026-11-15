@@ -1,7 +1,6 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '../connector_info.js';
 import { createTrinoConnectionStateDetails } from './trino_connection_state.js';
-import { queryParam, requireChannel } from '../query_channel.js';
 import { trinoSessionDefaults } from './trino_catalogs.js';
 
 /// Trino connections
@@ -47,8 +46,10 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
         const defaults = details.proto.setupParams ? trinoSessionDefaults(details.proto.setupParams) : null;
         return { databaseName: defaults?.catalog ?? '', schemaName: defaults?.schema ?? '' };
     },
-    executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'trino' ? args.channelOverride.channel : details.channel, 'Trino')
-        .executeQuery(queryParam(args), abort),
+    // The query executor of the core runs the queries of a Trino channel itself
+    executeQuery: async () => {
+        throw new Error('Trino queries run in the query executor of the core');
+    },
     maxConcurrentQueries: () => 1,
     catalogIsDurable: () => true,
     readsAttachments: () => false,

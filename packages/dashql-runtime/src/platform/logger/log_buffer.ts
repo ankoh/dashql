@@ -16,18 +16,6 @@ export function getLogLevelName(level: LogLevel): string {
     }
 }
 
-export function parseLogLevel(text: string): LogLevel | null {
-    switch (text) {
-        case "trace": return LogLevel.Trace;
-        case "debug": return LogLevel.Debug;
-        case "info": return LogLevel.Info;
-        case "warn": return LogLevel.Warn;
-        case "error": return LogLevel.Error;
-        default:
-            return null;
-    }
-}
-
 /// Trace information for a log record
 export interface TraceInfo {
     /// The trace ID

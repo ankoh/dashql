@@ -34,7 +34,6 @@ Paths without a package are under `packages/dashql-app/src/` or `packages/dashql
 
 | Candidate | Lines | Trigger |
 |---|---|---|
-| Trino rows to Arrow (`connections/trino/arrow_conversion.ts`) | 489 | A benchmark on a 32 MB page shows real gain. No Rust core module links the Arrow crates (the shell dropped them because of their size, about 23% of the core Wasm in brotli), so this needs a module decision and hands results to arrow-js as IPC. |
 | Dataflow edge geometry (`orthogonalPath`, `crossesBox`, `routeBadgeAt`, `routeEdge` in `workbook/dataflow/dataflow_scene.ts`) | ~160 | Visual tuning settles: 12 commits touched this file, against 5 for `profile_scene.ts`. It runs per drag update, lives in a separate wasm module from the profile code, and every tweak would need a wasm rebuild. |
 | Focus span join (`workbook/editor/dashql_decorations.ts:126,155`) | ~20 | `spans.find` in a loop shows up in a profile. Then have core send resolved spans. |
 | SQL builders (`compute/sql/sqlframe_builder.ts`, `compute/sql/query_result_search_sql.ts`) | 562 | The CLI or shell needs the same summaries. Pure and well tested, but no second consumer today. |
@@ -135,10 +134,10 @@ plan, in both orientations, and confirm edges and stage contours draw correctly.
 
 These are TS fixes rather than ports, and are separate from the steps above:
 
-1. **BigInt in Trino stats** (`connections/trino/trino_api_client.ts:435`, `query/query_progress_model.ts:214`): a stat
+1. **BigInt in Trino stats** (`query/query_progress_model.ts:214`): a stat
    of 2^53 or more makes `JSON.stringify` throw. It is caught, so the query continues, but progress stops updating and
    the download of the progress recording throws too. Rare (about 9 PiB). Fix: convert BigInts under `stats` to
-   `Number` in the slow path of `parseTrinoJson`.
+   `Number`.
 3. **Silently dropped contours** (`views/query_profile/profile_scene.ts:354,368`): an unclosed contour disappears
    without a log. Step 2 can carry this over or report it.
 4. **Five copies of identifier quoting and four of literal quoting in TS**: merge them into one TS helper after

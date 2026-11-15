@@ -19,7 +19,7 @@ import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testConnecti
 import type { ParquetReadDatabase } from '../../storage/workbook_tables_parquet.js';
 import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import { BlobReader, ZipReader } from './workbook_zip.js';
-import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL } from '../../connections/catalog/catalog_structure.js';
+import { generateCatalogTablesSQL } from '../../connections/catalog/catalog_sql_generator.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -40,16 +40,14 @@ afterAll(async () => {
 });
 
 /// A catalog file of relations with one table, as the app renders it
-const relationsOf = (tableName: string) => generateCatalogRelationsSQL([
+const relationsOf = (tableName: string) => generateCatalogTablesSQL([
     { databaseName: 'hyper', schemaName: 'public', tableName, columns: [{ name: 'id', ordinalPosition: 0, dataType: 'integer' }] },
 ]);
 const SCHEMA = relationsOf('items');
 const OTHER_SCHEMA = relationsOf('other_items');
 const EMBEDDED_SCHEMA = relationsOf('embedded_items');
 const REMOTE_SCHEMA = relationsOf('remote_items');
-const FUNCTIONS = generateCatalogFunctionsSQL([
-    { databaseName: 'hyper', schemaName: 'public', functionName: 'scale', isAggregate: false, returnType: 'bigint', params: [{ name: 'value', type: 'integer' }] },
-]);
+const FUNCTIONS = 'CREATE FUNCTION "hyper"."public"."scale"("value" integer) RETURNS bigint;';
 
 /// The query results of a bundle with their bytes
 async function resultBytes(bundle: WorkbookBundle): Promise<Array<{ key: string; bytes: Uint8Array }>> {

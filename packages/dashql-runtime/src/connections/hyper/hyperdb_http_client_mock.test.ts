@@ -181,34 +181,6 @@ describe('HyperDatabaseHttpClient (mock)', () => {
     });
 
     // -------------------------------------------------------------------------
-    // getQueryRows
-    // -------------------------------------------------------------------------
-
-    describe('getQueryRows', () => {
-        beforeEach(async () => {
-            mock.setHandler(() => ({
-                queryId: 'q-rows',
-                completionStatus: 'RESULTS_PRODUCED',
-                arrowBytes: MOCK_ARROW,
-            }));
-            await client.executeQuery({ sql: 'SELECT i FROM t' });
-        });
-
-        it('returns Arrow bytes', async () => {
-            const response = await client.getQueryRows({ queryId: 'q-rows', offset: 0 });
-            expect(response.headers.get('Content-Type')).toBe(ARROW_CONTENT_TYPE);
-            const buf = await response.arrayBuffer();
-            expect(new Uint8Array(buf)).toEqual(MOCK_ARROW);
-        });
-
-        it('throws HyperHttpError(404) for unknown queryId', async () => {
-            await expect(
-                client.getQueryRows({ queryId: 'nope', offset: 0 }),
-            ).rejects.toThrow(HyperHttpError);
-        });
-    });
-
-    // -------------------------------------------------------------------------
     // Async query lifecycle: execute → poll → chunk
     // -------------------------------------------------------------------------
 

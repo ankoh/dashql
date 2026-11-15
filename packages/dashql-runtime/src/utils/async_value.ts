@@ -29,9 +29,6 @@ export class AsyncValue<Value, Error> {
         this.rejectFn = null;
     }
 
-    public isResolved(): boolean {
-        return this.status != AsyncValueStatus.PENDING;
-    }
     public async getValue(): Promise<Value> {
         switch (this.status) {
             case AsyncValueStatus.RESOLVED:
@@ -47,16 +44,6 @@ export class AsyncValue<Value, Error> {
                 }
                 return this.valuePromise;
             }
-        }
-    }
-    public getResolvedValue(): Value {
-        switch (this.status) {
-            case AsyncValueStatus.RESOLVED:
-                return this.resolvedValue!;
-            case AsyncValueStatus.REJECTED:
-                throw this.rejectionError;
-            case AsyncValueStatus.PENDING:
-                throw new Error("async value is not resolved");
         }
     }
     public resolve(value: Value) {
