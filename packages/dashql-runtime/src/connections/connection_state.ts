@@ -68,7 +68,6 @@ import {
 } from '../query/query_execution_state.js';
 import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import type { Logger } from '../platform/logger/logger.js';
-import { invalidateCatalogBatch } from './catalog/catalog_batch.js';
 import type { RelationName } from './catalog/catalog_sql_generator.js';
 import type { ConnectionParams } from './connection_params.js';
 import { cancelConnectionSetup } from './connection_setup_cancellation.js';
@@ -423,7 +422,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             outcome = reduceSetupStep(native, action, now);
             break;
     }
-    native.applyEffects(state, outcome.effects, reason, { cancelSetup: cancelConnectionSetup, invalidateCatalogBatch });
+    native.applyEffects(state, outcome.effects, reason, { cancelSetup: cancelConnectionSetup });
     if (!outcome.changed && outcome.effects.length === 0) return state;
     const next = native.project(state.connectionId);
     if (action.type === DELETE_CONNECTION) {
@@ -573,6 +572,5 @@ export function restoreCatalogUpdates(state: ConnectionState, described: boolean
 
 /// Destroy a connection that was never registered: the Rust connection and its catalog handle
 export function destroyConnectionState(state: ConnectionState): void {
-    invalidateCatalogBatch(state.catalog);
     state.native.destroy();
 }

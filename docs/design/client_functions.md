@@ -13,7 +13,7 @@ Client functions ship in an [extension](extensions.md), the folder of a service 
 
 ## How a call runs
 
-1. **Registration.** The binding of a connector loads the spec, and `ensureConnectionClientFunctions` registers it on the catalog of the connection, before any login. See [Connector binding](#connector-binding).
+1. **Registration.** The catalog loader of the runtime loads the spec of the binding of a connector and registers it on the catalog of the connection, before any login. See [Connector binding](#connector-binding).
 2. **Analysis.** The analyzer checks every `CALL` in a namespace with a spec, and completion answers from the same signatures. See [Checks](#checks) and [Completion](#completion).
 3. **Description.** `describe_client_function_call` turns a call into plain JSON for the runtime. See [Running calls](#running-calls).
 4. **Planning.** The planner makes the call a barrier, fills in the inputs, and leaves a script that writes out of the runs of the workbook. See [Running calls](#running-calls) and [Writes](#writes). The shell of a connection has no plan and skips this step.
@@ -282,7 +282,7 @@ interface ClientFunctionBinding<Details> {
 
 `resolveHost` is async since a token may need a refresh or an exchange. The Salesforce binding doesn't refresh one yet: an expired Data 360 token fails the call with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
 
-**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. `ensureConnectionClientFunctions` (`connections/connection_client_functions.ts`) loads the spec and registers it on the connection's catalog. The catalog loader runs it on every change of the registry, so a spec that failed to load is tried again, and it drops the spec if the connection switches to a connector without it. The shell of a connection runs on that catalog, so its prompt completes the same calls.
+**A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. The catalog loader of the runtime (`catalog_loader/service.rs` with `ClientFunctionRegistrations` of `clfn/connection.rs`) asks the host to load the spec and registers it on the connection's catalog. It does so on every change of the registry, so a spec that failed to load is tried again, and it drops the spec if the connection switches to a connector without it. The shell of a connection runs on that catalog, so its prompt completes the same calls.
 
 **A service with no SQL backend** would need a connector that runs no `SELECT`, with a setup UI and its own auth flows. That's later work, and it's not needed for a service that sits on an existing connection.
 

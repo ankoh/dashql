@@ -10,15 +10,16 @@ over the computations (`compute/computation_native.ts`). The storage writer is t
 (`storage/storage_writer.ts` over `src/storage/`), the restore the second (`workbook/persistence/app_state_loader.ts`
 over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
 platform), the query executor the fourth (`QueryExecutorService` over `src/executor/`): Trino, Hyper over HTTP,
-Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host. The
-storage format of workbooks is called by the storage, the imports and the exports of the TypeScript runtime
-(`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)). The catalog loader is ported without
-I/O and not used yet.
+Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host, the
+catalog loader the fifth (`CatalogLoaderService` over `catalog_loader/service.rs`): it schedules the updates of the
+catalogs, runs their metadata queries through the query executor, fetches the metadata of Salesforce and registers the
+client functions of the connections. The storage format of workbooks is called by the storage, the imports and the
+exports of the TypeScript runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
 schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`,
-`AppRestore`, `ConnectionPersistence`) belong to DashQL and change with it, their snapshots cross as JSON.
+`AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`) belong to DashQL and change with it, their snapshots cross as JSON.
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -97,7 +98,8 @@ buffers in between. The boundary moves to what the UI reads.
    then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
    The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer), and
    so are the restore and the persistence of connections, see [The restore](#the-restore), and
-   the query executor with one HTTP layer, see [The query executor](#the-query-executor).
+   the query executor with one HTTP layer, see [The query executor](#the-query-executor), and the catalog loader, see
+   [The catalog loader](#the-catalog-loader).
 
 ## The whole runtime in Wasm
 
@@ -316,25 +318,43 @@ ordinal and string column.
 
 ## The catalog loader
 
-The catalog loader is a module of the crate (`src/catalog_loader/`), sans-IO and not used yet, the restore reads catalog
-files with its batches and its state file. It generates the
-metadata SQL of the connectors, reads the result batches into tables and publishes descriptors and table updates into
-the connection layer of the catalog of a connection.
+`CatalogLoaderService` of the TypeScript runtime is an adapter over the loader of the crate
+(`src/catalog_loader/service.rs`), bound as the class `CatalogLoader` of the module (`DashQLCatalogLoader` of
+`@ankoh/dashql-core`, created with `DashQL.createCatalogLoader` on the core of the first connection). Its API stayed,
+the runtime hands it every registry and requests refreshes as before.
 
-- **An update is a state machine.** `CatalogUpdate::start` takes a connection, its relations or none for a full
-  refresh, and returns the update with the action that registers it. `next` asks the host for queries to run, the Data
-  Cloud metadata of a Salesforce connection, a catalog batch to parse in the batch worker or the moment to publish, the
-  answers go back with `answer_queries`, `answer_salesforce_metadata`, `answer_batch` and `publish`. The outcome names
-  the action that finishes the update and the new text of the function script, which the host sets.
-- **Batches publish only while they are current.** `CatalogGenerations` counts the batches of a catalog, a newer one
-  or a reset of the connection supersedes the older ones, and an update that was superseded or cancelled publishes
-  nothing.
-- **The scheduler hands out the updates.** `CatalogLoader` follows the connections, takes the requests for refreshes
-  and the end of every update, and returns the updates to start and to abort and when to schedule again. The timers,
-  the cancellation tokens and the logs stay with the host.
+- **The loader follows the Rust connections.** The binding of a connection holds its state and its query history
+  behind shared references, the loader keeps weak ones under the id of the registry (`follow`). The adapter tells it
+  when the registry changed (`observe`), the loader reads health, params, details, catalog updates and the number of
+  running queries of every connection then, and describes the connections that came online.
+- **The scheduler and the updates run in Rust.** `CatalogLoader` decides what to start and to abort, the service runs
+  an update as a task: it drives `CatalogUpdate`, parses its batches in the module (`CatalogBatch::process`, like the
+  restore) and publishes into the catalog of the connection. A publication needs the connection to still run the
+  update, a reset or a delete aborts it. The text of the function script is replaced in Rust once its descriptor is
+  published. A failed lookup is tried again after a wait, the wake-up is a timer of the host.
+- **The queries go through the query executor.** The host runs a metadata query (`run_query`) with the executor of the
+  runtime as a query of the app with the issuer `Catalog Update`, registers it with the update and hands the result
+  back as Arrow IPC, the loader reads it with `arrow-rs`.
+- **The host keeps the registry and the cancellation.** The start and the end of an update are actions of the registry
+  (`update_started`, `update_finished`), so the connection, its persistence and the scripts that use it see them as
+  before. The host keeps an abort controller per update, an abort of the loader, of a reset or of a caller cancels the
+  task (`cancel`) and the queries of the update.
+- **Salesforce over fetch.** The metadata of a data space comes from the instance over `HttpHost::fetch`
+  (`SalesforceMetadataLoad`, three requests at once). An API of Salesforce that the platform passes, e.g. the mock of
+  the app, answers it instead (`salesforce_metadata`).
+- **Client functions.** The loader registers the client functions of a connector on the catalog of every connection
+  it follows (`ClientFunctionRegistrations`), the host loads the specs (`load_spec`) and analyzes the scripts again
+  once they changed (`catalog_changed`).
+- **The tests.** `tests/catalog_loader_test.rs` drives the updates without I/O, `tests/catalog_loader_service_test.rs`
+  runs the loader on a fake host: the queue, forced refreshes, the relations of statements with their retries, the
+  embedded database, Salesforce and client functions. `catalog_loader_service.test.ts` runs the adapter on the module
+  with a fake executor, `catalog_updates.integration.test.ts` runs lookups on the embedded Hyper.
 - **Changed on purpose.** The requested refreshes are considered before the lookups, so a request that a refresh
   answered and the lookup behind it settle in one pass. The retry wakes at the earliest attempt. Skipped functions and
-  duplicate columns come back as warnings of the outcome.
+  duplicate columns come back as warnings of the outcome. A forced refresh doesn't wait for the cancelled update to
+  settle at its backend, the update ends as soon as its token is cancelled. The batches parse on the main thread in the
+  module, the app has no batch worker anymore. A Hyper update that partly failed logs `Partially updated the catalog`.
+  An update logs on the targets of the log of the loader, not on a trace of its own.
 
 ## The Trino connector
 
@@ -357,7 +377,7 @@ request, the channel and the health check.
 ## The client functions and Salesforce
 
 The client functions (`src/clfn/`) and the Salesforce connector (`src/salesforce/`) are ported without I/O, the query
-executor runs the calls, the setup of Salesforce isn't used yet. A call is a state machine: it starts from the description of the core, returns the next request,
+executor runs the calls and the catalog loader registers the specs, the setup of Salesforce isn't used yet. A call is a state machine: it starts from the description of the core, returns the next request,
 a wait or the result table, and takes the response with the time. The runtime reads the spec for its requests, and the
 core checks it when a binding registers it on the catalog of a connection. The registrations of the connections ask the
 host to load a spec and register it once it arrives. A result is a table of typed cells that becomes a record batch or
@@ -523,6 +543,14 @@ about that.
   the host.
 - A channel of the host converts its record batches to Arrow IPC, the embedded Hyper decodes its IPC first.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
+- The setups of the connectors still run in TypeScript (`trino_connection_setup.ts`, `salesforce_connection_setup.ts`,
+  `hyper_connection_setup.tsx` of the app) and so does the health check (`health_check.ts`). `TrinoSetup` and
+  `SalesforceSetup` of the crate are state machines that no service drives yet; a service over them needs an OAuth host
+  (the authorization page and its callback through `OAuthFlow`, PKCE and the random state from the crypto of the
+  platform), channels of the host for the gRPC of Hyper and the mock of Salesforce, and the mapping of their actions to
+  the registry of the app.
+- The batches of a catalog update parse on the main thread. A host call to a worker with a core of its own would move
+  the bundled functions of Hyper off the event loop.
 
 ## Kept on purpose
 

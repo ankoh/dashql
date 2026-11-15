@@ -13,7 +13,6 @@ import { ConnectionRegistryService } from './connections/connection_registry_ser
 import { QueryExecutorService } from './connections/query_executor_service.js';
 import { CatalogLoaderService } from './connections/catalog/catalog_loader_service.js';
 import { ConnectionPersistenceService } from './connections/connection_persistence_service.js';
-import { updateHyperCatalog } from './connections/hyper/hyper_catalog_update.js';
 import { SalesforceApiClient, type SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
 import { CATALOG_DID_UPDATE } from './workbook/scripts/workbook_scripts.js';
 import { WorkbookScriptsRegistryService } from './workbook/scripts/workbook_scripts_registry_service.js';
@@ -40,7 +39,8 @@ export interface RuntimePlatform {
     computeDatabase?: EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache?: QueryResultCache | null;
-    /// The API of Salesforce that the catalog loader asks, by default over `http`
+    /// The API of Salesforce, by default over `http`. The catalog loader fetches the metadata of Salesforce over `http`
+    /// itself, another API, e.g. the mock of the app, answers it instead.
     salesforce?: SalesforceApiClientInterface;
 }
 
@@ -105,8 +105,8 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         logger,
         dispatchConnection: connections.dispatch,
         execute,
+        http,
         get salesforce() { return salesforce; },
-        updateHyperCatalog,
         // The scripts that use the connection are analyzed again with the new catalog
         onCatalogDidUpdate: (connectionId: string) => {
             void workbooks.dispatchConnection(connectionId, { type: CATALOG_DID_UPDATE, value: connectionId });

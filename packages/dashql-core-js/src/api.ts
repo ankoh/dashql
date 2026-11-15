@@ -10,6 +10,7 @@ import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorTyp
 import { DashQLComputations } from './computations.js';
 import { DashQLStorageWriter } from './storage_writer.js';
 import { DashQLQueryExecutor } from './query_executor.js';
+import { DashQLCatalogLoader } from './catalog_loader.js';
 import { DashQLAppRestore } from './restore.js';
 import { DashQLWorkbookFormat } from './workbook_format.js';
 
@@ -39,6 +40,7 @@ export type DashQLBindings = Pick<
     | 'Computations'
     | 'StorageWriter'
     | 'QueryExecutor'
+    | 'CatalogLoader'
     | 'AppRestore'
     | 'ConnectionPersistence'
     | 'workbookFormat'
@@ -457,6 +459,11 @@ export class DashQL {
     /// Create the query executor of the Rust runtime on a host, through the instance like a workbook
     public createQueryExecutor(host: glue.QueryExecutorHost): DashQLQueryExecutor {
         return DashQLQueryExecutor.create(this, host);
+    }
+
+    /// Create the catalog loader of the Rust runtime on a host, through the instance like a workbook
+    public createCatalogLoader(host: glue.CatalogLoaderHost): DashQLCatalogLoader {
+        return DashQLCatalogLoader.create(this, host);
     }
 
     /// Create the restore of the stored state of the Rust runtime on a host, it writes through a storage writer of the

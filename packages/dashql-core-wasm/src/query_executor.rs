@@ -118,7 +118,7 @@ extern "C" {
 }
 
 /// The message of a value that JS failed with
-fn message_of(value: &JsValue) -> String {
+pub(crate) fn message_of(value: &JsValue) -> String {
     if let Some(error) = value.dyn_ref::<js_sys::Error>() {
         return String::from(error.message());
     }
@@ -129,7 +129,7 @@ fn message_of(value: &JsValue) -> String {
 }
 
 /// A host error that keeps what JS failed with
-fn host_error(value: JsValue) -> HostError {
+pub(crate) fn host_error(value: JsValue) -> HostError {
     HostError::new(message_of(&value)).with_value(Rc::new(value))
 }
 
@@ -138,7 +138,7 @@ fn host_value(value: Option<&Rc<dyn std::any::Any>>) -> JsValue {
     value.and_then(|value| value.downcast_ref::<JsValue>()).cloned().unwrap_or(JsValue::UNDEFINED)
 }
 
-fn field(value: &JsValue, name: &str) -> Option<JsValue> {
+pub(crate) fn field(value: &JsValue, name: &str) -> Option<JsValue> {
     if !value.is_object() {
         return None;
     }
@@ -146,7 +146,7 @@ fn field(value: &JsValue, name: &str) -> Option<JsValue> {
 }
 
 /// Await a host call that returns a promise
-async fn host_call(result: Result<JsValue, JsValue>) -> Result<JsValue, HostError> {
+pub(crate) async fn host_call(result: Result<JsValue, JsValue>) -> Result<JsValue, HostError> {
     let value = result.map_err(host_error)?;
     JsFuture::from(Promise::resolve(&value)).await.map_err(host_error)
 }
@@ -183,7 +183,7 @@ fn headers_value(headers: &Headers) -> Array {
     headers.iter().map(|(name, value)| Array::of2(&JsValue::from_str(name), &JsValue::from_str(value))).collect()
 }
 
-fn request_value(request: &HttpRequest) -> JsValue {
+pub(crate) fn request_value(request: &HttpRequest) -> JsValue {
     let object = Object::new();
     let set = |key: &str, value: &JsValue| {
         let _ = Reflect::set(&object, &JsValue::from_str(key), value);
@@ -195,7 +195,7 @@ fn request_value(request: &HttpRequest) -> JsValue {
     object.into()
 }
 
-fn response_of(value: &JsValue) -> Result<HttpResponse, HostError> {
+pub(crate) fn response_of(value: &JsValue) -> Result<HttpResponse, HostError> {
     let status = field(value, "status").and_then(|status| status.as_f64()).ok_or_else(|| HostError::new("a response without a status"))?;
     let mut response = HttpResponse::new(status.clamp(0.0, 999.0) as u16, Vec::new());
     response.status_text = field(value, "statusText").and_then(|text| text.as_string()).unwrap_or_default();

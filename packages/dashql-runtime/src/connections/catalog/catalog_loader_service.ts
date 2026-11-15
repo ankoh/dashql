@@ -1,32 +1,30 @@
+import * as arrow from 'apache-arrow';
+
+import type * as core from '@ankoh/dashql-core';
+
 import type { ConnectionRegistry, DynamicConnectionDispatch } from '../connection_registry_state.js';
-import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant, MAX_TOUCHED_ATTEMPTS } from './catalog_update_state.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import {
-    ConnectionHealth,
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
+    CATALOG_UPDATE_REGISTER_QUERY,
     CATALOG_UPDATE_SUCCEEDED,
     UPDATE_CATALOG,
 } from '../connection_state.js';
-import { getHyperCloudAttachedDatabase, updateSalesforceCatalog } from '../salesforce/salesforce_catalog_update.js';
-import type { SalesforceApiClientInterface } from '../salesforce/salesforce_api_client.js';
+import { SalesforceApiClient, type SalesforceApiClientInterface } from '../salesforce/salesforce_api_client.js';
+import type { SalesforceConnectionStateDetails } from '../salesforce/salesforce_connection_state.js';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
 import type { QueryExecutor } from '../query_execution_args.js';
+import type { QueryType } from '../../query/query_execution_state.js';
 import type { Logger } from '../../platform/logger/logger.js';
-import { createTrace } from '../../platform/logger/trace_context.js';
-import { updateInformationSchemaCatalog, updateInformationSchemaRelations } from './catalog_query_information_schema.js';
+import type { HttpClient } from '../../platform/http/http_client.js';
 import type { RelationName } from './catalog_sql_generator.js';
-import { queryTrinoCatalogScopes, trinoCatalogScopes } from '../trino/trino_catalogs.js';
-import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
-import { connectionCatalogIsDurable } from '../connection_params.js';
-import { ensureConnectionClientFunctions } from '../connection_client_functions.js';
-import { connectorOfDetails } from '../connector_descriptor.js';
+import { loadClientFunctionSpec } from '../clfn/clfn_specs.js';
+import type { NativeConnection } from '../connection_native.js';
 
-const LOG_CTX = 'catalog_loader';
-
-/// The wait before asking a connection again about the relations of executed statements, per failed attempt
-const TOUCHED_RETRY_DELAY_MS = 2000;
-let NEXT_CATALOG_UPDATE_ID = 1;
+/// The issuer of the metadata queries
+const CATALOG_QUERY_ISSUER = 'Catalog Update';
 
 /// The catalog update args
 export interface CatalogLoaderArgs {
@@ -41,377 +39,274 @@ export interface CatalogLoaderDependencies {
     logger: Logger;
     dispatchConnection: DynamicConnectionDispatch;
     execute: QueryExecutor | null;
-    salesforce: SalesforceApiClientInterface;
-    updateHyperCatalog: typeof updateHyperCatalog;
+    /// The HTTP client of the platform, the loader fetches the metadata of Salesforce with it
+    http: HttpClient | null;
+    /// The API of Salesforce of the platform. One that isn't the client over `http`, e.g. a mock, answers the metadata.
+    salesforce: SalesforceApiClientInterface | null;
     /// Called when the catalog of a connection changed
     onCatalogDidUpdate?: (connectionId: string) => void;
+}
+
+/// What the adapter keeps of an update
+interface TaskRecord {
+    connectionId: string;
+    /// Aborted by the loader, the connection and the caller, it cancels the update in the loader
+    cancellation: AbortController;
+}
+
+/// The reason of a cancellation as text
+function reasonOf(reason: unknown): string {
+    if (reason instanceof Error) return reason.message;
+    if (typeof reason === 'string') return reason;
+    return 'Catalog refresh was cancelled';
+}
+
+/// A signal that aborts with the first of its signals
+function anySignal(signals: AbortSignal[]): AbortSignal {
+    const controller = new AbortController();
+    for (const signal of signals) {
+        if (signal.aborted) {
+            controller.abort(signal.reason);
+            break;
+        }
+        signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+    }
+    return controller.signal;
 }
 
 /// Keeps the catalogs of the connections current: describes a connection when it comes online, refreshes on request
 /// and asks a connection about the relations that executed statements touched.
 ///
-/// The host passes every new connection registry with setRegistry(). The loader then reconsiders its queue at the end
-/// of the task, as it does after an enqueued request, a finished update and a retry timer.
+/// An adapter over the catalog loader of the Rust runtime (`dashql_core_runtime::catalog_loader::service`): the loader
+/// follows the Rust connections of the registry, schedules the updates, runs their metadata queries through the query
+/// executor and publishes into the catalogs. The adapter hands it the registry, applies the start and the end of an
+/// update to the connection, keeps the cancellation of an update and runs the queries.
 export class CatalogLoaderService {
     private readonly deps: CatalogLoaderDependencies;
     private registry: Pick<ConnectionRegistry, 'connections'> = { connections: new Map() };
-    /// The requested refreshes (connectionId -> forced)
-    private readonly queue = new Map<string, boolean>();
-    /// The connections that are online
-    private readonly online = new Set<string>();
-    /// The connections with an update in progress
-    private readonly inProgress = new Set<string>();
-    /// When the last update of a connection finished
-    private readonly lastFinishedAt = new Map<string, number>();
-    /// The timer of the next attempt to ask about touched relations
-    private retryTimer: ReturnType<typeof setTimeout> | null = null;
-    private scheduled = false;
-    private stopped = false;
+    private native: core.DashQLCatalogLoader | null = null;
+    /// The Rust connections that the loader follows by connection id
+    private readonly followed = new Map<string, NativeConnection>();
+    /// The running updates by task id
+    private readonly tasks = new Map<number, TaskRecord>();
+    /// The cancellations of the queries and requests of the loader by request id
+    private readonly queryAborts = new Map<number, AbortController>();
+    private readonly fetchAborts = new Map<number, AbortController>();
+    /// The requests before the loader exists
+    private readonly pending: [string, boolean][] = [];
+    private started = false;
 
     constructor(deps: CatalogLoaderDependencies) {
         this.deps = deps;
     }
 
+    /// The loader of the core of the connections, created with the first connection. The cores of the connections are
+    /// instances of one module.
+    private nativeOf(registry: Pick<ConnectionRegistry, 'connections'>): core.DashQLCatalogLoader | null {
+        if (this.native != null) return this.native;
+        for (const conn of registry.connections.values()) {
+            if (conn.native == null) continue;
+            const native = conn.instance.createCatalogLoader(this.createHost());
+            this.native = native;
+            if (this.started) native.start();
+            for (const [connectionId, force] of this.pending.splice(0)) native.enqueue(connectionId, force);
+            return native;
+        }
+        return null;
+    }
+
     /// Follow a new connection registry
     setRegistry(registry: Pick<ConnectionRegistry, 'connections'>): void {
         this.registry = registry;
-        const connMap = registry.connections;
-        // The client functions of a connection come with its connector, scripts that call them are re-analyzed
-        for (const connectionId of connMap.keys()) {
-            ensureConnectionClientFunctions(connMap, connectionId, id => this.deps.onCatalogDidUpdate?.(id), this.deps.logger);
-        }
-        // A full refresh only runs on user input and for the initial description of a connection: the catalog of a
-        // connection whose database doesn't outlive the app is not restored from storage, it is described whenever the
-        // connection comes online. A connection that has neither a stored nor a refreshed catalog is described when it
-        // first comes online. Everything else asks the connection about single relations.
-        for (const [connectionId, conn] of connMap) {
-            if (conn.connectionHealth !== ConnectionHealth.ONLINE) {
-                this.online.delete(connectionId);
-            } else if (!this.online.has(connectionId)) {
-                this.online.add(connectionId);
-                if (!connectionCatalogIsDurable(conn.params)) {
-                    this.enqueue(connectionId, true);
-                } else if (!conn.catalogUpdates.described) {
-                    this.enqueue(connectionId, false);
-                }
+        const native = this.nativeOf(registry);
+        if (native == null) return;
+        const ids: string[] = [];
+        for (const [connectionId, conn] of registry.connections) {
+            // A state without a Rust connection, e.g. of a test, has no catalog to load
+            if (conn.native == null) continue;
+            ids.push(connectionId);
+            if (this.followed.get(connectionId) !== conn.native) {
+                native.follow(connectionId, conn.native.connection);
+                this.followed.set(connectionId, conn.native);
             }
         }
-        for (const connectionId of [...this.online]) {
-            if (!connMap.has(connectionId)) this.online.delete(connectionId);
+        for (const connectionId of [...this.followed.keys()]) {
+            if (!registry.connections.has(connectionId)) this.followed.delete(connectionId);
         }
-        this.requestSchedule();
+        native.observe(ids);
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update
     enqueue = (connectionId: string, force: boolean): void => {
-        this.queue.set(connectionId, force || this.queue.get(connectionId) === true);
-        this.requestSchedule();
+        if (this.native == null) {
+            this.pending.push([connectionId, force]);
+            return;
+        }
+        this.native.enqueue(connectionId, force);
     };
 
-    /// Allocate the next update id and start the update
+    /// Start an update of a connection right away, outside of the schedule
     update: CatalogLoader = (connectionId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
-        const updateId = NEXT_CATALOG_UPDATE_ID++;
-        return [updateId, this.updateWithId(connectionId, args, updateId)];
+        const native = this.nativeOf(this.registry);
+        if (native == null) return [0, Promise.reject(new Error(`couldn't find a connection with id ${connectionId}`))];
+        const conn = this.registry.connections.get(connectionId);
+        if (conn?.native != null && this.followed.get(connectionId) !== conn.native) {
+            native.follow(connectionId, conn.native.connection);
+            this.followed.set(connectionId, conn.native);
+        }
+        return native.update(connectionId, args.relations);
     };
 
     /// Start scheduling, e.g. again after stop()
     start(): void {
-        this.stopped = false;
-        this.requestSchedule();
+        this.started = true;
+        this.native?.start();
     }
 
     /// Stop scheduling, running updates finish
     stop(): void {
-        this.stopped = true;
-        if (this.retryTimer != null) clearTimeout(this.retryTimer);
-        this.retryTimer = null;
+        this.started = false;
+        this.native?.stop();
     }
 
-    private requestSchedule(): void {
-        if (this.scheduled || this.stopped) return;
-        this.scheduled = true;
-        queueMicrotask(() => {
-            this.scheduled = false;
-            if (!this.stopped) this.schedule();
-        });
+    /// The task of an update, also one that the connection knows from before
+    private taskOf(connectionId: string, taskId: number): TaskRecord | null {
+        const task = this.tasks.get(taskId);
+        if (task != null) return task;
+        const running = this.registry.connections.get(connectionId)?.catalogUpdates.tasksRunning.get(taskId);
+        return running == null ? null : { connectionId, cancellation: running.cancellation };
     }
 
-    /// Start the updates that the queue and the touched relations ask for
-    private schedule(): void {
+    /// The host of the loader
+    private createHost(): core.CatalogLoaderHost {
         const { logger } = this.deps;
-        const inProgress = this.inProgress;
-
-        // Helper to perform the catalog update
-        const doUpdate = async (connectionId: string, relations: RelationName[] | null) => {
-            inProgress.add(connectionId);
-            try {
-                logger.info("Starting catalog update", { connectionId, relations: String(relations?.length ?? 'all') }, LOG_CTX);
-                const [_updateId, updatePromise] = this.update(connectionId, { relations });
-                await updatePromise;
-            } catch (e: any) {
-                logger.warn("Catalog update failed", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
-            } finally {
-                inProgress.delete(connectionId);
-                this.lastFinishedAt.set(connectionId, Date.now());
-                // Pending requests must be reconsidered even if the registry does not change.
-                this.requestSchedule();
-            }
-        };
-
-        // Ask the connections about the relations of executed statements, when they have room for another query.
-        // A refresh that runs may have read the relations too early, this update follows it and corrects them.
-        for (const [connectionId, conn] of this.registry.connections) {
-            const { touchedRelations: relations, touchedFailures: failures, tasksRunning } = conn.catalogUpdates;
-            if (relations.length === 0 || inProgress.has(connectionId) || tasksRunning.size > 0) continue;
-            // A requested refresh goes first, the lookup follows it
-            if (this.queue.has(connectionId)) continue;
-            // Relations that a restored catalog still has to ask about wait for the connection
-            if (conn.connectionHealth !== ConnectionHealth.ONLINE) continue;
-            if (conn.queriesActive.size >= connectorOfDetails(conn.details).maxConcurrentQueries(conn.details.value)) continue;
-            // The next statement or a manual refresh tries again
-            if (failures >= MAX_TOUCHED_ATTEMPTS) continue;
-            if (failures > 0) {
-                const wait = (this.lastFinishedAt.get(connectionId) ?? 0) + TOUCHED_RETRY_DELAY_MS * failures - Date.now();
-                if (wait > 0) {
-                    if (this.retryTimer == null) {
-                        this.retryTimer = setTimeout(() => {
-                            this.retryTimer = null;
-                            this.requestSchedule();
-                        }, wait);
-                    }
-                    continue;
+        const dispatch = (connectionId: string, action: Parameters<DynamicConnectionDispatch>[1]) => this.deps.dispatchConnection(connectionId, action);
+        return {
+            now: () => Date.now(),
+            setTimer: (ms, callback) => setTimeout(callback, ms),
+            clearTimer: timer => clearTimeout(timer as ReturnType<typeof setTimeout>),
+            log: (level, message, details, target) => {
+                logger[level](message, JSON.parse(details), target);
+            },
+            fetch: async (requestId, request) => {
+                const http = this.deps.http;
+                if (http == null) throw new Error('the catalog loader has no HTTP client');
+                const abort = new AbortController();
+                this.fetchAborts.set(requestId, abort);
+                try {
+                    const response = await http.fetch(request.url, {
+                        method: request.method,
+                        headers: request.headers,
+                        body: request.body ?? undefined,
+                        signal: abort.signal,
+                    });
+                    const headers: [string, string][] = [];
+                    response.headers.forEach((value, name) => headers.push([name, value]));
+                    const body = new Uint8Array(await response.arrayBuffer());
+                    return { status: response.status, statusText: response.statusText, headers, body };
+                } finally {
+                    this.fetchAborts.delete(requestId);
                 }
-            }
-            void doUpdate(connectionId, relations);
-        }
-
-        for (const [connectionId, force] of [...this.queue]) {
-            logger.debug("Received catalog update request", { connectionId }, LOG_CTX);
-
-            // Find the connection
-            const connState = this.registry.connections.get(connectionId);
-            if (!connState) {
-                logger.warn("Failed to resolve connection", { connectionId }, LOG_CTX);
-                this.queue.delete(connectionId);
-                continue;
-            }
-
-            // Has a current catalog update running?
-            // Skip auto-updates, but let explicit user refreshes supersede
-            // the in-flight ones by aborting them first.
-            if (connState.catalogUpdates.tasksRunning.size > 0) {
-                if (!force) {
-                    logger.info("Skipping redundant catalog update", { connectionId }, LOG_CTX);
-                    continue;
+            },
+            abortFetch: requestId => {
+                this.fetchAborts.get(requestId)?.abort(new DOMException('The request was cancelled', 'AbortError'));
+            },
+            updateStarted: (connectionId, taskId, variant, relations) => {
+                const cancellation = new AbortController();
+                // Every abort cancels the update in the loader: a forced refresh, a reset of the connection, the caller
+                cancellation.signal.addEventListener('abort', () => {
+                    this.native?.cancel(taskId, reasonOf(cancellation.signal.reason));
+                }, { once: true });
+                this.tasks.set(taskId, { connectionId, cancellation });
+                dispatch(connectionId, {
+                    type: UPDATE_CATALOG,
+                    value: [taskId, {
+                        taskId,
+                        taskVariant: variant === 0 ? CatalogUpdateVariant.FULL_CATALOG_REFRESH : CatalogUpdateVariant.RELATION_REFRESH,
+                        status: CatalogUpdateTaskStatus.STARTED,
+                        cancellation,
+                        queries: [],
+                        error: null,
+                        startedAt: new Date(),
+                        finishedAt: null,
+                        touchedRelations: JSON.parse(relations) as RelationName[],
+                    }],
+                });
+            },
+            abortUpdate: (connectionId, taskId, reason) => {
+                const task = this.taskOf(connectionId, taskId);
+                if (task != null && !task.cancellation.signal.aborted) {
+                    task.cancellation.abort(new DOMException(reason, 'AbortError'));
                 }
-                for (const task of connState.catalogUpdates.tasksRunning.values()) {
-                    if (!task.cancellation.signal.aborted) {
-                        task.cancellation.abort(new DOMException('Superseded by forced catalog refresh', 'AbortError'));
-                    }
-                }
-            }
-
-            // Keep forced requests queued until the cancelled execution settles.
-            if (inProgress.has(connectionId)) {
-                continue;
-            }
-
-            // A refresh described the connection meanwhile
-            if (!force && connState.catalogUpdates.described) {
-                this.queue.delete(connectionId);
-                continue;
-            }
-
-            // Perform the catalog update
-            this.queue.delete(connectionId);
-            void doUpdate(connectionId, null);
-        }
-    }
-
-    /// Update the catalog with a pre-allocated update id
-    private async updateWithId(connectionId: string, args: CatalogLoaderArgs, updateId: number): Promise<void> {
-        const { logger, dispatchConnection: connDispatch, execute: executor, salesforce: sfapi } = this.deps;
-        const connMap = this.registry.connections;
-        // Each catalog update gets its own trace so failures don't borrow
-        // whatever trace happens to be on a shared stack.
-        const traced = logger.withTrace(createTrace());
-
-        const conn = connMap.get(connectionId);
-        if (!conn) {
-            traced.warn("Failed to resolve connection", { connectionId }, LOG_CTX);
-            throw new Error(`couldn't find a connection with id ${connectionId}`);
-        }
-        if (!executor) {
-            traced.warn("Query executor not configured", { connectionId }, LOG_CTX);
-            throw new Error(`couldn't find trino executor`);
-        }
-
-        traced.debug("Updating catalog", { connectionId }, LOG_CTX);
-
-        const relations = args.relations;
-
-        // Accept the query and clear the request
-        const abortController = new AbortController();
-        const now = new Date();
-        const initialState: CatalogUpdateTaskState = {
-            taskId: updateId,
-            taskVariant: relations != null ? CatalogUpdateVariant.RELATION_REFRESH : CatalogUpdateVariant.FULL_CATALOG_REFRESH,
-            status: CatalogUpdateTaskStatus.STARTED,
-            cancellation: abortController,
-            queries: [],
-            error: null,
-            startedAt: now,
-            finishedAt: null,
-            touchedRelations: relations ?? [],
-        };
-        connDispatch(connectionId, {
-            type: UPDATE_CATALOG,
-            value: [updateId, initialState],
-        });
-
-        // Emit a heartbeat log every few seconds so long-running updates
-        // don't look like a silent hang between "Starting" and "Updated".
-        const updateStartMs = performance.now();
-        const heartbeat = setInterval(() => {
-            const elapsedMs = performance.now() - updateStartMs;
-            traced.info("Catalog update in progress", {
-                connectionId,
-                "updateId": updateId.toString(),
-                "elapsedMs": elapsedMs.toFixed(0),
-            }, LOG_CTX);
-        }, 5000);
-
-        // Update the catalog
-        const versionBefore = conn.catalog.version();
-        try {
-            const batchOptions = {
-                abortSignal: abortController.signal,
-                isCurrent: () => this.registry.connections.get(connectionId)?.catalog === conn.catalog,
-            };
-            let partialError: Error | null = null;
-            switch (conn.details.type) {
-                // Update the catalog by querying the information_schema
-                case TRINO_CONNECTOR: {
-                    // Trino folds the names of relations to lower case
-                    if (relations != null) {
-                        const folded = relations.map(r => ({ databaseName: r.databaseName.toLowerCase(), schemaName: r.schemaName.toLowerCase(), tableName: r.tableName.toLowerCase() }));
-                        await updateInformationSchemaRelations(connectionId, connDispatch, updateId, folded, executor, conn.catalog, conn.catalogRelationEntryId, batchOptions);
+            },
+            updateFinished: (connectionId, taskId, outcome) => {
+                const task = this.taskOf(connectionId, taskId);
+                this.tasks.delete(taskId);
+                switch (outcome.status) {
+                    case 'succeeded':
+                        dispatch(connectionId, { type: CATALOG_UPDATE_SUCCEEDED, value: [taskId, outcome.catalogChanged] });
+                        break;
+                    case 'partiallySucceeded':
+                        dispatch(connectionId, { type: CATALOG_UPDATE_PARTIALLY_SUCCEEDED, value: [taskId, new Error(outcome.error ?? '')] });
+                        break;
+                    case 'failed':
+                        dispatch(connectionId, { type: CATALOG_UPDATE_FAILED, value: [taskId, new Error(outcome.error ?? '')] });
+                        break;
+                    case 'cancelled': {
+                        const reason = task?.cancellation.signal.reason;
+                        const error = reason instanceof Error ? reason : new DOMException(outcome.error ?? 'Catalog refresh was cancelled', 'AbortError');
+                        dispatch(connectionId, { type: CATALOG_UPDATE_CANCELLED, value: [taskId, error] });
                         break;
                     }
-                    const setupParams = conn.details.value.proto.setupParams;
-                    let scopes = setupParams ? trinoCatalogScopes(setupParams) : [];
-                    // Without configured catalogs, read all catalogs of the server
-                    if (scopes.length === 0) {
-                        scopes = await queryTrinoCatalogScopes(connectionId, connDispatch, updateId, executor, abortController.signal);
-                    }
-                    await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, scopes, executor, conn.catalog, conn.catalogRelationEntryId, batchOptions);
-                    break;
                 }
-                case HYPER_CONNECTOR: {
-                    const result = await this.deps.updateHyperCatalog(
-                        traced,
-                        connectionId,
-                        connDispatch,
-                        updateId,
-                        (conn.details.value.proto.setupParams?.attachedDatabases ?? []).map(database => ({
-                            path: database.path ?? '',
-                            alias: database.alias,
-                        })),
-                        executor,
-                        conn.catalog,
-                        conn.instance,
-                        conn.catalogRelationEntryId,
-                        conn.catalogFunctionScript,
-                        conn.details.value.proto.setupParams?.protocol === 'WASM',
-                        abortController.signal,
-                        batchOptions,
-                        relations,
-                    );
-                    if (result.failures.length > 0) {
-                        partialError = new Error(result.failures
-                            .map(failure => `${failure.database}: ${failure.error.message}`)
-                            .join('; '));
-                        traced.warn('Partially updated Hyper catalog', {
-                            connectionId,
-                            updated: result.updatedDatabases.join(', '),
-                            failed: result.failures.map(failure => failure.database).join(', '),
-                        }, LOG_CTX);
-                    }
-                    break;
+                // Announce the new catalog, the scripts that use the connection are analyzed again
+                if (outcome.announces) this.deps.onCatalogDidUpdate?.(connectionId);
+            },
+            runQuery: async (requestId, connectionId, taskId, query) => {
+                const execute = this.deps.execute;
+                if (execute == null) throw new Error('the catalog loader has no query executor');
+                const abort = new AbortController();
+                this.queryAborts.set(requestId, abort);
+                try {
+                    const task = this.taskOf(connectionId, taskId);
+                    const abortSignal = task == null ? abort.signal : anySignal([task.cancellation.signal, abort.signal]);
+                    const [queryId, execution] = execute(connectionId, {
+                        query: query.sql,
+                        abortSignal,
+                        readTimeoutMs: query.readTimeoutMs ?? undefined,
+                        throwOnError: true,
+                        metadata: {
+                            queryType: query.queryType as QueryType,
+                            title: query.title,
+                            description: null,
+                            issuer: CATALOG_QUERY_ISSUER,
+                            userProvided: false,
+                        },
+                    });
+                    dispatch(connectionId, { type: CATALOG_UPDATE_REGISTER_QUERY, value: [taskId, queryId] });
+                    const table = await execution;
+                    return table == null ? null : arrow.tableToIPC(table, 'stream');
+                } finally {
+                    this.queryAborts.delete(requestId);
                 }
-                // Update the catalog by querying the _hyper_catalog of the attached Hyper Cloud database
-                case DBCOM_CONNECTOR:
-                    await this.deps.updateHyperCatalog(
-                        traced,
-                        connectionId,
-                        connDispatch,
-                        updateId,
-                        [getHyperCloudAttachedDatabase(conn.details.value.proto.setupParams)],
-                        executor,
-                        conn.catalog,
-                        conn.instance,
-                        conn.catalogRelationEntryId,
-                        conn.catalogFunctionScript,
-                        false,
-                        abortController.signal,
-                        batchOptions,
-                        relations,
-                    );
-                    break;
-                // Update the catalog by querying the Salesforce Metadata Service
-                case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                    await updateSalesforceCatalog(
-                        traced,
-                        conn.details.value,
-                        conn.catalog,
-                        conn.instance,
-                        conn.catalogRelationEntryId,
-                        conn.catalogFunctionScript,
-                        sfapi,
-                        abortController,
-                        batchOptions,
-                    );
-                    break;
-            }
-            traced.debug("Updated catalog", { connectionId }, LOG_CTX);
-
-            // Mark the update successful
-            if (partialError == null) {
-                connDispatch(connectionId, {
-                    type: CATALOG_UPDATE_SUCCEEDED,
-                    value: [updateId, conn.catalog.version() !== versionBefore],
-                });
-            } else {
-                connDispatch(connectionId, {
-                    type: CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
-                    value: [updateId, partialError],
-                });
-            }
-            // Announce the new catalog
-            this.deps.onCatalogDidUpdate?.(connectionId);
-
-        } catch (e: any) {
-            if (e?.name === 'AbortError') {
-                traced.info("Cancelled catalog update", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
-                connDispatch(connectionId, {
-                    type: CATALOG_UPDATE_CANCELLED,
-                    value: [updateId, e],
-                });
-            } else {
-                traced.error("Failed to update catalog", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
-                connDispatch(connectionId, {
-                    type: CATALOG_UPDATE_FAILED,
-                    value: [updateId, e],
-                });
-            }
-        } finally {
-            clearInterval(heartbeat);
-            const totalMs = performance.now() - updateStartMs;
-            traced.info("Finished catalog update", {
-                connectionId,
-                "updateId": updateId.toString(),
-                "durationMs": totalMs.toFixed(0),
-            }, LOG_CTX);
-        }
+            },
+            abortQuery: requestId => {
+                this.queryAborts.get(requestId)?.abort(new DOMException('Catalog refresh was cancelled', 'AbortError'));
+            },
+            salesforceMetadata: async (connectionId, dataSpace) => {
+                // The client over the HTTP client of the platform is what the loader does itself
+                const api = this.deps.salesforce;
+                if (api == null || api instanceof SalesforceApiClient) return null;
+                const conn = this.registry.connections.get(connectionId);
+                if (conn?.details.type !== SALESFORCE_DATA_CLOUD_CONNECTOR) return null;
+                const details = conn.details.value as SalesforceConnectionStateDetails;
+                const coreAccessToken = details.proto.oauthState?.coreAccessToken;
+                if (coreAccessToken == null) throw new Error('Salesforce core access token is missing');
+                const metadata = await api.getDataCloudMetadata(coreAccessToken, dataSpace, new AbortController().signal);
+                return JSON.stringify(metadata);
+            },
+            loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)),
+            catalogChanged: connectionId => this.deps.onCatalogDidUpdate?.(connectionId),
+        };
     }
 }

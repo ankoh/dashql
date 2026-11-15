@@ -72,6 +72,7 @@ mod storage_writer;
 mod query_executor;
 mod restore;
 mod connection_persistence;
+mod catalog_loader;
 mod workbook_format;
 
 /// A formatting config from the numeric arguments of the JS API

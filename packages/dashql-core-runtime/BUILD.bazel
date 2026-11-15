@@ -188,6 +188,20 @@ rust_test(
     ],
 )
 
+# The catalog loader as a service on a fake host: the queue, the relations of statements, Salesforce, client functions
+rust_test(
+    name = "catalog_loader_service_test",
+    size = "small",
+    srcs = ["tests/catalog_loader_service_test.rs"],
+    data = ["//extensions/d360-api:files"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_runtime",
+        "@core_crates//:arrow-array",
+        "@core_crates//:serde_json",
+    ],
+)
+
 rust_test(
     name = "trino_test",
     size = "small",

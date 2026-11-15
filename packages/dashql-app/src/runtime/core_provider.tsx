@@ -5,7 +5,6 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { TracedLogger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
 import { decodedContentLength } from '../utils/content_length.js';
-import { disposeCatalogBatchWorker, initializeCatalogBatchWorker } from '@ankoh/dashql-runtime/connections/catalog/catalog_batch';
 import { CorePanicOverlay } from './core_panic_overlay.js';
 import { provideWorkbookFormatCore, setWorkbookFormatCoreLoader } from '@ankoh/dashql-runtime/storage/workbook_format';
 
@@ -45,19 +44,13 @@ export interface InstantiationProgress {
 const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<dashql.DashQL>) | null>(null);
 const PROGRESS_CONTEXT = React.createContext<InstantiationProgress | null>(null);
 
-export interface DashQLCoreSetupOptions {
-    setupBatchWorker: boolean;
-}
-
 interface Props {
     children: React.ReactElement;
-    initialSetup?: DashQLCoreSetupOptions;
 }
 
 export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const instantiation = React.useRef<Promise<dashql.DashQL> | null>(null);
-    const initialSetup = React.useRef(props.initialSetup);
     const lifecycle = React.useRef<{ disposed: boolean; core: dashql.DashQL | null }>({ disposed: false, core: null });
     const [progress, setProgress] = React.useState<InstantiationProgress | null>(null);
 
@@ -121,19 +114,6 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 const instance = await dashql.DashQL.create({ wasmBinary });
                 provideWorkbookFormatCore(instance);
                 owner.core = instance;
-                if (owner.disposed) {
-                    disposeCatalogBatchWorker(instance);
-                    throw new DOMException('Core provider was disposed', 'AbortError');
-                }
-                if (initialSetup.current?.setupBatchWorker) {
-                    try {
-                        await initializeCatalogBatchWorker(instance);
-                    } catch (error) {
-                        if (owner.disposed) throw new DOMException('Core provider was disposed', 'AbortError');
-                        disposeCatalogBatchWorker(instance);
-                        throw error;
-                    }
-                }
                 if (owner.disposed) throw new DOMException('Core provider was disposed', 'AbortError');
 
                 const initEnd = performance.now();
@@ -169,7 +149,6 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
         const owner = lifecycle.current;
         return () => {
             owner.disposed = true;
-            if (owner.core) disposeCatalogBatchWorker(owner.core);
             instantiation.current = null;
         };
     }, []);

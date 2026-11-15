@@ -24,7 +24,6 @@ const SEAMS = [
 ];
 /// The modules that still use a seam, each needs another way to what it does before Node can use it
 const KNOWN_SEAMS = new Map([
-    ['connections/catalog/catalog_batch.ts', ['a Web Worker']],
     ['platform/electron_fs.ts', ['the Electron bridge']],
     ['platform/opfs_root.ts', ['the origin private file system']],
 ]);

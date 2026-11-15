@@ -88,8 +88,8 @@ impl ConnectionPersistence {
     ) -> Result<(), JsError> {
         let state = connection.state();
         let prev = PersistedConnection::from_json(&parse(prev)?).ok_or_else(|| invalid("invalid persisted connection"))?;
-        let change = change(change_json, state)?;
-        let writes = connection_writes(connection_id, &prev, state, &change, &workbook_ids);
+        let change = change(change_json, &state)?;
+        let writes = connection_writes(connection_id, &prev, &state, &change, &workbook_ids);
         schedule_connection_writes(&writer.runtime(), writes, connection_id);
         Ok(())
     }
@@ -124,8 +124,8 @@ impl ConnectionPersistence {
     ) -> Result<Promise, JsError> {
         let state = connection.state();
         let given = saved.as_deref().map(ConnectionParams::from_json).transpose().map_err(|e| invalid(e.message))?;
-        let params = saved_params(state, given.as_ref());
-        let entry = saved_entry(&connection_id, state, &params);
+        let params = saved_params(&state, given.as_ref());
+        let entry = saved_entry(&connection_id, &state, &params);
         let params_json = params.to_json();
         let params: Value = serde_json::from_str(&params_json).unwrap_or(Value::Null);
         let writer = writer.runtime();

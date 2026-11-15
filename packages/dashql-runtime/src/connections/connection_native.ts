@@ -260,7 +260,6 @@ export class NativeConnection {
     /// Apply the effects of an action. A connection that is stopped aborts its catalog updates and its queries.
     applyEffects(connectionState: ConnectionState, effects: core.DashQLConnectionEffect[], reason: string, hooks: {
         cancelSetup(connectionId: string): void;
-        invalidateCatalogBatch(catalog: core.DashQLCatalog): void;
     }): void {
         for (const effect of effects) {
             switch (effect.type) {
@@ -268,7 +267,8 @@ export class NativeConnection {
                     hooks.cancelSetup(connectionState.connectionId);
                     break;
                 case 'invalidateCatalogBatch':
-                    hooks.invalidateCatalogBatch(this.connection.catalog);
+                    // The catalog loader of the Rust runtime publishes only for a connection that runs its update, the
+                    // updates are aborted next
                     break;
                 case 'abortCatalogUpdates':
                     for (const taskId of effect.taskIds) {

@@ -23,6 +23,7 @@ pub mod prefetched_hyper_functions;
 mod prefetched_hyper_functions_sql;
 pub mod salesforce;
 pub mod scheduler;
+pub mod service;
 pub mod sql;
 pub mod tables;
 pub mod trino;
@@ -42,6 +43,7 @@ use crate::query::QueryType;
 
 pub use batch::{CatalogBatch, CatalogBatchEntry, CatalogGenerations, CatalogTicket};
 pub use scheduler::{CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogSchedule};
+pub use service::{CatalogLoaderHost, CatalogLoaderService, FollowedConnection, QueryBatches};
 
 /// The read timeout of the metadata queries of Hyper
 pub const CATALOG_QUERY_READ_TIMEOUT_MS: u32 = 60_000;
@@ -360,6 +362,11 @@ impl CatalogUpdate {
     /// Cancel the update, e.g. when its cancellation token fired or its connection got another catalog
     pub fn cancel(&mut self, reason: &str) {
         self.fail(CatalogLoadError::cancelled(reason));
+    }
+
+    /// End the update with an error that the host ran into, e.g. a catalog that it couldn't borrow
+    pub fn abort(&mut self, error: CatalogLoadError) {
+        self.fail(error);
     }
 
     /// What the update asks for next. An update whose batch was superseded is cancelled.

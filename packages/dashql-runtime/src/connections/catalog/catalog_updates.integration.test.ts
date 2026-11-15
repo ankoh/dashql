@@ -1,23 +1,28 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
 import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import type { EmbeddedConnection } from '../../platform/database/embedded_database.js';
 import { TestLogger } from '../../testing/test_logger.js';
-import { updateHyperCatalog } from '../hyper/hyper_catalog_update.js';
 import type { QueryExecutor } from '../query_execution_args.js';
+import type { ConnectionRegistry } from '../connection_registry_state.js';
+import { createConnectionState, reduceConnectionState, type ConnectionState } from '../connection_state.js';
+import { createConnectionStateDetails } from '../connection_state_details.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
+import { CatalogLoaderService } from './catalog_loader_service.js';
 import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from './catalog_sql_generator.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 const CONNECTION = dashql.buffers.catalog.CatalogLayer.CONNECTION;
 
-/// The way of a statement to the catalog, on a real embedded Hyper
+/// The way of a statement to the catalog, on a real embedded Hyper, through the catalog loader of the runtime
 describe('the catalog of a connection follows statements', () => {
     let dql: dashql.DashQL;
     let connection: EmbeddedConnection;
+    let registry: ConnectionRegistry;
+    let loader: CatalogLoaderService;
     let catalog: dashql.DashQLCatalog;
-    let functions: dashql.DashQLScript;
     let relations: number;
     let queries: string[];
 
@@ -25,12 +30,12 @@ describe('the catalog of a connection follows statements', () => {
         queries.push(args.query);
         return [queries.length, connection.query(args.query) as never];
     };
-    /// Ask the connection about what a statement touched, like the catalog loader does
+    /// Ask the connection about what a statement touched, like the catalog loader does after a statement
     const follow = async (statement: string) => {
         const touched = dql.touchedRelations(statement).map(name => readRelationName(name, 'hyper'));
         if (touched.length === 0) return;
-        await updateHyperCatalog(new TestLogger(), 'connection', vi.fn(), 1, [], executor, catalog, dql, relations, functions, true,
-            new AbortController().signal, { processor: async request => dql.processBatch(request) }, touched);
+        const [, done] = loader.update('connection', { relations: touched });
+        await done;
     };
     const run = async (statement: string) => {
         await connection.query(statement);
@@ -54,9 +59,23 @@ describe('the catalog of a connection follows statements', () => {
         dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
         const database = await openTestHyperDB('catalog_updates_integration_test');
         connection = await database.connect();
-        catalog = dql.createCatalog();
-        functions = dql.createScript(catalog);
-        relations = catalog.allocateEntryId();
+        const details = createConnectionStateDetails(ConnectorType.HYPER);
+        (details.value.proto as { setupParams?: object }).setupParams = { protocol: 'WASM' };
+        const state: ConnectionState = { ...createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER], details), connectionId: 'connection' };
+        registry = { connections: new Map([['connection', state]]), connectionsByType: [] };
+        loader = new CatalogLoaderService({
+            logger: new TestLogger(),
+            dispatchConnection: (id, action) => {
+                registry.connections.set(id!, reduceConnectionState(registry.connections.get(id!)!, action, new TestLogger()));
+            },
+            execute: executor,
+            http: null,
+            salesforce: null,
+        });
+        // Only the updates of the tests run, nothing is scheduled
+        loader.setRegistry(registry);
+        catalog = state.catalog;
+        relations = state.catalogRelationEntryId;
         queries = [];
     });
     afterAll(async () => {

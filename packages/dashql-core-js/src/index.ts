@@ -5,6 +5,7 @@ export * from './connection.js';
 export * from './computations.js';
 export * from './storage_writer.js';
 export * from './query_executor.js';
+export * from './catalog_loader.js';
 export * from './restore.js';
 export * from './connection_persistence.js';
 export * from './workbook_format.js';

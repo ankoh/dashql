@@ -2,17 +2,16 @@
 
 A batch turns SQL text into catalog descriptors. Connections need that for the SQL they have: the file with their relations
 when a connection is restored, and their functions, which come as SQL. The relations that a refresh reads are no SQL, they
-become descriptors directly (see `catalog_updates.md`). Scanning, parsing and analyzing a large file on the browser
-event loop blocks the UI, so the batch API separates preparation from publication:
+become descriptors directly (see `catalog_updates.md`). The batch API separates preparation from publication:
 
-- A request carries complete source texts instead of coordinating live scripts across threads.
-- Preparation runs in a dedicated worker with its own core module and never touches the UI's catalog.
+- A request carries complete source texts instead of coordinating live scripts.
+- Preparation runs on a catalog of its own and never touches the catalog it publishes into.
 - Results are owned, portable buffers (catalog descriptors), not handles into a core module.
-- The app validates all results before it replaces any catalog entry.
+- The loader validates all results before it replaces any catalog entry.
 - The previous catalog stays published when preparation fails, is cancelled, or becomes obsolete.
 
-The native API is synchronous; the worker provides the asynchronous boundary. A batch processes its scripts
-sequentially. Interactive editing, completion and query execution do not use the batch API.
+The native API is synchronous. A batch processes its scripts sequentially. Interactive editing, completion and query
+execution do not use the batch API.
 
 How descriptor entries live in the catalog (layers, versions, `replace_descriptor`, the relations of executed statements) is
 described in `core_analysis_catalog.md`.
@@ -21,17 +20,17 @@ described in `core_analysis_catalog.md`.
 
 ```mermaid
 sequenceDiagram
-    participant UI as App / main core
-    participant W as Batch worker / worker core
-    UI->>UI: Begin a catalog batch; fetch metadata
-    UI->>W: BatchRequest with catalog SQL
-    W->>W: Scan / parse / analyze in a fresh catalog
-    W-->>UI: Diagnostics and descriptor buffers
-    UI->>UI: Check generation, abort signal and results
+    participant L as Catalog loader (core module)
+    participant B as Batch (own catalog)
+    L->>L: Begin a catalog batch; fetch metadata
+    L->>B: BatchRequest with catalog SQL
+    B->>B: Scan / parse / analyze in a fresh catalog
+    B-->>L: Diagnostics and descriptor buffers
+    L->>L: Check generation, cancellation and results
     loop Each entry
-        UI->>UI: Replace the text of its script, if it has one
-        UI->>UI: Replace its descriptor (one catalog version)
+        L->>L: Replace its descriptor (one catalog version)
     end
+    L->>L: Replace the text of the function script
 ```
 
 ## Batch Contract
@@ -65,55 +64,49 @@ Each input has a caller-defined string id, SQL text, and a mask of outputs:
 
 ## Worker
 
-There is one batch worker per main-thread `DashQL` instance (`batch_worker.ts`, `batch_worker_client.ts`,
-exported as `@ankoh/dashql-core/browser-worker`).
+The core package has a batch worker per main-thread `DashQL` instance (`batch_worker.ts`, `batch_worker_client.ts`,
+exported as `@ankoh/dashql-core/browser-worker`) for integrations that parse large files off the event loop. The app
+doesn't start it: the catalog loader and the restore of the runtime parse their batches in the core module.
 
-- `DashQLCoreProvider` initializes the worker during initial core setup when created with
-  `initialSetup={{ setupBatchWorker: true }}` (`packages/dashql-app/src/runtime/core_provider.tsx`). The
-  workbook app enables it; the shell does not. The option is captured at creation.
-- `initialize()` warms the module with an empty batch and memoizes readiness. Initialization failure fails
-  core setup and disposes the worker.
+- `initialize()` warms the module with an empty batch and memoizes readiness.
 - The worker caches its core module across requests; only the scripts and the temporary catalog are
   job-local. Jobs are serialized through a promise queue, and output buffers are transferred to the caller.
-- A transport error closes the client and rejects pending requests. Catalog batches fail without an
-  initialized worker (`getCatalogBatchWorker`); there is no automatic replacement.
-- Provider disposal terminates the worker and aborts outstanding publication.
+- A transport error closes the client and rejects pending requests.
 
-## Application Publication
+## Publication
 
-`packages/dashql-runtime/src/connections/catalog/catalog_batch.ts` is the commit boundary. Production callers request
-only `catalogDescriptor` outputs.
+The catalog loader of the runtime publishes the batches of an update (`catalog_loader/batch.rs` and
+`catalog_loader/service.rs` of `dashql_core_runtime`). Production callers request only `catalogDescriptor` outputs.
 
-- `beginCatalogBatch(catalog)` allocates a generation per catalog before metadata is fetched;
-  `invalidateCatalogBatch` supersedes it. Stopping a connection invalidates the generation and aborts its
-  running catalog tasks (the effects of the Rust connection, `connection_native.ts`).
-- Immediately before commit, `publishCatalogBatch` checks the generation, the abort signal, an optional
-  `isCurrent()` connection check, and the core lifetime. It then prechecks every result: count, matching ids,
-  failures, error diagnostics, descriptor presence, and `requireFunctions` (a non-empty function catalog).
-- Entries are then committed sequentially without an asynchronous gap: `script.replaceText` of an entry with a
-  script, then `catalog.replaceDescriptor(entryId, CatalogLayer.CONNECTION, bytes)`. An entry with only an id keeps no
-  text. If a step fails, only that entry's text is restored. Earlier entries stay published and later ones are not
-  attempted, so a refresh is atomic per descriptor but not across descriptors.
-- Cancellation stops waiting and prevents publication; it does not interrupt a job already running in the
-  worker.
-- `catalog_loader.tsx` queues forced refreshes behind the running one. An automatic refresh only describes a connection
-  that nothing describes yet (`catalogUpdates.described`); only a forced refresh replaces a catalog.
+- An update begins a generation of the catalog (`CatalogGenerations::begin`) before it fetches metadata, a newer update
+  of the catalog supersedes it.
+- The batch of an update parses in the module (`CatalogBatch::process`), on a catalog of its own, between two steps of
+  the update.
+- Immediately before publication the update checks its generation and its cancellation, and the loader checks that the
+  connection still runs the update. A reset or a delete of the connection aborts its updates. Then every result is
+  prechecked: count, matching ids, failures, error diagnostics, descriptor presence, and `require_functions` (a
+  non-empty function catalog).
+- Entries are then published in order without an asynchronous gap (`publish_prepared`). A failure stops the
+  publication, earlier entries stay published and later ones are not attempted, so a refresh is atomic per descriptor
+  but not across descriptors. The text of the function script is replaced once its descriptor is published.
+- A forced refresh aborts the running update of the connection. An automatic refresh only describes a connection that
+  nothing describes yet (`CatalogUpdates::described`); only a forced refresh replaces a catalog.
+
+`publishCatalogBatchSync` of `packages/dashql-runtime/src/connections/catalog/catalog_batch.ts` prepares and
+publishes catalog SQL on the main thread for tests and tools, with the same checks and the same order.
 
 ## Uses
 
 | Path | Inputs |
 |---|---|
-| Restoring a connection catalog (`restore/catalog.rs` of `dashql_core_runtime`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only. The module processes the batch itself (`publish_catalog_batch_sync`), without the worker. |
-| Hyper refresh (`hyper/hyper_catalog_update.ts`) | Functions from `pg_proc` for the WASM protocol, otherwise prefetched function SQL. `requireFunctions` is set unless the live `pg_proc` catalog is used. |
-| Salesforce refresh (`salesforce/salesforce_catalog_update.ts`) | Prefetched functions |
+| Restoring a connection catalog (`restore/catalog.rs` of `dashql_core_runtime`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only (`publish_catalog_batch_sync`). |
+| Hyper refresh (`catalog_loader/hyper.rs`) | Functions from `pg_proc` for the WASM protocol, otherwise the bundled function SQL. `require_functions` is set unless the live `pg_proc` catalog is used. |
+| Salesforce refresh (`catalog_loader/salesforce.rs`) | The bundled functions |
 
 The functions of a refresh are published first. Its relations follow without a batch, a failure leaves them as they were.
 
-`publishCatalogBatchSync` runs the same preparation and commit on the main thread. Its only caller,
-`loadPrefetchedHyperFunctions`, is used by tests.
-
 The live Hyper function query uses `unnest(...) WITH ORDINALITY` and `format_type` over native arrays
-(`catalog_query_pg_proc.ts`), because Hyper WASM supports neither `array_to_json` nor casting `oidvector` to
+(`catalog_loader/pg_proc.rs`), because Hyper WASM supports neither `array_to_json` nor casting `oidvector` to
 `oid[]`. Hyper exposes incomplete built-in function signatures; missing return types become `any`, and
 batching does not reconstruct argument metadata the engine does not expose.
 
@@ -121,8 +114,9 @@ batching does not reconstruct argument metadata the engine does not expose.
 
 - Core: `packages/dashql-core-script/tests/batch_test.rs`, `packages/dashql-core/tests/catalog_descriptor_test.rs`.
 - Core JS: `packages/dashql-core-js/src/batch.test.ts`, `batch_worker_client.test.ts`.
-- App: a live Hyper WASM test (`catalog_query_pg_proc.test.ts`) runs the function metadata query, generates
-  SQL, prepares a descriptor, imports it and checks completion, which mocked Arrow fixtures cannot establish.
+- Runtime: `packages/dashql-core-runtime/tests/catalog_loader_test.rs` (the updates and their batches) and
+  `catalog_loader_service_test.rs` (the loader on a host). `catalog_updates.integration.test.ts` of the TypeScript
+  runtime runs lookups through the loader on the embedded Hyper.
 
 ## Main Files
 
@@ -132,6 +126,6 @@ batching does not reconstruct argument metadata the engine does not expose.
 - `packages/dashql-core-js/src/batch.ts`, `api.ts`: API and buffer ownership.
 - `packages/dashql-core-js/src/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker
   transport.
-- `packages/dashql-runtime/src/connections/catalog/catalog_batch.ts`: commit boundary.
-- `packages/dashql-runtime/src/connections/catalog/catalog_loader_service.ts`: refresh queue and supersession.
+- `packages/dashql-core-runtime/src/catalog_loader/batch.rs`: batches, generations and publication.
+- `packages/dashql-core-runtime/src/catalog_loader/service.rs`: refresh queue, supersession and the updates.
 - `packages/dashql-core-runtime/src/restore/catalog.rs`: catalog restoration.

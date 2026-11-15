@@ -1,14 +1,10 @@
 import * as arrow from "apache-arrow";
 
-import type { QueryExecutor } from '../query_execution_args.js';
-import { QueryExecutionArgs } from '../query_execution_args.js';
-import type { DynamicConnectionDispatch } from '../connection_registry_state.js';
-import { CATALOG_UPDATE_REGISTER_QUERY } from "../connection_state.js";
-import { QueryType } from '../../query/query_execution_state.js';
 import { catalogTablesOfSchema, relationFilter, type CatalogTable, type ColumnMetadata, type RelationName } from './catalog_sql_generator.js';
 import { quoteIdentifier } from '../../utils/sql_quote.js';
 
-export const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
+// The query of the columns of the relations of a Hyper and their tables, for the embedded database of the standalone
+// shell. The catalog loader of the Rust runtime has its own (`catalog_loader/pg_attribute.rs`).
 
 export type PgAttributeColumnsTable = arrow.Table<{
     table_schema: arrow.Utf8;
@@ -105,38 +101,4 @@ export function pgAttributeQuery(scope: PgAttributeScope = {}): string {
         ${systemFilter}
         ORDER BY n.nspname, c.relname, a.attnum
     `;
-}
-
-export async function queryPgAttribute(
-    connectionId: string,
-    connectionDispatch: DynamicConnectionDispatch,
-    updateId: number,
-    executor: QueryExecutor,
-    queryDatabaseName: string | null = null,
-    abortSignal?: AbortSignal,
-    relations: RelationName[] | null = null,
-): Promise<PgAttributeColumnsTable | null> {
-    const query = pgAttributeQuery({ queryDatabaseName, relations });
-
-    const args: QueryExecutionArgs = {
-        query: query,
-        abortSignal,
-        readTimeoutMs: CATALOG_QUERY_READ_TIMEOUT_MS,
-        throwOnError: true,
-        metadata: {
-            queryType: QueryType.CATALOG_QUERY_PG_ATTRIBUTE,
-            title: "Query Postgres Schema Columns",
-            description: null,
-            issuer: "Catalog Update",
-            userProvided: false
-        }
-    };
-    const [queryId, queryExecution] = executor(connectionId, args);
-    connectionDispatch(connectionId, {
-        type: CATALOG_UPDATE_REGISTER_QUERY,
-        value: [updateId, queryId]
-    });
-
-    const queryResult = await queryExecution as PgAttributeColumnsTable;
-    return queryResult;
 }

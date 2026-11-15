@@ -123,3 +123,43 @@ impl fmt::Display for HostError {
         f.write_str(&self.message)
     }
 }
+
+/// A future of a task of the host
+pub type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
+
+/// Futures that run at the same time, their outputs in their order once all of them completed
+pub struct JoinAll<T> {
+    futures: Vec<Option<LocalFuture<T>>>,
+    outputs: Vec<Option<T>>,
+}
+
+impl<T> Unpin for JoinAll<T> {}
+
+/// Run futures at the same time and complete with their outputs in their order
+pub fn join_all<T>(futures: Vec<LocalFuture<T>>) -> JoinAll<T> {
+    let outputs = futures.iter().map(|_| None).collect();
+    JoinAll { futures: futures.into_iter().map(Some).collect(), outputs }
+}
+
+impl<T> Future for JoinAll<T> {
+    type Output = Vec<T>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Vec<T>> {
+        let this = &mut *self;
+        let mut pending = false;
+        for (slot, output) in this.futures.iter_mut().zip(this.outputs.iter_mut()) {
+            let Some(future) = slot else { continue };
+            match future.as_mut().poll(cx) {
+                std::task::Poll::Ready(value) => {
+                    *output = Some(value);
+                    *slot = None;
+                }
+                std::task::Poll::Pending => pending = true,
+            }
+        }
+        if pending {
+            return std::task::Poll::Pending;
+        }
+        std::task::Poll::Ready(this.outputs.iter_mut().filter_map(Option::take).collect())
+    }
+}

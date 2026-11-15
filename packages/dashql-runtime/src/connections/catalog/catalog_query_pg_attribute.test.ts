@@ -1,22 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { CATALOG_QUERY_READ_TIMEOUT_MS, catalogTablesFromPgAttribute, pgAttributeQuery, queryPgAttribute } from './catalog_query_pg_attribute.js';
-import type { QueryExecutor } from '../query_execution_args.js';
+import { catalogTablesFromPgAttribute, pgAttributeQuery } from './catalog_query_pg_attribute.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
-describe('queryPgAttribute', () => {
-    it('safely qualifies an attached database alias', async () => {
-        let query = '';
-        const executor = vi.fn<QueryExecutor>((_connectionId, args) => {
-            query = args.query;
-            return [1, Promise.resolve(tableFromArrays({}))];
-        });
-
-        await queryPgAttribute('workbook', vi.fn(), 7, executor, 'db"name');
-
+describe('pgAttributeQuery', () => {
+    it('safely qualifies an attached database alias', () => {
+        const query = pgAttributeQuery({ queryDatabaseName: 'db"name' });
         expect(query).toContain('FROM "db""name"."pg_catalog".pg_class c');
         expect(query).toContain('JOIN "db""name"."pg_catalog".pg_attribute a');
-        expect(executor.mock.calls[0][1].readTimeoutMs).toBe(CATALOG_QUERY_READ_TIMEOUT_MS);
     });
 
     it('reads only the relations that it is asked about', () => {

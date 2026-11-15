@@ -2,9 +2,6 @@ import * as flatbuffers from 'flatbuffers';
 import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQL, DashQLCatalog } from '@ankoh/dashql-core';
 import type { BatchRequest, BatchResult } from '@ankoh/dashql-core';
-import { createBatchWorker, type DashQLBatchWorker } from '@ankoh/dashql-core/browser-worker';
-
-export type BatchProcessor = (request: BatchRequest) => Promise<BatchResult>;
 
 /// A script that keeps the text of a descriptor, e.g. the script with the functions of a connection
 export interface CatalogSourceScript {
@@ -24,70 +21,6 @@ function entryIdOf(entry: CatalogBatchEntry): number {
     return entry.script?.catalog_entry_id ?? entry.entryId!;
 }
 
-export interface CatalogBatchOptions {
-    abortSignal?: AbortSignal;
-    isCurrent?: () => boolean;
-    processor?: BatchProcessor;
-}
-
-const workers = new WeakMap<DashQL, DashQLBatchWorker>();
-const lifetimes = new WeakMap<DashQL, AbortController>();
-const generations = new WeakMap<DashQLCatalog, number>();
-
-function getCatalogBatchWorker(core: DashQL): DashQLBatchWorker {
-    let worker = workers.get(core);
-    if (worker == null || (!worker.isInitialized && !worker.isClosed)) {
-        throw new Error('Core batch worker is not initialized; enable setupBatchWorker during initial setup');
-    }
-    // A worker closes after a failure, e.g. a panic of its core, the next batch runs on a new one
-    if (worker.isClosed) {
-        worker = createBatchWorker();
-        workers.set(core, worker);
-    }
-    return worker;
-}
-
-export async function initializeCatalogBatchWorker(core: DashQL): Promise<void> {
-    lifetimes.get(core)?.signal.throwIfAborted();
-    let worker = workers.get(core);
-    if (!worker) {
-        worker = createBatchWorker();
-        workers.set(core, worker);
-        lifetimes.set(core, new AbortController());
-    }
-    await worker.initialize();
-}
-
-/// Test-only: forget the disposal of the catalog batches of a core that outlives its provider, the core that the browser
-/// tests share between their files. A provider that a test unmounts disposes the batches of the shared core, the batches of
-/// the next test file would be cancelled.
-export function resetCatalogBatchLifetime(core: DashQL): void {
-    if (lifetimes.get(core)?.signal.aborted) lifetimes.delete(core);
-}
-
-/// The core provider explicitly sets up and owns the worker lifecycle.
-export function disposeCatalogBatchWorker(core: DashQL): void {
-    // Keep the aborted signal for response continuations already queued before disposal.
-    lifetimes.get(core)?.abort();
-    workers.get(core)?.dispose();
-    workers.delete(core);
-}
-
-export function invalidateCatalogBatch(catalog: DashQLCatalog): void {
-    generations.set(catalog, (generations.get(catalog) ?? 0) + 1);
-}
-
-/// Begin before fetching metadata, not after it, so a slow fetch cannot supersede a newer refresh.
-export function beginCatalogBatch(catalog: DashQLCatalog, options: CatalogBatchOptions = {}): () => void {
-    invalidateCatalogBatch(catalog);
-    const generation = generations.get(catalog);
-    return () => {
-        if (options.abortSignal?.aborted || generations.get(catalog) !== generation || options.isCurrent?.() === false) {
-            throw new DOMException('Catalog refresh was cancelled or superseded', 'AbortError');
-        }
-    };
-}
-
 function batchRequest(entries: CatalogBatchEntry[]): BatchRequest {
     return { scripts: entries.map(entry => ({
         id: entryIdOf(entry).toString(),
@@ -96,8 +29,7 @@ function batchRequest(entries: CatalogBatchEntry[]): BatchRequest {
     })) };
 }
 
-function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[], result: BatchResult, validate: () => void) {
-    validate();
+function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[], result: BatchResult) {
     if (result.scripts.length !== entries.length) throw new Error('Catalog batch returned an unexpected script count');
     const prepared = entries.map(entry => {
         const matches = result.scripts.filter(script => script.id === entryIdOf(entry).toString());
@@ -114,7 +46,6 @@ function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[]
         return { descriptor: output.catalogDescriptor, counts };
     });
 
-    validate();
     for (let i = 0; i < entries.length; ++i) {
         const entry = entries[i];
         const previousText = entry.script?.toString();
@@ -133,56 +64,9 @@ function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[]
     return prepared.map(entry => entry.counts);
 }
 
-export async function publishCatalogBatch(
-    core: DashQL,
-    catalog: DashQLCatalog,
-    entries: CatalogBatchEntry[],
-    options: CatalogBatchOptions = {},
-    validate = beginCatalogBatch(catalog, options),
-) {
-    validate();
-    if (entries.length === 0) return [];
-    let lifetime = lifetimes.get(core);
-    if (!lifetime) {
-        lifetime = new AbortController();
-        lifetimes.set(core, lifetime);
-    }
-    const validateBatch = validate;
-    validate = () => {
-        lifetime.signal.throwIfAborted();
-        validateBatch();
-    };
-    validate();
-    const processor = options.processor ?? ((request: BatchRequest) => getCatalogBatchWorker(core).processBatch(request));
-    let onAbort: (() => void) | undefined;
-    try {
-        const cancelled = new Promise<never>((_resolve, reject) => {
-            onAbort = () => reject(new DOMException('Catalog refresh was cancelled', 'AbortError'));
-            options.abortSignal?.addEventListener('abort', onAbort, { once: true });
-            lifetime.signal.addEventListener('abort', onAbort, { once: true });
-            if (options.abortSignal?.aborted) onAbort();
-        });
-        const processing = new Promise<BatchResult>(resolve => resolve(processor(batchRequest(entries))));
-        const result = await Promise.race([processing, cancelled]);
-        validate();
-        return commitCatalogBatch(catalog, entries, result, validate);
-    } catch (error) {
-        // A late worker failure from a disposed/superseded refresh is cancellation, not a
-        // failure of the newer catalog. Promise.race also consumes late worker rejections.
-        validate();
-        throw error;
-    } finally {
-        if (onAbort) {
-            options.abortSignal?.removeEventListener('abort', onAbort);
-            lifetime.signal.removeEventListener('abort', onAbort);
-        }
-    }
-}
-
-/// Synchronous callers (initial prefetched functions and storage reconciliation) still prepare
-/// isolated batch descriptors, never scan/parse/analyze the persistence scripts on the main catalog.
+/// Publish catalog SQL right away. The batch prepares isolated descriptors, it never parses on the catalog it publishes
+/// into. The catalog loader of the Rust runtime publishes the updates of connections, this is for tests and tools.
 export function publishCatalogBatchSync(core: DashQL, catalog: DashQLCatalog, entries: CatalogBatchEntry[]) {
-    const validate = beginCatalogBatch(catalog);
     if (entries.length === 0) return [];
-    return commitCatalogBatch(catalog, entries, core.processBatch(batchRequest(entries)), validate);
+    return commitCatalogBatch(catalog, entries, core.processBatch(batchRequest(entries)));
 }

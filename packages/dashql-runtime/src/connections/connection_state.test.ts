@@ -22,7 +22,7 @@ import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from './connector_inf
 import { createConnectionStateDetails, type ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { HYPER_CHANNEL_SETUP_STARTED } from './hyper/hyper_connection_state.js';
 import type { HyperConnectionParams } from '@ankoh/dashql-jsonschema/connection.js';
-import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog/catalog_batch.js';
+import { publishCatalogBatchSync } from './catalog/catalog_batch.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogOutOfDate, MAX_TOUCHED_ATTEMPTS } from './catalog/catalog_update_state.js';
 import { createQueryExecutionState, EXECUTE_QUERY, QueryType } from '../query/query_execution_state.js';
 
@@ -50,7 +50,7 @@ function publishCatalog(database: ConnectionState, relations: string, functions:
 }
 
 describe('attached database descriptor catalogs', () => {
-    it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('promptly aborts pending publishers before clearing running tasks on %s', async type => {
+    it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('aborts the running catalog updates before clearing them on %s', type => {
         let database = state();
         publishCatalog(database, 'CREATE TABLE stored(id int);');
         const controllers = [new AbortController(), new AbortController()];
@@ -71,14 +71,6 @@ describe('attached database descriptor catalogs', () => {
                 finishedAt: null,
             }] }, new TestLogger());
         }
-        const publication = publishCatalogBatch(dql, database.catalog, [{
-            entryId: database.catalogRelationEntryId,
-            text: 'CREATE TABLE pending(id int);',
-        }], {
-            abortSignal: controllers[0].signal,
-            processor: () => new Promise(() => {}),
-        });
-        const outcome = publication.then(() => 'published', error => error.name);
         const next = reduceConnectionState(database, { type, value: null }, {} as any);
         expect(controllers.every(controller => controller.signal.aborted)).toBe(true);
         if (cleanup != null) {
@@ -90,10 +82,6 @@ describe('attached database descriptor catalogs', () => {
         shared.free();
         expect(next.catalogUpdates.tasksRunning.size).toBe(0);
         expect(next.catalogUpdates.currentFullRefresh).toBeNull();
-        expect(await Promise.race([outcome, (async () => {
-            for (let i = 0; i < 10; ++i) await Promise.resolve();
-            return 'still pending';
-        })()])).toBe('AbortError');
     });
 
     it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('cancels the running queries on %s', type => {

@@ -27,8 +27,9 @@ Names resolve against the script itself, then the connection layer, then the ses
 that has one are the candidates, so the layers never make a name ambiguous. A name without a database is never an exact
 lookup: `t` of a script has no qualification and would hit itself ahead of the `db.schema.t` of the connection.
 
-The rows of a metadata query become descriptor tables directly (`catalogTablesFrom*`, `packCatalogDescriptor`), no SQL is
-generated or parsed. The columns keep the order of the connection.
+The rows of a metadata query become descriptor tables directly (`catalog_tables_from_*`,
+`pack_catalog_descriptor_of_tables` of `catalog_loader/` in `dashql_core_runtime`), no SQL is generated or parsed. The
+columns keep the order of the connection.
 
 ## After a statement
 
@@ -39,7 +40,7 @@ generated or parsed. The columns keep the order of the connection.
    changes relations. The default of the connection names the database, without one a statement can't have touched
    anything.
 3. **The catalog loader asks the connection** once it is online, no other update runs or is requested and it has room for
-   another query (`CatalogUpdateVariant.RELATION_REFRESH`). A refresh that runs may have read the relations too early, the
+   another query (`CatalogUpdateVariant::RelationRefresh`, `catalog_loader/service.rs`). A refresh that runs may have read the relations too early, the
    update follows it, and only that answer can say that a relation is gone. The names of a run are merged.
 4. **The answer updates the catalog** (`Catalog::replace_tables`): a relation with rows has a new table in the place of the
    old one, a relation without rows is gone. An answer that changes nothing keeps the catalog version.

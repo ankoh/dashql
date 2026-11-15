@@ -7,7 +7,11 @@
 //! their revisions and each query. The catalog is shared with a `Catalog` handle, the scripts of workbooks analyze
 //! with the same catalog.
 
+use std::cell::{Ref, RefCell};
 use std::collections::BTreeMap;
+use std::rc::Rc;
+
+use dashql_core_runtime::catalog_loader::FollowedConnection;
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
@@ -368,24 +372,30 @@ fn query_effect_json(effect: &QueryExecutionEffect) -> Value {
 /// A connection with the history of its queries
 #[wasm_bindgen]
 pub struct Connection {
-    state: ConnectionState,
-    queries: QueryExecutionHistory,
+    /// Shared with the services of the runtime that follow the connection, e.g. the catalog loader
+    state: Rc<RefCell<ConnectionState>>,
+    queries: Rc<RefCell<QueryExecutionHistory>>,
 }
 
 impl Connection {
     /// A connection of a state that a service of the runtime created, e.g. the restore
     pub(crate) fn from_state(state: ConnectionState) -> Connection {
-        Connection { state, queries: QueryExecutionHistory::new() }
+        Connection { state: Rc::new(RefCell::new(state)), queries: Rc::new(RefCell::new(QueryExecutionHistory::new())) }
     }
 
     /// The state of the connection, e.g. for the decisions of its persistence
-    pub(crate) fn state(&self) -> &ConnectionState {
-        &self.state
+    pub(crate) fn state(&self) -> Ref<'_, ConnectionState> {
+        self.state.borrow()
+    }
+
+    /// The state and the queries, shared with a service that follows the connection
+    pub(crate) fn followed(&self) -> FollowedConnection {
+        FollowedConnection { state: self.state.clone(), queries: self.queries.clone() }
     }
 
     /// Apply an action to the connection. A connection that stops its queries drops the history.
     fn apply(&mut self, action: ConnectionAction, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let RuntimeOutcome { changed, effects } = self.state.apply(action, now).map_err(js_error)?;
+        let RuntimeOutcome { changed, effects } = self.state.borrow_mut().apply(action, now).map_err(js_error)?;
         let mut out = Vec::with_capacity(effects.len());
         for effect in &effects {
             out.push(match effect {
@@ -395,7 +405,7 @@ impl Connection {
                 ConnectionEffect::CloseChannel { channel } => json!({ "type": "closeChannel", "channel": channel }),
                 ConnectionEffect::ReleaseChannel { channel } => json!({ "type": "releaseChannel", "channel": channel }),
                 ConnectionEffect::StopQueries => {
-                    let (active, cleared) = self.queries.clear();
+                    let (active, cleared) = self.queries.borrow_mut().clear();
                     out.push(json!({ "type": "stopQueries", "queryIds": active }));
                     out.extend(cleared.effects.iter().map(query_effect_json));
                     continue;
@@ -407,7 +417,7 @@ impl Connection {
 
     /// Apply an action to the queries
     fn apply_query(&mut self, action: QueryExecutionAction) -> Result<ConnectionOutcome, JsError> {
-        let outcome = self.queries.apply(action).map_err(js_error)?;
+        let outcome = self.queries.borrow_mut().apply(action).map_err(js_error)?;
         let effects = Value::Array(outcome.effects.iter().map(query_effect_json).collect()).to_string();
         Ok(ConnectionOutcome { changed: outcome.changed, effects })
     }
@@ -449,7 +459,7 @@ impl Connection {
         };
         let catalog = CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone));
         let state = ConnectionState::with_catalog(connection_id, details, options, now, catalog);
-        Ok(Connection { state, queries: QueryExecutionHistory::new() })
+        Ok(Connection::from_state(state))
     }
 
     // The connection
@@ -564,7 +574,7 @@ impl Connection {
     #[wasm_bindgen(js_name = restoreCatalogUpdates)]
     pub fn restore_catalog_updates(&mut self, described: Option<bool>, touched_relations: Option<String>) -> Result<(), JsError> {
         let touched = touched_relations.as_deref().map(relations).transpose()?;
-        self.state.restore_catalog_updates(described, touched);
+        self.state.borrow_mut().restore_catalog_updates(described, touched);
         Ok(())
     }
 
@@ -872,35 +882,35 @@ impl Connection {
 
     /// The revision of the connection, it changes with every change of the connection, not of its queries
     pub fn revision(&self) -> f64 {
-        self.state.revision() as f64
+        self.state.borrow().revision() as f64
     }
 
     /// The revision of the queries, it changes with every change of a query
     #[wasm_bindgen(js_name = queriesRevision)]
     pub fn queries_revision(&self) -> f64 {
-        self.queries.revision() as f64
+        self.queries.borrow().revision() as f64
     }
 
     /// The catalog, shared with the connection
     pub fn catalog(&self) -> Catalog {
-        Catalog { inner: SharedCatalog(self.state.catalog().clone()) }
+        Catalog { inner: SharedCatalog(self.state.borrow().catalog().clone()) }
     }
 
     /// The text of the script with the functions of the connection, none once it is deleted
     #[wasm_bindgen(js_name = functionScriptText)]
     pub fn function_script_text(&self) -> Option<String> {
-        self.state.function_script().map(|script| script.to_text())
+        self.state.borrow().function_script().map(|script| script.to_text())
     }
 
     /// Replace the text of the script with the functions of the connection
     #[wasm_bindgen(js_name = replaceFunctionScriptText)]
     pub fn replace_function_script_text(&mut self, text: &str) -> Result<(), JsError> {
-        self.state.replace_function_script_text(text).map_err(js_error)
+        self.state.borrow_mut().replace_function_script_text(text).map_err(js_error)
     }
 
     /// The plain fields of the connection as JSON
     pub fn snapshot(&self) -> String {
-        let state = &self.state;
+        let state = self.state.borrow();
         let updates = state.catalog_updates();
         json!({
             "revision": state.revision(),
@@ -932,7 +942,7 @@ impl Connection {
     /// The queries as JSON: the active and the finished ones in order with their revisions, the counter of started and
     /// finished queries and the metrics of the connection
     pub fn queries(&self) -> String {
-        let history = &self.queries;
+        let history = self.queries.borrow();
         let list = |ids: &[u64]| -> Vec<Value> {
             ids.iter().map(|id| json!([id, history.query(*id).map(|query| query.revision).unwrap_or(0)])).collect()
         };
@@ -962,6 +972,6 @@ impl Connection {
 
     /// The plain fields of a query as JSON, none for an unknown query
     pub fn query(&self, query_id: f64) -> Option<String> {
-        self.queries.query(query_id as u64).map(|query| query_json(query).to_string())
+        self.queries.borrow().query(query_id as u64).map(|query| query_json(query).to_string())
     }
 }

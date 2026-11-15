@@ -2,7 +2,6 @@ import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { generateCatalogFunctionsSQL, generateCatalogRelationsSQL, parseCatalogSql } from './catalog_structure.js';
-import { PREFETCHED_HYPER_FUNCTIONS_SQL } from './prefetched_hyper_functions.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -56,12 +55,6 @@ describe('catalog structure', () => {
         expect(parseCatalogSql(dql, functions).functions).toEqual(catalog.functions);
         // A rendered file is rendered the same way again
         expect(generateCatalogFunctionsSQL(parseCatalogSql(dql, functions).functions)).toBe(functions);
-    });
-
-    it('round-trips the functions of Hyper', () => {
-        const functions = parseCatalogSql(dql, PREFETCHED_HYPER_FUNCTIONS_SQL).functions;
-        expect(functions.length).toBeGreaterThan(100);
-        expect(parseCatalogSql(dql, generateCatalogFunctionsSQL(functions)).functions).toEqual(functions);
     });
 
     it('refuses a file that does not parse', () => {

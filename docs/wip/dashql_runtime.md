@@ -130,7 +130,7 @@ Two properties of the source package hold:
 
 `//packages/dashql-runtime:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
 `.tsx` module, and the seams that only a browser or a bundler provides are known by name. The runtime uses no feature
-of a bundler: the functions of Hyper are SQL text in a module (`connections/catalog/prefetched_hyper_functions_sql.ts`)
+of a bundler: the functions of Hyper are SQL text in the core module (`catalog_loader/prefetched_hyper_functions_sql.rs`)
 and the platform provides the specs of the extensions (`provideClientFunctionSpecs` of `connections/clfn/clfn_specs.ts`;
 the app passes its `import.meta.glob` in `connections/clfn/bundled_clfn_specs.ts`, which its pages and the test frame
 import, the tests in Node in `test/setup_node.mjs`). The seams that remain are listed in `KNOWN_SEAMS` of the test:
@@ -139,8 +139,6 @@ import, the tests in Node in `test/setup_node.mjs`). The seams that remain are l
   files ask it for the root (`getOPFSRoot()`), and Node hands them a folder of the host (`setOPFSRootProvider`).
 - The Electron bridge: `platform/electron_fs.ts`, the file system of the desktop app. Which host the app runs in
   (`native_globals.ts`) and which connectors it offers there are questions of the app and live in it.
-- A Web Worker: `connections/catalog/catalog_batch.ts` imports `@ankoh/dashql-core/browser-worker`; its tests run only
-  in the browsers.
 
 ### Runtimes for the embedded Hyper
 
@@ -382,8 +380,8 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   browser tests of the app run the tests of the runtime as well (`runtime/src/<path>` in their list), so each one runs
   in Node and in the browsers. A test of Node is named `*.node.test.ts` and runs only in Node, like
   `node/node_file_system.node.test.ts`. A test that needs a browser is named `*.browser.test.ts` and runs only in the
-  browsers: `connections/catalog/catalog_batch.browser.test.ts` (a Web Worker) and `hyperdb_wasm.browser.test.ts` (the
-  HyperDB adapter over the browser build of hyperdb-wasm with a fake worker client).
+  browsers: `hyperdb_wasm.browser.test.ts` (the HyperDB adapter over the browser build of hyperdb-wasm with a fake
+  worker client).
 - **What they cover.** 99 test files, about 1100 tests in Node: the workbook scripts, script runs and workbook
   execution, the storage writer, native storage, bundles and the query result cache, the connection state, client
   functions, the Trino, Salesforce and Hyper HTTP clients, the catalog queries and updates, the computations and data
