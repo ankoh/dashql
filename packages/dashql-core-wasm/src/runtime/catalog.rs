@@ -163,8 +163,12 @@ impl Connections {
         }));
     }
 
-    /// Let the catalog loader follow the connections of the registry in their order
+    /// Let the catalog loader and the runs follow the connections of the registry in their order
     pub(crate) fn follow(&self) {
+        let listener = self.follow_listener.borrow().clone();
+        if let Some(listener) = listener {
+            listener();
+        }
         let Some(loader) = self.loader() else { return };
         let followed: Vec<(String, FollowedConnection)> = {
             let registry = self.registry.borrow();

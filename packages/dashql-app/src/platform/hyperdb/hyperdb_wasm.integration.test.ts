@@ -9,7 +9,8 @@ import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from '@ankoh
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
-import { createExecutionMounts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import { createRunMounts } from '@ankoh/dashql-runtime/workbook/scripts/run_mounts';
+import { HandleTable } from '@ankoh/dashql-runtime/store/handles';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
@@ -436,18 +437,20 @@ describe('HyperDB embedded database integration', () => {
         try {
             const cached = cache.newFileName(KEY_A);
             await cache.writeTable(database!, table, cached);
-            const mounts = createExecutionMounts(cache, database!);
-            expect(mounts.prefix).toBe(QUERY_RESULT_CACHE_MOUNT);
+            const handles = new HandleTable();
+            const mounts = createRunMounts(database!, cache, handles);
+            const prefix = mounts.prefix();
+            expect(prefix).toBe(QUERY_RESULT_CACHE_MOUNT);
             // The run writes the result of another key and reads the cached one
-            const runFile = mounts.fileName(KEY_B);
+            const runFile = mounts.fileName(1, KEY_B);
             expect(runFile.startsWith(`${KEY_B}.`)).toBe(true);
-            await mounts.writeTable(`${mounts.prefix}/${runFile}`, table);
-            await mounts.use(`${mounts.prefix}/${cached}`);
+            expect(await mounts.write(1, `${prefix}/${runFile}`, handles.register(table))).toBe(table.numRows);
+            await mounts.use(1, `${prefix}/${cached}`);
             const connection = await database!.connect();
             try {
                 const result = await connection.query(
-                    `with foo as (select * from external('${mounts.prefix}/${cached}', format => 'parquet')),\n`
-                    + `bar as (select * from external('${mounts.prefix}/${runFile}', format => 'parquet'))\n`
+                    `with foo as (select * from external('${prefix}/${cached}', format => 'parquet')),\n`
+                    + `bar as (select * from external('${prefix}/${runFile}', format => 'parquet'))\n`
                     + 'select (select count(*) from foo)::int as n, (select max(name) from bar) as last');
                 expect(toPlainObjects(result)).toEqual([{ n: 3, last: 'gamma' }]);
             } finally {
@@ -458,7 +461,7 @@ describe('HyperDB embedded database integration', () => {
             expect(await cache.lookup(KEY_A)).toMatchObject({ name: cached });
             expect(await cache.lookup(KEY_B)).toMatchObject({ name: runFile });
             // Once the run ended, its files stay in the cache and can be removed
-            await mounts.release();
+            await mounts.release(1);
             expect(await files()).toEqual([cached, `${cached}.last_access`, runFile, `${runFile}.last_access`].sort());
             expect((await cache.clear()).sort()).toEqual([KEY_A, KEY_B]);
             expect(await files()).toEqual([]);
@@ -477,9 +480,9 @@ describe('HyperDB embedded database integration', () => {
             // A run keeps reading its file through the shared mount while the cache removes another one
             const kept = cache.newFileName(KEY_B);
             await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([2]) }), kept);
-            const mounts = createExecutionMounts(cache, database!);
+            const mounts = createRunMounts(database!, cache, new HandleTable());
             try {
-                await mounts.use(`${mounts.prefix}/${kept}`);
+                await mounts.use(1, `${mounts.prefix()}/${kept}`);
                 await cache.delete(KEY_A);
                 await cache.mount(database!);
                 const connection = await database!.connect();
@@ -490,7 +493,7 @@ describe('HyperDB embedded database integration', () => {
                     await connection.close();
                 }
             } finally {
-                await mounts.release();
+                await mounts.release(1);
             }
             // Files of other keys stay readable through the refreshed mount
             const second = cache.newFileName(KEY_A);

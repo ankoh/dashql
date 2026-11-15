@@ -127,22 +127,22 @@ already has their results; the queries it inlines are part of its statements.
 
 ## Running a Workbook
 
-A run of the workbook (`runWorkbookExecution`) and a run of a script run a plan the same way (`workbook_run` of the core runtime): they
+A run of the workbook (`runWorkbook`) and a run of a script (`runScript`) run a plan the same way (`workbook_run` of the core runtime): they
 analyze every script, publish the declarations into the catalogs of their connections and plan every script, or the
 target with what it needs. The plan checks the scripts and gives the result keys. A script with a reusable cached
 result doesn't run unless it follows a script that runs: a script whose nodes follow a node of a script that runs, by
 an edge of the plan, runs too, whether its result is cached or not. Otherwise its result is served from the cache and
 the run plans the other scripts again with the served scripts as `materialized`: a plan of the workbook leaves them
 out, a plan of targets drops the served targets. A script that inlines a served script still runs its query, a script
-that scans it reads the cached file. A refresh (`refresh` of `runWorkbookExecution`, `ScriptRunOptions.refresh`)
+that scans it reads the cached file. A refresh (`refresh` of `runWorkbook` and `runScript`)
 reads no cached results and runs every script of the plan. The run (`run_graph`) starts a node once its predecessors are done,
 at most `maxConcurrentQueries` nodes of a connection run at once, and nodes of different connections run side by
-side. The files of a run (`ExecutionMounts`, `createExecutionMounts`) are files of the query result cache of the app
+side. The files of a run (`mounts` of the platform, `createRunMounts`) are files of the query result cache of the app
 (`query_cache.md`), the mount prefix of the plan is the mount of the cache. The host names the file of every
 materialized script (`materializationFile`): a result that a run materializes is a new file of the result key of its
 script, `<key>.<uuid>.parquet`, if the key is reusable, a transient file otherwise. The terminal node of a
 materialized script runs on its own connection, the host loads its result into the compute Hyper and writes it with
-`COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`ExecutionMounts.writeTable`). A scan reads the
+`COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`mounts.write`). A scan reads the
 byte ranges it needs from disk, nothing of a file is held in memory. The run pins every file it
 writes or reads, so eviction and other windows leave them alone. The files of keys stay in the cache when it ends,
 the transient files are removed. The terminal query of a script with a reusable key that runs writes its result as the
@@ -150,17 +150,16 @@ newest file of its key.
 
 ## Running a Script
 
-A run of one script (`runWorkbookScript` in `rerun_query.ts`, `runPlannedScript` in `script_run.ts`) analyzes every script, publishes the
+A run of one script (`runScript` of the runtime) analyzes every script, publishes the
 declarations and plans the script as the target: the plan holds the statements of the script, with the queries it
 inlines spliced in, and the queries of the scripts it materializes. The scripts that write the relations these queries
 read are no part of the plan, the run reads the relations as the backend has them. A script that references no
 script is a plan of its own statements. The statements run in their order and keep their SQL whatever their kind,
 the last output of the script is its result and a query with `@vis` tags runs as written. An invalid plan fails the
 run with its errors, e.g. an unknown script, and so does a script without statements. The script records them as a
-failed query (`ScriptPlanError`, `QueryExecutionArgs.failure`), so they show where its result would be, like the
-error of a failed statement. The workbook execution service registers the services of the runs for its core
-(`registerScriptRunServices`): the mounts of the compute database and the query result cache. Without the provider, a
-run mounts no results of other connections and caches nothing. A script connection knows whether it is the embedded
+failed query in the history of its connection, so they show where its result would be, like the error of a failed
+statement. The files of the runs are the `mounts` of the platform of the runtime over the compute database and the
+query result cache. Without them, a run mounts no results of other connections and caches nothing. A script connection knows whether it is the embedded
 Hyper (`ScriptConnection.local`).
 
 The result key of a script covers the keys of the scripts it references (`result_keys` in `workbook_run/plan.rs` of the core runtime, see

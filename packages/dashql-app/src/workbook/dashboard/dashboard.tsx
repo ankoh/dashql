@@ -3,9 +3,8 @@ import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type 
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
-import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import { useScriptRunServices, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useCancelQuery } from '../../connections/query_executor.js';
+import { useScriptRun, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
@@ -57,7 +56,8 @@ function sharePlacements(next: DashboardPlacement[], previous: DashboardPlacemen
 
 /// The functions and components that tests replace
 export interface DashboardDependencies {
-    runWorkbookScript: typeof runWorkbookScript;
+    /// Runs a script of the workbook with the scripts it references
+    useScriptRun: typeof useScriptRun;
     DashboardEditorOverlay: typeof DashboardEditorOverlay;
     DashboardTableOverlay: typeof DashboardTableOverlay;
     DashboardChartOverlay: typeof DashboardChartOverlay;
@@ -68,7 +68,7 @@ export interface DashboardDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: DashboardDependencies = {
-    runWorkbookScript,
+    useScriptRun,
     DashboardEditorOverlay,
     DashboardTableOverlay,
     DashboardChartOverlay,
@@ -234,20 +234,19 @@ export function Dashboard(props: Props): React.ReactElement {
     const closeOverlay = React.useCallback(() => setOverlay(null), []);
     // Run a card like a script in the feed. A run may read cached results, a refresh runs the script and the scripts it
     // references without them.
-    const executeQuery = useQueryExecutor();
     const cancelQuery = useCancelQuery();
     const workbookExecution = useWorkbookExecution(props.workbookScripts.workbookId);
+    const workbookId = props.workbookScripts.workbookId;
     const workbookScriptsRef = React.useRef(props.workbookScripts);
     workbookScriptsRef.current = props.workbookScripts;
     const isOnline = (script: ScriptData) =>
         props.scriptConnections?.get(script.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
-    const services = useScriptRunServices();
+    const runScript = dependencies.useScriptRun();
     const handleRun = React.useCallback((scriptKey: number, refresh: boolean) => {
-        const workbookScripts = workbookScriptsRef.current;
         const script = scriptsRef.current[scriptKey];
-        if (script == null || services == null) return;
-        void dependencies.runWorkbookScript(services, workbookScripts, script, executeQuery, props.modifyWorkbookScripts, logger, { refresh });
-    }, [dependencies, services, executeQuery, props.modifyWorkbookScripts, logger]);
+        if (script == null || runScript == null) return;
+        void runScript(workbookId, scriptKey, { refresh });
+    }, [runScript, workbookId]);
     // Stop the run of the workbook, or the query of the card
     const workbookBusy = workbookExecution.busy;
     const stopWorkbook = workbookExecution.stop;

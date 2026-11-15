@@ -32,7 +32,7 @@ use dashql_core_runtime::executor::{
     CacheEntry, ChannelMessage, ExecutorHost, FailureKind, HostTable, QueryEvent, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget,
 };
 use dashql_core_runtime::handles::Handle;
-use dashql_core_runtime::host::signal::{oneshot, Receiver};
+use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{Body, CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable};
@@ -90,6 +90,8 @@ pub(crate) struct QueryRun {
     pub started: bool,
     /// The views that show the profile of the query before it started
     pub profile_viewers: i32,
+    /// Hears that the result arrived, before its analysis: a statement of a run of a workbook
+    pub ready: Option<Sender<()>>,
 }
 
 /// The host of the executor: the platform and the connections of the runtime, weakly
@@ -271,6 +273,9 @@ impl Connections {
                 return;
             }
             QueryEvent::ResultsReady => {
+                if let Some(Some(ready)) = self.run_of(query_id, |run| run.ready.take()) {
+                    ready.send(());
+                }
                 self.notify(query_id, event("resultsReady", &[]));
                 return;
             }
@@ -533,6 +538,7 @@ impl Connections {
                 cancelled: false,
                 started: false,
                 profile_viewers: 0,
+                ready: None,
             },
         ));
         let connections = self.clone();
@@ -670,6 +676,7 @@ impl Connections {
                     cancelled: false,
                     started: false,
                     profile_viewers: 0,
+                    ready: None,
                 },
             ));
         }
@@ -712,6 +719,90 @@ impl Connections {
         (query_id, InternalQuery::Waiting(receiver))
     }
 
+    /// Run a statement of a run of a workbook on its connection. It is a query of the history of the connection, the
+    /// platform describes where it runs with the options of the statement (`queries.describe`): the cache, whether it
+    /// publishes and analyzes its result, a call of a client function. Returns its id, a future that completes once
+    /// its result arrived and a future of its end: whether it has a result, or its failure. A statement that fails may
+    /// never complete the first.
+    pub(crate) fn run_statement(self: &Rc<Self>, statement: Statement) -> (QueryId, LocalFuture<()>, LocalFuture<Result<bool, QueryFailure>>) {
+        let connection_id = statement.connection_id.as_str();
+        let owner = QueryOwner::Connection(connection_id.to_string());
+        let query_id = self.registry.borrow_mut().next_query_id();
+        let description = Object::new();
+        let set = |key: &str, value: &JsValue| {
+            let _ = Reflect::set(&description, &JsValue::from_str(key), value);
+        };
+        set("text", &JsValue::from_str(&statement.text));
+        set("metadata", &serde_wasm_bindgen::to_value(&QueryMetadataView::from(&statement.metadata)).unwrap_or(JsValue::NULL));
+        set("readTimeoutMs", &JsValue::NULL);
+        set("analyzeResults", &JsValue::from_bool(statement.analyze_results));
+        set("publishResults", &JsValue::from_bool(statement.publish_results));
+        set("throwOnError", &JsValue::TRUE);
+        let call = statement.client_function_call.as_ref().and_then(|call| JsonValue(call.clone()).to_js().ok());
+        set("clientFunctionCall", &call.unwrap_or(JsValue::NULL));
+        let cache = match &statement.cache {
+            Some((signature, refresh, only)) => {
+                let cache = Object::new();
+                let _ = Reflect::set(&cache, &JsValue::from_str("signature"), &JsValue::from_str(signature));
+                let _ = Reflect::set(&cache, &JsValue::from_str("refresh"), &JsValue::from_bool(*refresh));
+                let _ = Reflect::set(&cache, &JsValue::from_str("only"), &JsValue::from_bool(*only));
+                cache.into()
+            }
+            None => JsValue::NULL,
+        };
+        set("cache", &cache);
+        let mut log_details = Vec::new();
+        if let Some(workbook_id) = &statement.metadata.workbook_id {
+            log_details.push(("workbookId".to_string(), workbook_id.clone()));
+        }
+        let result_owner = statement.metadata.result_owner.clone();
+        let state = QueryExecutionState::new(query_id, 0, statement.text.clone(), statement.metadata, self.now() as i64);
+        if let Err(error) = self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
+            let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}: {}", error.what()));
+            return (query_id, Box::pin(std::future::pending()), Box::pin(std::future::ready(Err(failure))));
+        }
+        let (ready_sender, ready) = oneshot();
+        self.runs.borrow_mut().push((
+            query_id,
+            QueryRun {
+                connection_id: connection_id.to_string(),
+                text: statement.text,
+                table: None,
+                result: None,
+                in_history: false,
+                events: None,
+                result_owner,
+                log_details,
+                preset_failure: false,
+                cancelled: false,
+                started: false,
+                profile_viewers: 0,
+                ready: Some(ready_sender),
+            },
+        ));
+        let request = self.platform.describe_query(query_id as f64, connection_id, &description);
+        // The statement runs in a task of its own to its end, a run that stops waiting cancels it
+        let (sender, done) = oneshot();
+        let connections = self.clone();
+        self.platform.spawn(Box::pin(async move {
+            let outcome = connections.run(query_id, owner, request, JsValue::UNDEFINED).await;
+            connections.forget(query_id);
+            connections.platform.forget_query(query_id as f64);
+            sender.send(match outcome {
+                QueryOutcome::Resolved { has_result } => Ok(has_result),
+                QueryOutcome::Rejected(failure) => Err(failure),
+            });
+        }));
+        let ready = Box::pin(async move {
+            // A statement that ended without its result never releases what follows it early
+            if ready.await.is_none() {
+                std::future::pending::<()>().await;
+            }
+        });
+        let done = Box::pin(async move { done.await.unwrap_or_else(|| Err(QueryFailure::cancelled())) });
+        (query_id, ready, done)
+    }
+
     /// Cancel a query: one that the executor runs stops at the backend, one that waits for its description ends as
     /// cancelled, one that the host tracks is aborted through its record. Resolves once a query of the executor ended.
     pub(crate) fn cancel(&self, query_id: QueryId) -> impl Future<Output = ()> + 'static {
@@ -752,6 +843,23 @@ impl Connections {
             }
         }
     }
+}
+
+/// A future of the runtime
+pub(crate) type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
+
+/// A statement of a run of a workbook
+pub(crate) struct Statement {
+    pub connection_id: String,
+    pub text: String,
+    pub metadata: QueryMetadata,
+    /// A call of a client function as JSON, it runs instead of the text
+    pub client_function_call: Option<serde_json::Value>,
+    pub analyze_results: bool,
+    pub publish_results: bool,
+    /// The query result cache: the signature of the key, whether the statement refreshes the key, and whether it only
+    /// reads the cache
+    pub cache: Option<(String, bool, bool)>,
 }
 
 /// The result of a query that the runtime runs itself: its result table as an Arrow IPC stream, or its failure

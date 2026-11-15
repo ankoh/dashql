@@ -92,7 +92,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Update outdated scripts that are displayed in the editor.
     // The selected script is analyzed right away, all others are deferred.
     // Deferring is safe since the script stays marked as outdated until the analysis ran,
-    // and anything that needs the analysis analyzes it on demand (see `CoreRuntime.analyzeScript`).
+    // and anything that needs the analysis analyzes it on demand, e.g. a run of the script (`CoreRuntime.runScript`).
     React.useEffect(() => {
         if (scripts == null || !scriptData?.analysisOutdated) {
             return;

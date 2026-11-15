@@ -289,7 +289,7 @@ fn setup(auto: bool, mounts: Option<&str>, concurrency: usize) -> Setup {
 }
 
 fn workbook_run() -> RunOptions {
-    RunOptions { run: PlanRun::Workbook, targets: None, inputs: None, refresh: false, reports_state: true }
+    RunOptions { run: PlanRun::Workbook, targets: None, inputs: None, refresh: false, reports_state: true, analyze: true }
 }
 
 impl Setup {
@@ -454,7 +454,7 @@ fn runs_a_script_with_the_queries_it_inlines() {
         ("bar.sql", "select count(*) from :foo", &main),
     ]);
     let s = setup(true, None, 1);
-    let options = RunOptions { run: PlanRun::Script("bar.sql".into()), targets: Some(vec![2]), inputs: None, refresh: true, reports_state: false };
+    let options = RunOptions { run: PlanRun::Script("bar.sql".into()), targets: Some(vec![2]), inputs: None, refresh: true, reports_state: false, analyze: true };
     let result = s.run(&workbook, options);
     assert!(result.failure.is_none(), "{:?}", result.failure);
     assert_eq!(s.texts(), vec!["with foo as (\nselect x from t\n)\nselect count(*) from foo"]);

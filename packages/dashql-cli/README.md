@@ -96,7 +96,7 @@ dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <w
 ```
 
 Runs the scripts of a workbook folder (a folder with `dashql-workbook.json` and `scripts/`) on their connections like
-the Run of the workbook in DashQL, with the runtime of the app (`runWorkbookExecution`): all scripts by default, the
+the Run of the workbook in DashQL, with the runtime of the app (`runWorkbook`): all scripts by default, the
 named ones with the scripts they reference otherwise. Scripts are named by their file names (`a.sql` or
 `scripts/a.sql`). The scripts are analyzed and planned together. A `:foo` of a script on the same connection becomes a
 common table expression, a `:foo` of a script on the embedded Hyper that runs on Trino is materialized as Parquet file

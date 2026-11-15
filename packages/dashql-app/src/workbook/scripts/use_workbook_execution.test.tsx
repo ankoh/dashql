@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
-import type { MockInstance } from 'vitest';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +8,7 @@ import { ComputeConnectionProvider, useComputeDatabase } from '../../compute/com
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
@@ -17,8 +16,6 @@ import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_f
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { useWorkbookExecution } from './use_workbook_execution.js';
-import { workbookExecutionIsBusy } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
-import { isWorkbookExecutionRunning } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { analyzeWorkbook } from '@ankoh/dashql-runtime/testing/test_runtime';
 import { useRuntime } from '../../runtime/runtime_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
@@ -58,8 +55,6 @@ function fixture(workbookId: string, deferStream = false) {
         await acquisition.promise;
         return stream;
     });
-    // The runs of the workbook on the runtime
-    const plan = vi.fn();
     // A connection of the runtime of the test, online with a channel, and the workbook on it with two commands that
     // don't depend on each other: a connection without a protocol runs them one at a time
     const database = {
@@ -79,7 +74,7 @@ function fixture(workbookId: string, deferStream = false) {
             runtime.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: 'create table a (x int);\ncreate table b (x int);', base: '1_commands' } });
         },
     };
-    return { workbookId, database, plan, stream, executeQuery, acquisition, execution, cancellation, aborted,
+    return { workbookId, database, stream, executeQuery, acquisition, execution, cancellation, aborted,
         get signal() { return signal; } };
 }
 
@@ -100,8 +95,7 @@ function EarlyConsumer(props: { capture: (execution: Execution) => void }) {
     return null;
 }
 
-/// Create the connections and the workbooks of the fixtures in the runtime, the runs of a workbook are counted by its
-/// fixture
+/// Create the connections and the workbooks of the fixtures in the runtime
 function SeedRuntime(props: { fixtures: Fixture[]; children: React.ReactNode }) {
     const runtime = useRuntime();
     const coreRuntime = useCoreRuntime();
@@ -111,19 +105,13 @@ function SeedRuntime(props: { fixtures: Fixture[]; children: React.ReactNode }) 
             f.database.create(coreRuntime);
             analyzeWorkbook(runtime, f.workbookId);
         }
-        const start = coreRuntime.startWorkbookRun.bind(coreRuntime);
-        const spy: MockInstance<typeof coreRuntime.startWorkbookRun> = vi.spyOn(coreRuntime, 'startWorkbookRun');
-        spy.mockImplementation((workbookId, host, options) => {
-            props.fixtures.find(f => f.workbookId === workbookId)?.plan();
-            return start(workbookId, host, options);
-        });
         setReady(true);
     }, [props.fixtures, runtime, coreRuntime]);
     return ready ? props.children : null;
 }
 
-// The runs themselves are tested in the runtime (workbook/scripts/workbook_execution_service.test.ts), these are the
-// runtime of the app and the hook on it
+// The runs themselves are tested in the runtime (workbook/workbook_runs.test.ts), these are the runtime of the app and
+// the hook on it
 describe('the runs of workbooks in the app', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -151,9 +139,7 @@ describe('the runs of workbooks in the app', () => {
         act(() => root.unmount());
         await act(async () => {
             fixtures.forEach(f => { f.acquisition.resolve(); f.execution.resolve(); f.cancellation.resolve(); });
-            await vi.waitFor(() => {
-                for (const f of fixtures) expect(isWorkbookExecutionRunning(f.workbookId)).toBe(false);
-            });
+            await new Promise(resolve => setTimeout(resolve, 0));
         });
         container.remove();
     });
@@ -218,15 +204,17 @@ describe('the runs of workbooks in the app', () => {
         const rendering = render();
         await vi.waitFor(() => expect(early).not.toBeNull());
         expect(early!.ready).toBe(false);
-        act(() => early!.start());
-        expect(fixtures[0].plan).not.toHaveBeenCalled();
+        await act(async () => {
+            early!.start();
+            await new Promise(resolve => setTimeout(resolve, 0));
+        });
         expect(early!.state).toBeNull();
+        expect(early!.runActive).toBe(false);
         setup.resolve();
         await rendering;
         expect(current.ready).toBe(true);
         act(() => current.start());
         await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
-        expect(fixtures[0].plan).toHaveBeenCalled();
     });
 
     it('retains per-workbook state when route consumers switch ids and remount', async () => {
@@ -239,7 +227,7 @@ describe('the runs of workbooks in the app', () => {
         expect(observer.busy).toBe(true);
         expect(fixtures[0].signal?.aborted).toBe(false);
         await start(fixtures[1]);
-        expect(fixtures[1].plan).toHaveBeenCalledTimes(1);
+        expect(fixtures[1].executeQuery).toHaveBeenCalledTimes(1);
 
         await render('second', false);
         await act(async () => {
@@ -251,7 +239,8 @@ describe('the runs of workbooks in the app', () => {
         await render('first');
         expect(current.state).toBe(completed);
         expect(current.busy).toBe(false);
-        expect(fixtures[0].plan).toHaveBeenCalledTimes(1);
+        // The workbook ran its two statements once, the consumers that mounted again started nothing
+        expect(fixtures[0].executeQuery).toHaveBeenCalledTimes(2);
         await render('second');
         expect(current.state?.phase).toBe('running');
         expect(current.busy).toBe(true);

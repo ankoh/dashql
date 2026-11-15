@@ -71,7 +71,6 @@ mod query_history;
 mod host;
 mod runtime;
 mod connection_persistence;
-mod workbook_run;
 mod workbook_format;
 
 /// A formatting config from the numeric arguments of the JS API

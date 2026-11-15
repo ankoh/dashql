@@ -468,9 +468,6 @@ describe('V2 workbook feed rows', () => {
     });
 });
 
-/// The services of the runs of scripts, the tests replace the runs
-const SERVICES = {} as any;
-
 describe('Workbook feed composer', () => {
     const feedState = {
         keyHandlers: [] as any[],
@@ -479,8 +476,7 @@ describe('Workbook feed composer', () => {
         barProps: null as React.ComponentProps<WorkbookFeedDependencies['WorkbookStatusBar']> | null,
         /// The bar that rendered the props last
         barOwner: null as object | null,
-        runWorkbookScript: vi.fn(),
-        executeQuery: vi.fn(),
+        runScript: vi.fn(),
         /// The scripts of the workbook that the feed shows, and the workbook that the runtime holds after an action
         scripts: {} as ScriptDataMap,
         next: null as (WorkbookScripts & { scripts: ScriptDataMap }) | null,
@@ -497,15 +493,14 @@ describe('Workbook feed composer', () => {
     const storageReader = { backend: { listDataFiles: () => Promise.resolve([]) } } as any;
     const storageWriter = { write: () => Promise.resolve({ status: 'written' }) } as any;
     const feedDependencies: WorkbookFeedDependencies = {
-        useQueryExecutor: () => feedState.executeQuery,
         useStorageReader: () => storageReader,
         useStorageWriter: () => storageWriter,
         usePickScriptConnection: () => vi.fn(),
         usePickPendingConnection: () => vi.fn(),
         useAttachPendingConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
-        runWorkbookScript: feedState.runWorkbookScript as any,
-        useScriptRunServices: () => SERVICES,
+        useScriptRun: () => feedState.runScript,
+        useScriptResultKey: () => null,
         useWorkbookScriptMap: () => feedState.scripts,
         useWorkbookDerived: () => null,
         useLiveWorkbookReader: () => () => feedState.next,
@@ -584,7 +579,7 @@ describe('Workbook feed composer', () => {
         feedState.keyHandlers = [];
         feedState.composerProps = null;
         feedState.barProps = null;
-        feedState.runWorkbookScript.mockReset();
+        feedState.runScript.mockReset();
         feedState.submit.mockReset();
         feedState.session = null;
         feedState.sessionArgs = null;
@@ -640,9 +635,8 @@ describe('Workbook feed composer', () => {
         render(workbook(), modify);
         await act(async () => feedState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ text: 'select 1' }) });
-        await vi.waitFor(() => expect(feedState.runWorkbookScript).toHaveBeenCalledOnce());
-        expect(feedState.runWorkbookScript).toHaveBeenCalledExactlyOnceWith(
-            SERVICES, next, next.scripts[1], feedState.executeQuery, modify, expect.anything());
+        await vi.waitFor(() => expect(feedState.runScript).toHaveBeenCalledOnce());
+        expect(feedState.runScript).toHaveBeenCalledExactlyOnceWith(next.workbookId, next.scripts[1].scriptKey);
         expect(attention.request).not.toHaveBeenCalled();
     });
 
@@ -660,7 +654,7 @@ describe('Workbook feed composer', () => {
         await act(async () => feedState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledOnce();
         await vi.waitFor(() => expect(attention.request).toHaveBeenCalledExactlyOnceWith('workbook'));
-        expect(feedState.runWorkbookScript).not.toHaveBeenCalled();
+        expect(feedState.runScript).not.toHaveBeenCalled();
     });
 
     it('sends the draft on Ctrl+E only while the composer has focus', async () => {

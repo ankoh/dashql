@@ -1,5 +1,4 @@
 // dashql run: runs the scripts of a workbook folder on their connections, like the Run of the workbook in the app
-import type * as arrow from 'apache-arrow';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -8,19 +7,19 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
 import { openNodeComputeDatabase, type NodeComputeDatabase } from '@ankoh/dashql-runtime/node/node_hyperdb';
 import { createNodePlatform } from '@ankoh/dashql-runtime/node/node_platform';
 import { NODE_FILE_SYSTEM } from '@ankoh/dashql-runtime/node/node_file_system';
 import { LogLevel, type LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 import { LoggableException, Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
+import type { RunResult } from '@ankoh/dashql-runtime/core_runtime';
 import { JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker } from '@ankoh/dashql-runtime/session/workbook_journal';
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { mirrorWorkbookAttachments } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mirror';
-import { runWorkbookExecution, type ScriptRunEvent, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import type { ScriptRunEvent } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
@@ -237,16 +236,6 @@ async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise
     return workbook;
 }
 
-/// A query of the run
-interface RunQuery {
-    connectionId: string;
-    /// The script of the query, null for a query of no script, e.g. a health check
-    script: string | null;
-    /// The statement that was sent
-    statement: string;
-    execution: Promise<arrow.Table | null>;
-}
-
 /// What happened to a script, the summary counts it
 type ScriptOutcome = 'ok' | 'failed' | 'cancelled' | 'not run';
 
@@ -364,38 +353,21 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             emit({ type: 'connection_ready', connection: label, ms: performance.now() - started });
         };
 
-        // The queries of the run with their scripts. The results are printed, the run doesn't analyze them.
-        const queries = new Map<number, RunQuery>();
-        const running = new Set<number>();
-        // The statement that failed in a script, the error points into it
-        const failedStatements = new Map<string, string>();
-        const execute: QueryExecutor = (connectionId, queryArgs) => {
-            const [queryId, execution] = runtime.coreRuntime.execute(connectionId, { ...queryArgs, analyzeResults: false });
-            const script = scriptOfOwner.get(queryArgs.metadata.resultOwner ?? '') ?? null;
-            queries.set(queryId, { connectionId, script, statement: queryArgs.query, execution });
-            running.add(queryId);
-            execution.then(
-                () => { running.delete(queryId); },
-                () => {
-                    running.delete(queryId);
-                    if (script != null && !failedStatements.has(script)) failedStatements.set(script, queryArgs.query);
-                });
-            return [queryId, execution];
-        };
-
-        // The progress of the running queries, sent when it changed
+        // The progress of the running queries of the scripts, read from the queries of the runtime and sent when it changed
         const lastProgress = new Map<string, string>();
         const sampleProgress = () => {
-            for (const queryId of running) {
-                const query = queries.get(queryId)!;
-                if (query.script == null) continue;
-                const update = runtime.coreRuntime.query(queryId)?.latestProgressUpdate;
-                if (update == null) continue;
-                const progress = { phase: update.phase ?? null, percent: update.progressPercent ?? null, rows: update.rowsProcessed ?? null };
-                const text = JSON.stringify(progress);
-                if (lastProgress.get(query.script) === text) continue;
-                lastProgress.set(query.script, text);
-                emit({ type: 'script_progress', script: query.script, ...progress });
+            for (const conn of runtime.coreRuntime.connections().values()) {
+                for (const queryId of conn.queriesActiveOrdered) {
+                    const query = runtime.coreRuntime.query(queryId);
+                    const script = scriptOfOwner.get(query?.queryMetadata.resultOwner ?? '');
+                    const update = query?.latestProgressUpdate;
+                    if (script == null || update == null) continue;
+                    const progress = { phase: update.phase ?? null, percent: update.progressPercent ?? null, rows: update.rowsProcessed ?? null };
+                    const text = JSON.stringify(progress);
+                    if (lastProgress.get(script) === text) continue;
+                    lastProgress.set(script, text);
+                    emit({ type: 'script_progress', script, ...progress });
+                }
             }
         };
         if (live || journal != null) {
@@ -415,7 +387,8 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         };
         const resultOf = async (script: string, queryId: number | null, key: string | null, cached: boolean): Promise<RunEvent> => {
             const ms = elapsed(script);
-            const table = queryId == null ? null : await (queries.get(queryId)?.execution ?? Promise.resolve(null));
+            // The history of the connection keeps the result table of the query
+            const table = queryId == null ? null : runtime.coreRuntime.table(runtime.coreRuntime.query(queryId)?.resultTable?.id) ?? null;
             // The executor writes the result into the cache after the query resolved
             await runtime.coreRuntime.flushCacheWrites();
             const entry = hyper == null || key == null ? null : await hyper.resultCache.lookup(key);
@@ -441,7 +414,9 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
                 case 'failed': {
                     outcomes.set(script, 'failed');
                     const ms = elapsed(script);
-                    report(async () => ({ type: 'script_failed', script, ms, error: describeError(event.error), statement: failedStatements.get(script) ?? null }));
+                    // The statement that failed, the error points into it
+                    const statement = event.queryId == null ? null : runtime.coreRuntime.query(event.queryId)?.queryText ?? null;
+                    report(async () => ({ type: 'script_failed', script, ms, error: describeError(event.error), statement }));
                     break;
                 }
                 case 'cancelled': {
@@ -457,41 +432,33 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             }
         };
 
-        let state: WorkbookExecutionState | null = null;
-        if (!stop.signal.aborted) {
-            const services = runtime.execution.scriptRunServices;
-            await runWorkbookExecution({
-                workbook: runtime.coreRuntime.workbook(workbookId)!,
-                runs: runtime.coreRuntime,
-                targets: requested.size === 0 ? undefined : selected.map(file => files.indexOf(file)),
-                executeQuery: execute,
-                cancelQuery: (connectionId, queryId) => runtime.coreRuntime.cancel(connectionId, queryId),
-                signal: stop.signal,
-                onState: next => { state = next; },
-                mounts: services.createMounts(),
-                mountAttachments: services.mountAttachments,
-                resultKey: services.cacheKey,
-                cachesResults: services.cachesResults,
-                cache: services.cache,
-                refresh: parsed.refresh,
-                maxConcurrentQueries: services.maxConcurrentQueries,
-                prepareConnection,
-                onScript,
-                logger,
-            });
+        // The run stops on an interrupt
+        const stopRun = () => runtime.coreRuntime.stopRun(workbookId);
+        stop.signal.addEventListener('abort', stopRun, { once: true });
+        let run: RunResult | null = null;
+        try {
+            if (!stop.signal.aborted) {
+                run = await runtime.coreRuntime.runWorkbook(workbookId, {
+                    targets: requested.size === 0 ? undefined : selected.map(file => files.indexOf(file)),
+                    refresh: parsed.refresh,
+                    // The results are printed, the run doesn't analyze them
+                    analyze: false,
+                }, { onScript, prepareConnection });
+            }
+        } finally {
+            stop.signal.removeEventListener('abort', stopRun);
         }
         await reports;
         if (progressTimer != null) clearInterval(progressTimer);
         progressTimer = null;
 
         const interrupted = stop.signal.aborted;
-        const final = state as WorkbookExecutionState | null;
         // An error of the run itself, e.g. a script that can't be planned; a failed script reported its own
         const scriptFailed = [...outcomes.values()].includes('failed');
         let error: string | null = null;
         if (!interrupted && !scriptFailed) {
-            if (final == null) error = 'the workbook is running elsewhere';
-            else if (final.phase === 'failed') error = final.error ?? 'the run failed';
+            if (run == null || run.outcome.refused != null) error = 'the workbook is running elsewhere';
+            else if (run.outcome.failure != null && run.outcome.failure.kind !== 'cancelled') error = run.outcome.failure.message;
         }
         if (error != null) emit({ type: 'run_failed', error });
         // The scripts that the run reports and that didn't settle

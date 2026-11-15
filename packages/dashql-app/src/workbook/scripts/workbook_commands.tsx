@@ -8,14 +8,11 @@ import type { ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_ty
 import { useCatalogLoaderQueue } from '../../connections/catalog/catalog_loader.js';
 import { useConnectionRegistryStore, useWorkbookConnections, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useQueryExecutor } from '../../connections/query_executor.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useWorkbookScripts } from './workbook_scripts_registry.js';
 import { isCatalogRefreshRunning } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
-import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import type { ScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
-import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
+import { useScriptRun } from './use_workbook_execution.js';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 
@@ -56,13 +53,11 @@ export interface WorkbookCommandsDependencies {
     useWorkbookScripts: typeof useWorkbookScripts;
     useWorkbookConnections: typeof useWorkbookConnections;
     useConnectionRegistryStore: typeof useConnectionRegistryStore;
-    useQueryExecutor: typeof useQueryExecutor;
     useCatalogLoaderQueue: typeof useCatalogLoaderQueue;
     useLogger: typeof useLogger;
     useWorkbookViewMode: typeof useWorkbookViewMode;
     useScriptReader: typeof useScriptReader;
-    useScriptRunServices: typeof useScriptRunServices;
-    runWorkbookScript: typeof runWorkbookScript;
+    useScriptRun: typeof useScriptRun;
 }
 
 /// Read a script of the last flush without subscribing to it
@@ -71,14 +66,9 @@ function useScriptReader(): (scriptKey: number) => ScriptData | null {
     return React.useCallback((scriptKey: number) => runtime?.store.get('script', scriptKey) ?? null, [runtime]);
 }
 
-/// The services of the runs of single scripts, null without a runtime
-function useScriptRunServices(): ScriptRunServices | null {
-    return useOptionalRuntime()?.execution.scriptRunServices ?? null;
-}
-
 const DEFAULT_DEPENDENCIES: WorkbookCommandsDependencies = {
     useWorkbookScripts, useWorkbookConnections, useConnectionRegistryStore,
-    useQueryExecutor, useCatalogLoaderQueue, useLogger, useWorkbookViewMode, useScriptReader, useScriptRunServices, runWorkbookScript,
+    useCatalogLoaderQueue, useLogger, useWorkbookViewMode, useScriptReader, useScriptRun,
 };
 
 const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(null);
@@ -90,24 +80,23 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
     const logger = dependencies.useLogger();
     const viewMode = dependencies.useWorkbookViewMode().mode;
 
-    const [workbookScripts, modifyWorkbookScripts] = dependencies.useWorkbookScripts(route.workbookId ?? null);
+    const [workbookScripts] = dependencies.useWorkbookScripts(route.workbookId ?? null);
     const connections = dependencies.useWorkbookConnections(workbookScripts?.workbookId ?? null);
     const connectionRegistryStore = dependencies.useConnectionRegistryStore();
     const connectionAttention = useWorkbookConnectionAttention(workbookScripts?.workbookId ?? null, connectionHealthKey(connections));
-    const executeQuery = dependencies.useQueryExecutor();
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
     const readScript = dependencies.useScriptReader();
-    const scriptRunServices = dependencies.useScriptRunServices();
+    const runScript = dependencies.useScriptRun();
     const selection = useScriptSelection();
 
     // Setup command dispatch logic.
     // The workbook and the connection change with the workbook and with every query event. Read them through a ref to
     // keep the dispatch (and the context value) stable.
-    const latest = React.useRef({ workbookScripts, modifyWorkbookScripts, connectionAttention, executeQuery, refreshCatalog, viewMode, workbookId: route.workbookId, readScript, scriptRunServices });
-    latest.current = { workbookScripts, modifyWorkbookScripts, connectionAttention, executeQuery, refreshCatalog, viewMode, workbookId: route.workbookId, readScript, scriptRunServices };
+    const latest = React.useRef({ workbookScripts, connectionAttention, refreshCatalog, viewMode, workbookId: route.workbookId, readScript, runScript });
+    latest.current = { workbookScripts, connectionAttention, refreshCatalog, viewMode, workbookId: route.workbookId, readScript, runScript };
     const commandDispatch = React.useCallback(
         async (command: WorkbookCommandType) => {
-            const { workbookScripts, modifyWorkbookScripts, connectionAttention, executeQuery, refreshCatalog, viewMode, workbookId, readScript, scriptRunServices } = latest.current;
+            const { workbookScripts, connectionAttention, refreshCatalog, viewMode, workbookId, readScript, runScript } = latest.current;
             if (workbookScripts == null) {
                 logger.warn("Workbook is null", {});
                 return;
@@ -143,17 +132,10 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                                 workbookId,
                                 scriptKey: entry.scriptId.toString(),
                             }, LOG_CTX);
-                        } else if (scriptRunServices == null) {
+                        } else if (runScript == null) {
                             logger.warn("Ignoring Ctrl+E without the runtime", { workbookId }, LOG_CTX);
                         } else {
-                            await dependencies.runWorkbookScript(
-                                scriptRunServices,
-                                workbookScripts,
-                                scriptData,
-                                executeQuery,
-                                modifyWorkbookScripts,
-                                logger,
-                            );
+                            await runScript(workbookScripts.workbookId, scriptData.scriptKey);
                         }
                     }
                     break;

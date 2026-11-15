@@ -20,9 +20,8 @@ import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
-import type { ScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
-import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
-import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts, type WorkbookResultKeys } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
@@ -39,7 +38,7 @@ async function packAndCompressFile(
     workbookScripts: WorkbookScripts,
     settings: WorkbookExportSettings,
     cache: QueryResultCache | null,
-    services: ScriptRunServices | null,
+    services: WorkbookResultKeys | null,
     signal: AbortSignal,
     logger: LoggerLike | null,
 ): Promise<Blob> {
@@ -113,7 +112,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     });
     const cache = useQueryResultCache();
     const logger = useLogger() as LoggerLike | null;
-    const services = useOptionalRuntime()?.execution.scriptRunServices ?? null;
+    const services = useOptionalCoreRuntime();
 
     // The scripts with cached results, counted when the overlay opens
     const [resultCounts, setResultCounts] = React.useState<WorkbookQueryResultCounts | null>(null);

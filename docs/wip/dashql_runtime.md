@@ -201,9 +201,9 @@ interface Runtime {
     core: core.DashQL;
     logger: Logger;
     /// The runtime of the module: the connections with their queries, the executor, the setups, the catalog loader,
-    /// the saves, the computations, the workbooks, the storage writer (`coreRuntime.storage`) and the restore
+    /// the saves, the computations, the workbooks with their runs, the storage writer (`coreRuntime.storage`) and the
+    /// restore
     coreRuntime: CoreRuntime;
-    execution: WorkbookExecutionService;
     restore(progress?: (progress: core.RestoreProgress) => void): Promise<core.RestoreOutcome>;
     destroy(): Promise<void>;
 }
@@ -267,8 +267,9 @@ Each step ships on its own and keeps the behavior.
      runtime of the module with `query/query_platform.ts` as its host half;
    - the catalog loader, since step 3 of [runtime_api.md](runtime_api.md) a service of the runtime of the module that
      follows its connections (`refreshCatalog`);
-   - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the runs of single scripts;
-     the engine of the runs is Rust (`docs/wip/core_runtime.md`, The runs of workbooks);
+   - the runs of workbooks, since step 5 of [runtime_api.md](runtime_api.md) a service of the runtime of the module
+     (`runWorkbook`, `runScript`, `stopRun`, the `run` slice) with the files of its runs on the platform
+     (`workbook/scripts/run_mounts.ts`);
    - `ConnectionPersistenceService`, since step 2 of [runtime_api.md](runtime_api.md) the saves of the runtime of the
      module.
 
@@ -285,8 +286,8 @@ Each step ships on its own and keeps the behavior.
    `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. The runtime object, done: the
    workbooks and the connections are domains of the runtime of the module (steps 2 and 4 of
    [runtime_api.md](runtime_api.md));
-   `createRuntime(platform)` in `runtime.ts` wires it with the runs of workbooks,
-   `restore()` loads the stored state into it and `destroy()` writes what is pending. `runtime.test.ts`
+   `createRuntime(platform)` in `runtime.ts` wires it,
+   `restore()` loads the stored state into it and `destroy()` stops its runs and writes what is pending. `runtime.test.ts`
    writes a workbook with one runtime and restores it with a second one in Node. The app creates it in its
    `RuntimeProvider` (see React after the move). The Node platform, done: `NativeStorageBackend` (one workbook in a folder) moved into the runtime and
    takes a `FileSystem` (`platform/file_system.ts`); the app passes `ELECTRON_FILE_SYSTEM`, Node passes
@@ -321,14 +322,14 @@ the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
   schema, the row count and a few rows, and writes the result as Parquet into the workbook.
 - **`dashql run`, built.** `dashql run [--plain] [--workspace <dir>] <workbook-dir> [<script>...]`
   (`packages/dashql-cli/src/run_command.ts`) loads the folder with `restoreWorkbook` of the runtime over a
-  `NativeStorageBackend` and runs it like the Run of the workbook in the app: `runWorkbookExecution` with the services
-  of the runtime, all scripts or the named ones as `targets` with what they need. Scripts of different connections run
-  at the same time; the first failed statement stops the run. The first interrupt cancels the running queries, the
-  second ends the process. What is built:
-  - Events of the scripts. `runWorkbookPlan` reports what happens to every script through `onScript`
-    (`ScriptRunEvent`: planned with the scripts it follows, cached, skipped with a reason, started, done with its key
-    and the query of its output, failed, cancelled). The command turns them and the progress of the running queries
-    into `RunEvent`s (`run_events.ts`) that reporters show: the live view on a terminal (`run_live.ts`, settled lines
+  `NativeStorageBackend` and runs it like the Run of the workbook in the app: `runWorkbook` of the runtime, all scripts
+  or the named ones as `targets` with what they need. Scripts of different connections run at the same time; the
+  first failed statement stops the run. The first interrupt stops the run (`stopRun`), which cancels the running
+  queries, the second ends the process. What is built:
+  - Events of the scripts. The listener of `runWorkbook` hears what happens to every script (`onScript`,
+    `ScriptRunEvent`: planned with the scripts it follows, cached, skipped with a reason, started, done with its key
+    and the query of its output, failed with the query of the statement, cancelled). The command turns them and the
+    progress of the running queries of the scripts, read from the `query` views of the runtime, into `RunEvent`s (`run_events.ts`) that reporters show: the live view on a terminal (`run_live.ts`, settled lines
     in the scrollback and a region drawn again in place below them), plain lines for agents and pipes
     (`run_output.ts`, nothing while scripts run, a summary at the end), and the markers of the journal of a session
     (`run_journal.ts`). `term.ts` decides between the two views: a live view only when stdout is a terminal.
@@ -339,14 +340,16 @@ the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
     `EmbeddedHyperDatabaseChannel` (`connections/embedded/`, moved from the app) like in the app.
   - The setups are commands of the runtime (`setupConnection` with the credentials of the environment as the params of
     the channel; the embedded Hyper of the run connects with `connectEmbeddedHyper`), the outcome says why a setup
-    failed, e.g. a rejected login. The run of a plan sets up the
-    connections of the scripts it will run, all at once (`prepareConnection` of `runWorkbookPlan`), so a result that
-    the cache serves needs none. The scripts of a connection that can't be set up are skipped like those of a
+    failed, e.g. a rejected login. The run sets up the
+    connections of the scripts it will run, all at once (`prepareConnection` of the listener of `runWorkbook`), so a
+    result that the cache serves needs none. The scripts of a connection that can't be set up are skipped like those of a
     connection that can't run, the others still run.
-  - It prints the schema, the row count and the first rows (`--rows`), the file of the result in the query result
-    cache, and the message of Trino on a failure with the line of the statement it points at. A cached result is
+  - It prints the schema, the row count and the first rows (`--rows`) of the result table that the history of the
+    connection keeps, the file of the result in the query result cache, and the message of Trino on a failure with the
+    line of the statement it points at. A cached result is
     served like in the app, `--refresh` runs again.
-  - The results are not analyzed (the summaries of the app), the catalog loader is stopped; `catalog refresh` follows.
+  - The results are not analyzed (`analyze: false`, the summaries of the app), the catalog loader is stopped;
+    `catalog refresh` follows.
   - Tested against a fake Trino in `//packages/dashql-cli:test`, the bundle in `:binary_test`, by hand against
     `bazel run //:trino`.
 - **The root of Node.** The CLI brings its own root, a folder with the layout of the origin private file system
@@ -393,9 +396,9 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   test file, started by the first test that needs it, about 1.5 s. Every test file in Node also gets a root of its own
   with the layout of OPFS (`useNodeRoot`), so `getOPFSRoot()` works, and the locks of the process where Node has no Web
   Locks.
-- **The services in Node.** The tests of the providers of the app became tests of the services of the runtime:
-  `WorkbookExecutionService` (starting and stopping runs, the connections a run needs, previews, changes of inputs);
-  the workbooks, the connections, their setups, the catalog loader, the queries and their saves are tested on the
+- **The services in Node.** The tests of the providers of the app became tests of the services of the runtime: the runs
+  of workbooks (`workbook/workbook_runs.test.ts`: starting and stopping runs, the connections a run needs, previews,
+  changes of inputs, the runs of single scripts and their cached results, on the executor of the runtime); the workbooks, the connections, their setups, the catalog loader, the queries and their saves are tested on the
   runtime of the module (`runtime_workbooks.test.ts` and `runtime_connections.test.ts` of `dashql-core-js`) and
   through `CoreRuntime` (the handles, the workbooks, the tracked queries). `createTestRuntime()` (`src/testing/test_runtime.ts`)
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
@@ -403,7 +406,7 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   tests of what React adds: hooks, rendering order, remounting and unmounting.
 - **Export and import in Node.** Writing and reading `.dashql` files (`workbook/persistence/workbook_export.ts`,
   `workbook_import.ts`, `workbook_zip.ts`, `storage/workbook_tables_parquet.ts`) moved into the runtime with their
-  tests and `workbook_execution_integration.test.ts`; a link takes the URL of the app that opens it, the app passes its
+  tests; a link takes the URL of the app that opens it, the app passes its
   own, `workbook_link.ts` has the one of the desktop app.
 - **The compute tasks.** The tasks of the computations (aggregation, filtering, ordering, search, system columns) run in
   the runtime of the core (`packages/dashql-core-runtime/src/compute`); the app keeps `compute/computation_scheduler.tsx`,

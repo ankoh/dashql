@@ -81,7 +81,7 @@ describe('Dashboard', () => {
     let root: Root;
     let modify: ReturnType<typeof vi.fn>;
     let executor: TestQueryExecutorFunctions;
-    let runWorkbookScript: ReturnType<typeof vi.fn>;
+    let runScript: ReturnType<typeof vi.fn>;
     let dependencies: DashboardDependencies;
     /// The file name that the runtime gives a renamed script
     let renamedFileName: string | null;
@@ -100,9 +100,9 @@ describe('Dashboard', () => {
         modify = vi.fn();
         renamedFileName = null;
         executor = { execute: vi.fn(), cancel: vi.fn(), watchProfile: vi.fn() } as unknown as TestQueryExecutorFunctions;
-        runWorkbookScript = vi.fn(async () => {});
+        runScript = vi.fn(async () => {});
         dependencies = {
-            runWorkbookScript: runWorkbookScript as unknown as DashboardDependencies['runWorkbookScript'],
+            useScriptRun: () => runScript as never,
             useLiveScriptReader: () => (key: number) => key === 2 && renamedFileName != null ? { fileName: renamedFileName } as ScriptData : null,
             DashboardEditorOverlay: (props: { script: ScriptData; onAcceptDiff: (key: number) => void; onRejectDiff: (key: number) => void; onClose: () => void }) => (
                 <div data-testid="editor-overlay" data-script={props.script.fileName}>
@@ -192,15 +192,10 @@ describe('Dashboard', () => {
 
     it('runs, refreshes and stops the cards', () => {
         render(workbook(SETUP, SALES, TREND));
-        const workbookScripts = runWorkbookScript.mock.calls;
         // A card without a result runs and may use the cache, a card with a result refreshes
         act(() => cardButton(1, 'dashboard-card-run').click());
         act(() => cardButton(2, 'dashboard-card-run').click());
-        expect(workbookScripts.map(call => [call[2].scriptKey, call[6]])).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
-        // The runs execute with the executor of the runtime
-        workbookScripts[0][3]('db', { query: 'select 1' } as never);
-        expect(executor.execute).toHaveBeenCalledWith('db', { query: 'select 1' });
-        expect(workbookScripts[0][4]).toBe(modify);
+        expect(runScript.mock.calls.map(call => [call[1], call[2]])).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
 
         // A running card cancels its query
         expect(cardButton(3, 'dashboard-card-run').getAttribute('data-run-action')).toBe('stop');

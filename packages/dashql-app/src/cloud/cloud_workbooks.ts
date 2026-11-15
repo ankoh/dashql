@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import { useDeleteComputation, useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
-import { useOptionalRuntime } from '../runtime/runtime_provider.js';
 import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore, type ConnectionReferences } from '../connections/connection_registry.js';
 import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
@@ -207,7 +206,6 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     const coreRuntime = useOptionalCoreRuntime();
     /// The workbooks of the last flush
     const readWorkbooks = React.useCallback(() => [...coreRuntime?.store.all('workbook').values() ?? []], [coreRuntime]);
-    const scriptRunServices = useOptionalRuntime()?.execution.scriptRunServices ?? null;
     const dispatchScripts = useWorkbookScriptsDispatch();
     const deleteScripts = useWorkbookScriptsDeletion();
     const deleteComputation = useDeleteComputation();
@@ -395,7 +393,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         const folderId = options.folderId ?? undefined;
         // The cached results go along, a preview shows them for the connections that it doesn't run on. They stay
         // pinned until the publish sent them.
-        const retained = queryResultCache == null || scriptRunServices == null ? null : await retainWorkbookQueryResults(scriptRunServices, scripts, queryResultCache);
+        const retained = queryResultCache == null || coreRuntime == null ? null : await retainWorkbookQueryResults(coreRuntime, scripts, queryResultCache);
         let version: CloudWorkbookVersion;
         try {
             // Whoever opens the workbook logs in to the connections with their own account
@@ -422,7 +420,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         }, LOG_CTX);
         await cloud.refresh();
         return version;
-    }, [archiveDatabase, connectionStore, dispatchScripts, logger, queryResultCache, readWorkbook, readyCloud, references, scriptRunServices, setupCore, storageReader, storageWriter]);
+    }, [archiveDatabase, connectionStore, dispatchScripts, logger, queryResultCache, readWorkbook, readyCloud, references, coreRuntime, setupCore, storageReader, storageWriter]);
     // The status of the workbook tells the publish
     const publish = React.useCallback(
         (workbookId: string, options: Parameters<typeof publishVersion>[1]) => trackCloudPublish(workbookId, publishVersion(workbookId, options)),

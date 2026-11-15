@@ -9,7 +9,6 @@ import type { StorageBackend } from './storage/storage_backend.js';
 import type { QueryResultCache } from './query/query_result_cache.js';
 import { CoreRuntime, type ChannelConnector } from './core_runtime.js';
 import type { SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
-import { WorkbookExecutionService } from './workbook/scripts/workbook_execution_service.js';
 
 /// What a platform passes to the runtime: the browser, the desktop app or Node
 export interface RuntimePlatform {
@@ -36,14 +35,13 @@ export interface RuntimePlatform {
 }
 
 /// The logic of DashQL without a user interface: the runtime of the module with the connections, their queries, the
-/// computations, the workbooks, the storage writer and the restore, and the service of the runs of workbooks. The app
-/// binds it to React, the command line tool uses it as it is.
+/// computations, the workbooks, their runs, the storage writer and the restore. The app binds it to React, the command
+/// line tool uses it as it is.
 export interface Runtime {
     platform: RuntimePlatform;
     logger: Logger;
     /// The runtime of the module, read through its store
     coreRuntime: CoreRuntime;
-    execution: WorkbookExecutionService;
     /// Set the database of the computations once the platform has set it up, e.g. in the app after the settings loaded.
     /// The queries and runs that start later use it.
     setComputeDatabase(database: EmbeddedComputeDatabase | null): void;
@@ -58,7 +56,7 @@ export interface Runtime {
 /// Create the runtime of a platform. The app creates it in its RuntimeProvider, the command line tool on its own.
 ///
 /// The runtime of the module holds the connections and the workbooks, sets the connections up, loads their catalogs,
-/// runs their queries and writes what changed. The runs of workbooks run on its executor. The core is instantiated when
+/// runs their queries and the scripts of the workbooks and writes what changed. The core is instantiated when
 /// the runtime restores the stored state, the services ask the platform for it when they need it.
 export function createRuntime(platform: RuntimePlatform): Runtime {
     const { logger, storage, http, scheduler } = platform;
@@ -75,38 +73,11 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         storage,
     });
 
-    // The platform may set the compute database later, the services read it when they use it
-    let computeDatabase = platform.computeDatabase ?? null;
-    const resultCache = platform.resultCache ?? null;
-
-    const execution = new WorkbookExecutionService({
-        logger,
-        readWorkbooks: () => coreRuntime.store.all('workbook').values(),
-        readWorkbook: workbookId => coreRuntime.workbook(workbookId),
-        runs: coreRuntime,
-        readConnections: () => coreRuntime.registry(),
-        executeQuery: coreRuntime.execute,
-        cancelQuery: coreRuntime.cancel,
-        dispatchWorkbookScripts: coreRuntime.dispatchWorkbook,
-        get computeDatabase() { return computeDatabase; },
-        resultCache,
-    });
-
-    // The runs follow the workbooks and the connections of the runtime
-    const follow = () => execution.followRegistries(coreRuntime.store.all('workbook').values(), coreRuntime.registry());
-    const unsubscribe = [
-        coreRuntime.store.subscribeKind('workbook', follow),
-        coreRuntime.store.subscribeKind('connectionList', follow),
-        coreRuntime.store.subscribeKind('connection', follow),
-    ];
-
     return {
         platform,
         logger,
         coreRuntime,
-        execution,
         setComputeDatabase(database) {
-            computeDatabase = database;
             coreRuntime.setComputeDatabase(database);
         },
         setSalesforce(api) {
@@ -118,8 +89,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
             return await coreRuntime.restore(progress);
         },
         async destroy() {
-            for (const stop of unsubscribe) stop();
-            execution.stopAll();
+            coreRuntime.stopRuns();
             coreRuntime.runCatalogLoader(false);
             // The results of the last queries may still be written into the query result cache
             await coreRuntime.flushCacheWrites();

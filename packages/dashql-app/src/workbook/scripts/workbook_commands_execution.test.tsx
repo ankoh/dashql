@@ -13,7 +13,6 @@ describe('global workbook execution feedback', () => {
     let root: Root;
     let connection: any;
     let attention: React.ContextType<typeof WorkbookConnectionAttentionContext>;
-    const execute = vi.fn();
     const resolveMain = vi.fn();
     const workbookScripts = {
         workbookId: 'workbook',
@@ -24,19 +23,16 @@ describe('global workbook execution feedback', () => {
         pendingConnectionId: null,
     };
     const script = { scriptKey: 1, connectionId: 'main', annotations: {}, analysisOutdated: false };
-    const services = { runs: {} };
-    const runWorkbookScript = vi.fn();
+    const runScript = vi.fn();
     const dependencies = {
         useWorkbookScripts: () => [workbookScripts, vi.fn()],
         useWorkbookConnections: (workbookId: string) => { resolveMain(workbookId); return connection == null ? null : [connection]; },
         useConnectionRegistryStore: () => ({ get current() { return { connections: new Map(connection == null ? [] : [['main', connection]]) }; } }),
-        useQueryExecutor: () => execute,
         useCatalogLoaderQueue: () => vi.fn(),
         useLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
         useWorkbookViewMode: () => ({ mode: WorkbookViewMode.Workbook, setMode: vi.fn() }),
         useScriptReader: () => (scriptKey: number) => scriptKey === 1 ? script : null,
-        useScriptRunServices: () => services,
-        runWorkbookScript,
+        useScriptRun: () => runScript,
     } as unknown as WorkbookCommandsDependencies;
     function Probe() {
         attention = React.useContext(WorkbookConnectionAttentionContext);
@@ -48,7 +44,7 @@ describe('global workbook execution feedback', () => {
     const shortcut = () => act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true })));
     beforeEach(() => {
         connection = null;
-        runWorkbookScript.mockReset();
+        runScript.mockReset();
         resolveMain.mockReset();
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -61,7 +57,7 @@ describe('global workbook execution feedback', () => {
         const focused = document.activeElement;
         shortcut();
         expect(attention?.active).toBe(true);
-        expect(runWorkbookScript).not.toHaveBeenCalled();
+        expect(runScript).not.toHaveBeenCalled();
         expect(resolveMain).toHaveBeenCalledWith('workbook');
         expect(document.activeElement).toBe(focused);
         connection = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE };
@@ -73,7 +69,7 @@ describe('global workbook execution feedback', () => {
         connection = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE };
         render();
         shortcut();
-        expect(runWorkbookScript).toHaveBeenCalledWith(services, workbookScripts, script, execute, expect.any(Function), expect.anything());
+        expect(runScript).toHaveBeenCalledWith('workbook', 1);
         expect(attention?.active).toBe(false);
     });
 });

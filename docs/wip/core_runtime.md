@@ -15,15 +15,15 @@ computations (`compute/service.rs` on the compute database of the platform), the
 client functions run their protocols in Rust over the HTTP client of the host, the catalog loader
 (`runtime/catalog.rs` of the bindings over `catalog_loader/service.rs`): it schedules the updates of the catalogs, runs
 their metadata queries on the executor of the runtime, fetches the metadata of Salesforce and registers the client
-functions of the connections, the runs of workbooks (`src/workbook_run/`): a run analyzes, plans and runs the scripts
-of a workbook of the runtime, and the setups of the connectors and the health checks (`runtime/setups.rs` of the
+functions of the connections, the runs of workbooks (`runtime/runs.rs` of the bindings over `src/workbook_run/`): a
+run analyzes, plans and runs the scripts of a workbook of the runtime on its executor, and the setups of the connectors and the health checks (`runtime/setups.rs` of the
 bindings over `connection_setup/`): Trino, Salesforce and Hyper set up their connections over the OAuth flows of the
 platform. The storage format of workbooks is called by the storage, the imports and the exports of the TypeScript
 runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
-schemas of `proto/fb`. The classes of the runtime (`Runtime`, `WorkbookRun`, `QueryProgressFollower`) belong to DashQL
+schemas of `proto/fb`. The classes of the runtime (`Runtime`, `QueryProgressFollower`) belong to DashQL
 and change with it, their state crosses as JS objects of views with generated types (see
 [runtime_projection.md](runtime_projection.md)).
 
@@ -178,8 +178,9 @@ cloud), and the workbooks that the restore refused.
   the store reads it: the checked references, the dataflow and the inputs, packed like the free functions of the
   planner. The store of TypeScript reads the payloads of a script once per key (`ScriptProjection`), the FlatBuffers of
   a derived view once per view.
-- **Runs.** A run shares the workbook of the runtime (`startWorkbookRun`), it is live while the runtime holds the
-  workbook, and its writes tell the platform.
+- **Runs.** A run shares the workbook of the runtime (`runWorkbook`, `runScript`), it is live while the runtime holds
+  the workbook, and its writes tell the platform. The `run` slice of a workbook shows the run that holds it and the
+  state of its last run, see [The runs of workbooks](#the-runs-of-workbooks).
 - **The tests.** `runtime_workbooks.test.ts` of `dashql-core-js` (the actions and their writes, a keystroke as the change
   of a script only, the payloads by key, the promotion, a restore of what the runtime wrote) and the tests of the
   runtime package on the embedded Hyper.
@@ -753,11 +754,12 @@ of the app): `{ history: 'shell-<n>' }`, created with `createHistory` and droppe
 
 ## The runs of workbooks
 
-`runWorkbookExecution`, `runPlannedScript` and the result keys of scripts (`computeScriptResultCacheKey`,
-`computeWorkbookResultCacheKeys`) of the TypeScript runtime are adapters over the runs of the crate
-(`src/workbook_run/`), bound as `Runtime.startWorkbookRun(workbookId, host, options)`, which returns a `WorkbookRun`
-(`DashQLWorkbookRun` of `@ankoh/dashql-core`). `WorkbookExecutionService` and `runWorkbookScript` kept their APIs but
-take the runs of the runtime (`WorkbookRuns`, `CoreRuntime`).
+The runs of workbooks are a service of `Runtime` (`runtime/runs.rs` of the bindings) on the run of the crate
+(`src/workbook_run/`): `runWorkbook(workbookId, options, listener)`, `runScript(workbookId, scriptKey, options)`,
+`stopRun(workbookId)` and `resultKeys(workbookId, targets)`, the `run` slice of a workbook
+(`WorkbookRunView`: the run that holds it, the state of its last run of the whole workbook, the inputs whose change
+waits). `CoreRuntime` of the TypeScript runtime has the same commands, the app reads the slice with
+`useWorkbookExecution` and runs a script with `useScriptRun`.
 
 - **A run is a task on the workbook.** The module shares the workbook with its runs (`Rc<RefCell<Workbook>>`). A run
   analyzes every script and publishes its declarations, then analyzes every script again at the catalog revisions that
@@ -765,44 +767,69 @@ take the runs of the runtime (`WorkbookRuns`, `CoreRuntime`).
   over. Before every plan the scripts whose analysis a catalog update outdated analyze again.
 - **Plans.** `Workbook::plan_run` plans the scripts with `planner::plan_session`: every script, the targets with what
   they need, or the scripts that a change of inputs affects (`plan::affected_scripts` on the dataflow of the workbook).
-  A run of a script needs a statement of its target. The result keys follow the plan (`plan::result_keys`): the host
-  derives a key from a signature, the run decides whether the key is reusable.
+  A run of a script needs a statement of its target. The result keys follow the plan (`plan::result_keys`): the
+  platform derives a key from a signature (`resultCache.key`), the run decides whether the key is reusable.
+  `resultKeys` plans without analyzing and returns the reusable keys, for the cache indicators and the exports.
 - **Cached results.** A script with a reusable key whose file the cache holds and that follows no script that runs is
-  served from the cache: the run keeps the file, the terminal query of the script reads the cache only, and the run
-  plans again with the file as a result that the host provides. A miss runs the script.
+  served from the cache: the run keeps the file (`resultCache.retain`), the terminal query of the script reads the
+  cache only, and the run plans again with the file as a result that the platform provides. A miss runs the script.
 - **The schedule.** A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a
-  connection run at once, in node order. A statement releases the nodes after it once its result arrived, the node of
-  a materialized script once the host wrote its result as Parquet file. The nodes of a connection that can't run or
-  could not be set up are skipped with every node that follows them. A failed statement cancels the running ones, the
-  run settles once they ended and then releases its files.
+  connection run at once (a Hyper server four, the others one), in node order. A statement releases the nodes after
+  it once its result arrived, the node of a materialized script once its result is written as Parquet file
+  (`mounts.write`). The nodes of a connection that can't run or could not be set up are skipped with every node that
+  follows them. A failed statement cancels the running ones, the run settles once they ended and then releases its
+  files (`mounts.release`).
+- **Statements on the executor.** A statement is a query of the history of its connection that the runtime runs
+  itself (`Connections::run_statement`): the platform describes where it runs with the options of the statement
+  (`queries.describe`: the cache with the signature of its key, whether it publishes and analyzes its result, a call
+  of a client function), the executor reports its result as ready to the run before the analysis and its end after.
+  The result table stays in the history, a materialization writes it by its handle. Its failure keeps the query, the
+  details and the target of its error.
 - **Writes.** The run registers the queries and the results of the scripts on the workbook and captures the
   visualization of every output (`RegisterQuery`, `RegisterScriptResult`, `SetExecutionVisualization`), the runtime
   tells the platform that it changed. A run is live while the runtime holds its workbook.
-- **The host.** `RunHost` runs a statement: the adapter hands it to the query executor with the arguments of a planned
-  statement (`QueryExecutionArgs` with the title, the description and `QueryMetadata.planned` that the run describes)
-  and keeps the result table. The host cancels statements, derives keys, keeps the files of the query result cache,
-  writes and mounts the materialized results and the attachments, sets up connections, reports the state of the run
-  and the events of the scripts, and yields. A run holds its workbook in TypeScript (`acquireWorkbookExecution`), the
-  hooks of the app subscribe to the holds.
-- **Cancellation.** `WorkbookRun.cancel` stops a run: the state turns `stopping`, the running statements are cancelled
-  through the host, the run ends `cancelled` once they ended. An abort signal of the adapter cancels the run.
-- **No borrow across an await.** The run borrows the workbook only between its awaits and tells the host after the
-  borrow ended. The host may change the workbook during a statement, the next statement fails the run if a script, the
+- **One run per workbook.** A run holds its workbook until it ended. A run of the workbook takes the connections of
+  its scripts and starts only while the compute database is set up, no run holds the workbook or one of its
+  connections, none of them is connecting and none runs a query that isn't an SQLFrame query of a computation; it
+  refuses otherwise and says why (`RunOutcome.refused`). It runs statements on the connections that were online when
+  it started, a preview of a published workbook only on the embedded Hyper. A run of a script refuses a held workbook
+  and a preview, analyzes an outdated script first and shows a plan that fails, or a run that fails before its
+  statements, as a failed query of the script.
+- **Changes of inputs wait.** A change of inputs while the workbook is busy merges into the inputs that wait and stops
+  the run that holds it. The runs follow the registry (`follow` at the end of the task of a change): the inputs that
+  wait start once nothing blocks, when a run ended or a connection changed; after 5 s the change is dropped with a
+  warning.
+- **Stopping.** `stopRun` stops a run: the state turns `stopping`, the running statements are cancelled on the
+  executor and their channels of the host at once, the run ends `cancelled` once they ended. A connection that drops
+  from online stops the runs that run statements on it, a deleted workbook its run, a destroyed runtime every run.
+- **The command line tool.** A listener with `prepareConnection` sets up the connections that statements run on
+  before the first statement; such a run takes every connection of the workbook and needs no compute database. The
+  listener hears the events of the scripts (`script`), a failure with what the platform failed with and the query of
+  the statement. `analyze: false` leaves the results unanalyzed.
+- **Attachments.** The runtime reads the columns of the Parquet attachments without columns once per file and stamp
+  (`mounts.attachmentColumns`) when attachments change, after a restore and when the registry changes, and sets them
+  with `SetAttachmentColumns`. A run mounts the attachments of its workbook before a statement scans them
+  (`mounts.attachments`).
+- **The platform.** `resultCache` has `key`, `retain` and `release` besides the reads and writes of the executor;
+  `mounts` (`createRunMounts` of `workbook/scripts/run_mounts.ts`, null without a compute database that reads Parquet
+  files) has the files of a run by its number: `prefix`, `fileName`, `write`, `use`, `release`, and the attachments.
+- **No borrow across an await.** The run borrows the workbook only between its awaits and tells the platform after
+  the borrow ended. The workbook may change during a statement, the next statement fails the run if a script, the
   order of the scripts or a session changed, a stale text fails it before the first statement.
 - **The tests.** `tests/workbook_run_test.rs` runs real workbooks on a fake host: the order of a plan, concurrency per
   connection, failures and cancellation, cached results, materializations, runs of a script and changes of inputs.
-  `workbook_execution.test.ts`, `workbook_execution_integration.test.ts` and `script_run.test.ts` of the TypeScript
-  runtime run the adapter with a fake executor, the query result cache and the mounts; they read plans with
-  `Runtime.planRun` and result keys with `Runtime.resultKeys`.
+  `workbook/workbook_runs.test.ts` of the TypeScript runtime runs the service on the runtime with channels of the
+  tests: the holds, the blockers, stopping, previews, changes of inputs, runs of scripts, cached results and the
+  events. `//packages/dashql-cli:test` runs workbooks on a fake Trino and the embedded Hyper: materializations across
+  connections, attachments, the cache, interrupts.
 - **Changed on purpose.** The run analyzes the scripts on the workbook and the action `APPLY_PLANNER_ANALYSIS` is gone,
-  so is `ApplyPlannerAnalysis` of the workbook. The run writes the workbook directly, the adapter dispatches
-  `PROJECT_WORKBOOK` instead of the actions of the queries and visualizations. Before a plan only the scripts with an
-  outdated analysis analyze again. An attachment edge of the dataflow no longer counts as an edge of a script when a
-  change of inputs collects the scripts it affects. Every statement has an abort signal of its own, which the
-  cancellation of the run aborts, and reports its result as ready to the run. The result keys are derived one after
-  another. A run checks the Rust workbook: a projection of the app with another order of scripts no longer fails a
-  run. The `done` of a script and the `started` of a script that it releases come in either order. A plan without the
-  mounts of the cache has a mount prefix with a counter instead of a random UUID.
+  so is `ApplyPlannerAnalysis` of the workbook. Before a plan only the scripts with an outdated analysis analyze again.
+  An attachment edge of the dataflow no longer counts as an edge of a script when a change of inputs collects the
+  scripts it affects. The result keys are derived one after another. A run checks the Rust workbook. The `done` of a
+  script and the `started` of a script that it releases come in either order. A plan without the mounts of the cache
+  has a mount prefix with a counter instead of a random UUID. A run that doesn't start resolves with the reason
+  instead of returning silently. A change of inputs that waits starts when what blocked it changed, not by polling. A
+  plan error of a script is recorded in the history of its connection without a round trip through the executor.
 
 ## Typing
 
@@ -838,6 +865,10 @@ behind a signature of every script; the base row counts only its three calls of 
 once, not the request that the app built per keystroke nor the graph. The runtime derives when the store reads the
 derived view and crosses its three FlatBuffers.
 
+With the runs in the runtime (step 5), one run of three passes at a load of about 1.7: the editor 81 / 145 µs, the
+update 31 / 67 µs, the projection 11 / 15 µs, the update and the projection 44 / 84 µs, the derivation 25 / 35 µs (p10 /
+p50). The change set crosses the `run` slices as well, a keystroke changes none of them.
+
 ## Open
 
 - The actions of the success of a task and the scheduler tasks that the host would run remain in the state of the
@@ -859,11 +890,6 @@ derived view and crosses its three FlatBuffers.
   (`connection_setup_cancellation.ts`) holds abort controllers of the host and stays.
 - The Salesforce setup reads the HTTP client from a `SalesforceApiClient`, an API client of another kind passes its
   HTTP client next to it.
-- The service of the runs (`WorkbookExecutionService`: one run per workbook, the connections that a run takes, the
-  changes of inputs that wait for the workbook, stopping a run when a connection drops) and the holds of workbooks stay
-  in TypeScript, the run itself is Rust.
-- A statement of a run reaches the query executor of the runtime through `CoreRuntime.execute`, the run and the runtime
-  are not one Rust value yet.
 - The batches of a catalog update parse on the main thread. A host call to a worker with a core of its own would move
   the bundled functions of Hyper off the event loop.
 

@@ -3,14 +3,14 @@
 //!
 //! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
 //! the channels of the host, the descriptions of the queries that the runtime runs itself, the query result cache, the
-//! OAuth flows, the specs of the extensions and the API of Salesforce. The runtime tells it that its state changed
-//! (`changed`), the store of the app then takes the changes and reads the views. Every call into the platform catches:
-//! a member that throws or is missing fails the call of the service with a `HostError` and never unwinds through the
-//! module. No borrow of the platform is held while it calls JavaScript, so the platform may call the runtime again from
-//! any of its members.
+//! files of the runs of workbooks, the OAuth flows, the specs of the extensions and the API of Salesforce. The runtime
+//! tells it that its state changed (`changed`), the store of the app then takes the changes and reads the views. Every
+//! call into the platform catches: a member that throws or is missing fails the call of the service with a `HostError`
+//! and never unwinds through the module. No borrow of the platform is held while it calls JavaScript, so the platform
+//! may call the runtime again from any of its members.
 //!
-//! The helpers of the other hosts of the bindings (the runs of workbooks, the storage) live here as well: reading the
-//! fields of JS values, awaiting the promises of the host, requests and responses.
+//! The helpers of the other hosts of the bindings (the storage) live here as well: reading the fields of JS values,
+//! awaiting the promises of the host, requests and responses.
 
 use std::any::Any;
 use std::cell::{Cell, RefCell};
@@ -56,6 +56,8 @@ export interface RuntimePlatform {
     queries: RuntimeQueries;
     /** The query result cache, null without one */
     readonly resultCache: RuntimeResultCache | null;
+    /** The files of the runs of workbooks in the compute database: the materialized results, the cached results that they scan and the attachments. Null without a compute database that reads Parquet files. */
+    readonly mounts: RuntimeMounts | null;
     /** Random ids */
     crypto: { randomUuid(): string };
     /** The OAuth flows of the setups */
@@ -112,6 +114,16 @@ export interface RuntimeQueryDescription {
     metadata: QueryMetadataView;
     /** The read timeout, null for the default of the connection */
     readTimeoutMs: number | null;
+    /** Analyze the result on the compute database, false by default */
+    analyzeResults?: boolean;
+    /** Collect the result, true by default. A statement whose output nothing reads drains it. */
+    publishResults?: boolean;
+    /** Reject with the error of a failed query */
+    throwOnError?: boolean;
+    /** A call of a client function that runs instead of the text */
+    clientFunctionCall?: unknown | null;
+    /** The query result cache: the signature that the key of the connection derives from, whether the result becomes the newest file of the key, and whether the query only reads the cache */
+    cache?: { signature: string; refresh: boolean; only: boolean } | null;
 }
 /** The host side of the queries that the runtime runs itself */
 export interface RuntimeQueries {
@@ -225,6 +237,30 @@ export interface RuntimeResultCache {
     touch(name: string): Promise<void>;
     /** Write a table of the handle table as the newest file of a key */
     write(key: string, table: number): Promise<void>;
+    /** The key of the results of a signature on a connection, null if the connection has no key, e.g. before its setup */
+    key(connectionId: string, signature: string): Promise<string | null>;
+    /** Keep the newest file of a key until `release`, null on a miss */
+    retain(key: string): Promise<{ id: number; name: string } | null>;
+    /** Release a file that `retain` kept */
+    release(id: number): Promise<void>;
+}
+
+/** The files of the runs of workbooks in the compute database. A run names its files by its number. */
+export interface RuntimeMounts {
+    /** The directory of the files of the runs, the files of the query result cache; null without the cache */
+    prefix(): string | null;
+    /** The name of a new file of the result of a script: a file of its key if the key is reusable, a transient file of the run otherwise */
+    fileName(run: number, key: string | null): string;
+    /** Write a table of the handle table as Parquet file at a path below the prefix, resolves with its rows. The run keeps the file. */
+    write(run: number, path: string, table: number): Promise<number>;
+    /** Keep a file that a run scans, e.g. a cached result */
+    use(run: number, path: string): Promise<void>;
+    /** Release the files of a run, its transient files are removed */
+    release(run: number): Promise<void>;
+    /** Mount the attachments of a workbook */
+    attachments(workbookId: string): Promise<void>;
+    /** The columns of a Parquet attachment of a workbook */
+    attachmentColumns(workbookId: string, fileName: string): Promise<string[]>;
 }
 
 /** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Tables cross as Arrow IPC streams. */
@@ -714,6 +750,56 @@ impl JsPlatform {
     pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<(), HostError>> + 'static {
         let call = self.result_cache().and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
         async move { settled(call).await.map(|_| ()) }
+    }
+
+    /// The key of the results of a signature on a connection, none without a cache or a key
+    pub fn cache_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "key", &[JsValue::from_str(connection_id), JsValue::from_str(signature)]));
+        async move { settled(call).await.ok().and_then(|key| key.as_string()) }
+    }
+
+    /// Keep the newest file of a key until it is released: its id and its name, none on a miss
+    pub fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<(u64, String)>, HostError>> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "retain", &[JsValue::from_str(key)]));
+        async move {
+            let value = settled(call).await?;
+            let id = field(&value, "id").and_then(|id| id.as_f64());
+            let name = field(&value, "name").and_then(|name| name.as_string());
+            Ok(id.zip(name).map(|(id, name)| (id.max(0.0) as u64, name)))
+        }
+    }
+
+    /// Release a file that the cache kept
+    pub fn cache_release(&self, id: u64) -> impl Future<Output = ()> + 'static {
+        let call = self.result_cache().and_then(|cache| call(&cache, "release", &[JsValue::from_f64(id as f64)]));
+        async move {
+            let _ = settled(call).await;
+        }
+    }
+
+    /// Is there a query result cache?
+    pub fn has_cache(&self) -> bool {
+        self.result_cache().is_ok()
+    }
+
+    /// The files of the runs, an error without a compute database that reads Parquet files
+    fn mounts(&self) -> Result<JsValue, HostError> {
+        member(self.object(), "mounts").map_err(|_| HostError::new("Scripts that read the results of other scripts or attachments need the compute database"))
+    }
+
+    /// Can the platform mount files of runs?
+    pub fn has_mounts(&self) -> bool {
+        self.mounts().is_ok()
+    }
+
+    /// Call a member of the files of the runs and await it
+    pub fn mounts_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        settled(self.mounts().and_then(|mounts| call(&mounts, name, args)))
+    }
+
+    /// Call a member of the files of the runs that returns right away
+    pub fn mounts_call_now(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
+        self.mounts().and_then(|mounts| call(&mounts, name, args))
     }
 
     /// Send a request with the fetch of the platform, a successful response may keep its body with the host

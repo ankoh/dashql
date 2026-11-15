@@ -5,7 +5,8 @@ Status: decided on 2026-11-15 (see [Decisions](#decisions)). Step 1 is built: th
 is built: the connections with their query histories, the query executor and the saves of connections, see
 [Step 2 as built](#step-2-as-built). Step 3 is built: the setups of the connections and the catalog loader, see
 [Step 3 as built](#step-3-as-built). Step 4 is built: the workbooks, the storage writer and the restore, see
-[Step 4 as built](#step-4-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+[Step 4 as built](#step-4-as-built). Step 5 is built: the runs of workbooks, see [Step 5 as built](#step-5-as-built).
+Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -443,8 +444,9 @@ deletes more than it adds.
    Deletes `workbook_native.ts`, the registry service and state, `workbook_scripts.ts` but its UI parts,
    `storage_writer.ts`, `app_state_loader.ts`, `workbook_script_connections.ts`, `UpdateQueue`, `workbook.rs`,
    `storage_writer.rs`, `restore.rs`. TypeScript about −2,800, +200. The typing benchmark gates it.
-5. **The runs.** The run service of runtime_object.md; `runWorkbook` with its listener of script events, `runScript`,
-   `stopRun`, the `run` slice; the CLI runs on it with `connections.prepare` of its platform. Deletes
+5. **The runs** (done, see [Step 5 as built](#step-5-as-built)). The run service of runtime_object.md; `runWorkbook`
+   with its listener of script events, `runScript`, `stopRun`, the `run` slice; the CLI runs on it with
+   `connections.prepare` of its platform. Deletes
    `workbook_execution_service.ts`, `workbook_execution.ts` but the event types, `script_run.ts`, `rerun_query.ts`,
    `workbook_run.rs`. TypeScript about −900.
 6. **Imports and exports.** `importWorkbook`, `exportWorkbook` over the format of the core and the `tables` and
@@ -812,6 +814,102 @@ per workbook, the connections a run takes, waiting changes of inputs, stopping a
 holds of the workbooks (`acquireWorkbookExecution`) move into Rust as the `run` slice; `useWorkbookExecution` and
 `useScriptRunServices` read it. The command line tool runs on `runWorkbook` with its
 listener of script events and reads the progress from the `query` slices.
+
+### Step 5 as built
+
+The runs of workbooks, built on `44fc50a09` (step 4).
+
+- **The commands.** `runWorkbook(workbookId, options, listener)` runs all scripts, the `targets` with what they need
+  or the scripts that a change of `inputs` affects, `refresh` reads no cached results, `analyze: false` leaves the
+  results unanalyzed (the command line tool). `runScript(workbookId, scriptKey, { refresh })` runs a script with the
+  scripts it references, `stopRun(workbookId)` stops the run of a workbook, `resultKeys(workbookId, targets)` plans
+  without analyzing and returns the reusable result keys of the scripts (the cache indicators of the feed, the exports
+  and the publishes of a workbook). Both runs resolve with `{ outcome, error }`: `RunOutcome` (`refused` with the
+  reason when the run didn't start, the queries of the outputs, the failure, whether a statement was launched) and
+  what the platform failed with. `startWorkbookRun`, `planRun`, `analyzeForRun`, the `resultKeys` with a host and the
+  class `WorkbookRun` went with `workbook_run.rs` of the bindings and its `WorkbookRunHost`.
+- **The listener** (`RunListener`) hears the events of the scripts (`script(file, event, error)`, the
+  `WorkbookScriptRunEvent`s of before, a failure with its details, its target and the query of its statement) and may
+  prepare the connections (`prepareConnection(connectionId)`): such a run sets them up before its first statement,
+  takes every connection of the workbook and needs no compute database. This is how the command line tool sets up
+  its connections with the credentials of the environment; `connections.prepare` of the platform wasn't needed.
+- **The run service is Rust** (`runtime/runs.rs` of the bindings). One run holds a workbook; a run of the workbook
+  takes the connections of its scripts and starts only while the compute database is set up and they are idle (no
+  other run holds one, none connects, none runs a query but SQLFrame queries), and runs statements on those that were
+  online when it started, a preview only on the embedded Hyper. A change of inputs while the workbook is busy stops
+  its run, waits in the slice and starts when the run ended or the registry changed (`follow_listener` of the
+  connections, called where the catalog loader follows), or is dropped after 5 s. A connection that drops from online
+  stops the runs on it, a deleted workbook and a destroyed runtime stop theirs. A run of a script refuses a held
+  workbook and a preview, analyzes an outdated script and records a plan error, or a failure before the first
+  statement, as a failed query of the script in the history of its connection. The runtime reads the columns of new
+  Parquet attachments once per file and stamp when attachments change, after a restore and when the registry changes.
+- **Statements on the executor of the runtime.** The host of a run (`RuntimeRunHost`) runs a statement as a query that
+  the runtime runs itself (`Connections::run_statement`, next to `run_internal`): the platform describes it
+  (`queries.describe` with the options of a statement: `analyzeResults`, `publishResults`, `throwOnError`,
+  `clientFunctionCall`, `cache: { signature, refresh, only }`), the executor reports `ResultsReady` to the run, the
+  result table stays in the history of the connection and a materialization writes it by its handle. A cancel
+  cancels the query on the executor and the channel of the host at once (`channels.cancel`, which cancels a stream once
+  for every caller). `CoreRuntime.execute` is no longer on the path of a run.
+- **The slice.** `run` by workbook (`WorkbookRunView`: `held`, the kind of the run that holds the workbook or null,
+  `state`, the `WorkbookRunState` of its last run of the whole workbook, kept after it ended, and `pendingInputs`). It
+  changes with the hold, every state of a run and the inputs that wait.
+- **The platform grew** `resultCache.key` (the key of a signature on a connection, `computeQueryCacheKeyForConnection`),
+  `resultCache.retain` and `release` (a cached file a run keeps), and `mounts` (a getter, null without a compute
+  database that reads Parquet files): `prefix`, `fileName(run, key)`, `write(run, path, table)`, `use(run, path)`,
+  `release(run)`, `attachments(workbookId)`, `attachmentColumns(workbookId, fileName)`. `createRunMounts`
+  (`workbook/scripts/run_mounts.ts`) builds it over the query result cache, a run names its files by its number.
+- **The crate.** `RunOptions.analyze`, `workbook_run/json.rs` went (the description of a statement is built in the
+  bindings).
+- **TypeScript.** `CoreRuntime` has `runWorkbook(workbookId, options, { onScript, prepareConnection })`, `runScript`,
+  `stopRun`, `stopRuns` and `resultKeys`, the errors of failures are built in `workbook_execution.ts`
+  (`workbookRunError`, `scriptRunEvent`), which keeps only the event types, `ScriptPlanError` and
+  `workbookExecutionIsBusy`. `createRuntime` has no `execution` and follows no registries. Deleted:
+  `workbook_execution_service.ts`, `script_run.ts`, `rerun_query.ts`, the run host, the holds and the mounts of
+  `workbook_execution.ts`, their tests (`workbook_execution.test.ts`, `workbook_execution_integration.test.ts`,
+  `script_run.test.ts`, `workbook_execution_service.test.ts`), `DashQLWorkbookRun` of `dashql-core-js`;
+  `workbook_run.rs` and `workbook_run/view.rs` of the bindings (the views moved to `runtime/runs/view.rs`).
+  `workbook/workbook_runs.test.ts` tests the service on a runtime with channels of the tests, the command line tool
+  tests the runs end to end.
+- **Hooks** (`workbook/scripts/use_workbook_execution.ts` of the app): `useWorkbookExecution(id)` reads the `run`
+  slice (`state`, `busy`, `ready`, `runActive`, `start`, `stop`), `useScriptRun()` runs a script, `useScriptResultKey()`
+  is the key of the cache indicator of a script. The feed, the dashboard, the header of a script and Ctrl+E run scripts
+  with `useScriptRun`, the exports and the publishes retain the cached results with `resultKeys`.
+- **The command line tool** runs on `runWorkbook` with `onScript` and `prepareConnection`, stops with `stopRun`, reads
+  the result of a script from the history of its connection and the progress from the `query` views. Its output and
+  exit codes are unchanged (`//packages/dashql-cli:test`).
+- **Changed on purpose.** A run that doesn't start resolves with the reason (`refused`) instead of returning silently.
+  A change of inputs that waits starts when what blocked it changed instead of a poll every 100 ms. A plan error of a
+  script is recorded in the history without a round trip through the executor. The statements of a run are queries
+  of the runtime: the caller of `CoreRuntime.execute` no longer sees them, and a cancel reaches the channel of the host
+  through the platform. An empty workbook refuses a run of the app and runs empty in the command line tool. The state
+  of a run reaches the app with the next flush of the store. `destroy` stops the runs before it writes what is pending.
+
+Measured (`git diff --numstat` with the new files, sources without tests; the test helpers of `testing/` and
+`tests/` count as tests; `dashql-cli` counts its README):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 957 | 237 | 2,032 | 594 |
+| `dashql-core-js` | 34 | 8 | | |
+| `dashql-core-wasm` | 757 | 1,462 | | |
+| `dashql-core-runtime` | 38 | 4 | 2 | 2 |
+| `dashql-app` | 106 | 102 | 74 | 46 |
+| `dashql-cli` | 71 | 38 | | |
+
+TypeScript lost 1,167 lines and gained 384 without tests (−783 net), and 2,106 lines of tests for 640. Rust gained
+about 670 net in the bindings: `workbook_run.rs` with its views (740 lines) became `runtime/runs.rs`, its views,
+`run_statement` and the platform calls. The release module (`--config=release`) grew from 13,419,875 to 13,526,490
+bytes (+0.8%), gzip (`-9`) from 3,673,026 to 3,718,380 bytes (+1.2%): the run service with its futures, the slice and
+the views of the outcome came, the extern host of the runs went. The typing benchmark is in "Typing" of
+[core_runtime.md](core_runtime.md), unchanged within its noise.
+
+What step 6 needs: `importWorkbook(archive, plan)` and `exportWorkbook(workbookId, format)` over the format of the
+core (`workbook_format.rs` and its wrapper go) on `tables` and `storage` of the platform. The exports and publishes
+read the reusable result keys with `resultKeys` and retain the cached files with `resultCache.retain`/`release` of the
+platform already (`retainWorkbookQueryResults`, `countWorkbookQueryResults`); an export command can do that in Rust and
+hand the Parquet files to the archive by handle. `importWorkbookQueryResults` adds results to the cache in
+TypeScript; an import command needs a `resultCache.import` of the platform. The restore of an imported workbook is
+`restoreWorkbook` already.
 
 ### The order
 

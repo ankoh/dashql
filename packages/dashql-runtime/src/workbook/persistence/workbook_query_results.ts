@@ -1,7 +1,7 @@
 import type { QueryResultCache } from '../../query/query_result_cache.js';
 import type { WorkbookBundleResult } from '../../storage/workbook_bundle.js';
 import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
-import { computeWorkbookResultCacheKeys, type ScriptRunServices } from '../scripts/script_run.js';
+import type { CoreRuntime } from '../../core_runtime.js';
 import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
 import { loadWorkbookFormat } from '../../storage/workbook_format.js';
 
@@ -19,13 +19,16 @@ export interface RetainedWorkbookQueryResults {
     release: () => Promise<void>;
 }
 
+/// The runtime that derives the result keys of the scripts of a workbook
+export type WorkbookResultKeys = Pick<CoreRuntime, 'resultKeys'>;
+
 /// Find and pin the cached results of the scripts of a workbook, under the keys that a run of the workbook reads
 export async function retainWorkbookQueryResults(
-    services: ScriptRunServices,
+    runtime: WorkbookResultKeys,
     workbook: WorkbookScripts,
     cache: QueryResultCache,
 ): Promise<RetainedWorkbookQueryResults> {
-    const keys = await computeWorkbookResultCacheKeys(services, workbook);
+    const keys = await runtime.resultKeys(workbook.workbookId);
     const releases: Array<() => Promise<void>> = [];
     const release = async () => { await Promise.all(releases.map(r => r().catch(() => {}))); };
     try {
@@ -60,11 +63,11 @@ export interface WorkbookQueryResultCounts {
 
 /// Count the cached results of the scripts of a workbook, of all scripts
 export async function countWorkbookQueryResults(
-    services: ScriptRunServices,
+    runtime: WorkbookResultKeys,
     workbook: WorkbookScripts,
     cache: QueryResultCache,
 ): Promise<WorkbookQueryResultCounts> {
-    const keys = await computeWorkbookResultCacheKeys(services, workbook);
+    const keys = await runtime.resultKeys(workbook.workbookId);
     const sizes = new Map<string, number | null>();
     for (const key of keys) {
         if (key != null && !sizes.has(key)) sizes.set(key, (await cache.lookup(key))?.size ?? null);

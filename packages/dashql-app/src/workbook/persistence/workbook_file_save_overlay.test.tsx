@@ -11,7 +11,6 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { WorkbookResultKeyHost } from '@ankoh/dashql-core';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
@@ -171,11 +170,7 @@ describe('WorkbookFileSaveOverlay', () => {
         } as unknown as WorkbookScripts;
         {
             await render({}, true, cache);
-            const services = runtime!.execution.scriptRunServices;
-            vi.spyOn(services, 'cachesResults').mockReturnValue(true);
-            vi.spyOn(services, 'cacheKey').mockImplementation(async (_connectionId, signature) => signature === 'cached' ? key : 'b'.repeat(64));
-            vi.spyOn(coreRuntime!, 'resultKeys').mockImplementation(async (_workbookId, _targets, host: WorkbookResultKeyHost) => await Promise.all(['cached', 'missing']
-                .map(async signature => ({ key: (await host.resultKey(TEST_CONNECTION_ID, signature))!, signature, reusable: host.cachesResults(TEST_CONNECTION_ID) }))));
+            vi.spyOn(coreRuntime!, 'resultKeys').mockResolvedValue([key, 'b'.repeat(64)]);
             await root.render(
                 <QueryResultCacheProvider cache={cache}>
                     <LoggerProvider>

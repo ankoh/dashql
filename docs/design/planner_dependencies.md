@@ -223,7 +223,7 @@ barrier "relation resolves to a later producer in input order".
 
 ## Runs of One Script
 
-A run of one script plans the script as the target (`runPlannedScript`): the statements of the target with the
+A run of one script plans the script as the target (`runScript`): the statements of the target with the
 queries it inlines spliced in, and the query of every script it materializes unless the host provides the result, all
 transitively. The statements of other scripts are not part of the plan, also those that write relations a
 referenced query reads. A run of one script reads the current backend state for those relations; their producers
@@ -258,8 +258,8 @@ script. A run of a script whose plan has materializations plans twice when the h
 provided results, to compute the result keys, and again with the cached results of reusable keys as provided
 (`plan_and_run` in `workbook_run/engine.rs`).
 
-One run holds a workbook at a time (`acquireWorkbookExecution`), a run of the whole workbook or of one of its scripts.
-The app disables the runs of a held workbook, a run that starts meanwhile fails. A failed
+One run holds a workbook at a time (the `run` slice of the runtime), a run of the whole workbook or of one of its
+scripts. The app disables the runs of a held workbook, a run that starts meanwhile is refused. A failed
 statement cancels the other statements of a run, and the run settles once they are done, before it releases the files
 of its materializations.
 

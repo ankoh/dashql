@@ -89,7 +89,7 @@ keys of the scripts that reference it follow it (`query_cache.md`).
 
 `SET_WORKBOOK_INPUT` writes the value into the scripts that use the input. A mounted editor applies the rewrite as a
 change (`ScriptData.externalChanges`), it keeps its cursor and undoes it as one step.
-`useApplyWorkbookInput` then starts a run of the workbook with `inputs` (`runWorkbookExecution`): the run analyzes the
+`useApplyWorkbookInput` then starts a run of the workbook with `inputs` (`runWorkbook` of the runtime): the run analyzes the
 scripts, derives the dataflow and plans the scripts that the change affects as targets (`affected_scripts` in `workbook_run/plan.rs` of the core runtime), the
 scripts that use one of the inputs and every script downstream of them by an inline, scan or table edge, except the
 scripts that run only on request (`@manual`, `DataflowScript.manual`); the scripts downstream of them are targets. The targets

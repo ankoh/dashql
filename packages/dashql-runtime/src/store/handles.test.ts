@@ -9,7 +9,6 @@ import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { vectorFromArray } from '../testing/arrow_fixtures.js';
 import { openTestHyperDB } from '../testing/test_hyperdb.js';
 import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
-import { isWorkbookExecutionRunning } from '../workbook/scripts/workbook_execution.js';
 
 describe('HandleTable', () => {
     it('keeps an object under a new handle until it is released', () => {
@@ -84,9 +83,10 @@ describe('The handles of a runtime', () => {
         const workbook = rt.addWorkbook(connectionId, [['1_commands.sql', 'create table a (x int);']], { name: 'handles' });
 
         // A run of the workbook executes its statement on the connection, through the query executor of the runtime
-        rt.execution.start(workbook.workbookId);
-        await vi.waitFor(() => expect(stream.produce).toHaveBeenCalled());
-        await vi.waitFor(() => expect(isWorkbookExecutionRunning(workbook.workbookId)).toBe(false));
+        const run = await rt.coreRuntime.runWorkbook(workbook.workbookId);
+        expect(run.outcome.refused).toBeNull();
+        expect(stream.produce).toHaveBeenCalled();
+        expect(rt.coreRuntime.store.get('run', workbook.workbookId)?.held).toBeNull();
         expect(rt.connection(connectionId).queriesFinishedOrdered.length).toBeGreaterThan(0);
 
         // A query that the host runs with a result and one that stays active

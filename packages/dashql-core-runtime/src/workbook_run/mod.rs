@@ -9,12 +9,8 @@
 //! the result tables. The run registers the queries and the results of the scripts on the workbook and captures the
 //! visualization of every output, the host learns that the workbook changed. A failed statement cancels the running
 //! ones, the run settles once they are done and then releases the files of its materializations.
-//!
-//! Ported from `runWorkbookPlan` and `runExecutionGraph` of
-//! `packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts`.
 
 mod engine;
-pub mod json;
 pub mod plan;
 
 use std::future::Future;
@@ -303,6 +299,8 @@ pub struct RunOptions {
     pub refresh: bool,
     /// Report the state of the run to the host
     pub reports_state: bool,
+    /// Analyze the results of the outputs on the compute database, the command line tool only prints them
+    pub analyze: bool,
 }
 
 /// How a run ended

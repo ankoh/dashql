@@ -18,8 +18,8 @@ Every run of a workbook executes a plan. The planner (`packages/dashql-core-runt
 turns the scripts of a workbook, or one target script and the scripts it references, into an
 `ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines. Edges
 order conflicting accesses. The run (`workbook_run`) executes that graph for a run of the workbook
-(`runWorkbookExecution` of the TypeScript runtime) and for a run of one script (`runPlannedScript` in `script_run.ts`),
-both adapters over `Workbook.run` of the core module.
+(`runWorkbook` of the runtime) and for a run of one script (`runScript`), the service of the runs of the runtime
+(`packages/dashql-core-wasm/src/runtime/runs.rs`) on its executor.
 
 ## The run
 
@@ -46,9 +46,8 @@ embedded Hyper, the abort signals of the queries, the holds of workbooks and the
 ## Files
 
 - `packages/dashql-core-runtime/src/planner/mod.rs`
-- `packages/dashql-core-runtime/src/workbook_run/mod.rs`, `engine.rs`, `plan.rs`, `json.rs`
-- `packages/dashql-core-wasm/src/workbook_run.rs`
-- `packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts` (the host and the holds of workbooks)
-- `packages/dashql-runtime/src/workbook/scripts/script_run.ts`
+- `packages/dashql-core-runtime/src/workbook_run/mod.rs`, `engine.rs`, `plan.rs`
+- `packages/dashql-core-wasm/src/runtime/runs.rs` (the service of the runs, the holds of workbooks, the host of a run)
+- `packages/dashql-runtime/src/workbook/scripts/run_mounts.ts` (the files of the runs on the platform)
 - `proto/fb/dashql/execution_graph.fbs`
 - `docs/design/core_analysis_catalog.md` (catalog changes in planned execution)

@@ -31,6 +31,9 @@ import { createRuntimeStorage, StorageWriter } from './storage/runtime_storage.j
 import type { StorageBackend } from './storage/storage_backend.js';
 import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook/scripts/workbook_projection.js';
 import type { ScriptData, ScriptDataMap, WorkbookAction, WorkbookScripts } from './workbook/scripts/workbook_scripts.js';
+import { createRunMounts } from './workbook/scripts/run_mounts.js';
+import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from './workbook/scripts/workbook_execution.js';
+import { supportsParquet } from './platform/hyperdb/hyperdb_parquet_export.js';
 
 const LOG_CTX = 'runtime';
 
@@ -91,13 +94,36 @@ export interface AnalyzeTableOptions {
 /// the workbooks
 export type ConnectionSaveResult = core.ConnectionSaveOutcome;
 
+/// What hears a run of a workbook
+export interface RunWorkbookListener {
+    /// Something happened to a script of the run, by its file name
+    onScript?: (file: string, event: ScriptRunEvent) => void;
+    /// Set up a connection that statements run on before the first statement, e.g. with the credentials of the command
+    /// line tool. The scripts of a connection whose setup rejects are skipped. A run with it takes every connection of
+    /// the workbook and needs no compute database.
+    prepareConnection?: (connectionId: string) => Promise<void>;
+}
+
+/// How a run ended: the outcome of the runtime, and what the platform failed with
+export interface RunResult {
+    outcome: core.RunOutcome;
+    /// The error of a failed run: what the platform failed with, a plan error, the cancellation or the error of a failed
+    /// statement
+    error: unknown;
+}
+
+/// The error of a run that failed, null for a run that succeeded or didn't start
+function runError(outcome: core.RunOutcome, value: unknown): unknown {
+    return outcome.failure == null ? null : workbookRunError(outcome.failure, value);
+}
+
 /// The runtime of the module on the platform of TypeScript (docs/wip/runtime_api.md): the `Runtime` class of the core
 /// with its platform object (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of
 /// the host, the queries that the runtime runs itself, the query result cache, the compute database, the OAuth flows,
-/// the specs of the extensions, the storage) and the store that the app reads its views from. It holds the
-/// computations, the connections with the histories of their queries, the histories without a connection, the query
-/// executor, the setups of the connections, the catalog loader, the workbooks with their scripts, the storage writer and
-/// the restore.
+/// the specs of the extensions, the storage, the files of the runs) and the store that the app reads its views from. It
+/// holds the computations, the connections with the histories of their queries, the histories without a connection,
+/// the query executor, the setups of the connections, the catalog loader, the workbooks with their scripts, the runs of
+/// the workbooks, the storage writer and the restore.
 ///
 /// The runtime of the module needs the instantiated core. The app creates this object before the core is set up: the
 /// views are empty and a dispatch fails until the core is there, a command asks the platform for it.
@@ -136,6 +162,8 @@ export class CoreRuntime {
     private runtimeStorage: core.RuntimeStorage | null = null;
     /// The projection of the scripts of the workbooks, with the session handles of the scripts
     private scripts: ScriptProjection | null = null;
+    /// The files of the runs of workbooks in the compute database
+    private mounts: core.RuntimeMounts | null = null;
     /// Does the catalog loader run, and the refreshes requested before the core was there
     private catalogLoading = true;
     private readonly pendingRefreshes: [string, boolean][] = [];
@@ -161,6 +189,7 @@ export class CoreRuntime {
             tables: this.tables,
             computeDatabase: () => this.computeDatabase,
             resultCache: () => this.resultCache,
+            connection: connectionId => this.connection(connectionId),
         });
         const setupCore = options.setupCore ?? null;
         this.setupCore = typeof setupCore === 'function' ? setupCore : null;
@@ -208,6 +237,9 @@ export class CoreRuntime {
             },
             get resultCache() {
                 return runtime.queries.resultCache();
+            },
+            get mounts() {
+                return runtime.runMounts();
             },
             crypto: { randomUuid: () => crypto.randomUUID() },
             oauth: this.oauth(),
@@ -336,6 +368,14 @@ export class CoreRuntime {
         return this.runtimeStorage;
     }
 
+    /// The files of the runs of workbooks, with a compute database that reads Parquet files
+    private runMounts(): core.RuntimeMounts | null {
+        const database = this.computeDatabase;
+        if (!supportsParquet(database)) return null;
+        this.mounts ??= createRunMounts(database, this.resultCache, this.handles);
+        return this.mounts;
+    }
+
     private computePlatform(): core.ComputePlatform | null {
         if (this.compute == null && this.computeDatabase != null) {
             this.compute = createComputePlatform(this.computeDatabase, () => this.queryExecution);
@@ -403,6 +443,7 @@ export class CoreRuntime {
         if (database === this.computeDatabase) return;
         this.computeDatabase = database;
         this.compute = null;
+        this.mounts = null;
     }
 
     /// Set the HTTP client of the platform, the requests that start later use it
@@ -413,6 +454,7 @@ export class CoreRuntime {
     /// Set the query result cache of the platform
     setResultCache(cache: QueryResultCache | null): void {
         this.resultCache = cache;
+        this.mounts = null;
     }
 
     /// Set the OAuth flow of the platform, the setups that start later use it
@@ -769,33 +811,47 @@ export class CoreRuntime {
 
     // The runs of workbooks
 
-    /// Start a run of the scripts of a workbook
-    startWorkbookRun(workbookId: string, host: core.WorkbookRunHost, options: core.WorkbookRunOptions): core.DashQLWorkbookRun {
-        return new core.DashQLWorkbookRun(this.required().startWorkbookRun(workbookId, host, options));
-    }
-
-    /// The result keys of the scripts of a workbook, see `Runtime.resultKeys`
-    async resultKeys(workbookId: string, targets: readonly number[] | null, host: core.WorkbookResultKeyHost): Promise<Array<core.WorkbookResultKey | null>> {
-        return await this.required().resultKeys(workbookId, targets == null ? undefined : Uint32Array.from(targets), host) as Array<core.WorkbookResultKey | null>;
-    }
-
-    /// The plan of a run of a workbook with the analyses as they are
-    planRun(workbookId: string, targets: readonly number[] | null, mountPrefix: string): core.buffers.execution.ExecutionGraphT {
-        const bytes = this.required().planRun(workbookId, targets == null ? undefined : Uint32Array.from(targets), mountPrefix);
-        return core.buffers.execution.ExecutionGraph.getRootAsExecutionGraph(new flatbuffers.ByteBuffer(bytes)).unpack();
-    }
-
-    /// Analyze a script whose analysis is outdated, returns the script once its view is in the store
-    analyzeScript(workbookId: string, scriptKey: number): ScriptData | null {
-        this.dispatchWorkbook(workbookId, { kind: 'analyzeOutdatedScript', value: { scriptKey } });
+    /// Run the scripts of a workbook: all of them, the targets with what they need, or the scripts that a change of
+    /// inputs affects. One run holds a workbook at a time, a run of the workbook takes its connections and starts only
+    /// while they are idle; a change of inputs while the workbook is busy stops its run and starts once it is free.
+    /// Resolves once the run ended and its view is in the store, `outcome.refused` tells why a run didn't start.
+    async runWorkbook(workbookId: string, options: core.RunWorkbookOptions = {}, listener: RunWorkbookListener = {}): Promise<RunResult> {
+        const module = await this.ready();
+        const script = listener.onScript;
+        const result = await module.runWorkbook(workbookId, options, {
+            script: script == null ? undefined : (file, event, value) => script(file, scriptRunEvent(event, value)),
+            prepareConnection: listener.prepareConnection,
+        });
         this.store.flush();
-        return this.store.get('script', scriptKey);
+        return { outcome: result.outcome, error: runError(result.outcome, result.error) };
     }
 
-    /// Analyze every script of a workbook for a run and publish its declarations, throws the message of a script that
-    /// doesn't analyze
-    analyzeForRun(workbookId: string): void {
-        this.required().analyzeForRun(workbookId);
+    /// Run a script of a workbook with the scripts it references, a refresh reads no cached results. A plan that fails
+    /// and a run that fails before its statements show their error on the script. Resolves once the run ended and its
+    /// view is in the store.
+    async runScript(workbookId: string, scriptKey: number, options: core.RunScriptOptions = {}): Promise<RunResult> {
+        const module = await this.ready();
+        const result = await module.runScript(workbookId, scriptKey, options);
+        this.store.flush();
+        return { outcome: result.outcome, error: runError(result.outcome, result.error) };
+    }
+
+    /// Stop the run of a workbook, the running statements are cancelled
+    stopRun(workbookId: string): void {
+        this.module?.stopRun(workbookId);
+    }
+
+    /// Stop the runs of every workbook, e.g. before the runtime goes
+    stopRuns(): void {
+        this.store.flush();
+        for (const workbookId of this.store.all('run').keys()) this.stopRun(workbookId);
+    }
+
+    /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reads and writes: of the
+    /// targets with what they need, of every script without. Null for a script without one.
+    async resultKeys(workbookId: string, targets: readonly number[] | null = null): Promise<(string | null)[]> {
+        const module = await this.ready();
+        return await module.resultKeys(workbookId, targets == null ? undefined : Uint32Array.from(targets));
     }
 
     /// Take the changes of the runtime now

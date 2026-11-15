@@ -8,8 +8,8 @@
 //!
 //! The runtime owns the computations of result tables, the connections with the histories of their queries, the
 //! histories without a connection (the shell), the query executor, the setups and the health checks of the
-//! connections, the catalog loader, the saves of the connections, the workbooks with their scripts, the storage writer
-//! and the restore of the stored state. The other domains join it step by step: a domain adds its state to `Runtime`,
+//! connections, the catalog loader, the saves of the connections, the workbooks with their scripts, the runs of the
+//! workbooks, the storage writer and the restore of the stored state. The other domains join it step by step: a domain adds its state to `Runtime`,
 //! its slices to `ViewKind`, its targets and actions to the unions.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
@@ -19,6 +19,7 @@ pub(crate) mod catalog;
 pub(crate) mod computation;
 pub(crate) mod connections;
 pub(crate) mod queries;
+pub(crate) mod runs;
 pub(crate) mod setups;
 pub(crate) mod storage;
 pub(crate) mod workbooks;
@@ -57,6 +58,8 @@ use crate::{js_error, Catalog, ScriptSession, SharedCatalog, ENTRY_IDS};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use connections::{Connections, NewConnection};
 use queries::QueryArgs;
+use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
+use runs::Runs;
 use setups::{listener, SetupOptions, SetupOutcome};
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core_runtime::restore::{AppRestore, RestoreOptions, RestoredState};
@@ -81,6 +84,7 @@ export interface RuntimeViews {
     script: { id: number; view: WorkbookScriptView; known: (WorkbookScriptKeys | null)[] };
     workbookDerived: { id: string; view: WorkbookDerivedView; known: undefined };
     storage: { id: 'root'; view: StorageView; known: undefined };
+    run: { id: string; view: WorkbookRunView; known: undefined };
 }
 /** A kind of slices of the runtime */
 export type ViewKind = keyof RuntimeViews;
@@ -446,6 +450,7 @@ const WORKBOOK: &str = "workbook";
 const SCRIPT: &str = "script";
 const WORKBOOK_DERIVED: &str = "workbookDerived";
 const STORAGE: &str = "storage";
+const RUN: &str = "run";
 /// The id of the lists of the connections and the workbooks and of the storage
 const ROOT: &str = "root";
 
@@ -480,6 +485,8 @@ struct Taken {
     derived: Vec<(String, (u64, u64))>,
     /// The revision of the view of the storage
     storage: Option<(u64, u64)>,
+    /// The revisions of the runs of the workbooks
+    runs: BTreeMap<String, u64>,
 }
 
 /// What the derived view of a workbook derives from, as a hash: the names, the connections and the analyses of its
@@ -517,6 +524,7 @@ pub struct Runtime {
     computations: ComputeService<JsPlatform>,
     connections: Rc<Connections>,
     pub(crate) workbooks: Rc<Workbooks>,
+    runs: Rc<Runs>,
     storage: Rc<StorageState>,
     taken: RefCell<Taken>,
 }
@@ -531,7 +539,7 @@ fn integer(value: f64, what: &str) -> Result<u64, JsError> {
 }
 
 /// The views of slices as JS objects, maps as plain objects
-fn views_to_js<T: Serialize>(views: &T) -> Result<JsValue, JsError> {
+pub(crate) fn views_to_js<T: Serialize>(views: &T) -> Result<JsValue, JsError> {
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true).serialize_maps_as_objects(true);
     views.serialize(&serializer).map_err(|e| JsError::new(&e.to_string()))
 }
@@ -765,7 +773,11 @@ impl Runtime {
                     Err(error) => DispatchOutcome::failed(error_text(error)),
                 })
             }
-            RuntimeAction::DeleteWorkbook { workbook_id } => Ok(DispatchOutcome::changed(self.workbooks.delete(&workbook_id))),
+            RuntimeAction::DeleteWorkbook { workbook_id } => {
+                // The run of a workbook that is gone stops
+                self.runs.stop(&workbook_id);
+                Ok(DispatchOutcome::changed(self.workbooks.delete(&workbook_id)))
+            }
             _ => Ok(DispatchOutcome::failed("the action doesn't apply to the runtime")),
         }
     }
@@ -852,6 +864,20 @@ impl Runtime {
             changes.push(SliceChange { kind: STORAGE.into(), id: SliceId::Text(ROOT.into()), revision: Some(slice) });
             taken.storage = Some((revision, slice));
         }
+
+        // The runs of the workbooks
+        let runs: BTreeMap<String, u64> = self.runs.revisions().into_iter().collect();
+        for (id, revision) in &runs {
+            if taken.runs.get(id) != Some(revision) {
+                changes.push(SliceChange { kind: RUN.into(), id: SliceId::Text(id.clone()), revision: Some(*revision) });
+            }
+        }
+        for id in taken.runs.keys() {
+            if !runs.contains_key(id) {
+                changes.push(SliceChange { kind: RUN.into(), id: SliceId::Text(id.clone()), revision: None });
+            }
+        }
+        taken.runs = runs;
     }
 
     /// The derived view of a workbook: the checked references, the dataflow and the inputs of its scripts
@@ -918,7 +944,13 @@ impl Runtime {
                 Ok(into) => A::DetachConnection { from, into },
                 Err(error) => return Ok(DispatchOutcome::failed(error)),
             },
-            RuntimeAction::SetWorkbookAttachments { files } => A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() },
+            RuntimeAction::SetWorkbookAttachments { files } => {
+                let action = A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() };
+                let outcome = self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action));
+                // The columns of new Parquet attachments are read with the compute database
+                self.runs.describe_attachments();
+                return Ok(outcome);
+            }
             RuntimeAction::SetAttachmentColumns { file_name, stamp, columns } => {
                 A::SetAttachmentColumns { file_name, stamp, columns: columns.into_iter().map(std::sync::Arc::<str>::from).collect() }
             }
@@ -937,7 +969,9 @@ impl Runtime {
                         unresolved_connection_id: script.unresolved_connection_id,
                     })
                     .collect();
-                return Ok(self.workbook_outcome(&workbook_id, workbooks.replace_from_storage(&workbook_id, scripts)));
+                let outcome = self.workbook_outcome(&workbook_id, workbooks.replace_from_storage(&workbook_id, scripts));
+                self.runs.describe_attachments();
+                return Ok(outcome);
             }
             _ => return Ok(DispatchOutcome::failed("the action doesn't apply to a workbook")),
         };
@@ -981,6 +1015,7 @@ impl Runtime {
         let writer = dashql_core_runtime::storage::StorageWriter::new(host, WORKBOOK_FORMAT_VERSION.unsigned_abs());
         *connections.writer.borrow_mut() = Some(writer.clone());
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
+        let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
         let taken = Taken {
             list: Some((Vec::new(), 0)),
@@ -988,7 +1023,7 @@ impl Runtime {
             storage: Some((0, 0)),
             ..Taken::default()
         };
-        Runtime { computations, connections, workbooks, storage, platform, taken: RefCell::new(taken) }
+        Runtime { computations, connections, workbooks, runs, storage, platform, taken: RefCell::new(taken) }
     }
 
     /// The slices that changed and the effects on handles since the last call
@@ -1211,6 +1246,11 @@ impl Runtime {
             WORKBOOK_DERIVED => {
                 let ids = Self::text_ids(&ids, "workbook")?;
                 let views: Vec<Option<WorkbookDerivedView>> = ids.iter().map(|id| self.derived_view(id)).collect();
+                views_to_js(&views)
+            }
+            RUN => {
+                let ids = Self::text_ids(&ids, "workbook")?;
+                let views: Vec<Option<WorkbookRunView>> = ids.iter().map(|id| self.runs.view(id)).collect();
                 views_to_js(&views)
             }
             STORAGE => {
@@ -1587,6 +1627,7 @@ impl Runtime {
         let restore = self.app_restore();
         let connections = self.connections.clone();
         let workbooks = self.workbooks.clone();
+        let runs = self.runs.clone();
         let storage = self.storage.clone();
         Ok(future_to_promise(async move {
             let state = restore.restore().await;
@@ -1594,6 +1635,7 @@ impl Runtime {
             let invalid: Vec<RestoredInvalidWorkbook> = state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect();
             workbooks.set_invalid(invalid);
             let outcome = adopt_restored(&connections, &workbooks, state);
+            runs.describe_attachments();
             Ok(to_js(&outcome).map_err(JsValue::from)?.into())
         }))
     }
@@ -1614,10 +1656,12 @@ impl Runtime {
         }
         let connections = self.connections.clone();
         let workbooks = self.workbooks.clone();
+        let runs = self.runs.clone();
         Ok(future_to_promise(async move {
             match restore.restore_workbook(&workbook_id).await {
                 Ok(state) => {
                     let outcome = adopt_restored(&connections, &workbooks, state);
+                    runs.describe_attachments();
                     Ok(to_js(&outcome).map_err(JsValue::from)?.into())
                 }
                 Err(error) => Err(JsError::new(&error.message).into()),
@@ -1639,6 +1683,52 @@ impl Runtime {
             workbooks.forget_invalid(&workbook_id);
             Ok(JsValue::UNDEFINED)
         })
+    }
+
+    // The runs of workbooks
+
+    /// Run the scripts of a workbook: all of them, the targets with what they need, or the scripts that a change of
+    /// inputs affects. A change of inputs while the workbook is busy stops the run that holds it and starts once the
+    /// workbook is free. The listener hears the events of the scripts and may prepare the connections. Resolves with how
+    /// the run ended, `refused` names why it didn't start; `error` is what the platform failed with.
+    #[wasm_bindgen(js_name = runWorkbook, unchecked_return_type = "Promise<{ outcome: RunOutcome; error: unknown }>")]
+    pub fn run_workbook(
+        &self,
+        workbook_id: &str,
+        options: Option<Ts<RunWorkbookOptions>>,
+        #[wasm_bindgen(unchecked_param_type = "RunListener | null")] listener: JsValue,
+    ) -> Result<Promise, JsError> {
+        let options = options.map(|options| from_js(&options)).transpose()?.unwrap_or_default();
+        let listener = listener.is_object().then_some(listener);
+        let run = self.runs.run_workbook(workbook_id, options, listener);
+        Ok(future_to_promise(async move { run_result(run.await) }))
+    }
+
+    /// Run a script of a workbook with the scripts it references, see `runWorkbook`. A run that holds the workbook
+    /// refuses it.
+    #[wasm_bindgen(js_name = runScript, unchecked_return_type = "Promise<{ outcome: RunOutcome; error: unknown }>")]
+    pub fn run_script(&self, workbook_id: &str, script_key: u32, options: Option<Ts<RunScriptOptions>>) -> Result<Promise, JsError> {
+        let options = options.map(|options| from_js(&options)).transpose()?.unwrap_or_default();
+        let run = self.runs.run_script(workbook_id, script_key, options);
+        Ok(future_to_promise(async move { run_result(run.await) }))
+    }
+
+    /// Stop the run of a workbook, the running statements are cancelled
+    #[wasm_bindgen(js_name = stopRun)]
+    pub fn stop_run(&self, workbook_id: &str) {
+        self.runs.stop(workbook_id);
+    }
+
+    /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reads and writes: of the
+    /// targets with what they need, of every script without. Null for a script without one, all null if the analyses as
+    /// they are can't be planned.
+    #[wasm_bindgen(js_name = resultKeys, unchecked_return_type = "Promise<(string | null)[]>")]
+    pub fn result_keys(&self, workbook_id: &str, targets: Option<Vec<u32>>) -> Result<Promise, JsError> {
+        let keys = self.runs.result_keys(workbook_id, targets).map_err(|message| JsError::new(&message))?;
+        Ok(future_to_promise(async move {
+            let keys = keys.await;
+            Ok(keys.into_iter().map(|key| key.map(|key| JsValue::from_str(&key)).unwrap_or(JsValue::NULL)).collect::<Array>().into())
+        }))
     }
 
     // The storage writer
@@ -1752,6 +1842,7 @@ impl Runtime {
     /// Stop the runtime: the queries are cancelled, the computations go, their runs are cancelled and their tables
     /// released with the next changes
     pub fn destroy(&self) {
+        self.runs.stop_all();
         if let Some(loader) = self.connections.loader.borrow_mut().take() {
             loader.stop();
         }
@@ -1793,6 +1884,14 @@ fn adopt_restored(connections: &Rc<Connections>, workbooks: &Rc<Workbooks>, stat
         invalid_workbooks: state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect(),
         progress: RestoreProgressView::from(&state.progress),
     }
+}
+
+/// How a run ended as `{ outcome, error }`, with what the platform failed with
+fn run_result((outcome, error): (runs::view::RunOutcome, JsValue)) -> Result<JsValue, JsValue> {
+    let result = Object::new();
+    let _ = Reflect::set(&result, &JsValue::from_str("outcome"), &views_to_js(&outcome).map_err(JsValue::from)?);
+    let _ = Reflect::set(&result, &JsValue::from_str("error"), &error);
+    Ok(result.into())
 }
 
 /// The outcome of a setup as a JS value

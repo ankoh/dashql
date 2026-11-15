@@ -5,8 +5,7 @@ import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useQueryExecutor, useQueryState } from '../../connections/query_executor.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useQueryState } from '../../connections/query_executor.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_backend';
@@ -15,8 +14,7 @@ import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useScript } from '../scripts/workbook_scripts_registry.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import { useScriptRunServices, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useScriptRun, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
@@ -54,8 +52,6 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const scriptData = useScript(props.scriptKey) ?? undefined;
     const fileName = scriptData?.fileName ?? 'script.sql';
     const config = useAppConfig();
-    const logger = useLogger();
-    const executeQuery = useQueryExecutor();
     const storageReader = useStorageReader();
     const workbookExecution = useWorkbookExecution(workbookId);
     const queryState = useQueryState(workbookId, scriptData?.latestQueryId ?? null);
@@ -86,11 +82,11 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
         }, formattingDebugMode, keywordCase, formattingDialect);
     }, [editorView, scriptData, props.scriptKey, modifyWorkbookScripts, formattingDebugMode, keywordCase, formattingDialect]);
 
-    const services = useScriptRunServices();
+    const runScript = useScriptRun();
     const execute = React.useCallback(() => {
-        if (scriptData == null || services == null || !online || workbookExecution.runActive) return;
-        void runWorkbookScript(services, workbookScripts, scriptData, executeQuery, modifyWorkbookScripts, logger);
-    }, [scriptData, services, online, workbookExecution.runActive, workbookScripts, executeQuery, modifyWorkbookScripts, logger]);
+        if (scriptData == null || runScript == null || !online || workbookExecution.runActive) return;
+        void runScript(workbookId, scriptData.scriptKey);
+    }, [scriptData, runScript, online, workbookExecution.runActive, workbookId]);
     const readScript = useLiveScriptReader();
     const rename = React.useCallback((name: string) => {
         renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);

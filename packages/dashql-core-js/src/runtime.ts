@@ -22,6 +22,7 @@ export type {
     RuntimeOAuthFlowInfo,
     RuntimeSalesforce,
     RuntimeResultCache,
+    RuntimeMounts,
     RuntimeStorage,
     StorageView,
     StorageCommand,

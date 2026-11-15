@@ -105,6 +105,8 @@ pub(crate) struct Connections {
     pub catalog_versions: RefCell<Vec<(String, u64)>>,
     /// Hears the announcements of a new catalog of a connection, the workbooks analyze the scripts on it again
     pub catalog_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
+    /// Hears the changes of the registry at the end of their task, the runs follow the connections
+    pub follow_listener: RefCell<Option<Rc<dyn Fn()>>>,
 }
 
 impl Connections {
@@ -125,6 +127,7 @@ impl Connections {
             follow_requested: Cell::new(false),
             catalog_versions: RefCell::new(Vec::new()),
             catalog_listener: RefCell::new(None),
+            follow_listener: RefCell::new(None),
         });
         let host = QueryHost::new(Rc::downgrade(&connections), platform.clone());
         let executor = QueryExecutor::new(Rc::new(host));

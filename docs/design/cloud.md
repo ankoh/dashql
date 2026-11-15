@@ -233,13 +233,13 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
   that the app manifest doesn't keep and no other workbook uses (`previewConnections`). The bar shows them greyed with
   a lock, they open nothing; the embedded Hyper is shown as it is.
 - **Running a preview.** Execute All runs a preview with no special case but one: only the embedded Hyper counts as
-  online (`WorkbookExecutionService` of the runtime). The scripts of the other connections serve the published results from the
+  online (the runs of the runtime). The scripts of the other connections serve the published results from the
   cache or are skipped, like the scripts of a connection that is not connected. The published results stay in the
   cache after the preview is gone, the cache can't tell them from the results of local runs yet.
 - **Read-only.** A preview changes nothing until it is imported. The feed page provides `WorkbookReadOnlyContext`: the
   cards have a dashed border and a lock where the run button is, no connection and no actions, the editors are
   read-only, and there is no composer, no adding of scripts or attachments, no agent and no dashboard or dataflow view.
-  A single script doesn't run (`runWorkbookScript`), and the reducer refuses what changes the scripts, the names, the
+  A single script doesn't run (`runScript`), and the reducer refuses what changes the scripts, the names, the
   inputs or the connections of the scripts (`isRefusedByCloudPreview`). The bar says Read-only preview next to Execute
   All and offers Import instead of Share and Export.
 - **Importing.** Import in the bar promotes a preview: it drops `preview` (`SET_WORKBOOK_CLOUD_LINK`), the workbook

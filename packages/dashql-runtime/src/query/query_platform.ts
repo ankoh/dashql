@@ -42,6 +42,8 @@ interface QueryRecord {
     trino: TrinoChannel | null;
     /// The stream of a channel of the host and its messages
     stream: QueryExecutionResponseStream | null;
+    /// The cancellation of the stream at the backend, every cancel waits for the same one
+    streamCancel: Promise<void> | null;
     producing: boolean;
     /// The table that the batches of the stream go into
     table: number | null;
@@ -79,6 +81,8 @@ export interface QueryPlatformDependencies {
     computeDatabase: () => EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache: () => QueryResultCache | null;
+    /// A connection as the runtime holds it now, the key of a result derives from its params
+    connection: (connectionId: string) => ConnectionState | null;
 }
 
 /// The host side of the queries of the runtime (docs/wip/runtime_api.md): the query executor of the runtime runs a
@@ -89,6 +93,9 @@ export interface QueryPlatformDependencies {
 /// catalog loader and the probes of the health checks: the host describes them in the same way.
 export class QueryPlatform {
     private readonly records = new Map<number, QueryRecord>();
+    /// The files of the cache that the runs keep, by id
+    private readonly retained = new Map<number, () => Promise<void>>();
+    private nextRetained = 0;
 
     constructor(private readonly deps: QueryPlatformDependencies) { }
 
@@ -107,8 +114,13 @@ export class QueryPlatform {
         next: queryId => this.nextMessage(this.recordOf(queryId)),
         cancel: async queryId => {
             const record = this.records.get(queryId);
-            record?.cancellation.abort(abortError());
-            await record?.stream?.cancel?.();
+            if (record == null) return;
+            record.cancellation.abort(abortError());
+            // A stream is cancelled once at the backend, every cancel waits for it
+            if (record.stream != null) {
+                record.streamCancel ??= Promise.resolve(record.stream.cancel?.());
+                await record.streamCancel;
+            }
         },
         profileDetail: (queryId, shown) => {
             this.records.get(queryId)?.stream?.setProfileDetail?.(shown);
@@ -134,6 +146,22 @@ export class QueryPlatform {
                 return { table: this.deps.handles.register(table), rows: table.numRows, columns: table.numCols };
             },
             touch: name => cache.touch(name),
+            key: (connectionId, signature) => {
+                const connection = this.deps.connection(connectionId);
+                return connection == null ? Promise.resolve(null) : computeQueryCacheKeyForConnection(connection, signature);
+            },
+            retain: async key => {
+                const file = await cache.retain(key);
+                if (file == null) return null;
+                const id = ++this.nextRetained;
+                this.retained.set(id, file.release);
+                return { id, name: file.entry.name };
+            },
+            release: async id => {
+                const release = this.retained.get(id);
+                this.retained.delete(id);
+                await release?.().catch(() => { });
+            },
             write: (key, handle) => {
                 // The table is taken when the runtime calls, its handle may go before the write ends
                 const table = this.deps.handles.get<arrow.Table>(handle);
@@ -164,6 +192,7 @@ export class QueryPlatform {
             cancellation: new AbortController(),
             trino: null,
             stream: null,
+            streamCancel: null,
             producing: false,
             table: null,
             messages: [],
@@ -229,21 +258,27 @@ export class QueryPlatform {
         return [queryId, execution];
     }
 
-    /// Describe a query that the runtime runs itself, e.g. a metadata query of the catalog loader. The host keeps its
-    /// record until the runtime forgets it.
+    /// Describe a query that the runtime runs itself, e.g. a metadata query of the catalog loader or a statement of a run
+    /// of a workbook. The host keeps its record until the runtime forgets it.
     describeQuery(queryId: number, connection: ConnectionState | null, connectionId: string, query: core.RuntimeQueryDescription): Promise<unknown> {
+        const cache = query.cache ?? null;
         const record: QueryRecord = {
             args: {
                 query: query.text,
                 metadata: query.metadata as QueryMetadata,
                 readTimeoutMs: query.readTimeoutMs ?? undefined,
                 throwOnError: true,
+                analyzeResults: query.analyzeResults ?? false,
+                publishResults: query.publishResults ?? true,
+                clientFunctionCall: (query.clientFunctionCall ?? undefined) as QueryExecutionArgs['clientFunctionCall'],
+                ...(cache == null ? {} : { cacheable: true, cacheSignature: cache.signature, refreshCache: cache.refresh, cacheOnly: cache.only }),
             },
             channel: null,
             connector: '',
             cancellation: new AbortController(),
             trino: null,
             stream: null,
+            streamCancel: null,
             producing: false,
             table: null,
             messages: [],

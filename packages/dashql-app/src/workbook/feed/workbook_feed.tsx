@@ -31,20 +31,17 @@ import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scrip
 import { getScriptRefs, newScriptConnection, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import { useWorkbookDerived, useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
-import { useScriptRunServices } from '../scripts/use_workbook_execution.js';
+import { useScriptResultKey, useScriptRun } from '../scripts/use_workbook_execution.js';
 import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { renameAttachment } from '@ankoh/dashql-runtime/workbook/attachments/attachment_rename';
 import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql-runtime/workbook/attachments/workbook_attachments';
-import { useQueryExecutor } from '../../connections/query_executor.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import { computeScriptResultCacheKey } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { groupWorkbookAttachmentListWrites } from '@ankoh/dashql-runtime/storage/runtime_storage';
@@ -111,15 +108,14 @@ export interface WorkbookFeedRevealRequest {
 }
 
 export interface WorkbookFeedDependencies {
-    useQueryExecutor: typeof useQueryExecutor;
     useStorageReader: typeof useStorageReader;
     useStorageWriter: typeof useStorageWriter;
     usePickScriptConnection: typeof usePickScriptConnection;
     usePickPendingConnection: typeof usePickPendingConnection;
     useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
-    runWorkbookScript: typeof runWorkbookScript;
-    useScriptRunServices: typeof useScriptRunServices;
+    useScriptRun: typeof useScriptRun;
+    useScriptResultKey: typeof useScriptResultKey;
     useWorkbookScriptMap: typeof useWorkbookScriptMap;
     useWorkbookDerived: typeof useWorkbookDerived;
     useLiveWorkbookReader: typeof useLiveWorkbookReader;
@@ -133,15 +129,14 @@ export interface WorkbookFeedDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
-    useQueryExecutor,
     useStorageReader,
     useStorageWriter,
     usePickScriptConnection,
     usePickPendingConnection,
     useAttachPendingConnection,
     useKeyEvents,
-    runWorkbookScript,
-    useScriptRunServices,
+    useScriptRun,
+    useScriptResultKey,
     useWorkbookScriptMap,
     useWorkbookDerived,
     useLiveWorkbookReader,
@@ -392,11 +387,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         selection.selectFile(latest.current.workbookScripts, fileName);
     }, [selection]);
 
-    const executeQuery = dependencies.useQueryExecutor();
     // A script runs while its own connection is online
     const isScriptOnline = (scriptData: ScriptData) =>
         latest.current.scriptConnections.get(scriptData.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
-    const scriptRunServices = dependencies.useScriptRunServices();
+    const runScript = dependencies.useScriptRun();
+    const resultKey = dependencies.useScriptResultKey();
 
     // Refresh: run the script and the scripts it references without reading cached results, their results become the
     // newest files of their keys. Resolves the script by feed file name.
@@ -404,11 +399,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const { workbookScripts, scripts } = latest.current;
         const entry = workbookScripts.scriptRefs[fileName];
         const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
-        if (scriptData == null || scriptRunServices == null || !isScriptOnline(scriptData)) {
+        if (scriptData == null || runScript == null || !isScriptOnline(scriptData)) {
             return;
         }
-        dependencies.runWorkbookScript(scriptRunServices, workbookScripts, scriptData, executeQuery, props.modifyWorkbookScripts, logger, { refresh: true });
-    }, [props.modifyWorkbookScripts, scriptRunServices, executeQuery, logger]);
+        void runScript(workbookScripts.workbookId, scriptData.scriptKey, { refresh: true });
+    }, [runScript]);
 
     // The cache indicator of a script looks up the key of a run of the script in the cache of the app
     const lookupCachedResult = React.useCallback(async (cacheKey: string) => (await queryResultCache?.lookup(cacheKey))?.cachedAtMs ?? null, [queryResultCache]);
@@ -418,17 +413,17 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const computeCacheKey = React.useCallback(async (scriptKey: number) => {
         const { workbookScripts, scripts } = latest.current;
         const scriptData = scripts[scriptKey];
-        if (scriptData == null || scriptRunServices == null) return null;
-        return await computeScriptResultCacheKey(scriptRunServices, workbookScripts, scriptData);
-    }, [cachingConnections, scriptRunServices]);
+        if (scriptData == null || resultKey == null) return null;
+        return await resultKey(workbookScripts.workbookId, scriptKey);
+    }, [cachingConnections, resultKey]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
         const { workbookScripts, scripts } = latest.current;
         const entry = workbookScripts.scriptRefs[fileName];
         const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
-        if (scriptData == null || scriptRunServices == null || !isScriptOnline(scriptData)) return;
-        dependencies.runWorkbookScript(scriptRunServices, workbookScripts, scriptData, executeQuery, props.modifyWorkbookScripts, logger);
-    }, [executeQuery, scriptRunServices, props.modifyWorkbookScripts, logger]);
+        if (scriptData == null || runScript == null || !isScriptOnline(scriptData)) return;
+        void runScript(workbookScripts.workbookId, scriptData.scriptKey);
+    }, [runScript]);
 
     const handleDelete = React.useCallback((fileName: string) => {
         deleteScript(selection, latest.current.workbookScripts, props.modifyWorkbookScripts, fileName);
@@ -663,9 +658,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             connectionAttention?.request(next.workbookId);
             return;
         }
-        if (scriptRunServices == null) return;
-        dependencies.runWorkbookScript(scriptRunServices, next, scriptData, executeQuery, props.modifyWorkbookScripts, logger);
-    }, [connectionAttention, scriptRunServices, executeQuery, logger, props.modifyWorkbookScripts]);
+        if (runScript == null) return;
+        void runScript(next.workbookId, scriptData.scriptKey);
+    }, [connectionAttention, runScript]);
 
     // Scroll a script into view.
     // A script with results that does not fit shows its results, once its row is mounted and the results are measured.
