@@ -31,19 +31,28 @@ function withTable(): dashql.DashQLComputations {
 }
 
 describe('DashQL computations', () => {
-    it('take the tables that the host registers and hand them out as Arrow IPC', () => {
+    it('name the tables of the host by their handles and release the ones they let go of', () => {
         const computations = withTable();
-        const ipc = computations.arrowTableIpc(100);
-        expect(ipc.length).toBeGreaterThan(0);
-        const id = computations.registerArrowTable(ipc);
-        expect(computations.systemColumnsSucceeded(1, { id }, 2, GROUPS, 1000).changed).toBe(true);
-        expect(computations.computationSnapshot(1).dataTable).toEqual({ id, rows: 0 });
-        expect(computations.arrowTableIds()).toEqual([id]);
-        // A registered table that no action took goes with the next action
-        const unused = computations.registerArrowTable(ipc);
-        computations.clearTableOrdering(1);
-        expect(computations.holdsArrowTable(unused)).toBe(false);
-        expect(() => computations.registerArrowTable(new Uint8Array([1, 2, 3]))).toThrow();
+        expect(computations.computationLifetime(1)).toBe(7);
+        expect(computations.computationLifetime(2)).toBeNull();
+        expect(computations.systemColumnsSucceeded(1, { id: 101, rows: 4 }, 2, GROUPS, 1000).effects).toEqual([
+            { type: 'releaseDataFrame', dataFrame: 1 },
+            { type: 'release', handle: 100 },
+        ]);
+        expect(computations.computationSnapshot(1).dataTable).toEqual({ id: 101, rows: 4 });
+        expect(computations.holdsArrowTable(101)).toBe(true);
+        expect(computations.holdsArrowTable(100)).toBe(false);
+        // A table that an action hands over and the state doesn't take goes back to the host
+        const task: dashql.ComputationTask = {
+            kind: 'tableFiltering',
+            tableId: 2,
+            tableVersion: { data: 1, filter: 0 },
+            inputDataTable: { id: 300, rows: 1 },
+            inputDataFrame: 1,
+            rowNumberColumnName: 'rownum',
+            filters: [],
+        };
+        expect(computations.scheduleTask(task, 1001).effects).toEqual([{ type: 'release', handle: 300 }]);
         computations.destroy();
     });
 
@@ -131,17 +140,21 @@ describe('DashQL computations', () => {
         // A newer ordering replaces the older one
         expect(computations.tableOrderingSucceeded(1, ordering(201, 3), 1002).effects).toEqual([
             { type: 'releaseDataFrame', dataFrame: 2 },
+            { type: 'release', handle: 200 },
         ]);
         // The Arrow tables go with the state
         expect(computations.holdsArrowTable(200)).toBe(false);
         // Dropping the computation aborts its lifetime and releases what it holds
         computations.unregisterSchedulerTask(1);
         expect(computations.deleteComputation(1).effects).toEqual([
-            { type: 'abortComputation', tableId: 1, lifetime: 7 },
+            { type: 'abort', handle: 7, reason: 'The computation was dropped' },
+            { type: 'release', handle: 7 },
             { type: 'releaseDataFrame', dataFrame: 1 },
             { type: 'releaseDataFrame', dataFrame: 3 },
+            { type: 'release', handle: 100 },
+            { type: 'release', handle: 201 },
         ]);
-        expect(computations.arrowTableIds()).toEqual([]);
+        expect(computations.holdsArrowTable(201)).toBe(false);
         expect(computations.tableIds()).toEqual([]);
         computations.destroy();
     });
@@ -163,9 +176,10 @@ describe('DashQL computations', () => {
             dataSearchTable: { table: 300, requestId: 1 },
             dataSearch: { appliedPattern: 'ann', appliedRequestId: 1, hasMatchingRows: true, pending: false },
         });
-        // Ending the search drops its rows
+        // Ending the search drops its rows and releases its table
         expect(computations.setResultSearchPattern(1, 'data', '').effects).toEqual([
             { type: 'releaseDataFrame', dataFrame: 4 },
+            { type: 'release', handle: 300 },
         ]);
         expect(computations.computationSnapshot(1).dataSearch.hasMatchingRows).toBe(false);
         computations.destroy();

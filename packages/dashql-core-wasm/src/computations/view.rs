@@ -1,8 +1,9 @@
 //! The views of the computations: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`) with
 //! TypeScript declarations in the generated `.d.ts` (`tsify`). See docs/wip/runtime_projection.md.
 //!
-//! The views name the Arrow tables, the data frames and the lifetimes by their ids. Ids, revisions and times are
-//! numbers, a missing value is null. The status of a task is the numeric enum `TaskStatus`, a class of the module.
+//! The views name the Arrow tables and the lifetimes by their handles of the host, the data frames by their ids. Ids,
+//! handles, revisions and times are numbers, a missing value is null. The status of a task is the numeric enum
+//! `TaskStatus`, a class of the module.
 
 use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
 use dashql_core_runtime::compute::tasks::analysis::BinBounds;
@@ -66,12 +67,12 @@ impl From<ComputationVersionValue> for ComputationVersion {
     }
 }
 
-/// An Arrow table by its id: a table that the host registered for the action, or a table of the state
+/// An Arrow table of the host by its handle
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ComputationArrowTable {
-    pub id: u64,
+    pub id: u32,
     /// The rows, in a snapshot
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rows: Option<u64>,
@@ -320,12 +321,12 @@ pub struct ComputationDataSearchTable {
     pub request_id: u64,
 }
 
-/// The statistics of all columns of a table, the table by its id
+/// The statistics of all columns of a table, the table by its handle
 #[derive(Clone, Debug, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ComputationTableAggregation {
-    pub table: u64,
+    pub table: u32,
     pub data_frame: u64,
     pub count_star_field_name: String,
 }
@@ -414,7 +415,7 @@ pub enum ComputationColumnAggregate {
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ComputationColumnSummary {
-    pub id: u64,
+    pub id: u32,
     pub data_frame: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub analysis: Option<ComputationSummaryAnalysis>,
@@ -592,8 +593,10 @@ pub(super) fn cross_filters(selections: Vec<ComputationCrossFilter>) -> CrossFil
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[tsify(missing_as_null)]
 pub enum ComputationEffect {
-    /// Abort the lifetime of a computation that was dropped or replaced
-    AbortComputation { table_id: u64, lifetime: u64 },
+    /// Abort a handle, the lifetime of a computation that was dropped or replaced
+    Abort { handle: u32, reason: String },
+    /// Release a handle, an Arrow table or a lifetime that the state no longer holds
+    Release { handle: u32 },
     /// Abort a data search that was superseded
     AbortDataSearch { table_id: u64, request_id: u64 },
     /// Nothing in the state holds the data frame anymore, the service drops its table through the host
@@ -603,7 +606,8 @@ pub enum ComputationEffect {
 impl From<&RuntimeEffect> for ComputationEffect {
     fn from(effect: &RuntimeEffect) -> Self {
         match *effect {
-            RuntimeEffect::AbortComputation { table_id, lifetime } => Self::AbortComputation { table_id, lifetime },
+            RuntimeEffect::Abort { handle, reason } => Self::Abort { handle, reason: reason.to_string() },
+            RuntimeEffect::Release { handle } => Self::Release { handle },
             RuntimeEffect::AbortDataSearch { table_id, request_id } => Self::AbortDataSearch { table_id, request_id },
             RuntimeEffect::ReleaseDataFrame { data_frame } => Self::ReleaseDataFrame { data_frame },
         }
@@ -716,7 +720,7 @@ impl From<&rt::ResultSearchState> for ComputationSearchSnapshot {
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ComputationFilterTableSnapshot {
-    pub table: u64,
+    pub table: u32,
     pub data_frame: u64,
     pub input_row_number_column_name: String,
     pub version: ComputationVersionValue,
@@ -727,7 +731,7 @@ pub struct ComputationFilterTableSnapshot {
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ComputationOrderingTableSnapshot {
-    pub table: u64,
+    pub table: u32,
     pub data_frame: u64,
     pub input_row_number_column_name: String,
     pub ordering_constraints: Vec<ComputationOrderBy>,
@@ -740,7 +744,7 @@ pub struct ComputationOrderingTableSnapshot {
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ComputationDataSearchTableSnapshot {
-    pub table: u64,
+    pub table: u32,
     pub data_frame: u64,
     pub input_row_number_column_name: String,
     pub version: ComputationVersionValue,
@@ -761,8 +765,8 @@ pub struct ComputationTasksSnapshot {
     pub filtered_column_aggregation: Vec<Option<ComputationTrackedTask>>,
 }
 
-/// The fields of a computation. The tables are named by their ids, the data frames and the lifetime are ids of the
-/// host.
+/// The fields of a computation. The tables and the lifetime are handles of the host, the data frames ids of the
+/// compute database.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -771,7 +775,7 @@ pub struct ComputationSnapshot {
     pub connection_id: Option<String>,
     /// The client context of the queries of a computation without a connection, opaque JSON
     pub client_context: Option<String>,
-    pub lifetime: u64,
+    pub lifetime: u32,
     pub revision: u64,
     pub version: ComputationVersionValue,
     pub data_table: ComputationArrowTable,

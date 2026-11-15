@@ -319,16 +319,17 @@ pub struct QueryErrorView {
     pub details: Option<String>,
 }
 
-/// The result table of a query, the host keeps it under its id
+/// The result table of a query, the host keeps it under its handle
 #[derive(Clone, Copy, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct QueryResultTableView {
-    pub id: u64,
+    pub id: u32,
     pub rows: u64,
 }
 
-/// The plain fields of a query and its latest progress. The text and the metadata stay with the host.
+/// The plain fields of a query and its latest progress. The text and the metadata stay with the host, in the record
+/// of the query under its handle.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -345,6 +346,8 @@ pub struct QueryView {
     pub cached_at: Option<i64>,
     pub latest_progress: Option<QueryLatestProgressView>,
     pub revision: u64,
+    /// The handle of the record of the query at the host
+    pub handle: Option<u32>,
 }
 
 impl QueryView {
@@ -381,6 +384,7 @@ impl QueryView {
             cached_at: query.cached_at,
             latest_progress: query.latest_progress_update.as_ref().map(|progress| QueryLatestProgressView::of(progress, known)),
             revision: query.revision,
+            handle: query.handle,
         }
     }
 }

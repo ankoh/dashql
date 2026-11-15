@@ -27,9 +27,16 @@ fn start(history: &mut QueryExecutionHistory, query_id: QueryId, meta: QueryMeta
     history.apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
 }
 
-/// The one-row result table of a query, the table id is the query id
+/// The one-row result table of a query, the handle of the table is the query id
 fn table(query_id: QueryId) -> QueryResultTable {
-    QueryResultTable { id: query_id, rows: 1 }
+    QueryResultTable { id: query_id as u32, rows: 1 }
+}
+
+/// Start a query with a record of the host under a handle
+fn start_with_record(history: &mut QueryExecutionHistory, query_id: QueryId, handle: u32) {
+    let mut state = QueryExecutionState::new(query_id, 0, "select 1", metadata(QueryType::UserProvided, None), NOW);
+    state.handle = Some(handle);
+    history.apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
 }
 
 /// Finish a started query with a one-row table, returns the effects of the success
@@ -52,7 +59,7 @@ fn result_of(history: &QueryExecutionHistory, query_id: QueryId) -> Option<Query
 }
 
 fn release(query_id: QueryId) -> QueryExecutionEffect {
-    QueryExecutionEffect::ReleaseResultTable { query_id, table: table(query_id) }
+    QueryExecutionEffect::Release { handle: table(query_id).id }
 }
 
 fn error(message: &str) -> QueryError {
@@ -316,7 +323,35 @@ fn a_result_that_arrives_again_releases_the_earlier_one() {
     };
     assert!(history.apply(all(10)).unwrap().effects.is_empty());
     let effects = history.apply(all(11)).unwrap().effects;
-    assert_eq!(effects, vec![QueryExecutionEffect::ReleaseResultTable { query_id: 1, table: QueryResultTable { id: 10, rows: 1 } }]);
+    assert_eq!(effects, vec![QueryExecutionEffect::Release { handle: 10 }]);
+}
+
+#[test]
+fn a_result_that_no_active_query_takes_is_released() {
+    let mut history = QueryExecutionHistory::new();
+    succeed(&mut history, 1, metadata(QueryType::UserProvided, None));
+    let late = QueryExecutionAction::QueryReceivedAllBatches {
+        query_id: 1,
+        table: QueryResultTable { id: 20, rows: 1 },
+        metrics: QueryExecutionMetrics::default(),
+        now: NOW,
+    };
+    let outcome = history.apply(late).unwrap();
+    assert!(!outcome.changed);
+    assert_eq!(outcome.effects, vec![QueryExecutionEffect::Release { handle: 20 }]);
+    assert_eq!(result_of(&history, 1), Some(table(1)));
+}
+
+#[test]
+fn a_query_that_leaves_a_limited_history_releases_its_record_and_its_table() {
+    let mut history = QueryExecutionHistory::with_limit(1);
+    start_with_record(&mut history, 1, 101);
+    finish(&mut history, 1);
+    let mut state = QueryExecutionState::new(2, 0, "select 2", metadata(QueryType::UserProvided, None), NOW);
+    state.handle = Some(102);
+    let outcome = history.apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
+    assert_eq!(outcome.effects, vec![release(1), QueryExecutionEffect::Release { handle: 101 }]);
+    assert_eq!(history.query(2).and_then(|query| query.handle), Some(102));
 }
 
 // A history of its own with a limit, e.g. the one of the shell
@@ -831,15 +866,23 @@ fn profile_execution_state_takes_the_rows_of_an_edge_from_the_slot_of_the_child_
 // Clearing the history of a stopped connection
 
 #[test]
-fn clearing_returns_the_active_queries_and_releases_the_result_tables() {
+fn clearing_aborts_the_active_queries_and_releases_their_handles() {
     let mut history = QueryExecutionHistory::new();
-    succeed(&mut history, 1, metadata(QueryType::UserProvided, None));
-    start(&mut history, 2, metadata(QueryType::UserProvided, None));
+    start_with_record(&mut history, 1, 101);
+    finish(&mut history, 1);
+    start_with_record(&mut history, 2, 102);
     let snapshot = history.snapshot_queries_active_finished();
     let revision = history.revision();
-    let (active, outcome) = history.clear();
-    assert_eq!(active, vec![2]);
-    assert_eq!(outcome.effects, vec![release(1)]);
+    let outcome = history.clear("Connection was reset");
+    assert_eq!(
+        outcome.effects,
+        vec![
+            QueryExecutionEffect::Abort { handle: 102, reason: "Connection was reset" },
+            QueryExecutionEffect::Release { handle: 102 },
+            release(1),
+            QueryExecutionEffect::Release { handle: 101 },
+        ]
+    );
     assert!(history.query(1).is_none() && history.query(2).is_none());
     assert!(history.active_ids().is_empty() && history.finished_ids().is_empty());
     assert_eq!(history.metrics().successful_queries.total_queries, 0);

@@ -16,6 +16,7 @@ pub mod connection_persistence;
 pub mod connection_setup;
 pub mod connections;
 pub mod executor;
+pub mod handles;
 pub mod host;
 pub mod http;
 pub mod hyper;

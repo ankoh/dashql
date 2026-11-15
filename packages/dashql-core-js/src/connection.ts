@@ -157,9 +157,14 @@ export class DashQLConnection extends DashQLQueryActions {
     public relationsTouched(names: ConnectionTableName[], now = Date.now()): ConnectionOutcome {
         return this.native().relationsTouched(names, now);
     }
-    /// A catalog update started: a full refresh or a lookup of relations
-    public updateCatalog(taskId: number, variant: CatalogUpdateVariant, startedAt: number | null, touchedRelations: ConnectionRelationName[], now = Date.now()): ConnectionOutcome {
-        return this.native().updateCatalog(taskId, variant, startedAt, touchedRelations, now);
+    /// A catalog update started: a full refresh or a lookup of relations. The host keeps the record of the update (its
+    /// cancellation and its error) under the handle.
+    public updateCatalog(taskId: number, handle: number, variant: CatalogUpdateVariant, startedAt: number | null, touchedRelations: ConnectionRelationName[], now = Date.now()): ConnectionOutcome {
+        return this.native().updateCatalog(taskId, handle, variant, startedAt, touchedRelations, now);
+    }
+    /// The handle of the record of a catalog update, null for an update that the connection doesn't know
+    public catalogUpdateHandle(taskId: number): number | null {
+        return this.native().catalogUpdateHandle(taskId) ?? null;
     }
     public catalogUpdateRegisterQuery(taskId: number, queryId: number, now = Date.now()): ConnectionOutcome {
         return this.native().catalogUpdateRegisterQuery(taskId, queryId, now);

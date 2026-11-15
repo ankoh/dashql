@@ -19,8 +19,9 @@ use super::ConnectionEffect;
 /// Milliseconds since the Unix epoch. The host passes the time with an action, the reducer reads no clock.
 pub type Timestamp = f64;
 
-/// A channel of a connection, the host holds it under this id
-pub type ChannelId = u32;
+/// A channel of the host. The channel of a connection is a handle of the host (`crate::handles`), a setup names the
+/// channels of its run by ids of the run.
+pub type ChannelId = crate::handles::Handle;
 
 /// An error with a message and optional details, e.g. a failed channel setup
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -296,8 +297,8 @@ impl ConnectionDetails {
     /// Reset the setup of a connection that is reset or deleted: close the channel, forget the timings, the errors
     /// and a Trino OAuth flow. The setup params stay.
     pub(crate) fn reset(&mut self, effects: &mut Vec<ConnectionEffect>) {
-        if let Some(channel) = self.channel.take() {
-            effects.push(ConnectionEffect::CloseChannel { channel });
+        if let Some(handle) = self.channel.take() {
+            effects.push(ConnectionEffect::Close { handle });
         }
         self.setup_timings = SetupTimings::default();
         self.channel_error = None;
@@ -315,7 +316,7 @@ impl ConnectionDetails {
 /// Replace the channel of a connection. A channel that the connection lets go of without closing it is released.
 pub(crate) fn replace_channel(slot: &mut Option<ChannelId>, channel: Option<ChannelId>, effects: &mut Vec<ConnectionEffect>) {
     if let Some(previous) = slot.filter(|previous| Some(*previous) != channel) {
-        effects.push(ConnectionEffect::ReleaseChannel { channel: previous });
+        effects.push(ConnectionEffect::Release { handle: previous });
     }
     *slot = channel;
 }

@@ -1,15 +1,19 @@
 //! The values of the computation state: versions, column groups, the results of the tasks and the tasks.
 //!
-//! The Arrow tables of the state are Rust values (`ResultTable` behind an `Arc`) with an id that names them for the
-//! host, e.g. to decode a table once. The data frames are ids of tables in the compute database of the host.
+//! The Arrow tables of the state are tables of the host, the state names them by their handles (`crate::handles`) and
+//! keeps what it read of them: the rows, the schema and the values of statistics. The data frames are ids of tables in
+//! the compute database of the host.
 //!
 //! Ported from `packages/dashql-runtime/src/compute/computation_types.ts`.
 
 use std::fmt;
 use std::sync::Arc;
 
+use arrow_schema::{Schema, SchemaRef};
+
 use super::tasks::analysis::{OrdinalColumnAnalysis, StringColumnAnalysis};
-use super::tasks::result_table::ResultTable;
+use super::tasks::StatsRow;
+use crate::handles::Handle;
 
 /// The id of the result table that a computation summarizes, unique among the computations
 pub type TableId = u64;
@@ -20,11 +24,11 @@ pub type TaskId = u64;
 /// The id of a data frame, a table in the compute database of the host
 pub type DataFrameId = u64;
 
-/// The id of an Arrow table of the state, the host keeps what it derives from a table by it, e.g. a decoded table
-pub type ArrowTableId = u64;
+/// An Arrow table of the host, a handle
+pub type ArrowTableId = Handle;
 
-/// The id of the lifetime of a computation at the host, aborting it cancels the work on the computation
-pub type LifetimeId = u64;
+/// The lifetime of a computation at the host, a handle: aborting it cancels the work on the computation
+pub type LifetimeId = Handle;
 
 /// A point in time in milliseconds since epoch
 pub type Timestamp = i64;
@@ -71,28 +75,38 @@ impl fmt::Display for ComputationVersion {
     }
 }
 
-/// An Arrow table of the state. Clones share the table, dropping the last one frees it.
+/// An Arrow table of the host by its handle, with what the runtime read of it. The rows stay with the host, which
+/// releases them when the state lets go of the handle.
 #[derive(Clone)]
 pub struct ArrowTable {
-    /// The id that names the table for the host
+    /// The handle of the table at the host
     pub id: ArrowTableId,
-    /// The table
-    pub table: Arc<ResultTable>,
+    /// The rows
+    pub rows: u64,
+    /// The schema, empty for a table that the host handed over
+    pub schema: SchemaRef,
+    /// The values of the row of statistics, of a table aggregation that the runtime computed
+    pub stats: Option<Arc<StatsRow>>,
 }
 
 impl ArrowTable {
-    /// A table with its id
-    pub fn new(id: ArrowTableId, table: Arc<ResultTable>) -> Self {
-        Self { id, table }
+    /// A table that the runtime read
+    pub fn new(id: ArrowTableId, rows: u64, schema: SchemaRef) -> Self {
+        Self { id, rows, schema, stats: None }
+    }
+
+    /// A table that the host handed over, the runtime knows only its rows
+    pub fn host(id: ArrowTableId, rows: u64) -> Self {
+        Self { id, rows, schema: Arc::new(Schema::empty()), stats: None }
     }
 
     /// The rows of the table
     pub fn rows(&self) -> u64 {
-        self.table.num_rows() as u64
+        self.rows
     }
 }
 
-// An id names one table, two tables are the same if they have the same id
+// A handle names one table, two tables are the same if they have the same handle
 impl PartialEq for ArrowTable {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -103,7 +117,7 @@ impl Eq for ArrowTable {}
 
 impl fmt::Debug for ArrowTable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ArrowTable").field("id", &self.id).field("rows", &self.rows()).finish()
+        f.debug_struct("ArrowTable").field("id", &self.id).field("rows", &self.rows).finish()
     }
 }
 

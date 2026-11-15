@@ -1,7 +1,8 @@
 //! The updates of the catalog of a connection: full refreshes and the lookups of the relations that executed
 //! statements touched.
 //!
-//! The host runs the updates and keeps their cancellation by task id, the connection keeps their state.
+//! The host runs the updates and keeps their cancellations under the handles of the updates, the connection keeps
+//! their state.
 //!
 //! Ported from `packages/dashql-runtime/src/connections/catalog/catalog_update_state.ts`.
 
@@ -10,6 +11,7 @@ use std::collections::BTreeMap;
 use dashql_buffers::analyzer::QualifiedTableNameT;
 
 use super::details::{DetailedError, Timestamp};
+use crate::handles::Handle;
 
 /// The attempts to answer the relations of executed statements before the catalog counts as out of date
 pub const MAX_TOUCHED_ATTEMPTS: u32 = 3;
@@ -97,6 +99,9 @@ pub struct CatalogUpdateTask {
     pub finished_at: Option<Timestamp>,
     /// The relations of executed statements that the update answers
     pub touched_relations: Vec<RelationName>,
+    /// The handle of what the host keeps of the update: its cancellation, aborted when the connection stops, and its
+    /// error. The connection releases it when it drops the update.
+    pub handle: Option<Handle>,
 }
 
 impl CatalogUpdateTask {
@@ -111,6 +116,7 @@ impl CatalogUpdateTask {
             started_at: Some(started_at),
             finished_at: None,
             touched_relations: Vec::new(),
+            handle: None,
         }
     }
 }
@@ -162,14 +168,18 @@ impl CatalogUpdates {
         changed
     }
 
-    /// Start an update. It takes the relations it answers, a statement may have touched others meanwhile.
-    pub(crate) fn start(&mut self, task: CatalogUpdateTask) {
+    /// Start an update. It takes the relations it answers, a statement may have touched others meanwhile. Returns the
+    /// handle of an update of the same id that it replaces.
+    pub(crate) fn start(&mut self, task: CatalogUpdateTask) -> Option<Handle> {
         if task.variant == CatalogUpdateVariant::FullCatalogRefresh {
             self.current_full_refresh = Some(task.task_id);
         }
         // A full refresh leaves the other relations, only the answer about a relation can say that it is gone
         self.touched_relations.retain(|relation| !task.touched_relations.contains(relation));
-        self.tasks_running.insert(task.task_id, task);
+        let task_id = task.task_id;
+        let handle = task.handle;
+        let replaced = self.tasks_running.insert(task_id, task).or_else(|| self.tasks_finished.remove(&task_id));
+        replaced.and_then(|replaced| replaced.handle).filter(|replaced| Some(*replaced) != handle)
     }
 
     /// Register a query of a running update, false for an update that isn't running

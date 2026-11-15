@@ -53,15 +53,14 @@ describe('DashQL connections', () => {
         expect(connection.reset().effects).toEqual([
             { type: 'cancelSetup' },
             { type: 'invalidateCatalogBatch' },
-            { type: 'stopQueries', queryIds: [] },
-            { type: 'closeChannel', channel: 7 },
+            { type: 'close', handle: 7 },
         ]);
         expect(connection.snapshot().health).toBe(0);
     });
 
     it('track queries and release the result tables that nothing shows', () => {
         const connection = hyper();
-        expect(connection.executeQuery(1, 0, 'select 1', USER_QUERY, 10).changed).toBe(true);
+        expect(connection.executeQuery(1, 51, 0, 'select 1', USER_QUERY, 10).changed).toBe(true);
         connection.querySending(1, 11);
         connection.queryReceivedAllBatches(1, 100, 3, METRICS, 12);
         connection.querySucceeded(1, 15);
@@ -70,18 +69,21 @@ describe('DashQL connections', () => {
         expect(connection.queries().metrics.successfulQueries.totalRowsReceived).toBe(3);
 
         // A later result of the same owner releases the earlier one
-        connection.executeQuery(2, 0, 'select 2', USER_QUERY, 20);
+        connection.executeQuery(2, 52, 0, 'select 2', USER_QUERY, 20);
         connection.queryReceivedAllBatches(2, 101, 1, METRICS, 21);
-        expect(connection.querySucceeded(2, 22).effects).toEqual([{ type: 'releaseResultTable', queryId: 1, tableId: 100 }]);
+        expect(connection.querySucceeded(2, 22).effects).toEqual([{ type: 'release', handle: 100 }]);
 
-        // Stopping the connection drops the queries
-        connection.executeQuery(3, 0, 'select 3', USER_QUERY, 30);
+        // Stopping the connection aborts the active queries and releases the handles of all queries
+        connection.executeQuery(3, 53, 0, 'select 3', USER_QUERY, 30);
         const snapshot = connection.queries().snapshot;
         expect(connection.delete().effects).toEqual([
             { type: 'cancelSetup' },
             { type: 'invalidateCatalogBatch' },
-            { type: 'stopQueries', queryIds: [3] },
-            { type: 'releaseResultTable', queryId: 2, tableId: 101 },
+            { type: 'abort', handle: 53, reason: 'Connection was deleted' },
+            { type: 'release', handle: 53 },
+            { type: 'release', handle: 51 },
+            { type: 'release', handle: 101 },
+            { type: 'release', handle: 52 },
         ]);
         expect(connection.queries()).toMatchObject({ active: [], finished: [] });
         expect(connection.queries().snapshot).toBeGreaterThan(snapshot);
@@ -114,8 +116,10 @@ describe('DashQL connections', () => {
         connection.replaceFunctionScriptText('create function f() returns int;');
         expect(connection.functionScriptText()).toBe('create function f() returns int;');
         const relation = { databaseName: 'hyper', schemaName: 'public', tableName: 't' };
-        connection.updateCatalog(1, dashql.CatalogUpdateVariant.RELATION_REFRESH, 5, [relation]);
-        expect(connection.snapshot().catalogUpdates.tasksRunning).toMatchObject([{ taskId: 1, variant: 1, status: 0, startedAt: 5 }]);
+        connection.updateCatalog(1, 61, dashql.CatalogUpdateVariant.RELATION_REFRESH, 5, [relation]);
+        expect(connection.snapshot().catalogUpdates.tasksRunning).toMatchObject([{ taskId: 1, variant: 1, status: 0, startedAt: 5, handle: 61 }]);
+        expect(connection.catalogUpdateHandle(1)).toBe(61);
+        expect(connection.catalogUpdateHandle(2)).toBeNull();
         connection.catalogUpdateFinished(1, dashql.CatalogUpdateTaskStatus.FAILED, { message: 'down' });
         expect(connection.snapshot().catalogUpdates).toMatchObject({
             tasksRunning: [],

@@ -8,9 +8,7 @@
 //! once more.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
 
-use arrow_array::{Int64Array, RecordBatch};
 
 use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
 use dashql_core_runtime::compute::types::{
@@ -20,15 +18,15 @@ use dashql_core_runtime::compute::types::{
     ScalarFilter, StringColumnGroup, SystemColumnsTask, TableAggregation, TableAggregationTask, TableFilteringTask,
     TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus,
 };
-use dashql_core_runtime::compute::tasks::result_table::ResultTable;
-use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind};
+use dashql_core_runtime::compute::{
+    ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind, COMPUTATION_DROPPED,
+};
 
 /// The time of the actions
 const NOW: i64 = 1_000;
-/// A table of the state with a number per row
-fn arrow_table(id: u64, rows: i64) -> ArrowTable {
-    let batch = RecordBatch::try_from_iter([("n", Arc::new(Int64Array::from_iter_values(0..rows)) as _)]).unwrap();
-    ArrowTable::new(id, Arc::new(ResultTable::from_batch(batch)))
+/// A table of the host with a number of rows
+fn arrow_table(id: u32, rows: u64) -> ArrowTable {
+    ArrowTable::host(id, rows)
 }
 
 /// The result table of the tests
@@ -41,9 +39,9 @@ fn row_table() -> ArrowTable {
     arrow_table(101, 2)
 }
 /// The statistics of the table
-const AGGREGATE_TABLE: u64 = 102;
+const AGGREGATE_TABLE: u32 = 102;
 /// The binned values of the score column
-const SCORE_SUMMARY: u64 = 103;
+const SCORE_SUMMARY: u32 = 103;
 
 /// The score column, ordinal
 fn score() -> OrdinalColumnGroup {
@@ -149,7 +147,7 @@ fn released(outcome: &ComputationOutcome) -> Vec<DataFrameId> {
 }
 
 /// Start the computation of table 1 of the input table on a connection
-fn from_query_result(table_id: TableId, lifetime: u64) -> ComputationAction {
+fn from_query_result(table_id: TableId, lifetime: u32) -> ComputationAction {
     ComputationAction::ComputationFromQueryResult {
         table_id,
         data_table: input_table(),
@@ -403,7 +401,9 @@ fn delete_computation() {
     assert_eq!(
         outcome.effects,
         vec![
-            ComputationEffect::AbortComputation { table_id: 1, lifetime: 7 },
+            ComputationEffect::Abort { handle: 7, reason: COMPUTATION_DROPPED },
+            ComputationEffect::Release { handle: 7 },
+            ComputationEffect::Release { handle: input_table().id },
         ]
     );
     // Deleting an unknown computation changes nothing
@@ -425,7 +425,8 @@ fn releases_the_previous_computation_when_replacing_the_same_table_id() {
     assert_eq!(
         outcome.effects,
         vec![
-            ComputationEffect::AbortComputation { table_id: 1, lifetime: 1 },
+            ComputationEffect::Abort { handle: 1, reason: COMPUTATION_DROPPED },
+            ComputationEffect::Release { handle: 1 },
             ComputationEffect::ReleaseDataFrame { data_frame: 9 },
         ]
     );
@@ -608,9 +609,10 @@ fn system_columns_replace_the_table_and_the_data_frame() {
         &mut state,
         ComputationAction::SystemColumnsSucceeded { table_id: 1, data_table: numbered.clone(), data_frame: 2, column_groups: columns.clone(), now: NOW },
     );
+    // The table that the system columns replace goes back to the host
     assert_eq!(
         outcome.effects,
-        vec![ComputationEffect::ReleaseDataFrame { data_frame: 1 }]
+        vec![ComputationEffect::ReleaseDataFrame { data_frame: 1 }, ComputationEffect::Release { handle: input_table().id }]
     );
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.version, before.with_data_increment());
@@ -672,7 +674,9 @@ fn a_task_of_an_unknown_computation_is_dropped() {
     let mut task = score_aggregation(1, 2);
     task.table_id = 7;
     let outcome = apply(&mut state, ComputationAction::ScheduleTask { task: ComputationTask::ColumnAggregation(task), now: NOW });
-    assert_eq!(outcome, ComputationOutcome::default());
+    // The table of the task goes back to the host
+    let released = ComputationOutcome { effects: vec![ComputationEffect::Release { handle: AGGREGATE_TABLE }], ..Default::default() };
+    assert_eq!(outcome, released);
     assert_eq!(state.scheduler_tasks().count(), 0);
 }
 
@@ -1011,6 +1015,7 @@ fn ending_the_data_search_drops_its_rows_and_aborts_it() {
         vec![
             ComputationEffect::AbortDataSearch { table_id: 1, request_id: 1 },
             ComputationEffect::ReleaseDataFrame { data_frame: 2 },
+            ComputationEffect::Release { handle: search_table(2, current, 1).table.id },
         ]
     );
     let computation = state.computation(1).unwrap();

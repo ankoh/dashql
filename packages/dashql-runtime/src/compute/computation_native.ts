@@ -63,6 +63,7 @@ import { executeDirectly, type CreateComputeQueryExecution } from './computation
 import { CrossFilters, HISTOGRAM_FILTER } from './cross_filters.js';
 import { DataFrame, type DataFrameRegistry } from './data_frame.js';
 import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
+import { handlesOf, type HandleTable } from '../store/handles.js';
 import { RevisionCache, share } from '../store/projection.js';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import { LoggableException, stringifyError, type LoggerLike } from '../platform/logger/logger.js';
@@ -75,20 +76,26 @@ import { LoggableException, stringifyError, type LoggerLike } from '../platform/
 /// the queries of the tasks (`setQueryExecution`). A computation that an action of the host started runs its tasks on
 /// the scheduler of the host, e.g. in tests that hand over their own results.
 ///
-/// The JS objects of the state have ids: the Arrow tables of the host are registered as Arrow IPC with the action that
-/// hands them over, the tables of the state are read as Arrow IPC once and wrapped like the results of the tasks of the
-/// host (filter, ordering and search tables, the statistics with their formatter, the summaries with their analysis).
-/// The data frames and the lifetimes are ids of the host, a data frame that the state releases is dropped unless the
-/// host still reads it (`DataFrameRegistry`). `project` builds the `ComputationState` objects of the app from the views
-/// of the module (store/projection.ts): a computation keeps its object while its revision doesn't move, the view of a
-/// changed computation shares the parts of the previous view that are the same, and the objects built from them stay.
+/// The Arrow tables and the lifetimes of the computations are handles of the runtime (store/handles.ts): the host
+/// hands its tables over by their handles, the tasks of the runtime hand the tables that they read over with
+/// `registerTable`, and the effects of the state release them. A table of a task is wrapped like the results of the
+/// tasks of the host (filter, ordering and search tables, the statistics with their formatter, the summaries with
+/// their analysis). The data frames are ids of the compute database, a data frame that the state releases is dropped
+/// unless the host still reads it (`DataFrameRegistry`). `project` builds the `ComputationState` objects of the app
+/// from the views of the module (store/projection.ts): a computation keeps its object while its revision doesn't move,
+/// the view of a changed computation shares the parts of the previous view that are the same, and the objects built
+/// from them stay.
 
 const LOG_CTX = 'computation_native';
 
-/// The JS objects of a computation that the Rust state knows only by its lifetime
+/// The JS objects of a computation that the Rust state knows only by the handle of its lifetime. An abort of the
+/// handle aborts the lifetime.
 interface ComputationHost {
     /// The lifetime, aborted when the computation goes
     lifetime: AbortController;
+    abort(reason?: unknown): void;
+    /// Are the fields known? The ones of an analysis are known once its computation is projected.
+    ready: boolean;
     /// The client context of the queries of the computation
     clientContext: EmbeddedClientContext | null;
     /// The fields of the table the computation was created with
@@ -120,9 +127,6 @@ interface ProjectedComputation {
     view: core.ComputationSnapshot;
     state: TableComputationState;
 }
-
-/// What kind of object an id names
-type ObjectKind = 'frame' | 'table';
 
 /// What the computations need of the platform to run their tasks
 export interface ComputationsHostOptions {
@@ -158,24 +162,44 @@ function asError(error: unknown): Error {
     return error instanceof Error ? error : new LoggableException(stringifyError(error), {}, LOG_CTX);
 }
 
+/// The host of a computation, its fields once it is ready
+function computationHost(lifetime: AbortController, clientContext: EmbeddedClientContext | null, native: boolean): ComputationHost {
+    return {
+        lifetime,
+        abort: reason => lifetime.abort(reason),
+        ready: false,
+        clientContext,
+        fieldIndex: new Map(),
+        fields: new Map(),
+        columnGroups: [],
+        columnGroupsView: null,
+        crossFilters: new CrossFilters(),
+        matchingRows: null,
+        matchingRowsOf: null,
+        native,
+    };
+}
+
+/// The reason of the abort of the lifetimes of destroyed computations
+const DESTROYED = 'The computations were destroyed';
+
 export class NativeComputations implements core.ComputeHost {
     /// The Rust state
     readonly computations: core.DashQLComputations;
-    /// The JS objects by id: data frames, Arrow tables, the filter, ordering and search tables, the statistics and
-    /// the summaries
-    private readonly objects = new Map<number, object>();
-    /// The ids of the JS objects
-    private readonly ids = new WeakMap<object, number>();
-    /// What kind of object an id names
-    private readonly kinds = new Map<number, ObjectKind>();
-    /// The ids that the current action gave out
-    private fresh: number[] = [];
-    /// The JS objects of the computations by lifetime
-    private readonly hosts = new Map<number, ComputationHost>();
-    /// The lifetime of the computation of a table
-    private readonly lifetimes = new Map<number, number>();
-    /// The JS objects of the analyses that started, by table, until their computation is projected
-    private readonly analyses = new Map<number, { lifetime: AbortController; clientContext: EmbeddedClientContext | null }>();
+    /// The handles of the runtime of the core: the Arrow tables and the lifetimes of the computations
+    private readonly handles: HandleTable;
+    /// The handles of the objects of the app that the state knows by a handle: the tables and the results of the host
+    /// and the objects that the projection built of the tables of the state
+    private readonly tableHandles = new WeakMap<object, number>();
+    /// The objects that the projection built of the tables of the state, e.g. a filter table with its version
+    private readonly built = new WeakMap<arrow.Table, object>();
+    /// The data frames by their ids of the compute database
+    private readonly frames = new Map<number, DataFrame>();
+    /// The ids of the data frames
+    private readonly frameIds = new WeakMap<DataFrame, number>();
+    /// The handles and the data frames that the current action gave out
+    private freshHandles: number[] = [];
+    private freshFrames: number[] = [];
     /// The tasks as the app scheduled them by task id, with their task id
     private readonly tasks = new Map<number, TaskVariant>();
     /// The tasks of the app that run in Rust
@@ -202,15 +226,16 @@ export class NativeComputations implements core.ComputeHost {
     /// The abort controllers of the calls of the runs
     private readonly runs = new Map<number, Set<AbortController>>();
 
-    private constructor(computations: core.DashQLComputations) {
+    private constructor(computations: core.DashQLComputations, handles: HandleTable) {
         this.computations = computations;
+        this.handles = handles;
         this.computations.setHost(this);
     }
 
     /// Create the computations of an instance of the core: through the instance, a bundle can hold two copies of the
     /// core package
     static create(instance: core.DashQL): ComputationState {
-        return new NativeComputations(instance.createComputations()).project();
+        return new NativeComputations(instance.createComputations(), handlesOf(instance)).project();
     }
 
     /// Give the computations what they need to run their tasks
@@ -225,15 +250,18 @@ export class NativeComputations implements core.ComputeHost {
         this.queryExecution = create;
     }
 
-    /// Free the Rust state and abort the lifetimes of the computations
+    /// Free the Rust state, abort the lifetimes of the computations and release the handles of the state
     destroy(): void {
-        for (const host of this.hosts.values()) host.lifetime.abort();
+        for (const tableId of this.computations.tableIds()) {
+            const lifetime = this.computations.computationLifetime(tableId);
+            if (lifetime == null) continue;
+            this.handles.abort(lifetime, DESTROYED);
+            this.handles.release(lifetime);
+        }
+        for (const table of this.computations.arrowTableIds()) this.handles.release(table);
         for (const controllers of this.runs.values()) for (const controller of controllers) controller.abort();
         this.runs.clear();
-        this.hosts.clear();
-        this.lifetimes.clear();
-        this.objects.clear();
-        this.kinds.clear();
+        this.frames.clear();
         this.tasks.clear();
         this.nativeTasks.clear();
         this.projected.clear();
@@ -241,93 +269,98 @@ export class NativeComputations implements core.ComputeHost {
         this.computations.destroy();
     }
 
-    // Ids
+    // Handles and ids
 
-    /// Remember an object by its id
-    private remember(id: number, object: object, kind: ObjectKind): void {
-        this.ids.set(object, id);
-        this.objects.set(id, object);
-        this.kinds.set(id, kind);
+    /// Register an object for the current action, it goes back to the host if the action throws
+    private handOver(object: unknown): number {
+        const handle = this.handles.register(object);
+        this.freshHandles.push(handle);
+        return handle;
+    }
+
+    /// Remember a data frame by its id
+    private rememberFrame(id: number, dataFrame: DataFrame): void {
+        this.frames.set(id, dataFrame);
+        this.frameIds.set(dataFrame, id);
+    }
+
+    /// Forget a data frame, returns it
+    private forgetFrame(id: number): DataFrame | undefined {
+        const dataFrame = this.frames.get(id);
+        if (dataFrame !== undefined) {
+            this.frames.delete(id);
+            this.frameIds.delete(dataFrame);
+        }
+        return dataFrame;
     }
 
     /// The id of a data frame, a new one for one that the state doesn't know. 0 for none.
     private frame(dataFrame: DataFrame | null | undefined): number {
         if (dataFrame == null) return 0;
-        let id = this.ids.get(dataFrame);
+        let id = this.frameIds.get(dataFrame);
         if (id === undefined) {
             id = this.computations.allocateId();
-            this.remember(id, dataFrame, 'frame');
-            this.fresh.push(id);
+            this.rememberFrame(id, dataFrame);
+            this.freshFrames.push(id);
         }
         return id;
     }
 
-    /// The id of an object with an Arrow table, e.g. a filter table. The table of an object that the state doesn't
-    /// know is registered as Arrow IPC for the action. 0 for none.
-    private tableId(object: object | null | undefined, table: arrow.Table | null | undefined): number {
+    /// The handle of an object with an Arrow table, e.g. a filter table: the handle of a table of the state or of an
+    /// object that the host handed over before, a new handle for an object that the state doesn't know. 0 for none.
+    private tableId(object: object | null | undefined): number {
         if (object == null) return 0;
-        let id = this.ids.get(object);
-        if (id === undefined) {
-            const ipc = isArrowTable(table) ? arrow.tableToIPC(table, 'stream') : arrow.tableToIPC(arrow.tableFromArrays({}), 'stream');
-            id = this.computations.registerArrowTable(ipc);
-            this.remember(id, object, 'table');
-            this.fresh.push(id);
-        }
-        return id;
+        const known = this.tableHandles.get(object);
+        if (known !== undefined && this.handles.get(known) !== undefined) return known;
+        const handle = this.handOver(object);
+        this.tableHandles.set(object, handle);
+        return handle;
     }
 
-    /// The id of an object that the state knows, 0 for an unknown one. Identifies the source of a result, which the
+    /// The id of a data frame that the state knows, 0 for an unknown one. Identifies the source of a result, which the
     /// state doesn't take.
-    private knownIdOf(object: object | null | undefined): number {
-        return object == null ? 0 : this.ids.get(object) ?? 0;
+    private knownIdOf(dataFrame: object | null | undefined): number {
+        return dataFrame == null ? 0 : this.frameIds.get(dataFrame as DataFrame) ?? 0;
     }
 
-    /// Forget an object, returns it
-    private forget(id: number): object | undefined {
-        const object = this.objects.get(id);
-        if (object !== undefined) {
-            this.objects.delete(id);
-            this.ids.delete(object);
-            this.kinds.delete(id);
-        }
-        return object;
-    }
-
-    private object<T>(id: number | null | undefined): T | null {
-        return id == null ? null : (this.objects.get(id) as T | undefined) ?? null;
-    }
-
-    /// The object of an id, built once
-    private objectOr<T extends object>(id: number, build: () => T | null): T | null {
-        const known = this.objects.get(id);
+    /// The object of a table of the state: the object that the host handed over, or the one built of a table that a
+    /// task handed over, built once
+    private tableObject<T extends object>(handle: number | null | undefined, build: (table: arrow.Table) => T | null): T | null {
+        const object = this.handles.get<object>(handle);
+        if (object == null || handle == null) return null;
+        if (!isArrowTable(object)) return object as T;
+        const known = this.built.get(object);
         if (known !== undefined) return known as T;
-        const built = build();
-        if (built != null) this.remember(id, built, 'table');
+        const built = build(object);
+        if (built != null) {
+            this.built.set(object, built);
+            this.tableHandles.set(built, handle);
+        }
         return built;
     }
 
     /// The data frame of an id, a data frame of the compute database for one that the runtime created
     private frameObject(id: number | null | undefined, clientContext: EmbeddedClientContext | null = null): DataFrame | null {
         if (id == null || id === 0) return null;
-        let dataFrame = this.object<DataFrame>(id);
+        let dataFrame = this.frames.get(id) ?? null;
         if (dataFrame == null) {
             if (this.database == null) return null;
             dataFrame = new DataFrame(this.database, `__df_${id}`, clientContext);
-            this.remember(id, dataFrame, 'frame');
+            this.rememberFrame(id, dataFrame);
         }
         if (this.computations.holdsDataFrame(id)) this.memory?.adoptByState(dataFrame);
         return dataFrame;
     }
 
-    /// A table of the state, read as Arrow IPC
-    private decodeTable(id: number): arrow.Table {
-        return arrow.tableFromIPC(new Uint8Array(this.computations.arrowTableIpc(id)));
-    }
-
     // The values of the Rust state
 
     private arrowTable(table: arrow.Table | null | undefined): core.ComputationArrowTable {
-        return { id: this.tableId(table, table) };
+        return { id: this.tableId(table), rows: isArrowTable(table) ? table.numRows : 0 };
+    }
+
+    /// The table of a result of the host: the result is the object of its table
+    private resultTable(result: object, table: arrow.Table | null | undefined): core.ComputationArrowTable {
+        return { id: this.tableId(result), rows: isArrowTable(table) ? table.numRows : 0 };
     }
 
     private filterTable(filter: FilterTable | null | undefined): core.ComputationFilterTable | null {
@@ -335,7 +368,7 @@ export class NativeComputations implements core.ComputeHost {
         return {
             inputRowNumberColumnName: filter.inputRowNumberColumnName ?? '',
             // The filter is the object of its table
-            table: { id: this.tableId(filter, filter.dataTable) },
+            table: this.resultTable(filter, filter.dataTable),
             dataFrame: this.frame(filter.dataFrame),
             version: versionValue(filter.version),
         };
@@ -345,7 +378,7 @@ export class NativeComputations implements core.ComputeHost {
         return {
             inputRowNumberColumnName: ordering.inputRowNumberColumnName ?? '',
             orderingConstraints: ordering.orderingConstraints ?? [],
-            table: { id: this.tableId(ordering, ordering.dataTable) },
+            table: this.resultTable(ordering, ordering.dataTable),
             dataFrame: this.frame(ordering.dataFrame),
             version: versionValue(ordering.version),
             dataSearchRequestId: ordering.dataSearchRequestId ?? null,
@@ -356,7 +389,7 @@ export class NativeComputations implements core.ComputeHost {
         if (search == null) return null;
         return {
             inputRowNumberColumnName: search.inputRowNumberColumnName ?? '',
-            table: { id: this.tableId(search, search.dataTable) },
+            table: this.resultTable(search, search.dataTable),
             dataFrame: this.frame(search.dataFrame),
             version: versionValue(search.version),
             requestId: search.requestId ?? 0,
@@ -366,18 +399,18 @@ export class NativeComputations implements core.ComputeHost {
     private tableAggregation(aggregation: TableAggregation | null | undefined): core.ComputationTableAggregation | null {
         if (aggregation == null) return null;
         // The statistics are the object of their table, with their formatter
-        return { table: this.tableId(aggregation, aggregation.table), dataFrame: this.frame(aggregation.dataFrame), countStarFieldName: aggregation.countStarFieldName ?? '' };
+        return { table: this.tableId(aggregation), dataFrame: this.frame(aggregation.dataFrame), countStarFieldName: aggregation.countStarFieldName ?? '' };
     }
 
     /// A summary, the JS object is the object of the table of the binned or the frequent values
     private columnAggregate(aggregate: ColumnAggregationVariant | null | undefined): core.ComputationColumnAggregate {
         switch (aggregate?.type) {
             case ORDINAL_COLUMN:
-                return { kind: 'ordinal', id: this.tableId(aggregate, aggregate.value?.binnedValues), dataFrame: this.frame(aggregate.value?.binnedDataFrame) };
+                return { kind: 'ordinal', id: this.tableId(aggregate), dataFrame: this.frame(aggregate.value?.binnedDataFrame) };
             case STRING_COLUMN:
-                return { kind: 'string', id: this.tableId(aggregate, aggregate.value?.frequentValuesTable), dataFrame: this.frame(aggregate.value?.frequentValuesDataFrame) };
+                return { kind: 'string', id: this.tableId(aggregate), dataFrame: this.frame(aggregate.value?.frequentValuesDataFrame) };
             case LIST_COLUMN:
-                return { kind: 'list', id: this.tableId(aggregate, aggregate.value?.frequentValuesTable), dataFrame: this.frame(aggregate.value?.frequentValuesDataFrame) };
+                return { kind: 'list', id: this.tableId(aggregate), dataFrame: this.frame(aggregate.value?.frequentValuesDataFrame) };
             default:
                 return { kind: 'skipped' };
         }
@@ -495,25 +528,31 @@ export class NativeComputations implements core.ComputeHost {
     /// Apply an action to the Rust state and run its effects. Returns the outcome, null for an action that doesn't
     /// reach the state.
     apply(action: ComputationAction, memory: DataFrameRegistry): core.ComputationOutcome | null {
-        this.fresh = [];
+        this.freshHandles = [];
+        this.freshFrames = [];
         this.memory = memory;
+        let threw = true;
         try {
             const outcome = this.call(action);
             if (outcome != null) this.settle(action, outcome, memory);
+            threw = false;
             return outcome;
         } finally {
-            // The objects of an action that the state didn't take stay with the host
-            for (const id of this.fresh) {
-                const kind = this.kinds.get(id);
-                if (kind === 'frame' && this.computations.holdsDataFrame(id)) {
-                    memory.adoptByState(this.objects.get(id) as DataFrame);
-                } else if (kind === 'table' && this.computations.holdsArrowTable(id)) {
-                    continue;
+            // The data frames of an action that the state didn't take stay with the host
+            for (const id of this.freshFrames) {
+                const dataFrame = this.frames.get(id);
+                if (dataFrame != null && this.computations.holdsDataFrame(id)) {
+                    memory.adoptByState(dataFrame);
                 } else {
-                    this.forget(id);
+                    this.forgetFrame(id);
                 }
             }
-            this.fresh = [];
+            // The state releases the handles that it didn't take with its effects, an action that threw leaves them here
+            if (threw) {
+                for (const handle of this.freshHandles) this.handles.release(handle);
+            }
+            this.freshHandles = [];
+            this.freshFrames = [];
         }
     }
 
@@ -540,30 +579,20 @@ export class NativeComputations implements core.ComputeHost {
                 return computations.unregisterSchedulerTask(action.value.taskId);
             case COMPUTATION_FROM_QUERY_RESULT: {
                 const [tableId, table, columnGroups, lifetime, connectionId, clientContext] = action.value;
-                const lifetimeId = computations.allocateId();
-                const outcome = computations.computationFromQueryResult(
+                const host = computationHost(lifetime, clientContext ?? null, false);
+                host.ready = true;
+                host.fieldIndex = createArrowFieldIndex(table);
+                host.fields = new Map(table.schema.fields.map(field => [field.name, field]));
+                host.columnGroups = columnGroups;
+                return computations.computationFromQueryResult(
                     tableId,
                     this.arrowTable(table),
                     table.schema.fields.map(field => field.name),
                     columnGroups.map(columnGroupValue),
-                    lifetimeId,
+                    this.handOver(host),
                     connectionId ?? null,
                     clientContextJson(clientContext ?? null),
                 );
-                this.hosts.set(lifetimeId, {
-                    lifetime,
-                    clientContext: clientContext ?? null,
-                    fieldIndex: createArrowFieldIndex(table),
-                    fields: new Map(table.schema.fields.map(field => [field.name, field])),
-                    columnGroups,
-                    columnGroupsView: null,
-                    crossFilters: new CrossFilters(),
-                    matchingRows: null,
-                    matchingRowsOf: null,
-                    native: false,
-                });
-                this.lifetimes.set(tableId, lifetimeId);
-                return outcome;
             }
             case ANALYZE_TABLE:
                 this.analyze(action.value);
@@ -660,18 +689,12 @@ export class NativeComputations implements core.ComputeHost {
         }
     }
 
-    /// Abort what the state dropped and release the data frames of the actions of the host. The runtime drops the data
-    /// frames that its tasks release, without a registry the effects only abort.
+    /// Abort and release the handles that the state let go of, abort superseded searches and release the data frames
+    /// of the actions of the host. The runtime drops the data frames that its tasks release, without a registry the
+    /// effects only abort and release handles.
     private settleEffects(effects: core.ComputationEffect[], memory: DataFrameRegistry | null): void {
-        for (const effect of effects) {
+        for (const effect of this.handles.apply(effects)) {
             switch (effect.type) {
-                case 'abortComputation': {
-                    const host = this.hosts.get(effect.lifetime);
-                    this.hosts.delete(effect.lifetime);
-                    if (this.lifetimes.get(effect.tableId) === effect.lifetime) this.lifetimes.delete(effect.tableId);
-                    host?.lifetime.abort();
-                    break;
-                }
                 case 'abortDataSearch':
                     for (const task of this.tasks.values()) {
                         if (task.type === DATA_SEARCH_TASK && task.value.tableId === effect.tableId && task.value.requestId === effect.requestId) {
@@ -681,7 +704,7 @@ export class NativeComputations implements core.ComputeHost {
                     break;
                 case 'releaseDataFrame': {
                     if (memory == null) break;
-                    const known = this.forget(effect.dataFrame) as DataFrame | undefined;
+                    const known = this.forgetFrame(effect.dataFrame);
                     const dataFrame = known ?? (this.database == null ? null : new DataFrame(this.database, `__df_${effect.dataFrame}`));
                     if (dataFrame != null) memory.releaseByState(dataFrame);
                     break;
@@ -691,21 +714,27 @@ export class NativeComputations implements core.ComputeHost {
     }
 
     private hostOfTable(tableId: number): ComputationHost | null {
-        const lifetime = this.lifetimes.get(tableId);
-        return lifetime == null ? null : this.hosts.get(lifetime) ?? null;
+        return this.handles.get<ComputationHost>(this.computations.computationLifetime(tableId)) ?? null;
     }
 
     // The tasks in Rust
 
     /// Analyze a result in Rust
+    /// Analyze a result in Rust. The computation takes the handles of the result and of its lifetime, an analysis that
+    /// doesn't start one releases them.
     private analyze(request: AnalyzeTableRequest): void {
         this.database = request.database;
-        this.analyses.set(request.tableId, { lifetime: new AbortController(), clientContext: request.clientContext });
+        const handles = {
+            table: this.handles.register(request.table),
+            lifetime: this.handles.register(computationHost(new AbortController(), request.clientContext, true)),
+        };
         let analysis: Promise<void>;
         try {
             const ipc = arrow.tableToIPC(request.table, 'stream');
-            analysis = this.computations.analyzeTable(request.tableId, ipc, request.connectionId, clientContextJson(request.clientContext), request.columnAggregates);
+            analysis = this.computations.analyzeTable(request.tableId, ipc, handles, request.connectionId, clientContextJson(request.clientContext), request.columnAggregates);
         } catch (e) {
+            this.handles.release(handles.table);
+            this.handles.release(handles.lifetime);
             request.result.reject(asError(e));
             return;
         }
@@ -777,7 +806,7 @@ export class NativeComputations implements core.ComputeHost {
 
     /// Remember a data frame that the runtime created
     private created(id: number, dataFrame: DataFrame): void {
-        if (this.objects.get(id) == null) this.remember(id, dataFrame, 'frame');
+        if (!this.frames.has(id)) this.rememberFrame(id, dataFrame);
     }
 
     log(level: 'debug' | 'info' | 'warn' | 'error', message: string, details: string): void {
@@ -814,7 +843,7 @@ export class NativeComputations implements core.ComputeHost {
     }
 
     async dropTable(dataFrame: number, tableName: string): Promise<void> {
-        const known = this.forget(dataFrame) as DataFrame | undefined;
+        const known = this.forgetFrame(dataFrame);
         const frame = known ?? (this.database == null ? null : new DataFrame(this.database, tableName));
         if (frame == null) return;
         if (this.memory != null) {
@@ -822,6 +851,15 @@ export class NativeComputations implements core.ComputeHost {
         } else {
             await frame.destroy();
         }
+    }
+
+    registerTable(ipc: Uint8Array): number {
+        // The bytes are a view of the module, which may belong to another realm
+        return this.handles.register(arrow.tableFromIPC(new Uint8Array(ipc)));
+    }
+
+    release(handle: number): void {
+        this.handles.release(handle);
     }
 
     cancel(run: number): void {
@@ -856,12 +894,6 @@ export class NativeComputations implements core.ComputeHost {
         }
         if (this.projected.retain(tableIds)) changed = true;
 
-        // The objects of the tables that the state no longer holds go
-        const tables = new Set(computations.arrowTableIds());
-        for (const [id, kind] of [...this.kinds]) {
-            if (kind === 'table' && !tables.has(id)) this.forget(id);
-        }
-
         // The tasks that the state no longer knows go
         const known = new Set(computations.taskIds());
         for (const taskId of [...this.tasks.keys()]) {
@@ -892,27 +924,15 @@ export class NativeComputations implements core.ComputeHost {
         return state;
     }
 
-    /// The JS objects of a computation, the ones of an analysis for a computation of the runtime
+    /// The JS objects of a computation by the handle of its lifetime, the fields of an analysis once it is projected
     private hostOf(view: core.ComputationSnapshot): ComputationHost {
-        let host = this.hosts.get(view.lifetime);
-        if (host == null) {
-            const analysis = this.analyses.get(view.tableId);
-            this.analyses.delete(view.tableId);
-            const table = this.objectOr(view.dataTable.id, () => this.decodeTable(view.dataTable.id));
-            host = {
-                lifetime: analysis?.lifetime ?? new AbortController(),
-                clientContext: analysis?.clientContext ?? clientContextOf(view.clientContext),
-                fieldIndex: new Map(view.dataTableFields.map((field, i) => [field, i])),
-                fields: new Map((table?.schema.fields ?? []).map(field => [field.name, field])),
-                columnGroups: [],
-                columnGroupsView: null,
-                crossFilters: new CrossFilters(),
-                matchingRows: null,
-                matchingRowsOf: null,
-                native: true,
-            };
-            this.hosts.set(view.lifetime, host);
-            this.lifetimes.set(view.tableId, view.lifetime);
+        // A lifetime that the host doesn't know, e.g. one that a test of the state handed over, gets objects of its own
+        const host = this.handles.get<ComputationHost>(view.lifetime) ?? computationHost(new AbortController(), clientContextOf(view.clientContext), true);
+        if (!host.ready) {
+            const table = this.tableObject<arrow.Table>(view.dataTable.id, table => table);
+            host.fieldIndex = new Map(view.dataTableFields.map((field, i) => [field, i]));
+            host.fields = new Map((table?.schema.fields ?? []).map(field => [field.name, field]));
+            host.ready = true;
         }
         return host;
     }
@@ -933,36 +953,35 @@ export class NativeComputations implements core.ComputeHost {
         const before = prev?.state ?? null;
         const host = this.hostOf(view);
         const version = before != null && view.version === prev!.view.version ? before.version : versionObject(view.version);
-        const dataTable = this.objectOr(view.dataTable.id, () => this.decodeTable(view.dataTable.id))!;
+        const dataTable = this.tableObject<arrow.Table>(view.dataTable.id, table => table)!;
         const columnGroups = this.columnGroupsOf(view, host);
         const dataFrame = this.frameObject(view.dataFrame, host.clientContext);
         const filter = view.filterTable;
-        const filterTable = filter == null ? null : this.objectOr<FilterTable>(filter.table, () => ({
+        const filterTable = filter == null ? null : this.tableObject<FilterTable>(filter.table, table => ({
             inputRowNumberColumnName: filter.inputRowNumberColumnName,
-            dataTable: this.decodeTable(filter.table),
+            dataTable: table,
             dataFrame: this.frameObject(filter.dataFrame, host.clientContext)!,
             version: versionObject(filter.version),
         }));
         const ordering = view.orderingTable;
-        const orderingTable = ordering == null ? null : this.objectOr<OrderingTable>(ordering.table, () => ({
+        const orderingTable = ordering == null ? null : this.tableObject<OrderingTable>(ordering.table, table => ({
             inputRowNumberColumnName: ordering.inputRowNumberColumnName,
             orderingConstraints: ordering.orderingConstraints,
-            dataTable: this.decodeTable(ordering.table),
+            dataTable: table,
             dataFrame: this.frameObject(ordering.dataFrame, host.clientContext)!,
             version: versionObject(ordering.version),
             dataSearchRequestId: ordering.dataSearchRequestId,
         }));
         const search = view.dataSearchTable;
-        const dataSearchTable = search == null ? null : this.objectOr<DataSearchTable>(search.table, () => ({
+        const dataSearchTable = search == null ? null : this.tableObject<DataSearchTable>(search.table, table => ({
             inputRowNumberColumnName: search.inputRowNumberColumnName,
-            dataTable: this.decodeTable(search.table),
+            dataTable: table,
             dataFrame: this.frameObject(search.dataFrame, host.clientContext)!,
             version: versionObject(search.version),
             requestId: search.requestId,
         }));
         const aggregation = view.tableAggregation;
-        const tableAggregation = aggregation == null ? null : this.objectOr<TableAggregation>(aggregation.table, () => {
-            const table = this.decodeTable(aggregation.table);
+        const tableAggregation = aggregation == null ? null : this.tableObject<TableAggregation>(aggregation.table, table => {
             return {
                 dataFrame: this.frameObject(aggregation.dataFrame, host.clientContext)!,
                 table,
@@ -1025,10 +1044,9 @@ export class NativeComputations implements core.ComputeHost {
     ): ColumnAggregationVariant | null {
         if (aggregate == null) return null;
         if (aggregate.kind === 'skipped') return SKIPPED_AGGREGATE;
-        return this.objectOr<ColumnAggregationVariant>(aggregate.id, () => {
+        return this.tableObject<ColumnAggregationVariant>(aggregate.id, table => {
             const analysis = aggregate.analysis;
             if (analysis == null || stats == null) return null;
-            const table = this.decodeTable(aggregate.id);
             const formatter = new ArrowTableFormatter(table.schema, table.batches, this.logger);
             const dataFrame = this.frameObject(aggregate.dataFrame, host.clientContext)!;
             if (analysis.kind === 'ordinal' && group?.type === ORDINAL_COLUMN) {

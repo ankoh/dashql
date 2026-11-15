@@ -113,7 +113,7 @@ describe('DashQLQueryExecutor', () => {
         executor.setProgressLayout(layout);
         const history = dql!.createQueryHistory();
         const metadata = { queryType: dashql.QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
-        history.executeQuery(1, 1, 'select 1', metadata, 10);
+        history.executeQuery(1, 41, 1, 'select 1', metadata, 10);
         expect(await executor.execute(1, request(trino))).toEqual({ status: 'resolved', hasResult: true });
         // Every update carries the structured progress of the statement stats of Trino
         expect(host.progress).toHaveLength(2);

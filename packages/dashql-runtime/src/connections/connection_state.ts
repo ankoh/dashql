@@ -248,7 +248,6 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     }
     const connection = native.connection;
     const now = Date.now();
-    let reason = 'changed';
     let outcome: core.ConnectionOutcome;
     switch (action.type) {
         case SET_CONNECTION_DRAFT:
@@ -269,11 +268,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             outcome = connection.setQueryResultCaching(action.value, now);
             break;
         case RESET_CONNECTION:
-            reason = 'reset';
             outcome = connection.reset(now);
             break;
         case DELETE_CONNECTION:
-            reason = 'deleted';
             outcome = connection.delete(now);
             break;
         case SWITCH_CONNECTOR_TYPE:
@@ -302,8 +299,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             break;
         case UPDATE_CATALOG: {
             const [taskId, task] = action.value;
-            native.registerTask(taskId, task.cancellation);
-            outcome = connection.updateCatalog(taskId, task.taskVariant, task.startedAt?.getTime() ?? null, task.touchedRelations ?? [], now);
+            outcome = native.updateCatalog(taskId, task.cancellation, handle =>
+                connection.updateCatalog(taskId, handle, task.taskVariant, task.startedAt?.getTime() ?? null, task.touchedRelations ?? [], now));
             break;
         }
         case CATALOG_UPDATE_REGISTER_QUERY:
@@ -337,14 +334,14 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case QUERY_CANCELLED:
         case QUERY_CACHE_RECORDED:
         case QUERY_CACHE_DELETED:
-            outcome = applyQueryAction(connection, native, action, now);
+            outcome = applyQueryAction(connection, native.handles, action, now);
             break;
 
         default:
             outcome = reduceSetupStep(native, action, now);
             break;
     }
-    native.applyEffects(state, outcome.effects, reason, { cancelSetup: cancelConnectionSetup });
+    native.applyEffects(state, outcome.effects, { cancelSetup: cancelConnectionSetup });
     if (!outcome.changed && outcome.effects.length === 0) return state;
     const next = native.project(state.connectionId);
     if (action.type === DELETE_CONNECTION) {
@@ -354,19 +351,10 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     return next;
 }
 
-/// Apply a step of the setup of a connector. A channel of an action that fails is forgotten.
+/// Apply a step of the setup of a connector. The handle of a channel of an action that fails is released.
 function reduceSetupStep(native: NativeConnection, action: ConnectionAction, now: number): core.ConnectionOutcome {
     const connection = native.connection;
-    const withChannel = (channel: ConnectionChannel, apply: (id: number) => core.ConnectionOutcome) => {
-        const known = native.hasChannel(channel);
-        const id = native.registerChannel(channel);
-        try {
-            return apply(id);
-        } catch (error) {
-            if (!known) native.dropChannel(id);
-            throw error;
-        }
-    };
+    const withChannel = (channel: ConnectionChannel, apply: (handle: number) => core.ConnectionOutcome) => native.handOver(channel, apply);
     const params = (value: object) => value as Record<string, unknown>;
     switch (action.type) {
         // Hyper

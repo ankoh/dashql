@@ -3,8 +3,8 @@
 //! A `Connection` holds the state of a connection and the history of its queries. An action is a method call with
 //! typed arguments, the params, errors and relation names are views (`connection/view.rs`). It returns a
 //! `ConnectionOutcome` with the effects for the host. A connection that is reset or deleted stops its queries: the
-//! binding drops the history and names the active queries in the effect. The state is read as views: the connection,
-//! the list of the queries with their revisions and each query. The catalog is shared with a `Catalog` handle, the
+//! binding clears the history, which aborts the active queries and releases the handles of all queries. The state is
+//! read as views: the connection, the list of the queries with their revisions and each query. The catalog is shared with a `Catalog` handle, the
 //! scripts of workbooks analyze with the same catalog. The query actions and the views of the queries are the ones of
 //! a `QueryHistory` of its own (`query_history.rs`).
 
@@ -88,12 +88,11 @@ impl Connection {
             out.push(match effect {
                 RuntimeEffect::CancelSetup => ConnectionEffect::CancelSetup,
                 RuntimeEffect::InvalidateCatalogBatch => ConnectionEffect::InvalidateCatalogBatch,
-                RuntimeEffect::AbortCatalogUpdates { task_ids } => ConnectionEffect::AbortCatalogUpdates { task_ids },
-                RuntimeEffect::CloseChannel { channel } => ConnectionEffect::CloseChannel { channel },
-                RuntimeEffect::ReleaseChannel { channel } => ConnectionEffect::ReleaseChannel { channel },
-                RuntimeEffect::StopQueries => {
-                    let (query_ids, cleared) = self.queries.borrow_mut().clear();
-                    out.push(ConnectionEffect::StopQueries { query_ids });
+                RuntimeEffect::Abort { handle, reason } => ConnectionEffect::Abort { handle, reason: reason.to_string() },
+                RuntimeEffect::Close { handle } => ConnectionEffect::Close { handle },
+                RuntimeEffect::Release { handle } => ConnectionEffect::Release { handle },
+                RuntimeEffect::StopQueries { reason } => {
+                    let cleared = self.queries.borrow_mut().clear(reason);
                     out.extend(query_outcome(cleared).effects);
                     continue;
                 }
@@ -213,11 +212,13 @@ impl Connection {
         self.apply(ConnectionAction::RelationsTouched(views(names)?), now)
     }
 
-    /// A catalog update started
+    /// A catalog update started, the host keeps its record (cancellation and error) under the handle
+    #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = updateCatalog)]
     pub fn update_catalog(
         &mut self,
         task_id: u32,
+        handle: u32,
         variant: CatalogUpdateVariant,
         started_at: Option<f64>,
         touched_relations: Vec<Ts<ConnectionRelationName>>,
@@ -226,7 +227,16 @@ impl Connection {
         let mut task = CatalogUpdateTask::new(task_id, variant.into(), now);
         task.started_at = started_at;
         task.touched_relations = views(touched_relations)?;
+        task.handle = Some(handle);
         self.apply(ConnectionAction::UpdateCatalog(task), now)
+    }
+
+    /// The handle of the record of a catalog update, none for an update that the connection doesn't know
+    #[wasm_bindgen(js_name = catalogUpdateHandle)]
+    pub fn catalog_update_handle(&self, task_id: u32) -> Option<u32> {
+        let state = self.state.borrow();
+        let updates = state.catalog_updates();
+        updates.tasks_running.get(&task_id).or_else(|| updates.tasks_finished.get(&task_id)).and_then(|task| task.handle)
     }
 
     #[wasm_bindgen(js_name = catalogUpdateRegisterQuery)]

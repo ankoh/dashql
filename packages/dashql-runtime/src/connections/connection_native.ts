@@ -1,9 +1,8 @@
-import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { LoggableException } from '../platform/logger/logger.js';
 import type { QueryExecutionState } from '../query/query_execution_state.js';
-import { QueryProjection, queryRecord, type NativeQueryObjects, type QueryRecord } from '../query/query_history_native.js';
+import { QueryProjection } from '../query/query_history_native.js';
+import { handlesOf, type HandleTable } from '../store/handles.js';
 import { share } from '../store/projection.js';
 import type { CatalogUpdateTaskState } from './catalog/catalog_update_state.js';
 import type { RelationName } from './catalog/catalog_sql_generator.js';
@@ -12,7 +11,7 @@ import type { ConnectionStateDetailsVariant } from './connection_state_details.j
 import type { CatalogUpdates, ConnectionState } from './connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DBCOM_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 
-/// A channel of a connection, the connection knows it by its id
+/// A channel of a connection, the connection knows it by its handle
 export interface ConnectionChannel {
     close?(): unknown;
 }
@@ -28,19 +27,16 @@ export interface ConnectionFunctionScript {
     destroy(): void;
 }
 
-/// What the adapter keeps of a catalog update
+/// What the adapter keeps of a catalog update under its handle, an abort of the handle aborts the update
 interface TaskRecord {
     cancellation: AbortController;
     error: Error | null;
+    abort(reason?: unknown): void;
 }
 
 /// The fields of a state that the queries decide
 type QueryFields = Pick<ConnectionState,
     | 'metrics' | 'queriesActive' | 'queriesActiveOrdered' | 'queriesFinished' | 'queriesFinishedOrdered' | 'snapshotQueriesActiveFinished'>;
-
-/// The ids of the channels and result tables of all connections
-let nextChannelId = 1;
-let nextTableId = 1;
 
 const DETAILS_TYPES = {
     [ConnectorType.HYPER]: HYPER_CONNECTOR,
@@ -102,24 +98,21 @@ function detailsProto(details: core.ConnectionDetailsView): any {
     return proto;
 }
 
-/// The Rust connection of a connection state and the JavaScript objects it knows by id: the channels, the
-/// cancellations and errors of catalog updates and queries, the progress updates and the result tables.
+/// The Rust connection of a connection state. The JavaScript objects that it knows are handles of the runtime
+/// (store/handles.ts): the channels, the records of catalog updates and queries with their cancellations, errors and
+/// progress, and the result tables. The effects of an action release, close and abort them.
 ///
 /// `project` builds the `ConnectionState` of the app from the views of the connection (store/projection.ts). The view of
 /// a changed connection shares the parts of the previous view that are the same, and the objects built from them stay.
 /// A query keeps its state while its revision doesn't move, the maps and lists of the queries keep their objects while
 /// they hold the same states. A projected state never changes afterwards, a change projects a new one.
-export class NativeConnection implements NativeQueryObjects {
+export class NativeConnection {
     readonly instance: core.DashQL;
     readonly connection: core.DashQLConnection;
+    /// The handles of the runtime of the core
+    readonly handles: HandleTable;
     /// The script with the functions of the connection
     readonly functionScript: ConnectionFunctionScript;
-
-    readonly channels = new Map<number, ConnectionChannel>();
-    private readonly channelIds = new Map<ConnectionChannel, number>();
-    private readonly tasks = new Map<number, TaskRecord>();
-    private readonly queryRecords = new Map<number, QueryRecord>();
-    private readonly tables = new Map<number, arrow.Table>();
 
     // The projection
     /// The view of the connection, its revision is the one of the connection
@@ -136,6 +129,7 @@ export class NativeConnection implements NativeQueryObjects {
     constructor(instance: core.DashQL, connection: core.DashQLConnection) {
         this.instance = instance;
         this.connection = connection;
+        this.handles = handlesOf(instance);
         const entryId = connection.snapshot().functionScriptEntryId ?? 0;
         this.functionScript = {
             catalog_entry_id: entryId,
@@ -146,77 +140,44 @@ export class NativeConnection implements NativeQueryObjects {
         };
     }
 
-    /// Destroy the connection and its catalog handle, other holders of the catalog keep it
+    /// Destroy the connection and its catalog handle, other holders of the catalog keep it. A deleted connection
+    /// released its handles with the effects of the deletion.
     destroy(): void {
         this.connection.destroy();
-        this.channels.clear();
-        this.channelIds.clear();
-        this.tables.clear();
     }
 
     // The JavaScript objects of the actions
 
-    /// The id of a channel, a new one for a channel that the connection doesn't know
-    registerChannel(channel: ConnectionChannel): number {
-        let id = this.channelIds.get(channel);
-        if (id == null) {
-            id = nextChannelId++;
-            this.channels.set(id, channel);
-            this.channelIds.set(channel, id);
+    /// Register an object for an action, the connection owns its handle unless the action throws
+    handOver<T>(object: unknown, action: (handle: number) => T): T {
+        const handle = this.handles.register(object);
+        try {
+            return action(handle);
+        } catch (e) {
+            this.handles.release(handle);
+            throw e;
         }
-        return id;
     }
 
-    /// Is a channel known to the connection?
-    hasChannel(channel: ConnectionChannel): boolean {
-        return this.channelIds.has(channel);
+    /// Start a catalog update, the connection keeps its cancellation and its error under a handle
+    updateCatalog(taskId: number, cancellation: AbortController, start: (handle: number) => core.ConnectionOutcome): core.ConnectionOutcome {
+        const record: TaskRecord = { cancellation, error: null, abort: reason => cancellation.abort(reason) };
+        return this.handOver(record, start);
     }
 
-    /// Forget a channel, e.g. one of an action that failed
-    dropChannel(id: number): void {
-        const channel = this.channels.get(id);
-        this.channels.delete(id);
-        if (channel != null) this.channelIds.delete(channel);
-    }
-
-    registerTask(taskId: number, cancellation: AbortController): void {
-        this.tasks.set(taskId, { cancellation, error: null });
-    }
-
+    /// Keep the error of a catalog update that finished
     setTaskError(taskId: number, error: Error | null): void {
-        const task = this.tasks.get(taskId);
+        const task = this.handles.get<TaskRecord>(this.connection.catalogUpdateHandle(taskId));
         if (task != null) task.error = error;
-    }
-
-    /// Keep the JavaScript objects of a new query, the Rust connection refuses a query id that it knows
-    registerQuery(state: QueryExecutionState): void {
-        if (this.queryRecords.has(state.queryId)) return;
-        this.queryRecords.set(state.queryId, queryRecord(state));
-    }
-
-    setQueryError(queryId: number, error: LoggableException): void {
-        const record = this.queryRecords.get(queryId);
-        if (record != null) record.error = error;
-    }
-
-    /// Keep a result table, returns its id
-    registerTable(table: arrow.Table): number {
-        const id = nextTableId++;
-        this.tables.set(id, table);
-        return id;
-    }
-
-    releaseTable(id: number): void {
-        this.tables.delete(id);
     }
 
     // The effects
 
-    /// Apply the effects of an action. A connection that is stopped aborts its catalog updates and its queries.
-    applyEffects(connectionState: ConnectionState, effects: core.ConnectionEffect[], reason: string, hooks: {
+    /// Apply the effects of an action: the effects on handles, then the ones on services
+    applyEffects(connectionState: ConnectionState, effects: core.ConnectionEffect[], hooks: {
         cancelSetup(connectionId: string): void;
     }): void {
-        for (const effect of effects) {
+        for (const effect of this.handles.apply(effects)) {
             switch (effect.type) {
                 case 'cancelSetup':
                     hooks.cancelSetup(connectionState.connectionId);
@@ -224,31 +185,6 @@ export class NativeConnection implements NativeQueryObjects {
                 case 'invalidateCatalogBatch':
                     // The catalog loader of the Rust runtime publishes only for a connection that runs its update, the
                     // updates are aborted next
-                    break;
-                case 'abortCatalogUpdates':
-                    for (const taskId of effect.taskIds) {
-                        this.tasks.get(taskId)?.cancellation.abort(new DOMException(`Connection was ${reason}`, 'AbortError'));
-                    }
-                    break;
-                case 'stopQueries':
-                    // The queries run on the channel of the stopped connection, the executor stops them at the backend
-                    for (const queryId of effect.queryIds) {
-                        this.queryRecords.get(queryId)?.cancellation.abort(new DOMException(`Connection was ${reason}`, 'AbortError'));
-                    }
-                    // The queries are gone, the next projection forgets them
-                    this.queryProjection.clear();
-                    break;
-                case 'closeChannel': {
-                    const channel = this.channels.get(effect.channel);
-                    this.dropChannel(effect.channel);
-                    channel?.close?.();
-                    break;
-                }
-                case 'releaseChannel':
-                    this.dropChannel(effect.channel);
-                    break;
-                case 'releaseResultTable':
-                    this.releaseTable(effect.tableId);
                     break;
             }
         }
@@ -259,7 +195,7 @@ export class NativeConnection implements NativeQueryObjects {
     /// The catalog updates of the app
     private catalogUpdates(updates: core.ConnectionCatalogUpdates): CatalogUpdates {
         const task = (t: core.ConnectionCatalogUpdateTask): CatalogUpdateTaskState => {
-            const record = this.tasks.get(t.taskId);
+            const record = this.handles.get<TaskRecord>(t.handle);
             return {
                 taskId: t.taskId,
                 taskVariant: t.variant,
@@ -272,11 +208,6 @@ export class NativeConnection implements NativeQueryObjects {
                 touchedRelations: t.touchedRelations,
             };
         };
-        // Forget the updates that the connection forgot, e.g. after a reset
-        const known = new Set([...updates.tasksRunning, ...updates.tasksFinished].map(t => t.taskId));
-        for (const taskId of this.tasks.keys()) {
-            if (!known.has(taskId)) this.tasks.delete(taskId);
-        }
         return {
             tasksRunning: new Map(updates.tasksRunning.map(t => [t.taskId, task(t)])),
             tasksFinished: new Map(updates.tasksFinished.map(t => [t.taskId, task(t)])),
@@ -289,7 +220,7 @@ export class NativeConnection implements NativeQueryObjects {
 
     /// The details of the app, kept while their view and the channel stay
     private detailsOf(view: core.ConnectionDetailsView, connector: ConnectorType): ConnectionStateDetailsVariant {
-        const channel = view.channel == null ? null : (this.channels.get(view.channel) ?? null);
+        const channel = this.handles.get<ConnectionChannel>(view.channel) ?? null;
         if (this.details == null || this.details.view !== view || this.details.channel !== channel) {
             const value = { type: DETAILS_TYPES[connector], value: { proto: detailsProto(view), channel } } as ConnectionStateDetailsVariant;
             this.details = { view, channel, value };
@@ -302,7 +233,7 @@ export class NativeConnection implements NativeQueryObjects {
         const map = new Map<number, QueryExecutionState>();
         const ordered: number[] = [];
         for (const [queryId, revision] of list) {
-            const state = this.queryProjection.state(this.connection, queryId, revision, this.queryRecords.get(queryId), this.tables);
+            const state = this.queryProjection.state(this.connection, queryId, revision, this.handles);
             if (state == null) continue;
             map.set(queryId, state);
             ordered.push(queryId);
@@ -322,12 +253,7 @@ export class NativeConnection implements NativeQueryObjects {
         const [queriesActive, queriesActiveOrdered] = this.queryList(queries.active, prev?.queriesActive, prev?.queriesActiveOrdered);
         const [queriesFinished, queriesFinishedOrdered] = this.queryList(queries.finished, prev?.queriesFinished, prev?.queriesFinishedOrdered);
         // Forget the queries that left the history
-        const ids = [...queriesActiveOrdered, ...queriesFinishedOrdered];
-        this.queryProjection.retain(ids);
-        const known = new Set(ids);
-        for (const queryId of [...this.queryRecords.keys()]) {
-            if (!known.has(queryId)) this.queryRecords.delete(queryId);
-        }
+        this.queryProjection.retain([...queriesActiveOrdered, ...queriesFinishedOrdered]);
         this.queriesView = queries;
         this.queryFields = {
             metrics: queries.metrics,

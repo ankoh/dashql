@@ -3,9 +3,10 @@
 //!
 //! An action is a method call with typed arguments, the metadata and the metrics are views (`query_history/view.rs`),
 //! a progress update is the `QueryProgressUpdate` of the query executor. It returns a `ConnectionOutcome` with the
-//! effects for the host: the result tables that nothing shows anymore. The history is read as views: the list of the
-//! queries with their revisions and each query with its latest progress. The recording of the progress of a query
-//! reads as JSON, a `QueryProgressFollower` replays it with another layout of the plan.
+//! effects for the host: the handles that the history lets go of, the result tables that nothing shows anymore and
+//! the records of the queries that left. The history is read as views: the list of the queries with their revisions
+//! and each query with its latest progress. The recording of the progress of a query reads as JSON, a
+//! `QueryProgressFollower` replays it with another layout of the plan.
 
 use dashql_core_runtime::query::progress::{replay_recording, ProfileRecording, QueryProgressFollower as RuntimeFollower};
 use dashql_core_runtime::query::{
@@ -33,17 +34,26 @@ macro_rules! query_actions {
     ($type:ident) => {
         #[wasm_bindgen]
         impl $type {
-            /// Start tracking a requested query
+            /// Start tracking a requested query, the host keeps its record under the handle. A query id that the
+            /// history knows fails and leaves the handle with the host.
+            #[allow(clippy::too_many_arguments)]
             #[wasm_bindgen(js_name = executeQuery)]
             pub fn execute_query(
                 &mut self,
                 query_id: f64,
+                handle: u32,
                 trace_id: f64,
                 text: String,
                 metadata: Ts<$crate::query_history::view::QueryMetadataView>,
                 requested_at: f64,
             ) -> Result<Ts<$crate::connection::view::ConnectionOutcome>, JsError> {
-                self.apply_query($crate::query_history::execute_query(query_id, trace_id, text, metadata, requested_at)?)
+                self.apply_query($crate::query_history::execute_query(query_id, handle, trace_id, text, metadata, requested_at)?)
+            }
+
+            /// The handle of the record of a query, none for a query that the history doesn't know
+            #[wasm_bindgen(js_name = queryHandle)]
+            pub fn query_handle(&self, query_id: f64) -> Option<u32> {
+                self.read_queries(|history| history.query(query_id as u64).and_then(|query| query.handle))
             }
 
             #[wasm_bindgen(js_name = querySending)]
@@ -78,12 +88,13 @@ macro_rules! query_actions {
                 self.apply_query(QueryExecutionAction::QueryReceivedBatch { query_id: query_id as u64, metrics, now: now as i64 })
             }
 
-            /// All batches arrived, the host keeps the table under its id
+            /// All batches arrived, the host keeps the table under its handle. The history releases a table that no
+            /// active query takes.
             #[wasm_bindgen(js_name = queryReceivedAllBatches)]
             pub fn query_received_all_batches(
                 &mut self,
                 query_id: f64,
-                table_id: f64,
+                table_id: u32,
                 rows: f64,
                 metrics: Ts<$crate::query_history::view::QueryStreamMetrics>,
                 now: f64,
@@ -198,9 +209,17 @@ pub(crate) use query_actions;
 
 // The actions that take more than the id of a query and the time
 
-pub(crate) fn execute_query(query_id: f64, trace_id: f64, text: String, metadata: Ts<QueryMetadataView>, requested_at: f64) -> Result<QueryExecutionAction, JsError> {
+pub(crate) fn execute_query(
+    query_id: f64,
+    handle: u32,
+    trace_id: f64,
+    text: String,
+    metadata: Ts<QueryMetadataView>,
+    requested_at: f64,
+) -> Result<QueryExecutionAction, JsError> {
     let metadata = from_js(&metadata)?.into();
-    let state = QueryExecutionState::new(query_id as u64, trace_id as u64, text, metadata, requested_at as i64);
+    let mut state = QueryExecutionState::new(query_id as u64, trace_id as u64, text, metadata, requested_at as i64);
+    state.handle = Some(handle);
     Ok(QueryExecutionAction::ExecuteQuery { state: Box::new(state) })
 }
 
@@ -266,13 +285,13 @@ impl QueryProgressFollower {
 
 pub(crate) fn query_received_all_batches(
     query_id: f64,
-    table_id: f64,
+    table_id: u32,
     rows: f64,
     metrics: Ts<QueryStreamMetrics>,
     now: f64,
 ) -> Result<QueryExecutionAction, JsError> {
     let metrics = from_js(&metrics)?.into();
-    let table = QueryResultTable { id: table_id as u64, rows: rows.max(0.0) as u64 };
+    let table = QueryResultTable { id: table_id, rows: rows.max(0.0) as u64 };
     Ok(QueryExecutionAction::QueryReceivedAllBatches { query_id: query_id as u64, table, metrics, now: now as i64 })
 }
 
@@ -321,6 +340,12 @@ impl QueryHistory {
     /// The revision of the history, it changes with every change of a query
     pub fn revision(&self) -> f64 {
         self.history.revision() as f64
+    }
+
+    /// Drop every query, e.g. before the history is freed. The effects abort the active queries and release the
+    /// handles of all queries.
+    pub fn clear(&mut self) -> Result<Ts<ConnectionOutcome>, JsError> {
+        to_js(&query_outcome(self.history.clear("The query history was cleared")))
     }
 }
 

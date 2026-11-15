@@ -220,10 +220,8 @@ impl FakeHost {
         let connection = self.connections.borrow().get(connection_id).cloned().expect("a connection");
         let outcome = connection.state.borrow_mut().apply(action, self.clock.now.get() as f64).unwrap();
         for effect in outcome.effects {
-            if let ConnectionEffect::AbortCatalogUpdates { task_ids } = effect {
-                for task_id in task_ids {
-                    self.service().cancel(task_id, "Connection was reset");
-                }
+            if let ConnectionEffect::Abort { handle, reason } = effect {
+                self.service().cancel(handle, reason);
             }
         }
     }
@@ -295,7 +293,9 @@ impl CatalogLoaderHost for FakeHost {
             CatalogUpdateVariant::RelationRefresh => "relations",
         };
         self.event(format!("started {} {variant}", task.task_id));
-        self.apply(connection_id, ConnectionAction::UpdateCatalog(task.clone()));
+        // The record of the update is the task id
+        let task = CatalogUpdateTask { handle: Some(task.task_id), ..task.clone() };
+        self.apply(connection_id, ConnectionAction::UpdateCatalog(task));
     }
 
     fn abort_update(&self, _connection_id: &str, task_id: u32, reason: &str) {
@@ -567,7 +567,7 @@ fn the_relations_are_asked_about_once_the_connection_has_room_for_another_query(
     }
     host.observe();
     assert_eq!(host.query_count(), 0);
-    host.connection("database").queries.borrow_mut().clear();
+    host.connection("database").queries.borrow_mut().clear("Connection was reset");
     host.observe();
     assert_eq!(host.query_count(), 1);
     assert!(host.query_texts()[0].contains("'orders'"), "{}", host.query_texts()[0]);

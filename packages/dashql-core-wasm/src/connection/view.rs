@@ -366,6 +366,8 @@ pub struct ConnectionCatalogUpdateTask {
     pub started_at: Option<f64>,
     pub finished_at: Option<f64>,
     pub touched_relations: Vec<ConnectionRelationName>,
+    /// The handle of the record of the update at the host: its cancellation and its error
+    pub handle: Option<u32>,
 }
 
 impl From<&CatalogUpdateTask> for ConnectionCatalogUpdateTask {
@@ -379,6 +381,7 @@ impl From<&CatalogUpdateTask> for ConnectionCatalogUpdateTask {
             started_at: task.started_at,
             finished_at: task.finished_at,
             touched_relations: relations(&task.touched_relations),
+            handle: task.handle,
         }
     }
 }
@@ -459,7 +462,8 @@ impl From<&ConnectionState> for ConnectionView {
     }
 }
 
-/// What the host does after an action, in this order
+/// What the host does after an action, in this order. The channels, the catalog updates, the queries and their result
+/// tables are handles of the host.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[tsify(missing_as_null)]
@@ -468,24 +472,19 @@ pub enum ConnectionEffect {
     CancelSetup,
     /// Let the pending publications of catalog batches into the catalog fail
     InvalidateCatalogBatch,
-    /// Abort running catalog updates
-    AbortCatalogUpdates { task_ids: Vec<u32> },
-    /// Stop the queries that were active at the backend, the connection dropped its queries and metrics
-    StopQueries { query_ids: Vec<u64> },
-    /// Close a channel
-    CloseChannel { channel: u32 },
-    /// Let go of a channel that the connection no longer uses, without closing it
-    ReleaseChannel { channel: u32 },
-    /// Nothing shows the result table of a query anymore
-    ReleaseResultTable { query_id: u64, table_id: u64 },
+    /// Abort a handle with a reason: a running catalog update, an active query of a stopped connection
+    Abort { handle: u32, reason: String },
+    /// Close a handle, a channel, and release it
+    Close { handle: u32 },
+    /// Release a handle: a channel, a catalog update, a query or a result table that the connection let go of
+    Release { handle: u32 },
 }
 
 impl From<&QueryExecutionEffect> for ConnectionEffect {
     fn from(effect: &QueryExecutionEffect) -> Self {
-        match effect {
-            QueryExecutionEffect::ReleaseResultTable { query_id, table } => {
-                ConnectionEffect::ReleaseResultTable { query_id: *query_id, table_id: table.id }
-            }
+        match *effect {
+            QueryExecutionEffect::Abort { handle, reason } => ConnectionEffect::Abort { handle, reason: reason.to_string() },
+            QueryExecutionEffect::Release { handle } => ConnectionEffect::Release { handle },
         }
     }
 }

@@ -8,7 +8,7 @@
 //! the catalog then fails before it publishes into the cleared catalog.
 //!
 //! The query executions of a connection, its metrics and the query actions are the history of `crate::query`, the
-//! binding of the core module holds both and drops the history on `ConnectionEffect::StopQueries`.
+//! binding of the core module holds both and clears the history on `ConnectionEffect::StopQueries`.
 //!
 //! Ported from `reduceConnectionState` of `packages/dashql-runtime/src/connections/connection_state.ts`.
 
@@ -52,6 +52,7 @@ pub use salesforce::SalesforceAction;
 pub use trino::TrinoAction;
 
 pub use crate::workbook::CatalogHandle;
+use crate::handles::Handle;
 use crate::workbook::next_revision;
 
 /// How far the setup of a connection got
@@ -119,21 +120,23 @@ impl fmt::Display for ConnectionHealth {
     }
 }
 
-/// What the host does after an action, in this order
+/// What the host does after an action, in this order. The channels, the catalog updates and the queries are handles
+/// of the host (`crate::handles`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionEffect {
     /// Cancel the setup of the connection that is running, e.g. an OAuth flow
     CancelSetup,
     /// Let the pending publications of catalog batches into the catalog of the connection fail
     InvalidateCatalogBatch,
-    /// Abort running catalog updates
-    AbortCatalogUpdates { task_ids: Vec<u32> },
-    /// Cancel the queries of the connection at the backend and drop them and the metrics of the connection
-    StopQueries,
-    /// Close a channel
-    CloseChannel { channel: ChannelId },
-    /// Let go of a channel that the connection no longer uses, without closing it
-    ReleaseChannel { channel: ChannelId },
+    /// Drop the queries of the connection and the metrics: the holder of the history clears it, which aborts the
+    /// active queries with the reason and releases the handles of all queries
+    StopQueries { reason: &'static str },
+    /// Abort a handle, e.g. a running catalog update
+    Abort { handle: Handle, reason: &'static str },
+    /// Close a handle, a channel, and release it
+    Close { handle: Handle },
+    /// Release a handle, e.g. a channel that the connection no longer uses, without closing it
+    Release { handle: Handle },
 }
 
 /// An action on a connection
@@ -438,8 +441,8 @@ impl ConnectionState {
                 let configured =
                     self.status != ConnectionStatus::NotStarted || self.active || self.params_draft.is_some();
                 if !configured && connector != self.connector_type() {
-                    if let Some(channel) = self.details.channel {
-                        outcome.effects.push(ConnectionEffect::ReleaseChannel { channel });
+                    if let Some(handle) = self.details.channel {
+                        outcome.effects.push(ConnectionEffect::Release { handle });
                     }
                     self.details = ConnectionDetails::default_for(connector);
                     self.params = ConnectionParams::default_for(connector);
@@ -453,14 +456,14 @@ impl ConnectionState {
                 let catalog = self.catalog.clone();
                 let mut catalog = catalog.try_borrow_mut().map_err(|_| Error::invalid_argument("the catalog is in use"))?;
                 // Pending publishers are stopped before the catalog is cleared
-                self.stop(&mut outcome.effects);
+                self.stop("Connection was reset", &mut outcome.effects);
                 catalog.clear();
                 outcome.changed = true;
             }
             ConnectionAction::Delete => {
                 let catalog = self.catalog.clone();
                 let mut catalog = catalog.try_borrow_mut().map_err(|_| Error::invalid_argument("the catalog is in use"))?;
-                self.stop(&mut outcome.effects);
+                self.stop("Connection was deleted", &mut outcome.effects);
                 // The descriptors may have been dropped already, that is no error
                 let _ = catalog.drop_descriptor(self.relation_entry_id);
                 if let Some(script) = self.function_script.take() {
@@ -481,7 +484,10 @@ impl ConnectionState {
                 outcome.changed = self.catalog_updates.touch(&relations);
             }
             ConnectionAction::UpdateCatalog(task) => {
-                self.catalog_updates.start(task);
+                // An update that replaces one of the same id lets go of its handle
+                if let Some(handle) = self.catalog_updates.start(task) {
+                    outcome.effects.push(ConnectionEffect::Release { handle });
+                }
                 outcome.changed = true;
             }
             ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id } => {
@@ -644,21 +650,24 @@ impl ConnectionState {
     }
 
     /// Stop a connection that is reset or deleted: cancel the setup, the catalog updates and the queries, close the
-    /// channel
-    fn stop(&mut self, effects: &mut Vec<ConnectionEffect>) {
+    /// channel. The catalog updates release their handles.
+    fn stop(&mut self, reason: &'static str, effects: &mut Vec<ConnectionEffect>) {
         effects.push(ConnectionEffect::CancelSetup);
         effects.push(ConnectionEffect::InvalidateCatalogBatch);
-        let task_ids: Vec<u32> = self.catalog_updates.tasks_running.keys().copied().collect();
-        if !task_ids.is_empty() {
-            effects.push(ConnectionEffect::AbortCatalogUpdates { task_ids });
+        let updates = std::mem::take(&mut self.catalog_updates);
+        for handle in updates.tasks_running.values().filter_map(|task| task.handle) {
+            effects.push(ConnectionEffect::Abort { handle, reason });
+        }
+        let tasks = updates.tasks_running.values().chain(updates.tasks_finished.values());
+        for handle in tasks.filter_map(|task| task.handle) {
+            effects.push(ConnectionEffect::Release { handle });
         }
         // The queries run on the channel of the stopped connection, the host stops them at the backend
-        effects.push(ConnectionEffect::StopQueries);
+        effects.push(ConnectionEffect::StopQueries { reason });
         self.status = ConnectionStatus::NotStarted;
         self.health = ConnectionHealth::NotStarted;
         self.setup_attempt_params = None;
         self.setup_attempt_draft = None;
-        self.catalog_updates = CatalogUpdates::default();
         self.details.reset(effects);
     }
 }

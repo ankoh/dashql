@@ -3,9 +3,9 @@
 //! A query moves from requested to sending, queued, running and receiving its batches to succeeded, failed or
 //! cancelled. The history holds the active queries and the finished ones, and the metrics of the connection that the
 //! finished queries add up to. An action changes the history in place and returns the effects that the host applies
-//! afterwards: the result tables that nothing shows anymore. The result tables are Arrow tables that stay with the host,
-//! the history knows them by their id. A history of its own, e.g. the one of the shell, may keep a limited number of
-//! queries.
+//! afterwards: the handles that it lets go of. The result tables are Arrow tables that stay with the host, the history
+//! knows them and what the host keeps of a query (its record) by their handles (`crate::handles`). A history of its
+//! own, e.g. the one of the shell, may keep a limited number of queries.
 
 pub mod progress;
 
@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 use dashql_core::error::{Error, Result};
 
+use crate::handles::Handle;
 use crate::workbook::next_revision;
 
 use progress::{EngineProgressPayload, QueryProfileProgress};
@@ -274,11 +275,11 @@ pub struct QueryError {
     pub details: Option<String>,
 }
 
-/// The result table of a query. The table stays with the host, the history knows it by its id.
+/// The result table of a query. The table stays with the host, the history knows it by its handle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QueryResultTable {
-    /// The id of the table at the host
-    pub id: u64,
+    /// The handle of the table at the host
+    pub id: Handle,
     /// The rows of the table
     pub rows: u64,
 }
@@ -315,6 +316,9 @@ pub struct QueryExecutionState {
     pub cached_at: Option<Timestamp>,
     /// The revision of the execution, it changes with every change
     pub revision: u64,
+    /// The handle of what the host keeps of the query, e.g. its cancellation, aborted when its connection stops. The
+    /// history releases it when the query leaves.
+    pub handle: Option<Handle>,
 }
 
 impl QueryExecutionState {
@@ -348,6 +352,17 @@ impl QueryExecutionState {
             cache_deleted: false,
             cached_at: None,
             revision: 0,
+            handle: None,
+        }
+    }
+
+    /// Release the handles of a query that leaves the history
+    fn release(self, effects: &mut Vec<QueryExecutionEffect>) {
+        if let Some(table) = self.result_table {
+            effects.push(QueryExecutionEffect::Release { handle: table.id });
+        }
+        if let Some(handle) = self.handle {
+            effects.push(QueryExecutionEffect::Release { handle });
         }
     }
 
@@ -440,8 +455,10 @@ pub enum QueryExecutionAction {
 /// What the host must do after an action
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum QueryExecutionEffect {
-    /// Nothing shows the result table of a query anymore, the host drops it
-    ReleaseResultTable { query_id: QueryId, table: QueryResultTable },
+    /// Abort a handle: the record of a query that was active when its history was cleared
+    Abort { handle: Handle, reason: &'static str },
+    /// Release a handle: a result table that nothing shows anymore, the record of a query that left
+    Release { handle: Handle },
 }
 
 /// The outcome of an action
@@ -568,24 +585,26 @@ impl QueryExecutionHistory {
         Ok(outcome)
     }
 
-    /// Drop every query and the metrics, e.g. of a connection that is reset or deleted. Returns the ids of the queries
-    /// that were active, the host stops them at the backend, and releases the result tables.
-    pub fn clear(&mut self) -> (Vec<QueryId>, QueryExecutionOutcome) {
+    /// Drop every query and the metrics, e.g. of a connection that is reset or deleted. The active queries are
+    /// aborted with the reason, the host stops them at the backend, and the handles of all queries are released.
+    pub fn clear(&mut self, reason: &'static str) -> QueryExecutionOutcome {
         let active = std::mem::take(&mut self.queries_active_ordered);
-        let mut outcome = QueryExecutionOutcome { changed: true, effects: Vec::new() };
         let finished = std::mem::take(&mut self.queries_finished_ordered);
         let mut queries_active = std::mem::take(&mut self.queries_active);
         let mut queries_finished = std::mem::take(&mut self.queries_finished);
+        let mut outcome = QueryExecutionOutcome { changed: true, effects: Vec::new() };
+        for handle in active.iter().filter_map(|query_id| queries_active.get(query_id).and_then(|query| query.handle)) {
+            outcome.effects.push(QueryExecutionEffect::Abort { handle, reason });
+        }
         for query_id in active.iter().chain(finished.iter()) {
-            let query = queries_active.remove(query_id).or_else(|| queries_finished.remove(query_id));
-            if let Some(table) = query.and_then(|query| query.result_table) {
-                outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id: *query_id, table });
+            if let Some(query) = queries_active.remove(query_id).or_else(|| queries_finished.remove(query_id)) {
+                query.release(&mut outcome.effects);
             }
         }
         self.metrics = ConnectionMetrics::default();
         self.snapshot_queries_active_finished += 1;
         self.revision = next_revision();
-        (active, outcome)
+        outcome
     }
 
     /// Drop the oldest queries beyond the limit: the finished ones first, then the active ones. Later actions on a
@@ -600,12 +619,10 @@ impl QueryExecutionHistory {
         let dropped = self
             .queries_finished_ordered
             .drain(..finished)
-            .map(|id| (id, self.queries_finished.remove(&id)))
-            .chain(self.queries_active_ordered.drain(..active).map(|id| (id, self.queries_active.remove(&id))));
-        for (query_id, query) in dropped {
-            if let Some(table) = query.and_then(|query| query.result_table) {
-                outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id, table });
-            }
+            .map(|id| self.queries_finished.remove(&id))
+            .chain(self.queries_active_ordered.drain(..active).map(|id| self.queries_active.remove(&id)));
+        for query in dropped.flatten() {
+            query.release(&mut outcome.effects);
         }
     }
 
@@ -635,6 +652,10 @@ impl QueryExecutionHistory {
             | QueryExecutionAction::QueryCacheDeleted { .. } => return,
         };
         let Some(query) = self.queries_active.get_mut(&query_id) else {
+            // A result that no active query takes is released
+            if let QueryExecutionAction::QueryReceivedAllBatches { table, .. } = action {
+                outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
+            }
             return;
         };
         query.revision = next_revision();
@@ -680,8 +701,8 @@ impl QueryExecutionHistory {
                 query.metrics.stream_metrics = metrics;
                 // A result that arrives again replaces the earlier one
                 if let Some(previous) = query.result_table.replace(table) {
-                    if previous != table {
-                        outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id, table: previous });
+                    if previous.id != table.id {
+                        outcome.effects.push(QueryExecutionEffect::Release { handle: previous.id });
                     }
                 }
             }
@@ -743,7 +764,7 @@ impl QueryExecutionHistory {
         let user_provided = query.query_metadata.query_type == QueryType::UserProvided;
         if !user_provided {
             if let Some(table) = query.result_table.take() {
-                outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id, table });
+                outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
             }
         }
 
@@ -768,12 +789,12 @@ impl QueryExecutionHistory {
                 } else {
                     other.result_table = None;
                     other.revision = next_revision();
-                    outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id: *other_id, table });
+                    outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
                 }
             }
             if !keep_own {
                 if let Some(table) = query.result_table.take() {
-                    outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id, table });
+                    outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
                 }
             }
         }
@@ -802,8 +823,8 @@ impl QueryExecutionHistory {
             if excess == 0 || !is_internal(finished.get(id)) {
                 return true;
             }
-            if let Some(table) = finished.remove(id).and_then(|query| query.result_table) {
-                outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id: *id, table });
+            if let Some(query) = finished.remove(id) {
+                query.release(&mut outcome.effects);
             }
             excess -= 1;
             false

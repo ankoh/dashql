@@ -5,10 +5,10 @@
 //! the columns and the data. The tasks of the scheduler compute them, the state tracks the tasks and accepts the
 //! results that are still current: a result of an older filter, ordering or search is dropped.
 //!
-//! The Arrow tables are Rust values that the state shares, dropping the last clone frees a table. The data frames are
-//! tables in the compute database of the host, the state knows them by their ids and owns what it holds: an action
-//! that drops the last hold on a data frame returns an effect to release it, a data frame that an action hands over and
-//! the state doesn't keep is released right away. An action changes the state in place and returns the effects that
+//! The Arrow tables are tables of the host, the state knows them by their handles. The data frames are tables in the
+//! compute database of the host, the state knows them by their ids. The state owns what it holds: an action that drops
+//! the last hold on a table or a data frame returns an effect to release it, one that an action hands over and the
+//! state doesn't keep is released right away. An action changes the state in place and returns the effects that
 //! the host applies afterwards. `service` runs the tasks on a compute host.
 //!
 //! Ported from `reduceComputationState` of `packages/dashql-runtime/src/compute/computation_state.ts`.
@@ -414,9 +414,15 @@ pub enum ComputationAction {
 
 impl ComputationAction {
     /// Note what the action hands over to the state: results that the state keeps or releases. The data frames that
-    /// identify the source of a search are not handed over, a scheduled task is held by the scheduler.
+    /// identify the source of a search are not handed over, a scheduled task is held by the scheduler. The tables of a
+    /// scheduled task are handed over, a task that the state refuses releases the ones that it doesn't hold.
     fn collect_handed_over(&self, held: &mut Held) {
         match self {
+            ComputationAction::ScheduleTask { task, .. } => {
+                let mut task_held = Held::default();
+                task_held.task(task);
+                held.tables.extend(task_held.tables);
+            }
             ComputationAction::ComputationFromQueryResult { data_table, .. } => held.table(data_table),
             ComputationAction::CreatedDataFrame { data_frame, .. } => held.frame(*data_frame),
             ComputationAction::TableOrderingSucceeded { ordering, .. } => held.ordering(ordering),
@@ -431,8 +437,7 @@ impl ComputationAction {
                 held.aggregate(aggregate.as_ref().map(|aggregate| &aggregate.aggregate))
             }
             ComputationAction::DataSearchSucceeded { search, .. } => held.search(Some(search)),
-            ComputationAction::ScheduleTask { .. }
-            | ComputationAction::UpdateSchedulerTask { .. }
+            ComputationAction::UpdateSchedulerTask { .. }
             | ComputationAction::UnregisterSchedulerTask { .. }
             | ComputationAction::DeleteComputation { .. }
             | ComputationAction::ClearTableOrdering { .. }
@@ -445,11 +450,17 @@ impl ComputationAction {
     }
 }
 
-/// What the host must do after an action, in order
+/// The reason of the abort of the lifetime of a computation
+pub const COMPUTATION_DROPPED: &str = "The computation was dropped";
+
+/// What the host must do after an action, in order. The Arrow tables and the lifetimes are handles of the host
+/// (`crate::handles`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ComputationEffect {
-    /// Abort the lifetime of a computation that was dropped or replaced, it cancels the work on it
-    AbortComputation { table_id: TableId, lifetime: LifetimeId },
+    /// Abort a handle: the lifetime of a computation that was dropped or replaced, it cancels the work on it
+    Abort { handle: LifetimeId, reason: &'static str },
+    /// Release a handle: an Arrow table or a lifetime that the state no longer holds
+    Release { handle: ArrowTableId },
     /// Abort a data search that was superseded
     AbortDataSearch { table_id: TableId, request_id: u64 },
     /// Nothing in the state holds the data frame anymore, the host drops its table
@@ -465,6 +476,14 @@ pub struct ComputationOutcome {
     pub effects: Vec<ComputationEffect>,
     /// The id of a scheduled task
     pub task_id: Option<TaskId>,
+}
+
+/// Abort and release the lifetime of a computation that was dropped, unless the next computation keeps it
+fn drop_lifetime(lifetime: LifetimeId, next: Option<LifetimeId>, effects: &mut Vec<ComputationEffect>) {
+    if next != Some(lifetime) {
+        effects.push(ComputationEffect::Abort { handle: lifetime, reason: COMPUTATION_DROPPED });
+        effects.push(ComputationEffect::Release { handle: lifetime });
+    }
 }
 
 /// What an action changed
@@ -799,18 +818,27 @@ impl ComputationState {
             }
         }
 
-        // Release the data frames that the state no longer holds, the Arrow tables go with their last clone
+        // Release the data frames and the Arrow tables that the state no longer holds
         let held_after = self.held_by_table(table_id);
         let mut frames: BTreeSet<DataFrameId> = held_before.data_frames.into_iter().collect();
+        let mut tables: BTreeSet<ArrowTableId> = held_before.tables.iter().map(|table| table.id).collect();
         for frame in &held_after.data_frames {
             frames.remove(frame);
         }
-        if !frames.is_empty() {
-            for frame in &self.held_by_all().data_frames {
+        for table in &held_after.tables {
+            tables.remove(&table.id);
+        }
+        if !frames.is_empty() || !tables.is_empty() {
+            let held_by_all = self.held_by_all();
+            for frame in &held_by_all.data_frames {
                 frames.remove(frame);
+            }
+            for table in &held_by_all.tables {
+                tables.remove(&table.id);
             }
         }
         outcome.effects.extend(frames.into_iter().map(|data_frame| ComputationEffect::ReleaseDataFrame { data_frame }));
+        outcome.effects.extend(tables.into_iter().map(|handle| ComputationEffect::Release { handle }));
         Ok(outcome)
     }
 
@@ -853,7 +881,7 @@ impl ComputationState {
                 client_context,
             } => {
                 if let Some(previous) = self.computations.remove(&table_id) {
-                    effects.push(ComputationEffect::AbortComputation { table_id, lifetime: previous.lifetime });
+                    drop_lifetime(previous.lifetime, Some(lifetime), effects);
                 }
                 let computation = TableComputation::new(
                     table_id,
@@ -869,7 +897,7 @@ impl ComputationState {
             }
             ComputationAction::DeleteComputation { table_id } => match self.computations.remove(&table_id) {
                 Some(previous) => {
-                    effects.push(ComputationEffect::AbortComputation { table_id, lifetime: previous.lifetime });
+                    drop_lifetime(previous.lifetime, None, effects);
                     Changed::TABLE
                 }
                 None => Changed::NONE,

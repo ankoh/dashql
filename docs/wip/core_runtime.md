@@ -75,11 +75,14 @@ buffers in between. The boundary moves to what the UI reads.
   `DashQLConnection.catalog` is one `Catalog` handle per connection that shares it, the app hands it to the scripts of
   workbooks, so the scripts publish into the catalog of the connection. The script with the functions of the
   connection stays in Rust, the catalog loader replaces its text through the connection.
-- **Channels, tables and cancellations stay in JavaScript.** `NativeConnection` keeps the channels and the result
-  tables by id, the abort controllers and the errors of catalog updates and queries. The effects map to what the reducer in TypeScript did: cancel the setup, invalidate the catalog batches,
-  abort catalog updates and the queries of a stopped connection, close or release a channel, release a result table.
-  A reset or a delete stops the queries: the binding drops the history (`QueryExecutionHistory::clear`) and names the
-  active queries in the effect.
+- **Channels, tables and cancellations stay in JavaScript, under handles.** The channels, the result tables and the
+  records of catalog updates and queries (their abort controllers and errors) are objects of the one handle table of
+  the runtime (`store/handles.ts`, see [runtime_projection.md](runtime_projection.md#handles)). The progress of a
+  query is the one of the Rust history. The action that gives an object to the connection hands its handle over, the
+  connection keeps the handle where it keeps the object and lets go of it with an effect: `release`, `close` (a
+  channel) or `abort` (a catalog update, an active query). Cancelling the setup and invalidating the catalog batches
+  stay named effects. A reset or a delete stops the queries: the binding clears the history
+  (`QueryExecutionHistory::clear`), which aborts the active queries and releases the handles of all queries.
 - **A projected connection never changes.** `NativeConnection.project` reads the view of the connection when its
   revision moved and the view of the queries when theirs moved, and shares their unchanged parts with the previous
   views (`share`). The details and the catalog updates of the app are built again only when their parts changed, a
@@ -103,9 +106,9 @@ buffers in between. The boundary moves to what the UI reads.
    service. The reducer tests of the runtime run against the Rust workbook.
 4. **The other state.** The connection state (`src/connections/`, with the Hyper, Trino and Salesforce connectors and
    the catalog updates), the query execution state (`src/query/`, with the progress model and the profile state) and
-   the computation state (`src/compute/`, with the cross filters) are ported with their tests. The connections keep
-   their result tables in JavaScript as opaque ids. The computations hold their Arrow tables as Rust values and their
-   data frames as ids of the compute database, and run their tasks in Rust. The connections with their query
+   the computation state (`src/compute/`, with the cross filters) are ported with their tests. The connections and the
+   computations keep their Arrow tables in JavaScript under handles, the computations their data frames as ids of the
+   compute database, and run their tasks in Rust. The connections with their query
    histories and the computations are switched: the bindings, the adapters and the tests of the runtime and the app
    run on Rust, see [The computations](#the-computations).
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
@@ -169,12 +172,20 @@ revision moved.
   `createTableAs`, reads them back as Arrow IPC, drops them through the `DataFrameRegistry` and aborts the calls of a
   cancelled run. A task tells it that the state changed (`changed`), the computations of the runtime project the state
   into their store then.
-- **Arrow tables are Rust values.** The state holds `Arc<ResultTable>` with an id, a table goes with its last clone.
-  The UI reads a table of the state as Arrow IPC once (`arrowTableIpc`, decoded by `apache-arrow`) and wraps it like
+- **Arrow tables stay with the host.** Arrow data never lives in the core module: every table of the computations,
+  the result of an analysis and the derived tables (filter, ordering, search, statistics, summaries, system columns),
+  is an object of the handle table, and the state names it by its handle with what it read of it, the rows, the schema
+  and for the statistics the values of their row. A task reads the rows that its plan needs from the IPC of the
+  compute database, then hands the table over (`registerTable` of the compute host); the effects release a table
+  that the state no longer holds, also right away one that an action handed over and the state didn't take. The UI
+  reads a table by its handle and wraps it like
   the results of the tasks of the host: the filter, ordering and search tables, the statistics with their formatter,
   the summaries with their analysis. The counts and shares of an analysis come from Rust, the host formats the
   minimum, the maximum, the lower bounds of the bins and the frequent values (`arrow_formatter.ts`). A table of an
-  action of the host crosses as Arrow IPC with the action (`registerArrowTable`), the action names it by its id.
+  action of the host is registered in the handle table, the action names it by its handle.
+- **The lifetime of a computation is a handle.** The host registers the lifetime of a computation (its abort
+  controller with the objects of the computation) and hands it over with `COMPUTATION_FROM_QUERY_RESULT` or the
+  analysis; a computation that is replaced or deleted aborts and releases it, which cancels its runs.
 - **Data frames are ids of the compute database.** The service and the adapter allocate them from one counter of the
   thread (`allocateId`), a data frame of the runtime is the table `__df_<id>`. Computations that share a compute
   database, e.g. of the shell and of tests, don't share table names. The state holds a data frame once, the host
@@ -330,8 +341,9 @@ ordinal and string column.
   output, creates the table, reads it back, finishes the plan and applies the action of the result, then unregisters
   the task. A failure drops the data frame of the output, fails a data search, reports the error as the progress of
   the task and unregisters it. A result that is no longer current is dropped by the state, and its data frame with it.
-- **Cancellation.** A run is a future that can be cancelled. `AbortComputation` cancels the runs of the computation,
-  `AbortDataSearch` the run of the search, `cancel_task` the run of a task; the host aborts the queries of the run.
+- **Cancellation.** A run is a future that can be cancelled. The abort of the lifetime of a computation cancels its
+  runs, `AbortDataSearch` the run of the search, `cancel_task` the run of a task; the host aborts the queries of the
+  run.
 - **No borrow across an await.** The state sits behind a `RefCell` that a task borrows only between its awaits. The
   host learns of a change after the borrow ended, so it may read the state from `changed`.
 - **The tests.** `tests/compute_service_test.rs` runs the service on a fake host: an executor of a single thread and a
@@ -637,9 +649,9 @@ query execution and its actions.
 - **The last 100 queries.** `QueryExecutionHistory::with_limit` keeps at most a number of queries: a query that starts
   beyond the limit drops the oldest finished queries, then the oldest active ones, and releases their result tables.
   A later action on a dropped query changes nothing. The history of a connection has no limit.
-- **The JavaScript objects stay with the tracker.** It keeps the result tables by id, the cancellations and the errors of
-  the queries, and lists the finished queries before the active ones. A result that the shell shows
-  keeps its table after its query left the history.
+- **The JavaScript objects stay in the handle table.** The result tables and the records of the queries (the
+  cancellations and the errors) are handles, the effects of the history release them; the tracker lists the finished
+  queries before the active ones. A result that the shell shows keeps its table after its query left the history.
 - **The core comes with the first action.** The tracker takes the core or a function that sets it up. The provider of
   the shell sets up the core of the app, the actions before the core is there wait for it. The provider frees the
   history with the component.

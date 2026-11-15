@@ -54,9 +54,10 @@ fn a<T: Array + 'static>(array: T) -> ArrayRef {
     Arc::new(array)
 }
 
-/// A table of the state with a number per row
-fn arrow_table(id: u64, rows: i64) -> ArrowTable {
-    ArrowTable::new(id, Arc::new(table(vec![("n", a(Int64Array::from_iter_values(0..rows)))])))
+/// A table of the host with a number per row, read by the runtime
+fn arrow_table(id: u32, rows: i64) -> ArrowTable {
+    let table = table(vec![("n", a(Int64Array::from_iter_values(0..rows)))]);
+    ArrowTable::new(id, rows as u64, table.schema().clone())
 }
 
 /// A table of named columns
@@ -725,18 +726,15 @@ fn table_ordering_orders_equal_rows_by_their_row_number() {
 
 /// The statistics of the string column name (_0) and the ordinal column score (_1)
 fn stats() -> TableStats {
-    TableStats {
-        data_frame: 20,
-        table: table(vec![
-            ("_count_star", a(Int64Array::from(vec![10]))),
-            ("_0_count", a(Int64Array::from(vec![8]))),
-            ("_0_distinct", a(Int64Array::from(vec![3]))),
-            ("_1_count", a(Int64Array::from(vec![9]))),
-            ("_1_min", a(Float64Array::from(vec![1.0]))),
-            ("_1_max", a(Float64Array::from(vec![9.0]))),
-        ]),
-        count_star_field_name: "_count_star".into(),
-    }
+    let table = table(vec![
+        ("_count_star", a(Int64Array::from(vec![10]))),
+        ("_0_count", a(Int64Array::from(vec![8]))),
+        ("_0_distinct", a(Int64Array::from(vec![3]))),
+        ("_1_count", a(Int64Array::from(vec![9]))),
+        ("_1_min", a(Float64Array::from(vec![1.0]))),
+        ("_1_max", a(Float64Array::from(vec![9.0]))),
+    ]);
+    TableStats::read(20, &table, "_count_star").expect("the statistics")
 }
 
 fn name_column() -> ColumnGroup {
@@ -936,7 +934,7 @@ fn readers_cast_booleans_and_report_missing_fields() {
     let result = table(vec![("flag", a(BooleanArray::from(vec![true, false])))]);
     assert_eq!(result.int64_values(0).expect("ints"), vec![Some(1), Some(0)]);
     assert!(result.int64_values(3).is_err());
-    let stats = TableStats { data_frame: 1, table: result, count_star_field_name: "missing".into() };
+    let stats = TableStats::read(1, &result, "missing").expect("the statistics");
     assert!(stats.row_count().is_err());
 }
 

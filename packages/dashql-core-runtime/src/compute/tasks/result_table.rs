@@ -23,12 +23,27 @@ fn arrow_error(context: &str) -> impl Fn(arrow_schema::ArrowError) -> Error + '_
 }
 
 /// The values of an array as 64-bit integers, null where a value is null or doesn't fit
-fn int64_values(array: &dyn Array) -> Result<Vec<Option<i64>>> {
+pub(crate) fn int64_values(array: &dyn Array) -> Result<Vec<Option<i64>>> {
     let cast = arrow_cast::cast(array, &DataType::Int64).map_err(arrow_error("an integer column"))?;
     let ints = cast
         .as_primitive_opt::<Int64Type>()
         .ok_or_else(|| Error::invalid_argument("an integer column isn't Int64 after the cast"))?;
     Ok(ints.iter().collect())
+}
+
+/// The first value of an array of any integer type, exact for unsigned 64-bit integers
+pub(crate) fn integer_of(value: &ArrayRef) -> Result<Option<i128>> {
+    if value.is_empty() || value.is_null(0) {
+        return Ok(None);
+    }
+    if let Some(unsigned) = value.as_primitive_opt::<UInt64Type>() {
+        return Ok(unsigned.iter().next().flatten().map(i128::from));
+    }
+    if !value.data_type().is_integer() {
+        return Ok(None);
+    }
+    let cast = arrow_cast::cast(value.as_ref(), &DataType::Int64).map_err(arrow_error("an integer value"))?;
+    Ok(cast.as_primitive_opt::<Int64Type>().and_then(|ints| ints.iter().next().flatten()).map(i128::from))
 }
 
 impl ResultTable {
@@ -168,20 +183,10 @@ impl ResultTable {
 
     /// An integer value of any integer type, exact for unsigned 64-bit integers
     pub fn integer_value(&self, column: usize, row: usize) -> Result<Option<i128>> {
-        let Some(value) = self.value(column, row)? else {
-            return Ok(None);
-        };
-        if value.is_null(0) {
-            return Ok(None);
+        match self.value(column, row)? {
+            Some(value) => integer_of(&value),
+            None => Ok(None),
         }
-        if let Some(unsigned) = value.as_primitive_opt::<UInt64Type>() {
-            return Ok(unsigned.iter().next().flatten().map(i128::from));
-        }
-        if !value.data_type().is_integer() {
-            return Ok(None);
-        }
-        let cast = arrow_cast::cast(value.as_ref(), &DataType::Int64).map_err(arrow_error("an integer value"))?;
-        Ok(cast.as_primitive_opt::<Int64Type>().and_then(|ints| ints.iter().next().flatten()).map(i128::from))
     }
 
     /// The value of a row as an array of one value in the type of the column, none past the last row

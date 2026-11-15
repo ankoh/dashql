@@ -5,9 +5,10 @@
 //! a `ComputationOutcome` with the effects for the host. The state is read per computation: a computation changes its
 //! revision with every change, the host reads only the computations whose revision moved, a snapshot of their fields.
 //!
-//! The Arrow tables of the state are Rust values with ids. The host registers a table of its own as Arrow IPC
-//! (`registerArrowTable`) and names it by its id in the next action, and reads a table of the state as Arrow IPC
-//! (`arrowTableIpc`). The data frames and the lifetimes are ids of the host.
+//! The Arrow tables and the lifetimes of the computations are objects of the host, the state names them by their
+//! handles (docs/wip/runtime_projection.md): the host hands a table over by its handle, the tasks hand the tables that
+//! they read over with `registerTable` of the host, and the effects release them. The data frames are ids of the
+//! compute database.
 //!
 //! The tasks run in Rust (`dashql_core_runtime::compute::service`) on the compute database of the host
 //! (`ComputeHost` in the generated declarations): `analyzeTable` analyzes a result, `runTask` runs a scheduled task.
@@ -15,11 +16,10 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use dashql_core::error::Error;
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, RunId};
-use dashql_core_runtime::compute::service::ComputeService;
+use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::types::{
@@ -27,6 +27,7 @@ use dashql_core_runtime::compute::types::{
     DataSearchTable, FilterTable, FilteredColumnAggregate, OrderingTable, SkippedColumnGroup, TableAggregation,
 };
 use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationState, SearchKind};
+use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use js_sys::{Function, Promise, Reflect, Uint8Array};
 use serde_json::{Map, Value};
@@ -50,25 +51,25 @@ fn invalid(message: String) -> JsError {
     js_error(Error::invalid_argument(message))
 }
 
-/// The tables that an action names by id: the tables that the host registered for the action and the tables of the
-/// state. An unknown id names a table without columns.
+/// The tables that an action names by their handles: a table of the state with what the runtime read of it, or a
+/// table that the host hands over
 struct Tables<'a> {
-    registered: &'a BTreeMap<u64, Arc<ResultTable>>,
     state: &'a ComputationState,
 }
 
 impl Tables<'_> {
-    fn get(&self, id: u64) -> ArrowTable {
-        if let Some(table) = self.registered.get(&id) {
-            return ArrowTable::new(id, table.clone());
-        }
-        self.state.arrow_table(id).unwrap_or_else(|| ArrowTable::new(id, Arc::new(ResultTable::empty())))
+    fn get(&self, handle: Handle) -> ArrowTable {
+        self.get_with_rows(handle, None)
+    }
+
+    fn get_with_rows(&self, handle: Handle, rows: Option<u64>) -> ArrowTable {
+        self.state.arrow_table(handle).unwrap_or_else(|| ArrowTable::host(handle, rows.unwrap_or(0)))
     }
 
     fn filter(&self, v: ComputationFilterTable) -> FilterTable {
         FilterTable {
             input_row_number_column_name: v.input_row_number_column_name,
-            table: self.get(v.table.id),
+            table: self.get_with_rows(v.table.id, v.table.rows),
             data_frame: v.data_frame,
             version: v.version.into(),
         }
@@ -78,7 +79,7 @@ impl Tables<'_> {
         OrderingTable {
             input_row_number_column_name: v.input_row_number_column_name,
             ordering_constraints: v.ordering_constraints.into_iter().map(Into::into).collect(),
-            table: self.get(v.table.id),
+            table: self.get_with_rows(v.table.id, v.table.rows),
             data_frame: v.data_frame,
             version: v.version.into(),
             data_search_request_id: v.data_search_request_id,
@@ -88,7 +89,7 @@ impl Tables<'_> {
     fn data_search(&self, v: ComputationDataSearchTable) -> DataSearchTable {
         DataSearchTable {
             input_row_number_column_name: v.input_row_number_column_name,
-            table: self.get(v.table.id),
+            table: self.get_with_rows(v.table.id, v.table.rows),
             data_frame: v.data_frame,
             version: v.version.into(),
             request_id: v.request_id,
@@ -138,7 +139,7 @@ impl Tables<'_> {
                 rt::ComputationTask::TableFiltering(rt::TableFilteringTask {
                     table_id,
                     table_version: table_version.into(),
-                    input_data_table: self.get(input_data_table.id),
+                    input_data_table: self.get_with_rows(input_data_table.id, input_data_table.rows),
                     input_data_frame,
                     row_number_column_name,
                     filters: filters.into_iter().map(Into::into).collect(),
@@ -156,7 +157,7 @@ impl Tables<'_> {
             } => rt::ComputationTask::TableOrdering(rt::TableOrderingTask {
                 table_id,
                 table_version: table_version.into(),
-                input_data_table: self.get(input_data_table.id),
+                input_data_table: self.get_with_rows(input_data_table.id, input_data_table.rows),
                 input_data_frame,
                 filter_table: filter_table.map(|t| self.filter(t)),
                 data_search_table: data_search_table.map(|t| self.data_search(t)),
@@ -183,7 +184,7 @@ impl Tables<'_> {
                 table_id,
                 table_version: table_version.into(),
                 column_entries: groups(column_entries),
-                input_table: self.get(input_table.id),
+                input_table: self.get_with_rows(input_table.id, input_table.rows),
                 input_data_frame,
                 row_number_field_name,
                 table_aggregate: self.aggregation(table_aggregate),
@@ -237,6 +238,15 @@ fn id(value: f64) -> u64 {
     }
 }
 
+/// A handle of the host, 0 for none
+fn handle(value: f64) -> Handle {
+    if value.is_finite() && value >= 0.0 && value <= Handle::MAX as f64 {
+        value as Handle
+    } else {
+        0
+    }
+}
+
 fn time(value: f64) -> i64 {
     if value.is_finite() {
         value as i64
@@ -267,6 +277,10 @@ export interface ComputeHost {
     query(sql: string, context: ComputeCallContext): Promise<Uint8Array>;
     /** Drop the table of a data frame, unless the host still reads it */
     dropTable(dataFrame: number, tableName: string): Promise<void>;
+    /** Keep a table that a task read, an Arrow IPC stream, returns its new handle */
+    registerTable(ipc: Uint8Array): number;
+    /** Release a handle that the computations got and don't keep */
+    release(handle: number): void;
     /** Abort the calls of a run */
     cancel(run: number): void;
     /** A task changed the state, the effects of its actions in order */
@@ -290,6 +304,10 @@ extern "C" {
     fn query(this: &JsComputeHostObject, sql: &str, context: &JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, catch, js_name = dropTable)]
     fn drop_table(this: &JsComputeHostObject, data_frame: f64, table_name: &str) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = registerTable)]
+    fn register_table(this: &JsComputeHostObject, ipc: &Uint8Array) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, catch)]
+    fn release(this: &JsComputeHostObject, handle: f64) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch)]
     fn cancel(this: &JsComputeHostObject, run: f64) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch)]
@@ -399,6 +417,22 @@ impl ComputeHost for JsComputeHost {
         Ok(())
     }
 
+    fn register_table(&self, ipc: &[u8]) -> Result<Handle, HostError> {
+        let host = self.object()?;
+        let value = host.register_table(&Uint8Array::from(ipc)).map_err(host_error)?;
+        value
+            .as_f64()
+            .filter(|value| *value > 0.0 && *value <= Handle::MAX as f64)
+            .map(|value| value as Handle)
+            .ok_or_else(|| HostError::new("the compute host returned no handle"))
+    }
+
+    fn release(&self, handle: Handle) {
+        if let Some(host) = self.host.borrow().as_ref() {
+            let _ = host.release(handle as f64);
+        }
+    }
+
     fn cancel(&self, run: RunId) {
         if let Some(host) = self.host.borrow().as_ref() {
             let _ = host.cancel(run as f64);
@@ -424,26 +458,23 @@ fn task_error(error: Error) -> JsValue {
 #[wasm_bindgen]
 pub struct Computations {
     service: ComputeService<JsComputeHost>,
-    /// The tables that the host registered for its next action
-    registered: RefCell<BTreeMap<u64, Arc<ResultTable>>>,
 }
 
 impl Computations {
     /// Read the values of an action with the tables it names
     fn read<T>(&self, read: impl FnOnce(&Tables) -> T) -> T {
-        let registered = self.registered.borrow();
-        self.service.read(|state| read(&Tables { registered: &registered, state }))
+        self.service.read(|state| read(&Tables { state }))
     }
 
-    /// Apply an action, the registered tables that it didn't take go
+    /// Apply an action. The effects release the handles that it handed over and the state didn't take, a failed
+    /// action leaves them with the host.
     fn apply(&self, action: ComputationAction) -> Result<Ts<ComputationOutcome>, JsError> {
-        let outcome = self.service.apply(action).map_err(js_error);
-        self.registered.borrow_mut().clear();
-        to_js(&ComputationOutcome::from(outcome?))
+        let outcome = self.service.apply(action).map_err(js_error)?;
+        to_js(&ComputationOutcome::from(outcome))
     }
 
-    fn table(&self, table: f64) -> ArrowTable {
-        self.read(|tables| tables.get(id(table)))
+    fn table(&self, table: f64, rows: f64) -> ArrowTable {
+        self.read(|tables| tables.get_with_rows(handle(table), Some(id(rows))))
     }
 
     fn column_groups(column_groups: &[Ts<ComputationColumnGroup>]) -> Result<Vec<ColumnGroup>, JsError> {
@@ -462,7 +493,7 @@ impl Computations {
     /// A state without computations
     #[wasm_bindgen(constructor)]
     pub fn new() -> Computations {
-        Computations { service: ComputeService::new(JsComputeHost::default()), registered: RefCell::new(BTreeMap::new()) }
+        Computations { service: ComputeService::new(JsComputeHost::default()) }
     }
 
     /// Set the compute host, the tasks run on its compute database
@@ -471,53 +502,41 @@ impl Computations {
         *self.service.host().host.borrow_mut() = Some(host);
     }
 
-    /// A new id of a data frame, an Arrow table or a lifetime of the host
+    /// A new id of a data frame
     #[wasm_bindgen(js_name = allocateId)]
     pub fn allocate_id(&self) -> f64 {
         self.service.allocate_id() as f64
     }
 
-    /// Register a table of the host as Arrow IPC, the next action names it by the returned id
-    #[wasm_bindgen(js_name = registerArrowTable)]
-    pub fn register_arrow_table(&self, ipc: &[u8]) -> Result<f64, JsError> {
-        let table = ResultTable::from_ipc_stream(ipc).map_err(js_error)?;
-        let id = self.service.allocate_id();
-        self.registered.borrow_mut().insert(id, Arc::new(table));
-        Ok(id as f64)
-    }
-
-    /// A table of the state as Arrow IPC
-    #[wasm_bindgen(js_name = arrowTableIpc)]
-    pub fn arrow_table_ipc(&self, table: f64) -> Result<Vec<u8>, JsError> {
-        let table = id(table);
-        let found = self.service.read(|state| state.arrow_table(table));
-        let found = found.ok_or_else(|| invalid(format!("the state holds no table {table}")))?;
-        found.table.to_ipc_stream().map_err(js_error)
-    }
-
-    /// The tables that the state holds
+    /// The tables that the state holds, handles of the host
     #[wasm_bindgen(js_name = arrowTableIds)]
     pub fn arrow_table_ids(&self) -> Vec<f64> {
-        self.service.read(|state| state.arrow_tables().into_iter().map(|id| id as f64).collect())
+        self.service.read(|state| state.arrow_tables().into_iter().map(f64::from).collect())
     }
 
     // Services
 
-    /// Analyze a result as the computation of a table: the result as Arrow IPC, the connection that ran its query and
-    /// the client context of the queries of a computation without one. Resolves once the summaries of the columns are
+    /// Analyze a result as the computation of a table: the result as Arrow IPC with its handle at the host, the handle
+    /// of the lifetime of the computation, the connection that ran its query and the client context of the queries of
+    /// a computation without one. The computation takes the handles, an analysis that doesn't start one releases
+    /// them; a result that isn't Arrow IPC leaves them with the host. Resolves once the summaries of the columns are
     /// computed, rejects with the error of a failed task.
+    #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = analyzeTable)]
     pub fn analyze_table(
         &self,
         table_id: f64,
         ipc: &[u8],
+        table: f64,
+        lifetime: f64,
         connection_id: Option<String>,
         client_context: Option<String>,
         column_aggregates: bool,
     ) -> Result<Promise, JsError> {
-        let table = ResultTable::from_ipc_stream(ipc).map_err(js_error)?;
+        let result = ResultTable::from_ipc_stream(ipc).map_err(js_error)?;
         let options = AnalyzeTableOptions { column_aggregates };
-        let analysis = self.service.analyze_table(id(table_id), table, connection_id, client_context, options);
+        let handles = AnalysisHandles { table: handle(table), lifetime: handle(lifetime) };
+        let analysis = self.service.analyze_table(id(table_id), result, handles, connection_id, client_context, options);
         Ok(future_to_promise(async move { analysis.await.map(|_| JsValue::UNDEFINED).map_err(task_error) }))
     }
 
@@ -556,13 +575,14 @@ impl Computations {
         self.apply(ComputationAction::UnregisterSchedulerTask { task_id: id(task_id) })
     }
 
-    /// Start the computation of a result table, a table that the host registered
+    /// Start the computation of a result table, a table of the host by its handle with its rows
     #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = computationFromQueryResult)]
     pub fn computation_from_query_result(
         &self,
         table_id: f64,
         data_table: f64,
+        rows: f64,
         fields: Vec<String>,
         column_groups: Vec<Ts<ComputationColumnGroup>>,
         lifetime: f64,
@@ -572,10 +592,10 @@ impl Computations {
         let column_groups = Self::column_groups(&column_groups)?;
         self.apply(ComputationAction::ComputationFromQueryResult {
             table_id: id(table_id),
-            data_table: self.table(data_table),
+            data_table: self.table(data_table, rows),
             fields,
             column_groups,
-            lifetime: id(lifetime),
+            lifetime: handle(lifetime),
             connection_id,
             client_context,
         })
@@ -635,12 +655,14 @@ impl Computations {
         self.apply(ComputationAction::TableAggregationSucceeded { table_id: id(table_id), aggregation, now: time(now) })
     }
 
-    /// The system columns were computed: a table that the host registered and the column groups
+    /// The system columns were computed: a table of the host by its handle with its rows, and the column groups
+    #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = systemColumnsSucceeded)]
     pub fn system_columns_succeeded(
         &self,
         table_id: f64,
         data_table: f64,
+        rows: f64,
         data_frame: f64,
         column_groups: Vec<Ts<ComputationColumnGroup>>,
         now: f64,
@@ -648,7 +670,7 @@ impl Computations {
         let column_groups = Self::column_groups(&column_groups)?;
         self.apply(ComputationAction::SystemColumnsSucceeded {
             table_id: id(table_id),
-            data_table: self.table(data_table),
+            data_table: self.table(data_table, rows),
             data_frame: id(data_frame),
             column_groups,
             now: time(now),
@@ -853,6 +875,12 @@ impl Computations {
     /// Does the state hold an Arrow table?
     #[wasm_bindgen(js_name = holdsArrowTable)]
     pub fn holds_arrow_table(&self, table: f64) -> bool {
-        self.service.read(|state| state.holds_arrow_table(id(table)))
+        self.service.read(|state| state.holds_arrow_table(handle(table)))
+    }
+
+    /// The lifetime of the computation of a table, none without one
+    #[wasm_bindgen(js_name = computationLifetime)]
+    pub fn computation_lifetime(&self, table_id: f64) -> Option<f64> {
+        self.service.read(|state| state.computation(id(table_id)).map(|computation| computation.lifetime as f64))
     }
 }

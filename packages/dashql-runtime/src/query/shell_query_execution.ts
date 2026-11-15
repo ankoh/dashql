@@ -1,37 +1,33 @@
-import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { LoggableException } from '../platform/logger/logger.js';
+import { handlesOf, type HandleTable } from '../store/handles.js';
 import type { QueryExecutionAction, QueryExecutionState, QueryExecutionTracker } from './query_execution_state.js';
-import {
-    applyQueryAction,
-    QueryProjection,
-    queryRecord,
-    type NativeQueryObjects,
-    type QueryRecord,
-} from './query_history_native.js';
+import { applyQueryAction, QueryProjection } from './query_history_native.js';
 
 export const SHELL_QUERY_HISTORY_LIMIT = 100;
 
 /// The query history of the shell: a query history of the core of its own (`DashQLQueryHistory`) that keeps the last
-/// `SHELL_QUERY_HISTORY_LIMIT` queries, the oldest finished ones leave first. The tracker keeps the result tables and
-/// the JavaScript objects of the queries, `getSnapshot` lists the finished queries and then the active ones.
+/// `SHELL_QUERY_HISTORY_LIMIT` queries, the oldest finished ones leave first. The result tables and the JavaScript
+/// objects of the queries are handles of the runtime of the core (store/handles.ts), the effects of the history
+/// release them. `getSnapshot` lists the finished queries and then the active ones.
 ///
 /// The tracker takes the core or a function that sets it up. Actions before the core is there wait for it, the first
 /// one asks for it.
-export class ShellQueryExecutionTracker implements QueryExecutionTracker, NativeQueryObjects {
+export class ShellQueryExecutionTracker implements QueryExecutionTracker {
     private history: core.DashQLQueryHistory | null = null;
+    /// The handles of the runtime of the core of the history
+    private handles: HandleTable | null = null;
     private pending: QueryExecutionAction[] | null = null;
-    private readonly records = new Map<number, QueryRecord>();
-    private readonly tables = new Map<number, arrow.Table>();
-    private nextTableId = 1;
     private readonly projection = new QueryProjection('shell');
     private revision: number | null = null;
     private snapshot: readonly QueryExecutionState[] = [];
     private readonly listeners = new Set<() => void>();
 
     constructor(private readonly setupCore: core.DashQL | (() => Promise<core.DashQL>), private readonly limit = SHELL_QUERY_HISTORY_LIMIT) {
-        if (typeof setupCore !== 'function') this.history = setupCore.createQueryHistory(limit);
+        if (typeof setupCore !== 'function') {
+            this.history = setupCore.createQueryHistory(limit);
+            this.handles = handlesOf(setupCore);
+        }
     }
 
     readonly getSnapshot = (): readonly QueryExecutionState[] => this.snapshot;
@@ -49,13 +45,18 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
         if (this.apply(this.history, action)) this.publish();
     }
 
-    /// Free the history of the core, the tracker starts empty. A later action sets up a new history.
+    /// Free the history of the core, the tracker starts empty. A later action sets up a new history. The queries keep
+    /// running, their handles go.
     release(): void {
-        this.history?.destroy();
+        const history = this.history;
+        if (history != null) {
+            for (const effect of history.clear().effects) {
+                if (effect.type === 'release') this.handles?.release(effect.handle);
+            }
+            history.destroy();
+        }
         this.history = null;
         this.pending = null;
-        this.records.clear();
-        this.tables.clear();
         this.projection.clear();
         this.revision = null;
         if (this.snapshot.length > 0) {
@@ -80,6 +81,7 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
             this.pending = null;
             const history = instance.createQueryHistory(this.limit);
             this.history = history;
+            this.handles = handlesOf(instance);
             let changed = false;
             for (const action of pending) {
                 try {
@@ -97,39 +99,19 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
 
     /// Apply an action to the history, returns whether it changed
     private apply(history: core.DashQLQueryHistory, action: QueryExecutionAction): boolean {
-        const outcome = applyQueryAction(history, this, action, Date.now());
+        const handles = this.handles;
+        if (handles == null) return false;
+        const outcome = applyQueryAction(history, handles, action, Date.now());
         // The projected queries keep their tables, e.g. the result that the shell shows after its query left
-        for (const effect of outcome.effects) {
-            if (effect.type === 'releaseResultTable') this.releaseTable(effect.tableId);
-        }
+        handles.apply(outcome.effects);
         return outcome.changed;
-    }
-
-    // The JavaScript objects of the queries
-
-    registerQuery(state: QueryExecutionState): void {
-        if (!this.records.has(state.queryId)) this.records.set(state.queryId, queryRecord(state));
-    }
-
-    setQueryError(queryId: number, error: LoggableException): void {
-        const record = this.records.get(queryId);
-        if (record != null) record.error = error;
-    }
-
-    registerTable(table: arrow.Table): number {
-        const id = this.nextTableId++;
-        this.tables.set(id, table);
-        return id;
-    }
-
-    releaseTable(id: number): void {
-        this.tables.delete(id);
     }
 
     /// Project the history and notify the listeners if it changed
     private publish(): void {
         const history = this.history;
-        if (history == null) return;
+        const handles = this.handles;
+        if (history == null || handles == null) return;
         const revision = history.revision();
         if (revision === this.revision) return;
         this.revision = revision;
@@ -137,17 +119,13 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
         const snapshot: QueryExecutionState[] = [];
         const ids: number[] = [];
         for (const [queryId, queryRevision] of [...queries.finished, ...queries.active]) {
-            const state = this.projection.state(history, queryId, queryRevision, this.records.get(queryId), this.tables);
+            const state = this.projection.state(history, queryId, queryRevision, handles);
             if (state == null) continue;
             snapshot.push(state);
             ids.push(queryId);
         }
         // Forget the queries that left the history
         this.projection.retain(ids);
-        const known = new Set(ids);
-        for (const queryId of [...this.records.keys()]) {
-            if (!known.has(queryId)) this.records.delete(queryId);
-        }
         this.snapshot = snapshot;
         for (const listener of this.listeners) listener();
     }

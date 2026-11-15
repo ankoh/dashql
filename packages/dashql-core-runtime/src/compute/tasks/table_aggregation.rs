@@ -92,11 +92,7 @@ impl TableAggregationPlan {
     /// Read the statistics. The schema is the one of the table, it holds the types of the columns.
     pub fn finish(self, schema: &Schema, result: ResultTable) -> Result<TableAggregationResult> {
         let query = &self.query;
-        let stats = TableStats {
-            data_frame: query.data_frame,
-            table: result,
-            count_star_field_name: COUNT_STAR_FIELD.to_string(),
-        };
+        let stats = TableStats::read(query.data_frame, &result, COUNT_STAR_FIELD).map_err(|e| query.failed(e))?;
         let mut column_groups = self.column_groups.clone();
         for group in column_groups.iter_mut() {
             let ColumnGroup::Ordinal(column) = group else {
@@ -109,10 +105,10 @@ impl TableAggregationPlan {
                 continue;
             };
             let integer = |field: &Option<String>| -> Result<Option<i128>> {
-                let Some(column) = field.as_deref().and_then(|field| stats.table.column_index(field)) else {
+                let Some(field) = field.as_deref() else {
                     return Ok(None);
                 };
-                stats.table.integer_value(column, 0)
+                stats.integer(field)
             };
             let min = integer(&fields.min_aggregate_field_name).map_err(|e| query.failed(e))?;
             let max = integer(&fields.max_aggregate_field_name).map_err(|e| query.failed(e))?;

@@ -3,7 +3,11 @@
 //! A data frame is a table of the compute database, the runtime names it (`tasks::data_frame_table_name`) and the host
 //! creates, reads and drops it. Tables cross as Arrow IPC streams. Every call carries the context of the task that
 //! makes it: the computation, the title of the task and the run, which the host aborts on `cancel`.
+//!
+//! The Arrow tables of the computations stay with the host: a task reads the rows that it needs from a table and hands
+//! the table over (`register_table`), the state names it by its handle and releases it with an effect.
 
+use crate::handles::Handle;
 use crate::host::{Host, HostError};
 
 use super::types::{DataFrameId, TableId};
@@ -51,9 +55,13 @@ pub trait ComputeHost: Host {
     async fn query(&self, sql: &str, context: &ComputeContext) -> Result<Vec<u8>, HostError>;
     /// Drop the table of a data frame, unless the host still reads it
     async fn drop_table(&self, data_frame: DataFrameId, table_name: &str) -> Result<(), HostError>;
+    /// Keep a table that a task read, an Arrow IPC stream, under a new handle
+    fn register_table(&self, ipc: &[u8]) -> Result<Handle, HostError>;
+    /// Release a handle that the runtime got and doesn't keep, e.g. the table of an analysis without columns
+    fn release(&self, handle: Handle);
     /// Abort the calls of a run that are still running
     fn cancel(&self, run: RunId);
-    /// A task changed the state, with the effects of its actions that the host applies (aborted computations and data
-    /// searches). The service drops the released data frames itself.
+    /// A task changed the state, with the effects of its actions that the host applies (aborted and released handles,
+    /// aborted data searches). The service drops the released data frames itself.
     fn changed(&self, effects: &[ComputationEffect]);
 }

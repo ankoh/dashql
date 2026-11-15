@@ -32,12 +32,14 @@ const SHELL_QUERY: dashql.QueryMetadataView = {
 describe('DashQL query histories', () => {
     it('track the queries like a connection', () => {
         const history = dql!.createQueryHistory();
-        expect(history.executeQuery(1, 1, 'select 1', SHELL_QUERY, 10).changed).toBe(true);
+        expect(history.executeQuery(1, 41, 1, 'select 1', SHELL_QUERY, 10).changed).toBe(true);
+        expect(history.queryHandle(1)).toBe(41);
+        expect(history.queryHandle(2)).toBeNull();
         history.queryRunning(1, 11);
         expect(history.queryReceivedAllBatches(1, 100, 3, METRICS, 12).effects).toEqual([]);
         history.querySucceeded(1, 15);
         expect(history.queries()).toMatchObject({ active: [], finished: [[1, expect.any(Number)]] });
-        expect(history.query(1)).toMatchObject({ status: 9, resultTable: { id: 100, rows: 3 }, metrics: { queryRequestedAt: 10, querySucceededAt: 15, queryDurationMs: 4 } });
+        expect(history.query(1)).toMatchObject({ status: 9, handle: 41, resultTable: { id: 100, rows: 3 }, metrics: { queryRequestedAt: 10, querySucceededAt: 15, queryDurationMs: 4 } });
         // A late action changes nothing
         const revision = history.revision();
         expect(history.queryFailed(1, 'late', null, null, 20).changed).toBe(false);
@@ -47,13 +49,17 @@ describe('DashQL query histories', () => {
 
     it('drop the oldest queries beyond their limit and release their tables', () => {
         const history = dql!.createQueryHistory(2);
-        history.executeQuery(1, 1, 'select 1', SHELL_QUERY, 10);
+        history.executeQuery(1, 41, 1, 'select 1', SHELL_QUERY, 10);
         history.queryReceivedAllBatches(1, 100, 3, METRICS, 11);
         history.querySucceeded(1, 12);
-        history.executeQuery(2, 2, 'select 2', SHELL_QUERY, 13);
-        expect(history.executeQuery(3, 3, 'select 3', SHELL_QUERY, 14).effects).toEqual([
-            { type: 'releaseResultTable', queryId: 1, tableId: 100 },
+        history.executeQuery(2, 42, 2, 'select 2', SHELL_QUERY, 13);
+        // The query that leaves releases its table and its record
+        expect(history.executeQuery(3, 43, 3, 'select 3', SHELL_QUERY, 14).effects).toEqual([
+            { type: 'release', handle: 100 },
+            { type: 'release', handle: 41 },
         ]);
+        // A query id that the history knows throws, the handle stays with the host
+        expect(() => history.executeQuery(3, 44, 3, 'select 3', SHELL_QUERY, 15)).toThrow();
         expect(history.queries()).toMatchObject({ active: [[2, expect.any(Number)], [3, expect.any(Number)]], finished: [] });
         expect(history.query(1)).toBeNull();
         history.destroy();

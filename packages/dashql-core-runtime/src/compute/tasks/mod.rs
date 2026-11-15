@@ -26,6 +26,7 @@ pub mod table_filtering;
 pub mod table_ordering;
 
 use std::fmt;
+use std::sync::Arc;
 
 use arrow_array::ArrayRef;
 use dashql_core::error::{Error, Result};
@@ -110,22 +111,57 @@ pub struct TableImport {
     pub table: ResultTable,
 }
 
+/// The values of the row of the statistics of a table by field, each an array of one value in the type of its column.
+/// The runtime keeps the values, the table of the statistics stays with the host.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StatsRow {
+    /// The fields with their values, none without a row
+    values: Vec<(String, Option<ArrayRef>)>,
+}
+
+impl StatsRow {
+    /// Read the first row of a table
+    pub fn read(table: &ResultTable) -> Result<Self> {
+        let fields = table.schema().fields();
+        let value = |(column, field): (usize, &arrow_schema::FieldRef)| Ok((field.name().clone(), table.value(column, 0)?));
+        let values = fields.iter().enumerate().map(value);
+        Ok(Self { values: values.collect::<Result<_>>()? })
+    }
+
+    /// The value of a field, none without a row, an error for a field that the statistics don't have
+    fn value(&self, field_name: &str) -> Result<Option<&ArrayRef>> {
+        self.values
+            .iter()
+            .find(|(field, _)| field == field_name)
+            .map(|(_, value)| value.as_ref())
+            .ok_or_else(|| Error::invalid_argument(format!("the result has no field {field_name}")))
+    }
+}
+
 /// The statistics of all columns of a table, one row
 #[derive(Clone, Debug, PartialEq)]
 pub struct TableStats {
     /// The data frame of the statistics
     pub data_frame: DataFrameId,
-    /// The statistics
-    pub table: ResultTable,
+    /// The values of the statistics
+    pub row: Arc<StatsRow>,
     /// The field with the row count
     pub count_star_field_name: String,
 }
 
 impl TableStats {
+    /// The statistics of the first row of a table
+    pub fn read(data_frame: DataFrameId, table: &ResultTable, count_star_field_name: impl Into<String>) -> Result<Self> {
+        let row = Arc::new(StatsRow::read(table)?);
+        Ok(Self { data_frame, row, count_star_field_name: count_star_field_name.into() })
+    }
+
     /// A count of the statistics, none if it is null
     pub fn count(&self, field_name: &str) -> Result<Option<i64>> {
-        let column = self.table.require_column(field_name)?;
-        Ok(self.table.int64_values(column)?.into_iter().next().flatten())
+        match self.row.value(field_name)? {
+            Some(value) => Ok(result_table::int64_values(value.as_ref())?.into_iter().next().flatten()),
+            None => Ok(None),
+        }
     }
 
     /// The row count, 0 without
@@ -135,7 +171,14 @@ impl TableStats {
 
     /// A statistic as an array of one value in its type, e.g. the minimum of a column
     pub fn value(&self, field_name: &str) -> Result<ArrayRef> {
-        let column = self.table.require_column(field_name)?;
-        self.table.value(column, 0)?.ok_or_else(|| Error::invalid_argument("the statistics have no row"))
+        self.row.value(field_name)?.cloned().ok_or_else(|| Error::invalid_argument("the statistics have no row"))
+    }
+
+    /// An integer statistic of any integer type, none for a field that the statistics don't have
+    pub fn integer(&self, field_name: &str) -> Result<Option<i128>> {
+        match self.row.value(field_name) {
+            Ok(Some(value)) => result_table::integer_of(value),
+            Ok(None) | Err(_) => Ok(None),
+        }
     }
 }

@@ -22,11 +22,11 @@ import type {
 /// docs/wip/core_runtime.md): the summaries of the columns, the statistics of a table, the system columns, the cross
 /// filters, the ordering and the searches, and the tasks of the scheduler that compute them.
 ///
-/// The Arrow tables of the state are Rust values with ids: the host registers a table of its own as Arrow IPC before
-/// the action that hands it over (`registerArrowTable`) and reads a table of the state as Arrow IPC once
-/// (`arrowTableIpc`). The data frames and the lifetimes are ids of the host. The state owns the data frames it holds:
-/// an action returns an effect to release a data frame once nothing in the state holds it. A computation changes its
-/// revision with every change.
+/// The Arrow tables and the lifetimes of the computations are objects of the host, the state names them by their
+/// handles (docs/wip/runtime_projection.md): the host hands a table over by its handle, a task hands the tables that
+/// it read over with `registerTable` of the host. The data frames are ids of the compute database. The state owns what
+/// it holds: an action returns an effect to release a table, a lifetime or a data frame once nothing in the state
+/// holds it. A computation changes its revision with every change.
 ///
 /// The tasks run in Rust on the compute database of the host (`ComputeHost`, set with `setHost`): `analyzeTable`
 /// analyzes a result, `runTask` runs a scheduled task. The service drops the data frames that the state releases
@@ -109,31 +109,29 @@ export class DashQLComputations {
         this.native.setHost(host);
     }
 
-    /// A new id of a data frame, an Arrow table or a lifetime of the host
+    /// A new id of a data frame
     public allocateId(): number {
         return this.native.allocateId();
     }
 
-    /// Register a table of the host as an Arrow IPC stream, the next action names it by the returned id. The tables
-    /// that the action doesn't take go.
-    public registerArrowTable(ipc: Uint8Array): number {
-        return this.native.registerArrowTable(ipc);
-    }
-
-    /// A table of the state as an Arrow IPC stream
-    public arrowTableIpc(table: number): Uint8Array {
-        return this.native.arrowTableIpc(table);
-    }
-
-    /// The tables that the state holds
+    /// The tables that the state holds, handles of the host
     public arrowTableIds(): number[] {
         return Array.from(this.native.arrowTableIds());
     }
 
     /// Analyze a result as Arrow IPC: start its computation, import it, compute its statistics, its system columns and
-    /// the summaries of its columns. Rejects with the error of a failed task.
-    public analyzeTable(tableId: number, ipc: Uint8Array, connectionId: string | null, clientContext: string | null, columnAggregates: boolean): Promise<void> {
-        return this.native.analyzeTable(tableId, ipc, connectionId, clientContext, columnAggregates) as Promise<void>;
+    /// the summaries of its columns. The result and the lifetime of the computation are handles of the host, the
+    /// computation takes them; an analysis that doesn't start one releases them through the host. Rejects with the
+    /// error of a failed task.
+    public analyzeTable(
+        tableId: number,
+        ipc: Uint8Array,
+        handles: { table: number; lifetime: number },
+        connectionId: string | null,
+        clientContext: string | null,
+        columnAggregates: boolean,
+    ): Promise<void> {
+        return this.native.analyzeTable(tableId, ipc, handles.table, handles.lifetime, connectionId, clientContext, columnAggregates) as Promise<void>;
     }
 
     /// Run a scheduled task on the compute host, rejects with its error
@@ -172,7 +170,7 @@ export class DashQLComputations {
         connectionId: string | null,
         clientContext: string | null,
     ): ComputationOutcome {
-        return this.native.computationFromQueryResult(tableId, dataTable.id, fields, columnGroups, lifetime, connectionId, clientContext);
+        return this.native.computationFromQueryResult(tableId, dataTable.id, dataTable.rows ?? 0, fields, columnGroups, lifetime, connectionId, clientContext);
     }
 
     public deleteComputation(tableId: number): ComputationOutcome {
@@ -206,7 +204,7 @@ export class DashQLComputations {
         columnGroups: ComputationColumnGroup[],
         now: number,
     ): ComputationOutcome {
-        return this.native.systemColumnsSucceeded(tableId, dataTable.id, dataFrame, columnGroups, now);
+        return this.native.systemColumnsSucceeded(tableId, dataTable.id, dataTable.rows ?? 0, dataFrame, columnGroups, now);
     }
 
     public columnAggregationSucceeded(tableId: number, columnId: number, aggregate: ComputationColumnAggregate, now: number): ComputationOutcome {
@@ -315,5 +313,10 @@ export class DashQLComputations {
 
     public holdsArrowTable(table: number): boolean {
         return this.native.holdsArrowTable(table);
+    }
+
+    /// The lifetime of the computation of a table, a handle of the host, null without a computation
+    public computationLifetime(tableId: number): number | null {
+        return this.native.computationLifetime(tableId) ?? null;
     }
 }

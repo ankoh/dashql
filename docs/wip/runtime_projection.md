@@ -2,7 +2,8 @@
 
 Status: decided and started. The computations, the workbook, the connections, the query histories, the storage writer,
 the restore and the persistence of connections cross as views with generated types, the payloads of the scripts as
-FlatBuffers by key inside the views. Measured on `995154de1`, the workbook on `1e96729fa`.
+FlatBuffers by key inside the views. The JavaScript objects that Rust names are handles of one table, all Arrow tables
+among them (step 2). Measured on `995154de1`, the workbook on `1e96729fa`.
 
 The state of the app lives in the crate `dashql_core_runtime` inside the core module (see
 [core_runtime.md](core_runtime.md)): the workbooks with their scripts, the connections with their query histories,
@@ -146,7 +147,7 @@ What crosses how:
 |---|---|---|
 | The state of DashQL | serde objects of views | workbook, script, connection, query, computation, effects, actions |
 | Payloads of the core | FlatBuffers in views, by key | editor updates, staged diffs, compiled visualizations, processing statistics, completions, query profiles |
-| Tables | Arrow IPC, once per table id | results, the tables of the computations |
+| Tables | Objects of the host by handle; Rust reads the IPC that a task needs once and keeps its values | results, the tables of the computations |
 
 ## One projection
 
@@ -188,16 +189,68 @@ the lists of the parents say what changed.
 
 ### Handles
 
-One `HandleTable` per runtime (`register(object) -> Id`, `get(id)`, `release(id)`) replaces the id maps of the three
-adapters. Rust keeps the handle id where it keeps the JavaScript object today. The effects become three verbs:
+Built. One `HandleTable` per runtime (`packages/dashql-runtime/src/store/handles.ts`, `handlesOf(instance)`: one per
+core instance) holds the JavaScript objects that Rust names by a number:
 
-| Effect | Today |
+```ts
+register(object): number          // a new handle, never given out twice
+get<T>(handle): T | undefined
+release(handle)                   // forget
+close(handle)                     // object.close?.(), then forget
+abort(handle, reason)             // object.abort(new DOMException(reason, 'AbortError')), the handle stays
+apply(effects): rest              // run the effects on handles in order, return the others
+size
+```
+
+- **Ownership.** The action that gives an object to a state hands its handle over (`Handle = u32` of
+  `dashql_core_runtime::handles`). From then on the state owns it: it keeps the handle where it keeps the object and
+  releases it with an effect when it lets go, also right away when the action didn't take it (a result of a query that
+  is no longer active, a table of a task of an unknown computation). An action that throws leaves the handle with the
+  adapter, which releases it. There is one release path, `HandleTable.release`.
+- **What is a handle.** The channels of the connections; the records of catalog updates (cancellation, error) and of
+  queries (cancellation, error, text, metadata); the result tables of queries; every Arrow table of the
+  computations (the result of an analysis, filter, ordering and search tables, statistics, summaries, system columns);
+  the lifetimes of computations (the abort controller with the objects of a computation). An abortable object has
+  `abort(reason)`, a closable one `close()`.
+- **Arrow data never lives in the core module.** A task of the computations reads the rows that its plan needs from
+  the IPC of the compute database (the counts, the bounds of the bins, the matching rows, the row of the statistics),
+  then hands the table over with `registerTable` of the compute host. The state keeps the handle with the rows, the
+  schema and, for the statistics, the values of their row. `arrowTableIpc` and `registerArrowTable` went.
+- **Lookups by id.** The error of a query and the error of a catalog update change the record of the
+  host; the adapter finds it with `queryHandle(queryId)` and `catalogUpdateHandle(taskId)`, one number crossing.
+- **No leaks.** `store/handles.test.ts` runs a workbook on a connection, queries with a result and an active one, a
+  catalog update that fails, a query of the shell and an analysis on the embedded Hyper, then deletes the computation,
+  releases the shell, destroys the runtime and deletes the connection: the table is empty.
+
+The effects:
+
+| Effect | Before |
 |---|---|
-| `{ type: 'release', handle }` | `releaseResultTable`, `releaseChannel`, `releaseDataFrame`, forgetting tasks and query records |
+| `{ type: 'release', handle }` | `releaseResultTable`, `releaseChannel`, the second half of `abortComputation`, forgetting catalog tasks, query records and Arrow tables in the projection |
 | `{ type: 'close', handle }` | `closeChannel` |
-| `{ type: 'abort', handle, reason }` | `abortCatalogUpdates`, `stopQueries`, `abortComputation`, `abortDataSearch` |
+| `{ type: 'abort', handle, reason }` | `abortCatalogUpdates`, `stopQueries`, the first half of `abortComputation` |
+| `cancelSetup`, `invalidateCatalogBatch` (connection) | the same, they act on services |
+| `abortDataSearch`, `releaseDataFrame` (computations) | the same, see below |
 
-`invalidateCatalogBatch` and `cancelSetup` stay named effects, they act on services, not on handles.
+A connection that stops aborts its running catalog updates and releases all of them, then its history is cleared:
+the active queries are aborted (`Connection was reset`, `Connection was deleted`) and every query releases its record
+and its table. The workbook effects are the writes of the storage writer and stay as they are.
+
+### What stays specific
+
+- **Data frames are ids of the compute database.** A data frame is the table `__df_<id>`, the id comes from the counter
+  of the computations so that computations sharing a database don't share names; `releaseDataFrame` drops a database
+  table through the `DataFrameRegistry`, not a JavaScript object.
+- **`abortDataSearch`.** The abort controller of a search belongs to the task that the app scheduled; the state knows
+  the request of the search, and the service cancels the run of the search by it.
+- **The tasks of the scheduler.** The `TaskVariant`s of the app with their promises stay keyed by the task ids of the
+  state, which allocates them; the adapter forgets a task once the state doesn't list it.
+- **Requests and runs of host calls.** `fetch`/`abortFetch` of the hosts and the runs of the compute host are keyed by
+  ids that Rust allocates for a call in flight, not by objects that a state keeps.
+- **The workbook.** The session handles stay one per session id of the projection, the connections of the scripts are
+  keyed by their connection ids.
+- **The channels of a setup run.** A `SetupRun` keeps the channels of one run by ids of the run (the Trino setup names
+  its channel itself); the connection registers the channel that a step hands over as a handle of its own.
 
 ### Hydration
 
@@ -208,10 +261,11 @@ what it built. `detailsProto` of the connection goes, the view of the details is
 
 ### What stays special
 
-- **Arrow tables.** A table of the computations crosses as IPC once per table id and is decoded lazily. Result tables
-  of queries stay JavaScript handles until the query executor moves.
-- **The compute host.** `NativeComputations` implements `ComputeHost` (import, create, query, drop, cancel). Its
-  calls get the context as a view (`ComputeCallContext`) and the effects of a task as `ComputationEffect[]`.
+- **Arrow tables.** Every Arrow table is a handle of the host, also the ones that the tasks of the computations
+  compute, see [Handles](#handles).
+- **The compute host.** `NativeComputations` implements `ComputeHost` (import, create, query, drop, register a table,
+  release, cancel). Its calls get the context as a view (`ComputeCallContext`) and the effects of a task as
+  `ComputationEffect[]`.
 
 ### Per keystroke
 
@@ -260,8 +314,9 @@ Each step keeps the app and the tests green, the steps up to 5 keep the objects 
    JSON readers and builders, the `{ reader }` encoding of the texts, the `to_json` of the progress and `from_json`
    of the persisted fields went, the hand-written interfaces of `dashql-core-js` but the wrappers of the restored
    objects too. Workbook files and connection entries cross as plain JS values (`JsonValue`). Step 1 is done.
-2. **Handles and the three effects.** `HandleTable`, Rust keeps handle ids, the effects become release, close and
-   abort. The id maps and the effect switches of the three adapters go.
+2. **Handles and the three effects.** Done: `HandleTable`, Rust keeps handle ids, the effects become release, close
+   and abort. The id maps and the effect switches of the connection, the query histories and the computations went;
+   all Arrow tables are handles of the host, the computations keep only the values they read.
 3. **The cache and the hydrators.** `projection.ts` is built, the computations, the workbook and the connections use
    it: the workbook lists its scripts with their revisions and its payloads cross by key; the in-place maps of the
    queries and the restore of the catalog updates into a handed-out state went, a projected `ConnectionState` never
@@ -338,6 +393,21 @@ Without tests TypeScript lost 89 lines, Rust gained 432: 12 task views take a st
 fields of an internally tagged enum from a buffer that a function can't pass through, so the variants are read one by
 one. Opaque JSON reads like `JSON.stringify` (`JsonValue`): a member that is undefined stays out of a file instead of
 becoming null.
+
+### The handles, step 2
+
+| | Deleted | Added |
+|---|---|---|
+| `dashql-core-runtime` (`handles.rs`, the effects, the handles of the states, the tables of the computations by handle, `StatsRow`) | 183 | 392 |
+| `dashql-core-wasm` (the views of the effects, the handles in the bindings, `registerTable` of the compute host) | 114 | 184 |
+| `dashql-core-js` (the wrappers) | 31 | 52 |
+| `dashql-runtime` (`handles.ts`; the id maps and effect switches of the connection, the shell and the computations) | 394 | 409 |
+| Tests (Rust: the effects on handles, the host tables of the analysis; TypeScript: the table, the lifecycle) | 104 | 454 |
+
+Without tests, Rust gained 279 lines and TypeScript 36: the Rust side now owns what the adapters forgot by projecting
+(which catalog tasks, queries and tables are gone), and the computations read their statistics into values instead of
+keeping the batches. The connection adapter lost 80 lines, the shell tracker 28; the computations adapter gained 17,
+with the tables of its tasks coming from the host.
 
 ## Risks
 

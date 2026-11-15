@@ -2,6 +2,7 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import { LoggableException } from '../platform/logger/logger.js';
+import type { HandleTable } from '../store/handles.js';
 import { RevisionCache, share } from '../store/projection.js';
 import {
     EXECUTE_QUERY,
@@ -28,45 +29,55 @@ import { profileKeys, projectProfileProgress, type QueryProgressSource } from '.
 /// own (`DashQLQueryHistory`, its effects are the ones of the queries of a connection)
 export type NativeQueryActions = core.DashQLQueryActions;
 
-/// The JavaScript objects of the queries of a Rust history, the history knows them by the ids of the queries and tables
-export interface NativeQueryObjects {
-    /// Keep the objects of a new query
-    registerQuery(state: QueryExecutionState): void;
-    /// Keep the error of a failed or cancelled query
-    setQueryError(queryId: number, error: LoggableException): void;
-    /// Keep a result table, returns its id
-    registerTable(table: arrow.Table): number;
-    releaseTable(id: number): void;
-}
-
-/// What an adapter keeps of a query: the JavaScript objects that don't cross into Rust
+/// What an adapter keeps of a query: the JavaScript objects that don't cross into Rust. The history knows it by its
+/// handle, an abort of the handle aborts the query.
 export interface QueryRecord {
     traceId: number;
     queryText: string;
     queryMetadata: QueryMetadata;
     cancellation: AbortController;
     error: LoggableException | null;
+    abort(reason?: unknown): void;
 }
 
 /// The record of a new query
-export function queryRecord(state: QueryExecutionState): QueryRecord {
+function queryRecord(state: QueryExecutionState): QueryRecord {
+    const cancellation = state.cancellation;
     return {
         traceId: state.traceId,
         queryText: state.queryText,
         queryMetadata: state.queryMetadata,
-        cancellation: state.cancellation,
+        cancellation,
         error: state.error,
+        abort: reason => cancellation.abort(reason),
     };
 }
 
-/// Apply a query action to a Rust history, the objects of the query stay with the host. Returns the outcome, the host
-/// applies its effects.
-export function applyQueryAction(history: NativeQueryActions, objects: NativeQueryObjects, action: QueryExecutionAction, now: number): core.ConnectionOutcome {
+/// The record of a query of a history
+function recordOf(history: NativeQueryActions, handles: HandleTable, queryId: number): QueryRecord | undefined {
+    return handles.get<QueryRecord>(history.queryHandle(queryId));
+}
+
+/// Register an object for an action, the action owns its handle unless it throws
+function handedOver<T>(handles: HandleTable, object: unknown, action: (handle: number) => T): T {
+    const handle = handles.register(object);
+    try {
+        return action(handle);
+    } catch (e) {
+        handles.release(handle);
+        throw e;
+    }
+}
+
+/// Apply a query action to a Rust history, the objects of the query stay with the host under their handles. Returns
+/// the outcome, the host applies its effects.
+export function applyQueryAction(history: NativeQueryActions, handles: HandleTable, action: QueryExecutionAction, now: number): core.ConnectionOutcome {
     switch (action.type) {
         case EXECUTE_QUERY: {
             const [queryId, query] = action.value;
-            objects.registerQuery(query);
-            return history.executeQuery(queryId, query.traceId, query.queryText, query.queryMetadata, query.metrics.queryRequestedAt?.getTime() ?? now);
+            const requestedAt = query.metrics.queryRequestedAt?.getTime() ?? now;
+            return handedOver(handles, queryRecord(query), handle =>
+                history.executeQuery(queryId, handle, query.traceId, query.queryText, query.queryMetadata, requestedAt));
         }
         case QUERY_SENDING:
             return history.querySending(action.value[0], now);
@@ -78,11 +89,8 @@ export function applyQueryAction(history: NativeQueryActions, objects: NativeQue
             return history.queryReceivedBatch(action.value[0], action.value[1], now);
         case QUERY_RECEIVED_ALL_BATCHES: {
             const [queryId, table, metrics] = action.value;
-            const tableId = objects.registerTable(table);
-            const outcome = history.queryReceivedAllBatches(queryId, tableId, table.numRows, metrics, now);
-            // The result of a query that isn't active is dropped right away
-            if (!outcome.changed) objects.releaseTable(tableId);
-            return outcome;
+            // The history releases the result of a query that isn't active right away
+            return handedOver(handles, table, handle => history.queryReceivedAllBatches(queryId, handle, table.numRows, metrics, now));
         }
         case QUERY_PROCESSING_RESULTS:
             return history.queryProcessingResults(action.value[0], now);
@@ -97,7 +105,8 @@ export function applyQueryAction(history: NativeQueryActions, objects: NativeQue
             const outcome = action.type === QUERY_FAILED
                 ? history.queryFailed(queryId, error.message, details, metrics, now)
                 : history.queryCancelled(queryId, error.message, details, metrics, now);
-            if (outcome.changed) objects.setQueryError(queryId, error);
+            const record = outcome.changed ? recordOf(history, handles, queryId) : undefined;
+            if (record != null) record.error = error;
             return outcome;
         }
         case QUERY_CACHE_RECORDED: {
@@ -175,15 +184,16 @@ export class QueryProjection {
     constructor(private readonly errorTarget: string) { }
 
     /// The state of a query of the app, null for a query without the record of the host
-    state(history: NativeQueryActions, queryId: number, revision: number, record: QueryRecord | undefined, tables: ReadonlyMap<number, arrow.Table>): QueryExecutionState | null {
-        if (record == null) return null;
+    state(history: NativeQueryActions, queryId: number, revision: number, handles: HandleTable): QueryExecutionState | null {
         const projected = this.cache.get(queryId, revision, prev => {
             // The payloads of the structured progress that the previous state holds don't cross again
             const previousProgress = prev?.state.latestProgressUpdate ?? null;
             const next = history.query(queryId, profileKeys(previousProgress?.profileProgress));
             if (next == null) return null;
             const view = share(prev?.view, next);
-            const resultTable = view.resultTable == null ? null : (tables.get(view.resultTable.id) ?? null);
+            const record = handles.get<QueryRecord>(view.handle);
+            if (record == null) return null;
+            const resultTable = view.resultTable == null ? null : (handles.get<arrow.Table>(view.resultTable.id) ?? null);
             const progress = projectProgress(view.latestProgress, previousProgress, { history, queryId });
             return { view, state: projectQuery(view, record, resultTable, this.errorTarget, progress) };
         });

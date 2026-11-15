@@ -43,14 +43,20 @@ export { QueryExecutionStatus, QueryType } from './wasm/dashql_core.js';
 type NativeQueries = glue.Connection | glue.QueryHistory;
 
 /// The query actions and the views of a history of the module, shared by `DashQLConnection` and `DashQLQueryHistory`.
-/// An action returns the outcome with the effects for the host, the history knows the result tables by their ids.
+/// An action returns the outcome with the effects for the host, the history knows the records of the queries and their
+/// result tables by their handles of the host.
 export abstract class DashQLQueryActions {
     protected abstract queriesNative(): NativeQueries;
     protected abstract queriesApi(): DashQL;
 
-    /// Start tracking a requested query, only the plain fields of the metadata cross
-    public executeQuery(queryId: number, traceId: number, text: string, metadata: QueryMetadataView, requestedAt = Date.now()): ConnectionOutcome {
-        return this.queriesNative().executeQuery(queryId, traceId, text, metadata, requestedAt);
+    /// Start tracking a requested query, only the plain fields of the metadata cross. The host keeps the record of the
+    /// query under the handle, a query id that the history knows throws and leaves the handle with the host.
+    public executeQuery(queryId: number, handle: number, traceId: number, text: string, metadata: QueryMetadataView, requestedAt = Date.now()): ConnectionOutcome {
+        return this.queriesNative().executeQuery(queryId, handle, traceId, text, metadata, requestedAt);
+    }
+    /// The handle of the record of a query, null for a query that the history doesn't know
+    public queryHandle(queryId: number): number | null {
+        return this.queriesNative().queryHandle(queryId) ?? null;
     }
     public querySending(queryId: number, now = Date.now()): ConnectionOutcome {
         return this.queriesNative().querySending(queryId, now);
@@ -65,7 +71,8 @@ export abstract class DashQLQueryActions {
     public queryReceivedBatch(queryId: number, metrics: QueryStreamMetrics, now = Date.now()): ConnectionOutcome {
         return this.queriesNative().queryReceivedBatch(queryId, metrics, now);
     }
-    /// All batches arrived, the host keeps the table under its id
+    /// All batches arrived, the host keeps the table under its handle. The history releases a table that it doesn't
+    /// take.
     public queryReceivedAllBatches(queryId: number, tableId: number, rows: number, metrics: QueryStreamMetrics, now = Date.now()): ConnectionOutcome {
         return this.queriesNative().queryReceivedAllBatches(queryId, tableId, rows, metrics, now);
     }
@@ -165,5 +172,11 @@ export class DashQLQueryHistory extends DashQLQueryActions {
     /// The revision of the history, it changes with every change of a query
     public revision(): number {
         return this.queriesNative().revision();
+    }
+
+    /// Drop every query, e.g. before the history is freed. The effects abort the active queries and release the
+    /// handles of all queries.
+    public clear(): ConnectionOutcome {
+        return this.queriesNative().clear();
     }
 }
