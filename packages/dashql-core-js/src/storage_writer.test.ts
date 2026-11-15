@@ -14,9 +14,9 @@ const WORKBOOK = '11111111-2222-4333-8444-555555555555';
 
 /// A host with a storage in memory and the timers of JS
 class MemoryHost implements dashql.StorageWriterHost {
-    workbooks = new Map<string, string>();
+    workbooks = new Map<string, unknown>();
     scripts = new Map<string, string>();
-    connections: string | null = null;
+    connections: unknown[] | null = null;
     calls: string[] = [];
     statistics = new Map<string, number[]>();
     externalChanges: string[] = [];
@@ -32,7 +32,7 @@ class MemoryHost implements dashql.StorageWriterHost {
         if (workbook == null) throw new Error(`No workbook ${workbookId}`);
         return workbook;
     }
-    async saveWorkbook(workbookId: string, workbook: string) {
+    async saveWorkbook(workbookId: string, workbook: unknown) {
         this.calls.push(`manifest:${workbookId}`);
         this.workbooks.set(workbookId, workbook);
     }
@@ -46,14 +46,14 @@ class MemoryHost implements dashql.StorageWriterHost {
     async deleteScript(_workbookId: string, fileName: string) { this.calls.push(`delete:${fileName}`); }
     async renameScript(_workbookId: string, from: string, to: string) { this.calls.push(`rename:${from}->${to}`); }
     async listAttachments() { return ['2.parquet', '10.parquet']; }
-    async updateConnections(update: (connections: string | null) => string | null) {
+    async updateConnections(update: (connections: unknown[] | null) => unknown[] | null) {
         const next = update(this.connections);
         if (next != null) this.connections = next;
     }
     async saveConnectionFile(connectionId: string, fileName: string) { this.calls.push(`connection-file:${connectionId}/${fileName}`); }
     async deleteConnectionFiles() { }
     async deleteWorkbook(workbookId: string) { this.workbooks.delete(workbookId); }
-    statisticsChanged(key: string, scheduled: number, writes: number) { this.statistics.set(key, [scheduled, writes]); }
+    statisticsChanged(key: string, statistics: dashql.StorageWriteStatistics) { this.statistics.set(key, [statistics.scheduledWrites, statistics.writes]); }
     externalScriptChange(workbookId: string) { this.externalChanges.push(workbookId); }
 }
 
@@ -75,7 +75,7 @@ describe('DashQL storage writer', () => {
 
     it('reads texts when the write runs and patches the workbook file', async () => {
         const host = new MemoryHost();
-        host.workbooks.set(WORKBOOK, JSON.stringify({ workbookId: WORKBOOK, connections: [], scripts: [], attachments: [], metadata: {} }));
+        host.workbooks.set(WORKBOOK, { workbookId: WORKBOOK, connections: [], scripts: [], attachments: [], metadata: {} });
         const writer = dql!.createStorageWriter(host, 11);
         let text = 'select 1';
         const written = writer.write(`${WORKBOOK}/scripts`, {
@@ -86,10 +86,16 @@ describe('DashQL storage writer', () => {
         await expect(written).resolves.toEqual({ status: 'written' });
         expect(host.scripts.get('a.sql')).toBe('select 2');
         await writer.writeDurable(`${WORKBOOK}/dashql-workbook.json:attachments`, { type: 'refreshWorkbookAttachments', workbookId: WORKBOOK });
-        const workbook = JSON.parse(host.workbooks.get(WORKBOOK)!);
+        const workbook = host.workbooks.get(WORKBOOK) as { name: string; formatVersion: number; attachments: unknown[] };
         expect(workbook.name).toBe('Named');
         expect(workbook.formatVersion).toBe(11);
         expect(workbook.attachments).toEqual([{ name: '2.parquet' }, { name: '10.parquet' }]);
+    });
+
+    it('rejects a task of an unknown type', () => {
+        const writer = dql!.createStorageWriter(new MemoryHost(), 11);
+        expect(() => writer.write('k', { type: 'nope' } as unknown as dashql.StorageWriteTask, 0)).toThrow(/unknown type "nope"/);
+        expect(() => writer.write('k', { type: 'writeScript', workbookId: WORKBOOK } as unknown as dashql.StorageWriteTask, 0)).toThrow(/invalid write task/);
     });
 
     it('hands back what the host failed with', async () => {
@@ -119,9 +125,9 @@ describe('DashQL storage writer', () => {
 
     it('updates the connection entries exclusively', async () => {
         const host = new MemoryHost();
-        host.connections = JSON.stringify([{ id: 'a', params: {}, createdAt: 't' }]);
+        host.connections = [{ id: 'a', params: {}, createdAt: 't' }];
         const writer = dql!.createStorageWriter(host, 11);
-        await writer.writeDurable('@manifest/connections/a', { type: 'writeConnectionEntry', entry: { id: 'a', params: { x: 1 } } });
-        expect(JSON.parse(host.connections!)).toEqual([{ id: 'a', params: { x: 1 }, createdAt: 't' }]);
+        await writer.writeDurable('@manifest/connections/a', { type: 'writeConnectionEntry', entry: { id: 'a', params: { x: 1 }, name: undefined } });
+        expect(host.connections).toStrictEqual([{ id: 'a', params: { x: 1 }, createdAt: 't' }]);
     });
 });

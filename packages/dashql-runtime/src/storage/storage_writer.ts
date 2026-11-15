@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 
 import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
-import type { StorageBackend, WorkbookCloudLink, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
+import type { StorageBackend, WorkbookCloudLink, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookData, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_CONNECTIONS_FOLDER, isWorkbookRegistryBackend } from './storage_backend.js';
 import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
 import { provideWorkbookFormatCore, workbookFormat } from './workbook_format.js';
@@ -379,28 +379,26 @@ export class StorageWriter {
             now: () => Date.now(),
             setTimer: (ms, callback) => setTimeout(callback, ms),
             clearTimer: timer => clearTimeout(timer as ReturnType<typeof setTimeout>),
-            log: (level, message, details) => this.logger[level](message, JSON.parse(details), LOG_CTX),
-            loadWorkbook: async workbookId => JSON.stringify(await this.backend.loadWorkbook(workbookId)),
-            saveWorkbook: async (workbookId, workbook) => this.backend.saveWorkbookManifest(workbookId, JSON.parse(workbook)),
+            log: (level, message, details) => this.logger[level](message, details, LOG_CTX),
+            loadWorkbook: async workbookId => this.backend.loadWorkbook(workbookId),
+            saveWorkbook: async (workbookId, workbook) => this.backend.saveWorkbookManifest(workbookId, workbook as WorkbookData),
             saveScript: async (workbookId, fileName, text) => this.backend.saveScript(workbookId, fileName, text),
             deleteScript: async (workbookId, fileName) => this.backend.deleteScript(workbookId, fileName),
             renameScript: async (workbookId, from, to) => this.backend.renameScript(workbookId, from, to),
             // The natural order of file names follows the collator of the host
             listAttachments: async workbookId => workbookFormat().workbookAttachments((await this.backend.listDataFiles(workbookId)).map(file => file.name.normalize('NFC'))),
-            updateConnections: async update => this.requireRegistry().updateConnections(connections => {
-                const next = update(connections === undefined ? null : JSON.stringify(connections));
-                return next == null ? null : JSON.parse(next) as ConnectionEntry[];
-            }),
+            updateConnections: async update => this.requireRegistry().updateConnections(connections =>
+                update(connections ?? null) as ConnectionEntry[] | null),
             saveConnectionFile: async (connectionId, fileName, text) => this.requireRegistry().saveConnectionFile(connectionId, fileName, text),
             deleteConnectionFiles: async connectionId => this.requireRegistry().deleteConnectionFiles(connectionId),
             deleteWorkbook: async workbookId => this.backend.deleteWorkbook(workbookId),
-            statisticsChanged: (key, scheduledWrites, writes, writtenBytes, writeTimeMs, lastWriteMs) => {
+            statisticsChanged: (key, statistics) => {
                 this.statistics = this.statistics.set(key, {
-                    totalScheduledWrites: scheduledWrites,
-                    totalWrites: writes,
-                    totalWrittenBytes: writtenBytes,
-                    totalWriteTime: writeTimeMs,
-                    lastWrite: lastWriteMs == null ? null : new Date(lastWriteMs),
+                    totalScheduledWrites: statistics.scheduledWrites,
+                    totalWrites: statistics.writes,
+                    totalWrittenBytes: statistics.writtenBytes,
+                    totalWriteTime: statistics.writeTimeMs,
+                    lastWrite: statistics.lastWriteMs == null ? null : new Date(statistics.lastWriteMs),
                 });
                 notify(this.statisticsSubscribers, this.statistics);
             },

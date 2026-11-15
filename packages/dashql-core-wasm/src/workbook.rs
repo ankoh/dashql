@@ -24,7 +24,7 @@ use wasm_bindgen::prelude::*;
 
 use super::{js_error, Catalog, ScriptSession, SharedCatalog};
 
-mod view;
+pub(crate) mod view;
 
 use view::{WorkbookCloudLink, WorkbookDataFile, WorkbookOutcome, WorkbookScriptKeys, WorkbookScriptView, WorkbookView};
 

@@ -1,8 +1,8 @@
 # Projecting the runtime state
 
-Status: decided and started. The computations, the workbook, the connections and the query histories cross as views
-with generated types, the payloads of the scripts as FlatBuffers by key inside the views. Measured on `995154de1`, the
-workbook on `1e96729fa`.
+Status: decided and started. The computations, the workbook, the connections, the query histories, the storage writer,
+the restore and the persistence of connections cross as views with generated types, the payloads of the scripts as
+FlatBuffers by key inside the views. Measured on `995154de1`, the workbook on `1e96729fa`.
 
 The state of the app lives in the crate `dashql_core_runtime` inside the core module (see
 [core_runtime.md](core_runtime.md)): the workbooks with their scripts, the connections with their query histories,
@@ -254,7 +254,12 @@ Each step keeps the app and the tests green, the steps up to 5 keep the objects 
    arguments, the catalog is an object of the module. Done for the connection and the query histories (of a connection
    and of the shell): their `json!` builders and JSON readers, the hand-written interfaces of `connection.ts` and
    `query_history.ts` and the six enums of the runtime went, and the 13 query actions exist once (`query_actions!` in
-   the bindings, `DashQLQueryActions` in `dashql-core-js`). Next the storage writer and the restore.
+   the bindings, `DashQLQueryActions` in `dashql-core-js`). Done for the storage writer, the restore and the
+   persistence of connections: the tasks, the outcomes, the statistics and the generations of the writer, the
+   restored state and the progress of a restore, the persisted fields, the change and the outcomes of a save. Their
+   JSON readers and builders, the `{ reader }` encoding of the texts, the `to_json` of the progress and `from_json`
+   of the persisted fields went, the hand-written interfaces of `dashql-core-js` but the wrappers of the restored
+   objects too. Workbook files and connection entries cross as plain JS values (`JsonValue`). Step 1 is done.
 2. **Handles and the three effects.** `HandleTable`, Rust keeps handle ids, the effects become release, close and
    abort. The id maps and the effect switches of the three adapters go.
 3. **The cache and the hydrators.** `projection.ts` is built, the computations, the workbook and the connections use
@@ -317,6 +322,23 @@ the details and the catalog updates of the app are built again only when their p
 `Part` went). A query keeps its state in a `RevisionCache` (`QueryProjection`, shared with the shell), and the maps and
 lists of the queries are new objects when a query changed, started or finished.
 
+### The storage writer, the restore and the persistence of connections, step 1
+
+| | Deleted | Added |
+|---|---|---|
+| `dashql-core-wasm/src/storage_writer.rs`, `restore.rs`, `connection_persistence.rs` (the task reader, the outcome objects, the summary, the JSON of the host) | 347 | 155 |
+| `dashql-core-wasm/src/{storage_writer,restore,connection_persistence}/view.rs` (30 views with their conversions) | | 578 |
+| `dashql-core-wasm/src/views.rs` (`JsonValue`, `LogDetails`, `value_to_js`), `computations.rs` (the shared helpers) | 35 | 115 |
+| `dashql-core-runtime` (`RestoreProgress::to_json`, `PersistedConnection::from_json`) | 34 | |
+| `dashql-core-js` (the interfaces, `encodeTask`, the JSON of the calls and of the summary) | 154 | 70 |
+| `dashql-runtime` (the JSON of the hosts, the positional statistics) | 21 | 16 |
+| Tests (core-js: the host on objects, an undefined member stays out of a file, invalid tasks throw) | 10 | 16 |
+
+Without tests TypeScript lost 89 lines, Rust gained 432: 12 task views take a struct each, because serde reads the
+fields of an internally tagged enum from a buffer that a function can't pass through, so the variants are read one by
+one. Opaque JSON reads like `JSON.stringify` (`JsonValue`): a member that is undefined stays out of a file instead of
+becoming null.
+
 ## Risks
 
 - **Wasm size.** The views of the computations, their `Deserialize` impls through serde-wasm-bindgen and the editor
@@ -324,8 +346,10 @@ lists of the queries are new objects when a query changed, started or finished.
   3,355,769 bytes (+2.3%), 182 KB for 34 views and one FlatBuffer view. The 26 views of the workbook and its runs
   shrink it (12,947,623 to 12,909,966 bytes), they replace more `json!` code than they add. The views of the connection
   and its queries shrink the module from 12,947,623 to 12,936,168 bytes (-0.1%) and grow it gzipped (`gzip -9`) from
-  3,535,244 to 3,548,189 bytes (+0.4%), measured on its own base. The size is measured with every step, and an input
-  that only a test needs goes back to typed arguments.
+  3,535,244 to 3,548,189 bytes (+0.4%), measured on its own base. The views of the storage writer, the restore and the
+  persistence of connections grow it from 12,924,187 to 12,957,887 bytes (+0.3%), gzip from 3,552,536 to 3,567,992
+  bytes (+0.4%): the `Deserialize` impls of 12 task views and the restore views replace little `json!` code. The size
+  is measured with every step, and an input that only a test needs goes back to typed arguments.
 - **Two copies of `@ankoh/dashql-core`.** The generated types are erased; the generated enums are numbers in both
   copies, so comparisons hold. The cache and the handle table never use `instanceof` or the classes of the package.
 - **The declarations import the generated FlatBuffer code** by a relative path (`../gen/dashql/buffers/`). The path

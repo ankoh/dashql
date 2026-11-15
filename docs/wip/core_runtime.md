@@ -25,8 +25,8 @@ core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession
 schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `QueryHistory`, `Computations`,
 `StorageWriter`, `AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`,
 `ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON, the ones of the
-computations, the connections and the query histories as JS objects of views with generated types (see
-[runtime_projection.md](runtime_projection.md)).
+computations, the workbook, the connections, the query histories, the storage writer, the restore and the persistence
+of connections as JS objects of views with generated types (see [runtime_projection.md](runtime_projection.md)).
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -238,6 +238,12 @@ the class `StorageWriter` of the module (`DashQLStorageWriter` of `@ankoh/dashql
   connection entries of the app manifest (the host calls back into the writer with the entries), deleting. The natural
   order of the attachment list follows the collator of the host. A task carries a text or a function that reads the
   latest text when the write runs, e.g. the scripts of a workbook that is written as a whole.
+- **Views.** A task is a view of `storage_writer/view.rs` (`StorageWriteTask`, a union by `type`), the outcome of a
+  write (`StorageWriteOutcome`, by `status`), the statistics of a key and the generations of a workbook are views too.
+  A text crosses as the string or the function itself. Workbook files and connection entries cross as plain JS values
+  (`JsonValue` of `views.rs`), read the way `JSON.stringify` reads them: a member that is undefined is left out, it
+  doesn't become null in a file. The log details are an object of strings. The variants of a task are read one by one,
+  serde reads the fields of an internally tagged enum from a buffer that a function can't pass through.
 - **Before the core.** The app creates the writer in its storage provider, above the provider of the core. The writer
   takes the core it is given or the one that the package instantiated already (`DashQL.instantiated`), else it asks
   for one with the first write and the calls before it wait and run in order. The runtime gives the writer the setup
@@ -287,6 +293,9 @@ of a folder through it. Their callers didn't change.
 - **Migrations stay before the restore.** The storage setup of the app migrates the root and the reachable workbook
   folders before the backend exists, the native backend a folder when it opens it. The restore validates the format
   version and shows an older workbook as invalid.
+- **Views.** What a restore restored next to the connections and workbooks (`RestoredStateView`, the connector as
+  `ConnectorType`), the progress, and the script and data files that the host lists are views of `restore/view.rs`.
+  The connection entries of the app manifest and the stored params of a live connection cross as plain JS values.
 
 The persistence of connections is a module of the crate as well (`src/connection_persistence.rs`, bound as
 `ConnectionPersistence`). The registry of connections still applies the actions in TypeScript, and the module decides
@@ -296,7 +305,8 @@ caching choice to the app manifest with a longer debounce, and an active connect
 an update and its catalog state after statements and updates. A deleted active connection leaves the app manifest and
 its pending file writes are discarded. `ConnectionPersistenceService` saves through the module: the entry of the app
 manifest first, then the commit of the params, then the copies of the workbooks, all of them durable writes of the
-writer. A connection that the app created holds no id in Rust, the id comes with every call.
+writer. A connection that the app created holds no id in Rust, the id comes with every call. The persisted fields, the
+change and the outcomes of a save are views of `connection_persistence/view.rs`, the saved params cross as objects.
 
 - **Changed on purpose.** The restore parses the catalog files in the module and not in the batch worker, a file that
   doesn't parse publishes neither relations nor functions. A draft that can't be read is dropped with a warning

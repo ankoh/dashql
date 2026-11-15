@@ -49,19 +49,6 @@ impl PersistedConnection {
             cache_query_results: state.cache_query_results(),
         }
     }
-
-    /// Read the fields from JSON, `{active, params, paramsDraft?, name?, cacheQueryResults?}`, none for anything else
-    pub fn from_json(value: &Value) -> Option<Self> {
-        let object = value.as_object()?;
-        let present = |key: &str| object.get(key).filter(|value| !value.is_null());
-        Some(Self {
-            active: object.get("active").and_then(Value::as_bool).unwrap_or(false),
-            params: present("params")?.clone(),
-            params_draft: present("paramsDraft").cloned(),
-            name: present("name").and_then(Value::as_str).map(str::to_string),
-            cache_query_results: present("cacheQueryResults").and_then(Value::as_bool),
-        })
-    }
 }
 
 /// Do two optional params describe the same connection?

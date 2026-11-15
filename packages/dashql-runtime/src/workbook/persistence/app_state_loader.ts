@@ -68,18 +68,15 @@ function restoreHost(
     const registry = isWorkbookRegistryBackend(backend) ? backend : null;
     return {
         ...writer.createHost(),
-        log: (level, message, details) => logger[level](message, JSON.parse(details), LOG_CTX),
+        log: (level, message, details) => logger[level](message, details, LOG_CTX),
         ownsConnections: () => registry != null,
         newUuid: () => crypto.randomUUID(),
         listWorkbooks: async () => (await backend.listWorkbooks()).map(entry => entry.path),
-        loadManifestConnections: async () => {
-            const connections = (await registry?.loadManifest())?.connections;
-            return connections == null ? null : JSON.stringify(connections);
-        },
+        loadManifestConnections: async () => (await registry?.loadManifest())?.connections ?? null,
         loadScripts: async workbookId => (await backend.loadScripts(workbookId)).map(script => ({ name: script.name, sql: script.sql })),
         listDataFiles: async workbookId => backend.listDataFiles(workbookId),
         loadConnectionFile: async (connectionId, fileName) => registry == null ? null : registry.loadConnectionFile(connectionId, fileName),
-        restoreProgress: json => progress(restorationProgress(JSON.parse(json) as core.RestoreProgress)),
+        restoreProgress: restored => progress(restorationProgress(restored)),
     };
 }
 

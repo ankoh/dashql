@@ -2,14 +2,14 @@
 //!
 //! The host is the host of the storage writer with the reads of the restore (`RestoreHost`), the restore writes through
 //! a `StorageWriter` of the module. The restored connections and workbooks cross as the classes of the module
-//! (`Connection`, `Workbook`), what the registries need next to them as JSON.
+//! (`Connection`, `Workbook`), what the registries need next to them and the progress as views (`view.rs`).
 
 use std::future::Future;
 
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core_runtime::attachments::DataFile;
-use dashql_core_runtime::connections::{ConnectionState, ConnectorType};
+use dashql_core_runtime::connections::ConnectionState;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::restore::{
     AppRestore as RuntimeRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState as RuntimeState,
@@ -17,16 +17,24 @@ use dashql_core_runtime::restore::{
 use dashql_core_runtime::storage::{ConnectionsUpdate, StorageHost, WriteStatistics};
 use dashql_core_runtime::workbook::Workbook as RuntimeWorkbook;
 use dashql_core_runtime::workbook_format::restore::RestoreConnection;
-use js_sys::{Array, Promise, Reflect};
-use serde_json::{json, Value};
+use js_sys::Promise;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
+use tsify::Ts;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
 use super::connection::Connection;
 use super::storage_writer::{host_call, JsHost, JsStorageWriterHost, StorageWriter};
+use super::views::{from_js, to_js, JsonValue};
+use super::workbook::view::WorkbookDataFile;
 use super::workbook::{connection as script_connection, Workbook};
 use super::{Catalog, ENTRY_IDS};
+
+mod view;
+
+use view::{RestoreProgress as ProgressView, RestoreScriptFile, RestoredStateView};
 
 #[wasm_bindgen(typescript_custom_section)]
 const RESTORE_HOST: &str = r#"
@@ -38,16 +46,16 @@ export interface RestoreHost extends StorageWriterHost {
     newUuid(): string;
     /** The workbooks of the workbook tree in the order of the sidebar, as their ids */
     listWorkbooks(): Promise<string[]>;
-    /** The connection entries of the app manifest as JSON, null if the manifest has none */
-    loadManifestConnections(): Promise<string | null>;
+    /** The connection entries of the app manifest, null if the manifest has none */
+    loadManifestConnections(): Promise<unknown[] | null>;
     /** The script files of a workbook */
-    loadScripts(workbookId: string): Promise<{ name: string; sql: string }[]>;
+    loadScripts(workbookId: string): Promise<RestoreScriptFile[]>;
     /** The data files of a workbook */
-    listDataFiles(workbookId: string): Promise<{ name: string; sizeBytes: number; mtimeMs?: number }[]>;
+    listDataFiles(workbookId: string): Promise<WorkbookDataFile[]>;
     /** A file of a connection, null if it doesn't exist */
     loadConnectionFile(connectionId: string, fileName: string): Promise<string | null>;
-    /** The progress of the restore changed, as JSON */
-    restoreProgress(progress: string): void;
+    /** The progress of the restore changed */
+    restoreProgress(progress: RestoreProgress): void;
 }
 "#;
 
@@ -72,20 +80,12 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = loadConnectionFile)]
     fn load_connection_file(this: &JsRestoreHost, connection_id: &str, file_name: &str) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, catch, js_name = restoreProgress)]
-    fn restore_progress(this: &JsRestoreHost, progress: &str) -> Result<(), JsValue>;
+    fn restore_progress(this: &JsRestoreHost, progress: &JsValue) -> Result<(), JsValue>;
 }
 
-/// A field of a JS object
-fn field(value: &JsValue, name: &str) -> JsValue {
-    Reflect::get(value, &JsValue::from_str(name)).unwrap_or(JsValue::UNDEFINED)
-}
-
-/// The items of a JS array, none for anything else
-fn items(value: &JsValue, what: &str) -> Result<Vec<JsValue>, HostError> {
-    if !Array::is_array(value) {
-        return Err(HostError::new(format!("{what} are not a list")));
-    }
-    Ok(Array::from(value).iter().collect())
+/// The views of a list that the host handed over
+fn items<T: DeserializeOwned>(value: JsValue, what: &str) -> Result<Vec<T>, HostError> {
+    serde_wasm_bindgen::from_value(value).map_err(|e| HostError::new(format!("{what} can't be read: {e}")))
 }
 
 /// The host of the restore over the JS object: the storage operations of the writer and the reads of the restore
@@ -157,42 +157,24 @@ impl RestoreHost for JsRestore {
     }
 
     async fn list_workbooks(&self) -> Result<Vec<String>, HostError> {
-        let listed = host_call(self.host.list_workbooks()).await?;
-        Ok(items(&listed, "the workbooks")?.into_iter().filter_map(|id| id.as_string()).collect())
+        items(host_call(self.host.list_workbooks()).await?, "the workbooks")
     }
 
     async fn load_manifest_connections(&self) -> Result<Option<Vec<Value>>, HostError> {
-        let text = host_call(self.host.load_manifest_connections()).await?;
-        let Some(text) = text.as_string() else { return Ok(None) };
-        match serde_json::from_str::<Value>(&text) {
-            Ok(Value::Array(entries)) => Ok(Some(entries)),
-            Ok(_) => Ok(None),
-            Err(error) => Err(HostError::new(format!("the connections of the app manifest can't be read: {error}"))),
+        match JsonValue::of(&host_call(self.host.load_manifest_connections()).await?).0 {
+            Value::Array(entries) => Ok(Some(entries)),
+            _ => Ok(None),
         }
     }
 
     async fn load_scripts(&self, workbook_id: &str) -> Result<Vec<(String, String)>, HostError> {
-        let scripts = host_call(self.host.load_scripts(workbook_id)).await?;
-        let mut out = Vec::new();
-        for script in items(&scripts, "the scripts")? {
-            let (Some(name), Some(sql)) = (field(&script, "name").as_string(), field(&script, "sql").as_string()) else {
-                return Err(HostError::new(format!("a script of {workbook_id} can't be read")));
-            };
-            out.push((name, sql));
-        }
-        Ok(out)
+        let scripts: Vec<RestoreScriptFile> = items(host_call(self.host.load_scripts(workbook_id)).await?, "the scripts")?;
+        Ok(scripts.into_iter().map(|script| (script.name, script.sql)).collect())
     }
 
     async fn list_data_files(&self, workbook_id: &str) -> Result<Vec<DataFile>, HostError> {
-        let files = host_call(self.host.list_data_files(workbook_id)).await?;
-        let number = |value: JsValue| value.as_f64().filter(|n| n.is_finite() && *n >= 0.0).map(|n| n as u64).unwrap_or(0);
-        Ok(items(&files, "the data files")?
-            .into_iter()
-            .filter_map(|file| {
-                let name = field(&file, "name").as_string()?;
-                Some(DataFile { name, size_bytes: number(field(&file, "sizeBytes")), mtime_ms: number(field(&file, "mtimeMs")) })
-            })
-            .collect())
+        let files: Vec<WorkbookDataFile> = items(host_call(self.host.list_data_files(workbook_id)).await?, "the data files")?;
+        Ok(files.into_iter().map(DataFile::from).collect())
     }
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {
@@ -200,16 +182,9 @@ impl RestoreHost for JsRestore {
     }
 
     fn restore_progress(&self, progress: &RestoreProgress) {
-        let _ = self.host.restore_progress(&progress.to_json().to_string());
-    }
-}
-
-fn connector_index(connector: ConnectorType) -> u8 {
-    match connector {
-        ConnectorType::Hyper => 0,
-        ConnectorType::SalesforceDataCloud => 1,
-        ConnectorType::Trino => 2,
-        ConnectorType::Dbcom => 3,
+        if let Ok(progress) = to_js(&ProgressView::from(progress)) {
+            let _ = self.host.restore_progress(&progress.into());
+        }
     }
 }
 
@@ -218,43 +193,25 @@ fn connector_index(connector: ConnectorType) -> u8 {
 pub struct RestoredState {
     connections: Vec<Option<ConnectionState>>,
     workbooks: Vec<Option<RuntimeWorkbook>>,
-    summary: String,
+    view: RestoredStateView,
 }
 
 impl From<RuntimeState> for RestoredState {
     fn from(state: RuntimeState) -> Self {
-        let summary = json!({
-            "connections": state.connections.iter().map(|connection| json!({
-                "connectionId": connection.connection_id(),
-                "connectorType": connector_index(connection.connector_type()),
-            })).collect::<Vec<_>>(),
-            "workbooks": state.workbooks.iter().map(|workbook| json!({
-                "workbookId": workbook.workbook.id(),
-                "name": workbook.workbook.name(),
-                "metadata": workbook.metadata,
-                "connectionIds": workbook.connection_ids,
-            })).collect::<Vec<_>>(),
-            "invalidWorkbooks": state.invalid_workbooks.iter().map(|invalid| json!({
-                "workbookId": invalid.workbook_id,
-                "title": invalid.title,
-                "connectorType": invalid.connector_type.map(connector_index),
-                "error": invalid.error.code(),
-            })).collect::<Vec<_>>(),
-            "progress": state.progress.to_json(),
-        });
+        let view = RestoredStateView::from(&state);
         RestoredState {
             connections: state.connections.into_iter().map(Some).collect(),
             workbooks: state.workbooks.into_iter().map(|workbook| Some(workbook.workbook)).collect(),
-            summary: summary.to_string(),
+            view,
         }
     }
 }
 
 #[wasm_bindgen]
 impl RestoredState {
-    /// The connections, the workbooks and the invalid workbooks as JSON, in the order of the indexes
-    pub fn summary(&self) -> String {
-        self.summary.clone()
+    /// The connections, the workbooks and the invalid workbooks in the order of the indexes, and the progress
+    pub fn view(&self) -> Result<Ts<RestoredStateView>, JsError> {
+        to_js(&self.view)
     }
 
     /// Take a restored connection, none if it was taken
@@ -293,13 +250,13 @@ impl AppRestore {
         AppRestore { restore: Some(restore) }
     }
 
-    /// A connection that the app holds already: its stored params as JSON and the connection of its scripts
+    /// A connection that the app holds already: its stored params and the connection of its scripts
     #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = addLiveConnection)]
     pub fn add_live_connection(
         &mut self,
         connection_id: &str,
-        stored_params: &str,
+        stored_params: Ts<JsonValue>,
         catalog: &Catalog,
         dialect: u8,
         local: bool,
@@ -308,7 +265,7 @@ impl AppRestore {
         default_schema: &str,
     ) -> Result<(), JsError> {
         let restore = self.restore.as_mut().ok_or_else(|| JsError::new("the restore ran already"))?;
-        let stored: Value = serde_json::from_str(stored_params).map_err(|e| JsError::new(&format!("invalid connection params: {e}")))?;
+        let stored = from_js(&stored_params)?.0;
         let script_connection = script_connection(connection_id, catalog, dialect, local, params, default_database, default_schema);
         let connection = RestoreConnection {
             connection_id: connection_id.to_string(),

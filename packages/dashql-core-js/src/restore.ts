@@ -5,87 +5,51 @@ import type { DashQLStorageWriter } from './storage_writer.js';
 import { connectionArgs, DashQLWorkbook, type WorkbookConnection } from './workbook.js';
 
 export type { RestoreHost } from './wasm/dashql_core.js';
+/// The views of a restore, declared by the module (`packages/dashql-core-wasm/src/restore/view.rs`)
+export type {
+    RestoredConnectionView,
+    RestoredInvalidWorkbook,
+    RestoredStateView,
+    RestoredWorkbookView,
+    RestoreProgress,
+    RestoreProgressCounter,
+    RestoreScriptFile,
+} from './wasm/dashql_core.js';
 
 const APP_RESTORE_TYPE = Symbol('APP_RESTORE_TYPE');
 
-/// A counter of the progress of a step of a restore
-export interface RestoreProgressCounter {
-    started: number;
-    succeeded: number;
-    skipped: number;
-    failed: number;
-    total: number | null;
-}
-
-/// The progress of a restore
-export interface RestoreProgress {
-    restoreConnections: RestoreProgressCounter;
-    restoreCatalogs: RestoreProgressCounter;
-    restoreWorkbookScripts: RestoreProgressCounter;
-}
-
-/// A restored connection
-export interface RestoredConnection {
-    connectionId: string;
-    /// The connector, the number of `ConnectorType`
-    connectorType: number;
-    /// The Rust connection
+/// A restored connection with the Rust connection
+export interface RestoredConnection extends glue.RestoredConnectionView {
     connection: DashQLConnection;
 }
 
-/// A restored workbook
-export interface RestoredWorkbook {
-    workbookId: string;
-    name: string | null;
-    /// The metadata of the workbook file, without the ephemeral marker of a promoted workbook
-    metadata: unknown;
-    /// The connections of the scripts and the pending connection
-    connectionIds: string[];
-    /// The Rust workbook
+/// A restored workbook with the Rust workbook
+export interface RestoredWorkbook extends glue.RestoredWorkbookView {
     workbook: DashQLWorkbook;
 }
 
-/// A workbook that failed its validation or couldn't be restored
-export interface RestoredInvalidWorkbook {
-    workbookId: string;
-    title: string;
-    connectorType: number | null;
-    /// The code of the validation error, e.g. `unsupported_format_version`
-    error: string;
-}
-
 /// What a restore restored
-export interface DashQLRestoredState {
+export interface DashQLRestoredState extends glue.RestoredStateView {
     connections: RestoredConnection[];
     workbooks: RestoredWorkbook[];
-    invalidWorkbooks: RestoredInvalidWorkbook[];
-    progress: RestoreProgress;
-}
-
-interface Summary {
-    connections: { connectionId: string; connectorType: number }[];
-    workbooks: { workbookId: string; name: string | null; metadata: unknown; connectionIds: string[] }[];
-    invalidWorkbooks: RestoredInvalidWorkbook[];
-    progress: RestoreProgress;
 }
 
 /// Take the connections and workbooks out of a restored state of the module
 function readState(api: DashQL, state: glue.RestoredState): DashQLRestoredState {
     try {
-        const summary = JSON.parse(state.summary()) as Summary;
+        const view = state.view();
         return {
-            connections: summary.connections.map((info, index) => {
+            ...view,
+            connections: view.connections.map((info, index) => {
                 const native = state.takeConnection(index);
                 if (native == null) throw new Error(`the restore holds no connection ${info.connectionId}`);
                 return { ...info, connection: DashQLConnection.adopt(api, native) };
             }),
-            workbooks: summary.workbooks.map((info, index) => {
+            workbooks: view.workbooks.map((info, index) => {
                 const native = state.takeWorkbook(index);
                 if (native == null) throw new Error(`the restore holds no workbook ${info.workbookId}`);
                 return { ...info, workbook: DashQLWorkbook.adopt(api, native) };
             }),
-            invalidWorkbooks: summary.invalidWorkbooks,
-            progress: summary.progress,
         };
     } finally {
         state.free();
@@ -111,9 +75,9 @@ export class DashQLAppRestore {
     }
 
     /// A connection that the app holds already: its stored params and the connection of its scripts
-    public addLiveConnection(params: unknown, connection: WorkbookConnection): void {
+    public addLiveConnection(params: glue.JsonValue, connection: WorkbookConnection): void {
         const [connectionId, ...rest] = connectionArgs(this.ptr.api, connection);
-        this.ptr.assertNotNull().addLiveConnection(connectionId, JSON.stringify(params), ...rest);
+        this.ptr.assertNotNull().addLiveConnection(connectionId, params, ...rest);
     }
 
     /// Restore the connections of the app manifest and the workbooks of the workbook tree

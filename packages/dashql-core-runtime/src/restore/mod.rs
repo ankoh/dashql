@@ -71,18 +71,6 @@ pub struct ProgressCounter {
     pub total: Option<u32>,
 }
 
-impl ProgressCounter {
-    fn to_json(&self) -> Value {
-        json!({
-            "started": self.started,
-            "succeeded": self.succeeded,
-            "skipped": self.skipped,
-            "failed": self.failed,
-            "total": self.total,
-        })
-    }
-}
-
 /// The progress of a restore: the connections, the catalogs and the scripts of the workbooks
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RestoreProgress {
@@ -92,15 +80,6 @@ pub struct RestoreProgress {
 }
 
 impl RestoreProgress {
-    /// The progress as JSON, the counters by the names of `AppStateRestorationProgress`
-    pub fn to_json(&self) -> Value {
-        json!({
-            "restoreConnections": self.connections.to_json(),
-            "restoreCatalogs": self.catalogs.to_json(),
-            "restoreWorkbookScripts": self.workbook_scripts.to_json(),
-        })
-    }
-
     fn add_total(&mut self, total: u32) {
         for counter in [&mut self.connections, &mut self.catalogs, &mut self.workbook_scripts] {
             counter.total = Some(counter.total.unwrap_or(0).saturating_add(total));

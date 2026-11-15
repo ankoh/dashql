@@ -82,7 +82,7 @@ export class ConnectionPersistenceService {
         try {
             const workbookIds = [...references.workbooksOf(connectionId)];
             const outcome = await storageWriter.withNativeWriter(native => core.DashQLConnectionPersistence.save(
-                native, connection.native.connection, connectionId, saved ?? null, workbookIds,
+                native, connection.native.connection, connectionId, (saved ?? null) as core.JsonParams | null, workbookIds,
                 params => dispatch(connectionId, { type: COMMIT_CONNECTION_PARAMS, value: params as ConnectionParams })));
             const result: ConnectionSaveResult = {
                 params: outcome.params as ConnectionParams,

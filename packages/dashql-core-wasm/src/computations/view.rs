@@ -614,11 +614,6 @@ pub(super) fn effects(effects: &[RuntimeEffect]) -> Vec<ComputationEffect> {
     effects.iter().map(ComputationEffect::from).collect()
 }
 
-/// A value of the views that is no view of its own, e.g. a list of effects, as a JS object
-pub(super) fn to_js<T: Serialize>(value: &T) -> Result<JsValue, serde_wasm_bindgen::Error> {
-    value.serialize(&serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true))
-}
-
 /// What an action did
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]

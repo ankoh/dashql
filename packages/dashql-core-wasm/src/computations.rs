@@ -30,12 +30,13 @@ use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, Computa
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use js_sys::{Function, Promise, Reflect, Uint8Array};
 use serde_json::{Map, Value};
-use tsify::{Ts, Tsify};
+use tsify::Ts;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
 
 use super::js_error;
+use super::views::{from_js, to_js, value_to_js};
 
 mod view;
 
@@ -228,19 +229,6 @@ fn task_version(task: &rt::ComputationTask) -> ComputationVersion {
     }
 }
 
-/// A view as a JS object
-fn js<T: Tsify + serde::Serialize>(view: &T) -> Result<Ts<T>, JsError> {
-    Ok(Ts::from_rust(view)?)
-}
-
-/// A view that the host handed over
-fn rust<T: Tsify + serde::de::DeserializeOwned>(value: &Ts<T>) -> Result<T, JsError>
-where
-    T::JsType: Clone,
-{
-    Ok(value.to_rust()?)
-}
-
 fn id(value: f64) -> u64 {
     if value.is_finite() && value >= 0.0 {
         value as u64
@@ -420,7 +408,7 @@ impl ComputeHost for JsComputeHost {
     fn changed(&self, effects: &[ComputationEffect]) {
         let host = self.host.borrow().clone();
         if let Some(host) = host {
-            if let Ok(effects) = view::to_js(&view::effects(effects)) {
+            if let Ok(effects) = value_to_js(&view::effects(effects)) {
                 let _ = host.changed(&effects);
             }
         }
@@ -451,7 +439,7 @@ impl Computations {
     fn apply(&self, action: ComputationAction) -> Result<Ts<ComputationOutcome>, JsError> {
         let outcome = self.service.apply(action).map_err(js_error);
         self.registered.borrow_mut().clear();
-        js(&ComputationOutcome::from(outcome?))
+        to_js(&ComputationOutcome::from(outcome?))
     }
 
     fn table(&self, table: f64) -> ArrowTable {
@@ -459,7 +447,7 @@ impl Computations {
     }
 
     fn column_groups(column_groups: &[Ts<ComputationColumnGroup>]) -> Result<Vec<ColumnGroup>, JsError> {
-        column_groups.iter().map(|group| rust(group).map(ColumnGroup::from)).collect()
+        column_groups.iter().map(|group| from_js(group).map(ColumnGroup::from)).collect()
     }
 }
 
@@ -551,7 +539,7 @@ impl Computations {
     /// Schedule a task. The outcome holds the id of the task unless it was dropped.
     #[wasm_bindgen(js_name = scheduleTask)]
     pub fn schedule_task(&self, task: Ts<ComputationTask>, now: f64) -> Result<Ts<ComputationOutcome>, JsError> {
-        let task = rust(&task)?;
+        let task = from_js(&task)?;
         let task = self.read(|tables| tables.task(task));
         self.apply(ComputationAction::ScheduleTask { task, now: time(now) })
     }
@@ -559,7 +547,7 @@ impl Computations {
     /// The scheduler reports progress of a task, the update holds what changed
     #[wasm_bindgen(js_name = updateSchedulerTask)]
     pub fn update_scheduler_task(&self, task_id: f64, progress: Ts<ComputationProgressUpdate>, now: f64) -> Result<Ts<ComputationOutcome>, JsError> {
-        let progress = rust(&progress)?.into();
+        let progress = from_js(&progress)?.into();
         self.apply(ComputationAction::UpdateSchedulerTask { task_id: id(task_id), progress, now: time(now) })
     }
 
@@ -605,7 +593,7 @@ impl Computations {
 
     #[wasm_bindgen(js_name = tableOrderingSucceeded)]
     pub fn table_ordering_succeeded(&self, table_id: f64, ordering: Ts<ComputationOrderingTable>, now: f64) -> Result<Ts<ComputationOutcome>, JsError> {
-        let ordering = rust(&ordering)?;
+        let ordering = from_js(&ordering)?;
         let ordering = self.read(|tables| tables.ordering(ordering));
         self.apply(ComputationAction::TableOrderingSucceeded { table_id: id(table_id), ordering, now: time(now) })
     }
@@ -625,7 +613,7 @@ impl Computations {
         filter: Option<Ts<ComputationFilterTable>>,
         now: f64,
     ) -> Result<Ts<ComputationOutcome>, JsError> {
-        let filter = filter.as_ref().map(rust).transpose()?;
+        let filter = filter.as_ref().map(from_js).transpose()?;
         let filter = filter.map(|filter| self.read(|tables| tables.filter(filter)));
         self.apply(ComputationAction::TableFilteringSucceeded {
             table_id: id(table_id),
@@ -642,7 +630,7 @@ impl Computations {
         aggregation: Ts<ComputationTableAggregation>,
         now: f64,
     ) -> Result<Ts<ComputationOutcome>, JsError> {
-        let aggregation = rust(&aggregation)?;
+        let aggregation = from_js(&aggregation)?;
         let aggregation = self.read(|tables| tables.aggregation(Some(aggregation)));
         self.apply(ComputationAction::TableAggregationSucceeded { table_id: id(table_id), aggregation, now: time(now) })
     }
@@ -675,7 +663,7 @@ impl Computations {
         aggregate: Ts<ComputationColumnAggregate>,
         now: f64,
     ) -> Result<Ts<ComputationOutcome>, JsError> {
-        let aggregate = rust(&aggregate)?;
+        let aggregate = from_js(&aggregate)?;
         let aggregate = self.read(|tables| tables.aggregate(Some(aggregate)));
         self.apply(ComputationAction::ColumnAggregationSucceeded { table_id: id(table_id), column_id, aggregate, now: time(now) })
     }
@@ -691,7 +679,7 @@ impl Computations {
         aggregate: Option<Ts<ComputationFilteredAggregate>>,
         now: f64,
     ) -> Result<Ts<ComputationOutcome>, JsError> {
-        let aggregate = aggregate.as_ref().map(rust).transpose()?;
+        let aggregate = aggregate.as_ref().map(from_js).transpose()?;
         let aggregate = aggregate.map(|aggregate| self.read(|tables| tables.filtered(aggregate)));
         self.apply(ComputationAction::FilteredColumnAggregationSucceeded {
             table_id: id(table_id),
@@ -705,7 +693,7 @@ impl Computations {
     /// Set the cross filters, the selections of the columns
     #[wasm_bindgen(js_name = setCrossFilters)]
     pub fn set_cross_filters(&self, table_id: f64, filters: Vec<Ts<ComputationCrossFilter>>) -> Result<Ts<ComputationOutcome>, JsError> {
-        let filters = filters.iter().map(rust).collect::<Result<Vec<_>, _>>()?;
+        let filters = filters.iter().map(from_js).collect::<Result<Vec<_>, _>>()?;
         self.apply(ComputationAction::SetCrossFilters { table_id: id(table_id), filters: view::cross_filters(filters) })
     }
 
@@ -746,7 +734,7 @@ impl Computations {
         columns: &[u32],
         now: f64,
     ) -> Result<Ts<ComputationOutcome>, JsError> {
-        let search = rust(&search)?;
+        let search = from_js(&search)?;
         let search = self.read(|tables| tables.data_search(search));
         if offsets.len() != rows.len().saturating_add(1) && !(rows.is_empty() && offsets.is_empty()) {
             return Err(invalid("the matching rows need an offset each and an end".into()));
@@ -828,7 +816,7 @@ impl Computations {
         self.service.read(|state| {
             let computation =
                 state.computation(id(table_id)).ok_or_else(|| invalid(format!("no computation of the table {table_id}")))?;
-            js(&ComputationSnapshot::from(computation))
+            to_js(&ComputationSnapshot::from(computation))
         })
     }
 
@@ -846,7 +834,7 @@ impl Computations {
             let Some(task) = state.scheduler_task(id(task_id)) else {
                 return Ok(None);
             };
-            js(&ComputationSchedulerTaskSnapshot { table_id: task.table_id(), version: task_version(task).into() }).map(Some)
+            to_js(&ComputationSchedulerTaskSnapshot { table_id: task.table_id(), version: task_version(task).into() }).map(Some)
         })
     }
 
