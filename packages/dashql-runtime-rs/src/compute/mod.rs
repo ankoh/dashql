@@ -13,6 +13,7 @@
 //! Ported from `reduceComputationState` of `packages/dashql-runtime/src/compute/computation_state.ts`.
 
 pub mod cross_filters;
+pub mod tasks;
 pub mod types;
 
 use std::collections::{BTreeMap, BTreeSet};

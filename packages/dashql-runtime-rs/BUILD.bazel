@@ -17,6 +17,10 @@ rust_library(
         "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-core-session:dashql_core_session",
         "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-cast",
+        "@core_crates//:arrow-ipc",
+        "@core_crates//:arrow-schema",
         "@core_crates//:serde_json",
     ],
 )
@@ -73,5 +77,17 @@ rust_test(
     edition = "2021",
     deps = [
         ":dashql_runtime",
+    ],
+)
+
+rust_test(
+    name = "compute_tasks_test",
+    size = "small",
+    srcs = ["tests/compute_tasks_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_runtime",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
     ],
 )

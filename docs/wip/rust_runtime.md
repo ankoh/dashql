@@ -69,14 +69,14 @@ shrinks to the platforms and the adapters of the app.
 
 **What stays in the host.** `RuntimePlatform` (`runtime.ts`) already draws the line: the storage backend (OPFS, the
 folders of the desktop app, `node:fs`), `HttpClient` (fetch and the proxy of the desktop app), the scheduler and timers,
-`OAuthFlow` (windows and links), the embedded Hyper (`hyperdb-wasm`, a module of its own), the cache of query results
-and the sink of the logger. The crate sees them as a trait `Host` with async methods that don't need `Send`. The
+`OAuthFlow` (windows and links), the embedded Hyper (`hyperdb-wasm`, a module of its own), the gRPC channel of Hyper
+in the desktop app (through its native proxy), the cache of query results and the sink of the logger. The crate sees them as a trait `Host` with async methods that don't need `Send`. The
 module implements it over a JavaScript object whose methods return promises (`wasm-bindgen-futures`), the tests of the
 crate over a fake with an executor of a single thread.
 
 **What moves.** The storage writer (debouncing, groups, pausing), the format of workbooks (files, tree, validation,
 tables, bundles), the protocols of the connectors over `Host::fetch` (Trino, the REST and query APIs of Salesforce,
-gRPC-web of Hyper with `prost`, the client functions), the catalog loader with its SQL, the query executor, the runs
+the HTTP API of Hyper, the client functions), the catalog loader with its SQL, the query executor, the runs
 of workbooks, the restore and the persistence of connections, the registries.
 
 **Arrow in Rust.** Most of these read or build Arrow: the catalog loader reads result columns, Trino turns JSON pages
@@ -119,6 +119,29 @@ JSON, a computation is read as a JSON snapshot once its revision moved.
   over on `restore`. A platform without a core instantiates the default one.
 - **Changed on purpose.** The progress of a task that the scheduler doesn't know is dropped, the TypeScript reducer
   registered such a task as a new one. A failed action is logged and leaves the state as it is.
+
+## The tasks of the computations
+
+The tasks that summarize, filter, order and search a result are ported to `src/compute/tasks/`, the app doesn't use
+them yet. A task is sans-IO: its plan holds a `TaskQuery`, the SELECT that creates the table of a new data frame and
+the read of that table in the order the task needs. The host runs both on the embedded Hyper and hands the read
+batches to the `finish` of the plan, which returns the values of the action of the state. A data frame is the table
+`__df_<id>` of the compute database, the caller allocates the id. A query, a read or a finish that fails leaves the
+data frame to the caller, which drops it. The analysis of a result is a sequence of steps: the column groups and the
+import of the result with row numbers from 1, the statistics, the system columns, then the summary of every ordinal and
+string column.
+
+- **Results are Rust values.** A result is a `ResultTable` of Arrow record batches (`arrow-rs`), read from and written
+  to IPC at the boundary. The statistics, the summaries and their analyses are values of the crate; the state still
+  knows them by host ids until the switch, then an `Arc<ResultTable>` replaces the id of an Arrow table and `Drop`
+  replaces `ReleaseArrowTable`.
+- **Formatting stays with the host.** The analysis of a histogram keeps the minimum and the maximum as Arrow values in
+  the type of the column and the lower bounds of the bins as numbers or epoch milliseconds. The host formats them as it
+  formats the cells of the grid.
+- **The SQL is the one of the TypeScript.** `SqlFrame` builds the same text, numbers print as in JavaScript. The tests
+  compare the text; the tests that run the SQL on Hyper stay in TypeScript.
+- **Changed on purpose.** The tables of data frames are named by id. The column types come from the schema of the
+  result. The data frame of any failed task is dropped, the TypeScript dropped only the one of a data search.
 
 ## Typing
 
