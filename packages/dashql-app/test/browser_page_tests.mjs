@@ -35,6 +35,23 @@ async function openWorkbookWithQuery(page, navigate) {
 /// The pathname of the page
 const pathnameOf = page => new URL(page.url()).pathname;
 
+/// Wait until the storage wrote a script with the text to OPFS. The writer debounces the edits, and a reload doesn't
+/// wait for the write that the page starts when it goes away; a slow machine loses it.
+async function waitForScriptWrite(page, text) {
+    await page.waitForFunction(async text => {
+        const root = await navigator.storage.getDirectory();
+        const workbooks = await root.getDirectoryHandle('workbooks').catch(() => null);
+        for await (const workbook of workbooks?.values() ?? []) {
+            if (workbook.kind !== 'directory') continue;
+            const scripts = await workbook.getDirectoryHandle('scripts').catch(() => null);
+            for await (const script of scripts?.values() ?? []) {
+                if (script.kind === 'file' && (await (await script.getFile()).text()).includes(text)) return true;
+            }
+        }
+        return false;
+    }, text, { polling: 100 });
+}
+
 /// A long line wraps in the card of the feed, the editor is as high as its text and does not scroll sideways.
 /// An editor that measured before the list had a width would stay thousands of pixels too high.
 async function testAppWrappedScript(page, navigate) {
@@ -131,6 +148,7 @@ async function testAppWorkbook(page, navigate) {
 
     await page.getByRole('button', { name: 'Feed' }).click();
     await scriptEditor(page, 'select 43 as answer').waitFor();
+    await waitForScriptWrite(page, 'select 43 as answer');
     await navigate();
     await scriptEditor(page, 'select 43 as answer').waitFor();
 }
