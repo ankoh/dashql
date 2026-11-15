@@ -65,6 +65,7 @@ macro_rules! finish {
 }
 
 // After the macros, the module uses them
+mod views;
 mod workbook;
 mod connection;
 mod query_history;

@@ -3,6 +3,10 @@ import * as flatbuffers from 'flatbuffers';
 import * as buffers from './buffers.js';
 import { DashQL, DashQLCatalog, DashQLScriptSession, FlatBufferPtr, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
+import type { WorkbookScriptView } from './wasm/dashql_core.js';
+
+/// The view of a script, declared by the module (`packages/dashql-core-wasm/src/workbook/view.rs`)
+export type { WorkbookScriptView } from './wasm/dashql_core.js';
 
 /// The scripts of a workbook in the core runtime (`packages/dashql-core-runtime`, see docs/wip/core_runtime.md).
 /// An action changes the workbook and returns the effects that the host applies, e.g. the files to write. The state
@@ -506,6 +510,11 @@ export class DashQLWorkbook {
         // A session like the ones of `DashQL.createScriptSession`, the symbol of their pointers is private to api.ts
         const ptr = new Ptr(SCRIPT_SESSION_TYPE, this.api, native) as unknown as ConstructorParameters<typeof DashQLScriptSession>[0];
         return new DashQLScriptSession(ptr);
+    }
+
+    /// The view of a script, the packed editor update only if its key isn't the one the caller holds
+    public scriptView(key: number, knownEditorUpdateKey: string | null): WorkbookScriptView {
+        return this.ptr.assertNotNull().scriptView(key, knownEditorUpdateKey);
     }
 
     public scriptEditorUpdate(key: number): buffers.editor.EditorUpdateT | null {

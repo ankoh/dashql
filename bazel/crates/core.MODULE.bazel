@@ -57,6 +57,13 @@ crate_core.spec(package = "wasm-bindgen", version = "=0.2.105")
 # They move together with wasm-bindgen.
 crate_core.spec(package = "js-sys", version = "=0.3.82")
 crate_core.spec(package = "wasm-bindgen-futures", version = "=0.4.55")
+
+# The views of the runtime state as JS objects with generated TypeScript declarations (//packages/dashql-core-wasm),
+# see docs/wip/runtime_projection.md. tsify needs wasm-bindgen 0.2.104 or newer.
+crate_core.spec(package = "serde-wasm-bindgen", version = "=0.6.5")
+crate_core.spec(package = "serde_bytes", version = "=0.11.19")
+crate_core.spec(package = "serde_repr", version = "=0.1.21")
+crate_core.spec(package = "tsify", default_features = False, features = ["js"], version = "=0.5.8")
 crate_core.spec(package = "yaml-rust2", version = "=0.13.0")
 crate_core.from_specs(
     name = "core_crates",

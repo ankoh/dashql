@@ -1,4 +1,5 @@
 import * as arrow from 'apache-arrow';
+import { TaskStatus } from '@ankoh/dashql-core';
 
 import { OrderByConstraint, ScalarFilter } from './sql/sqlframe_builder.js';
 import { VariantKind } from '../utils/variant.js';
@@ -193,11 +194,8 @@ export interface ColumnAggregationTask {
 
 // ------------------------------------------------------------
 
-export enum TaskStatus {
-    TASK_RUNNING = 1,
-    TASK_SUCCEEDED = 2,
-    TASK_FAILED = 3,
-};
+/// The status of a task, the numeric enum of the Rust computations
+export { TaskStatus };
 
 export interface TaskProgress {
     /// Task status

@@ -24,7 +24,8 @@ The runtime is linked into the core module, but it isn't part of the contract of
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
 schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `QueryHistory`, `Computations`,
 `StorageWriter`, `AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`,
-`ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON.
+`ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON, the ones of the computations
+as JS objects of views with generated types (see [runtime_projection.md](runtime_projection.md)).
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -145,8 +146,9 @@ query executor once the connection and query states are switched; the connectors
 (`compute/computation_native.ts`), bound as the class `Computations` of the module
 (`packages/dashql-core-wasm/src/computations.rs`, `DashQLComputations` of `@ankoh/dashql-core`, created with
 `DashQL.createComputations`). The class holds the `ComputeService` of the crate with the state and runs the tasks.
-Ids, versions and names cross as typed arguments, tasks, results and cross filters as JSON, a computation is read as a
-JSON snapshot once its revision moved.
+Ids, versions and names cross as typed arguments, tasks, results and cross filters as JS objects of the views of
+`computations/view.rs` (serde-wasm-bindgen, declarations from tsify), a computation is read as a snapshot once its
+revision moved.
 
 - **An analysis runs in Rust.** `analyzeTable` of the TypeScript runtime keeps its signature and dispatches
   `ANALYZE_TABLE` with the result and the compute database. The adapter hands the result over as Arrow IPC once
@@ -175,8 +177,10 @@ JSON snapshot once its revision moved.
   the query history of the connection of the computation.
 - **Computations of the host.** A computation that an action of the host starts (`COMPUTATION_FROM_QUERY_RESULT`)
   runs its tasks on the scheduler of the app (`processTask`) with the TypeScript tasks, the reducer tests use it.
-- **The projection keeps identity.** A computation keeps its object while its revision doesn't move; in a changed one
-  the version, the searches, the arrays of summaries and the tracked tasks keep theirs while they are the same. A
+- **The projection keeps identity.** A computation keeps its object while its revision doesn't move
+  (`RevisionCache`); a changed one shares the unchanged parts of its view with the previous view (`share`), and the
+  version, the column groups, the searches, the arrays of summaries and the tracked tasks keep their objects while
+  their parts are the same. A
   tracked task of the app names its scheduler task, a task of an analysis has its table, its version and its progress.
 - **The core comes with the first action.** The runtime and the shell create the computations before the core is set
   up. The first action asks the platform for it and the actions wait until it is there, the runtime hands its core

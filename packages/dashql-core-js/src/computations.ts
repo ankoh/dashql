@@ -1,5 +1,22 @@
 import { DashQL, Ptr } from './api.js';
 import type * as glue from './wasm/dashql_core.js';
+import type {
+    ComputationArrowTable,
+    ComputationColumnAggregate,
+    ComputationColumnGroup,
+    ComputationCrossFilter,
+    ComputationDataSearchTable,
+    ComputationFilteredAggregate,
+    ComputationFilterTable,
+    ComputationOrderingTable,
+    ComputationOutcome,
+    ComputationProgressUpdate,
+    ComputationSchedulerTaskSnapshot,
+    ComputationSnapshot,
+    ComputationTableAggregation,
+    ComputationTask,
+    ComputationVersionValue,
+} from './wasm/dashql_core.js';
 
 /// The computations of result tables in the Rust runtime (`packages/dashql-core-runtime/src/compute`, see
 /// docs/wip/core_runtime.md): the summaries of the columns, the statistics of a table, the system columns, the cross
@@ -17,345 +34,47 @@ import type * as glue from './wasm/dashql_core.js';
 
 const COMPUTATIONS_TYPE = Symbol('COMPUTATIONS_TYPE');
 
-/// The version of a computation: the data changes with a new data frame, the filter with every scheduled filtering
-export interface ComputationVersionValue {
-    data: number;
-    filter: number;
-}
-
-/// An Arrow table by its id: a table that the host registered for the action, or a table of the state
-export interface ComputationArrowTable {
-    id: number;
-    /// The rows, in a snapshot
-    rows?: number;
-}
-
-/// The fields of the table aggregation with the statistics of a column
-export interface ComputationStatsFields {
-    countFieldName: string;
-    distinctCountFieldName: string | null;
-    minAggregateFieldName: string | null;
-    maxAggregateFieldName: string | null;
-}
-
-/// A column of the grid of a result, the type of a field as the host names it
-export type ComputationColumnGroup =
-    | { type: 'ROWNUMBER'; rowNumberFieldName: string }
-    | { type: 'SKIPPED'; inputFieldName: string; inputFieldType: string; inputFieldNullable: boolean }
-    | {
-        type: 'ORDINAL';
-        inputFieldName: string;
-        inputFieldType: string;
-        inputFieldNullable: boolean;
-        statsFields: ComputationStatsFields | null;
-        binFieldName: string | null;
-        binCount: number;
-    }
-    | {
-        type: 'STRING' | 'LIST';
-        inputFieldName: string;
-        inputFieldType: string;
-        inputFieldNullable: boolean;
-        statsFields: ComputationStatsFields | null;
-        valueIdFieldName: string | null;
-    };
-
-/// A filter that compares a field with a number
-export interface ComputationScalarFilter {
-    fieldName: string;
-    op: '=' | '<' | '<=' | '>' | '>=';
-    value: number;
-}
-
-/// A key of an ordering, ascending and nulls last without
-export interface ComputationOrderBy {
-    field: string;
-    ascending?: boolean | null;
-    nullsFirst?: boolean | null;
-}
-
-/// The rows that pass the cross filters
-export interface ComputationFilterTable {
-    inputRowNumberColumnName: string;
-    table: ComputationArrowTable;
-    dataFrame: number;
-    version: ComputationVersionValue;
-}
-
-/// The row numbers in the order of the grid
-export interface ComputationOrderingTable {
-    inputRowNumberColumnName: string;
-    orderingConstraints: ComputationOrderBy[];
-    table: ComputationArrowTable;
-    dataFrame: number;
-    version: ComputationVersionValue;
-    dataSearchRequestId: number | null;
-}
-
-/// The rows that a data search matched
-export interface ComputationDataSearchTable {
-    inputRowNumberColumnName: string;
-    table: ComputationArrowTable;
-    dataFrame: number;
-    version: ComputationVersionValue;
-    requestId: number;
-}
-
-/// The statistics of all columns of a table, the table by its id
-export interface ComputationTableAggregation {
-    table: number;
-    dataFrame: number;
-    countStarFieldName: string;
-}
-
-/// The summary of a column, the id names the table of the binned or the frequent values
-export type ComputationColumnAggregate =
-    | { kind: 'ordinal' | 'string' | 'list'; id: number; dataFrame: number }
-    | { kind: 'skipped' };
-
-/// The summary of a column over the rows that the filters and the data search select
-export interface ComputationFilteredAggregate {
-    aggregate: ComputationColumnAggregate;
-    filterVersion: ComputationVersionValue;
-    dataSearchRequestId: number | null;
-}
-
-/// The numbers of the analysis of a summary that the runtime computed. The host formats the values of the tables: the
-/// minimum and the maximum of the statistics, the lower bounds of the bins and the frequent values.
-export type ComputationSummaryAnalysis =
-    | {
-        kind: 'ordinal';
-        totalCount: number;
-        countNotNull: number;
-        countNull: number;
-        binCount: number;
-        binValueCounts: number[];
-        binPercentages: number[];
-        /// Numbers in the domain of the column, or milliseconds since epoch of a temporal column
-        binLowerBounds: (number | null)[];
-        binBounds: 'numbers' | 'epochMillis';
-    }
-    | {
-        kind: 'string';
-        totalCount: number;
-        countNotNull: number;
-        countNull: number;
-        countDistinct: number;
-        isUnique: boolean;
-        frequentValueIds: number[];
-        frequentValueCounts: number[];
-        frequentValuePercentages: number[];
-    };
-
-/// A summary of a column as a snapshot names it, the id and the data frame are null for a skipped column. A summary
-/// that the runtime computed has its analysis.
-export interface ComputationColumnAggregateSnapshot {
-    kind: 'ordinal' | 'string' | 'list' | 'skipped';
-    id: number | null;
-    dataFrame: number | null;
-    analysis?: ComputationSummaryAnalysis | null;
-}
-
-/// The summary of a column to compute
-export interface ComputationColumnTask {
-    tableId: number;
-    tableVersion: ComputationVersionValue;
-    columnId: number;
-    columnEntry: ComputationColumnGroup | null;
-    inputDataFrame: number;
-    tableAggregate: ComputationTableAggregation | null;
-}
-
-/// A task of the scheduler
-export type ComputationTask =
-    | {
-        kind: 'tableFiltering';
-        tableId: number;
-        tableVersion: ComputationVersionValue;
-        inputDataTable: ComputationArrowTable;
-        inputDataFrame: number;
-        rowNumberColumnName: string;
-        filters: ComputationScalarFilter[];
-    }
-    | {
-        kind: 'tableOrdering';
-        tableId: number;
-        tableVersion: ComputationVersionValue;
-        inputDataTable: ComputationArrowTable;
-        inputDataFrame: number;
-        filterTable: ComputationFilterTable | null;
-        dataSearchTable: ComputationDataSearchTable | null;
-        rowNumberColumnName: string;
-        orderingConstraints: ComputationOrderBy[];
-    }
-    | {
-        kind: 'tableAggregation';
-        tableId: number;
-        tableVersion: ComputationVersionValue;
-        columnEntries: ComputationColumnGroup[];
-        inputDataFrame: number;
-    }
-    | {
-        kind: 'systemColumns';
-        tableId: number;
-        tableVersion: ComputationVersionValue;
-        columnEntries: ComputationColumnGroup[];
-        inputTable: ComputationArrowTable;
-        inputDataFrame: number;
-        rowNumberFieldName: string;
-        tableAggregate: ComputationTableAggregation | null;
-    }
-    | ({ kind: 'columnAggregation' } & ComputationColumnTask)
-    | ({
-        kind: 'filteredColumnAggregation';
-        filterTable: ComputationFilterTable | null;
-        dataSearchTable: ComputationDataSearchTable | null;
-        selectionRowCount: number;
-        unfilteredAggregate: ComputationColumnAggregate | null;
-    } & ComputationColumnTask)
-    | {
-        kind: 'dataSearch';
-        tableId: number;
-        tableVersion: ComputationVersionValue;
-        inputDataFrame: number;
-        rowNumberColumnName: string;
-        columns: { columnIdx: number; columnGroupIdx: number; fieldName: string }[];
-        pattern: string;
-        requestId: number;
-    };
-
-/// The status of a task: running 1, succeeded 2, failed 3
-export type ComputationTaskStatus = 1 | 2 | 3;
-
-/// An update of the progress of a task, it sets what it has. Times in milliseconds since epoch.
-export interface ComputationProgressUpdate {
-    status?: ComputationTaskStatus | null;
-    startedAt?: number | null;
-    completedAt?: number | null;
-    failedAt?: number | null;
-    failedWithError?: string | null;
-}
-
-/// The selection in the summary of a column
-export type ComputationCrossFilter =
-    | { column: number; kind: 'histogram'; selection: [number, number]; filters: ComputationScalarFilter[] }
-    | { column: number; kind: 'mostFrequent'; valueId: number; filters: ComputationScalarFilter[] };
+/// The views of the computations, declared by the module (`packages/dashql-core-wasm/src/computations/view.rs`)
+export type {
+    ComputationArrowTable,
+    ComputationBinBounds,
+    ComputationColumnAggregate,
+    ComputationColumnGroup,
+    ComputationColumnSummary,
+    ComputationColumnTask,
+    ComputationCrossFilter,
+    ComputationDataSearchColumn,
+    ComputationDataSearchTable,
+    ComputationDataSearchTableSnapshot,
+    ComputationEffect,
+    ComputationFilteredAggregate,
+    ComputationFilterOp,
+    ComputationFilterTable,
+    ComputationFilterTableSnapshot,
+    ComputationOrderBy,
+    ComputationOrderingTable,
+    ComputationOrderingTableSnapshot,
+    ComputationOutcome,
+    ComputationProgressUpdate,
+    ComputationScalarFilter,
+    ComputationSchedulerTaskSnapshot,
+    ComputationSearchSnapshot,
+    ComputationSnapshot,
+    ComputationStatsFields,
+    ComputationSummaryAnalysis,
+    ComputationTableAggregation,
+    ComputationTask,
+    ComputationTaskProgress,
+    ComputationTasksSnapshot,
+    ComputationTrackedTask,
+    ComputationVersionValue,
+    ComputeCallContext,
+} from './wasm/dashql_core.js';
+/// The status of a task, a numeric enum of the module
+export { TaskStatus } from './wasm/dashql_core.js';
 
 /// The matching columns of the rows of a data search by row number from 1
 export type ComputationMatchingRows = ReadonlyMap<number, readonly number[]>;
-
-/// What the host does after an action, in this order
-export type ComputationEffect =
-    /// Abort the lifetime of a computation that was dropped or replaced
-    | { type: 'abortComputation'; tableId: number; lifetime: number }
-    /// Abort a data search that was superseded
-    | { type: 'abortDataSearch'; tableId: number; requestId: number }
-    /// Nothing in the state holds the data frame anymore, the service drops its table through the host
-    | { type: 'releaseDataFrame'; dataFrame: number };
-
-/// What an action did
-export interface ComputationOutcome {
-    /// Did the action change the state? A result that is dropped changes nothing.
-    changed: boolean;
-    /// The effects for the host, in order
-    effects: ComputationEffect[];
-    /// The id of a scheduled task, null if it was dropped
-    taskId: number | null;
-}
-
-/// The progress of a task, times in milliseconds since epoch
-export interface ComputationTaskProgress {
-    status: ComputationTaskStatus;
-    startedAt: number;
-    completedAt: number | null;
-    failedAt: number | null;
-    failedWithError: string | null;
-}
-
-/// A task that a computation tracks, the latest of its kind
-export interface ComputationTrackedTask {
-    /// The task of the scheduler that the computation tracks
-    taskId: number;
-    /// The version that the task computes for
-    version: ComputationVersionValue;
-    /// The ordering of an ordering task, cleared with the ordering of the table
-    orderingConstraints?: ComputationOrderBy[];
-    progress: ComputationTaskProgress;
-}
-
-/// The search of a result, of its columns or of its data
-export interface ComputationSearchSnapshot {
-    requestedPattern: string;
-    appliedPattern: string;
-    requestId: number;
-    appliedRequestId: number;
-    matchingColumnGroups: number[] | null;
-    /// Does the search hold matching rows? They are the rows of the last data search that the host handed over.
-    hasMatchingRows: boolean;
-    pending: boolean;
-    error: string | null;
-}
-
-/// A column group of a snapshot, the host knows the Arrow type of a field by its name
-export type ComputationColumnGroupSnapshot = DistributiveOmit<ComputationColumnGroup, 'inputFieldType'>;
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-
-/// The rows that pass the filters of a snapshot, the table by its id
-export interface ComputationFilterTableSnapshot {
-    table: number;
-    dataFrame: number;
-    inputRowNumberColumnName: string;
-    version: ComputationVersionValue;
-}
-
-/// The fields of a computation. The tables are named by their ids, the data frames and the lifetime are ids of the
-/// host.
-export interface ComputationSnapshot {
-    tableId: number;
-    connectionId: string | null;
-    /// The client context of the queries of a computation without a connection, opaque JSON
-    clientContext: string | null;
-    lifetime: number;
-    revision: number;
-    version: ComputationVersionValue;
-    dataTable: Required<ComputationArrowTable>;
-    /// The fields of the table that the computation was created with, in order
-    dataTableFields: string[];
-    dataFrame: number | null;
-    /// The column groups of the grid
-    columnGroups: ComputationColumnGroupSnapshot[];
-    dataTableOrdering: ComputationOrderBy[];
-    filterTable: ComputationFilterTableSnapshot | null;
-    orderingTable: (ComputationFilterTableSnapshot & { orderingConstraints: ComputationOrderBy[]; dataSearchRequestId: number | null }) | null;
-    dataSearchTable: (ComputationFilterTableSnapshot & { requestId: number }) | null;
-    columnSearch: ComputationSearchSnapshot;
-    dataSearch: ComputationSearchSnapshot;
-    rowNumberColumnGroup: number | null;
-    rowNumberColumnName: string | null;
-    tableAggregation: ComputationTableAggregation | null;
-    columnAggregates: (ComputationColumnAggregateSnapshot | null)[];
-    filteredColumnAggregates: ({
-        aggregate: ComputationColumnAggregateSnapshot;
-        filterVersion: ComputationVersionValue;
-        dataSearchRequestId: number | null;
-    } | null)[];
-    filteredColumnAggregatesOutdated: boolean[];
-    tasks: {
-        tableAggregation: ComputationTrackedTask | null;
-        systemColumns: ComputationTrackedTask | null;
-        filtering: ComputationTrackedTask | null;
-        ordering: ComputationTrackedTask | null;
-        dataSearch: ComputationTrackedTask | null;
-        columnAggregation: (ComputationTrackedTask | null)[];
-        filteredColumnAggregation: (ComputationTrackedTask | null)[];
-    };
-}
-
-/// A task of the scheduler: its table and the version it computes for
-export interface ComputationSchedulerTaskSnapshot {
-    tableId: number;
-    version: ComputationVersionValue;
-}
 
 type NativeComputations = glue.Computations;
 
@@ -378,60 +97,53 @@ export class DashQLComputations {
         this.ptr.destroy();
     }
 
-    private outcome(outcome: glue.ComputationOutcome): ComputationOutcome {
-        try {
-            return {
-                changed: outcome.changed,
-                effects: JSON.parse(outcome.effects) as ComputationEffect[],
-                taskId: outcome.taskId ?? null,
-            };
-        } finally {
-            outcome.free();
-        }
+    /// The Rust computations, their methods take and return the views
+    private get native(): NativeComputations {
+        return this.ptr.assertNotNull();
     }
 
     // Services
 
     /// Set the compute host, the tasks run on its compute database
     public setHost(host: ComputeHost): void {
-        this.ptr.assertNotNull().setHost(host);
+        this.native.setHost(host);
     }
 
     /// A new id of a data frame, an Arrow table or a lifetime of the host
     public allocateId(): number {
-        return this.ptr.assertNotNull().allocateId();
+        return this.native.allocateId();
     }
 
     /// Register a table of the host as an Arrow IPC stream, the next action names it by the returned id. The tables
     /// that the action doesn't take go.
     public registerArrowTable(ipc: Uint8Array): number {
-        return this.ptr.assertNotNull().registerArrowTable(ipc);
+        return this.native.registerArrowTable(ipc);
     }
 
     /// A table of the state as an Arrow IPC stream
     public arrowTableIpc(table: number): Uint8Array {
-        return this.ptr.assertNotNull().arrowTableIpc(table);
+        return this.native.arrowTableIpc(table);
     }
 
     /// The tables that the state holds
     public arrowTableIds(): number[] {
-        return Array.from(this.ptr.assertNotNull().arrowTableIds());
+        return Array.from(this.native.arrowTableIds());
     }
 
     /// Analyze a result as Arrow IPC: start its computation, import it, compute its statistics, its system columns and
     /// the summaries of its columns. Rejects with the error of a failed task.
     public analyzeTable(tableId: number, ipc: Uint8Array, connectionId: string | null, clientContext: string | null, columnAggregates: boolean): Promise<void> {
-        return this.ptr.assertNotNull().analyzeTable(tableId, ipc, connectionId ?? undefined, clientContext ?? undefined, columnAggregates) as Promise<void>;
+        return this.native.analyzeTable(tableId, ipc, connectionId, clientContext, columnAggregates) as Promise<void>;
     }
 
     /// Run a scheduled task on the compute host, rejects with its error
     public runTask(taskId: number): Promise<void> {
-        return this.ptr.assertNotNull().runTask(taskId) as Promise<void>;
+        return this.native.runTask(taskId) as Promise<void>;
     }
 
     /// Cancel the run of a task, it fails
     public cancelTask(taskId: number): void {
-        this.ptr.assertNotNull().cancelTask(taskId);
+        this.native.cancelTask(taskId);
     }
 
     // Actions
@@ -439,15 +151,15 @@ export class DashQLComputations {
     /// Schedule a task, it becomes the latest task of its kind of its computation. A task of an unknown computation
     /// is dropped.
     public scheduleTask(task: ComputationTask, now: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().scheduleTask(JSON.stringify(task), now));
+        return this.native.scheduleTask(task, now);
     }
 
     public updateSchedulerTask(taskId: number, progress: ComputationProgressUpdate, now: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().updateSchedulerTask(taskId, JSON.stringify(progress), now));
+        return this.native.updateSchedulerTask(taskId, progress, now);
     }
 
     public unregisterSchedulerTask(taskId: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().unregisterSchedulerTask(taskId));
+        return this.native.unregisterSchedulerTask(taskId);
     }
 
     /// Start the computation of a result table, it replaces an earlier computation of the table
@@ -460,35 +172,31 @@ export class DashQLComputations {
         connectionId: string | null,
         clientContext: string | null,
     ): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().computationFromQueryResult(
-            tableId, dataTable.id, fields, JSON.stringify(columnGroups), lifetime, connectionId ?? undefined, clientContext ?? undefined,
-        ));
+        return this.native.computationFromQueryResult(tableId, dataTable.id, fields, columnGroups, lifetime, connectionId, clientContext);
     }
 
     public deleteComputation(tableId: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().deleteComputation(tableId));
+        return this.native.deleteComputation(tableId);
     }
 
     public createdDataFrame(tableId: number, dataFrame: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().createdDataFrame(tableId, dataFrame));
+        return this.native.createdDataFrame(tableId, dataFrame);
     }
 
     public tableOrderingSucceeded(tableId: number, ordering: ComputationOrderingTable, now: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().tableOrderingSucceeded(tableId, JSON.stringify(ordering), now));
+        return this.native.tableOrderingSucceeded(tableId, ordering, now);
     }
 
     public clearTableOrdering(tableId: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().clearTableOrdering(tableId));
+        return this.native.clearTableOrdering(tableId);
     }
 
     public tableFilteringSucceeded(tableId: number, version: ComputationVersionValue, filter: ComputationFilterTable | null, now: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().tableFilteringSucceeded(
-            tableId, version.data, version.filter, filter == null ? undefined : JSON.stringify(filter), now,
-        ));
+        return this.native.tableFilteringSucceeded(tableId, version.data, version.filter, filter ?? undefined, now);
     }
 
     public tableAggregationSucceeded(tableId: number, aggregation: ComputationTableAggregation, now: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().tableAggregationSucceeded(tableId, JSON.stringify(aggregation), now));
+        return this.native.tableAggregationSucceeded(tableId, aggregation, now);
     }
 
     public systemColumnsSucceeded(
@@ -498,13 +206,11 @@ export class DashQLComputations {
         columnGroups: ComputationColumnGroup[],
         now: number,
     ): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().systemColumnsSucceeded(
-            tableId, dataTable.id, dataFrame, JSON.stringify(columnGroups), now,
-        ));
+        return this.native.systemColumnsSucceeded(tableId, dataTable.id, dataFrame, columnGroups, now);
     }
 
     public columnAggregationSucceeded(tableId: number, columnId: number, aggregate: ComputationColumnAggregate, now: number): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().columnAggregationSucceeded(tableId, columnId, JSON.stringify(aggregate), now));
+        return this.native.columnAggregationSucceeded(tableId, columnId, aggregate, now);
     }
 
     public filteredColumnAggregationSucceeded(
@@ -514,23 +220,21 @@ export class DashQLComputations {
         aggregate: ComputationFilteredAggregate | null,
         now: number,
     ): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().filteredColumnAggregationSucceeded(
-            tableId, columnId, version.data, version.filter, aggregate == null ? undefined : JSON.stringify(aggregate), now,
-        ));
+        return this.native.filteredColumnAggregationSucceeded(tableId, columnId, version.data, version.filter, aggregate ?? undefined, now);
     }
 
     /// Set the cross filters, the same selections change nothing
     public setCrossFilters(tableId: number, filters: readonly ComputationCrossFilter[]): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().setCrossFilters(tableId, JSON.stringify({ columnFilters: filters })));
+        return this.native.setCrossFilters(tableId, [...filters]);
     }
 
     /// Request a search of the columns or the data, an empty pattern ends the search
     public setResultSearchPattern(tableId: number, kind: 'columns' | 'data', pattern: string): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().setResultSearchPattern(tableId, kind === 'data', pattern));
+        return this.native.setResultSearchPattern(tableId, kind === 'data', pattern);
     }
 
     public columnSearchSucceeded(tableId: number, dataFrame: number, requestId: number, matchingColumnGroups: readonly number[]): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().columnSearchSucceeded(tableId, dataFrame, requestId, Uint32Array.from(matchingColumnGroups)));
+        return this.native.columnSearchSucceeded(tableId, dataFrame, requestId, Uint32Array.from(matchingColumnGroups));
     }
 
     public dataSearchSucceeded(
@@ -552,67 +256,64 @@ export class DashQLComputations {
             ++i;
         }
         offsets[i] = columns.length;
-        return this.outcome(this.ptr.assertNotNull().dataSearchSucceeded(
-            tableId, dataFrame, requestId, JSON.stringify(search), rows, offsets, Uint32Array.from(columns), now,
-        ));
+        return this.native.dataSearchSucceeded(tableId, dataFrame, requestId, search, rows, offsets, Uint32Array.from(columns), now);
     }
 
     public dataSearchFailed(tableId: number, dataFrame: number, requestId: number, error: string): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().dataSearchFailed(tableId, dataFrame, requestId, error));
+        return this.native.dataSearchFailed(tableId, dataFrame, requestId, error);
     }
 
     public resultSearchFailed(tableId: number, dataFrame: number, kind: 'columns' | 'data', requestId: number, error: string): ComputationOutcome {
-        return this.outcome(this.ptr.assertNotNull().resultSearchFailed(tableId, dataFrame, kind === 'data', requestId, error));
+        return this.native.resultSearchFailed(tableId, dataFrame, kind === 'data', requestId, error);
     }
 
     // Reading the state
 
     /// The revision of the state, it changes with every change
     public revision(): number {
-        return this.ptr.assertNotNull().revision();
+        return this.native.revision();
     }
 
     /// The id of the next scheduled task
     public nextTaskId(): number {
-        return this.ptr.assertNotNull().nextTaskId();
+        return this.native.nextTaskId();
     }
 
     /// The tables with a computation
     public tableIds(): number[] {
-        return Array.from(this.ptr.assertNotNull().tableIds());
+        return Array.from(this.native.tableIds());
     }
 
     /// The revision of the computation of a table, null without one
     public computationRevision(tableId: number): number | null {
-        return this.ptr.assertNotNull().computationRevision(tableId) ?? null;
+        return this.native.computationRevision(tableId) ?? null;
     }
 
-    /// The fields of the computation of a table
+    /// The fields of the computation of a table, a new object with every call
     public computationSnapshot(tableId: number): ComputationSnapshot {
-        return JSON.parse(this.ptr.assertNotNull().computationSnapshot(tableId)) as ComputationSnapshot;
+        return this.native.computationSnapshot(tableId);
     }
 
     /// The tasks of the scheduler
     public schedulerTaskIds(): number[] {
-        return Array.from(this.ptr.assertNotNull().schedulerTaskIds());
+        return Array.from(this.native.schedulerTaskIds());
     }
 
     /// The table and the version of a task of the scheduler, null for an unknown task
     public schedulerTaskSnapshot(taskId: number): ComputationSchedulerTaskSnapshot | null {
-        const snapshot = this.ptr.assertNotNull().schedulerTaskSnapshot(taskId);
-        return snapshot == null ? null : JSON.parse(snapshot) as ComputationSchedulerTaskSnapshot;
+        return this.native.schedulerTaskSnapshot(taskId) ?? null;
     }
 
     /// The tasks that the state knows: the tasks of the scheduler and the ones that the computations track
     public taskIds(): number[] {
-        return Array.from(this.ptr.assertNotNull().taskIds());
+        return Array.from(this.native.taskIds());
     }
 
     public holdsDataFrame(dataFrame: number): boolean {
-        return this.ptr.assertNotNull().holdsDataFrame(dataFrame);
+        return this.native.holdsDataFrame(dataFrame);
     }
 
     public holdsArrowTable(table: number): boolean {
-        return this.ptr.assertNotNull().holdsArrowTable(table);
+        return this.native.holdsArrowTable(table);
     }
 }

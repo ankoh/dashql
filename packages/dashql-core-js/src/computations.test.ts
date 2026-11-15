@@ -124,7 +124,7 @@ describe('DashQL computations', () => {
             dataSearchRequestId: null,
         });
         expect(computations.tableOrderingSucceeded(1, ordering(200, 2), 1001)).toEqual({ changed: true, effects: [], taskId: null });
-        expect(computations.computationSnapshot(1)).toMatchObject({ orderingTable: { table: 200, dataFrame: 2 }, dataTableOrdering: [{ field: 'score', ascending: false, nullsFirst: null }] });
+        expect(computations.computationSnapshot(1)).toMatchObject({ orderingTable: { table: 200, dataFrame: 2 }, dataTableOrdering: [{ field: 'score', ascending: false }] });
         expect(computations.holdsDataFrame(2)).toBe(true);
         expect(computations.holdsArrowTable(200)).toBe(true);
 

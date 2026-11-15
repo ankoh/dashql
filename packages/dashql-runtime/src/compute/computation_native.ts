@@ -45,7 +45,6 @@ import {
     TABLE_ORDERING_TASK,
     type ColumnAggregationVariant,
     type ColumnGroup,
-    type ColumnStatsFields,
     type DataSearchTable,
     type FilterTable,
     type OrderingTable,
@@ -55,7 +54,6 @@ import {
     type StringColumnAnalysis,
     type TableAggregation,
     type TaskProgress,
-    type TaskStatus,
     type TaskVariant,
     type WithFilterEpoch,
     type WithProgress,
@@ -64,8 +62,8 @@ import { ArrowTableFormatter } from './arrow_formatter.js';
 import { executeDirectly, type CreateComputeQueryExecution } from './computation_tasks.js';
 import { CrossFilters, HISTOGRAM_FILTER } from './cross_filters.js';
 import { DataFrame, type DataFrameRegistry } from './data_frame.js';
-import type { OrderByConstraint } from './sql/sqlframe_builder.js';
 import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
+import { RevisionCache, share } from '../store/projection.js';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import { LoggableException, stringifyError, type LoggerLike } from '../platform/logger/logger.js';
 
@@ -81,9 +79,9 @@ import { LoggableException, stringifyError, type LoggerLike } from '../platform/
 /// hands them over, the tables of the state are read as Arrow IPC once and wrapped like the results of the tasks of the
 /// host (filter, ordering and search tables, the statistics with their formatter, the summaries with their analysis).
 /// The data frames and the lifetimes are ids of the host, a data frame that the state releases is dropped unless the
-/// host still reads it (`DataFrameRegistry`). `project` builds the `ComputationState` objects of the app: a computation
-/// keeps its object while its revision doesn't move, and the parts of a changed computation keep theirs while they are
-/// the same.
+/// host still reads it (`DataFrameRegistry`). `project` builds the `ComputationState` objects of the app from the views
+/// of the module (store/projection.ts): a computation keeps its object while its revision doesn't move, the view of a
+/// changed computation shares the parts of the previous view that are the same, and the objects built from them stay.
 
 const LOG_CTX = 'computation_native';
 
@@ -99,8 +97,8 @@ interface ComputationHost {
     fields: Map<string, arrow.Field>;
     /// The column groups of the grid, the ones the computation was created with or the ones of its system columns
     columnGroups: ColumnGroup[];
-    /// The column groups of a computation of the runtime with the JSON of the snapshot they were built from
-    columnGroupsKey: string | null;
+    /// The column groups of a computation of the runtime with the view they were built from
+    columnGroupsView: core.ComputationColumnGroup[] | null;
     /// The cross filters that the state accepted last
     crossFilters: CrossFilters;
     /// The matching rows of the data search that the state accepted last
@@ -113,8 +111,14 @@ interface ComputationHost {
 
 /// What a projected task was built from
 interface ProjectedTask {
-    key: string;
+    view: core.ComputationTrackedTask;
     variant: TaskVariant | null;
+}
+
+/// A projected computation with the view it was built from
+interface ProjectedComputation {
+    view: core.ComputationSnapshot;
+    state: TableComputationState;
 }
 
 /// What kind of object an id names
@@ -128,15 +132,6 @@ export interface ComputationsHostOptions {
     logger: LoggerLike;
     /// A task changed the state
     onChange: () => void;
-}
-
-/// The context of a call of the compute host
-interface ComputeCallContext {
-    tableId: number;
-    title: string;
-    connectionId: string | null;
-    clientContext: string | null;
-    run: number;
 }
 
 /// The summary of a skipped column, it has no data
@@ -187,8 +182,8 @@ export class NativeComputations implements core.ComputeHost {
     private readonly nativeTasks = new Set<number>();
     /// The errors of failed tasks by task id
     private readonly errors = new Map<number, LoggableException>();
-    /// The projected computations by table with the revision they were projected at
-    private projected = new Map<number, { revision: number; state: TableComputationState }>();
+    /// The projected computations by table, kept while their revision doesn't move
+    private readonly projected = new RevisionCache<number, ProjectedComputation>();
     /// What the projected tasks were built from
     private readonly projectedTasks = new WeakMap<object, ProjectedTask>();
     /// The last projection
@@ -566,7 +561,7 @@ export class NativeComputations implements core.ComputeHost {
                     fieldIndex: createArrowFieldIndex(table),
                     fields: new Map(table.schema.fields.map(field => [field.name, field])),
                     columnGroups,
-                    columnGroupsKey: null,
+                    columnGroupsView: null,
                     crossFilters: new CrossFilters(),
                     matchingRows: null,
                     matchingRowsOf: null,
@@ -800,8 +795,7 @@ export class NativeComputations implements core.ComputeHost {
         this.logger[level](message, keyValues, 'compute');
     }
 
-    async importTable(dataFrame: number, tableName: string, ipc: Uint8Array, context: string): Promise<void> {
-        const ctx = parseContext(context);
+    async importTable(dataFrame: number, tableName: string, ipc: Uint8Array, ctx: core.ComputeCallContext): Promise<void> {
         const database = this.requireDatabase();
         const clientContext = clientContextOf(ctx.clientContext);
         // The bytes are a view of the module, which may belong to another realm
@@ -810,8 +804,7 @@ export class NativeComputations implements core.ComputeHost {
         this.created(dataFrame, new DataFrame(database, tableName, clientContext));
     }
 
-    async createTable(dataFrame: number, tableName: string, sql: string, context: string): Promise<void> {
-        const ctx = parseContext(context);
+    async createTable(dataFrame: number, tableName: string, sql: string, ctx: core.ComputeCallContext): Promise<void> {
         const database = this.requireDatabase();
         const execution = this.queryExecution?.({ tableId: ctx.tableId, title: ctx.title }) ?? executeDirectly;
         const created = await this.inRun(ctx.run, signal => execution(sql, clientContext =>
@@ -819,8 +812,7 @@ export class NativeComputations implements core.ComputeHost {
         this.created(dataFrame, created);
     }
 
-    async query(sql: string, context: string): Promise<Uint8Array> {
-        const ctx = parseContext(context);
+    async query(sql: string, ctx: core.ComputeCallContext): Promise<Uint8Array> {
         const database = this.requireDatabase();
         const table = await this.inRun(ctx.run, signal => DataFrame.withConnection(database, conn => conn.query(sql, signal), clientContextOf(ctx.clientContext)));
         return arrow.tableToIPC(table, 'stream');
@@ -841,9 +833,9 @@ export class NativeComputations implements core.ComputeHost {
         for (const controller of this.runs.get(run) ?? []) controller.abort(new DOMException('The task was cancelled', 'AbortError'));
     }
 
-    changed(effects: string): void {
+    changed(effects: core.ComputationEffect[]): void {
         try {
-            this.settleEffects(JSON.parse(effects) as core.ComputationEffect[], null);
+            this.settleEffects(effects, null);
             this.onChange?.();
         } catch (e) {
             this.logger.error('Failed to apply a change of the computations', { error: stringifyError(e) }, LOG_CTX);
@@ -856,21 +848,18 @@ export class NativeComputations implements core.ComputeHost {
     /// of the computations if none changed.
     project(): ComputationState {
         const computations = this.computations;
+        const tableIds = computations.tableIds();
         const tableComputations: { [key: number]: TableComputationState } = {};
-        const projected = new Map<number, { revision: number; state: TableComputationState }>();
         let changed = this.last == null;
-        for (const tableId of computations.tableIds()) {
-            const revision = computations.computationRevision(tableId)!;
-            let entry = this.projected.get(tableId);
-            if (entry == null || entry.revision !== revision) {
-                entry = { revision, state: this.tableState(computations.computationSnapshot(tableId), entry?.state ?? null) };
+        for (const tableId of tableIds) {
+            const entry = this.projected.get(tableId, computations.computationRevision(tableId)!, prev => {
                 changed = true;
-            }
-            projected.set(tableId, entry);
+                const view = share(prev?.view, computations.computationSnapshot(tableId));
+                return { view, state: this.tableState(view, prev) };
+            });
             tableComputations[tableId] = entry.state;
         }
-        if (projected.size !== this.projected.size) changed = true;
-        this.projected = projected;
+        if (this.projected.retain(tableIds)) changed = true;
 
         // The objects of the tables that the state no longer holds go
         const tables = new Set(computations.arrowTableIds());
@@ -909,64 +898,66 @@ export class NativeComputations implements core.ComputeHost {
     }
 
     /// The JS objects of a computation, the ones of an analysis for a computation of the runtime
-    private hostOf(snapshot: core.ComputationSnapshot): ComputationHost {
-        let host = this.hosts.get(snapshot.lifetime);
+    private hostOf(view: core.ComputationSnapshot): ComputationHost {
+        let host = this.hosts.get(view.lifetime);
         if (host == null) {
-            const analysis = this.analyses.get(snapshot.tableId);
-            this.analyses.delete(snapshot.tableId);
-            const table = this.objectOr(snapshot.dataTable.id, () => this.decodeTable(snapshot.dataTable.id));
+            const analysis = this.analyses.get(view.tableId);
+            this.analyses.delete(view.tableId);
+            const table = this.objectOr(view.dataTable.id, () => this.decodeTable(view.dataTable.id));
             host = {
                 lifetime: analysis?.lifetime ?? new AbortController(),
-                clientContext: analysis?.clientContext ?? clientContextOf(snapshot.clientContext),
-                fieldIndex: new Map(snapshot.dataTableFields.map((field, i) => [field, i])),
+                clientContext: analysis?.clientContext ?? clientContextOf(view.clientContext),
+                fieldIndex: new Map(view.dataTableFields.map((field, i) => [field, i])),
                 fields: new Map((table?.schema.fields ?? []).map(field => [field.name, field])),
                 columnGroups: [],
-                columnGroupsKey: null,
+                columnGroupsView: null,
                 crossFilters: new CrossFilters(),
                 matchingRows: null,
                 matchingRowsOf: null,
                 native: true,
             };
-            this.hosts.set(snapshot.lifetime, host);
-            this.lifetimes.set(snapshot.tableId, snapshot.lifetime);
+            this.hosts.set(view.lifetime, host);
+            this.lifetimes.set(view.tableId, view.lifetime);
         }
         return host;
     }
 
     /// The column groups of a computation of the runtime, with the Arrow types of the result
-    private columnGroupsOf(snapshot: core.ComputationSnapshot, host: ComputationHost): ColumnGroup[] {
+    private columnGroupsOf(view: core.ComputationSnapshot, host: ComputationHost): ColumnGroup[] {
         if (!host.native) return host.columnGroups;
-        const key = JSON.stringify(snapshot.columnGroups);
-        if (host.columnGroupsKey !== key) {
-            host.columnGroups = snapshot.columnGroups.map(group => columnGroupObject(group, host.fields));
-            host.columnGroupsKey = key;
+        if (host.columnGroupsView !== view.columnGroups) {
+            host.columnGroups = view.columnGroups.map(group => columnGroupObject(group, host.fields));
+            host.columnGroupsView = view.columnGroups;
         }
         return host.columnGroups;
     }
 
-    /// The state of a computation, the parts of the previous state that are the same keep their objects
-    private tableState(snapshot: core.ComputationSnapshot, prev: TableComputationState | null): TableComputationState {
-        const host = this.hostOf(snapshot);
-        const version = versionObject(snapshot.version, prev?.version);
-        const dataTable = this.objectOr(snapshot.dataTable.id, () => this.decodeTable(snapshot.dataTable.id))!;
-        const columnGroups = this.columnGroupsOf(snapshot, host);
-        const dataFrame = this.frameObject(snapshot.dataFrame, host.clientContext);
-        const filterTable = snapshot.filterTable == null ? null : this.objectOr<FilterTable>(snapshot.filterTable.table, () => ({
-            inputRowNumberColumnName: snapshot.filterTable!.inputRowNumberColumnName,
-            dataTable: this.decodeTable(snapshot.filterTable!.table),
-            dataFrame: this.frameObject(snapshot.filterTable!.dataFrame, host.clientContext)!,
-            version: versionObject(snapshot.filterTable!.version),
+    /// The state of a computation. The view shares the parts of the previous view that are the same, and the state
+    /// keeps the objects that it built from them.
+    private tableState(view: core.ComputationSnapshot, prev: ProjectedComputation | null): TableComputationState {
+        const before = prev?.state ?? null;
+        const host = this.hostOf(view);
+        const version = before != null && view.version === prev!.view.version ? before.version : versionObject(view.version);
+        const dataTable = this.objectOr(view.dataTable.id, () => this.decodeTable(view.dataTable.id))!;
+        const columnGroups = this.columnGroupsOf(view, host);
+        const dataFrame = this.frameObject(view.dataFrame, host.clientContext);
+        const filter = view.filterTable;
+        const filterTable = filter == null ? null : this.objectOr<FilterTable>(filter.table, () => ({
+            inputRowNumberColumnName: filter.inputRowNumberColumnName,
+            dataTable: this.decodeTable(filter.table),
+            dataFrame: this.frameObject(filter.dataFrame, host.clientContext)!,
+            version: versionObject(filter.version),
         }));
-        const ordering = snapshot.orderingTable;
+        const ordering = view.orderingTable;
         const orderingTable = ordering == null ? null : this.objectOr<OrderingTable>(ordering.table, () => ({
             inputRowNumberColumnName: ordering.inputRowNumberColumnName,
-            orderingConstraints: orderByConstraints(ordering.orderingConstraints),
+            orderingConstraints: ordering.orderingConstraints,
             dataTable: this.decodeTable(ordering.table),
             dataFrame: this.frameObject(ordering.dataFrame, host.clientContext)!,
             version: versionObject(ordering.version),
             dataSearchRequestId: ordering.dataSearchRequestId,
         }));
-        const search = snapshot.dataSearchTable;
+        const search = view.dataSearchTable;
         const dataSearchTable = search == null ? null : this.objectOr<DataSearchTable>(search.table, () => ({
             inputRowNumberColumnName: search.inputRowNumberColumnName,
             dataTable: this.decodeTable(search.table),
@@ -974,7 +965,7 @@ export class NativeComputations implements core.ComputeHost {
             version: versionObject(search.version),
             requestId: search.requestId,
         }));
-        const aggregation = snapshot.tableAggregation;
+        const aggregation = view.tableAggregation;
         const tableAggregation = aggregation == null ? null : this.objectOr<TableAggregation>(aggregation.table, () => {
             const table = this.decodeTable(aggregation.table);
             return {
@@ -990,55 +981,48 @@ export class NativeComputations implements core.ComputeHost {
             host.matchingRows = dataSearchTable == null ? null : parseDataSearchMatches(dataSearchTable.dataTable);
             host.matchingRowsOf = search?.table ?? null;
         }
-        const dataTableOrdering = sameOrderBy(prev?.dataTableOrdering, snapshot.dataTableOrdering)
-            ? prev!.dataTableOrdering
-            : sameOrderBy(orderingTable?.orderingConstraints, snapshot.dataTableOrdering)
-                ? orderingTable!.orderingConstraints
-                : orderByConstraints(snapshot.dataTableOrdering);
-        const columnAggregates = reuseArray(prev?.columnAggregates, snapshot.columnAggregates.map((aggregate, i) =>
+        const columnAggregates = reuseArray(before?.columnAggregates, view.columnAggregates.map((aggregate, i) =>
             this.aggregate(aggregate, columnGroups[i], tableAggregation, host)));
-        const filteredColumnAggregates = reuseArray(prev?.filteredColumnAggregates, snapshot.filteredColumnAggregates.map((aggregate, i) => {
-            if (aggregate == null) return null;
-            if (aggregate.aggregate.kind !== 'skipped') {
-                const epoch = { filterVersion: versionObject(aggregate.filterVersion), dataSearchRequestId: aggregate.dataSearchRequestId };
-                return this.aggregate(aggregate.aggregate, columnGroups[i], tableAggregation, host, epoch) as WithFilterEpoch<ColumnAggregationVariant> | null;
+        const filteredColumnAggregates = reuseArray(before?.filteredColumnAggregates, view.filteredColumnAggregates.map((filtered, i) => {
+            if (filtered == null) return null;
+            if (filtered.aggregate.kind !== 'skipped') {
+                const epoch = { filterVersion: versionObject(filtered.filterVersion), dataSearchRequestId: filtered.dataSearchRequestId };
+                return this.aggregate(filtered.aggregate, columnGroups[i], tableAggregation, host, epoch) as WithFilterEpoch<ColumnAggregationVariant> | null;
             }
-            const before = prev?.filteredColumnAggregates[i];
-            if (before?.type === SKIPPED_COLUMN && sameVersion(before.filterVersion, aggregate.filterVersion) && before.dataSearchRequestId === aggregate.dataSearchRequestId) {
-                return before;
-            }
-            return { ...SKIPPED_AGGREGATE, filterVersion: versionObject(aggregate.filterVersion), dataSearchRequestId: aggregate.dataSearchRequestId };
+            // A skipped summary keeps its object while its epoch is the same
+            if (before != null && filtered === prev!.view.filteredColumnAggregates[i]) return before.filteredColumnAggregates[i];
+            return { ...SKIPPED_AGGREGATE, filterVersion: versionObject(filtered.filterVersion), dataSearchRequestId: filtered.dataSearchRequestId };
         }));
         return {
-            tableId: snapshot.tableId,
-            connectionId: snapshot.connectionId,
+            tableId: view.tableId,
+            connectionId: view.connectionId,
             clientContext: host.clientContext,
-            tasks: this.tasksState(snapshot.tasks, prev?.tasks ?? null, snapshot.tableId),
+            tasks: this.tasksState(view.tasks, before?.tasks ?? null, view.tableId),
             version,
             dataTable,
             dataTableFieldsByName: host.fieldIndex,
             dataTableLifetime: host.lifetime,
             dataFrame,
             columnGroups,
-            dataTableOrdering,
+            dataTableOrdering: view.dataTableOrdering,
             crossFilters: host.crossFilters,
             filterTable,
             orderingTable,
-            columnSearch: searchState(snapshot.columnSearch, prev?.columnSearch ?? null, null),
-            dataSearch: searchState(snapshot.dataSearch, prev?.dataSearch ?? null, host.matchingRows),
+            columnSearch: searchState(view.columnSearch, before?.columnSearch ?? null, null),
+            dataSearch: searchState(view.dataSearch, before?.dataSearch ?? null, host.matchingRows),
             dataSearchTable,
-            rowNumberColumnGroup: snapshot.rowNumberColumnGroup,
-            rowNumberColumnName: snapshot.rowNumberColumnName,
+            rowNumberColumnGroup: view.rowNumberColumnGroup,
+            rowNumberColumnName: view.rowNumberColumnName,
             tableAggregation,
             columnAggregates,
             filteredColumnAggregates,
-            filteredColumnAggregatesOutdated: reuseArray(prev?.filteredColumnAggregatesOutdated, snapshot.filteredColumnAggregatesOutdated),
+            filteredColumnAggregatesOutdated: view.filteredColumnAggregatesOutdated,
         };
     }
 
     /// A summary: the one of the host, or the one of the runtime with its analysis and the formatted values
     private aggregate(
-        aggregate: core.ComputationColumnAggregateSnapshot | null,
+        aggregate: core.ComputationColumnAggregate | null,
         group: ColumnGroup | undefined,
         stats: TableAggregation | null,
         host: ComputationHost,
@@ -1046,11 +1030,10 @@ export class NativeComputations implements core.ComputeHost {
     ): ColumnAggregationVariant | null {
         if (aggregate == null) return null;
         if (aggregate.kind === 'skipped') return SKIPPED_AGGREGATE;
-        if (aggregate.id == null) return null;
         return this.objectOr<ColumnAggregationVariant>(aggregate.id, () => {
             const analysis = aggregate.analysis;
             if (analysis == null || stats == null) return null;
-            const table = this.decodeTable(aggregate.id!);
+            const table = this.decodeTable(aggregate.id);
             const formatter = new ArrowTableFormatter(table.schema, table.batches, this.logger);
             const dataFrame = this.frameObject(aggregate.dataFrame, host.clientContext)!;
             if (analysis.kind === 'ordinal' && group?.type === ORDINAL_COLUMN) {
@@ -1083,7 +1066,7 @@ export class NativeComputations implements core.ComputeHost {
         });
     }
 
-    private tasksState(tasks: core.ComputationSnapshot['tasks'], prev: TableComputationTasks | null, tableId: number): TableComputationTasks {
+    private tasksState(tasks: core.ComputationTasksSnapshot, prev: TableComputationTasks | null, tableId: number): TableComputationTasks {
         const next: TableComputationTasks = {
             tableAggregationTask: this.trackedTask(tasks.tableAggregation, prev?.tableAggregationTask, tableId),
             systemColumnTask: this.trackedTask(tasks.systemColumns, prev?.systemColumnTask, tableId),
@@ -1098,24 +1081,23 @@ export class NativeComputations implements core.ComputeHost {
     }
 
     /// A task that a computation tracks: the task as the app scheduled it with the version and the progress of the
-    /// state. A task of an analysis in Rust has only its table, its version and its progress.
+    /// state. A task of an analysis in Rust has only its table, its version and its progress. A task keeps its object
+    /// while its view and the scheduled task are the same.
     private trackedTask<T>(tracked: core.ComputationTrackedTask | null, prev: WithProgress<T> | null | undefined, tableId: number): WithProgress<T> | null {
         if (tracked == null) return null;
         const variant = this.tasks.get(tracked.taskId) ?? null;
-        const key = JSON.stringify(tracked);
         if (prev != null) {
             const before = this.projectedTasks.get(prev);
-            if (before?.key === key && before.variant === variant) return prev;
+            if (before?.view === tracked && before.variant === variant) return prev;
         }
         const value: Record<string, unknown> = variant == null ? { tableId } : { ...variant.value };
         value.tableVersion = versionObject(tracked.version, variant?.value.tableVersion);
         if (tracked.orderingConstraints != null && variant?.type === TABLE_ORDERING_TASK) {
-            const scheduled = variant.value.orderingConstraints;
-            value.orderingConstraints = sameOrderBy(scheduled, tracked.orderingConstraints) ? scheduled : orderByConstraints(tracked.orderingConstraints);
+            value.orderingConstraints = tracked.orderingConstraints;
         }
         const progress = tracked.progress;
         value.progress = {
-            status: progress.status as TaskStatus,
+            status: progress.status,
             startedAt: new Date(progress.startedAt),
             completedAt: progress.completedAt == null ? null : new Date(progress.completedAt),
             failedAt: progress.failedAt == null ? null : new Date(progress.failedAt),
@@ -1124,14 +1106,9 @@ export class NativeComputations implements core.ComputeHost {
                 : this.errors.get(tracked.taskId) ?? new LoggableException(progress.failedWithError, {}, LOG_CTX),
         } satisfies TaskProgress;
         const task = value as WithProgress<T>;
-        this.projectedTasks.set(task, { key, variant });
+        this.projectedTasks.set(task, { view: tracked, variant });
         return task;
     }
-}
-
-/// The context of a call of the compute host
-function parseContext(context: string): ComputeCallContext {
-    return JSON.parse(context) as ComputeCallContext;
 }
 
 /// The client context of the JSON of the runtime
@@ -1145,7 +1122,7 @@ function clientContextOf(json: string | null | undefined): EmbeddedClientContext
 }
 
 /// A column group of a snapshot with the Arrow type of its field in the result
-function columnGroupObject(group: core.ComputationColumnGroupSnapshot, fields: Map<string, arrow.Field>): ColumnGroup {
+function columnGroupObject(group: core.ComputationColumnGroup, fields: Map<string, arrow.Field>): ColumnGroup {
     if (group.type === 'ROWNUMBER') return { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: group.rowNumberFieldName } };
     const inputFieldType = fields.get(group.inputFieldName)?.type ?? new arrow.Null();
     switch (group.type) {
@@ -1158,7 +1135,7 @@ function columnGroupObject(group: core.ComputationColumnGroupSnapshot, fields: M
                     inputFieldName: group.inputFieldName,
                     inputFieldType,
                     inputFieldNullable: group.inputFieldNullable,
-                    statsFields: statsFieldsObject(group.statsFields),
+                    statsFields: group.statsFields,
                     binFieldName: group.binFieldName ?? null,
                     binCount: group.binCount,
                 },
@@ -1171,21 +1148,11 @@ function columnGroupObject(group: core.ComputationColumnGroupSnapshot, fields: M
                     inputFieldName: group.inputFieldName,
                     inputFieldType,
                     inputFieldNullable: group.inputFieldNullable,
-                    statsFields: statsFieldsObject(group.statsFields),
+                    statsFields: group.statsFields,
                     valueIdFieldName: group.valueIdFieldName ?? null,
                 },
             };
     }
-}
-
-function statsFieldsObject(fields: core.ComputationStatsFields | null): ColumnStatsFields | null {
-    if (fields == null) return null;
-    return {
-        countFieldName: fields.countFieldName,
-        distinctCountFieldName: fields.distinctCountFieldName ?? null,
-        minAggregateFieldName: fields.minAggregateFieldName ?? null,
-        maxAggregateFieldName: fields.maxAggregateFieldName ?? null,
-    };
 }
 
 /// The analysis of a histogram: the numbers of the runtime, the values formatted like the cells of the grid
@@ -1259,16 +1226,6 @@ function versionObject(version: core.ComputationVersionValue, ...candidates: (Co
     return new ComputationStateVersion(version.data, version.filter);
 }
 
-function statsFieldsValue(fields: ColumnStatsFields | null | undefined): core.ComputationStatsFields | null {
-    if (fields == null) return null;
-    return {
-        countFieldName: fields.countFieldName,
-        distinctCountFieldName: fields.distinctCountFieldName ?? null,
-        minAggregateFieldName: fields.minAggregateFieldName ?? null,
-        maxAggregateFieldName: fields.maxAggregateFieldName ?? null,
-    };
-}
-
 /// A column group of the Rust state, the Arrow type of a field by its name
 export function columnGroupValue(group: ColumnGroup): core.ComputationColumnGroup {
     switch (group.type) {
@@ -1282,18 +1239,18 @@ export function columnGroupValue(group: ColumnGroup): core.ComputationColumnGrou
                 inputFieldName: group.value.inputFieldName,
                 inputFieldType: String(group.value.inputFieldType),
                 inputFieldNullable: group.value.inputFieldNullable,
-                statsFields: statsFieldsValue(group.value.statsFields),
+                statsFields: group.value.statsFields ?? null,
                 binFieldName: group.value.binFieldName ?? null,
                 binCount: group.value.binCount,
             };
         case STRING_COLUMN:
         case LIST_COLUMN:
             return {
-                type: group.type === STRING_COLUMN ? 'STRING' : 'LIST',
+                type: group.type === STRING_COLUMN ? 'STRING' as const : 'LIST' as const,
                 inputFieldName: group.value.inputFieldName,
                 inputFieldType: String(group.value.inputFieldType),
                 inputFieldNullable: group.value.inputFieldNullable,
-                statsFields: statsFieldsValue(group.value.statsFields),
+                statsFields: group.value.statsFields ?? null,
                 valueIdFieldName: group.value.valueIdFieldName ?? null,
             };
     }
@@ -1327,22 +1284,7 @@ function progressUpdate(progress: Partial<TaskProgress>): core.ComputationProgre
         completedAt: millis(progress.completedAt),
         failedAt: millis(progress.failedAt),
         failedWithError: progress.failedWithError == null ? null : progress.failedWithError.message ?? String(progress.failedWithError),
-    } as core.ComputationProgressUpdate;
-}
-
-function sameOrderBy(constraints: readonly OrderByConstraint[] | null | undefined, other: readonly core.ComputationOrderBy[]): boolean {
-    return constraints != null && constraints.length === other.length && constraints.every((constraint, i) =>
-        constraint.field === other[i].field
-        && (constraint.ascending ?? null) === (other[i].ascending ?? null)
-        && (constraint.nullsFirst ?? null) === (other[i].nullsFirst ?? null));
-}
-
-function orderByConstraints(constraints: readonly core.ComputationOrderBy[]): OrderByConstraint[] {
-    return constraints.map(constraint => ({
-        field: constraint.field,
-        ...(constraint.ascending != null ? { ascending: constraint.ascending } : {}),
-        ...(constraint.nullsFirst != null ? { nullsFirst: constraint.nullsFirst } : {}),
-    }));
+    };
 }
 
 /// The previous array if it holds the same elements
@@ -1354,7 +1296,7 @@ function reuseArray<T>(prev: readonly T[] | null | undefined, next: T[]): T[] {
 /// The search state of a snapshot, the previous one if it is the same
 function searchState(search: core.ComputationSearchSnapshot, prev: ResultSearchState | null, matchingRows: Map<number, number[]> | null): ResultSearchState {
     const rows = search.hasMatchingRows ? matchingRows ?? new Map<number, number[]>() : null;
-    const groups = search.matchingColumnGroups == null ? null : reuseArray(prev?.matchingColumnGroups, search.matchingColumnGroups);
+    const groups = search.matchingColumnGroups;
     if (prev != null
         && prev.requestedPattern === search.requestedPattern
         && prev.appliedPattern === search.appliedPattern

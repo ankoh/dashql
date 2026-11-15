@@ -24,6 +24,8 @@ use wasm_bindgen::prelude::*;
 
 use super::{js_error, Catalog, ScriptSession, SharedCatalog};
 
+mod view;
+
 /// A connection from the arguments of the JS API
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn connection(

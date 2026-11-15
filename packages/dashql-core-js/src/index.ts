@@ -4,6 +4,7 @@ export * from './workbook.js';
 export * from './connection.js';
 export * from './query_history.js';
 export * from './computations.js';
+export * from './flatbuffer_view.js';
 export * from './storage_writer.js';
 export * from './query_executor.js';
 export * from './catalog_loader.js';

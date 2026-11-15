@@ -1,183 +1,178 @@
 # Projecting the runtime state
 
-Status: a proposal, nothing is built. Measured on `0e3d4fc94`.
+Status: decided and started. The computations cross as views with generated types, the workbook has the first view
+with a FlatBuffer payload (`scriptView`). Measured on `995154de1`.
 
 The state of the app lives in the crate `dashql_core_runtime` inside the core module (see
 [core_runtime.md](core_runtime.md)): the workbooks with their scripts, the connections with their query histories,
-the computations. The React app reads it through hand-written adapters that build JavaScript objects and keep their
-identity. This document proposes how the app reads that state with less hand-written code: types generated from Rust,
-one projection for all slices, and the registries in Rust.
+the computations. The React app reads it through adapters that build JavaScript objects and keep their identity. This
+document says how the app reads that state: views as JS objects with generated types, the FlatBuffers of the core
+inside them, one projection for all slices, and the registries in Rust.
 
-## Recommendation
+## Decision
 
-- **Generate the types with ts-rs** from Rust view types (`Serialize` + `TS`), into one file of
-  `@ankoh/dashql-core` next to the generated FlatBuffer code. The hand-written JSON of the bindings and the
-  hand-written interfaces of `dashql-core-js` go.
-- **One projection.** Every slice has a revision. A parent view lists its children as `[id, revision]`, the
-  runtime of TypeScript keeps one cache per kind keyed by id and revision, shares unchanged sub-objects
-  structurally, and resolves the JavaScript objects that Rust names by id through one handle table.
-- **Effects on handles.** Rust names JavaScript objects by handle and asks for three things: release, close,
-  abort. The per-state effect code goes.
+- **Transport: serde-wasm-bindgen.** A view is a Rust struct with `Serialize`. The bindings return it as a JS object
+  that `serde-wasm-bindgen` builds directly, no JSON string and no `JSON.parse`. What the host hands over (tasks,
+  results, filters) is a view with `Deserialize` and crosses the same way.
+- **Types: tsify.** The views derive `Tsify`, the declarations land in the `.d.ts` of wasm-bindgen
+  (`dashql_core.d.ts`), and `@ankoh/dashql-core` re-exports them. There is no generator target and no generated file
+  of its own. The bindings take and return `tsify::Ts<View>`, which is typed in the declarations and fails with a
+  `JsError` instead of a panic.
+- **The views live in `dashql-core-wasm`**, next to the bindings (`src/computations/view.rs`, `src/workbook/view.rs`).
+  The runtime crate stays free of wasm-bindgen and its types are not the contract.
+- **FlatBuffers inside the views.** A packed FlatBuffer of the core crosses as a `Uint8Array` in a view, typed as
+  `FlatBuffer<T>` of its root table, read in place with the generated accessors, kept by its key.
+- **One projection.** Every slice has a revision. The TypeScript runtime keeps a projection per slice while its
+  revision doesn't move (`RevisionCache`) and shares the unchanged parts of a new view with the previous one (`share`,
+  `packages/dashql-runtime/src/store/projection.ts`). A handle table resolves the JavaScript objects that Rust names
+  by id.
 - **The registries move into Rust** as one `Runtime` object of the module. The store becomes a cache over the
-  revisions of the runtime, with subscriptions per slice. `UpdateQueue` only schedules notifications.
-- **Six steps**, each green and shape-preserving for the consumers until the last. About 2,500 to 3,000 lines of
-  TypeScript go, the per-keystroke cost must not rise.
+  revisions of the runtime, with subscriptions per slice.
 
-## What the adapters do today
+## Measurements
 
-Line counts of `wc -l`; the split into categories is by reading and counts whole functions, so it is approximate.
+Node, the release module (`--config=release`, `-Copt-level=3` and `wasm-opt -O3`), per call over 3,000 calls after
+200 warm-up calls. The computation is the analysis of a result with 12 columns (6 `Float64`, 6 `Utf8`) and 500 rows
+on the embedded Hyper, with the summaries of all columns: its snapshot is 12,684 bytes of JSON. The workbook has
+three scripts, one of them of 40 lines (4,226 characters).
 
-| File | Lines | Types | Identity | Projection | Effects and handles | Action mapping | Rest |
-|---|---|---|---|---|---|---|---|
-| `workbook/scripts/workbook_native.ts` | 404 | 40 | 90 | 95 (annotations 30) | 85 (storage writes 70, sessions) | 60 (create, adopt, connection args) | 35 |
-| `workbook/scripts/workbook_scripts.ts` | 640 | 200 (25 action symbols) | | | 30 (`WorkbookScriptsEffects`) | 180 (`reduceWorkbookScripts`, `settle`, guards) | 230 selectors |
-| `workbook/scripts/script_types.ts` | 171 | 75 | | | | | 95 helpers |
-| `connections/connection_native.ts` | 503 | 45 | 60 (`Part`, revisions) | 200 (`detailsProto`, catalog updates, queries) | 155 (channels, tasks, query records, tables, effects) | | 40 |
-| `connections/connection_state.ts` | 578 | 200 (40 action symbols, enums) | | | 30 | 300 (`reduceConnectionState`, `reduceSetupStep`) | 50 create, destroy |
-| `compute/computation_native.ts` | 1,379 | 30 | 60 (`reuseArray`, `projectedTasks`) | 450 (`tableState`, `aggregate`, `trackedTask`, analyses) | 200 (object table, `settle`, effects) | 400 (`call`, values to Rust) | 200 `ComputeHost` |
-| `compute/computation_types.ts` | 534 | 384 | | | | | 150 |
-| `compute/computation_state.ts` | 247 | 119 | | | | 65 (20 action symbols) | 60 |
-| `query/query_execution_state.ts` | 630 | 220 | | | | 320 (`reduceQueryAction` of the shell) | 90 metrics |
+| What crosses | Today | serde-wasm-bindgen |
+|---|---|---|
+| Computation snapshot, `json!` builders and `JSON.parse` | 207.4 µs | |
+| Computation snapshot, a struct through `serde_json::to_string` and `JSON.parse` | 49.1 µs | |
+| Computation snapshot, a struct as a JS object (`Serializer::new()`, nulls) | | 45.4 µs |
+| Computation snapshot, `Serializer::json_compatible()` | | 44.9 µs |
+| Computation snapshot, `Ts::from_rust` of tsify | | 44.5 µs |
+| Revision of a computation | 0.14 µs | |
+| Workbook properties, 303 bytes of JSON (a `serde_json::Value`) | 5.4 µs | 7.7 µs |
+| Script snapshot, 315 bytes of JSON (a `serde_json::Value`) | 2.2 µs | 3.2 µs |
+| Projection per keystroke: properties, keys, revisions, the changed script | 17.9 µs | 15.3 µs |
+| Editor update of the 40-line script (31,128 bytes): the bytes | 15.8 µs | |
+| The bytes and `unpack()` to the object API | 73.0 µs | |
+| The bytes and the accessors of the root with 3 fields | 11.2 µs | |
 
-The bindings add two hand-written mirrors of the same shapes:
-
-- `packages/dashql-core-wasm/src/{workbook,connection,computations,storage_writer}.rs` build their JSON with 68
-  `json!` calls and parse arguments by hand: about 520 lines in `*_json` and `parse_*` functions plus the inline
-  `snapshot()`, `queries()` and `properties()` methods.
-- `packages/dashql-core-js/src/{workbook,connection,computations,storage_writer,restore}.ts` declare the same
-  shapes again as interfaces: about 660 lines.
-
-What the categories hold:
-
-- **Type definitions.** The JSON shapes three times (Rust `json!`, `dashql-core-js`, the app types) and the enums
-  twice: `ConnectionStatus`, `ConnectionHealth`, `QueryExecutionStatus`, `TaskStatus` and `CatalogUpdateTaskStatus`
-  are `#[repr(u8)]` in Rust and numeric TypeScript enums with 555 member references in 111 files of the app and the
-  runtime. The bindings cast the numbers across.
-- **Identity keeping.** Each adapter does it differently: by revision per script (`projected`), by `JSON.stringify`
-  of the source per part (`Part<T>` of the connection), by `reuseArray` and `sameVersion` per field (the
-  computations), and by mutating maps in place (`queriesActive`, `restoreCatalogUpdates`). The last breaks the rule
-  that a snapshot handed to `useSyncExternalStore` never changes.
-- **Projection.** Mostly reshaping: milliseconds to `Date` (`toDate` on 13 metrics of a query), the details of a
-  connection into the protobuf shape of the JSON schema (`detailsProto` adds placeholders for missing OAuth steps),
-  `Immutable.List` of statistics, `Map`s of queries. The annotations of a script are derived from its editor update.
-- **Effects and handles.** The JavaScript objects that Rust knows by id: script session handles, channels, abort
-  controllers of catalog updates, queries and data searches, `LoggableException`s with their key values, the
-  structured progress of a query, result tables (`arrow.Table`), data frames and the decoded Arrow tables of the
-  computations. Each adapter has its own id maps and its own forgetting rules.
-- **Action mapping.** A `switch` per state from symbol actions to typed method calls, with guards that the Rust side
-  repeats (unknown script keys, refused actions of a cloud preview).
-
-Findings:
-
-- **Effects make a round trip.** `writeWorkbookEffects` turns the `WorkbookEffect`s of the Rust workbook into tasks
-  of the storage writer, which is Rust as well (`storage/writer.rs`). With the registries in Rust they never leave
-  the module.
-- **Selectors repeat Rust.** `workbookScriptList`, `workbookConnectionCopies` and `workbookScriptListWrite` rebuild
-  what `properties().scriptList` already returns; `freeWorkbookName` is `free_workbook_name`.
-- **Crossings grow with the scripts.** A projection of a workbook calls `properties()`, `scriptKeys()` and
-  `scriptRevision(key)` per script, then `scriptSnapshot`, `scriptStatistics` and maybe more for each changed one.
-- **Every keystroke replaces the registry.** `replaceWorkbookScriptsInRegistry` copies both maps, so every
-  subscriber of `useWorkbookScriptsRegistry` (8 files) renders again, and the followers of `runtime.ts` run.
+- **Large views get faster.** Most of today's cost is the `json!` builders, not the transport: a struct serialized
+  to JSON is four times faster than the `serde_json::Value` of today. A struct as a JS object is as fast as a struct as
+  JSON and `JSON.parse`, and saves the string.
+- **Small views stay in microseconds.** A `serde_json::Value` as a JS object is slower than `JSON.parse` of its
+  string (its keys are no static strings that the serializer caches). Per keystroke both paths cost 15 to 18 µs of
+  a reduction of about 130 µs and an analysis of about 190 µs (the release module, a catalog without tables).
+- **`json_compatible()` gains nothing.** It serializes maps as objects, the views have no maps. The views use
+  `Serializer::new()` with `serialize_missing_as_null`, which tsify sets from `#[tsify(missing_as_null)]`.
+- **Unpacking is the cost of a FlatBuffer.** Crossing the bytes of an editor update costs 16 µs, unpacking them to
+  the object API another 57 µs. The accessors read the bytes in place.
 
 ## Generated types
 
-The shapes that cross are views, not the state: the state holds `Rc<ScriptSession>`, catalogs and Arrow arrays.
-Each slice gets a view type in `dashql_core_runtime::view` with `#[derive(Serialize, TS)]` and a function
-that builds it (`Workbook::view`, `ConnectionState::view`, ...). The views are the contract, the snapshot tests of
-the crate cover them (`tests/snapshots/runtime_views/`). Actions and effects get `Deserialize` and `Serialize`
-the same way.
+### tsify
 
-### Options
+`tsify = 0.5.8` with `default_features = False, features = ["js"]` (wasm-bindgen 0.2.104 or newer, the core pins
+0.2.105), `serde-wasm-bindgen = 0.6.5`, `serde_bytes = 0.11.19` and `serde_repr = 0.1.21` in
+`bazel/crates/core.MODULE.bazel`. tsify is the maintained crate again, `tsify-next` merged back into it.
 
-| | ts-rs | specta | tsify | typeshare | JSON Schema |
-|---|---|---|---|---|---|
-| How | derive, `export_to_string` at build time | derive, exporter crate | derive, declarations in the wasm-bindgen `.d.ts` | CLI parses the Rust sources | schemars derive, then `json-schema-to-typescript` |
-| Serde attributes | yes (`serde-compat`, default) | yes | yes | yes | yes |
-| Numeric TS enums | `#[ts(repr(enum))]` keeps the discriminants | no | no, string unions | no | numbers without names |
-| Adjacently tagged enums (`{type, value}`) | yes | yes | yes | partly | yes |
-| Depends on | `ts-rs`, `thiserror` | `specta`, `specta-typescript` (2.0 release candidates) | `wasm-bindgen` in the crate that derives | a CLI binary | `schemars`, the existing Node tool |
-| Bazel | a `rust_binary` and a `genrule` | the same | nothing extra | a CLI from crate_universe, a rule | two genrules, a schema in between |
-| Output | one `.ts` file | one `.ts` file | inside `dashql_core.d.ts` | one `.ts` file | a schema and a `.ts` file |
+- **Names.** The TypeScript name is the Rust name. Structs take `#[serde(rename_all = "camelCase")]`, tagged enums
+  `#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]`, which gives the unions of today
+  (`{ kind: "ordinal"; ... } | { kind: "skipped" }`). A newtype variant over a struct is an intersection
+  (`{ kind: "columnAggregation" } & ComputationColumnTask`).
+- **Nulls.** Every view takes `#[tsify(missing_as_null)]`: `Option<T>` is `T | null` and crosses as `null`. The
+  serializer follows the config of the root view, the attribute on the nested views keeps their declarations
+  right. A field with `skip_serializing_if = "Option::is_none"` is `field?: T` and absent, e.g. `ascending` of an
+  ordering, which is then the `OrderByConstraint` of the app as it is.
+- **Numbers.** `u64`, `i64` and `usize` are `number`. serde-wasm-bindgen fails a value above 2^53 with an error, the
+  binding throws, nothing panics. Ids, revisions and milliseconds stay plain integers, no newtypes.
+- **Numeric enums.** A unit enum of the app is a `#[wasm_bindgen]` C-style enum of the module with the names of the
+  app as variants (`TASK_RUNNING = 1`, `#[allow(non_camel_case_types)]`). wasm-bindgen declares it as a TypeScript
+  `enum` and exports it as a frozen object of the glue, `serde_repr` serializes it as its number, and the views name
+  it with `#[tsify(type = "TaskStatus")]`. `TaskStatus` of the computations is done: the hand-written enum of the
+  runtime re-exports the generated one, its 73 references in 11 files don't change. `ConnectionStatus`, `ConnectionHealth`,
+  `QueryExecutionStatus` and `CatalogUpdateTaskStatus` follow the same way, with explicit discriminants where the
+  TypeScript enum counts implicitly.
+- **Bytes.** A field with `#[serde(with = "serde_bytes")]` crosses as a `Uint8Array`, copied once out of the memory of
+  the module. tsify needs a type override for it (`#[tsify(type = "...")]`).
+- **No panics.** The deprecated `into_wasm_abi` and `from_wasm_abi` of tsify panic on a failed conversion and leak.
+  The bindings take and return `Ts<T>`, convert with `Ts::from_rust` and `to_rust`, and return `Result<_, JsError>`.
 
-- **tsify** keeps no file of its own, but it needs `wasm-bindgen` in the crate that derives. `dashql_core_runtime`
-  is sans-IO and tested natively, the derives would have to sit on copies in `dashql-core-wasm`. It emits string
-  unions for enums, so the 555 enum references would change.
-- **specta** has been a release candidate for a long time and splits its exporters into crates that move with it.
-- **typeshare** parses source text, which misses types from macros and generics, and adds a tool to Bazel.
-- **JSON Schema** fits the files that users write by hand (`proto/json/dashql/app_workbook.json`), where the schema is
-  the source. For in-memory views the Rust type is the source, and a schema between Rust and TypeScript is a third
-  artifact to keep in sync.
+### Where the derives live
 
-### ts-rs, recommended
+The views live in `dashql-core-wasm`, next to the bindings that build them from the state. The alternative was view
+types in the runtime with `cfg_attr(target_arch = "wasm32", derive(Tsify))`: the derive expands to wasm-bindgen
+code, so the runtime would depend on `tsify` and `wasm-bindgen` on wasm32. In the module crate the views cost a mirror
+of the runtime types and a `From` per type, which is where the `json!` builders were. The views of the computations
+are 34 types in 900 lines.
 
-- **Crate universe.** `crate_core.spec(package = "ts-rs", version = "=12.0.1", features = ["no-serde-warnings"])`
-  in `bazel/crates/core.MODULE.bazel`; `serde-compat` is its default. The lockfile follows the repin rule of the
-  repository.
-- **Derive without a feature.** The views derive `TS` on every platform. Nothing in the module calls the impls, the
-  optimizer drops them. A feature would need a second `rust_library` of the crate with other `crate_features`; it is
-  the fallback if the size check of step 1 fails.
-- **The generator.** `//packages/dashql-core-runtime:runtime_ts_gen`, a `rust_binary` that prints
-  `export_to_string` of the root types (views, actions, effects) into one file; a `genrule` writes `runtime.ts`.
-  `//packages/dashql-core-js:compile_inputs` copies it to `src/gen/runtime.ts` like `dashql_buffers_ts_gen`, and
-  `src/runtime_types.ts` re-exports it. The file is a build output, nothing is checked in, no file sits next to
-  another.
-- **Names.** Structs take `#[serde(rename_all = "camelCase")]`; ts-rs follows serde. Actions take
-  `#[serde(tag = "type", content = "value", rename_all = "SCREAMING_SNAKE_CASE")]`, which is the `VariantKind` shape
-  of the app. `Option<T>` is `T | null`.
-- **Enums keep their numbers.** Unit enums are `#[repr(u8)]` with
-  `#[ts(repr(enum), rename_all = "SCREAMING_SNAKE_CASE")]` and serialize as their number through a small
-  `serialize_repr!` macro of the crate (no `serde_repr`). The generated `enum ConnectionHealth { NOT_STARTED = 0, ... }`
-  replaces the hand-written one with the same names and values. Step 1 checks that the pinned ts-rs does this.
-- **Numbers.** ts-rs maps `u64` and `i64` to `bigint`, `JSON.parse` returns numbers. The views use three newtypes
-  with a hand-written `TS` impl of `number`: `Id`, `Revision` and `Millis` (epoch milliseconds). They also name the
-  units.
-- **What it replaces.** About 560 of the 660 lines of interfaces in `dashql-core-js`, and the `json!` builders and
-  `parse_*` functions of the bindings (about 520 lines), against about 250 lines of view structs.
+### The declarations reach the package
+
+`//packages/dashql-core-js:wasm_assets` copies `dashql_core.d.ts` as before, `computations.ts` re-exports the types
+(`export type { ComputationSnapshot, ... } from './wasm/dashql_core.js'`) and the enum
+(`export { TaskStatus } from ...`). The runtime and the app import them from `@ankoh/dashql-core`. There is no new
+Bazel step.
+
+## FlatBuffers
+
+The payloads of the core keep their schemas in `proto/fb`, the contract of the core. A view carries such a payload
+as its bytes and a key:
+
+```rust
+#[tsify(type = "FlatBuffer<buffers_editor.EditorUpdate> | null")]
+pub editor_update: Option<FlatBufferBytes>,   // #[serde(with = "serde_bytes")] Vec<u8>
+```
+
+- **Typed by the root table.** `src/views.rs` of the module declares `FlatBuffer<T> = Uint8Array & { ... }` and
+  imports the generated accessors of `src/gen/` into the declarations, so a field reads as
+  `FlatBuffer<buffers_editor.EditorUpdate>`.
+- **Read in place.** `readFlatBuffer(bytes, root)` of `@ankoh/dashql-core` wraps the bytes in a `ByteBuffer` and
+  returns the accessor object of the root table. Nothing is copied, nothing is unpacked; a consumer that needs the
+  object API unpacks what it reads.
+- **Kept by key.** `FlatBufferCache` holds the accessor object of a slot (e.g. a script) with its key and returns the
+  same object while the key doesn't move. The host passes the key it holds (`scriptView(key, known)`), the module
+  leaves the bytes of that key out. A per-keystroke view crosses no editor update that the editor reported itself.
+- **Proved on the editor update** (`flatbuffer_view.test.ts`): the bytes of the view are the bytes the accessors read,
+  the same key crosses no bytes and keeps the object, a new analysis crosses again.
+
+What crosses how:
+
+| Kind | Crosses as | Examples |
+|---|---|---|
+| The state of DashQL | serde objects of views | workbook, script, connection, query, computation, effects, actions |
+| Payloads of the core | FlatBuffers in views, by key | editor updates, staged diffs, compiled visualizations, processing statistics, completions, query profiles |
+| Tables | Arrow IPC, once per table id | results, the tables of the computations |
 
 ## One projection
 
 ### Views and revisions
 
-- **A view per slice.** `WorkbookView`, `ScriptView`, `ConnectionView`, `QueryView`, `ComputationView`. A view
-  holds plain fields, ids of handles, and the keys of the buffers that cross apart (below).
+- **A view per slice.** `WorkbookView`, `ScriptView`, `ConnectionView`, `QueryView`, `ComputationSnapshot` (built).
+  A view holds plain fields, ids of handles and the FlatBuffer payloads with their keys.
 - **Revisions nest.** Every slice has its revision from `next_revision`. A parent lists its children as
-  `[id, revision]`: the workbook its scripts in feed order, the connection its active and finished queries (as
-  `queries()` does today), the computations their tables. A parent that only lists children doesn't change its own
-  revision when a child changes; the list is read with the parent.
-- **One crossing per kind.** `views(kind, ids)` returns the views of many slices as one JSON array. A keystroke reads
-  the workbook (with its list) and one script: two crossings, independent of the number of scripts.
+  `[id, revision]`: the workbook its scripts in feed order, the connection its active and finished queries, the
+  computations their tables. A parent that only lists children doesn't change its own revision when a child changes.
+- **One crossing per kind.** `views(kind, ids)` returns the views of many slices as one array. A keystroke reads the
+  workbook (with its list) and one script: two crossings, independent of the number of scripts.
 
-Rust could also report the changed `(kind, id, revision)` of every action. With nested revisions the projection
-needs that only for the roots: the `Runtime` of step 4 keeps a set of changed workbooks, connections and
-computations and hands it over with `takeChanges()`. Below the roots the lists of the parents say what changed.
+The `Runtime` of the registries keeps a set of changed roots and hands it over with `takeChanges()`. Below the roots
+the lists of the parents say what changed.
 
 ### The cache
 
-`packages/dashql-runtime/src/store/projection.ts`, about 200 lines:
+`packages/dashql-runtime/src/store/projection.ts`, built:
 
-```ts
-interface SliceCache<V> {
-    /// The view of a slice, read again when its revision moved
-    get(id: string | number, revision: number): V;
-    /// Forget the slices that are not in the list
-    retain(ids: Iterable<string | number>): void;
-}
-```
-
-- **Structural sharing.** `share(prev, next)` walks a fresh view against the cached one: equal primitives stay,
-  arrays and objects whose members all stay return the previous object. It costs the size of the changed slice,
-  never of the workbook, and replaces `Part<T>`, `reuseArray`, `sameVersion` and the in-place maps.
-- **Lists of children.** `projectChildren(prev, refs, cache)` returns the previous array or map when every child
-  kept its object and the order is the same, as `NativeWorkbook.project` does for `scripts`, `scriptRefs` and
-  `scriptOrder` today.
-- **Views are immutable.** Nothing writes into a projected object. An older state reads as it was, an action acts on
+- **`RevisionCache<K, V>`.** The projection of a slice by id, built again when its revision moved, with the previous
+  projection at hand. `retain(ids)` forgets the slices that went.
+- **`share(prev, next)`.** Walks a fresh view against the previous one: equal primitives stay, arrays and plain
+  objects whose members all stay return the previous object, typed arrays and class instances compare by identity.
+  It costs the size of the changed slice. A part of a view that didn't change keeps its object, and the hydration
+  keeps what it built from it by comparing identities.
+- **The computations use both.** A computation keeps its state while its revision doesn't move. The state of a changed
+  computation keeps its version, its column groups, its tracked tasks, its skipped summaries, its orderings and its
+  searches while their parts of the view are the same. The JSON keys of the column groups and of the tracked tasks,
+  the conversions of the orderings and of the statistics fields, and `parseContext` went.
+- **Views are immutable.** Nothing writes into a projected view. An older state reads as it was, an action acts on
   the latest Rust object as today.
 
 ### Handles
 
 One `HandleTable` per runtime (`register(object) -> Id`, `get(id)`, `release(id)`) replaces the id maps of the three
-adapters. Rust keeps the handle id where it keeps the JavaScript object today (a query holds the handle of its abort
-controller and its result table, a connection the handle of its channel). The effects become three verbs:
+adapters. Rust keeps the handle id where it keeps the JavaScript object today. The effects become three verbs:
 
 | Effect | Today |
 |---|---|
@@ -185,133 +180,109 @@ controller and its result table, a connection the handle of its channel). The ef
 | `{ type: 'close', handle }` | `closeChannel` |
 | `{ type: 'abort', handle, reason }` | `abortCatalogUpdates`, `stopQueries`, `abortComputation`, `abortDataSearch` |
 
-`invalidateCatalogBatch` and `cancelSetup` stay named effects, they act on services, not on handles. A data frame
-is released through its `DataFrameRegistry`, a session handle through `destroy`: the kind of a handle names its
-release.
+`invalidateCatalogBatch` and `cancelSetup` stay named effects, they act on services, not on handles.
 
 ### Hydration
 
-A view carries ids and numbers, the consumers read objects and `Date`s. Until the consumers move (step 6), a
-hydrator per kind turns a view into the object of today:
-
-- it resolves handles (`resultTable`, `cancellation`, `details.value.channel`, `scriptSession`),
-- turns `Millis` into `Date`, arrays into the `Map`s and `Immutable.List` the consumers expect,
-- is memoized by the identity of the view (`WeakMap<View, Hydrated>`), so shared views give shared objects without
-  a second mechanism.
-
-`detailsProto` and its placeholders go: the view of the details is the shape the app reads, decided once in Rust.
+A view carries ids and numbers, the consumers read objects and `Date`s. Until the consumers move, a hydrator per
+kind turns a view into the object of today: it resolves handles, turns milliseconds into `Date`, arrays into the
+`Map`s and `Immutable.List` the consumers expect. With `share` it compares the parts of the view by identity and keeps
+what it built. `detailsProto` of the connection goes, the view of the details is the shape the app reads.
 
 ### What stays special
 
-- **Editor updates by key.** `ScriptView.editorUpdateKey` names the analysis; the packed `EditorUpdate` crosses only
-  when the key changed, and the update that the editor reported is taken as it is (`knowUpdate`). Per keystroke this
-  is the largest object, it must not be unpacked twice.
-- **Packed FlatBuffers.** Staged diffs, compiled visualizations and processing statistics cross as packed buffers,
-  read when their key moved.
-- **Arrow tables.** A table of the computations crosses as IPC once per table id and is decoded lazily; the
-  formatters (`ArrowTableFormatter`) are built with the decoded table. Result tables of queries stay JavaScript
-  handles until the query executor moves.
-- **The compute host.** `NativeComputations` implements `ComputeHost` (import, create, query, drop, cancel). That is
-  I/O, not projection, and stays until the compute database is a host of the runtime.
+- **Arrow tables.** A table of the computations crosses as IPC once per table id and is decoded lazily. Result tables
+  of queries stay JavaScript handles until the query executor moves.
+- **The compute host.** `NativeComputations` implements `ComputeHost` (import, create, query, drop, cancel). Its
+  calls get the context as a view (`ComputeCallContext`) and the effects of a task as `ComputationEffect[]`.
 
 ### Per keystroke
 
-Today: 0.6 to 0.9 ms per reduction, 0.2 to 0.3 ms of it projection (see "Typing" in core_runtime.md). With the
-projection above a keystroke costs two crossings and one `JSON.parse` of a workbook list and a script view, one
-`share` over about 15 fields, and no FlatBuffer unpacking. A view serialized from a struct with `serde_json::to_string`
-is cheaper than building a `serde_json::Value` with `json!`. The check of every step: the Node measurement of
-core_runtime.md, the projection must not exceed today's.
+The projection of a keystroke costs 15 to 18 µs on either transport. With the views of the workbook it costs two
+crossings, one `share` over about 15 fields and no FlatBuffer unpacking. The check of every step stays the Node
+measurement of "Typing" in core_runtime.md: the projection must not exceed today's.
 
 ## The registries in Rust
 
 `Runtime`, a class of the module created with `DashQL.createRuntime`, holds what the registries hold in TypeScript:
 the workbooks by id, the connections by id, the computations, the invalid workbooks, and the index of the workbooks
-of a connection, derived in Rust instead of being maintained by hand (`reindexWorkbookScriptConnections`).
+of a connection, derived in Rust instead of maintained by hand (`reindexWorkbookScriptConnections`).
 
-- **What moves with them.** The promotion of the ephemeral workbook needs the names of the other workbooks
-  (a quirk of "Kept on purpose" goes). `CATALOG_DID_UPDATE` reaches every workbook of a connection inside Rust
-  (`applyConnectionWorkbookScriptsAction`). The decisions of `ConnectionPersistence` read the connection before and
-  after inside the module. The `WorkbookEffect`s go to the storage writer of the runtime without leaving the module.
-- **Dispatch.** `runtime.dispatch(action)` takes the generated action union as JSON. Actions that carry JavaScript
-  objects carry handles: the caller registers the channel, the table or the abort controller first. Actions on the
-  hot path stay typed methods: `reportEditorUpdate` with its packed buffer, the batches of a result stream.
-- **Constants stay.** `SET_SCRIPT_TEXT` and the other action constants become string constants of the generated
-  names; the call sites don't change, the uses of `action.type.description` do.
-- **The store is a cache.** `RuntimeStore` holds the slice caches and the roots, and subscriptions per slice:
+- **What moves with them.** The promotion of the ephemeral workbook, the fan-out of `CATALOG_DID_UPDATE` to the
+  workbooks of a connection, the decisions of `ConnectionPersistence`, and the `WorkbookEffect`s to the storage writer
+  of the runtime without leaving the module.
+- **Dispatch.** `runtime.dispatch(action)` takes the generated action union as a JS object. Actions that carry
+  JavaScript objects carry handles. Actions on the hot path stay typed methods: `reportEditorUpdate` with its packed
+  buffer, the batches of a result stream.
+- **The store is a cache.** `RuntimeStore` holds the slice caches and the roots, with subscriptions per slice:
   `useWorkbook(id)`, `useScript(workbookId, key)`, `useConnection(id)`, `useQuery(connectionId, queryId)`,
-  `useComputation(tableId)`. A keystroke notifies the subscribers of one workbook and one script, not every
-  subscriber of the registry. The registry objects of today (`WorkbookScriptsRegistry`, `ConnectionRegistry`) are
-  projections of the roots, rebuilt when the roots or their membership change.
-- **`UpdateQueue`.** Rust applies an action once, in call order, and a failed action leaves the state as it was; the
-  queue no longer guards that. Step 4 keeps the queue as it is, the actions apply in its flush and the projection
-  runs once per flush instead of once per action. Applying an action at once and queueing only the notification
-  (after the task, or before the frame for the progress of a stream) is a decision of its own: a caller that reads
-  the store right after a dispatch would see the new state, and the tests show where that matters.
-- **Direct writes go.** The 27 calls of `store.update` and the setters of the registries (allocate, delete, restore,
-  invalid workbooks) become methods of the runtime.
-- **Re-entrancy.** A listener may dispatch while the store notifies. The runtime notifies after its borrow ended,
-  like the services of the host do; a dispatch inside a borrow is a wasm-bindgen "recursive use" error, not a
-  panic, and a test covers it.
-- **The followers.** The catalog loader and the runs follow the changed roots of `takeChanges()` instead of every
-  new registry object.
+  `useComputation(tableId)`. A keystroke notifies the subscribers of one workbook and one script.
+- **`UpdateQueue`.** The first step keeps the queue, the actions apply in its flush and the projection runs once per
+  flush. Applying an action at once and queueing only the notification is a decision of its own.
+- **Re-entrancy.** The runtime notifies after its borrow ended. A dispatch inside a borrow is a wasm-bindgen
+  "recursive use" error, not a panic, and a test covers it.
 
 ## Migration
 
 Each step keeps the app and the tests green, the steps up to 5 keep the objects that the consumers read.
 
-1. **Views and generated types.** View structs with `Serialize` and `TS`, actions and effects with `Deserialize`.
-   The bindings serialize views instead of `json!`; the JSON keeps its shape, which a test of the bindings compares
-   against the old output before the old builders go. `dashql-core-js` re-exports the generated types and the
-   enums. Gone: about 560 lines of TypeScript interfaces, about 520 lines of Rust JSON code. Added: about 250
-   lines of view structs, the generator target. Checks: the enum mapping of the pinned ts-rs, the size of the
-   optimized module.
+1. **Views and generated types.** Views with `Serialize` and `Tsify`, the inputs with `Deserialize`, the bindings on
+   `Ts<T>`, `@ankoh/dashql-core` re-exports the declarations and the enums. Done for the computations: their JSON
+   readers and builders, the hand-written interfaces of `dashql-core-js` and `TaskStatus` went. Next the connection,
+   the workbook, the storage writer and the restore (68 `json!` calls left in the bindings of the state, 65 more in
+   the format of workbooks).
 2. **Handles and the three effects.** `HandleTable`, Rust keeps handle ids, the effects become release, close and
-   abort. Gone: the id maps and the effect switches of the three adapters, about 250 lines.
-3. **The cache and the hydrators.** `projection.ts`, `views(kind, ids)` in the bindings, the parents list their
-   children. The connection first (smallest, and its in-place maps go), then the workbook, then the computations.
-   `workbook_native.ts` from 404 to about 150 lines, `connection_native.ts` from 503 to about 180, the projection of
-   `computation_native.ts` from about 450 to about 150. Added: about 200 lines. Net: about 650 lines gone.
+   abort. The id maps and the effect switches of the three adapters go.
+3. **The cache and the hydrators.** `projection.ts` is built and the computations use it. Then `views(kind, ids)` in
+   the bindings, the parents list their children, the connection (its in-place maps go) and the workbook with its
+   FlatBuffer payloads by key (`scriptView` is its first view).
 4. **The `Runtime` object.** The registries, the index, the promotion, the fan-out of connection actions and the
-   effects to the storage writer in Rust; the store as a cache with subscriptions per slice; the queue as above.
-   Gone: `workbook_scripts_registry_state.ts` (226), most of `connection_registry_state.ts` (263),
-   `writeWorkbookEffects` (70), the selectors that repeat Rust (about 120), parts of the registry services. About
-   600 lines of TypeScript, about 400 lines of Rust added.
-5. **Actions through one dispatch.** The generated action unions, string constants, one `dispatch`. Gone: the
-   switches of `reduceWorkbookScripts`, `reduceConnectionState`, `reduceSetupStep` and `NativeComputations.call`
-   with the value builders, about 900 lines, against about 150 lines of handle registration.
-6. **Consumers on views.** Components move to the hooks per slice and read numbers and handle ids; the hydrators
-   go kind by kind. The query history of the shell moves to the Rust history, and `reduceQueryAction` (about 320
-   lines) goes with it. About 600 lines.
+   effects to the storage writer in Rust; the store as a cache with subscriptions per slice.
+5. **Actions through one dispatch.** The generated action unions, string constants, one `dispatch`. The switches of
+   `reduceWorkbookScripts`, `reduceConnectionState`, `reduceSetupStep` and `NativeComputations.call` go.
+6. **Consumers on views.** Components move to the hooks per slice and read numbers and handle ids; the hydrators go
+   kind by kind. The query history of the shell moves to the Rust history.
 
-In sum about 2,500 to 3,000 of the about 6,600 lines of the adapters, the type shells, the registries and the
-type mirrors of `dashql-core-js`.
+### The computations, step 1
+
+| | Deleted | Added |
+|---|---|---|
+| `dashql-core-wasm/src/computations.rs` (the JSON readers and builders) | 716 | 276 |
+| `dashql-core-wasm/src/computations/view.rs` (34 views and their conversions) | | 903 |
+| `dashql-core-js/src/computations.ts` (the interfaces, the JSON of the calls) | 395 | 96 |
+| `dashql-runtime/src/compute/computation_native.ts` (keys, conversions, the parsed context) | 154 | 96 |
+| `dashql-runtime/src/compute/computation_types.ts` (`TaskStatus`) | 5 | 3 |
+| `dashql-runtime/src/store/projection.ts` and its test (for every slice) | | 124 |
+
+TypeScript lost 287 lines without the generic projection, Rust gained 463: a view with its `From` takes two lines per
+field where a `json!` builder took one, and the inputs are views too. The shapes exist once, in Rust.
 
 ## Risks
 
-- **Per keystroke.** The projection is the part of a keystroke that this changes. Step 3 lands only with the Node
-  measurement at or below today, and a measurement in the browser (open in core_runtime.md) belongs to it.
-- **Wasm size.** Serde derives on about 100 types add code, the deleted `json!` builders take some away. Budget:
-  the optimized module grows by at most 2% (about 90 KB); otherwise the `TS` derive goes behind a feature and the
-  views lose the fields that no consumer reads.
-- **Two copies of `@ankoh/dashql-core`.** The generated types are erased; the generated enums exist in both copies
-  with the same numbers, so comparisons hold. The cache and the handle table never use `instanceof` or the classes
-  of the package, they go through the instance (`DashQL.createRuntime`, as `createWorkbook` and
-  `createComputations` do today). One `Runtime` object per instance makes the problem smaller than one object per
-  workbook and connection.
-- **Generator limits.** If `#[ts(repr(enum))]` doesn't keep the names and numbers, the enums stay hand-written in
-  `dashql-core-js` with a test that compares them with the generated unions of numbers.
+- **Wasm size.** The views of the computations, their `Deserialize` impls through serde-wasm-bindgen and the editor
+  update view grow the optimized module from 12,275,611 to 12,457,717 bytes (+1.5%), gzip from 3,280,244 to
+  3,355,769 bytes (+2.3%), 182 KB for 34 views and one FlatBuffer view. The other states have about as many views
+  again; the size is measured with every step, and an input that only a test needs goes back to typed arguments.
+- **Two copies of `@ankoh/dashql-core`.** The generated types are erased; the generated enums are numbers in both
+  copies, so comparisons hold. The cache and the handle table never use `instanceof` or the classes of the package.
+- **The declarations import the generated FlatBuffer code** by a relative path (`../gen/dashql/buffers/`). The path
+  holds in the sources of the package and in its `dist`; a move of either breaks the types of the FlatBuffer views,
+  the typecheck of the package catches it.
 - **Semantics of the queue.** Applying actions at once changes what a caller reads right after a dispatch; step 4
   doesn't do it, a later step decides with the tests.
 - **Errors lose their stacks.** A `LoggableException` stays a handle until the consumers read `{ message, details }`
-  of the view; dropping the handle drops the stack of the JavaScript error.
+  of the view.
 - **Many consumers.** 73 files read `ConnectionState`, 57 `WorkbookScripts`, 37 `ScriptData`, 31
-  `QueryExecutionState`. Step 6 moves them in small batches behind the hydrators, there is no flag day.
+  `QueryExecutionState`. Step 6 moves them in small batches behind the hydrators.
 
 ## Decided against
 
-- **serde-wasm-bindgen.** Building JavaScript objects field by field through the boundary costs more than one
-  `JSON.parse` of a string, and the identity keeping needs a walk anyway.
+- **JSON strings with types from ts-rs.** The first version of this proposal. It needs a generator binary and a
+  genrule, maps `u64` to `bigint` (newtypes with hand-written impls), and the string costs a `JSON.parse` that a JS
+  object built directly doesn't. ts-rs keeps the names of numeric enums, the C-style enums of wasm-bindgen do that
+  too.
+- **`into_wasm_abi` of tsify.** Deprecated: a failed conversion panics and leaks. `Ts<T>` is typed the same way.
 - **Views as FlatBuffers.** The schemas of `proto/fb` are the contract of the core; the views belong to DashQL and
-  change with it (see core_runtime.md). The FlatBuffer path stays for the buffers that the core produces.
+  change with it. The FlatBuffer path stays for the payloads that the core produces.
 - **Serialize on the state types.** The state holds sessions, catalogs and Arrow arrays, and its field names are
   not the contract. The views decide what crosses.

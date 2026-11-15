@@ -23,9 +23,16 @@ rust_shared_library(
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
         "@core_crates//:js-sys",
+        "@core_crates//:serde",
+        "@core_crates//:serde-wasm-bindgen",
+        "@core_crates//:serde_bytes",
         "@core_crates//:serde_json",
+        "@core_crates//:tsify",
         "@core_crates//:wasm-bindgen",
         "@core_crates//:wasm-bindgen-futures",
+    ],
+    proc_macro_deps = [
+        "@core_crates//:serde_repr",
     ],
 )
 
