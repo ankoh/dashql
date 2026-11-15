@@ -203,7 +203,7 @@ The position of the script is `AnalyzedScript::flow`, the editor session passes 
 
 ## Compilation and rendering
 
-The compiler (`dashql-core-session/src/compiler.rs`) describes a terminal query with a visualization as
+The compiler (`dashql-core-script/src/compiler.rs`) describes a terminal query with a visualization as
 `VISUALIZE` for the editor, the planner attaches the visualization to the node of any visualized query, and
 runs execute the plan. The executed SQL is the statement as written, the tags are comments. In the shell,
 the tags are plain comments.

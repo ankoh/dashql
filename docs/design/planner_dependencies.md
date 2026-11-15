@@ -4,8 +4,8 @@ The planner (`planner.md`) turns the statements of a session into a DAG of nodes
 which statements become nodes, which edges connect them, and what a run of the session and a run of one script
 execute. Script references, their splicing and their errors are described in `script_references.md` and in the
 Script References section of `planner.md`, the wire format and the API in `planner.md`. The code is `plan_session`
-in `packages/dashql-core-session/src/planner.rs` and `ScriptReferences` and `splice_statement` in
-`packages/dashql-core-session/src/script_references.rs`.
+in `packages/dashql-core-runtime/src/planner/mod.rs` and `ScriptReferences` and `splice_statement` in
+`packages/dashql-core-runtime/src/planner/script_references.rs`.
 
 ## Nodes
 

@@ -383,12 +383,10 @@ export default vite.defineConfig(({ mode, command }) => {
             strictPort: true,
             hmr: true,
             cors: true,
-            // Enable Cross-Origin Isolation for SharedArrayBuffer (required for multi-threaded WASM),
-            // the same headers as _headers, see docs/design/document_isolation_policy.md
+            // Enable Cross-Origin Isolation for SharedArrayBuffer (required for multi-threaded WASM)
             headers: {
                 'Cross-Origin-Opener-Policy': 'same-origin',
                 'Cross-Origin-Embedder-Policy': 'require-corp',
-                'Document-Isolation-Policy': 'isolate-and-require-corp',
             },
             fs: {
                 // Allow-list paths into the sandbox (resolves symlinks).

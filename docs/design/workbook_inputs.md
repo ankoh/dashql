@@ -16,7 +16,7 @@ affects.
 
 ## Inputs
 
-`session_inputs::collect_session_inputs` (`dashql-core-session`, core-js `collectSessionInputs`) collects the inputs of
+`session_inputs::collect_session_inputs` (`dashql-core-runtime`, core-js `collectSessionInputs`) collects the inputs of
 the scripts of a workbook whose analysis is current with their text, one per name, in the order of their first use. A
 table parameter (`from :foo`, `script_references.md`) and a positional parameter (`$1`, `?`) are no inputs. A scalar
 parameter `:foo` is an input also if a script `foo.sql` exists.

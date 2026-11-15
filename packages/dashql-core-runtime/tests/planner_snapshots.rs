@@ -1,7 +1,7 @@
 //! The planner snapshots (tests/snapshots/planner/*.yaml).
 
 use dashql_buffers::execution::ExecutionGraphT;
-use dashql_core_session::planner::plan_session;
+use dashql_core_runtime::planner::plan_session;
 use dashql_snapshots::encode::planner::{encode_fixture, prepare_fixture, Fixture};
 use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial};
 

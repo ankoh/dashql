@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use dashql_buffers::batch::{BatchRequestT, BatchResult, BatchScriptInputT, DiagnosticSeverity};
 use dashql_buffers::catalog::CatalogDescriptor;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
-use dashql_core_session::batch::process_batch;
+use dashql_core_script::batch::process_batch;
 
 use super::tables::pack_bytes;
 use super::CatalogLoadError;

@@ -8,11 +8,11 @@ into the core, and why we decided against it for now.
 | Area | State |
 |---|---|
 | Plan-shape guarantees in the planner | Possible small step, not started |
-| Graph executor in `dashql-core-session` | Deferred |
+| Graph executor in `dashql-core-runtime` | Deferred |
 
 ## Background
 
-Every run of a workbook executes a plan. The planner (`packages/dashql-core-session/src/planner.rs`)
+Every run of a workbook executes a plan. The planner (`packages/dashql-core-runtime/src/planner/mod.rs`)
 turns the scripts of a workbook, or one target script and the scripts it references, into an
 `ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines. Edges
 order conflicting accesses. The app's
@@ -24,7 +24,7 @@ The scheduling lives outside the core, the core owns the order (the edges).
 
 ## The proposal
 
-Add a graph execution state machine to `dashql-core-session`, next to `planner.rs` (for example
+Add a graph execution state machine to `dashql-core-runtime`, next to `planner/mod.rs` (for example
 `graph_execution.rs`), exported through the core wasm with a protocol of steps:
 
 - `start` returns the nodes that are ready to run.
@@ -75,7 +75,7 @@ Leave the scheduler in the app for now. Revisit if one of these happens:
 
 Move the plan-shape guarantees into the planner without moving execution:
 
-- `planner.rs` guarantees, and tests, that nodes are in committed statement order, that every
+- `planner/mod.rs` guarantees, and tests, that nodes are in committed statement order, that every
   edge has `from < to` and `to < nodes.len()`, and that `(from, to)` pairs are unique (or the
   graph exposes a deduplicated successor list).
 - `workbook_execution.ts` drops its `Execution plan is not in committed statement order` check
@@ -85,7 +85,7 @@ This is a small, independent change.
 
 ## Files
 
-- `packages/dashql-core-session/src/planner.rs`
+- `packages/dashql-core-runtime/src/planner/mod.rs`
 - `packages/dashql-runtime/src/workbook/scripts/script_run.ts`
 - `packages/dashql-runtime/src/workbook/scripts/workbook_execution.ts`
 - `proto/fb/dashql/execution_graph.fbs`

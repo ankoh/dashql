@@ -1,6 +1,6 @@
 # Analysis and Catalog
 
-How the Rust core (`packages/dashql-core`, with the editor session in `packages/dashql-core-session`)
+How the Rust core (`packages/dashql-core`, with the editor session in `packages/dashql-core-script`)
 analyzes scripts, publishes their declarations into a catalog, resolves names across catalog entries,
 and decides when an analysis is stale. It covers the core types, the editor session on top of them,
 the wasm boundary, and the way the app drives them.
@@ -345,7 +345,7 @@ An analysis is current when nothing it read has changed. Three counters exist:
 - if the script has table parameters, the analysis holds the script's current `TableParameters`
   (`Script::table_parameters_current`, `Arc::ptr_eq`)
 
-The planner applies the same catalog check per input (`planner.rs`, "stale catalog analysis").
+The planner applies the same catalog check per input (`planner/mod.rs`, "stale catalog analysis").
 
 A publish with unchanged declarations copies the snapshot without bumping the version, so the
 analyses of other scripts stay current. Their older snapshot declares the same objects at the same
@@ -508,17 +508,17 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Descriptors | `packages/dashql-core/src/catalog/descriptor.rs` |
 | Client function specs | `packages/dashql-core/src/catalog/clfn.rs` |
 | Name search index | `packages/dashql-core/src/catalog/names.rs` |
-| The relations that statements touch | `packages/dashql-core-session/src/touched_relations.rs` |
+| The relations that statements touch | `packages/dashql-core-script/src/touched_relations.rs` |
 | The relations of a connection | `packages/dashql-app/src/connections/catalog/catalog_loader.tsx`, `catalog_sql_generator.ts`, `replace_tables` in `catalog/mod.rs` |
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
 | Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |
 | Analysis types | `packages/dashql-core/src/analyzer/types.rs` |
 | Script pipeline | `packages/dashql-core/src/script.rs` |
-| Editor session | `packages/dashql-core-session/src/script_session.rs` |
+| Editor session | `packages/dashql-core-script/src/script_session.rs` |
 | Completion | `packages/dashql-core/src/completion.rs` |
-| Planner | `packages/dashql-core-session/src/planner.rs` |
+| Planner | `packages/dashql-core-runtime/src/planner/mod.rs` |
 | Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
 | JS wrapper | `packages/dashql-core-js/src/api.ts` |
 | App script state | `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts` |
-| Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-session/tests/script_session_test.rs` |
+| Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-script/tests/script_session_test.rs` |

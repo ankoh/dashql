@@ -1,6 +1,6 @@
 # Planner
 
-`dashql_core_session::planner` builds a statement-level dependency DAG above the analyzer. It
+`dashql_core_runtime::planner` builds a statement-level dependency DAG above the analyzer. It
 consumes an ordered set of analyzed scripts without analyzing, publishing, or
 modifying them. Session order, followed by statement order, defines the baseline
 semantics; independent statements do not acquire source-order edges.
@@ -24,7 +24,7 @@ earlier analysis, even if that script's text did not change: a publish that chan
 declarations bumps the catalog revision, one with unchanged declarations does not
 (`docs/design/core_analysis_catalog.md`).
 
-The native API is `planner::plan_session(&SessionPlanRequest)` (`packages/dashql-core-session/src/planner.rs`).
+The native API is `planner::plan_session(&SessionPlanRequest)` (`packages/dashql-core-runtime/src/planner/mod.rs`).
 A request lists the connections (`PlannerConnection`: the host id, the kind and the catalog), the scripts in
 session order (`PlannerScript`: the live `Script`, its name and its connection index), the scope, the scripts
 whose materialized results the host provides, the directory the host mounts materialized results in
@@ -332,7 +332,7 @@ fixture with `hyper: skip` is left out (Hyper rejects `SELECT INTO`).
 
 ```bash
 bazel run //tests/snapshots/planner:update
-bazel test //packages/dashql-core-session:planner_snapshot_test //packages/dashql-core-session:planner_validation_hyper_test \
-    //packages/dashql-core-session:dashql_core_session_unit_tests
+bazel test //packages/dashql-core-runtime:planner_snapshot_test //packages/dashql-core-runtime:planner_validation_hyper_test \
+    //packages/dashql-core-runtime:dashql_core_runtime_unit_tests
 bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
 ```

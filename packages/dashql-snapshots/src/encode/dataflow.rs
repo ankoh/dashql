@@ -9,7 +9,7 @@
 use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
 use crate::ryml::Node;
-use dashql_core_session::dataflow::{derive_session_dataflow, Dataflow, DataflowEdgeKind};
+use dashql_core_runtime::planner::dataflow::{derive_session_dataflow, Dataflow, DataflowEdgeKind};
 use dashql_dataflow::layout::{compute_dataflow_layout_with_routes, DataflowEdgeRoute, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
 use yaml_rust2::Yaml;
 
@@ -170,7 +170,7 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
             let mut m = Map::new();
             m.plain("name", &input.name);
             m.quoted("type", &input.sql_type.to_string());
-            if input.type_source != dashql_core_session::session_inputs::InputTypeSource::Cast {
+            if input.type_source != dashql_core_runtime::planner::session_inputs::InputTypeSource::Cast {
                 m.boolean("cast", false);
             }
             if let Some(literal) = &input.literal {

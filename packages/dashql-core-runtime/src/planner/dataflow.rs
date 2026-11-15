@@ -21,8 +21,8 @@
 //! materializations, which the references stand for, are no dataflow.
 
 use crate::planner::{plan, runs_on_request, PlanScope, Prepared, SessionPlanRequest};
-use crate::script_references::ReferenceKind;
-use crate::session_inputs::SessionInput;
+use crate::planner::script_references::ReferenceKind;
+use crate::planner::session_inputs::SessionInput;
 use dashql_buffers::execution::{ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT};
 use dashql_buffers::parser::StatementType;
 use dashql_parser::span::TextSpan;

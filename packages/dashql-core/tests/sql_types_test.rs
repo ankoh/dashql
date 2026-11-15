@@ -7,7 +7,7 @@ use dashql_core::analyzer::sql_types::{generic_kind, interval_keyword, parse_sql
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::{pack_analyzed_script, pack_sql_type};
 use dashql_core::script::Script;
-use dashql_core_session::visualize::pack_visualization;
+use dashql_core_script::visualize::pack_visualization;
 use std::sync::Arc;
 
 /// The SQL text of a parsed type

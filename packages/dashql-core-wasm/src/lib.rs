@@ -15,7 +15,7 @@ use dashql_core::error::Error;
 use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_core::script::Script as CoreScript;
-use dashql_core_session::script_session::ScriptSession as CoreScriptSession;
+use dashql_core_script::script_session::ScriptSession as CoreScriptSession;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -370,7 +370,7 @@ impl Script {
     #[wasm_bindgen(js_name = getAnalyzed)]
     pub fn get_analyzed(&self) -> Result<Vec<u8>, JsError> {
         let analyzed = self.inner.analyzed.as_ref().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
-        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core_session::visualize::pack_visualization)))
+        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core_script::visualize::pack_visualization)))
     }
 
     /// The packed `ScriptDiff` from this script to a target script
@@ -419,12 +419,12 @@ impl Script {
         parse_if_outdated: bool,
     ) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        let options = dashql_core_session::compiler::CompilationOptions {
+        let options = dashql_core_script::compiler::CompilationOptions {
             allow_extensions,
             parse_if_outdated,
         };
         let catalog = self.catalog.borrow();
-        finish!(dashql_core_session::compiler::compile(&mut self.inner, &catalog, &config, options))
+        finish!(dashql_core_script::compiler::compile(&mut self.inner, &catalog, &config, options))
     }
 
     /// The first parsed statement without its separator or surrounding trivia
@@ -882,9 +882,9 @@ impl Default for SessionPlanRequest {
 /// Borrow the catalogs and sessions of a request and pass the core request to `f`
 fn with_session_plan_request<R>(
     request: &SessionPlanRequest,
-    f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
+    f: impl FnOnce(&dashql_core_runtime::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
 ) -> R {
-    use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript};
+    use dashql_core_runtime::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript};
     let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog, _, _, _)| catalog.borrow()).collect();
     let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
     let connections: Vec<_> = request
@@ -917,7 +917,7 @@ fn with_session_plan_request<R>(
         Some(targets) => PlanScope::Targets(targets),
         None => PlanScope::Session,
     };
-    let core = dashql_core_session::planner::SessionPlanRequest {
+    let core = dashql_core_runtime::planner::SessionPlanRequest {
         connections: &connections,
         scripts: &scripts,
         scope,
@@ -932,7 +932,7 @@ fn with_session_plan_request<R>(
 /// Plan the current analysis of the scripts of a session across connections, returns the packed `ExecutionGraph`
 #[wasm_bindgen(js_name = planSession)]
 pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, |core, _| finish!(dashql_core_session::planner::plan_session(core)))
+    with_session_plan_request(request, |core, _| finish!(dashql_core_runtime::planner::plan_session(core)))
 }
 
 /// Check the script references of the scripts of a session, returns the packed `ScriptReferenceCheck`. The text spans
@@ -941,9 +941,9 @@ pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
 #[wasm_bindgen(js_name = checkScriptReferences)]
 pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
     use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT};
-    use dashql_core_session::script_references::ReferenceKind;
+    use dashql_core_runtime::planner::script_references::ReferenceKind;
     with_session_plan_request(request, |core, sessions| {
-        let checked = dashql_core_session::script_references::check_script_references(core);
+        let checked = dashql_core_runtime::planner::script_references::check_script_references(core);
         let mut out = ScriptReferenceCheckT::default();
         let scripts = checked
             .into_iter()
@@ -982,7 +982,7 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
             })
             .collect();
         out.scripts = Some(scripts);
-        let collisions: Vec<_> = dashql_core_session::script_references::table_parameter_collisions(core)
+        let collisions: Vec<_> = dashql_core_runtime::planner::script_references::table_parameter_collisions(core)
             .into_iter()
             .map(|c| {
                 let mut t = TableParameterCollisionT::default();
@@ -1002,9 +1002,9 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
 #[wasm_bindgen(js_name = deriveSessionDataflow)]
 pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
     use dashql_buffers::execution::{DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT};
-    use dashql_core_session::dataflow::DataflowEdgeKind as Kind;
+    use dashql_core_runtime::planner::dataflow::DataflowEdgeKind as Kind;
     with_session_plan_request(request, |core, sessions| {
-        let dataflow = dashql_core_session::dataflow::derive_session_dataflow(core);
+        let dataflow = dashql_core_runtime::planner::dataflow::derive_session_dataflow(core);
         let mut out = SessionDataflowT::default();
         out.scripts = Some(
             dataflow
@@ -1083,9 +1083,9 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
 }
 
 /// Pack an input of a session
-fn pack_session_input(input: &dashql_core_session::session_inputs::SessionInput) -> dashql_buffers::execution::SessionInputT {
+fn pack_session_input(input: &dashql_core_runtime::planner::session_inputs::SessionInput) -> dashql_buffers::execution::SessionInputT {
     use dashql_buffers::execution::{SessionInputConsumerT, SessionInputT, SessionInputTypeSource};
-    use dashql_core_session::session_inputs::InputTypeSource;
+    use dashql_core_runtime::planner::session_inputs::InputTypeSource;
     let (consumers, warnings, literal) = (&input.consumers, &input.warnings, input.literal.as_ref());
     let mut out = SessionInputT::default();
     out.name = Some(input.name.to_string());
@@ -1124,7 +1124,7 @@ pub fn input_literal(value: &str, sql_type: Option<String>) -> Result<String, Js
 #[wasm_bindgen(js_name = collectSessionInputs)]
 pub fn collect_session_inputs(request: &SessionPlanRequest) -> Vec<u8> {
     with_session_plan_request(request, |core, _| {
-        let inputs = dashql_core_session::session_inputs::collect_session_inputs(core);
+        let inputs = dashql_core_runtime::planner::session_inputs::collect_session_inputs(core);
         let mut out = dashql_buffers::execution::SessionInputsT::default();
         out.inputs = Some(
             inputs
@@ -1228,13 +1228,13 @@ pub fn quote_column_name(text: &str) -> String {
 /// The relations that the statements of a text create or drop, returns packed `TouchedRelations`
 #[wasm_bindgen(js_name = touchedRelations)]
 pub fn touched_relations(text: &str) -> Vec<u8> {
-    finish!(dashql_core_session::touched_relations::touched_relations(text))
+    finish!(dashql_core_script::touched_relations::touched_relations(text))
 }
 
 /// Process a batch request into a `BatchResult`
 #[wasm_bindgen(js_name = processBatch)]
 pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
-    dashql_core_session::batch::process_batch(request).map_err(js_error)
+    dashql_core_script::batch::process_batch(request).map_err(js_error)
 }
 
 

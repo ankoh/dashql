@@ -14,20 +14,12 @@ use dashql_buffers::parser::{ScannerTokenType, StatementType};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::pack::pack_completion;
 use dashql_core::vis_rewrite::VisBoard;
-use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
 use dashql_core::script::Script;
-use dashql_core_session::script_session::ScriptSession;
+use dashql_core_script::script_session::ScriptSession;
 use dashql_buffers::completion::CompletionT;
-use dashql_buffers::execution::{ExecutionGraphT, ScriptCompilationResultT};
+use dashql_buffers::execution::ScriptCompilationResultT;
 use std::cell::RefCell;
 use std::rc::Rc;
-
-/// Plan scripts of one catalog as the session of one connection
-fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
-    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: dashql_buffers::formatting::FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-    let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None }).collect();
-    plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "", attachments: &[], attachment_prefix: "" })
-}
 
 /// The catalog shared by the sessions of a test
 type CatalogHandle = Rc<RefCell<Catalog>>;
@@ -487,47 +479,6 @@ fn editing_published_script_keeps_catalog_entry_until_republished() {
     // Publishing the new declarations bumps the version
     session.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert_eq!(catalog.borrow().version(), published_revision + 1);
-}
-
-#[test]
-fn published_sessions_refresh_at_final_catalog_revision_before_planning() {
-    let catalog = new_catalog();
-    let mut schema = session(&catalog, UTF8);
-    let mut query = session(&catalog, UTF8);
-    assert!(analyze(&mut schema, "create table items (id int)").analysis_available);
-    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
-    assert!(analyze(&mut query, "select id from items").analysis_available);
-    query.load_into_catalog(CatalogLayer::SESSION).unwrap();
-
-    let final_revision = catalog.borrow().version();
-    assert_ne!(query.script().analyzed.as_ref().unwrap().entry.catalog_version, final_revision);
-    for session in [&mut schema, &mut query] {
-        let update = session.analyze();
-        assert_eq!(update.status, EditorUpdateStatus::OK);
-        assert!(update.analysis_updated);
-        assert!(update.analysis_available);
-        assert_eq!(update.catalog_revision, final_revision as u64);
-        assert_eq!(session.script().analyzed.as_ref().unwrap().entry.catalog_version, final_revision);
-        assert_eq!(catalog.borrow().version(), final_revision);
-    }
-    for session in [&mut schema, &mut query] {
-        let update = session.analyze();
-        assert!(!update.analysis_updated);
-        assert!(update.analysis_available);
-    }
-
-    let catalog_ref = catalog.borrow();
-    let graph = plan_scripts(&catalog_ref, &[schema.script(), query.script()]);
-    assert!(graph.valid);
-    assert!(graph.diagnostics.as_ref().is_none_or(|d| d.is_empty()));
-    assert!(graph.unresolved_references.as_ref().is_none_or(|r| r.is_empty()));
-    assert_eq!(graph.nodes.as_ref().map_or(0, |n| n.len()), 2);
-    let scripts = graph.scripts.as_ref().unwrap();
-    assert_eq!(scripts.len(), 2);
-    for script in scripts {
-        assert_eq!(script.analyzed_catalog_revision, final_revision as u64);
-    }
-    assert_eq!(catalog_ref.version(), final_revision);
 }
 
 #[test]

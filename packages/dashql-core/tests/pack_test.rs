@@ -11,7 +11,7 @@ use dashql_buffers::parser::{
 use dashql_core::analyzer::AnalyzedScript;
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::{pack_analyzed_script, pack_completion, pack_cursor, pack_parsed_script, pack_parsed_statement, pack_scanned_script, pack_tokens};
-use dashql_core_session::visualize::pack_visualization;
+use dashql_core_script::visualize::pack_visualization;
 use dashql_core::script::Script;
 use std::sync::Arc;
 

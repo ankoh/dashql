@@ -6,7 +6,7 @@ use dashql_buffers::execution::{ExecutionGraphEntityType, ExecutionGraphT};
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core::utils::quote_identifier;
-use dashql_core_session::script_references::{CheckedScript, ReferenceKind, TableParameterCollision};
+use dashql_core_runtime::planner::script_references::{CheckedScript, ReferenceKind, TableParameterCollision};
 use dashql_parser::keywords::Keyword;
 use yaml_rust2::Yaml;
 
@@ -236,8 +236,8 @@ pub struct PreparedFixture {
 
 impl PreparedFixture {
     /// Pass the plan request of the fixture to `f`, with `scope` in place of the scope of the fixture if given
-    pub fn with_request<R>(&self, scope: Option<dashql_core_session::planner::PlanScope>, f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest) -> R) -> R {
-        use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
+    pub fn with_request<R>(&self, scope: Option<dashql_core_runtime::planner::PlanScope>, f: impl FnOnce(&dashql_core_runtime::planner::SessionPlanRequest) -> R) -> R {
+        use dashql_core_runtime::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
         let connections: Vec<PlannerConnection> = self
             .connections
             .iter()
@@ -346,10 +346,10 @@ pub fn prepare_fixture(fixture: &Fixture) -> Result<PreparedFixture, String> {
 
 /// Plan a fixture
 pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
-    use dashql_core_session::planner::plan_session;
-    use dashql_core_session::script_references::{check_script_references, table_parameter_collisions};
+    use dashql_core_runtime::planner::plan_session;
+    use dashql_core_runtime::planner::script_references::{check_script_references, table_parameter_collisions};
     let prepared = prepare_fixture(fixture)?;
-    let scope = fixture.tolerant.then_some(dashql_core_session::planner::PlanScope::Tolerant);
+    let scope = fixture.tolerant.then_some(dashql_core_runtime::planner::PlanScope::Tolerant);
     let (graph, checks, collisions) =
         prepared.with_request(scope, |request| (plan_session(request), check_script_references(request), table_parameter_collisions(request)));
     let PreparedFixture { connections, names, scripts, .. } = prepared;

@@ -13,7 +13,7 @@ use dashql_buffers::catalog::{CatalogDescriptor, CatalogDescriptorT, CatalogTabl
 use dashql_core::catalog::Catalog;
 use dashql_core::catalog::QualifiedKey;
 use dashql_core::pack::pack_catalog_descriptor;
-use dashql_core_session::batch::{check_script, ProcessingStage};
+use dashql_core_script::batch::{check_script, ProcessingStage};
 use serde_json::{json, Value};
 
 use super::sql::{qualified_table_name, quote_data_type, quote_identifier};

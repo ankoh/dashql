@@ -4,7 +4,7 @@ use super::{plain, Map};
 use crate::ryml::Node;
 use dashql_buffers::visualization::MarkdownNodeType;
 use dashql_core::analyzer::{AnalyzedScript, DashboardSpec};
-use dashql_core_session::visualize::{MarkdownDocument, MarkdownNode};
+use dashql_core_script::visualize::{MarkdownDocument, MarkdownNode};
 
 /// Analyze a script of a visualize snapshot case: the catalog script (if any) is analyzed and loaded
 /// into the connection layer, then the main script is analyzed

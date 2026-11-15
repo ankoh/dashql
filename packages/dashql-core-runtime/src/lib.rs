@@ -18,6 +18,7 @@ pub mod host;
 pub mod http;
 pub mod hyper;
 pub mod names;
+pub mod planner;
 pub mod query;
 pub mod restore;
 pub mod salesforce;

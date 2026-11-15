@@ -1,7 +1,7 @@
 //! The relations that statements touch.
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
-use dashql_core_session::touched_relations::touched_relations;
+use dashql_core_script::touched_relations::touched_relations;
 
 /// A name as `db.schema.relation`, with the parts that were written
 fn describe(name: &QualifiedTableNameT) -> String {

@@ -2,7 +2,7 @@
 
 Date: 2026-11-09
 
-Line coverage of the Rust core (`dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-parser`) from the `bazel coverage` run of the unit, snapshot and parser tests of these crates and `dashql-snapshots` (generated `tables.rs` and `keywords/table.rs` excluded).
+Line coverage of the Rust core (`dashql-core`, `dashql-core-script`, the planner of `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-parser`) from the `bazel coverage` run of the unit, snapshot and parser tests of these crates and `dashql-snapshots` (generated `tables.rs` and `keywords/table.rs` excluded).
 
 **Overall: 96.4% (25,594 / 26,555 lines)**, down from 96.5% in the report of 2026-11-05 (24,497 / 25,397 lines). The core grew by about 1,160 lines, and the new code is covered a little less than the rest.
 
@@ -26,20 +26,20 @@ Unreachable branches found on the way, kept for now:
 |---|---|---|
 | dashql-core-profile/src/tests_progress.rs | 240/240 | 100.0% |
 | dashql-core-profile/src/tests_trino.rs | 140/140 | 100.0% |
-| dashql-core-session/src/visualize/markdown/tests.rs | 96/96 | 100.0% |
+| dashql-core-script/src/visualize/markdown/tests.rs | 96/96 | 100.0% |
 | dashql-core/src/catalog/ids.rs | 83/83 | 100.0% |
 | dashql-core/src/utils/rope.rs | 74/74 | 100.0% |
 | dashql-core/src/signature.rs | 58/58 | 100.0% |
 | dashql-core/src/param_rewrite.rs | 48/48 | 100.0% |
 | dashql-core/src/error.rs | 47/47 | 100.0% |
-| dashql-core-session/src/visualize/tests.rs | 43/43 | 100.0% |
+| dashql-core-script/src/visualize/tests.rs | 43/43 | 100.0% |
 | dashql-core/src/analyzer/parameters.rs | 39/39 | 100.0% |
 | dashql-core/src/catalog/names.rs | 38/38 | 100.0% |
 | dashql-dataflow/src/routing.rs | 38/38 | 100.0% |
 | dashql-core/src/hash.rs | 33/33 | 100.0% |
-| dashql-core-session/src/visualize/mod.rs | 28/28 | 100.0% |
+| dashql-core-script/src/visualize/mod.rs | 28/28 | 100.0% |
 | dashql-core-shell/src/unicode.rs | 27/27 | 100.0% |
-| dashql-core-session/src/visualize/vegalite_generator.rs | 11/11 | 100.0% |
+| dashql-core-script/src/visualize/vegalite_generator.rs | 11/11 | 100.0% |
 | dashql-core-shell/src/vt100.rs | 10/10 | 100.0% |
 | dashql-core/src/analyzer/manual_tag.rs | 7/7 | 100.0% |
 | dashql-core-profile/src/tests.rs | 575/576 | 99.8% |
@@ -51,7 +51,7 @@ Unreachable branches found on the way, kept for now:
 | dashql-core/src/catalog/entry.rs | 216/218 | 99.1% |
 | dashql-core-profile/src/profile_layout.rs | 305/308 | 99.0% |
 | dashql-core/src/compact_json.rs | 88/89 | 98.9% |
-| dashql-core-session/src/script_references.rs | 597/604 | 98.8% |
+| dashql-core-runtime/src/planner/script_references.rs | 597/604 | 98.8% |
 | dashql-parser/src/comment_blocks.rs | 448/454 | 98.7% |
 | dashql-core/src/vis_text.rs | 213/216 | 98.6% |
 | dashql-core/src/sql_literal.rs | 267/271 | 98.5% |
@@ -63,7 +63,7 @@ Unreachable branches found on the way, kept for now:
 | dashql-core-profile/src/progress/mod.rs | 244/248 | 98.4% |
 | dashql-core-profile/src/progress/rollup.rs | 119/121 | 98.3% |
 | dashql-core/src/utils/mod.rs | 58/59 | 98.3% |
-| dashql-core-session/src/dataflow.rs | 115/117 | 98.3% |
+| dashql-core-runtime/src/planner/dataflow.rs | 115/117 | 98.3% |
 | dashql-core-profile/src/hyper_plan_parser.rs | 379/386 | 98.2% |
 | dashql-core-profile/src/query_profile.rs | 318/324 | 98.1% |
 | dashql-core/src/vis_highlight.rs | 237/242 | 97.9% |
@@ -71,13 +71,13 @@ Unreachable branches found on the way, kept for now:
 | dashql-dataflow/src/layout.rs | 509/520 | 97.9% |
 | dashql-core-shell/src/session.rs | 1372/1402 | 97.9% |
 | dashql-core/src/analyzer/name_resolution.rs | 1450/1482 | 97.8% |
-| dashql-core-session/src/visualize/markdown/mod.rs | 225/230 | 97.8% |
-| dashql-core-session/src/session_inputs.rs | 90/92 | 97.8% |
+| dashql-core-script/src/visualize/markdown/mod.rs | 225/230 | 97.8% |
+| dashql-core-runtime/src/planner/session_inputs.rs | 90/92 | 97.8% |
 | dashql-parser/src/parser/actions.rs | 123/126 | 97.6% |
 | dashql-core/src/analyzer/state.rs | 285/292 | 97.6% |
 | dashql-dataflow/src/ortho_router/tests.rs | 237/243 | 97.5% |
 | dashql-core/src/formatter/comments.rs | 433/444 | 97.5% |
-| dashql-core-session/src/planner.rs | 921/945 | 97.5% |
+| dashql-core-runtime/src/planner/mod.rs | 921/945 | 97.5% |
 | dashql-core/src/analyzer/types.rs | 71/73 | 97.3% |
 | dashql-core-profile/src/trino_plan_parser.rs | 173/178 | 97.2% |
 | dashql-core/src/analyzer/constants.rs | 136/140 | 97.1% |
@@ -94,11 +94,11 @@ Unreachable branches found on the way, kept for now:
 | dashql-core/src/pack.rs | 817/852 | 95.9% |
 | dashql-parser/src/names.rs | 86/90 | 95.6% |
 | dashql-core/src/script_diff.rs | 479/502 | 95.4% |
-| dashql-core-session/src/batch.rs | 103/108 | 95.4% |
-| dashql-core-session/src/script_session.rs | 835/878 | 95.1% |
+| dashql-core-script/src/batch.rs | 103/108 | 95.4% |
+| dashql-core-script/src/script_session.rs | 835/878 | 95.1% |
 | dashql-core/src/utils/topk.rs | 55/58 | 94.8% |
 | dashql-parser/src/scanner.rs | 419/442 | 94.8% |
-| dashql-core-session/src/touched_relations.rs | 90/95 | 94.7% |
+| dashql-core-script/src/touched_relations.rs | 90/95 | 94.7% |
 | dashql-core/src/completion_clfn.rs | 312/330 | 94.5% |
 | dashql-core/src/analyzer/clfn_calls.rs | 401/426 | 94.1% |
 | dashql-core/src/analyzer/function_calls.rs | 63/67 | 94.0% |
@@ -108,7 +108,7 @@ Unreachable branches found on the way, kept for now:
 | dashql-core/src/formatter/select.rs | 188/205 | 91.7% |
 | dashql-core/src/formatter/delete.rs | 20/22 | 90.9% |
 | dashql-core/src/completion_vis.rs | 248/273 | 90.8% |
-| dashql-core-session/src/compiler.rs | 165/184 | 89.7% |
+| dashql-core-script/src/compiler.rs | 165/184 | 89.7% |
 | dashql-parser/src/lib.rs | 43/48 | 89.6% |
 | dashql-parser/src/parser/driver.rs | 212/238 | 89.1% |
 | dashql-parser/src/parser/enums.rs | 40/45 | 88.9% |
@@ -127,7 +127,7 @@ Unreachable branches found on the way, kept for now:
 | File | Uncovered | Notes |
 |---|---|---|
 | dashql-core/src/formatter/mod.rs | 179 | Mostly unreachable `format_unimplemented` fallbacks |
-| dashql-core-session/src/script_session.rs | 43 | Analysis failures of a session, non-boundary cursors, diagnostics without spans |
+| dashql-core-script/src/script_session.rs | 43 | Analysis failures of a session, non-boundary cursors, diagnostics without spans |
 | dashql-core/src/completion.rs | 39 | Dot candidates of the same object, cursor positions at the begin of a dot, unresolved derived columns |
 | dashql-core/src/pack.rs | 35 | Cursor contexts without a scanner symbol, column candidate objects |
 | dashql-parser/src/parser/mod.rs | 34 | Error recovery and expected-symbol corners |
@@ -137,7 +137,7 @@ Unreachable branches found on the way, kept for now:
 | dashql-parser/src/parser/driver.rs | 26 | LR error recovery corners |
 | dashql-core/src/analyzer/clfn_calls.rs | 25 | `starts_client_function_call` (15 lines, tested through the Wasm bindings), duplicate and conflicting options |
 | dashql-core/src/completion_vis.rs | 25 | Whitespace and word ends while scanning tag args and Vega-Lite tokens, cursor positions without a token |
-| dashql-core-session/src/planner.rs | 24 | Barriers the analyzer never triggers (table refs without a relation, incompatible view kinds), visualization errors |
+| dashql-core-runtime/src/planner/mod.rs | 24 | Barriers the analyzer never triggers (table refs without a relation, incompatible view kinds), visualization errors |
 | dashql-core/src/formatter/program.rs | 23 | Unknown formatting modes and dialects, `formatting_dialect_to_string`, empty ops |
 
 ## Rust tools

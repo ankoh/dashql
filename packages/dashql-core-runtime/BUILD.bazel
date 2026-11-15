@@ -15,7 +15,7 @@ rust_library(
     deps = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-profile:dashql_core_profile",
-        "//packages/dashql-core-session:dashql_core_session",
+        "//packages/dashql-core-script:dashql_core_script",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:arrow-array",
@@ -44,6 +44,66 @@ rust_test(
     deps = [
         ":dashql_core_runtime",
         "//packages/dashql-core:dashql_core",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
+
+# The planner with the script sessions of a workbook
+rust_test(
+    name = "planner_test",
+    size = "small",
+    srcs = ["tests/planner_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_runtime",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-script:dashql_core_script",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
+
+# The planner and dataflow snapshots: one target per category, each a libtest-mimic binary
+DASHQL_CORE_RUNTIME_SNAPSHOT_TESTS = {
+    "dataflow_snapshot_test": ("dataflow_snapshots.rs", "//tests/snapshots/dataflow:files"),
+    "planner_snapshot_test": ("planner_snapshots.rs", "//tests/snapshots/planner:files"),
+}
+
+[rust_test(
+    name = name,
+    size = "small",
+    srcs = ["tests/" + src],
+    data = [data],
+    edition = "2021",
+    use_libtest_harness = False,
+    deps = [
+        ":dashql_core_runtime",
+        "//packages/dashql-snapshots:dashql_snapshots",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+) for name, (src, data) in DASHQL_CORE_RUNTIME_SNAPSHOT_TESTS.items()]
+
+# Executes the planned SQL of the planner snapshots with script references in Hyper, through the C ABI
+# //packages/hyper-api:hyper_ffi over the Hyper C++ API.
+rust_test(
+    name = "planner_validation_hyper_test",
+    size = "medium",
+    srcs = ["tests/planner_validation_hyper.rs"],
+    data = [
+        "//packages/hyper-api:hyperd",
+        "//tests/snapshots/planner:files",
+    ],
+    edition = "2021",
+    env = {"HYPERD_BINARY": "$(rootpath //packages/hyper-api:hyperd)"},
+    target_compatible_with = select({
+        "//packages/hyper-api:linux_x86_64": [],
+        "//packages/hyper-api:macos_arm64": [],
+        "//packages/hyper-api:macos_x86_64": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    use_libtest_harness = False,
+    deps = [
+        "//packages/dashql-snapshots:dashql_snapshots",
+        "//packages/hyper-api:hyper_ffi_rs",
         "//proto/fb:dashql_buffers_rs",
     ],
 )

@@ -1,13 +1,13 @@
 # The DashQL core, the language: scripts, catalog, analyzer, cursor, completion, formatter and script diffs. The
-# workflows on top (sessions, execution, planner, batch, visualizations) are //packages/dashql-core-session, the
-# shell is //packages/dashql-core-shell, the query profile //packages/dashql-core-profile, the wasm module is
-# //packages/dashql-core-wasm.
+# scripts on top (sessions, compilation, batch, visualizations) are //packages/dashql-core-script, the planner and
+# the state of a workbook //packages/dashql-core-runtime, the shell is //packages/dashql-core-shell, the query
+# profile //packages/dashql-core-profile, the wasm module is //packages/dashql-core-wasm.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
 
-# The measurement loop, shared with the benchmarks of the session crate
+# The measurement loop, shared with the benchmarks of the script crate
 exports_files(["benches/harness.rs"])
 
 rust_library(
@@ -143,7 +143,7 @@ DASHQL_CORE_UNIT_TESTS = [
     edition = "2021",
     deps = [
         ":dashql_core",
-        "//packages/dashql-core-session:dashql_core_session",
+        "//packages/dashql-core-script:dashql_core_script",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",

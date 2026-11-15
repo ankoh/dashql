@@ -21,7 +21,7 @@
 //! in the context of the statement, every script appears once, after the scripts it references. They go into
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
-use crate::compiler::read_executable_text_with;
+use dashql_core_script::compiler::read_executable_text_with;
 use crate::planner::{has_manual_tag, script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
@@ -773,7 +773,7 @@ pub(crate) fn splice_statement(
     statement_id: u32,
     materialization_of: &BTreeMap<u32, u32>,
     materializations: &[ExecutionGraphMaterializationT],
-    inputs: &crate::session_inputs::SessionInputs,
+    inputs: &crate::planner::session_inputs::SessionInputs,
 ) -> SplicedStatement {
     let mut out = SplicedStatement::default();
     let direct: Vec<&Reference> = references.of(script).iter().filter(|r| r.statement_id == statement_id && r.kind != ReferenceKind::Invalid).collect();
@@ -884,7 +884,7 @@ pub(crate) fn splice_statement(
                 // The inlined query binds the inputs of its script
                 // Within the connection of the statement
                 let dialect = request.connections[request.scripts[script as usize].connection as usize].dialect;
-                let bindings = crate::session_inputs::bind_inputs(inputs, p, Some(terminal), dialect);
+                let bindings = crate::planner::session_inputs::bind_inputs(inputs, p, Some(terminal), dialect);
                 edits.extend(bindings.edits);
                 out.input_errors.extend(bindings.errors.into_iter().map(|(span, message)| (producer, span, message)));
                 let body = read_executable_text_with(p.scanned, span, &edits);

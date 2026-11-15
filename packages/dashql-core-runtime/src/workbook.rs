@@ -24,12 +24,12 @@ use dashql_core::script::Script;
 use dashql_core::table_parameters::{TableParameterAttachment, TableParameters};
 use dashql_core::utils::quote_identifier;
 use dashql_core::vis_rewrite::VisRenderer;
-use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
-use dashql_core_session::script_references::check_script_references;
-use dashql_core_session::script_session::ScriptSession;
+use dashql_core_script::script_session::ScriptSession;
 
 use crate::attachments::{attachment_parameter_name, read_workbook_attachments, DataFile, WorkbookAttachment};
 use crate::names::{free_workbook_name, script_display_name, script_file_name, unique_script_base};
+use crate::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
+use crate::planner::script_references::check_script_references;
 
 /// The key of a script, its entry in the catalog of its connection. A script keeps its key when it moves to another
 /// connection.

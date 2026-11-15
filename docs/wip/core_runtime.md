@@ -18,6 +18,12 @@ core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession
 schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`,
 `AppRestore`, `ConnectionPersistence`) belong to DashQL and change with it, their snapshots cross as JSON.
 
+The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
+the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
+the parser and the buffers only, and its sessions are part of the contract of the core. The planner, the script
+references, the dataflow and the inputs work across the scripts of a workbook and are part of the runtime
+(`src/planner/`).
+
 ## Why
 
 The reducers of the TypeScript runtime are hard to follow. `reduceWorkbookScripts` copied JavaScript objects as if the

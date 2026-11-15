@@ -16,10 +16,18 @@
 //! reference needs before it, and the scripts that a scan reference scans unless the host provides
 //! their results. A plan of the session leaves out the scripts whose results the host provides. A plan of targets treats statements like a run of a single script: statements of every
 //! kind keep their SQL, and the statements of a script run in their order.
+//!
+//! `script_references` checks and splices the table parameters that read other scripts, `session_inputs` collects the
+//! inputs of a session, `dataflow` derives the dataflow of a session from a plan. The script sessions and the
+//! compiler are `dashql_core_script`.
 
-use crate::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
-use crate::script_references::{self, ReferenceErrors, ReferenceKind, ScriptReferences};
-use crate::session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
+pub mod dataflow;
+pub mod script_references;
+pub mod session_inputs;
+
+use dashql_core_script::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
+use script_references::{ReferenceErrors, ReferenceKind, ScriptReferences};
+use session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::execution::{
@@ -755,7 +763,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             if ty == Type::EXPLAIN {
                 let [body, options] = attrs!(parsed.children(root), [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
-                explain_executes = crate::touched_relations::explain_executes(parsed, options);
+                explain_executes = dashql_core_script::touched_relations::explain_executes(parsed, options);
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
                     barrier!("EXPLAIN requires a statement or expressions body");
                 }

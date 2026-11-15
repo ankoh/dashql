@@ -2,7 +2,7 @@
 //!
 //! Renderers other than `markdown`, including `table`, compare the Vega-Lite JSON.
 
-use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec};
+use dashql_core_script::visualize::{compile_markdown_spec, generate_vegalite_spec};
 use dashql_snapshots::encode::analyzer::{analyze_case, compare_script};
 use dashql_snapshots::encode::visualize::{analyze_scripts, encode_dashboard_spec, encode_markdown_spec};
 use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial, Yaml};

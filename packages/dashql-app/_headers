@@ -1,10 +1,6 @@
-# COOP and COEP isolate a top-level page in every browser. Document-Isolation-Policy also isolates a page that
-# another site embeds in an iframe (Chromium 137+), with the same subresource rule as COEP.
-# See docs/design/document_isolation_policy.md.
 /*
   Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Opener-Policy: same-origin
-  Document-Isolation-Policy: isolate-and-require-corp
   Access-Control-Allow-Origin: *
 
 # A worker takes the Content-Security-Policy of its script response, the <meta> policy of the page does not reach it.

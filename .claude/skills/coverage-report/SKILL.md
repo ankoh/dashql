@@ -14,13 +14,13 @@ Then run the V8 coverage of the app's browser tests and regenerate `docs/reports
 
 ```bash
 bazel coverage --config=fastbuild \
-    --instrumentation_filter="//packages/dashql-core(-session|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:],//packages/dashql-cli[/:],//packages/dashql-native-proxy[/:],//packages/dashql-pack[/:]" \
-    //packages/dashql-core/... //packages/dashql-core-session/... //packages/dashql-core-shell/... \
+    --instrumentation_filter="//packages/dashql-core(-script|-runtime|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:],//packages/dashql-cli[/:],//packages/dashql-native-proxy[/:],//packages/dashql-pack[/:]" \
+    //packages/dashql-core/... //packages/dashql-core-script/... //packages/dashql-core-runtime/... //packages/dashql-core-shell/... \
     //packages/dashql-core-profile/... //packages/dashql-dataflow/... //packages/dashql-parser/... //packages/dashql-snapshots/... \
     //packages/dashql-cli:tests //packages/dashql-native-proxy:test //packages/dashql-pack:test
 ```
 
-2. Extract per-file coverage from the lcov report at `$(bazel info output_path)/_coverage/_coverage_report.dat`. Parse each `SF:` record for files matching `packages/dashql-core/src/`, `packages/dashql-core-session/src/`, `packages/dashql-core-shell/src/`, `packages/dashql-core-profile/src/`, `packages/dashql-dataflow/src/` and `packages/dashql-parser/src/` and extract `LH:` (lines hit) and `LF:` (lines found) values.
+2. Extract per-file coverage from the lcov report at `$(bazel info output_path)/_coverage/_coverage_report.dat`. Parse each `SF:` record for files matching `packages/dashql-core/src/`, `packages/dashql-core-script/src/`, `packages/dashql-core-runtime/src/`, `packages/dashql-core-shell/src/`, `packages/dashql-core-profile/src/`, `packages/dashql-dataflow/src/` and `packages/dashql-parser/src/` and extract `LH:` (lines hit) and `LF:` (lines found) values.
 
 3. Rewrite `docs/reports/dashql_core_coverage_report.md` with:
    - Today's date
