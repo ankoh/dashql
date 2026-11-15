@@ -26,7 +26,7 @@ import { performHealthCheck } from '@ankoh/dashql-runtime/connections/health_che
 import { useHyperSetup } from './hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from './query_executor.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
+import { isDesktopHost } from '../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_settings';
 import { DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql-runtime/connections/connection_params';

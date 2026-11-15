@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
+import { isDesktopHost } from '../../platform/native_globals.js';
 import { HyperDatabaseClient } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './platform/native_hyperdb_grpc_client.js';
 import { WebHyperDatabaseClient } from './platform/web_hyperdb_http_client.js';

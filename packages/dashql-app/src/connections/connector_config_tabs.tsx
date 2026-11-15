@@ -2,7 +2,8 @@ import * as React from 'react';
 import icons from '@ankoh/dashql-svg-symbols';
 
 import { VerticalTabs, VerticalTabVariant } from '../ui/foundations/vertical_tabs.js';
-import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from '@ankoh/dashql-runtime/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { useConnectorList } from './connector_list.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';

@@ -16,7 +16,7 @@ import { useAppConfig } from '../../config/app_config.js';
 import { useStorage, useStorageWriter } from '../../storage/storage_provider.js';
 import { useWorkbookScriptsDeletion, useWorkbookScriptsRegistrySetter } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
-import { getAppHost } from '@ankoh/dashql-runtime/platform/native_globals';
+import { getAppHost } from '../../platform/native_globals.js';
 import { restoreAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';

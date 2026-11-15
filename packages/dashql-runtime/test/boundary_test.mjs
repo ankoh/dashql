@@ -26,7 +26,6 @@ const SEAMS = [
 const KNOWN_SEAMS = new Map([
     ['connections/catalog/catalog_batch.ts', ['a Web Worker']],
     ['platform/electron_fs.ts', ['the Electron bridge']],
-    ['platform/native_globals.ts', ['the Electron bridge']],
     ['platform/opfs_root.ts', ['the origin private file system']],
 ]);
 

@@ -1,4 +1,3 @@
-import { isDesktopHost } from "../platform/native_globals.js";
 
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
@@ -154,16 +153,3 @@ export function getConnectorInfoForParams(params: { hyper?: any; salesforce?: an
     if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     return null;
 }
-
-export function isConnectorAvailable(info: ConnectorInfo): boolean {
-    return isDesktopHost() ? info.platforms.native : info.platforms.browser;
-}
-
-export function requiresSwitchingToNative(info: ConnectorInfo) {
-    return !isConnectorAvailable(info);
-}
-
-export const useConnectorList = () => {
-    const connectorTypes = [ConnectorType.HYPER, ConnectorType.DBCOM, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO];
-    return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
-};

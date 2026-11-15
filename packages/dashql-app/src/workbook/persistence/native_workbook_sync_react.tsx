@@ -4,7 +4,7 @@ import { connectionEntryFromState, registerConnection, useConnectionRegistry, ty
 import { replaceWorkbookScriptsInRegistry, useWorkbookScriptsDispatch, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { workbookScriptsMatchStorageSnapshot, replaceWorkbookScriptsFromStorage, scriptConnectionOf, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
-import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
+import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useStorage } from '../../storage/storage_provider.js';

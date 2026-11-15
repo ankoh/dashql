@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useLogger } from '../logger/logger_provider.js';
-import { isDesktopHost } from '@ankoh/dashql-runtime/platform/native_globals';
+import { isDesktopHost } from '../native_globals.js';
 import { NativeHttpClient } from './native_http_client.js';
 import { WebHttpClient } from '@ankoh/dashql-runtime/platform/http/web_http_client';
 import { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';

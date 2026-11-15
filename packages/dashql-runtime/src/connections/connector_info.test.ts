@@ -1,32 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from './connector_info.js';
-
-describe('connector list', () => {
-    afterEach(() => {
-        delete (globalThis as any).dashqlElectron;
-    });
-
-    it('shows the supported connectors in the browser', () => {
-        expect(useConnectorList().map(info => info.connectorType)).toEqual([
-            ConnectorType.HYPER,
-            ConnectorType.DBCOM,
-            ConnectorType.SALESFORCE_DATA_CLOUD,
-            ConnectorType.TRINO,
-        ]);
-    });
-
-    it('shows the supported connectors in Electron', () => {
-        (globalThis as any).dashqlElectron = {};
-        expect(useConnectorList().map(info => info.connectorType)).toEqual([
-            ConnectorType.HYPER,
-            ConnectorType.DBCOM,
-            ConnectorType.SALESFORCE_DATA_CLOUD,
-            ConnectorType.TRINO,
-        ]);
-        expect(useConnectorList()[0]).toBe(CONNECTOR_INFOS[ConnectorType.HYPER]);
-    });
-});
+import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 
 describe('connector hello world scripts', () => {
     it.each([
