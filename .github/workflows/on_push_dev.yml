@@ -13,6 +13,8 @@ jobs:
         uses: ./.github/workflows/build_trusted.yml
         with:
             commit: ${{ github.sha }}
+            # The Electron packages are built and tested but not uploaded, publish skips the Electron release
+            upload_native_packages: false
         secrets: inherit
 
     publish:

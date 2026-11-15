@@ -10,6 +10,11 @@ on:
                 required: false
                 type: boolean
                 default: false
+            upload_native_packages:
+                description: Upload the Electron packages for the Electron release, off for dev.dashql.app
+                required: false
+                type: boolean
+                default: true
 
 jobs:
     core_wasm_fastbuild:
@@ -346,6 +351,7 @@ jobs:
                       //packages/dashql-native:mac_package_arm64
 
             - name: Upload Electron arm64 packages
+              if: inputs.upload_native_packages
               uses: actions/upload-artifact@v7
               with:
                 name: dashql_macos_electron_arm64
@@ -393,6 +399,7 @@ jobs:
                       //packages/dashql-native:mac_package_x86_64
 
             - name: Upload Electron x86_64 packages
+              if: inputs.upload_native_packages
               uses: actions/upload-artifact@v7
               with:
                 name: dashql_macos_electron_x86_64
