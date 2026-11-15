@@ -16,7 +16,7 @@ import {
 } from './dashql_processor.js';
 import { applyCompletion, computePatches } from './dashql_completion_patches.js';
 import { DashQLDecorationPlugin } from './dashql_decorations.js';
-import { deriveFocusFromEditorUpdate } from '@ankoh/dashql-runtime/workbook/scripts/focus';
+import { deriveFocusFromEditorUpdate } from './semantic_focus.js';
 import { xcodeTheme } from './themes/xcode.js';
 import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
 import { editorProcessorState, ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
@@ -53,7 +53,6 @@ describe('CodeMirror portable editor events', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -95,7 +94,6 @@ describe('CodeMirror portable editor events', () => {
                     scriptBuffers: null,
                     scriptCompletion: null,
                     scriptPendingDiff: null,
-                    derivedFocus: null,
                     onUpdate: () => {},
                 }),
             }).state;
@@ -153,7 +151,6 @@ describe('CodeMirror portable editor events', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -195,7 +192,6 @@ describe('CodeMirror portable editor events', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: update => { emitted = update; },
         };
         const view = new EditorView({
@@ -215,7 +211,7 @@ describe('CodeMirror portable editor events', () => {
             effects: DashQLUpdateEffect.of({
                 ...view.state.field(DashQLProcessorPlugin),
                 editorUpdate: focusedUpdate,
-                derivedFocus: deriveFocusFromEditorUpdate(scriptKey, focusedUpdate),
+                selected: true,
             }),
         });
 
@@ -245,7 +241,6 @@ describe('CodeMirror portable editor events', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         const view = new EditorView({
@@ -263,6 +258,87 @@ describe('CodeMirror portable editor events', () => {
         expect(view.dom.querySelectorAll('.dashql-colref-focus')).toHaveLength(1);
         expect(view.dom.querySelectorAll('.dashql-tableref-focus')).toHaveLength(1);
         view.destroy();
+        scriptSession.destroy();
+        schemaSession.destroy();
+        catalog.destroy();
+    });
+
+    it('clears the semantic focus when another script is selected', () => {
+        const catalog = dql!.createCatalog();
+        const schemaSession = dql!.createScriptSession(catalog);
+        schemaSession.replaceText(0n, 'create table items (identifier int)');
+        schemaSession.analyze();
+        schemaSession.loadIntoCatalog();
+
+        const text = 'select identifier from items where identifier > 0';
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
+        const view = new EditorView({
+            state: EditorState.create({
+                doc: text,
+                selection: EditorSelection.cursor(0),
+                extensions: [DashQLProcessorPlugin, DashQLDecorationPlugin],
+            }),
+            parent: document.body,
+        });
+        view.dispatch({
+            effects: DashQLUpdateEffect.of({
+                scriptKey: scriptSession.getCatalogEntryId(),
+                scriptSession,
+                editorUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+                selected: true,
+                onUpdate: () => {},
+            }),
+        });
+        view.dispatch({ selection: EditorSelection.cursor(8) });
+        expect(view.dom.querySelectorAll('.dashql-colref-cursor')).toHaveLength(1);
+
+        // The workbook selected another script
+        view.dispatch({ effects: DashQLUpdateEffect.of({ ...view.state.field(DashQLProcessorPlugin), selected: false }) });
+        expect(view.state.field(DashQLProcessorPlugin).derivedFocus).toBeNull();
+        expect(view.dom.querySelectorAll('.dashql-colref-cursor')).toHaveLength(0);
+        view.destroy();
+        scriptSession.destroy();
+        schemaSession.destroy();
+        catalog.destroy();
+    });
+
+    it('derives the semantic focus from an analysis of the workbook only for the selected script', () => {
+        const catalog = dql!.createCatalog();
+        const schemaSession = dql!.createScriptSession(catalog);
+        schemaSession.replaceText(0n, 'create table items (identifier int)');
+        schemaSession.analyze();
+        schemaSession.loadIntoCatalog();
+
+        const text = 'select identifier from items where identifier > 0';
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 8);
+        const scriptKey = scriptSession.getCatalogEntryId();
+        const bind = (selected: boolean) => {
+            const view = new EditorView({
+                state: EditorState.create({ doc: text, extensions: [DashQLProcessorPlugin, DashQLDecorationPlugin] }),
+                parent: document.body,
+            });
+            view.dispatch({
+                effects: DashQLUpdateEffect.of({
+                    scriptKey,
+                    scriptSession,
+                    editorUpdate,
+                    scriptBuffers: null,
+                    scriptCompletion: null,
+                    scriptPendingDiff: null,
+                    selected,
+                    onUpdate: () => {},
+                }),
+            });
+            const focus = view.state.field(DashQLProcessorPlugin).derivedFocus;
+            view.destroy();
+            return focus;
+        };
+        expect(bind(true)).toEqual(deriveFocusFromEditorUpdate(scriptKey, editorUpdate));
+        expect(bind(true)).not.toBeNull();
+        expect(bind(false)).toBeNull();
         scriptSession.destroy();
         schemaSession.destroy();
         catalog.destroy();
@@ -286,7 +362,6 @@ describe('CodeMirror portable editor events', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: update => { emitted = update; },
         };
         // The editor theme takes its colors from the code tokens of the app theme, the test page does not load it
@@ -309,7 +384,7 @@ describe('CodeMirror portable editor events', () => {
             effects: DashQLUpdateEffect.of({
                 ...view.state.field(DashQLProcessorPlugin),
                 editorUpdate: focusedUpdate,
-                derivedFocus: deriveFocusFromEditorUpdate(scriptKey, focusedUpdate),
+                selected: true,
             }),
         });
 
@@ -377,7 +452,6 @@ describe('CodeMirror portable editor events', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -415,7 +489,6 @@ describe('DashQL processor completion triggers', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             keywordCase: dashql.buffers.formatting.KeywordCase.LOWER,
             onUpdate,
         };
@@ -573,7 +646,6 @@ describe('DashQL processor completion triggers', () => {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -712,7 +784,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -748,7 +819,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -778,7 +848,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -819,7 +888,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -851,7 +919,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -896,7 +963,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
                 catalogObjectCursorOffset: null,
             },
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({
@@ -934,7 +1000,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
-            derivedFocus: null,
             onUpdate: () => {},
         };
         let editorState = EditorState.create({

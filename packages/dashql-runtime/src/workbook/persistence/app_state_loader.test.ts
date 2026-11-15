@@ -82,7 +82,6 @@ describe('V2 app state loader', () => {
         const scripts = result.workbookScripts.get(TEST_WORKBOOK_ID)!;
         // Files without an entry in the workbook file are appended in natural order
         expect(scripts.scriptOrder).toEqual(['2_first.sql', '10_last.sql']);
-        expect(scripts.scriptFocus.fileName).toBe('2_first.sql');
         expect(scripts.scripts[scripts.scriptRefs['2_first.sql'].scriptId].scriptSession.getText()).toBe('SELECT 2');
         expect(backend.saveWorkbookManifest).toHaveBeenCalledWith(TEST_WORKBOOK_ID, expect.objectContaining({
             scripts: [

@@ -128,8 +128,6 @@ async function restoreWorkbookScripts(
             scripts,
             scriptRefs,
             scriptOrder,
-            scriptFocus: { fileName: scriptOrder[0] ?? '' },
-            semanticUserFocus: null,
             attachments,
         };
 

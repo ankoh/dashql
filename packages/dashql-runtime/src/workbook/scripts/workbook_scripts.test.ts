@@ -74,7 +74,7 @@ function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql'], main: Scrip
         const scriptKey = scriptSession.getCatalogEntryId();
         scripts[scriptKey] = {
             scriptKey, scriptSession, editorUpdate: null, analysisOutdated: true,
-            annotations: createEmptyAnnotations(), statistics: Immutable.List(), completion: null,
+            annotations: createEmptyAnnotations(), statistics: Immutable.List(),
             pendingDiff: null, latestQueryId: null, fileName: name, connection: main,
         };
         refs[name] = createScriptRef(scriptKey, name);
@@ -82,13 +82,19 @@ function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql'], main: Scrip
     return {
         instance: dql, workbookId: crypto.randomUUID(), name: 'Test', pendingConnection: names.length === 0 ? main : null,
         workbookMetadata: createEmptyMetadata(), scripts, scriptRefs: refs, scriptOrder: [...names],
-        scriptFocus: { fileName: names[1] ?? names[0] ?? '' }, semanticUserFocus: null,
     };
 }
 
 /// The connection of the first script, the fixtures create every script on it
 function mainConnection(current: WorkbookScripts): ScriptConnection {
     return current.scripts[current.scriptRefs[current.scriptOrder[0]].scriptId].connection;
+}
+
+/// The file name of the script that an action created
+function createdFile(prev: WorkbookScripts, next: WorkbookScripts): string {
+    const fileName = next.scriptOrder.find(name => prev.scriptRefs[name] == null);
+    expect(fileName).toBeDefined();
+    return fileName!;
 }
 
 function reduce(current: WorkbookScripts, action: Parameters<typeof reduceWorkbookScripts>[1], writer?: RecordingWriter) {
@@ -153,8 +159,6 @@ describe('V2 flat workbook script mutations', () => {
             scriptKey,
             scriptSession: script.scriptSession,
             editorUpdate,
-            scriptBuffers: null,
-            scriptCompletion: null,
             scriptPendingDiff: null,
         } }, writer, logger);
         expect(writer.records).toContainEqual(expect.objectContaining({
@@ -214,7 +218,7 @@ describe('V2 flat workbook script mutations', () => {
         const next = reduce(current, { type: CREATE_SCRIPT, value: { index: 1 } }, writer);
         const names = next.scriptOrder;
         expect(names).toHaveLength(3);
-        expect(next.scriptFocus.fileName).toBe(names[1]);
+        expect(createdFile(current, next)).toBe(names[1]);
         expect(writer.records.some(task => task.type.description === 'WRITE_SCRIPT'
             && (task.value as string[])[1] === names[1])).toBe(true);
     });
@@ -225,7 +229,7 @@ describe('V2 flat workbook script mutations', () => {
         const next = reduce(current, { type: CREATE_SCRIPT, value: { index: null, text: 'SELECT 42' } }, writer);
         const names = next.scriptOrder;
         expect(names).toHaveLength(3);
-        expect(next.scriptFocus.fileName).toBe(names[2]);
+        expect(createdFile(current, next)).toBe(names[2]);
         const created = next.scripts[next.scriptRefs[names[2]].scriptId];
         expect(created.scriptSession.getText()).toBe('SELECT 42');
         expect(created.analysisOutdated).toBe(false);
@@ -237,9 +241,7 @@ describe('V2 flat workbook script mutations', () => {
 
     it('creates the first script of an empty workbook', () => {
         const next = reduce(state([]), { type: CREATE_SCRIPT, value: { index: null, text: 'SELECT 1' } });
-        const names = next.scriptOrder;
-        expect(names).toHaveLength(1);
-        expect(next.scriptFocus.fileName).toBe(names[0]);
+        expect(next.scriptOrder).toHaveLength(1);
     });
 
     it('deletes the last script', () => {
@@ -247,7 +249,6 @@ describe('V2 flat workbook script mutations', () => {
         const next = reduce(current, { type: DELETE_SCRIPT, value: '1_alpha.sql' });
         expect(next.scriptRefs).toEqual({});
         expect(next.scripts).toEqual({});
-        expect(next.scriptFocus.fileName).toBe('');
     });
 
     it('reorders through the script list without renaming files', () => {
@@ -256,7 +257,6 @@ describe('V2 flat workbook script mutations', () => {
         const next = reduce(current, { type: REORDER_SCRIPTS, value: ['3_gamma.sql', '1_alpha.sql', '2_beta.sql'] }, writer);
         expect(next.scriptOrder).toEqual(['3_gamma.sql', '1_alpha.sql', '2_beta.sql']);
         expect(next.scriptRefs).toBe(current.scriptRefs);
-        expect(next.scriptFocus.fileName).toBe('2_beta.sql');
         expect(writer.records).toEqual([{
             type: WRITE_WORKBOOK_SCRIPTS,
             value: [current.workbookId, {
@@ -338,7 +338,6 @@ describe('V2 flat workbook script mutations', () => {
         const next = reduce(current, { type: RENAME_SCRIPT, value: { fileName: '2_beta.sql', newFileName: 'report' } }, writer);
         expect(next.scriptRefs['report.sql']).toBeDefined();
         expect(next.scriptOrder).toEqual(['1_alpha.sql', 'report.sql']);
-        expect(next.scriptFocus.fileName).toBe('report.sql');
         expect(writer.records).toContainEqual(expect.objectContaining({
             value: [current.workbookId, '2_beta.sql', 'report.sql'],
         }));
@@ -392,7 +391,7 @@ describe('V2 flat workbook script mutations', () => {
         expect(newScriptConnection(next, 2)?.connectionId).toBe(other.connectionId);
         expect(newScriptConnection(next, 0)?.connectionId).toBe(mainConnection(current).connectionId);
         const inserted = reduce(next, { type: CREATE_SCRIPT, value: { index: 1 } });
-        expect(inserted.scripts[inserted.scriptRefs[inserted.scriptFocus.fileName].scriptId].connection.connectionId).toBe(mainConnection(current).connectionId);
+        expect(inserted.scripts[inserted.scriptRefs[createdFile(next, inserted)].scriptId].connection.connectionId).toBe(mainConnection(current).connectionId);
         expect(workbookConnectionIds(next)).toEqual([mainConnection(current).connectionId, other.connectionId]);
     });
 
@@ -406,7 +405,7 @@ describe('V2 flat workbook script mutations', () => {
         expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].connection.connectionId).toBe(mainConnection(current).connectionId);
         expect(writer.records).toEqual([]);
         const created = reduce(next, { type: CREATE_SCRIPT, value: { index: null } });
-        expect(created.scripts[created.scriptRefs[created.scriptFocus.fileName].scriptId].connection.connectionId).toBe(other.connectionId);
+        expect(created.scripts[created.scriptRefs[createdFile(next, created)].scriptId].connection.connectionId).toBe(other.connectionId);
         // The script took the pick
         expect(created.pendingConnection).toBeNull();
         // The same connection changes nothing, a connection without params can't be copied into the workbook file
@@ -430,7 +429,7 @@ describe('V2 flat workbook script mutations', () => {
         const created = reduce(next, { type: CREATE_SCRIPT, value: { index: null } });
         expect(created.pendingConnection).toBeNull();
         expect(workbookConnectionIds(created)).toEqual([server.connectionId]);
-        const deleted = reduce(created, { type: DELETE_SCRIPT, value: created.scriptFocus.fileName });
+        const deleted = reduce(created, { type: DELETE_SCRIPT, value: createdFile(next, created) });
         expect(deleted.pendingConnection?.connectionId).toBe(server.connectionId);
     });
 
@@ -692,13 +691,12 @@ describe('V2 flat workbook script mutations', () => {
         expect(reduce(merged, { type: REPLACE_CONNECTION, value: { from: crypto.randomUUID(), into: target } })).toBe(merged);
     });
 
-    it('deletes the focused script, moves focus, and persists deletion', () => {
+    it('deletes a script and persists the deletion', () => {
         const current = state();
         const writer = new RecordingWriter(logger, new WorkbookTestBackend());
         const next = reduce(current, { type: DELETE_SCRIPT, value: '2_beta.sql' }, writer);
         expect(next.scriptRefs['2_beta.sql']).toBeUndefined();
         expect(next.scriptOrder).toEqual(['1_alpha.sql', '3_gamma.sql']);
-        expect(next.scriptFocus.fileName).toBe('1_alpha.sql');
         expect(writer.records).toContainEqual(expect.objectContaining({ value: [current.workbookId, '2_beta.sql'] }));
     });
 
@@ -735,7 +733,7 @@ describe('V2 flat workbook script mutations', () => {
         const main = mainConnection(current);
         const alphaKey = current.scriptRefs['1_alpha.sql'].scriptId;
         const alpha = current.scripts[alphaKey];
-        current.scripts[alphaKey] = { ...alpha, analysisOutdated: false, completion: {} as never, pendingDiff: {} as never };
+        current.scripts[alphaKey] = { ...alpha, analysisOutdated: false, pendingDiff: {} as never };
         const unknownId = 'dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb';
         const next = replaceWorkbookScriptsFromStorage(current, { scripts: [
             { name: '1_alpha.sql', sql: 'SELECT changed', connection: main, unresolvedConnectionId: unknownId },
@@ -746,7 +744,6 @@ describe('V2 flat workbook script mutations', () => {
         // The script keeps its session and drops what belonged to the old text
         expect(replaced.scriptSession).toBe(alpha.scriptSession);
         expect(replaced.scriptSession.getText()).toBe('SELECT changed');
-        expect(replaced.completion).toBeNull();
         expect(replaced.pendingDiff).toBeNull();
         expect(replaced.analysisOutdated).toBe(true);
         expect(replaced.unresolvedConnectionId).toBe(unknownId);

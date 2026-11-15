@@ -104,7 +104,6 @@ export function ReadonlySqlView(props: ReadonlySqlViewProps) {
                     scriptBuffers: null,
                     scriptCompletion: null,
                     scriptPendingDiff: null,
-                    derivedFocus: null,
                     onUpdate: () => { },
                 }),
             ],

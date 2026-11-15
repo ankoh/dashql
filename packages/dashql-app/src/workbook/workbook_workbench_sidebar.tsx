@@ -88,7 +88,8 @@ import {
 } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
 import { describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
-import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SELECT_SCRIPT, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptConnectionOf, scriptsOnConnection, SET_PENDING_CONNECTION, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useScriptSelection } from './scripts/script_selection.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { renameScript } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import {
@@ -521,8 +522,9 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
     ), [listeners]);
     const contextMenu = useRowContextMenu();
     const scriptNames = item.scripts.scriptOrder ?? [];
+    const selection = useScriptSelection();
     const openScript = (fileName: string) => {
-        void modifyWorkbookScripts({ type: SELECT_SCRIPT, value: fileName });
+        selection.selectFile(item.scripts, fileName);
         onOpenScript(fileName);
     };
     const Caret = expanded ? ChevronDownIcon : ChevronRightIcon;

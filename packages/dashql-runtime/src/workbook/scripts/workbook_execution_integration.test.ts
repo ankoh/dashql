@@ -71,7 +71,7 @@ function fixture(entries: Array<[string, string]>) {
     let live: WorkbookScripts = {
         instance: dql, workbookId: crypto.randomUUID(), name: 'Execution integration',
         pendingConnection: entries.length === 0 ? connection : null, workbookMetadata: createEmptyMetadata(),
-        scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), scriptFocus: { fileName: entries[0]?.[0] ?? '' }, semanticUserFocus: null,
+        scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
     };
     const writer = new StorageWriter(logger, new WorkbookTestBackend());
     const write = vi.spyOn(writer, 'write');

@@ -40,8 +40,6 @@ function workbook(text: string): [WorkbookScripts, number] {
         scripts: { [scriptKey]: scriptData },
         scriptRefs: { 'orders.sql': createScriptRef(scriptKey, 'orders.sql') },
         scriptOrder: ['orders.sql'],
-        scriptFocus: { fileName: 'orders.sql' },
-        semanticUserFocus: null,
     } as unknown as WorkbookScripts;
     return [workbookScripts, scriptKey];
 }

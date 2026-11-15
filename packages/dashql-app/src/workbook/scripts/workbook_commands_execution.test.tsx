@@ -17,7 +17,6 @@ describe('global workbook execution feedback', () => {
     const resolveMain = vi.fn();
     const workbookScripts = {
         workbookId: 'workbook',
-        scriptFocus: { fileName: '01_query.sql' },
         scriptRefs: { '01_query.sql': { scriptId: 1, fileName: '01_query.sql' } },
         scriptOrder: ['01_query.sql'],
         scripts: { 1: { scriptKey: 1, connection: { connectionId: 'main', connectorInfo: {} }, annotations: {}, analysisOutdated: false } },

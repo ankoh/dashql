@@ -78,7 +78,7 @@ function baseProps() {
 
 function script(scriptKey: number, fileName: string) {
     return { scriptKey, fileName, scriptSession: { getText: () => 'SELECT 1' }, analysisOutdated: true,
-        annotations: {}, statistics: [], completion: null, pendingDiff: null, latestQueryId: null,
+        annotations: {}, statistics: [], pendingDiff: null, latestQueryId: null,
         connection: { connectionId: 'database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: {} } };
 }
 
@@ -544,7 +544,7 @@ describe('Workbook feed composer', () => {
         return {
             workbookId: 'workbook', name: null, instance: {} as any, workbookMetadata: {} as any,
             pendingConnection: { connectionId: 'database', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any },
-            scripts, scriptRefs, scriptOrder: [...fileNames], scriptFocus: { fileName: fileNames[fileNames.length - 1] ?? '' }, semanticUserFocus: null,
+            scripts, scriptRefs, scriptOrder: [...fileNames],
         };
     }
 

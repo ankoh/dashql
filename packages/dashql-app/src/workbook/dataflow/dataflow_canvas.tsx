@@ -41,7 +41,8 @@ import {
     type DataflowSceneInput,
     type DataflowSelection,
 } from './dataflow_scene.js';
-import { createFlowScript, deleteFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
+import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
+import { createdScriptRef, deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
@@ -471,13 +472,24 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     }, [writeSize]);
 
     // Creating and removing scripts
-    const deleteScript = React.useCallback((script: ScriptData) => deleteFlowScript(script, modifyWorkbookScripts), [modifyWorkbookScripts]);
+    // The selected script of the workbook, not the selection of the boxes
+    const scriptSelection = useScriptSelection();
+    const deleteScript = React.useCallback(
+        (script: ScriptData) => { void deleteWorkbookScript(scriptSelection, workbookScripts, modifyWorkbookScripts, script.fileName); },
+        [scriptSelection, workbookScripts, modifyWorkbookScripts],
+    );
     // The headers of the boxes show the diagnostics of the script references like the feed
     const scriptReferences = React.useMemo(() => checkWorkbookScriptReferences(workbookScripts), [workbookScripts]);
     const quoteIdentifier = React.useCallback((name: string) => workbookScripts.instance.quoteIdentifier(name), [workbookScripts.instance]);
     const createAt = React.useCallback((position: Position | null, producer: ScriptData | null) => {
-        void createFlowScript(position, producer, quoteIdentifier, modifyWorkbookScripts);
-    }, [quoteIdentifier, modifyWorkbookScripts]);
+        const result = createFlowScript(position, producer, quoteIdentifier, modifyWorkbookScripts);
+        if (!result) return;
+        // The created script is selected
+        void result.then(next => {
+            const created = next == null ? undefined : createdScriptRef(workbookScripts, next);
+            if (next != null && created != null) scriptSelection.select(next.workbookId, created.scriptId);
+        });
+    }, [quoteIdentifier, modifyWorkbookScripts, workbookScripts, scriptSelection]);
     // The layout places a script that reads a box right of it, in a free slot
     const createDownstream = React.useCallback((box: DataflowSceneBox) => {
         createAt(null, workbookScripts.scripts[box.script.scriptKey] ?? null);

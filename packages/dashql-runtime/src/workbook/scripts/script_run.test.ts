@@ -46,7 +46,7 @@ function fixture(entries: Array<[string, string]>, remote: string[] = [], cachin
     let live: WorkbookScripts = {
         instance: dql, workbookId: crypto.randomUUID(), name: 'References',
         pendingConnection: null, workbookMetadata: createEmptyMetadata(),
-        scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName), scriptFocus: { fileName: entries[0][0] }, semanticUserFocus: null,
+        scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName),
     };
     const writer = new StorageWriter(logger, new WorkbookTestBackend());
     const apply = (action: WorkbookScriptsAction) => { live = reduceWorkbookScripts(live, action, writer, logger); return live; };

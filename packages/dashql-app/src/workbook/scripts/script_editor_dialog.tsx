@@ -14,7 +14,8 @@ import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
-import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { deleteScript, useScriptSelection } from './script_selection.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { ScriptEditor } from './script_editor.js';
 import { checkWorkbookScriptReferences } from './script_reference_reports.js';
@@ -72,11 +73,12 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     }, [editorView, onClose]);
     // The menus of the header open outside of the dialog, a click outside keeps it open
     const ignoreOutsideClick = React.useCallback(() => {}, []);
+    const selection = useScriptSelection();
     const remove = React.useCallback((target: ScriptData) => {
         if (props.onDelete != null) props.onDelete(target);
-        else modifyWorkbookScripts({ type: DELETE_SCRIPT, value: target.fileName });
+        else void deleteScript(selection, workbookScripts, modifyWorkbookScripts, target.fileName);
         onClose();
-    }, [props.onDelete, modifyWorkbookScripts, onClose]);
+    }, [props.onDelete, selection, workbookScripts, modifyWorkbookScripts, onClose]);
     // The editor accepts or rejects a diff itself and clears the staged rewrite through the workbook
     const acceptDiff = React.useCallback(() => {
         if (editorView != null) acceptPendingDiff(editorView);

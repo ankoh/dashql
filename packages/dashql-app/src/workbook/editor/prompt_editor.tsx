@@ -173,7 +173,6 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
                 scriptBuffers: null,
                 scriptCompletion: null,
                 scriptPendingDiff: null,
-                derivedFocus: null,
                 keywordCase: props.keywordCase,
                 onUpdate,
             }),

@@ -2,10 +2,12 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { EditorState, Facet, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
-import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '@ankoh/dashql-runtime/workbook/scripts/focus';
+import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './semantic_focus.js';
 import { computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
-import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '@ankoh/dashql-runtime/workbook/scripts/script_editor_state';
-export { DashQLCompletionStatus, type DashQLCompletionState, type DashQLPendingDiff, type DashQLProcessorUpdateOut, type DashQLScriptBuffers, type DashQLScriptKey } from '@ankoh/dashql-runtime/workbook/scripts/script_editor_state';
+import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './dashql_completion_state.js';
+import type { DashQLScriptKey } from '@ankoh/dashql-runtime/workbook/scripts/script_editor_state';
+export { DashQLCompletionStatus, type DashQLCompletionState, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './dashql_completion_state.js';
+export type { DashQLPendingDiff, DashQLScriptKey } from '@ankoh/dashql-runtime/workbook/scripts/script_editor_state';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 const LOG_PREFIX = '[workbook-editor-debug]';
@@ -13,8 +15,10 @@ const LOG_PREFIX = '[workbook-editor-debug]';
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     keywordCase?: dashql.buffers.formatting.KeywordCase;
-    /// The derive focus info
-    derivedFocus: SemanticUserFocus | null;
+    /// Is the script of the editor the selected script of its workbook? The editor derives the semantic focus of its
+    /// cursor and its completion while the user works in it. An update from the outside derives it again for the
+    /// selected script and clears it for the others. Editors outside of a workbook leave it unset.
+    selected?: boolean;
 
     /// Resolve the editor workbook of a workbook script by its catalog entry id for code actions.
     lookupScriptSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLScriptSession | null;
@@ -26,7 +30,17 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     onUpdate: (out: DashQLProcessorUpdateOut) => void;
 }
 /// The state of a DashQL processor
-export type DashQLProcessorState = DashQLProcessorUpdateIn;
+export type DashQLProcessorState = DashQLProcessorUpdateIn & {
+    /// The semantic focus of the editor, see `selected`
+    derivedFocus: SemanticUserFocus | null;
+};
+
+/// The semantic focus of the completion of an editor, otherwise of the reference under its cursor
+function deriveFocus(state: DashQLProcessorState): SemanticUserFocus | null {
+    return state.scriptCompletion != null
+        ? deriveFocusFromCompletionCandidates(state.scriptKey, state.scriptCompletion)
+        : deriveFocusFromEditorUpdate(state.scriptKey, state.editorUpdate);
+}
 
 export function analyzeScript(
     script: dashql.DashQLScript,
@@ -178,7 +192,13 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                     scriptCompletion: keepLocalCompletion
                         ? state.scriptCompletion
                         : effect.value.scriptCompletion,
+                    // The focus is the editor's own as well
+                    derivedFocus: state.derivedFocus,
                 };
+                // Another script was selected
+                if (state.selected === false) {
+                    state.derivedFocus = null;
+                }
 
                 // Script changed?
                 // Signaled either through a completely new script or through a new script buffer
@@ -186,6 +206,9 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                     prevState.scriptSession !== state.scriptSession ||
                     prevState.editorUpdate?.stateRevision !== state.editorUpdate?.stateRevision
                 ) {
+                    if (state.selected !== false) {
+                        state.derivedFocus = deriveFocus(state);
+                    }
                     return state;
                 }
 
@@ -193,7 +216,8 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 const redundantUpdate = prevState.scriptSession == effect.value.scriptSession
                     && prevState.editorUpdate?.stateRevision == effect.value.editorUpdate?.stateRevision
                     && prevState.scriptPendingDiff == effect.value.scriptPendingDiff
-                    && prevState.derivedFocus == effect.value.derivedFocus
+                    && prevState.derivedFocus == state.derivedFocus
+                    && prevState.selected === state.selected
                     && prevState.keywordCase == state.keywordCase
                     && !transaction.docChanged
                     && !selectionChanged;
@@ -275,7 +299,13 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         }
 
         // Check additional completion effects
+        const completionBefore = state.scriptCompletion;
         state = updateCompletion(state, prevState, transaction);
+        // The focus follows the candidate of the completion, and the cursor once the completion ends
+        if (state.scriptCompletion !== completionBefore) {
+            state = copyLazily(state, prevState);
+            state.derivedFocus = deriveFocus(state);
+        }
 
         // Check pending-diff effects (accept / reject) and auto-accept on genuine user edits
         state = updateDiff(state, prevState, transaction, externalUpdate);

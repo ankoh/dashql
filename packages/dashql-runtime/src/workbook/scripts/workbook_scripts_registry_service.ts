@@ -110,8 +110,6 @@ export class WorkbookScriptsRegistryService {
             scripts: {},
             scriptRefs: {},
             scriptOrder: [],
-            scriptFocus: { fileName: '' },
-            semanticUserFocus: null,
         });
         void this.deps.storageWriter.write(
             groupWorkbookManifestWrites(workbookId),

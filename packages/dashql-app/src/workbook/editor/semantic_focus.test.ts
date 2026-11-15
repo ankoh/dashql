@@ -1,10 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { DashQLCompletionStatus } from './script_editor_state.js';
-import { QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID } from './catalog_object_id.js';
-import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID, FocusType } from './focus.js';
-import type { ScriptData } from './workbook_scripts.js';
+import { DashQLCompletionStatus, type DashQLCompletionState } from './dashql_completion_state.js';
+import { QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID } from '@ankoh/dashql-runtime/workbook/scripts/catalog_object_id';
+import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID, FocusType } from './semantic_focus.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -16,9 +15,9 @@ afterEach(() => {
     dql.resetUnsafe();
 });
 
-/// The script data of a script completed at its end against a catalog with one table, selecting the candidate with the
+/// The completion of a script completed at its end against a catalog with one table, selecting the candidate with the
 /// display text, or a candidate index
-function completedScript(text: string, candidate: string | number, catalogObjectId = 0): ScriptData {
+function completedScript(text: string, candidate: string | number, catalogObjectId = 0): DashQLCompletionState {
     const catalog = dql.createCatalog();
     const schema = dql.createScript(catalog);
     schema.insertTextAt(0, 'create table orders(order_id int, amount int)');
@@ -36,17 +35,15 @@ function completedScript(text: string, candidate: string | number, catalogObject
         : Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)!.displayText()).indexOf(candidate);
     expect(candidateId).toBeGreaterThanOrEqual(0);
     return {
-        completion: {
-            status: DashQLCompletionStatus.AVAILABLE,
-            passiveHint: false,
-            buffer,
-            candidateId,
-            candidatePatch: [],
-            catalogObjectId,
-            catalogObjectPatch: [],
-            catalogObjectCursorOffset: null,
-        },
-    } as unknown as ScriptData;
+        status: DashQLCompletionStatus.AVAILABLE,
+        passiveHint: false,
+        buffer,
+        candidateId,
+        candidatePatch: [],
+        catalogObjectId,
+        catalogObjectPatch: [],
+        catalogObjectCursorOffset: null,
+    };
 }
 
 describe('deriveFocusFromCompletionCandidates', () => {
@@ -55,7 +52,7 @@ describe('deriveFocusFromCompletionCandidates', () => {
         const focus = deriveFocusFromCompletionCandidates(1, script)!;
         expect(focus.focusTarget).toEqual({
             type: FOCUSED_COMPLETION,
-            value: { completion: script.completion!.buffer, completionCandidateIndex: script.completion!.candidateId },
+            value: { completion: script.buffer, completionCandidateIndex: script.candidateId },
         });
         expect(focus.catalogObject?.type).toEqual(QUALIFIED_TABLE_COLUMN_ID);
         expect(focus.catalogObject?.focus).toEqual(FocusType.COMPLETION_CANDIDATE);
@@ -73,7 +70,7 @@ describe('deriveFocusFromCompletionCandidates', () => {
     });
 
     it('derives no focus without a completion or past the candidates', () => {
-        expect(deriveFocusFromCompletionCandidates(1, { completion: null } as unknown as ScriptData)).toBeNull();
+        expect(deriveFocusFromCompletionCandidates(1, null)).toBeNull();
         expect(deriveFocusFromCompletionCandidates(1, completedScript('select * from ord', 99))).toBeNull();
     });
 });

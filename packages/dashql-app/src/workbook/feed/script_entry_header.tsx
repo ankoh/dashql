@@ -11,7 +11,8 @@ import { useStorageReader } from '../../storage/storage_provider.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useConnectionLabeler } from '../connection_labels.js';
-import { DELETE_SCRIPT, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
@@ -91,11 +92,12 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const rename = React.useCallback((name: string) => {
         void renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current);
     }, [workbookScripts, modifyWorkbookScripts, fileName, props.draftRenameRef]);
+    const selection = useScriptSelection();
     const remove = React.useCallback(() => {
         if (scriptData == null) return;
         if (props.onDelete != null) props.onDelete(scriptData);
-        else modifyWorkbookScripts({ type: DELETE_SCRIPT, value: fileName });
-    }, [scriptData, props.onDelete, modifyWorkbookScripts, fileName]);
+        else void deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
+    }, [scriptData, props.onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
     // A snippet replaces the text of the script, a script with text shows the replacement as a diff to accept or reject
     const applySnippet = React.useCallback((text: string) => {
         const priorText = scriptData?.scriptSession.getText() ?? '';

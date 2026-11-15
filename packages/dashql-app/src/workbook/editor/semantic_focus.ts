@@ -1,8 +1,12 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { ScriptData, ScriptKey } from './workbook_scripts.js';
-import { VariantKind } from '../../utils/variant.js';
-import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from './catalog_object_id.js';
+import type { ScriptKey } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { VariantKind } from '@ankoh/dashql-runtime/utils/variant';
+import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '@ankoh/dashql-runtime/workbook/scripts/catalog_object_id';
+import type { DashQLCompletionState } from './dashql_completion_state.js';
+
+/// The semantic focus of an editor: the reference under its cursor or the object of its completion candidate, and the
+/// references of the script to the same catalog object. The editor of the selected script derives it.
 
 export interface FocusedExpression {
     /// The expression id
@@ -123,21 +127,21 @@ export function deriveFocusFromEditorUpdate(
 /// Derive focus from script completion
 export function deriveFocusFromCompletionCandidates(
     _scriptKey: ScriptKey,
-    scriptData: ScriptData,
+    state: DashQLCompletionState | null,
 ): SemanticUserFocus | null {
-    if (scriptData.completion == null) {
+    if (state == null) {
         return null;
     }
-    const completion = scriptData.completion.buffer.read();
-    if (completion.candidatesLength() == 0 || scriptData.completion.candidateId >= completion.candidatesLength()) {
+    const completion = state.buffer.read();
+    if (completion.candidatesLength() == 0 || state.candidateId >= completion.candidatesLength()) {
         return null;
     }
 
-    const focusedCandidateId = scriptData.completion.candidateId ?? 0;
+    const focusedCandidateId = state.candidateId ?? 0;
     const focusTarget: FocusTarget = {
         type: FOCUSED_COMPLETION,
         value: {
-            completion: scriptData.completion.buffer,
+            completion: state.buffer,
             completionCandidateIndex: focusedCandidateId
         }
     };
@@ -150,10 +154,10 @@ export function deriveFocusFromCompletionCandidates(
 
     // Are we focusing a valid catalog object?
     const candidate = completion.candidates(focusedCandidateId)!;
-    if (scriptData.completion.catalogObjectId >= candidate.catalogObjectsLength()) {
+    if (state.catalogObjectId >= candidate.catalogObjectsLength()) {
         return focus;
     }
-    const candidateObject = candidate.catalogObjects(scriptData.completion.catalogObjectId)!;
+    const candidateObject = candidate.catalogObjects(state.catalogObjectId)!;
 
     // Inspect the catalog object and derive a focus target
     switch (candidateObject.objectType()) {

@@ -6,8 +6,6 @@ import { TestLogger } from '../../testing/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
-import { deriveFocusFromEditorUpdate } from './focus.js';
-import { DashQLCompletionStatus } from './script_editor_state.js';
 import {
     APPLY_PLANNER_ANALYSIS,
     createEmptyScriptData,
@@ -43,7 +41,6 @@ function fixture() {
     const state: WorkbookScripts = {
         instance: dql, workbookId: crypto.randomUUID(), name: 'Test', pendingConnection: null,
         workbookMetadata: createEmptyMetadata(), scripts, scriptRefs, scriptOrder: ['1_items.sql', '2_query.sql', '3_other.sql'],
-        scriptFocus: { fileName: '2_query.sql' }, semanticUserFocus: null,
     };
     const [definition, query, other] = Object.values(scripts);
     // Publish before capturing snapshots, matching the planner's final catalog revision.
@@ -113,46 +110,22 @@ describe('planner analysis projection', () => {
         expect(f.apply()).toBe(f.state);
     });
 
-    it('refreshes a superseded cursor projection and derives focus only for the selected script', () => {
+    it('refreshes a superseded cursor projection', () => {
         const f = fixture();
         const cursorUpdate = f.query.scriptSession.setCursor(f.query.scriptSession.getTextVersion(), 8n);
         expect(cursorUpdate.stateRevision).not.toBe(f.updates[1].editorUpdate.stateRevision);
-        const expectedFocus = deriveFocusFromEditorUpdate(f.query.scriptKey, cursorUpdate);
-        expect(expectedFocus).not.toBeNull();
-        // Put the background script last so batch order cannot steal focus.
         const next = f.apply([f.updates[1], f.updates[0]]);
         expect(next.scripts[f.query.scriptKey].editorUpdate?.stateRevision).toBe(cursorUpdate.stateRevision);
         expect(next.scripts[f.query.scriptKey].editorUpdate?.primaryCursorState).toEqual(cursorUpdate.primaryCursorState);
-        expect(next.semanticUserFocus).toEqual(expectedFocus);
-        expect(next.scriptFocus).toBe(f.state.scriptFocus);
     });
 
-    it('clears stale completion and background focus while preserving query history', () => {
+    it('preserves the query history and the staged diff', () => {
         const f = fixture();
         f.query.scriptSession.setCursor(f.query.scriptSession.getTextVersion(), 8n);
-        const cursorUpdate = f.query.scriptSession.analyze();
-        const buffer = f.query.scriptSession.completeAtCursor(10);
-        const query = {
-            ...f.query,
-            completion: {
-                status: DashQLCompletionStatus.AVAILABLE, passiveHint: false, buffer,
-                candidateId: 0, candidatePatch: [], catalogObjectId: 0,
-                catalogObjectPatch: [], catalogObjectCursorOffset: null,
-            },
-            latestQueryId: 42,
-        };
-        const current = {
-            ...f.state,
-            scripts: { ...f.state.scripts, [query.scriptKey]: query },
-            semanticUserFocus: deriveFocusFromEditorUpdate(query.scriptKey, cursorUpdate),
-        };
+        const query = { ...f.query, latestQueryId: 42 };
+        const current = { ...f.state, scripts: { ...f.state.scripts, [query.scriptKey]: query } };
         const next = f.apply(f.updates, current);
-        expect(next.scripts[query.scriptKey].completion).toBeNull();
         expect(next.scripts[query.scriptKey].pendingDiff).toBe(query.pendingDiff);
         expect(next.scripts[query.scriptKey].latestQueryId).toBe(42);
-        expect(next.semanticUserFocus).toEqual(deriveFocusFromEditorUpdate(query.scriptKey,
-            next.scripts[query.scriptKey].editorUpdate));
-
-        expect(f.apply([f.updates[0]], current).semanticUserFocus).toBeNull();
     });
 });

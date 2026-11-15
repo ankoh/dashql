@@ -1,7 +1,7 @@
 import type * as core from '@ankoh/dashql-core';
 
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { CREATE_SCRIPT, DELETE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
@@ -99,7 +99,3 @@ export function createFlowScript(
     });
 }
 
-/// Delete a script
-export function deleteFlowScript(script: ScriptData, modifyWorkbookScripts: ModifyWorkbookScripts): void {
-    modifyWorkbookScripts({ type: DELETE_SCRIPT, value: script.fileName });
-}

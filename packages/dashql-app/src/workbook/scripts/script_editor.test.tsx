@@ -17,13 +17,17 @@ const dependencies = {
         return <div data-testid="codemirror" />;
     }),
     useWorkbookScripts: () => [{
+        workbookId: 'workbook',
         scripts: {
             7: {
                 scriptKey: 7,
+                fileName: 'query.sql',
                 scriptSession: { getText: () => 'SELECT\n    1;' },
                 connection: { catalog: {} },
             },
         },
+        scriptRefs: { 'query.sql': { scriptId: 7, fileName: 'query.sql' } },
+        scriptOrder: ['query.sql'],
     }, vi.fn()],
     useAppConfig: () => ({ settings: {} }),
     useLogger: () => ({ debug: vi.fn() }),
@@ -71,7 +75,10 @@ describe('ScriptEditor', () => {
                 return <div ref={setNode} />;
             }),
             useWorkbookScripts: () => [{
-                scripts: { 7: { scriptKey: 7, scriptSession, connection: { catalog: {} } } },
+                workbookId: 'workbook',
+                scripts: { 7: { scriptKey: 7, fileName: 'query.sql', scriptSession, connection: { catalog: {} } } },
+                scriptRefs: { 'query.sql': { scriptId: 7, fileName: 'query.sql' } },
+                scriptOrder: ['query.sql'],
             }, vi.fn()],
         } as unknown as ScriptEditorDependencies;
 

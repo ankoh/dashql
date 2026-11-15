@@ -2,8 +2,8 @@ import * as dashql from '@ankoh/dashql-core';
 import { DEFAULT_DATABASE_NAME } from '@ankoh/dashql-runtime/connections/catalog/catalog_sql_generator';
 
 import { ChangeSpec, Text } from '@codemirror/state';
-import { type CompletionPatch, CompletionPatchTarget, type DashQLCompletionState, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from '@ankoh/dashql-runtime/workbook/scripts/script_editor_state';
-export { type CompletionPatch, CompletionPatchTarget, type CompletionPatchVariant, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from '@ankoh/dashql-runtime/workbook/scripts/script_editor_state';
+import { type CompletionPatch, CompletionPatchTarget, type DashQLCompletionState, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from './dashql_completion_state.js';
+export { type CompletionPatch, CompletionPatchTarget, type CompletionPatchVariant, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from './dashql_completion_state.js';
 
 /// Given two strings, derive the required patches to get from `have` to `want`.
 /// If `have` is a proper substring of `want`, emit before/after inserts around it.

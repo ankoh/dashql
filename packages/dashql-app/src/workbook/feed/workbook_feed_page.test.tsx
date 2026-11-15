@@ -10,7 +10,7 @@ import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_s
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { DBCOM_FLAVOR } from '../../config/flavors.js';
-import { SELECT_SCRIPT } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { scriptSelectionOf } from '../scripts/script_selection.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -81,7 +81,6 @@ function scripts() {
     return {
         workbookId: 'workbook',
         workbookMetadata: { originalFileName: 'workbook' },
-        scriptFocus: { fileName: '01_alpha.sql' },
         scriptRefs: {
             '01_alpha.sql': { scriptId: 1, fileName: '01_alpha.sql' },
         },
@@ -503,7 +502,7 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
         expect(ScriptEditorDialog.mock.calls[ScriptEditorDialog.mock.calls.length - 1]?.[0].scriptKey).toBe(1);
         // The dialog selects its script, the commands of the workbook run it
-        expect(modifyWorkbookScripts).toHaveBeenCalledWith({ type: SELECT_SCRIPT, value: workbookScripts.scripts[1].fileName });
+        expect(scriptSelectionOf(null).store.current.get(workbookScripts.workbookId)).toBe(1);
         act(() => ScriptEditorDialog.mock.calls[ScriptEditorDialog.mock.calls.length - 1]?.[0].onClose());
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
     });

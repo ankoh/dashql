@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { forgetWorkbookScriptReferences } from './script_reference_reports.js';
 import { forgetDataflowGraph } from '../dataflow/dataflow_graph.js';
+import { useScriptSelection } from './script_selection.js';
 import { WorkbookScripts, WorkbookScriptsAction } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { storeWithoutRuntime, useStoreState } from '../../utils/store_hooks.js';
@@ -105,11 +106,13 @@ export function useWorkbookScriptsAllocator(): WorkbookScriptsAllocator {
 /// WorkbookScriptsRegistryService.delete. The caches of the workbook in the app go with it.
 export function useWorkbookScriptsDeletion(): (workbookId: string) => void {
     const service = useLazyWorkbooks();
+    const selection = useScriptSelection();
     return React.useCallback((workbookId: string) => {
         service().delete(workbookId);
         forgetWorkbookScriptReferences(workbookId);
         forgetDataflowGraph(workbookId);
-    }, [service]);
+        selection.forget(workbookId);
+    }, [service, selection]);
 }
 
 export function useWorkbookScripts(id: string | null): [WorkbookScripts | null, ModifyWorkbookScripts] {

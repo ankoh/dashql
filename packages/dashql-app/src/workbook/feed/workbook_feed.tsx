@@ -26,7 +26,8 @@ import {
 
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
-import { getSelectedScriptRef, getScriptRefs, newScriptConnection, WorkbookScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createdScriptRef, deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
+import { getScriptRefs, newScriptConnection, WorkbookScripts, type ScriptData, CREATE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { renameAttachment } from '@ankoh/dashql-runtime/workbook/attachments/attachment_rename';
 import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql-runtime/workbook/attachments/workbook_attachments';
@@ -334,9 +335,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // manual collapse, which must not be reset when a later query starts.
     const [collapsedResults, setCollapsedResults] = React.useState<ReadonlyMap<number, number | null>>(() => new Map());
 
+    const selection = useScriptSelection();
+    const selectedFileName = useSelectedScriptRef(props.workbookScripts)?.fileName ?? '';
     const handleFocus = React.useCallback((fileName: string) => {
-        props.modifyWorkbookScripts({ type: SELECT_SCRIPT, value: fileName });
-    }, [props.modifyWorkbookScripts]);
+        selection.selectFile(latest.current.workbookScripts, fileName);
+    }, [selection]);
 
     const executeQuery = dependencies.useQueryExecutor();
     // A script runs while its own connection is online
@@ -376,8 +379,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }, [executeQuery, props.modifyWorkbookScripts, logger]);
 
     const handleDelete = React.useCallback((fileName: string) => {
-        props.modifyWorkbookScripts({ type: DELETE_SCRIPT, value: fileName });
-    }, [props.modifyWorkbookScripts]);
+        void deleteScript(selection, latest.current.workbookScripts, props.modifyWorkbookScripts, fileName);
+    }, [props.modifyWorkbookScripts, selection]);
 
     // A rename rewrites the references in the other scripts and in the draft of the composer
     const ownDraftRenameRef = React.useRef<RenameDraftReferences | null>(null);
@@ -531,7 +534,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                     return;
                 }
                 const workbookScripts = latest.current.workbookScripts;
-                const focused = getSelectedScriptRef(workbookScripts);
+                const focused = selection.selectedRef(workbookScripts);
                 const focusedScript = focused != null ? workbookScripts.scripts[focused.scriptId] : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
@@ -556,7 +559,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                     return;
                 }
                 const workbookScripts = latest.current.workbookScripts;
-                const focused = getSelectedScriptRef(workbookScripts);
+                const focused = selection.selectedRef(workbookScripts);
                 const focusedScript = focused != null ? workbookScripts.scripts[focused.scriptId] : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
@@ -579,7 +582,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 composerSubmitRef.current?.();
             },
         },
-    ], [feedActive, composerView, handleAcceptDiff, handleRejectDiff]);
+    ], [feedActive, composerView, handleAcceptDiff, handleRejectDiff, selection]);
     dependencies.useKeyEvents(keyHandlers);
 
     // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it
@@ -604,12 +607,15 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const result = props.modifyWorkbookScripts({ type: CREATE_SCRIPT, value: { index: null, text } });
         if (!result) return null;
         pendingScrollToEndRef.current = true;
+        const prev = latest.current.workbookScripts;
         const next = await result;
         if (next == null) return null;
-        const created = getSelectedScriptRef(next);
-        const scriptData = created != null ? next.scripts[created.scriptId] : undefined;
+        const created = createdScriptRef(prev, next);
+        if (created == null) return null;
+        selection.select(next.workbookId, created.scriptId);
+        const scriptData = next.scripts[created.scriptId];
         return scriptData != null ? { next, scriptData } : null;
-    }, [props.modifyWorkbookScripts]);
+    }, [props.modifyWorkbookScripts, selection]);
     const runAppendedScript = React.useCallback((next: WorkbookScripts, scriptData: ScriptData) => {
         // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
@@ -684,12 +690,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }, [revealRequest, props.active, props.workbookScripts.workbookId, props.workbookScripts.scriptRefs]);
 
     const handleCreate = React.useCallback((index: number) => {
+        const prev = latest.current.workbookScripts;
         const result = props.modifyWorkbookScripts({ type: CREATE_SCRIPT, value: { index } });
         if (!result) return;
         void result.then(next => {
             if (next == null) return;
-            const created = getSelectedScriptRef(next);
+            const created = createdScriptRef(prev, next);
             if (created == null) return;
+            selection.select(next.workbookId, created.scriptId);
             // The created script stays in view like a followed one, until the user scrolls, clicks or types in the feed
             followAgentRef.current = false;
             followedRef.current = { scriptKey: created.scriptId, target: 'script' };
@@ -701,7 +709,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 pendingCreatedScriptKeyRef.current = created.scriptId;
             }
         });
-    }, [props.modifyWorkbookScripts]);
+    }, [props.modifyWorkbookScripts, selection]);
 
     // The agent of a session in the terminal answers questions in the scripts of the workbook, the page watches
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
@@ -757,7 +765,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         scriptDebugMode,
         formattingDebugMode,
         keywordCase,
-        focusedFileName: props.workbookScripts.scriptFocus.fileName,
+        focusedFileName: selectedFileName,
         active: rowsActive,
         onFocus: handleFocus,
         onDelete: handleDelete,
@@ -781,7 +789,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, rowsActive, scriptConnections, props.workbookScripts.scripts, props.workbookScripts.scriptFocus.fileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, rowsActive, scriptConnections, props.workbookScripts.scripts, selectedFileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 

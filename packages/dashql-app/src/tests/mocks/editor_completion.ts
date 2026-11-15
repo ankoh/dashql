@@ -20,7 +20,6 @@ export function editorProcessorState(dql: dashql.DashQL, text: string, catalog: 
         scriptBuffers: null,
         scriptCompletion: null,
         scriptPendingDiff: null,
-        derivedFocus: null,
         onUpdate: () => { },
     };
 }

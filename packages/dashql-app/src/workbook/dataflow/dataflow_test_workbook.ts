@@ -32,8 +32,6 @@ export function analyzedTestWorkbook(dql: core.DashQL, entries: Array<[string, s
         scripts,
         scriptRefs,
         scriptOrder: entries.map(([fileName]) => fileName),
-        scriptFocus: { fileName: entries[0]?.[0] ?? '' },
-        semanticUserFocus: null,
     };
 }
 

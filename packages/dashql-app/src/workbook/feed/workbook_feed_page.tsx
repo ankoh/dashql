@@ -8,11 +8,11 @@ import {
     isCloudPreview,
     isEphemeralWorkbook,
     scriptConnectionIds,
-    SELECT_SCRIPT,
     workbookConnectionIds,
     type WorkbookScripts,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
+import { useScriptSelection } from '../scripts/script_selection.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';
 import { WorkbookWorkbenchSidebar } from '../workbook_workbench_sidebar.js';
@@ -122,12 +122,13 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
         && props.workbookScripts.scripts[details.scriptId] != null;
     React.useEffect(() => setDetails(null), [props.workbookScripts.workbookId]);
     // The dialog selects its script, the commands of the workbook (Ctrl+E) run the selected script
+    const selection = useScriptSelection();
     const inspectScript = React.useCallback((scriptKey: number) => {
         const target = props.workbookScripts.scripts[scriptKey];
         if (target?.fileName == null) return;
-        props.modifyWorkbookScripts({ type: SELECT_SCRIPT, value: target.fileName });
+        selection.selectFile(props.workbookScripts, target.fileName);
         setDetails({ workbookId: props.workbookScripts.workbookId, scriptId: scriptKey });
-    }, [props.workbookScripts.scripts, props.workbookScripts.workbookId, props.modifyWorkbookScripts]);
+    }, [props.workbookScripts, selection]);
     const closeDetails = React.useCallback(() => setDetails(null), []);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     // The overview of a connection or of a cloud that takes the place of the workbook

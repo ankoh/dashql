@@ -3,8 +3,7 @@ import * as core from '@ankoh/dashql-core';
 import { catalogNameDefaults } from '../../connections/connector_descriptor.js';
 import * as Immutable from 'immutable';
 
-import type { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from './script_editor_state.js';
-import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './focus.js';
+import type { DashQLPendingDiff, ScriptSessionUpdate } from './script_editor_state.js';
 import { ConnectorInfo, ConnectorType } from '../../connections/connector_info.js';
 import { VariantKind } from '../../utils/variant.js';
 import {
@@ -50,11 +49,6 @@ export function scriptResultOwner(workbookId: string, scriptKey: ScriptKey): str
 }
 /// A script data map
 export type ScriptDataMap = { [scriptKey: number]: ScriptData };
-/// A workbook user focus
-export interface ScriptFocus {
-    /// The file name of the selected cell (empty if none)
-    fileName: string;
-}
 
 /// The runtime state of a workbook's scripts
 export interface WorkbookScripts {
@@ -77,10 +71,6 @@ export interface WorkbookScripts {
     scriptRefs: { [fileName: string]: ScriptRef };
     /// The file names of the committed cells in feed order, the keys of `scriptRefs`
     scriptOrder: string[];
-    /// The workbook focus (selected cell by file name)
-    scriptFocus: ScriptFocus;
-    /// The semantic user focus info (if any)
-    semanticUserFocus: SemanticUserFocus | null;
     /// The attachments of the workbook, a Parquet attachment is a table parameter of the scripts. Absent until the
     /// files of the workbook were listed.
     attachments?: WorkbookAttachment[];
@@ -265,8 +255,6 @@ export interface ScriptData {
     annotations: ScriptAnnotations;
     /// The statistics
     statistics: Immutable.List<core.buffers.editor.EditorProcessingStatisticsT>;
-    /// The completion state.
-    completion: DashQLCompletionState | null;
     /// A pending, staged formatting rewrite shown as an in-place diff.
     /// Set by SET_SCRIPT_TEXT; cleared once the user accepts/rejects it in the
     /// editor (which round-trips back through UPDATE_FROM_PROCESSOR).
@@ -288,9 +276,6 @@ export interface ScriptData {
     unresolvedConnectionId?: string;
 }
 
-export const SELECT_NEXT_SCRIPT = Symbol('SELECT_NEXT_SCRIPT');
-export const SELECT_PREV_SCRIPT = Symbol('SELECT_PREV_SCRIPT');
-export const SELECT_SCRIPT = Symbol('SELECT_SCRIPT');
 export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const APPLY_PLANNER_ANALYSIS = Symbol('APPLY_PLANNER_ANALYSIS');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
@@ -318,12 +303,9 @@ export const RENAME_ATTACHMENT = Symbol('RENAME_ATTACHMENT');
 export const SET_WORKBOOK_CLOUD_LINK = Symbol('SET_WORKBOOK_CLOUD_LINK');
 
 export type WorkbookScriptsAction =
-    | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
-    | VariantKind<typeof SELECT_PREV_SCRIPT, null>
-    | VariantKind<typeof SELECT_SCRIPT, string>
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
     | VariantKind<typeof APPLY_PLANNER_ANALYSIS, Array<{ scriptKey: number; editorUpdate: core.buffers.editor.EditorUpdateT }>>
-    | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
+    | VariantKind<typeof UPDATE_FROM_PROCESSOR, ScriptSessionUpdate>
     | VariantKind<typeof CATALOG_DID_UPDATE, string>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
     | VariantKind<typeof REGISTER_SCRIPT_RESULT, [ScriptKey, number]>
@@ -383,7 +365,6 @@ export function createEmptyScriptData(instance: core.DashQL, connection: ScriptC
         analysisOutdated: true,
         statistics: Immutable.List(),
         annotations: createEmptyAnnotations(),
-        completion: null,
         pendingDiff: null,
         latestQueryId: null,
         latestResultQueryId: null,
@@ -393,23 +374,9 @@ export function createEmptyScriptData(instance: core.DashQL, connection: ScriptC
     return [scriptKey, scriptData];
 }
 
-enum FocusUpdate {
-    Clear,
-    UpdateFromCursor,
-    UpdateFromCompletion,
-};
-
 /// Returns the committed cells in feed order.
 export function getScriptRefs(state: WorkbookScripts): ScriptRef[] {
     return state.scriptOrder.map(name => state.scriptRefs[name]);
-}
-
-/// Returns the currently selected cell, or the first cell when focus is unset.
-export function getSelectedScriptRef(state: WorkbookScripts): ScriptRef | undefined {
-    const file = state.scriptFocus.fileName;
-    if (file && state.scriptRefs[file]) return state.scriptRefs[file];
-    const files = state.scriptOrder;
-    return files.length > 0 ? state.scriptRefs[files[0]] : undefined;
 }
 
 /// The script list of the workbook file, the cells in feed order with their connections
@@ -616,36 +583,6 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             writeWorkbookProperties(next, storage);
             return next;
         }
-        case SELECT_NEXT_SCRIPT: {
-            const files = state.scriptOrder;
-            const cur = files.indexOf(state.scriptFocus.fileName);
-            const nextIdx = Math.min(Math.max(cur, 0) + 1, files.length - 1);
-            const fileName = files[nextIdx] ?? state.scriptFocus.fileName;
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: { ...state.scriptFocus, fileName },
-            };
-        }
-        case SELECT_PREV_SCRIPT: {
-            const files = state.scriptOrder;
-            const cur = files.indexOf(state.scriptFocus.fileName);
-            const prevIdx = Math.max((cur < 0 ? 0 : cur) - 1, 0);
-            const fileName = files[prevIdx] ?? state.scriptFocus.fileName;
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: { ...state.scriptFocus, fileName },
-            };
-        }
-        case SELECT_SCRIPT: {
-            const fileName = action.value;
-            if (!state.scriptRefs[fileName]) return state;
-            // Hovering a card re-selects it constantly, keep the state (and the semantic focus) untouched.
-            if (state.scriptFocus.fileName === fileName) return state;
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: { ...state.scriptFocus, fileName },
-            };
-        }
         case CATALOG_DID_UPDATE: {
             const scripts = { ...state.scripts };
             for (const scriptKey in scripts) {
@@ -667,8 +604,6 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
 
         case APPLY_PLANNER_ANALYSIS: {
             let scripts = state.scripts;
-            const focusedScriptKey = getSelectedScriptRef(state)?.scriptId;
-            let semanticUserFocus: SemanticUserFocus | null = null;
             for (const { scriptKey, editorUpdate } of action.value) {
                 const prevScript = scripts[scriptKey];
                 if (!prevScript ||
@@ -682,7 +617,6 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                 const nextUpdate = prevScript.scriptSession.getStateRevision() === editorUpdate.stateRevision
                     ? editorUpdate
                     : prevScript.scriptSession.analyze();
-                const projectionChanged = prevScript.editorUpdate?.stateRevision !== nextUpdate.stateRevision;
                 if (scripts === state.scripts) scripts = { ...scripts };
                 scripts[scriptKey] = {
                     ...prevScript,
@@ -693,27 +627,16 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                     statistics: editorUpdate.analysisUpdated
                         ? rotateScriptStatistics(prevScript.statistics, editorUpdate.processingStatistics)
                         : prevScript.statistics,
-                    completion: projectionChanged ? null : prevScript.completion,
                 };
-                if (scriptKey === focusedScriptKey) {
-                    semanticUserFocus = scripts[scriptKey].completion != null
-                        ? deriveFocusFromCompletionCandidates(scriptKey, scripts[scriptKey])
-                        : deriveFocusFromEditorUpdate(scriptKey, nextUpdate);
-                }
             }
             if (scripts === state.scripts) return state;
             // Analysis is already published by the planner. Publishing again invalidates its revision.
-            return {
-                ...state,
-                scripts,
-                semanticUserFocus,
-            };
+            return { ...state, scripts };
         }
 
         case UPDATE_FROM_PROCESSOR: {
             const update = action.value;
             const prevScript = state.scripts[update.scriptKey];
-            const prevFocus = state.semanticUserFocus;
             const updateWorkbook = update.scriptSession;
             // If the script key does not refer to a value we know, we cannot keep the new script alive.
             // Drop the update.
@@ -724,7 +647,7 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                     textVersion: update.editorUpdate?.textVersion.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
-                return clearSemanticUserFocus(state);
+                return state;
             }
             if (updateWorkbook !== prevScript.scriptSession) {
                 logger.warn("Dropping editor update from stale editor workbook", {
@@ -733,9 +656,8 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                     textVersion: update.editorUpdate?.textVersion.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
-                return clearSemanticUserFocus(state);
+                return state;
             }
-            const nextCursorContext = update.editorUpdate?.primaryCursorContext;
             const documentChanged = prevScript.editorUpdate?.textVersion !== update.editorUpdate?.textVersion;
             const analysisRefreshed = update.editorUpdate?.analysisUpdated === true;
             const projectionChanged = prevScript.editorUpdate?.stateRevision !== update.editorUpdate?.stateRevision;
@@ -751,32 +673,15 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                 stateRevision: update.editorUpdate?.stateRevision.toString(),
                 cursorOffset: update.editorUpdate?.primaryCursorState?.textOffset?.toString(),
             }, LOG_CTX);
-            let focusUpdate: FocusUpdate | null = null;
-            if (projectionChanged) {
-                focusUpdate = FocusUpdate.Clear;
-            }
-            // Did the completion change?
-            if (update.scriptCompletion) {
-                if (update.scriptCompletion.buffer !== prevScript.completion?.buffer) {
-                    focusUpdate = FocusUpdate.UpdateFromCompletion;
-                } else {
-                    // Did the completion index change?
-                    if (update.scriptCompletion.candidateId !== prevScript.completion?.candidateId) {
-                        focusUpdate = FocusUpdate.UpdateFromCompletion;
-                    }
-                }
-            }
-            if (projectionChanged) {
-                focusUpdate = update.scriptCompletion != null
-                    ? FocusUpdate.UpdateFromCompletion
-                    : nextCursorContext != null
-                        ? FocusUpdate.UpdateFromCursor
-                        : FocusUpdate.Clear;
+            // An update that changes neither the analysis nor the staged diff, e.g. a completion that the editor
+            // owns, keeps the state
+            if (!projectionChanged && update.scriptPendingDiff === prevScript.pendingDiff
+                && (update.editorUpdate == null || update.editorUpdate === prevScript.editorUpdate)) {
+                return state;
             }
             const nextScript: ScriptData = {
                 ...prevScript,
                 analysisOutdated: false,
-                completion: update.scriptCompletion,
                 pendingDiff: update.scriptPendingDiff,
                 editorUpdate: update.editorUpdate ?? prevScript.editorUpdate,
                 statistics: update.editorUpdate?.analysisUpdated
@@ -792,26 +697,12 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                 updateWorkbook.loadIntoCatalog();
                 catalogChanged = updateWorkbook.getCatalogRevision() !== catalogRevision;
             }
-            // Update semantic user focus
-            let semanticUserFocus: SemanticUserFocus | null = prevFocus;
-            switch (focusUpdate) {
-                case FocusUpdate.Clear:
-                    semanticUserFocus = null;
-                    break;
-                case FocusUpdate.UpdateFromCursor:
-                    semanticUserFocus = deriveFocusFromEditorUpdate(update.scriptKey, nextScript.editorUpdate);
-                    break;
-                case FocusUpdate.UpdateFromCompletion:
-                    semanticUserFocus = deriveFocusFromCompletionCandidates(update.scriptKey, nextScript);
-                    break;
-            }
-            let nextState: WorkbookScripts = {
+            const nextState: WorkbookScripts = {
                 ...state,
                 scripts: {
                     ...state.scripts,
                     [update.scriptKey]: nextScript
                 },
-                semanticUserFocus,
             };
 
             // Mark the other scripts of the catalog as outdated when the published declarations changed.
@@ -897,24 +788,16 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             const scriptRefs = { ...state.scriptRefs };
             delete scriptRefs[deletedFileName];
 
-            // Adjust focus if needed
-            let newFile = state.scriptFocus.fileName;
-            if (newFile === deletedFileName) {
-                const oldIdx = state.scriptOrder.indexOf(deletedFileName);
-                newFile = remainingFiles[Math.max(0, oldIdx - 1)] ?? remainingFiles[0] ?? '';
-            }
-
             // A workbook without scripts keeps the connection of its last script for the next one
             const deletedScript = state.scripts[deletedEntry.scriptId];
             const pendingConnection = remainingFiles.length === 0
                 ? state.pendingConnection ?? deletedScript?.connection ?? null
                 : state.pendingConnection;
             const next = destroyDeadScripts(storage, {
-                ...clearSemanticUserFocus(state),
+                ...state,
                 pendingConnection,
                 scriptRefs,
                 scriptOrder: remainingFiles,
-                scriptFocus: { ...state.scriptFocus, fileName: newFile },
             });
             storage.write(
                 groupScriptDeletes(next.workbookId, deletedEntry.fileName),
@@ -953,13 +836,12 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             scriptOrder.splice(insertAt, 0, fileName);
 
             const next: WorkbookScripts = {
-                ...clearSemanticUserFocus(state),
+                ...state,
                 // The pending connection is taken by the script that runs on it
                 pendingConnection: state.pendingConnection?.connectionId === scriptConnection.connectionId ? null : state.pendingConnection,
                 scripts,
                 scriptRefs: { ...state.scriptRefs, [fileName]: createScriptRef(scriptKey, fileName) },
                 scriptOrder,
-                scriptFocus: { ...state.scriptFocus, fileName },
             };
             storage.write(
                 groupScriptWrites(next.workbookId, fileName),
@@ -1017,17 +899,11 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                 markOtherScriptsOutdatedInPlace(newScripts, script);
             }
 
-            // Keep focus on this script across the rename
-            const focusFile = state.scriptFocus.fileName === oldFileName
-                ? newFileName
-                : state.scriptFocus.fileName;
-
             const next = {
-                ...(renamed ? clearSemanticUserFocus(state) : state),
+                ...state,
                 scriptRefs,
                 scriptOrder,
                 scripts: newScripts,
-                scriptFocus: { ...state.scriptFocus, fileName: focusFile },
             };
             writeRewrittenScripts(next, rewritten, storage);
             if (renamed) {
@@ -1117,10 +993,7 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             markOtherScriptsOutdatedInPlace(scripts, prev);
             markOtherScriptsOutdatedInPlace(scripts, scriptData);
             scripts[scriptKey] = scriptData;
-            const next: WorkbookScripts = {
-                ...clearSemanticUserFocus(state),
-                scripts,
-            };
+            const next: WorkbookScripts = { ...state, scripts };
             writeWorkbookScriptList(next, storage);
             return next;
         }
@@ -1173,7 +1046,7 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
                 scripts[key] = { ...script, analysisOutdated: true };
             }
             const next: WorkbookScripts = {
-                ...clearSemanticUserFocus(state),
+                ...state,
                 ...(movesPending ? { pendingConnection: target } : {}),
                 scripts,
             };
@@ -1217,7 +1090,7 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             nextScriptData.pendingDiff = pendingDiff;
 
             const nextState: WorkbookScripts = {
-                ...clearSemanticUserFocus(state),
+                ...state,
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: nextScriptData,
@@ -1354,7 +1227,7 @@ function reduceScripts(state: WorkbookScripts, action: WorkbookScriptsAction, st
             nextScriptData.pendingDiff = null;
 
             const nextState: WorkbookScripts = {
-                ...clearSemanticUserFocus(state),
+                ...state,
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: nextScriptData,
@@ -1387,10 +1260,6 @@ export function textChange(from: string, to: string): ScriptTextChange {
     let suffix = 0;
     while (suffix < max - prefix && from.charCodeAt(from.length - 1 - suffix) === to.charCodeAt(to.length - 1 - suffix)) ++suffix;
     return { from: prefix, to: from.length - suffix, insert: to.slice(prefix, to.length - suffix) };
-}
-
-export function clearSemanticUserFocus<V extends WorkbookScripts>(state: V): V {
-    return { ...state, semanticUserFocus: null };
 }
 
 /// Mark the other scripts in the catalog of a script as outdated in a scripts map that the caller
@@ -1518,7 +1387,6 @@ export function replaceWorkbookScriptsFromStorage(
                 scriptData = {
                     ...scriptData,
                     pendingDiff: null,
-                    completion: null,
                     analysisOutdated: true,
                 };
                 contentChanged = true;
@@ -1538,18 +1406,11 @@ export function replaceWorkbookScriptsFromStorage(
         contentChanged = true;
     }
 
-    const previousFile = state.scriptFocus.fileName;
-    const fileName = scriptRefs[previousFile] ? previousFile : (scriptOrder[0] ?? '');
-
-    let next: WorkbookScripts = {
-        ...clearSemanticUserFocus(state),
+    const next: WorkbookScripts = {
+        ...state,
         scripts,
         scriptRefs,
         scriptOrder,
-        scriptFocus: {
-            ...state.scriptFocus,
-            fileName,
-        },
     };
 
     if (contentChanged) {
@@ -1766,12 +1627,6 @@ export function analyzeOutdatedScript<V extends WorkbookScripts>(state: V, scrip
     // over a table of another script. Then the scripts that resolve against them are outdated, too.
     if (nextScriptData.scriptSession.getCatalogRevision() !== catalogRevision) {
         markOtherScriptsOutdatedInPlace(next.scripts, nextScriptData);
-    }
-
-    // Only the selected script drives the semantic focus.
-    // Scripts in the background are re-analyzed whenever another script changes and must not steal it.
-    if (getSelectedScriptRef(state)?.scriptId === scriptKey) {
-        next.semanticUserFocus = deriveFocusFromEditorUpdate(scriptKey, nextScriptData.editorUpdate);
     }
     return next;
 }

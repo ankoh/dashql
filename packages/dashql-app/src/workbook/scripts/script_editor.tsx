@@ -6,7 +6,8 @@ import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } fr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, getSelectedScriptRef, isCloudPreview } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, isCloudPreview } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useSelectedScriptRef } from './script_selection.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ModifyWorkbookScripts, useWorkbookScripts } from './workbook_scripts_registry.js';
@@ -79,6 +80,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     ], [props.lineWrapping, readOnly]);
 
     const scriptData = scripts?.scripts[props.scriptKey] ?? null;
+    // Only the editor of the selected script shows a semantic focus
+    const selected = useSelectedScriptRef(scripts)?.scriptId === props.scriptKey;
 
     // Update outdated scripts that are displayed in the editor.
     // The selected script is analyzed right away, all others are deferred.
@@ -89,7 +92,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
             return;
         }
         const scriptKey = scriptData.scriptKey;
-        if (getSelectedScriptRef(scripts)?.scriptId === scriptKey) {
+        if (selected) {
             modifyScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
             return;
         }
@@ -110,14 +113,14 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
         // Binding a script replaces the editor state, which has to keep the extensions of the mount
         const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...extraExtensions];
-        updateEditor(view, scripts, scriptData, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
+        updateEditor(view, scripts, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
     }, [
         config,
         view,
         scriptData?.scriptSession,
         scriptData?.editorUpdate,
         scriptData?.pendingDiff,
-        scripts?.semanticUserFocus,
+        selected,
         scriptData?.connection.catalog,
         props.onNavigateToScript,
     ]);
@@ -163,7 +166,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: ScriptData, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
+function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -271,10 +274,11 @@ function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: Sc
             scriptSession: scriptData.scriptSession,
             editorUpdate: scriptData.editorUpdate,
             scriptBuffers: null,
-            scriptCompletion: scriptData.completion,
+            // The editor keeps its own completion, see DashQLProcessorPlugin
+            scriptCompletion: null,
             scriptPendingDiff: scriptData.pendingDiff,
 
-            derivedFocus: scripts.semanticUserFocus,
+            selected,
             keywordCase: getKeywordCase(config.settings),
 
             lookupScriptSession: (scriptKey) => scripts.scripts[scriptKey]?.scriptSession ?? null,

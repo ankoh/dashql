@@ -2,7 +2,8 @@ import * as React from 'react';
 
 import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { getSelectedScriptRef, newScriptConnection, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { newScriptConnection, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useScriptSelection } from './script_selection.js';
 import type { ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { useCatalogLoaderQueue } from '../../connections/catalog/catalog_loader.js';
 import { useConnectionRegistryStore, useWorkbookConnections, type ConnectionRegistry } from '../../connections/connection_registry.js';
@@ -18,12 +19,11 @@ import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js'
 const LOG_CTX = "workbook_commands";
 
 /// The selected script and the connection it runs on, the connection of the next script without a selected script
-function selectedScriptConnection(workbookScripts: WorkbookScripts, registry: ConnectionRegistry): {
+function selectedScriptConnection(workbookScripts: WorkbookScripts, entry: ScriptRef | undefined, registry: ConnectionRegistry): {
     entry: ScriptRef | undefined;
     scriptData: ScriptData | undefined;
     scriptConnection: ConnectionState | null;
 } {
-    const entry = getSelectedScriptRef(workbookScripts);
     const scriptData = entry != null ? workbookScripts.scripts[entry.scriptId] : undefined;
     const connectionId = scriptData?.connection.connectionId ?? newScriptConnection(workbookScripts, null)?.connectionId;
     const scriptConnection = connectionId == null ? null : registry.connections.get(connectionId) ?? null;
@@ -75,6 +75,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
     const connectionAttention = useWorkbookConnectionAttention(workbookScripts?.workbookId ?? null, connectionHealthKey(connections));
     const executeQuery = dependencies.useQueryExecutor();
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
+    const selection = useScriptSelection();
 
     // Setup command dispatch logic.
     // The workbook scripts change with every keystroke and the connection with every query event.
@@ -88,20 +89,21 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                 logger.warn("Workbook is null", {});
                 return;
             }
+            const selected = selection.selectedRef(workbookScripts);
             switch (command) {
                 // Execute the query script in the current workbook
                 case WorkbookCommandType.ExecuteEditorQuery:
                     logger.info("Ctrl+E workbook command received", {
                         workbookId,
                         viewMode: viewMode.toString(),
-                        focusedFile: workbookScripts.scriptFocus.fileName,
+                        focusedFile: selected?.fileName ?? '',
                     }, LOG_CTX);
                     if (viewMode !== WorkbookViewMode.Workbook) {
                         logger.warn("Ignoring Ctrl+E outside workbook view", { workbookId }, LOG_CTX);
                         break;
                     }
                     {
-                        const { entry, scriptData, scriptConnection } = selectedScriptConnection(workbookScripts, connectionRegistryStore.current);
+                        const { entry, scriptData, scriptConnection } = selectedScriptConnection(workbookScripts, selected, connectionRegistryStore.current);
                         if (scriptConnection == null || scriptConnection.connectionHealth !== ConnectionHealth.ONLINE) {
                             connectionAttention.request(workbookScripts.workbookId);
                             logger.warn("Cannot execute query command with an unhealthy connection", {
@@ -111,7 +113,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         } else if (!entry) {
                             logger.warn("Ignoring Ctrl+E because no committed script is selected", {
                                 workbookId,
-                                focusedFile: workbookScripts.scriptFocus.fileName,
+                                focusedFile: selected?.fileName ?? '',
                             }, LOG_CTX);
                         } else if (!scriptData) {
                             logger.warn("Ignoring Ctrl+E because selected script data is missing", {
@@ -131,7 +133,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case WorkbookCommandType.RefreshCatalog: {
                     // The catalog of the connection that the selected script runs on is refreshed
-                    const { scriptConnection } = selectedScriptConnection(workbookScripts, connectionRegistryStore.current);
+                    const { scriptConnection } = selectedScriptConnection(workbookScripts, selected, connectionRegistryStore.current);
                     if (scriptConnection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else if (isCatalogRefreshRunning(scriptConnection)) {
@@ -142,24 +144,14 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 }
                 case WorkbookCommandType.SelectPreviousWorkbookScript:
-                    if (modifyWorkbookScripts) {
-                        modifyWorkbookScripts({
-                            type: SELECT_PREV_SCRIPT,
-                            value: null,
-                        });
-                    }
+                    selection.selectNeighbor(workbookScripts, -1);
                     break;
                 case WorkbookCommandType.SelectNextWorkbookScript:
-                    if (modifyWorkbookScripts) {
-                        modifyWorkbookScripts({
-                            type: SELECT_NEXT_SCRIPT,
-                            value: null,
-                        });
-                    }
+                    selection.selectNeighbor(workbookScripts, 1);
                     break;
             }
         },
-        [logger],
+        [logger, selection],
     );
 
     // Create key event handlers

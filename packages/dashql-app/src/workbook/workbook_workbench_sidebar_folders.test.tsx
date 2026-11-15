@@ -7,7 +7,8 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
 import { WorkbookTestRegistry } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { RENAME_SCRIPT, SELECT_SCRIPT } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { RENAME_SCRIPT } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { scriptSelectionOf } from './scripts/script_selection.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -207,7 +208,8 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         const revenue = Array.from(container.querySelectorAll<HTMLElement>('[data-testid="workbook-script-row"]'))
             .find(row => rowLabel(row) === 'revenue')!;
         act(() => revenue.querySelector<HTMLButtonElement>('button')!.click());
-        expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({ type: SELECT_SCRIPT, value: 'revenue.sql' });
+        // The second script of the workbook is selected
+        expect(scriptSelectionOf(null).store.current.get(CLIENT_WORKBOOK)).toBe(1);
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_WORKBOOK }));
         expect(onOpenScript).toHaveBeenCalledWith(CLIENT_WORKBOOK, 'revenue.sql');
 

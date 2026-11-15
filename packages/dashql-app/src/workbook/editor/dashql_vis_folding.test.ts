@@ -36,7 +36,6 @@ function project(text: string): DashQLProcessorUpdateIn {
         scriptBuffers: null,
         scriptCompletion: null,
         scriptPendingDiff: null,
-        derivedFocus: null,
         onUpdate: () => { },
     };
 }

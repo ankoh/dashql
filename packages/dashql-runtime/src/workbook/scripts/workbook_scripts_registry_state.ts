@@ -169,7 +169,7 @@ export function dispatchWorkbookScriptsAction(
             }
             effects.commit();
             resolve(next);
-            // Keep the registry identity for no-ops (e.g. re-selecting the hovered script)
+            // Keep the registry identity for no-ops
             if (next === prev) return reg;
             return replaceWorkbookScriptsInRegistry(reg, prev, next);
         });

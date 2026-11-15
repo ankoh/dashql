@@ -49,7 +49,6 @@ function createDiffEditor(pending: boolean) {
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: pending ? { priorText: PRIOR_TEXT, diffBuffer } : null,
-            derivedFocus: null,
             onUpdate: update => updates.push(update),
         }),
     });

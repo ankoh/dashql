@@ -6,7 +6,8 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/co
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
 import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
-import { ACCEPT_PENDING_DIFF, DELETE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import type { DashboardSpec } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
@@ -261,10 +262,12 @@ export function Dashboard(props: Props): React.ReactElement {
         if (script == null) return;
         void renameScript(workbookScripts, props.modifyWorkbookScripts, script.fileName, name, draftRenameRef?.current);
     }, [props.modifyWorkbookScripts, draftRenameRef]);
+    const selection = useScriptSelection();
     const handleDelete = React.useCallback((scriptKey: number) => {
-        const script = workbookScriptsRef.current.scripts[scriptKey];
-        if (script != null) props.modifyWorkbookScripts({ type: DELETE_SCRIPT, value: script.fileName });
-    }, [props.modifyWorkbookScripts]);
+        const workbookScripts = workbookScriptsRef.current;
+        const script = workbookScripts.scripts[scriptKey];
+        if (script != null) void deleteScript(selection, workbookScripts, props.modifyWorkbookScripts, script.fileName);
+    }, [props.modifyWorkbookScripts, selection]);
     // The chart builder stages every edit of its spec as a diff of the script, like in the feed
     const handleSetVisSpec = React.useCallback((spec: string) => {
         if (overlay == null) return;
