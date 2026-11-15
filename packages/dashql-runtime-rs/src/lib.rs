@@ -4,5 +4,7 @@
 //! the workbook scripts to decide whether the state moves to Rust, see `docs/wip/rust_runtime.md`.
 
 pub mod attachments;
+pub mod connections;
 pub mod names;
+pub mod query;
 pub mod workbook;

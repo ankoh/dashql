@@ -1,0 +1,321 @@
+//! The details of a connection: how far its setup got, its errors and its channel.
+//!
+//! Every connector keeps the setup timings, the params of the setup, the errors of the channel and the health check
+//! and the channel. Trino and Salesforce add their OAuth state.
+//!
+//! Ported from `connection_state_details.ts` and the details of the connector states in
+//! `packages/dashql-runtime/src/connections/`.
+
+use std::collections::BTreeMap;
+
+use serde_json::Value;
+
+use super::params::{
+    string_field, trino_session_defaults, ConnectionParams, ConnectorType, JsonObject, DEFAULT_DATABASE_NAME,
+    HYPER_DEFAULT_SCHEMA, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+};
+use super::ConnectionEffect;
+
+/// Milliseconds since the Unix epoch. The host passes the time with an action, the reducer reads no clock.
+pub type Timestamp = f64;
+
+/// A channel of a connection, the host holds it under this id
+pub type ChannelId = u32;
+
+/// An error with a message and optional details, e.g. a failed channel setup
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DetailedError {
+    /// The error message
+    pub message: String,
+    /// The details, empty without any
+    pub data: BTreeMap<String, String>,
+}
+
+impl DetailedError {
+    /// An error with a message
+    pub fn new(message: impl Into<String>) -> Self {
+        Self { message: message.into(), data: BTreeMap::new() }
+    }
+}
+
+/// When the steps of the setup of a connection happened. A connector sets only the timings of its steps.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SetupTimings {
+    pub channel_setup_started_at: Option<Timestamp>,
+    pub channel_setup_cancelled_at: Option<Timestamp>,
+    pub channel_setup_failed_at: Option<Timestamp>,
+    pub channel_ready_at: Option<Timestamp>,
+    pub health_check_started_at: Option<Timestamp>,
+    pub health_check_cancelled_at: Option<Timestamp>,
+    pub health_check_failed_at: Option<Timestamp>,
+    pub health_check_succeeded_at: Option<Timestamp>,
+    /// Salesforce
+    pub auth_started_at: Option<Timestamp>,
+    pub auth_cancelled_at: Option<Timestamp>,
+    pub auth_failed_at: Option<Timestamp>,
+    pub opened_native_auth_link_at: Option<Timestamp>,
+    pub opened_web_auth_window_at: Option<Timestamp>,
+    pub closed_web_auth_window_at: Option<Timestamp>,
+    pub core_access_token_requested_at: Option<Timestamp>,
+    pub core_access_token_received_at: Option<Timestamp>,
+    pub data_cloud_access_token_requested_at: Option<Timestamp>,
+    pub data_cloud_access_token_received_at: Option<Timestamp>,
+    /// Trino
+    pub oauth_started_at: Option<Timestamp>,
+    pub oauth_cancelled_at: Option<Timestamp>,
+    pub oauth_failed_at: Option<Timestamp>,
+    pub oauth_browser_opened_at: Option<Timestamp>,
+    pub access_token_requested_at: Option<Timestamp>,
+    pub access_token_received_at: Option<Timestamp>,
+    /// Trino and Salesforce
+    pub pkce_gen_started_at: Option<Timestamp>,
+    pub pkce_gen_finished_at: Option<Timestamp>,
+    pub oauth_code_received_at: Option<Timestamp>,
+}
+
+/// The PKCE challenge of an OAuth flow
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct OAuthPkceChallenge {
+    /// The challenge
+    pub value: String,
+    /// The verifier
+    pub verifier: String,
+}
+
+/// A short-lived token, e.g. the code of an OAuth flow
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TemporaryToken {
+    /// The token
+    pub token: String,
+    /// When the token was created, as the host wrote it
+    pub created_at: String,
+}
+
+/// The OAuth flow of a Trino connection. A step that didn't happen yet is none.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TrinoOAuthState {
+    /// The PKCE challenge
+    pub oauth_pkce: Option<OAuthPkceChallenge>,
+    /// The code that the authorization server sent
+    pub auth_code: Option<TemporaryToken>,
+    /// The access token, opaque JSON
+    pub access_token: Option<String>,
+}
+
+/// The parameters of the OAuth flow of a Salesforce connection
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SalesforceOAuthParams {
+    /// The instance
+    pub instance_url: String,
+    /// The connected app
+    pub app_consumer_key: String,
+    /// When the flow was requested
+    pub requested_at: Timestamp,
+    /// When the flow expires, two hours after the request
+    pub expires_at: Timestamp,
+}
+
+/// The OAuth flow of a Salesforce connection. A step that didn't happen yet is none.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SalesforceOAuthState {
+    /// The parameters of the flow
+    pub oauth_params: Option<SalesforceOAuthParams>,
+    /// The PKCE challenge
+    pub oauth_pkce: Option<OAuthPkceChallenge>,
+    /// The code of the core login
+    pub core_auth_code: Option<TemporaryToken>,
+    /// The access token of the core, opaque JSON
+    pub core_access_token: Option<String>,
+    /// The access token of Data Cloud, opaque JSON
+    pub data_cloud_access_token: Option<String>,
+}
+
+/// The details of a Trino connection
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TrinoDetails {
+    /// The error of resolving the schemas
+    pub schema_resolution_error: Option<DetailedError>,
+    /// The OAuth flow
+    pub oauth_state: Option<TrinoOAuthState>,
+}
+
+/// The details of a Salesforce or Database.com connection
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SalesforceDetails {
+    /// The error of the login
+    pub setup_error: Option<DetailedError>,
+    /// The OAuth flow
+    pub oauth_state: Option<SalesforceOAuthState>,
+}
+
+/// The details that only one connector keeps
+#[derive(Debug, Clone, PartialEq)]
+pub enum ConnectorDetails {
+    Hyper,
+    SalesforceDataCloud(SalesforceDetails),
+    Trino(TrinoDetails),
+    Dbcom(SalesforceDetails),
+}
+
+/// The catalog and schema of the relations that unqualified statements create or drop
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CatalogNameDefaults {
+    /// The database, empty if there is none
+    pub database_name: String,
+    /// The schema, empty if there is none
+    pub schema_name: String,
+}
+
+/// The details of a connection
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConnectionDetails {
+    /// When the steps of the setup happened
+    pub setup_timings: SetupTimings,
+    /// The params of the connector that the setup uses, the params of the connector without the field around them
+    pub setup_params: Option<JsonObject>,
+    /// The error of the channel setup
+    pub channel_error: Option<DetailedError>,
+    /// The error of the health check
+    pub health_check_error: Option<DetailedError>,
+    /// The channel, once it is ready
+    pub channel: Option<ChannelId>,
+    /// The details of the connector
+    pub connector: ConnectorDetails,
+}
+
+impl ConnectionDetails {
+    /// The details of a connection with params
+    pub fn new(params: &ConnectionParams) -> Self {
+        let connector = match params.connector {
+            ConnectorType::Hyper => ConnectorDetails::Hyper,
+            ConnectorType::SalesforceDataCloud => ConnectorDetails::SalesforceDataCloud(SalesforceDetails::default()),
+            ConnectorType::Trino => ConnectorDetails::Trino(TrinoDetails::default()),
+            ConnectorType::Dbcom => ConnectorDetails::Dbcom(SalesforceDetails::default()),
+        };
+        Self {
+            setup_timings: SetupTimings::default(),
+            setup_params: Some(params.params.clone()),
+            channel_error: None,
+            health_check_error: None,
+            channel: None,
+            connector,
+        }
+    }
+
+    /// The details of a new connection of a connector
+    pub fn default_for(connector: ConnectorType) -> Self {
+        Self::new(&ConnectionParams::default_for(connector))
+    }
+
+    /// The connector
+    pub fn connector_type(&self) -> ConnectorType {
+        match self.connector {
+            ConnectorDetails::Hyper => ConnectorType::Hyper,
+            ConnectorDetails::SalesforceDataCloud(_) => ConnectorType::SalesforceDataCloud,
+            ConnectorDetails::Trino(_) => ConnectorType::Trino,
+            ConnectorDetails::Dbcom(_) => ConnectorType::Dbcom,
+        }
+    }
+
+    /// The setup params as connection params
+    pub fn connection_params(&self) -> Option<ConnectionParams> {
+        self.setup_params.as_ref().map(|params| ConnectionParams::new(self.connector_type(), params.clone()))
+    }
+
+    /// The details of Trino, none for other connectors
+    pub fn trino(&self) -> Option<&TrinoDetails> {
+        match &self.connector {
+            ConnectorDetails::Trino(details) => Some(details),
+            _ => None,
+        }
+    }
+
+    /// The details of Salesforce or Database.com, none for other connectors
+    pub fn salesforce(&self) -> Option<&SalesforceDetails> {
+        match &self.connector {
+            ConnectorDetails::SalesforceDataCloud(details) | ConnectorDetails::Dbcom(details) => Some(details),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn trino_mut(&mut self) -> Option<&mut TrinoDetails> {
+        match &mut self.connector {
+            ConnectorDetails::Trino(details) => Some(details),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn salesforce_mut(&mut self) -> Option<&mut SalesforceDetails> {
+        match &mut self.connector {
+            ConnectorDetails::SalesforceDataCloud(details) | ConnectorDetails::Dbcom(details) => Some(details),
+            _ => None,
+        }
+    }
+
+    /// The database and schema of the relations that unqualified statements create or drop. They match the names that
+    /// the catalog loader gives the relations of the connection.
+    pub fn catalog_name_defaults(&self) -> CatalogNameDefaults {
+        match self.connector_type() {
+            ConnectorType::Hyper => {
+                // Unqualified names resolve against the first attached database
+                let attached = self.setup_params.as_ref().and_then(|params| params.get("attachedDatabases"));
+                let first = attached.and_then(Value::as_array).and_then(|attached| attached.first());
+                let database_name = match first {
+                    Some(first) => first.as_object().and_then(|first| string_field(first, "alias")).unwrap_or(""),
+                    None => DEFAULT_DATABASE_NAME,
+                };
+                CatalogNameDefaults { database_name: database_name.to_string(), schema_name: HYPER_DEFAULT_SCHEMA.to_string() }
+            }
+            ConnectorType::Trino => {
+                // The relations of statements get the defaults of the requests
+                let defaults = self.setup_params.as_ref().map(trino_session_defaults).unwrap_or_default();
+                CatalogNameDefaults {
+                    database_name: defaults.catalog.unwrap_or_default(),
+                    schema_name: defaults.schema.unwrap_or_default(),
+                }
+            }
+            ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => CatalogNameDefaults {
+                database_name: SALESFORCE_CATALOG_DATABASE.to_string(),
+                schema_name: SALESFORCE_CATALOG_SCHEMA.to_string(),
+            },
+        }
+    }
+
+    /// Clear the errors of the setup, false if there were none
+    pub(crate) fn clear_errors(&mut self) -> bool {
+        let mut cleared = self.channel_error.take().is_some() | self.health_check_error.take().is_some();
+        if let Some(trino) = self.trino_mut() {
+            cleared |= trino.schema_resolution_error.take().is_some();
+        }
+        if let Some(salesforce) = self.salesforce_mut() {
+            cleared |= salesforce.setup_error.take().is_some();
+        }
+        cleared
+    }
+
+    /// Reset the setup of a connection that is reset or deleted: close the channel, forget the timings, the errors
+    /// and a Trino OAuth flow. The setup params stay.
+    pub(crate) fn reset(&mut self, effects: &mut Vec<ConnectionEffect>) {
+        if let Some(channel) = self.channel.take() {
+            effects.push(ConnectionEffect::CloseChannel { channel });
+        }
+        self.setup_timings = SetupTimings::default();
+        self.channel_error = None;
+        self.health_check_error = None;
+        match &mut self.connector {
+            ConnectorDetails::Hyper => {}
+            ConnectorDetails::Trino(trino) => trino.oauth_state = None,
+            ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
+                salesforce.setup_error = None
+            }
+        }
+    }
+}
+
+/// Replace the channel of a connection. A channel that the connection lets go of without closing it is released.
+pub(crate) fn replace_channel(slot: &mut Option<ChannelId>, channel: Option<ChannelId>, effects: &mut Vec<ConnectionEffect>) {
+    if let Some(previous) = slot.filter(|previous| Some(*previous) != channel) {
+        effects.push(ConnectionEffect::ReleaseChannel { channel: previous });
+    }
+    *slot = channel;
+}
