@@ -1,6 +1,6 @@
 # The API between the app and the runtime
 
-Status: proposed, nothing of it is built. Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+Status: decided on 2026-11-15 (see [Decisions](#decisions)), nothing of it is built yet. Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -413,8 +413,8 @@ deletes more than it adds.
    effects. No step below starts before both are on main.
 1. **The frame and the computations.** `Runtime` with the change set, `views`, `dispatch` and the computations (the
    smallest consumer set: 12 files, the views exist); `JsPlatform` with `clock`, `log`, `handles`, `tables`,
-   `compute`; `RuntimeStore`, `useView`, `useDispatch`, `useTable`. The shell of Hyper gets a runtime too (decision
-   3). Deletes `computation_native.ts`, `compute/computations.ts`, `data_frame.ts`, `analyze_table.ts`,
+   `compute`; `RuntimeStore`, `useView`, `useDispatch`, `useTable`. The shell of Hyper keeps its own bindings for now
+   (decision 3). Deletes `computation_native.ts`, `compute/computations.ts`, `data_frame.ts`, `analyze_table.ts`,
    `computation_tasks.ts`, most of `computation_state.ts` and `computation_types.ts`, `computations.rs` of the bindings
    and its wrapper. TypeScript about −2,000, +700.
 2. **Connections, query histories, the executor and the saves.** The connections enter the runtime with their
@@ -477,25 +477,26 @@ Steps 2 and 4 are the wide ones. Step 4 can go before 2 and 3 if the editor matt
 - **The CLI.** It runs on the same commands; its live view reads the `query` slices of the run. Its tests against the
   fake Trino (`//packages/dashql-cli:test`) gate step 5.
 
-## Decisions for the user
+## Decisions
 
-1. **Dispatch and commands.** One generated union for the 40 synchronous actions plus 15 commands (proposed), or a
-   method per action.
-2. **Field names of the views.** Keep the names the app reads today (proposed: a mechanical migration), or name them
-   freshly in Rust.
-3. **The shell of Hyper.** A runtime without workbooks, with one connection (proposed: its `QueryHistory` and
-   `Computations` bindings go), or keep its own bindings.
-4. **The editor.** Keep the shared `ScriptSession` with `reportEditorUpdate` now and move to `ApplyEditorEvent` later
-   (proposed), or move first.
-5. **Hooks.** Generic `useView(kind, id)` with one-line aliases (proposed), or generated named hooks per kind.
-6. **The package.** Keep `packages/dashql-runtime` with the platforms in it, or split it into a runtime of about 800
-   lines (the facade, the store, the platform builder) and a `dashql-platform` package with the platforms, the
-   clients and the CLI support.
-7. **The order.** Computations, connections, setups, workbooks (proposed: the glue of the connections and queries
-   goes first and the workbooks build on them), or the workbooks first for the editor and its re-renders.
-8. **Derived slices.** Move the references, the dataflow and the inputs into Rust with step 4 (proposed), or later.
-9. **Reading after a dispatch.** Keep reads at the last flush (proposed, as today), or flush synchronously after every
-   dispatch.
+Taken on 2026-11-15.
+
+1. **Dispatch and commands.** One generated union for the 40 synchronous actions plus 15 commands. The actions are
+   where the app is wide, the commands where it is narrow.
+2. **Field names of the views.** The views keep the names the app reads today, the migration of the components is
+   mechanical (codemods driven by tables and the type checker).
+3. **The shell of Hyper.** It keeps its own bindings (`QueryHistory`, `Computations`) for now; a runtime of the shell
+   is decided later.
+4. **The editor.** The shared `ScriptSession` with `reportEditorUpdate` stays, `ApplyEditorEvent` comes later.
+5. **Hooks.** Generic `useView(kind, id)` with one-line aliases.
+6. **The package.** `packages/dashql-runtime` splits into a runtime of about 800 lines (the facade, the store, the
+   platform builder) and a `dashql-platform` package with the platforms, the clients and the CLI support.
+7. **The order.** Computations, connections, setups, workbooks: the glue of the connections and queries goes first and
+   the workbooks build on them.
+8. **Derived slices.** The references, the dataflow and the inputs move into Rust with step 4, which ends the renders
+   of every subscriber per keystroke.
+9. **Reading after a dispatch.** Reads see the last flush, per frame; urgent changes such as the editor's flush per
+   task.
 
 ## Decided against
 
