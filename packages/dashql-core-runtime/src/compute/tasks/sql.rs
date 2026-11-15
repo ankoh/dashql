@@ -475,7 +475,8 @@ fn build_binned_group_by(
 
     // The fractional bin is clamped to [0, binCount - 1] before the cast to INTEGER: a non-finite value (NaN, +-Inf)
     // or a column of nearly one value with the smallest width can floor to NaN or far outside of INT32, a bare cast
-    // would fail. NaN passes no comparison and lands in bin 0.
+    // would fail. Hyper orders NaN above every number, so NaN (e.g. of +Inf with an infinite width) lands in the last
+    // bin (computations_edge_cases.test.ts).
     let last_bin = bin_count - 1;
     let clamped = format!(
         "CASE WHEN FLOOR({bin_expr}) >= {bin_count} THEN {last_bin} \
