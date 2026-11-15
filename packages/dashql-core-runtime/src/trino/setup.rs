@@ -11,7 +11,8 @@
 //! `health_check.ts`.
 
 use super::error::{TrinoError, TrinoErrorKind};
-use super::http::{encode_form, FetchOutcome, HttpRequest};
+use crate::http::url::form_encode;
+use crate::http::{FetchOutcome, HttpRequest};
 use super::protocol::{read_token_response, token_request, TrinoAuthType, TrinoChannel, TrinoOAuthParams};
 use super::time::{iso_timestamp, Millis};
 use crate::connections::{ChannelId, ConnectionAction, DetailedError, JsonObject, OAuthPkceChallenge, TemporaryToken, TrinoAction};
@@ -175,7 +176,7 @@ impl TrinoSetup {
             // Make the identity provider authenticate again instead of reusing a session cookie of the browser
             fields.push(("prompt", "login"));
         }
-        let url = format!("{}?{}", oauth.authorization_url, encode_form(&fields));
+        let url = format!("{}?{}", oauth.authorization_url, form_encode(fields.iter().copied()));
         out.push(SetupOutput::Authorize { url, callback_url: callback_url.clone() });
         self.phase = Phase::Authorizing { pkce, state, callback_url };
         out

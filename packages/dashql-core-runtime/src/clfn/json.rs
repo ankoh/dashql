@@ -132,42 +132,6 @@ pub fn to_json_text(value: &Value) -> String {
     serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
 }
 
-/// Percent-encode a string as `encodeURIComponent` does
-pub fn encode_uri_component(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for byte in text.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'!' | b'~' | b'*' | b'\'' | b'(' | b')' => {
-                out.push(char::from(byte))
-            }
-            _ => out.push_str(&format!("%{byte:02X}")),
-        }
-    }
-    out
-}
-
-/// Encode one name or value of `application/x-www-form-urlencoded`, as `URLSearchParams` does
-pub fn form_encode_component(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for byte in text.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'*' | b'-' | b'.' | b'_' => out.push(char::from(byte)),
-            b' ' => out.push('+'),
-            _ => out.push_str(&format!("%{byte:02X}")),
-        }
-    }
-    out
-}
-
-/// Encode pairs as `application/x-www-form-urlencoded`, as `new URLSearchParams(pairs).toString()` does
-pub fn form_encode<'a>(pairs: impl IntoIterator<Item = (&'a str, &'a str)>) -> String {
-    pairs
-        .into_iter()
-        .map(|(name, value)| format!("{}={}", form_encode_component(name), form_encode_component(value)))
-        .collect::<Vec<_>>()
-        .join("&")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,12 +157,5 @@ mod tests {
         assert!(js_number(&json!("inf")).is_nan());
         assert_eq!(js_number(&json!("-Infinity")), f64::NEG_INFINITY);
         assert_eq!(number_value(12.0), json!(12));
-    }
-
-    #[test]
-    fn encodes_like_the_browser() {
-        assert_eq!(encode_uri_component("a b/c"), "a%20b%2Fc");
-        assert_eq!(encode_uri_component("%2e"), "%252e");
-        assert_eq!(form_encode([("dataspace", "Marketing Space"), ("a[b]", "ü")]), "dataspace=Marketing+Space&a%5Bb%5D=%C3%BC");
     }
 }

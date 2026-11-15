@@ -23,7 +23,7 @@ use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use serde_json::Value;
 
 use super::error::{TrinoError, TrinoResult};
-use super::http::base64_decode;
+use crate::http::base64::base64_decode;
 use super::protocol::TrinoColumn;
 use super::time::{utc_ms, Millis, DAY_MS, MAX_DATE_MS};
 

@@ -6,6 +6,7 @@ import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
+    HyperHttpChannelDescription,
     HyperQueryResultStream,
 } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import {
@@ -228,12 +229,28 @@ class WebHyperDatabaseChannel implements HyperDatabaseChannel {
     connection: HyperDatabaseConnectionContext;
     logger: Logger;
     parallelChunks: number;
+    endpoint: string;
 
-    constructor(httpClient: HyperDatabaseHttpClient, connection: HyperDatabaseConnectionContext, logger: Logger, parallelChunks: number) {
+    constructor(httpClient: HyperDatabaseHttpClient, connection: HyperDatabaseConnectionContext, logger: Logger, parallelChunks: number, endpoint: string) {
         this.httpClient = httpClient;
         this.connection = connection;
         this.logger = logger;
         this.parallelChunks = parallelChunks;
+        this.endpoint = endpoint;
+    }
+
+    /// The query executor of the runtime sends the requests of a query itself, with the auth headers of the context
+    async describeHttp(): Promise<HyperHttpChannelDescription> {
+        return {
+            params: {
+                endpoint: this.endpoint,
+                attachedDatabases: this.connection.getAttachedDatabases(),
+                queryParameters: this.connection.getQueryParameters(),
+            },
+            clientContext: this.connection.getClientContext?.() ?? null,
+            auth: await this.connection.getRequestMetadata(),
+            parallelChunks: this.parallelChunks,
+        };
     }
 
     async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
@@ -293,6 +310,6 @@ export class WebHyperDatabaseClient implements HyperDatabaseClient {
         const endpointUrl = new URL(hyperArgs.endpoint);
         const auth = new ContextAuthProvider(context);
         const client = new HyperDatabaseHttpClient(this.httpClient, endpointUrl, auth, this.logger);
-        return new WebHyperDatabaseChannel(client, context, this.logger, this.parallelChunks);
+        return new WebHyperDatabaseChannel(client, context, this.logger, this.parallelChunks, hyperArgs.endpoint);
     }
 }

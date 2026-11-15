@@ -5,8 +5,8 @@
 use base64::Engine;
 
 use super::error::QueryErrorResponse;
-use super::http::Headers;
-use super::url::decode_uri_component;
+use crate::http::Headers;
+use crate::http::url::decode_uri_component;
 
 /// The gRPC "richer error model" trailer that carries the base64-encoded `google.rpc.Status`, as the native proxy
 /// forwards it

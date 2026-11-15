@@ -6,7 +6,7 @@ use std::fmt;
 use serde_json::{Map, Value};
 
 use super::error_info::{from_http_error_response, HyperErrorInfo};
-use super::http::HttpResponse;
+use crate::http::HttpResponse;
 use crate::connections::DetailedError;
 
 /// The log context of the HTTP client, the target of its errors

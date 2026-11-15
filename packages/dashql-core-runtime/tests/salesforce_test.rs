@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 const NOW: f64 = 1_767_225_600_000.0;
 
 fn response(body: Value, status: u16) -> HttpResponse {
-    HttpResponse { status, status_text: if status == 200 { "OK" } else { "Error" }.into(), headers: Vec::new(), body: body.to_string() }
+    HttpResponse::new(status, body.to_string()).with_status_text(if status == 200 { "OK" } else { "Error" })
 }
 
 fn ok(body: Value) -> HttpResponse {

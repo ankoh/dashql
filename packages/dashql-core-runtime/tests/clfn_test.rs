@@ -8,7 +8,7 @@ use std::rc::Rc;
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Date32Type, Int32Type, Int64Type, TimestampMillisecondType};
 use arrow_array::Array;
-use dashql_core_runtime::clfn::url::Url;
+use dashql_core_runtime::http::Url;
 use dashql_core_runtime::clfn::*;
 use serde_json::{json, Value};
 

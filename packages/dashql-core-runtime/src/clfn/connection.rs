@@ -20,7 +20,7 @@ use super::request::{http_request, ClientFunctionHostTarget, ClientFunctionReque
 use super::result::ClientFunctionResult;
 use super::runtime::{explain_client_function_call, CallStep, ClientFunctionCallRun};
 use super::spec::{ClientFunctionCallDescription, ClientFunctionSpec};
-use super::http::HttpRequest;
+use crate::http::HttpRequest;
 use super::ClientFunctionError;
 use crate::connections::{ConnectionState, ConnectorType};
 use crate::salesforce::client_functions::{

@@ -12,10 +12,11 @@ use base64::Engine;
 use serde_json::Value;
 
 use super::types::*;
-use crate::clfn::http::{HttpRequest, HttpResponse};
-use crate::clfn::json::{form_encode, js_number, js_string, js_truthy, to_json_text};
+use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
+use crate::clfn::json::{js_number, js_string, js_truthy, to_json_text};
+use crate::http::url::form_encode;
 use crate::clfn::time::iso_timestamp;
-use crate::clfn::url::Url;
+use crate::http::Url;
 
 /// The API version of the metadata
 pub const SALESFORCE_API_VERSION: &str = "v64.0";
@@ -236,12 +237,9 @@ pub fn parse_core_user_info(obj: &Value) -> SalesforceCoreUserInfo {
 /// A POST with a form body that accepts JSON
 fn form_post(url: String, pairs: &[(&str, &str)]) -> HttpRequest {
     HttpRequest {
-        method: "POST".to_string(),
+        method: HttpMethod::Post,
         url,
-        headers: vec![
-            ("Accept".to_string(), "application/json".to_string()),
-            ("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string()),
-        ],
+        headers: Headers::from_pairs([("Accept", "application/json"), ("Content-Type", "application/x-www-form-urlencoded")]),
         body: Some(form_encode(pairs.iter().copied())),
     }
 }
@@ -269,7 +267,7 @@ pub fn core_access_token_request(
 
 /// The JSON of a response, an error if it isn't JSON
 fn response_json(response: &HttpResponse) -> Result<Value, SalesforceError> {
-    serde_json::from_str(&response.body).map_err(|e| SalesforceError::new(format!("invalid JSON response: {e}")))
+    serde_json::from_slice(&response.body).map_err(|e| SalesforceError::new(format!("invalid JSON response: {e}")))
 }
 
 /// The message of a failed OAuth response, none if it succeeded
@@ -384,18 +382,15 @@ pub fn read_data_cloud_access_token_response(request: &HttpRequest, response: &H
 }
 
 /// The headers of a call with the core token
-fn core_headers(access: &SalesforceCoreAccessToken) -> Vec<(String, String)> {
-    vec![
-        ("authorization".to_string(), format!("Bearer {}", access.access_token)),
-        ("accept".to_string(), "application/json".to_string()),
-    ]
+fn core_headers(access: &SalesforceCoreAccessToken) -> Headers {
+    Headers::from_pairs([("authorization", format!("Bearer {}", access.access_token).as_str()), ("accept", "application/json")])
 }
 
 /// The request of the user info of the core login
 pub fn core_user_info_request(access: &SalesforceCoreAccessToken) -> HttpRequest {
     let query = form_encode([("format", "json"), ("access_token", access.access_token.as_str())]);
     HttpRequest {
-        method: "GET".to_string(),
+        method: HttpMethod::Get,
         url: format!("{}/services/oauth2/userinfo?{query}", access.instance_url.as_deref().unwrap_or("")),
         headers: core_headers(access),
         body: None,
@@ -526,7 +521,7 @@ impl SalesforceMetadataLoad {
         let requests = SALESFORCE_METADATA_ENTITY_TYPES
             .iter()
             .map(|entity_type| HttpRequest {
-                method: "GET".to_string(),
+                method: HttpMethod::Get,
                 url: format!("{endpoint}?{}", form_encode([("dataspace", data_space), ("entityType", entity_type)])),
                 headers: core_headers(access),
                 body: None,
@@ -567,7 +562,7 @@ impl SalesforceMetadataLoad {
                 .map(|body| body.get("metadata").and_then(Value::as_array).cloned().unwrap_or_default())
                 .map_err(|e| e.message)
         } else {
-            let text: String = response.body.chars().take(200).collect();
+            let text: String = response.text().chars().take(200).collect();
             let detail = if text.is_empty() { String::new() } else { format!(" — {text}") };
             Err(format!("{} {}{detail}", response.status, response.status_text))
         };

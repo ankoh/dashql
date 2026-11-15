@@ -9,7 +9,6 @@
 //! Ported from `connections/clfn/` and `connections/connection_client_functions.ts` of `packages/dashql-runtime`.
 
 pub mod connection;
-pub mod http;
 pub mod json;
 pub mod request;
 pub mod result;
@@ -17,7 +16,6 @@ pub mod runtime;
 pub mod spec;
 pub mod specs;
 pub mod time;
-pub mod url;
 
 use std::fmt;
 
@@ -25,7 +23,7 @@ pub use connection::{
     start_connection_client_function, ClientFunctionBinding, ClientFunctionRegistrations, ClientFunctionRegistryEffect,
     ConnectionCallStart, ConnectionCredentials,
 };
-pub use http::{HttpRequest, HttpResponse};
+pub use crate::http::{HttpRequest, HttpResponse};
 pub use request::{
     build_client_function_request, follow_request, http_request, request_url, resolve_follow_url, ClientFunctionHostTarget,
     ClientFunctionRequest, ClientFunctionVariables, STANDARD_OPTIONS,

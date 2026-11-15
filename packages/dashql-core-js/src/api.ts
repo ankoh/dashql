@@ -9,6 +9,7 @@ import { DashQLWorkbook } from './workbook.js';
 import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorType } from './connection.js';
 import { DashQLComputations } from './computations.js';
 import { DashQLStorageWriter } from './storage_writer.js';
+import { DashQLQueryExecutor } from './query_executor.js';
 import { DashQLAppRestore } from './restore.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
@@ -36,6 +37,7 @@ export type DashQLBindings = Pick<
     | 'Connection'
     | 'Computations'
     | 'StorageWriter'
+    | 'QueryExecutor'
     | 'AppRestore'
     | 'ConnectionPersistence'
 >;
@@ -443,6 +445,11 @@ export class DashQL {
     /// files of the given format version.
     public createStorageWriter(host: glue.StorageWriterHost, formatVersion: number): DashQLStorageWriter {
         return DashQLStorageWriter.create(this, host, formatVersion);
+    }
+
+    /// Create the query executor of the Rust runtime on a host, through the instance like a workbook
+    public createQueryExecutor(host: glue.QueryExecutorHost): DashQLQueryExecutor {
+        return DashQLQueryExecutor.create(this, host);
     }
 
     /// Create the restore of the stored state of the Rust runtime on a host, it writes through a storage writer of the

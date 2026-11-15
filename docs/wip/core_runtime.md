@@ -1,7 +1,7 @@
 # The core runtime
 
-Status: the workbook scripts, the connections, the computations, the storage writes, the restore of the stored state
-and the persistence of connections of the app run on Rust.
+Status: the workbook scripts, the connections, the computations, the storage writes, the queries, the restore of the
+stored state and the persistence of connections of the app run on Rust.
 `packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
 connection with the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts`
 of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
@@ -9,7 +9,9 @@ of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/wor
 over the computations (`compute/computation_native.ts`). The storage writer is the first service on a host
 (`storage/storage_writer.ts` over `src/storage/`), the restore the second (`workbook/persistence/app_state_loader.ts`
 over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
-platform). The catalog loader and the connectors are ported without I/O and not used yet.
+platform), the query executor the fourth (`QueryExecutorService` over `src/executor/`): Trino, Hyper over HTTP,
+Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host. The
+catalog loader is ported without I/O and not used yet.
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
@@ -86,7 +88,8 @@ buffers in between. The boundary moves to what the UI reads.
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
    The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer), and
-   so are the restore and the persistence of connections, see [The restore](#the-restore).
+   so are the restore and the persistence of connections, see [The restore](#the-restore), and
+   the query executor with one HTTP layer, see [The query executor](#the-query-executor).
 
 ## The whole runtime in Wasm
 
@@ -326,7 +329,7 @@ the connection layer of the catalog of a connection.
 
 ## The Trino connector
 
-The Trino connector of the crate (`src/trino/`) does no I/O, the app doesn't use it yet. The channel (`TrinoChannel`)
+The Trino connector of the crate (`src/trino/`) does no I/O, the query executor drives its queries. The channel (`TrinoChannel`)
 holds the endpoint, the auth with the OAuth token and the default catalog and schema, and turns a request of the
 protocol into an HTTP request with its headers. A query (`TrinoQuery`) is a state machine: it asks for requests and
 timers by id, takes the responses and the fired timers with the time they happened, and reports the schema, the
@@ -344,8 +347,8 @@ request, the channel and the health check.
 
 ## The client functions and Salesforce
 
-The client functions (`src/clfn/`) and the Salesforce connector (`src/salesforce/`) are ported without I/O, the app
-doesn't use them yet. A call is a state machine: it starts from the description of the core, returns the next request,
+The client functions (`src/clfn/`) and the Salesforce connector (`src/salesforce/`) are ported without I/O, the query
+executor runs the calls, the setup of Salesforce isn't used yet. A call is a state machine: it starts from the description of the core, returns the next request,
 a wait or the result table, and takes the response with the time. The runtime reads the spec for its requests, and the
 core checks it when a binding registers it on the catalog of a connection. The registrations of the connections ask the
 host to load a spec and register it once it arrives. A result is a table of typed cells that becomes a record batch or
@@ -387,7 +390,7 @@ It takes the contents of files and returns parsed values, validation results, mi
 
 ## The Hyper connector
 
-The HTTP API of Hyper is a module of the crate (`src/hyper/`), sans-IO and not used yet. The client builds the
+The HTTP API of Hyper is a module of the crate (`src/hyper/`), sans-IO, the query executor reads its results. The client builds the
 requests of the V3 API, the host sends them and hands the responses back. The auth headers come with every request,
 the context of the connection holds them.
 
@@ -405,6 +408,43 @@ the context of the connection holds them.
   the import of stored connections and whether a catalog can be refreshed are functions of `src/connections/`.
 - **Changed on purpose.** The chunks are one stream that skips a repeated schema and an end-of-stream marker inside a
   chunk. The client logs nothing, the error carries the diagnostics. A restored connection keeps only its setup params.
+
+## The query executor
+
+`QueryExecutorService` of the TypeScript runtime is an adapter over the executor of the crate (`src/executor/`), bound
+as the class `QueryExecutor` of the module (`DashQLQueryExecutor` of `@ankoh/dashql-core`, created with
+`DashQL.createQueryExecutor` on the core of the connection of the first query). Its API stayed, its callers and the hooks of the app didn't
+change.
+
+- **One HTTP layer.** `src/http/` holds the request, the response with a body of bytes, the headers that compare names
+  without case and the URL module of every connector. `Url` parses as the browsers do where the origin check of client
+  functions depends on it; `Url::parse` takes HTTP and HTTPS, `Url::parse_with_authority` any scheme with an authority,
+  e.g. the endpoint of a Hyper. The functions on the text of a URL leave the next URIs of Trino as the server wrote
+  them.
+- **Fetch on the host.** `http::HttpHost` adds `fetch` to `host::Host`: it sends a request with the HTTP client of the
+  platform and returns the response with any status, a failure in the network is a `HostError`. A `CancellationToken`
+  stops the requests of a task, the module aborts the fetch of the host by its id.
+- **A query is a task.** `QueryExecutor::execute` runs a query that the host registered in the history of its
+  connection: it serves a result from the query result cache or sends the query, reports the progress and the batches,
+  touches the relations of the statement, analyzes the result and writes it into the cache after the query. The task
+  reports `QueryEvent`s, the adapter applies them to the Rust connection through the dispatch of the registry.
+  Cancelling cancels the token: the requests stop, the query is cancelled at the backend and the task ends as
+  cancelled.
+- **The connectors.** Trino runs on `TrinoQuery` with the requests and timers of the host and keeps a refreshed access
+  token on the channel of the host. Hyper over HTTP runs on `HyperResultReader` with the auth headers of the context of
+  the connection, Salesforce Data Cloud with its bearer token. A client function call runs on `ClientFunctionCallRun`
+  with the spec of the connector and the tokens of the channel.
+- **Channels of the host.** A channel that the module doesn't speak stays with the host: the gRPC channel of Hyper in
+  the desktop app (through its native proxy), the embedded Hyper, a Trino channel on another API client, the channels
+  of tests. The task asks the host to run the query and reads every batch as an Arrow IPC stream, the host learns of
+  the views of the profile and of the cancellation right away.
+- **Results.** A result crosses to the host once, as one Arrow IPC stream with the event of all batches, and
+  `apache-arrow` decodes it. The host keeps the result tables, the Parquet files of the cache, the analysis on the
+  compute database and the progress model of the profile.
+- **Changed on purpose.** A query that is cancelled before the executor started it rejects with the reason of the
+  cancellation. A failure before the query reached the executor, e.g. a spec of client functions that doesn't load,
+  rejects. The metrics of a Hyper result over HTTP count its batches and rows. The executor reads the auth headers of
+  a Hyper connection once per query.
 
 ## Typing
 
@@ -429,8 +469,13 @@ about that.
   (`connections/connection_restore.ts`), the restore of a single workbook could take them over.
 - The registry of connections applies its actions in TypeScript, only the decisions of their persistence are Rust.
 - The query history of the shell (`query/shell_query_execution.ts`) still runs on `reduceQueryAction` in TypeScript.
-- The progress model of a query runs in the query executor in TypeScript, the Rust history gets the plain fields of a
-  progress update, the adapter keeps the structured progress. The planned statement of a query stays in TypeScript.
+- The progress model of a query runs in the adapter of the query executor in TypeScript, the Rust history gets the
+  plain fields of a progress update, the adapter keeps the structured progress. The planned statement of a query stays
+  in TypeScript.
+- The executor reports into the history through the dispatch of the registry, the history and the executor are not
+  one Rust value yet. The query result cache, the analysis of results and the relations of a statement are calls of
+  the host.
+- A channel of the host converts its record batches to Arrow IPC, the embedded Hyper decodes its IPC first.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
 
 ## Kept on purpose

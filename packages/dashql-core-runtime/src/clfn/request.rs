@@ -6,10 +6,11 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value};
 
-use super::http::HttpRequest;
-use super::json::{encode_uri_component, form_encode, js_string, to_json_text};
+use crate::http::{Headers, HttpMethod, HttpRequest};
+use super::json::{js_string, to_json_text};
+use crate::http::url::{encode_uri_component, form_encode};
 use super::spec::{ClientFunction, ClientFunctionAttribute, ClientFunctionSchema, ClientFunctionSpec};
-use super::url::Url;
+use crate::http::Url;
 use super::ClientFunctionError;
 
 /// The options that the runtime applies itself, they are never sent
@@ -389,11 +390,10 @@ pub fn request_url(request: &ClientFunctionRequest, base_url: &Url) -> Result<Ur
 /// The HTTP request of a request on its host: the URL, the headers of the host and then those of the options
 pub fn http_request(request: &ClientFunctionRequest, target: &ClientFunctionHostTarget) -> Result<HttpRequest, ClientFunctionError> {
     let url = request_url(request, &target.base_url)?;
-    let mut headers: Vec<(String, String)> = Vec::new();
+    let mut headers = Headers::new();
     for (name, value) in target.headers.iter().chain(request.headers.iter()) {
         // A later header replaces an earlier one, as `Headers.set` does
-        headers.retain(|(existing, _)| !existing.eq_ignore_ascii_case(name));
-        headers.push((name.clone(), value.clone()));
+        headers.set(name, value.clone());
     }
-    Ok(HttpRequest { method: request.method.clone(), url: url.to_string(), headers, body: request.body.clone() })
+    Ok(HttpRequest { method: HttpMethod::parse(&request.method), url: url.to_string(), headers, body: request.body.clone() })
 }

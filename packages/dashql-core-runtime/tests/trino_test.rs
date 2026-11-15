@@ -24,7 +24,8 @@ use dashql_core_runtime::connections::{
 use dashql_core_runtime::query::progress::EngineProgressPayload;
 use dashql_core_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
 use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint, sanitize_for_sharing};
-use dashql_core_runtime::trino::http::{base64_decode, base64_encode, encode_form, set_query_param};
+use dashql_core_runtime::http::base64::{base64_decode, base64_encode};
+use dashql_core_runtime::http::url::{form_encode, set_query_param};
 use dashql_core_runtime::trino::protocol::{
     parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response, ResultPageOutcome,
 };
@@ -59,7 +60,7 @@ fn json_response(value: Value) -> FetchOutcome {
 
 /// A response with a status and a status text
 fn status_response(status: u16, status_text: &str) -> HttpResponse {
-    HttpResponse { status, status_text: status_text.into(), body: Vec::new() }
+    HttpResponse::new(status, Vec::new()).with_status_text(status_text)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -69,7 +70,7 @@ fn status_response(status: u16, status_text: &str) -> HttpResponse {
 fn reads_the_info_of_a_query() {
     let channel = basic_channel(TrinoSessionDefaults::default());
     let request = channel.http_request(&TrinoRequest::FetchQueryInfo { query_id: "q1".into() }).unwrap();
-    assert_eq!((request.url.as_str(), request.method), ("https://trino.example.com/v1/query/q1", HttpMethod::Get));
+    assert_eq!((request.url.as_str(), request.method.clone()), ("https://trino.example.com/v1/query/q1", HttpMethod::Get));
     assert_eq!(request.header("X-Trino-User"), Some("user"));
     let info = read_query_info(&HttpResponse::new(200, r#"{"queryId":"q1","state":"FINISHED"}"#)).unwrap();
     assert_eq!(info["state"], "FINISHED");
@@ -101,7 +102,7 @@ fn sets_query_params_like_url_search_params() {
     assert_eq!(set_query_param("https://h/p?a=1&t=2#f", "t", "32MB").as_deref(), Some("https://h/p?a=1&t=32MB#f"));
     assert_eq!(set_query_param("https://h", "t", "a b").as_deref(), Some("https://h?t=a+b"));
     assert_eq!(set_query_param("/relative", "t", "1"), None);
-    assert_eq!(encode_form(&[("a", "x y/z"), ("b", "ä*-._~")]), "a=x+y%2Fz&b=%C3%A4*-._%7E");
+    assert_eq!(form_encode([("a", "x y/z"), ("b", "ä*-._~")]), "a=x+y%2Fz&b=%C3%A4*-._%7E");
 }
 
 #[test]
@@ -157,7 +158,7 @@ fn parses_integers_beyond_the_safe_integers_exactly() {
 fn cancels_a_query_by_deleting_its_next_uri() {
     let channel = basic_channel(TrinoSessionDefaults::default());
     let request = channel.http_request(&TrinoRequest::CancelQuery { next_uri: NEXT_URI.into() }).unwrap();
-    assert_eq!((request.url.as_str(), request.method), (NEXT_URI, HttpMethod::Delete));
+    assert_eq!((request.url.as_str(), request.method.clone()), (NEXT_URI, HttpMethod::Delete));
     assert_eq!(read_cancel_response(&FetchOutcome::Response(HttpResponse::new(204, ""))), Ok(()));
 }
 
@@ -179,7 +180,7 @@ fn fails_on_rejected_requests() {
 fn posts_the_statement_with_basic_auth_and_without_defaults() {
     let channel = basic_channel(TrinoSessionDefaults::default());
     let request = channel.http_request(&TrinoRequest::SubmitStatement { text: "select 1".into() }).unwrap();
-    assert_eq!((request.url.as_str(), request.method), ("https://trino.example.com/v1/statement", HttpMethod::Post));
+    assert_eq!((request.url.as_str(), request.method.clone()), ("https://trino.example.com/v1/statement", HttpMethod::Post));
     assert_eq!(request.body.as_deref(), Some("select 1"));
     assert_eq!(request.header("X-Trino-Catalog"), None);
     assert_eq!(request.header("X-Trino-Schema"), None);
@@ -238,7 +239,7 @@ fn sends_the_oauth_token_and_refreshes_it_before_it_expires() {
     let TokenRefresh::Started(refresh) = channel.begin_token_refresh(1_000_000 - 60_000) else {
         panic!("expected a refresh");
     };
-    assert_eq!((refresh.url.as_str(), refresh.method), ("https://idp/token", HttpMethod::Post));
+    assert_eq!((refresh.url.as_str(), refresh.method.clone()), ("https://idp/token", HttpMethod::Post));
     assert_eq!(refresh.header("Content-Type"), Some("application/x-www-form-urlencoded"));
     assert_eq!(refresh.body.as_deref(), Some("grant_type=refresh_token&client_id=dashql&refresh_token=refresh-1"));
     assert_eq!(channel.begin_token_refresh(1_000_000 - 60_000), TokenRefresh::Pending);
@@ -1355,5 +1356,5 @@ fn builds_requests_as_data() {
     let mut request = HttpRequest::new(HttpMethod::Get, "https://h");
     request.set_header("x-a", "1");
     request.set_header("X-A", "2");
-    assert_eq!(request.headers, [("X-A".to_string(), "2".to_string())]);
+    assert_eq!(request.headers.iter().collect::<Vec<_>>(), [("X-A", "2")]);
 }

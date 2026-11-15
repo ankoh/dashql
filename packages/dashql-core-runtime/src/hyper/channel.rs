@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 
 use super::client::{AttachedDatabase, ExecuteQueryRequest, HyperHttpClient, HyperRequestHeaders};
 use super::error::HyperError;
-use super::http::{Headers, HttpRequest, HttpResponse};
+use crate::http::{Headers, HttpRequest, HttpResponse};
 use super::result_reader::{HyperResultReader, DEFAULT_PARALLEL_CHUNKS};
 use crate::connections::{ChannelId, JsonObject};
 use crate::query::Timestamp;

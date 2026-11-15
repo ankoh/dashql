@@ -27,7 +27,7 @@ use serde_json::Value;
 
 use super::arrow::{rows_to_record_batch, trino_schema, NoTimeZones, TimeZoneOffsets};
 use super::error::{TrinoError, TrinoErrorKind};
-use super::http::FetchOutcome;
+use crate::http::FetchOutcome;
 use super::protocol::{
     read_query_info, read_result_page, read_statement_response, ResultPageOutcome, TrinoQueryResult, TrinoRequest,
     TrinoRetryPolicy,

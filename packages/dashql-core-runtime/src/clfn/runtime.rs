@@ -11,7 +11,7 @@ use std::rc::Rc;
 
 use serde_json::{Map, Value};
 
-use super::http::HttpResponse;
+use crate::http::{Headers, HttpResponse};
 use super::json::{
     is_empty_value, js_number, js_string, json_pointer_segments, number_value, read_json_pointer, to_json_text,
 };
@@ -54,7 +54,7 @@ struct Page {
     /// The parsed body
     body: Value,
     /// The headers
-    headers: Vec<(String, String)>,
+    headers: Headers,
     /// A body that doesn't hold the rows the spec promises. It ends the list and lands in `_raw`, so a spec that
     /// disagrees with a response doesn't look like an empty list.
     unexpected: Option<Value>,
@@ -63,9 +63,7 @@ struct Page {
 impl Page {
     /// The value of a header
     fn header(&self, name: &str) -> Option<String> {
-        let values: Vec<&str> =
-            self.headers.iter().filter(|(n, _)| n.eq_ignore_ascii_case(name)).map(|(_, v)| v.as_str()).collect();
-        (!values.is_empty()).then(|| values.join(", "))
+        self.headers.get(name).map(str::to_string)
     }
 }
 
@@ -450,7 +448,7 @@ impl ClientFunctionCallRun {
     }
 
     /// Read the page of a finished response
-    fn read_page(&self, status: u16, body: Value, headers: Vec<(String, String)>) -> Page {
+    fn read_page(&self, status: u16, body: Value, headers: Headers) -> Page {
         let rows = match (&self.function.rows, self.function.raw) {
             (Some(rows), false) => rows.clone(),
             _ => {
@@ -478,7 +476,7 @@ impl ClientFunctionCallRun {
 
     /// Read a response as a page, or fail
     fn finish_page(&self, response: HttpResponse) -> Result<Page, ClientFunctionError> {
-        let body = parse_body(&response.body);
+        let body = parse_body(&response.text());
         let empty_on = self.function.errors.as_ref().and_then(|e| e.empty_on.as_ref());
         if empty_on.is_some_and(|statuses| statuses.contains(&response.status)) {
             return Ok(Page {
@@ -518,7 +516,7 @@ impl ClientFunctionCallRun {
     fn on_pending(&mut self, pending: ClientFunctionPending, response: &HttpResponse, now: f64) -> Result<CallStep, ClientFunctionError> {
         let poll = match &pending.poll {
             ClientFunctionPoll::Header(header) => match response.header(header).filter(|v| !v.is_empty()) {
-                Some(value) => value,
+                Some(value) => value.to_string(),
                 None => {
                     return Err(ClientFunctionError::with_status(
                         format!("{} answered {} without a {header} header", self.label(), response.status),

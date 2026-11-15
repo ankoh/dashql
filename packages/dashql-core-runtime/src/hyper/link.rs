@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 use serde_json::{json, Value};
 
-use super::url::BaseUrl;
+use crate::http::Url;
 use crate::connections::{ConnectionParams, ConnectionState, ConnectorType, JsonObject};
 
 /// The session storage key of the tokens of the Hyper links of a tab
@@ -33,7 +33,7 @@ pub struct HyperLinkTarget {
 /// http, any other endpoint must speak https.
 pub fn parse_hyper_link_target(endpoint: Option<&str>, token: Option<&str>) -> Option<HyperLinkTarget> {
     let token = token.filter(|token| !token.is_empty())?;
-    let url = BaseUrl::parse(endpoint?).ok()?;
+    let url = Url::parse_with_authority(endpoint?).ok()?;
     let loopback = LOOPBACK_HOSTS.contains(&url.host());
     if url.scheme() != "https" && !(url.scheme() == "http" && loopback) {
         return None;
@@ -43,7 +43,7 @@ pub fn parse_hyper_link_target(endpoint: Option<&str>, token: Option<&str>) -> O
 
 /// Does a link point at a Hyper on this machine?
 pub fn is_loopback_hyper_link(target: &HyperLinkTarget) -> bool {
-    BaseUrl::parse(&target.endpoint).is_ok_and(|url| LOOPBACK_HOSTS.contains(&url.host()))
+    Url::parse_with_authority(&target.endpoint).is_ok_and(|url| LOOPBACK_HOSTS.contains(&url.host()))
 }
 
 /// The question to confirm a link before the app uses it, none for a link to this machine. A link to another machine

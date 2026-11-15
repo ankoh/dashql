@@ -10,10 +10,9 @@
 use serde_json::Value;
 
 use super::error::{TrinoError, TrinoErrorKind, TrinoResult};
-use super::http::{
-    base64_encode, encode_form, encode_uri_component, set_query_param, url_path, FetchOutcome, HttpMethod, HttpRequest,
-    HttpResponse,
-};
+use crate::http::base64::base64_encode;
+use crate::http::url::{encode_uri_component, form_encode, set_query_param, url_path};
+use crate::http::{FetchOutcome, HttpMethod, HttpRequest, HttpResponse};
 use super::time::{iso_timestamp, parse_iso_timestamp, Millis};
 use crate::connections::{trino_session_defaults, JsonObject, TrinoSessionDefaults};
 
@@ -187,7 +186,7 @@ impl TrinoAccessToken {
 pub fn token_request(token_url: &str, fields: &[(&str, &str)]) -> HttpRequest {
     let mut request = HttpRequest::new(HttpMethod::Post, token_url);
     request.set_header("Content-Type", "application/x-www-form-urlencoded");
-    request.body = Some(encode_form(fields));
+    request.body = Some(form_encode(fields.iter().copied()));
     request
 }
 

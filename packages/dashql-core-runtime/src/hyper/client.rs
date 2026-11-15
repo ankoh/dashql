@@ -9,9 +9,10 @@
 use serde_json::{json, Map, Value};
 
 use super::error::{check_response, HyperError};
-use super::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
+use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 use super::status::QueryStatus;
-use super::url::{encode_uri_component, BaseUrl};
+use crate::http::url::encode_uri_component;
+use crate::http::Url;
 
 /// The media type of Arrow IPC streams
 pub const ARROW_STREAM_CONTENT_TYPE: &str = "application/vnd.apache.arrow.stream";
@@ -154,7 +155,7 @@ pub struct QueryResponse {
 /// The client of the HTTP API of a Hyper endpoint
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HyperHttpClient {
-    endpoint: BaseUrl,
+    endpoint: Url,
 }
 
 impl HyperHttpClient {
@@ -163,11 +164,12 @@ impl HyperHttpClient {
         if endpoint.is_empty() {
             return Err(HyperError::MissingEndpoint);
         }
-        Ok(Self { endpoint: BaseUrl::parse(endpoint)? })
+        let url = Url::parse_with_authority(endpoint).map_err(|_| HyperError::InvalidUrl(endpoint.to_string()))?;
+        Ok(Self { endpoint: url })
     }
 
     /// The endpoint
-    pub fn endpoint(&self) -> &BaseUrl {
+    pub fn endpoint(&self) -> &Url {
         &self.endpoint
     }
 
@@ -205,7 +207,7 @@ impl HyperHttpClient {
     ) -> HttpRequest {
         HttpRequest {
             method: HttpMethod::Post,
-            url: self.endpoint.join("/api/v3/query", &[]),
+            url: self.endpoint.origin_url("/api/v3/query", &[]),
             headers: self.headers(auth, extra),
             body: Some(request.to_json().to_string()),
         }
@@ -217,7 +219,7 @@ impl HyperHttpClient {
             params.wait_time_ms.map(|wait| ("waitTimeMs", wait.to_string())).into_iter().collect();
         HttpRequest {
             method: HttpMethod::Get,
-            url: self.endpoint.join(&Self::query_path(&params.query_id), &query),
+            url: self.endpoint.origin_url(&Self::query_path(&params.query_id), &query),
             headers: self.headers(auth, None),
             body: None,
         }
@@ -227,7 +229,7 @@ impl HyperHttpClient {
     pub fn cancel_query(&self, query_id: &str, auth: &Headers) -> HttpRequest {
         HttpRequest {
             method: HttpMethod::Delete,
-            url: self.endpoint.join(&Self::query_path(query_id), &[]),
+            url: self.endpoint.origin_url(&Self::query_path(query_id), &[]),
             headers: self.headers(auth, None),
             body: None,
         }
@@ -245,7 +247,7 @@ impl HyperHttpClient {
             if params.omit_schema { vec![("omitSchema", "true".to_string())] } else { vec![] };
         HttpRequest {
             method: HttpMethod::Get,
-            url: self.endpoint.join(&path, &query),
+            url: self.endpoint.origin_url(&path, &query),
             headers: self.headers(auth, extra),
             body: None,
         }
@@ -271,7 +273,7 @@ impl HyperHttpClient {
         }
         HttpRequest {
             method: HttpMethod::Get,
-            url: self.endpoint.join(&path, &query),
+            url: self.endpoint.origin_url(&path, &query),
             headers: self.headers(auth, extra),
             body: None,
         }

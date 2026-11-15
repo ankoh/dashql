@@ -8,7 +8,7 @@
 
 use crate::clfn::request::{ClientFunctionHostTarget, ClientFunctionVariables};
 use crate::clfn::time::parse_iso_ms;
-use crate::clfn::url::Url;
+use crate::http::Url;
 use crate::clfn::ClientFunctionError;
 
 use super::types::SalesforceTokens;

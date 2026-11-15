@@ -69,6 +69,7 @@ mod workbook;
 mod connection;
 mod computations;
 mod storage_writer;
+mod query_executor;
 mod restore;
 mod connection_persistence;
 

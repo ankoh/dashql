@@ -120,7 +120,7 @@ impl MockServer {
         let url = request.url.strip_prefix(ENDPOINT).expect("a request to the endpoint");
         let path = url.split('?').next().unwrap_or_default();
         let segments: Vec<&str> = path.trim_start_matches('/').split('/').collect();
-        match (request.method, segments.as_slice()) {
+        match (&request.method, segments.as_slice()) {
             (HttpMethod::Post, ["api", "v3", "query"]) => self.execute(request),
             (HttpMethod::Get, ["api", "v3", "query", id]) => match self.queries.get(*id) {
                 Some(query) => json_response(200, &Self::status_of(query)),

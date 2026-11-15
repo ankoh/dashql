@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use super::api::SalesforceError;
 use super::types::{SalesforceConnectionParams, SalesforceOAuthConfig};
-use crate::clfn::url::Url;
+use crate::http::Url;
 use crate::connections::OAuthPkceChallenge;
 
 /// How long an OAuth flow of Salesforce is valid

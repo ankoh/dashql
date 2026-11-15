@@ -18,12 +18,10 @@ pub mod descriptor;
 pub mod embedded;
 pub mod error;
 pub mod error_info;
-pub mod http;
 pub mod link;
 pub mod local_cloud;
 pub mod result_reader;
 pub mod status;
-pub mod url;
 
 pub use arrow_stream::{decode_stream, ChunkedStreamDecoder};
 pub use channel::{HyperChannel, HyperChannelContext, HyperHttpChannel, HyperProtocol};
@@ -40,7 +38,7 @@ pub use error_info::{
     decode_grpc_error_headers, decode_grpc_status_details, from_http_error_response, HyperErrorInfo, HyperErrorSource,
     HyperTextPosition, HEADER_GRPC_MESSAGE, HEADER_GRPC_STATUS, HEADER_GRPC_STATUS_DETAILS,
 };
-pub use http::{Headers, HttpMethod, HttpRequest, HttpResponse};
+pub use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 pub use result_reader::{
     HyperResultReader, ReaderPoll, ReaderRequest, RequestId, ResultEvent, CHUNK_POLL_DELAY_MS, DEFAULT_PARALLEL_CHUNKS,
 };

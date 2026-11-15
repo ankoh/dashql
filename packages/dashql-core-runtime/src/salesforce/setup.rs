@@ -21,7 +21,7 @@ use super::auth::{
     OAuthFlowInfo, OAuthRedirectData, OAuthState,
 };
 use super::types::*;
-use crate::clfn::http::{HttpRequest, HttpResponse};
+use crate::http::{HttpRequest, HttpResponse};
 use crate::clfn::time::iso_timestamp;
 use crate::connections::{
     ChannelId, ConnectorType, DetailedError, JsonObject, OAuthPkceChallenge, SalesforceAction, TemporaryToken,

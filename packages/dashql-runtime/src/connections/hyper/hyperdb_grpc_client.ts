@@ -26,11 +26,24 @@ export interface HyperQueryExecutionOptions {
     readTimeoutMs?: number;
 }
 
+/// A channel over the HTTP API of Hyper as the query executor of the core speaks it: the params with the endpoint, the
+/// attached databases and the query parameters, the client context and the auth headers of the requests
+export interface HyperHttpChannelDescription {
+    params: { endpoint: string; attachedDatabases: AttachedDatabase[]; queryParameters: Record<string, string> };
+    clientContext: EmbeddedClientContext | null;
+    auth: Record<string, string>;
+    /// The chunks that a result fetches in parallel
+    parallelChunks: number;
+}
+
 export interface HyperDatabaseChannel {
     /// Execute Query
     executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<HyperQueryResultStream>;
     /// Destroy the connection
     close(): Promise<void>;
+    /// A channel over the HTTP API describes itself, the query executor of the core then sends its requests. Null
+    /// without one, the channel runs the queries.
+    describeHttp?(): Promise<HyperHttpChannelDescription | null>;
 }
 
 export interface HyperDatabaseClient {

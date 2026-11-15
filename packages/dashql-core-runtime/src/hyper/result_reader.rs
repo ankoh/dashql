@@ -22,7 +22,7 @@ use super::client::{
     read_query_response, read_status_response, GetQueryChunkParams, GetQueryStatusParams, HyperHttpClient,
 };
 use super::error::HyperError;
-use super::http::{Headers, HttpRequest, HttpResponse};
+use crate::http::{Headers, HttpRequest, HttpResponse};
 use super::status::QueryStatus;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress, Timestamp};
 
