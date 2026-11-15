@@ -73,6 +73,8 @@ Please consult relevant docs in that directory before making changes.
 
 - Web app security (Content-Security-Policy of pages and workers, no evaluated code, Wasm compilation)
     - `docs/design/app_csp.md`
+    - `docs/design/document_isolation_policy.md` (COOP, COEP and Document-Isolation-Policy: the engine in a page that
+      another site frames, Slack and MCP Apps embeds)
 
 - Web app theme (colors only from the theme tokens, light-dark(), the color scheme toggle, dark chrome)
     - `docs/design/app_theme.md`
