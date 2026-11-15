@@ -1,8 +1,15 @@
 // @vitest-environment node
+import type * as core from '@ankoh/dashql-core';
+
 import { QueryExecutionStatus, QueryType } from './query_execution_state.js';
 import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
 import { ShellQueryExecutionTracker } from './shell_query_execution.js';
-import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from './query_execution_state.js';
+import { testCore } from '../testing/test_runtime.js';
+
+let dql: core.DashQL;
+beforeAll(async () => {
+    dql = await testCore();
+});
 
 const metadata = {
     queryType: QueryType.INTERNAL_SQLFRAME,
@@ -14,7 +21,7 @@ const metadata = {
 
 describe('executeTrackedQuery', () => {
     it('uses the shared query lifecycle for successful executions', async () => {
-        const tracker = new ShellQueryExecutionTracker();
+        const tracker = new ShellQueryExecutionTracker(dql);
 
         await expect(executeTrackedQuery({
             query: 'SELECT 1',
@@ -31,7 +38,7 @@ describe('executeTrackedQuery', () => {
     });
 
     it('records failures once and preserves the original error', async () => {
-        const tracker = new ShellQueryExecutionTracker();
+        const tracker = new ShellQueryExecutionTracker(dql);
         const error = new Error('boom');
 
         await expect(executeTrackedQuery({
@@ -53,25 +60,5 @@ describe('executeTrackedQuery', () => {
 
     it('allocates query ids from one shared sequence', () => {
         expect(allocateQueryId() + 1).toBe(allocateQueryId());
-    });
-
-    it('does not count internal executions as connector metrics', async () => {
-        let state: QueryExecutionHistoryState = {
-            queriesActive: new Map(),
-            queriesActiveOrdered: [],
-            queriesFinished: new Map(),
-            queriesFinishedOrdered: [],
-            snapshotQueriesActiveFinished: 1,
-            metrics: createQueryExecutionMetrics(),
-        };
-        await executeTrackedQuery({
-            query: 'SELECT 1',
-            metadata,
-            tracker: { dispatch: action => { state = reduceQueryAction(state, action); } },
-            execute: async () => undefined,
-        });
-
-        expect(state.metrics.successfulQueries?.totalQueries).toBe(0);
-        expect(state.queriesFinished.size).toBe(1);
     });
 });

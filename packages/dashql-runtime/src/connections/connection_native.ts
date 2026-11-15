@@ -2,8 +2,9 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { LoggableException } from '../platform/logger/logger.js';
-import type { QueryExecutionProgress, QueryExecutionState, QueryMetadata } from '../query/query_execution_state.js';
+import type { LoggableException } from '../platform/logger/logger.js';
+import type { QueryExecutionProgress, QueryExecutionState } from '../query/query_execution_state.js';
+import { projectQuery, queryRecord, updateQueryRecordProgress, type NativeQueryObjects, type QueryRecord } from '../query/query_history_native.js';
 import type { CatalogUpdateTaskState } from './catalog/catalog_update_state.js';
 import type { RelationName } from './catalog/catalog_sql_generator.js';
 import type { ConnectionParams } from './connection_params.js';
@@ -25,16 +26,6 @@ export interface ConnectionFunctionScript {
     replaceText(text: string): void;
     /// The connection owns the script, a deleted connection drops it
     destroy(): void;
-}
-
-/// What the adapter keeps of a query: the JavaScript objects that don't cross into Rust
-interface QueryRecord {
-    traceId: number;
-    queryText: string;
-    queryMetadata: QueryMetadata;
-    cancellation: AbortController;
-    error: LoggableException | null;
-    progress: QueryExecutionProgress | null;
 }
 
 /// What the adapter keeps of a catalog update
@@ -134,7 +125,7 @@ class Part<T> {
 /// `project` builds the `ConnectionState` of the app from the connection. A part that didn't change keeps its object,
 /// a query keeps its state while its revision doesn't move. The maps of the queries change in place, like the reducer
 /// in TypeScript changed them.
-export class NativeConnection {
+export class NativeConnection implements NativeQueryObjects {
     readonly instance: core.DashQL;
     readonly connection: core.DashQLConnection;
     /// The script with the functions of the connection
@@ -221,22 +212,13 @@ export class NativeConnection {
     /// Keep the JavaScript objects of a new query, the Rust connection refuses a query id that it knows
     registerQuery(state: QueryExecutionState): void {
         if (this.queryRecords.has(state.queryId)) return;
-        this.queryRecords.set(state.queryId, {
-            traceId: state.traceId,
-            queryText: state.queryText,
-            queryMetadata: state.queryMetadata,
-            cancellation: state.cancellation,
-            error: state.error,
-            progress: state.latestProgressUpdate,
-        });
+        this.queryRecords.set(state.queryId, queryRecord(state));
     }
 
     /// Keep the latest progress of a query, an update without structured progress keeps the one of the previous update
     setQueryProgress(queryId: number, progress: QueryExecutionProgress): void {
         const record = this.queryRecords.get(queryId);
-        if (record == null) return;
-        const profileProgress = progress.profileProgress ?? record.progress?.profileProgress ?? null;
-        record.progress = { ...progress, profileProgress };
+        if (record != null) updateQueryRecordProgress(record, progress);
     }
 
     setQueryError(queryId: number, error: LoggableException): void {
@@ -343,41 +325,8 @@ export class NativeConnection {
         const record = this.queryRecords.get(queryId);
         const snapshot = this.connection.query(queryId);
         if (record == null || snapshot == null) return null;
-        const m = snapshot.metrics;
-        const state: QueryExecutionState = {
-            queryId,
-            traceId: record.traceId,
-            queryText: record.queryText,
-            queryMetadata: record.queryMetadata,
-            status: snapshot.status,
-            metrics: {
-                queryRequestedAt: toDate(m.queryRequestedAt),
-                querySendingStartedAt: toDate(m.querySendingStartedAt),
-                queryQueuedStartedAt: toDate(m.queryQueuedStartedAt),
-                queryRunningStartedAt: toDate(m.queryRunningStartedAt),
-                receivedFirstBatchAt: toDate(m.receivedFirstBatchAt),
-                receivedLastBatchAt: toDate(m.receivedLastBatchAt),
-                receivedAllBatchesAt: toDate(m.receivedAllBatchesAt),
-                processingResultsStartedAt: toDate(m.processingResultsStartedAt),
-                processedResultsAt: toDate(m.processedResultsAt),
-                querySucceededAt: toDate(m.querySucceededAt),
-                queryFailedAt: toDate(m.queryFailedAt),
-                queryCancelledAt: toDate(m.queryCancelledAt),
-                lastUpdatedAt: toDate(m.lastUpdatedAt),
-                progressUpdatesReceived: m.progressUpdatesReceived,
-                queryDurationMs: m.queryDurationMs,
-                textLength: m.textLength,
-                streamMetrics: m.streamMetrics,
-            },
-            cancellation: record.cancellation,
-            error: snapshot.error == null ? null : (record.error ?? new LoggableException(snapshot.error.message, {}, 'connection_state')),
-            latestProgressUpdate: record.progress,
-            resultTable: snapshot.resultTable == null ? null : (this.tables.get(snapshot.resultTable.id) ?? null),
-            cacheKey: snapshot.cacheKey,
-            servedFromCache: snapshot.servedFromCache,
-            cacheDeleted: snapshot.cacheDeleted,
-            cachedAt: toDate(snapshot.cachedAt),
-        };
+        const resultTable = snapshot.resultTable == null ? null : (this.tables.get(snapshot.resultTable.id) ?? null);
+        const state = projectQuery(snapshot, record, resultTable, 'connection_state');
         this.projectedQueries.set(queryId, { revision, state });
         return state;
     }

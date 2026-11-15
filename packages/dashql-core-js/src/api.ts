@@ -8,6 +8,7 @@ import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
 import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorType } from './connection.js';
 import { DashQLComputations } from './computations.js';
+import { DashQLQueryHistory } from './query_history.js';
 import { DashQLStorageWriter } from './storage_writer.js';
 import { DashQLQueryExecutor } from './query_executor.js';
 import { DashQLCatalogLoader } from './catalog_loader.js';
@@ -38,6 +39,7 @@ export type DashQLBindings = Pick<
     | 'Shell'
     | 'Workbook'
     | 'Connection'
+    | 'QueryHistory'
     | 'Computations'
     | 'StorageWriter'
     | 'QueryExecutor'
@@ -449,6 +451,12 @@ export class DashQL {
     /// package.
     public createConnection(connectionId: string, connector: DashQLConnectorType, options: DashQLConnectionOptions = {}, now = Date.now()): DashQLConnection {
         return DashQLConnection.create(this, connectionId, connector, options, now);
+    }
+
+    /// Create a history of queries of its own in the Rust runtime, e.g. the one of the shell, through the instance
+    /// like a workbook. It keeps at most `limit` queries, every query without.
+    public createQueryHistory(limit: number | null = null): DashQLQueryHistory {
+        return DashQLQueryHistory.create(this, limit);
     }
 
     /// Create the computations of result tables in the Rust runtime, through the instance like a workbook

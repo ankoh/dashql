@@ -25,7 +25,7 @@ describe('ShellQueryHistoryProvider', () => {
         container.remove();
     });
 
-    it('lists the queries of the shell as entries of the query history', () => {
+    it('lists the queries of the shell as entries of the query history', async () => {
         let history: ReturnType<typeof useShellQueryHistory> | null = null;
         const Probe = () => {
             history = useShellQueryHistory();
@@ -56,6 +56,8 @@ describe('ShellQueryHistoryProvider', () => {
             history!.dispatch({ type: QUERY_SUCCEEDED, value: [query.queryId] });
         });
 
+        // The history waits for the core of the shell
+        await vi.waitFor(() => expect(history!.getSnapshot()).toHaveLength(1));
         const entries = shellQueryEntries(history!.getSnapshot());
         expect(entries).toHaveLength(1);
         expect(entries[0]).toMatchObject({ connectionId: SHELL_DATABASE_ID, sourceName: 'Hyper', queryId: query.queryId });

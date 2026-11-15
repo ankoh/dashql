@@ -1,8 +1,14 @@
 // @vitest-environment node
+import * as core from '@ankoh/dashql-core';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -124,7 +130,7 @@ describe('embedded database shell environment', () => {
 
     it('tracks successful queries with their row count', async () => {
         const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [1, 2, 3] }));
-        const tracker = new ShellQueryExecutionTracker();
+        const tracker = new ShellQueryExecutionTracker(dql);
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
 
         await environment.executeQuery('SELECT * FROM values');
@@ -141,7 +147,7 @@ describe('embedded database shell environment', () => {
 
     it('tracks failed queries', async () => {
         const query = vi.fn().mockRejectedValue(new Error('syntax error'));
-        const tracker = new ShellQueryExecutionTracker();
+        const tracker = new ShellQueryExecutionTracker(dql);
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
 
         await expect(environment.executeQuery('SELEC 1')).rejects.toThrow('syntax error');
@@ -156,7 +162,7 @@ describe('embedded database shell environment', () => {
 
     it('tracks cancelled queries', async () => {
         const query = vi.fn();
-        const tracker = new ShellQueryExecutionTracker();
+        const tracker = new ShellQueryExecutionTracker(dql);
         const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker);
         const abort = new AbortController();
         abort.abort();

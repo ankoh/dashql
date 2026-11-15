@@ -53,7 +53,8 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 - `reduceWorkbookScripts(state, action, storage, logger)` (`workbook/scripts/workbook_scripts.ts`, 29 actions)
 - `reduceConnectionState(prev, action, logger)` (`connections/connection_state.ts`), an adapter over the Rust connection
   (`connections/connection_native.ts`, see [core_runtime.md](core_runtime.md))
-- `query/query_execution_state.ts`, `compute/computation_state.ts`
+- `compute/computation_state.ts`; the query history of the shell is an adapter over a Rust history
+  (`query/shell_query_execution.ts`, see [core_runtime.md](core_runtime.md))
 
 ### Imports that pulled UI code into the domain
 

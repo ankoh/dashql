@@ -5,7 +5,8 @@
 //! host as JSON. A connection that is reset or deleted stops its queries: the binding drops the history and names the
 //! active queries in the effect. The state is read as JSON snapshots: the connection, the list of the queries with
 //! their revisions and each query. The catalog is shared with a `Catalog` handle, the scripts of workbooks analyze
-//! with the same catalog.
+//! with the same catalog. The query actions and the JSON of the queries are the ones of a `QueryHistory` of its own
+//! (`query_history.rs`).
 
 use std::cell::{Ref, RefCell};
 use std::collections::BTreeMap;
@@ -22,13 +23,11 @@ use dashql_core_runtime::connections::{
     ConnectorDetails, ConnectorType, DetailedError, HyperAction, OAuthPkceChallenge, RelationName, SalesforceAction,
     SetupTimings, TemporaryToken, TrinoAction,
 };
-use dashql_core_runtime::query::{
-    QueryError, QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionMetrics,
-    QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable, QueryType,
-};
+use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionHistory};
 use serde_json::{json, Map, Value};
 use wasm_bindgen::prelude::*;
 
+use super::query_history;
 use super::{js_error, Catalog, SharedCatalog, ENTRY_IDS};
 
 fn invalid(message: impl Into<String>) -> JsError {
@@ -248,102 +247,17 @@ fn task_json(task: &CatalogUpdateTask) -> Value {
     })
 }
 
-fn stream_metrics(value: &Value) -> QueryExecutionMetrics {
-    let count = |key: &str| value.get(key).and_then(Value::as_f64).map(|v| v.max(0.0) as u64).unwrap_or(0);
-    QueryExecutionMetrics {
-        total_data_bytes_received: count("totalDataBytesReceived"),
-        total_batches_received: count("totalBatchesReceived"),
-        total_rows_received: count("totalRowsReceived"),
-        total_query_requests_started: count("totalQueryRequestsStarted"),
-        total_query_requests_succeeded: count("totalQueryRequestsSucceeded"),
-        total_query_requests_failed: count("totalQueryRequestsFailed"),
-        total_query_request_duration_ms: value.get("totalQueryRequestDurationMs").and_then(Value::as_f64).unwrap_or(0.0) as i64,
-        duration_until_first_batch_ms: value.get("durationUntilFirstBatchMs").and_then(Value::as_f64).map(|v| v as i64),
-    }
-}
-
-fn stream_metrics_json(metrics: &QueryExecutionMetrics) -> Value {
-    json!({
-        "totalDataBytesReceived": metrics.total_data_bytes_received,
-        "totalBatchesReceived": metrics.total_batches_received,
-        "totalRowsReceived": metrics.total_rows_received,
-        "totalQueryRequestsStarted": metrics.total_query_requests_started,
-        "totalQueryRequestsSucceeded": metrics.total_query_requests_succeeded,
-        "totalQueryRequestsFailed": metrics.total_query_requests_failed,
-        "totalQueryRequestDurationMs": metrics.total_query_request_duration_ms,
-        "durationUntilFirstBatchMs": metrics.duration_until_first_batch_ms,
-    })
-}
-
-fn query_type(query_type: u8) -> Result<QueryType, JsError> {
-    Ok(match query_type {
-        0 => QueryType::UserProvided,
-        1 => QueryType::CatalogQueryInformationSchema,
-        2 => QueryType::CatalogQueryPgAttribute,
-        3 => QueryType::CatalogQueryPgProc,
-        4 => QueryType::CatalogQueryHyperCloud,
-        5 => QueryType::HealthCheck,
-        6 => QueryType::InternalSqlframe,
-        7 => QueryType::CloudStore,
-        _ => return Err(invalid(format!("unknown query type {query_type}"))),
-    })
-}
-
-/// The metadata of a query from its JSON, the fields of `QueryMetadata` of the runtime. A planned statement stays with
-/// the host.
-fn query_metadata(text: &str) -> Result<QueryMetadata, JsError> {
-    let value = parse(text)?;
-    let string = |key: &str| value.get(key).and_then(Value::as_str).map(str::to_string);
-    let kind = query_type(value.get("queryType").and_then(Value::as_u64).unwrap_or(0) as u8)?;
-    let mut metadata = QueryMetadata::new(kind);
-    metadata.title = string("title");
-    metadata.description = string("description");
-    metadata.issuer = string("issuer");
-    metadata.user_provided = value.get("userProvided").and_then(Value::as_bool).unwrap_or(metadata.user_provided);
-    metadata.workbook_id = string("workbookId");
-    metadata.result_owner = string("resultOwner");
-    Ok(metadata)
-}
-
-fn query_json(query: &QueryExecutionState) -> Value {
-    let metrics = &query.metrics;
-    json!({
-        "queryId": query.query_id,
-        "status": query.status as u8,
-        "metrics": {
-            "queryRequestedAt": metrics.query_requested_at,
-            "querySendingStartedAt": metrics.query_sending_started_at,
-            "queryQueuedStartedAt": metrics.query_queued_started_at,
-            "queryRunningStartedAt": metrics.query_running_started_at,
-            "receivedFirstBatchAt": metrics.received_first_batch_at,
-            "receivedLastBatchAt": metrics.received_last_batch_at,
-            "receivedAllBatchesAt": metrics.received_all_batches_at,
-            "processingResultsStartedAt": metrics.processing_results_started_at,
-            "processedResultsAt": metrics.processed_results_at,
-            "querySucceededAt": metrics.query_succeeded_at,
-            "queryFailedAt": metrics.query_failed_at,
-            "queryCancelledAt": metrics.query_cancelled_at,
-            "lastUpdatedAt": metrics.last_updated_at,
-            "progressUpdatesReceived": metrics.progress_updates_received,
-            "queryDurationMs": metrics.query_duration_ms,
-            "textLength": metrics.text_length,
-            "streamMetrics": stream_metrics_json(&metrics.stream_metrics),
-        },
-        "error": query.error.as_ref().map(|error| json!({ "message": error.message, "details": error.details })),
-        "resultTable": query.result_table.map(|table| json!({ "id": table.id, "rows": table.rows })),
-        "cacheKey": query.cache_key,
-        "servedFromCache": query.served_from_cache,
-        "cacheDeleted": query.cache_deleted,
-        "cachedAt": query.cached_at,
-        "revision": query.revision,
-    })
-}
-
 /// What an action did: whether it changed the connection or its queries and the effects for the host as JSON
 #[wasm_bindgen]
 pub struct ConnectionOutcome {
     changed: bool,
     effects: String,
+}
+
+impl ConnectionOutcome {
+    pub(crate) fn new(changed: bool, effects: String) -> Self {
+        ConnectionOutcome { changed, effects }
+    }
 }
 
 #[wasm_bindgen]
@@ -358,14 +272,6 @@ impl ConnectionOutcome {
     #[wasm_bindgen(getter)]
     pub fn effects(&self) -> String {
         self.effects.clone()
-    }
-}
-
-fn query_effect_json(effect: &QueryExecutionEffect) -> Value {
-    match effect {
-        QueryExecutionEffect::ReleaseResultTable { query_id, table } => {
-            json!({ "type": "releaseResultTable", "queryId": query_id, "tableId": table.id })
-        }
     }
 }
 
@@ -407,7 +313,7 @@ impl Connection {
                 ConnectionEffect::StopQueries => {
                     let (active, cleared) = self.queries.borrow_mut().clear();
                     out.push(json!({ "type": "stopQueries", "queryIds": active }));
-                    out.extend(cleared.effects.iter().map(query_effect_json));
+                    out.extend(cleared.effects.iter().map(query_history::query_effect_json));
                     continue;
                 }
             });
@@ -417,9 +323,7 @@ impl Connection {
 
     /// Apply an action to the queries
     fn apply_query(&mut self, action: QueryExecutionAction) -> Result<ConnectionOutcome, JsError> {
-        let outcome = self.queries.borrow_mut().apply(action).map_err(js_error)?;
-        let effects = Value::Array(outcome.effects.iter().map(query_effect_json).collect()).to_string();
-        Ok(ConnectionOutcome { changed: outcome.changed, effects })
+        self.queries.borrow_mut().apply(action).map(query_history::query_outcome).map_err(js_error)
     }
 
     fn finish_task(&mut self, task_id: u32, status: u8, error: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
@@ -789,9 +693,7 @@ impl Connection {
     /// Start tracking a requested query, the metadata is JSON
     #[wasm_bindgen(js_name = executeQuery)]
     pub fn execute_query(&mut self, query_id: f64, trace_id: f64, text: String, metadata: &str, requested_at: f64) -> Result<ConnectionOutcome, JsError> {
-        let metadata = query_metadata(metadata)?;
-        let state = QueryExecutionState::new(query_id as u64, trace_id as u64, text, metadata, requested_at as i64);
-        self.apply_query(QueryExecutionAction::ExecuteQuery { state: Box::new(state) })
+        self.apply_query(query_history::execute_query(query_id, trace_id, text, metadata, requested_at)?)
     }
 
     #[wasm_bindgen(js_name = querySending)]
@@ -808,34 +710,18 @@ impl Connection {
     /// the host.
     #[wasm_bindgen(js_name = queryProgressUpdated)]
     pub fn query_progress_updated(&mut self, query_id: f64, progress: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let value = parse(progress)?;
-        let number = |key: &str| value.get(key).and_then(Value::as_f64);
-        let progress = QueryExecutionProgress {
-            is_queued: value.get("isQueued").and_then(Value::as_bool),
-            progress_percent: number("progressPercent"),
-            result_rows: number("resultRows").map(|v| v.max(0.0) as u64),
-            rows_processed: number("rowsProcessed").map(|v| v.max(0.0) as u64),
-            execution_time_ms: number("executionTimeMs").map(|v| v as i64),
-            metrics: value.get("metrics").map(stream_metrics).unwrap_or_default(),
-            phase: value.get("phase").and_then(Value::as_str).map(str::to_string),
-            engine_progress: None,
-            profile_progress: None,
-        };
-        self.apply_query(QueryExecutionAction::QueryProgressUpdated { query_id: query_id as u64, progress: Box::new(progress), now: now as i64 })
+        self.apply_query(query_history::query_progress_updated(query_id, progress, now)?)
     }
 
     #[wasm_bindgen(js_name = queryReceivedBatch)]
     pub fn query_received_batch(&mut self, query_id: f64, metrics: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let metrics = stream_metrics(&parse(metrics)?);
-        self.apply_query(QueryExecutionAction::QueryReceivedBatch { query_id: query_id as u64, metrics, now: now as i64 })
+        self.apply_query(query_history::query_received_batch(query_id, metrics, now)?)
     }
 
     /// All batches arrived, the host keeps the table under its id
     #[wasm_bindgen(js_name = queryReceivedAllBatches)]
     pub fn query_received_all_batches(&mut self, query_id: f64, table_id: f64, rows: f64, metrics: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let metrics = stream_metrics(&parse(metrics)?);
-        let table = QueryResultTable { id: table_id as u64, rows: rows.max(0.0) as u64 };
-        self.apply_query(QueryExecutionAction::QueryReceivedAllBatches { query_id: query_id as u64, table, metrics, now: now as i64 })
+        self.apply_query(query_history::query_received_all_batches(query_id, table_id, rows, metrics, now)?)
     }
 
     #[wasm_bindgen(js_name = queryProcessingResults)]
@@ -855,22 +741,17 @@ impl Connection {
 
     #[wasm_bindgen(js_name = queryFailed)]
     pub fn query_failed(&mut self, query_id: f64, message: String, details: Option<String>, metrics: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let metrics = metrics.as_deref().map(parse).transpose()?.map(|value| stream_metrics(&value));
-        let error = QueryError { message, details };
-        self.apply_query(QueryExecutionAction::QueryFailed { query_id: query_id as u64, error, metrics, now: now as i64 })
+        self.apply_query(query_history::query_failed(query_id, message, details, metrics, now)?)
     }
 
     #[wasm_bindgen(js_name = queryCancelled)]
     pub fn query_cancelled(&mut self, query_id: f64, message: String, details: Option<String>, metrics: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let metrics = metrics.as_deref().map(parse).transpose()?.map(|value| stream_metrics(&value));
-        let error = QueryError { message, details };
-        self.apply_query(QueryExecutionAction::QueryCancelled { query_id: query_id as u64, error, metrics, now: now as i64 })
+        self.apply_query(query_history::query_cancelled(query_id, message, details, metrics, now)?)
     }
 
     #[wasm_bindgen(js_name = queryCacheRecorded)]
     pub fn query_cache_recorded(&mut self, query_id: f64, cache_key: String, served_from_cache: bool, cached_at: Option<f64>) -> Result<ConnectionOutcome, JsError> {
-        let cached_at = cached_at.map(|at| at as i64);
-        self.apply_query(QueryExecutionAction::QueryCacheRecorded { query_id: query_id as u64, cache_key, served_from_cache, cached_at })
+        self.apply_query(query_history::query_cache_recorded(query_id, cache_key, served_from_cache, cached_at))
     }
 
     #[wasm_bindgen(js_name = queryCacheDeleted)]
@@ -942,36 +823,11 @@ impl Connection {
     /// The queries as JSON: the active and the finished ones in order with their revisions, the counter of started and
     /// finished queries and the metrics of the connection
     pub fn queries(&self) -> String {
-        let history = self.queries.borrow();
-        let list = |ids: &[u64]| -> Vec<Value> {
-            ids.iter().map(|id| json!([id, history.query(*id).map(|query| query.revision).unwrap_or(0)])).collect()
-        };
-        let metrics = history.metrics();
-        let outcome = |m: &dashql_core_runtime::query::ConnectionQueryMetrics| {
-            json!({
-                "totalQueries": m.total_queries,
-                "totalBatchesReceived": m.total_batches_received,
-                "totalRowsReceived": m.total_rows_received,
-                "accumulatedTimeUntilFirstBatch": m.accumulated_time_until_first_batch,
-                "accumulatedQueryDuration": m.accumulated_query_duration,
-            })
-        };
-        json!({
-            "revision": history.revision(),
-            "active": list(history.active_ids()),
-            "finished": list(history.finished_ids()),
-            "snapshot": history.snapshot_queries_active_finished(),
-            "metrics": {
-                "successfulQueries": outcome(&metrics.successful_queries),
-                "canceledQueries": outcome(&metrics.canceled_queries),
-                "failedQueries": outcome(&metrics.failed_queries),
-            },
-        })
-        .to_string()
+        query_history::queries_json(&self.queries.borrow())
     }
 
     /// The plain fields of a query as JSON, none for an unknown query
     pub fn query(&self, query_id: f64) -> Option<String> {
-        self.queries.borrow().query(query_id as u64).map(|query| query_json(query).to_string())
+        self.queries.borrow().query(query_id as u64).map(|query| query_history::query_json(query).to_string())
     }
 }

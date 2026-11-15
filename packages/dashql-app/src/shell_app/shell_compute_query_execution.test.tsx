@@ -44,6 +44,8 @@ describe('ShellComputeQueryExecutionProvider', () => {
             await createExecution!(task)('SELECT count(*) FROM input', async () => 42);
         });
 
+        // The history waits for the core of the shell
+        await vi.waitFor(() => expect(history!.getSnapshot()).toHaveLength(1));
         expect(history!.getSnapshot()).toMatchObject([{
             queryText: 'SELECT count(*) FROM input',
             queryMetadata: {

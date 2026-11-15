@@ -1,4 +1,5 @@
 import { DashQL, DashQLCatalog, Ptr } from './api.js';
+import { plainQueryMetadata, plainQueryProgress } from './query_history.js';
 import type * as glue from './wasm/dashql_core.js';
 
 /// A connection with the history of its queries in the Rust runtime (`packages/dashql-core-runtime`, see
@@ -466,16 +467,7 @@ export class DashQLConnection {
     // The queries
 
     public executeQuery(queryId: number, traceId: number, text: string, metadata: DashQLQueryMetadata, requestedAt = Date.now()): DashQLConnectionOutcome {
-        const plain: DashQLQueryMetadata = {
-            queryType: metadata.queryType,
-            title: metadata.title,
-            description: metadata.description,
-            issuer: metadata.issuer,
-            userProvided: metadata.userProvided,
-            workbookId: metadata.workbookId,
-            resultOwner: metadata.resultOwner,
-        };
-        return this.outcome(this.native().executeQuery(queryId, traceId, text, json(plain), requestedAt));
+        return this.outcome(this.native().executeQuery(queryId, traceId, text, json(plainQueryMetadata(metadata)), requestedAt));
     }
     public querySending(queryId: number, now = Date.now()): DashQLConnectionOutcome {
         return this.outcome(this.native().querySending(queryId, now));
@@ -485,16 +477,7 @@ export class DashQLConnection {
     }
     /// The backend reported progress, only the plain fields cross
     public queryProgressUpdated(queryId: number, progress: DashQLQueryProgress, now = Date.now()): DashQLConnectionOutcome {
-        const plain: DashQLQueryProgress = {
-            isQueued: progress.isQueued,
-            progressPercent: progress.progressPercent,
-            resultRows: progress.resultRows,
-            rowsProcessed: progress.rowsProcessed,
-            executionTimeMs: progress.executionTimeMs,
-            metrics: progress.metrics,
-            phase: progress.phase ?? null,
-        };
-        return this.outcome(this.native().queryProgressUpdated(queryId, json(plain), now));
+        return this.outcome(this.native().queryProgressUpdated(queryId, json(plainQueryProgress(progress)), now));
     }
     public queryReceivedBatch(queryId: number, metrics: DashQLStreamMetrics, now = Date.now()): DashQLConnectionOutcome {
         return this.outcome(this.native().queryReceivedBatch(queryId, json(metrics), now));

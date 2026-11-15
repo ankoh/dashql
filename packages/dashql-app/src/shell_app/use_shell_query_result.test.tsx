@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
 
 import {
     EXECUTE_QUERY,
@@ -11,6 +12,11 @@ import {
 } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from '@ankoh/dashql-runtime/query/shell_query_execution';
 import { useShellQueryResult } from './use_shell_query_result.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 function createExecution(queryId: number) {
     return createQueryExecutionState(
@@ -44,7 +50,7 @@ describe('useShellQueryResult', () => {
     });
 
     it('keeps the open result after shell history evicts its query', () => {
-        const tracker = new ShellQueryExecutionTracker();
+        const tracker = new ShellQueryExecutionTracker(dql);
         tracker.dispatch({ type: EXECUTE_QUERY, value: [1, createExecution(1)] });
         tracker.dispatch({ type: QUERY_SUCCEEDED, value: [1] });
 
@@ -73,7 +79,7 @@ describe('useShellQueryResult', () => {
         let release: ReturnType<typeof vi.fn<(queryId: number) => void>>;
 
         beforeEach(() => {
-            const tracker = new ShellQueryExecutionTracker();
+            const tracker = new ShellQueryExecutionTracker(dql);
             for (const queryId of [1, 2]) {
                 tracker.dispatch({ type: EXECUTE_QUERY, value: [queryId, createExecution(queryId)] });
                 tracker.dispatch({ type: QUERY_SUCCEEDED, value: [queryId] });

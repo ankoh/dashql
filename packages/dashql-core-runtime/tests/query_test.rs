@@ -1,4 +1,4 @@
-//! Tests of the query executions and the progress of queries, ported from `query_execution_state.test.ts` and
+//! Tests of the query executions and the progress of queries, ported from the reducer tests and
 //! `tracked_query_execution.test.ts` of the TypeScript runtime and the progress model tests of
 //! `query_progress_format.test.ts` and `profile_execution_controller.test.ts` of the app.
 
@@ -317,6 +317,47 @@ fn a_result_that_arrives_again_releases_the_earlier_one() {
     assert!(history.apply(all(10)).unwrap().effects.is_empty());
     let effects = history.apply(all(11)).unwrap().effects;
     assert_eq!(effects, vec![QueryExecutionEffect::ReleaseResultTable { query_id: 1, table: QueryResultTable { id: 10, rows: 1 } }]);
+}
+
+// A history of its own with a limit, e.g. the one of the shell
+
+#[test]
+fn a_limited_history_drops_the_oldest_finished_queries_first() {
+    let mut history = QueryExecutionHistory::with_limit(3);
+    succeed(&mut history, 1, metadata(QueryType::UserProvided, None));
+    succeed(&mut history, 2, metadata(QueryType::UserProvided, None));
+    start(&mut history, 3, metadata(QueryType::UserProvided, None));
+    // The oldest finished query leaves with its result table
+    let state = QueryExecutionState::new(4, 0, "select 4", metadata(QueryType::UserProvided, None), NOW);
+    let outcome = history.apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
+    assert!(outcome.changed);
+    assert_eq!(outcome.effects, vec![release(1)]);
+    assert_eq!(history.finished_ids(), &[2]);
+    assert_eq!(history.active_ids(), &[3, 4]);
+    assert!(history.query(1).is_none());
+}
+
+#[test]
+fn a_limited_history_drops_the_oldest_active_queries_without_finished_ones() {
+    let mut history = QueryExecutionHistory::with_limit(2);
+    for query_id in 1..=4 {
+        start(&mut history, query_id, metadata(QueryType::UserProvided, None));
+    }
+    assert_eq!(history.active_ids(), &[3, 4]);
+    assert_eq!(history.finished_ids(), &[] as &[QueryId]);
+    // A late action on a dropped query changes nothing
+    let outcome = history.apply(QueryExecutionAction::QuerySucceeded { query_id: 1, now: NOW }).unwrap();
+    assert!(!outcome.changed);
+    assert!(history.query(1).is_none());
+}
+
+#[test]
+fn a_history_without_a_limit_keeps_every_user_query() {
+    let mut history = QueryExecutionHistory::new();
+    for query_id in 1..=150 {
+        succeed(&mut history, query_id, metadata(QueryType::UserProvided, None));
+    }
+    assert_eq!(history.finished_ids().len(), 150);
 }
 
 // Tracked query executions: the actions that `executeTrackedQuery` dispatches

@@ -3,7 +3,8 @@
 Status: the workbook scripts, the connections, the computations, the storage writes, the queries, the restore of the
 stored state, the persistence of connections and the storage format of workbooks of the app run on Rust.
 `packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
-connection with the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts`
+connection with the history of its queries, the query history of the shell and the computations, linked into the core
+module. `reduceWorkbookScripts`
 of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
 `reduceConnectionState` one over the connection (`connections/connection_native.ts`), `reduceComputationState` one
 over the computations (`compute/computation_native.ts`). The storage writer is the first service on a host
@@ -21,9 +22,9 @@ the storage, the imports and the exports of the TypeScript runtime (`src/workboo
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
-schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`,
-`AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`, `ConnectionSetupRun`) belong to
-DashQL and change with it, their snapshots cross as JSON.
+schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `QueryHistory`, `Computations`,
+`StorageWriter`, `AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`,
+`ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON.
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -565,6 +566,30 @@ change.
   rejects. The metrics of a Hyper result over HTTP count its batches and rows. The executor reads the auth headers of
   a Hyper connection once per query.
 
+## The query history of the shell
+
+`ShellQueryExecutionTracker` of the TypeScript runtime (`query/shell_query_execution.ts`) is an adapter over a query
+history of its own, bound as the class `QueryHistory` of the module (`packages/dashql-core-wasm/src/query_history.rs`,
+`DashQLQueryHistory` of `@ankoh/dashql-core`, created with `DashQL.createQueryHistory`). It kept its API, the shell of
+the app didn't change. `reduceQueryAction` of TypeScript is gone, `query/query_execution_state.ts` keeps the types of a
+query execution and its actions.
+
+- **A history without a connection.** `QueryHistory` holds a `QueryExecutionHistory` of the crate and takes the query
+  actions of a connection, its queries read like the ones of a connection. `Connection` shares the actions and the JSON
+  of its queries with it, and the adapters share the mapping of the actions and the projection of a query
+  (`query/query_history_native.ts`).
+- **The last 100 queries.** `QueryExecutionHistory::with_limit` keeps at most a number of queries: a query that starts
+  beyond the limit drops the oldest finished queries, then the oldest active ones, and releases their result tables.
+  A later action on a dropped query changes nothing. The history of a connection has no limit.
+- **The JavaScript objects stay with the tracker.** It keeps the result tables by id, the cancellations, the errors and
+  the progress of the queries, and lists the finished queries before the active ones. A result that the shell shows
+  keeps its table after its query left the history.
+- **The core comes with the first action.** The tracker takes the core or a function that sets it up. The provider of
+  the shell sets up the core of the app, the actions before the core is there wait for it. The provider frees the
+  history with the component.
+- **Changed on purpose.** An action that changes nothing, e.g. a late failure of a finished query, keeps the snapshot
+  and doesn't notify the subscribers. A query id that the history knows is refused instead of replacing the query.
+
 ## The runs of workbooks
 
 `runWorkbookExecution`, `runPlannedScript` and the result keys of scripts (`computeScriptResultCacheKey`,
@@ -640,7 +665,6 @@ about that.
 - The connections of a native workbook that changed on disk are still created in TypeScript
   (`connections/connection_restore.ts`), the restore of a single workbook could take them over.
 - The registry of connections applies its actions in TypeScript, only the decisions of their persistence are Rust.
-- The query history of the shell (`query/shell_query_execution.ts`) still runs on `reduceQueryAction` in TypeScript.
 - The progress model of a query runs in the adapter of the query executor in TypeScript, the Rust history gets the
   plain fields of a progress update, the adapter keeps the structured progress. The planned statement of a query stays
   in TypeScript.

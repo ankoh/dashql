@@ -66,6 +66,7 @@ import {
     QUERY_CACHE_DELETED,
     QueryExecutionState,
 } from '../query/query_execution_state.js';
+import { applyQueryAction } from '../query/query_history_native.js';
 import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import type { Logger } from '../platform/logger/logger.js';
 import type { RelationName } from './catalog/catalog_sql_generator.js';
@@ -361,61 +362,20 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             break;
         }
 
-        case EXECUTE_QUERY: {
-            const [queryId, query] = action.value;
-            native.registerQuery(query);
-            outcome = connection.executeQuery(queryId, query.traceId, query.queryText, query.queryMetadata, query.metrics.queryRequestedAt?.getTime() ?? now);
-            break;
-        }
+        case EXECUTE_QUERY:
         case QUERY_SENDING:
-            outcome = connection.querySending(action.value[0], now);
-            break;
         case QUERY_RUNNING:
-            outcome = connection.queryRunning(action.value[0], now);
-            break;
-        case QUERY_PROGRESS_UPDATED: {
-            const [queryId, progress] = action.value;
-            outcome = connection.queryProgressUpdated(queryId, progress, now);
-            if (outcome.changed) native.setQueryProgress(queryId, progress);
-            break;
-        }
+        case QUERY_PROGRESS_UPDATED:
         case QUERY_RECEIVED_BATCH:
-            outcome = connection.queryReceivedBatch(action.value[0], action.value[1], now);
-            break;
-        case QUERY_RECEIVED_ALL_BATCHES: {
-            const [queryId, table, metrics] = action.value;
-            const tableId = native.registerTable(table);
-            outcome = connection.queryReceivedAllBatches(queryId, tableId, table.numRows, metrics, now);
-            // The result of a query that isn't active is dropped right away
-            if (!outcome.changed) native.releaseTable(tableId);
-            break;
-        }
+        case QUERY_RECEIVED_ALL_BATCHES:
         case QUERY_PROCESSING_RESULTS:
-            outcome = connection.queryProcessingResults(action.value[0], now);
-            break;
         case QUERY_PROCESSED_RESULTS:
-            outcome = connection.queryProcessedResults(action.value[0], now);
-            break;
         case QUERY_SUCCEEDED:
-            outcome = connection.querySucceeded(action.value[0], now);
-            break;
         case QUERY_FAILED:
-        case QUERY_CANCELLED: {
-            const [queryId, error, metrics] = action.value;
-            const details = error.keyValues == null || Object.keys(error.keyValues).length === 0 ? null : JSON.stringify(error.keyValues);
-            outcome = action.type === QUERY_FAILED
-                ? connection.queryFailed(queryId, error.message, details, metrics, now)
-                : connection.queryCancelled(queryId, error.message, details, metrics, now);
-            if (outcome.changed) native.setQueryError(queryId, error);
-            break;
-        }
-        case QUERY_CACHE_RECORDED: {
-            const [queryId, cacheKey, servedFromCache, cachedAt] = action.value;
-            outcome = connection.queryCacheRecorded(queryId, cacheKey, servedFromCache, cachedAt);
-            break;
-        }
+        case QUERY_CANCELLED:
+        case QUERY_CACHE_RECORDED:
         case QUERY_CACHE_DELETED:
-            outcome = connection.queryCacheDeleted(action.value[0]);
+            outcome = applyQueryAction(connection, native, action, now);
             break;
 
         default:
