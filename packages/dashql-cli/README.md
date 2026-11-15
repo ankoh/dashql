@@ -6,6 +6,8 @@ harness gets the answers of the app (`docs/wip/dashql_runtime.md`):
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
 - **`dashql run`** runs the scripts of a workbook folder on Trino and the embedded Hyper, results go into the query result cache.
+- **`dashql connect`** launches Claude Code or Codex and shows its session live in the tab of DashQL that gave the
+  command, see below.
 - **`dashql session`** shows the session of an agent harness in DashQL, see below.
 
 ```
@@ -16,6 +18,11 @@ bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/sni
 Vite bundles the command with the sources of the runtime into one module for Node (`dist/dashql.js`,
 `//packages/dashql-cli:bundle`). The core stays a package next to it, the command reads its Wasm file from there.
 `lint`, `format` and `run` need Node 22 or later.
+
+On npm the command is `@ankoh/dashql-cli` (`npx -y @ankoh/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
+packs the bundle with the metadata of `npm/package.json`, which depends on `@ankoh/dashql-core` and `hyperdb-wasm`.
+`:npm_package_test` keeps their versions those of the build, so the core is published first. CI uploads the tarball
+next to the one of the core (`dashql_cli_npm`), publishing is by hand.
 
 ## dashql lint
 
@@ -175,10 +182,26 @@ that are not named show up only when they fail. `--verbose` prints the log of th
 The exit code is 0 if all scripts ran, 1 if a script failed or didn't run, 2 on usage errors or a folder without a
 workbook and 130 when interrupted.
 
+## dashql connect
+
+```
+npx -y @ankoh/dashql-cli connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
+```
+
+The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
+server there. `connect` starts the server of the session (the server of `session serve`, in the process of `connect`) on `127.0.0.1:<port>`
+with the secret as its token, and launches the harness in the terminal with hooks that send its events there: Claude
+Code with `--settings`, Codex with `-c hooks={…}`; nothing is written to `~/.claude` or `~/.codex`. Codex shows the
+new hooks for review once at its start. The hooks call this `dashql` again (`session hook … --connected`) and find the
+server in `DASHQL_SESSION_ENDPOINT` and `DASHQL_SESSION_TOKEN`; hooks of `dashql session` in the settings of the harness
+stay quiet then. When the harness exits, `connect` ends the session and stops the server and exits with the code of
+the harness. A port that is taken fails before the harness starts, the tab gives a new one. The arguments after `--`
+go to the harness, `--command` launches another program than `claude` or `codex` on the `PATH`.
+
 ## dashql session
 
 ```
-dashql session hook <event> --harness <name>
+dashql session hook <event> --harness <name> [--connected]
 dashql session serve --session <id> --harness <name> [--folder <dir>] [--port <port>]
 dashql session link [--session <id>]
 ```

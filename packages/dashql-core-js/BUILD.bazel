@@ -7,6 +7,9 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 package(default_visibility = ["//visibility:public"])
 
+# The package on npm of the command line tool depends on this version, //packages/dashql-cli:npm_package_test
+exports_files(["package.json"])
+
 filegroup(
     name = "srcs",
     srcs = glob(["src/**/*.ts"]),

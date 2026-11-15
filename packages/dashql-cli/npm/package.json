@@ -1,0 +1,22 @@
+{
+  "name": "@ankoh/dashql-cli",
+  "version": "0.0.1-dev.1",
+  "description": "dashql, the command line tool of DashQL: lint, format and run SQL, show the session of Claude Code or Codex live in DashQL",
+  "type": "module",
+  "license": "MPL-2.0",
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ankoh/dashql.git",
+    "directory": "packages/dashql-cli"
+  },
+  "homepage": "https://github.com/ankoh/dashql/tree/main/packages/dashql-cli#readme",
+  "bugs": { "url": "https://github.com/ankoh/dashql/issues" },
+  "engines": { "node": ">=22" },
+  "bin": { "dashql": "./dist/dashql.js" },
+  "files": ["dist", "README.md", "LICENSE", "NOTICE"],
+  "dependencies": {
+    "@ankoh/dashql-core": "0.0.2-dev.17",
+    "hyperdb-wasm": "0.0.27368-dev.wasm.ge6142229"
+  }
+}

@@ -1,5 +1,6 @@
 // The commands of dashql, see README.md
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
+import { runConnect } from './connect_command.js';
 import { runFormat } from './format_command.js';
 import { runLint } from './lint_command.js';
 import { runRun } from './run_command.js';
@@ -8,6 +9,8 @@ import { runSession } from './session_command.js';
 export const USAGE = `Usage: dashql <command> [options]
 
 Commands:
+  connect --launch <claude|codex> --port <port> --secret <secret>
+                                      Launch Claude Code or Codex and show its session live in DashQL, see dashql connect --help
   format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
   lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help
   run <workbook-dir> [<script>...]    Run the scripts of a workbook folder on their connections, see dashql run --help
@@ -25,6 +28,8 @@ export async function runDashQL(argv: string[], process: CliProcess): Promise<nu
             return await runRun(args, process);
         case 'session':
             return await runSession(args, process);
+        case 'connect':
+            return await runConnect(args, process);
         case '-h':
         case '--help':
             process.stdout(`${USAGE}\n`);

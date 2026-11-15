@@ -300,6 +300,24 @@ jobs:
                   if-no-files-found: error
                   retention-days: 7
 
+            # npx -y @ankoh/dashql-cli, published after the core it depends on
+            - name: Build and validate CLI npm tarball
+              shell: bash
+              run: |
+                  bazel build --config=release \
+                      //packages/dashql-cli:npm_tarball
+                  bazel test --config=release \
+                      //packages/dashql-cli:npm_package_test //packages/dashql-cli:binary_test \
+                      --test_output=errors
+
+            - name: Upload CLI npm tarball
+              uses: actions/upload-artifact@v7
+              with:
+                  name: dashql_cli_npm
+                  path: ./bazel-bin/packages/dashql-cli/dashql-cli.tgz
+                  if-no-files-found: error
+                  retention-days: 7
+
     macos_electron_arm64:
         name: macOS Electron arm64
         runs-on: macos-26

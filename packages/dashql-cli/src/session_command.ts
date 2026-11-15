@@ -3,22 +3,25 @@ import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, wri
 import { homedir } from 'node:os';
 import path from 'node:path';
 
+import type { AgentSessionEvent } from '@ankoh/dashql-runtime/session/agent_session_state';
+
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { sessionEventOf } from './session_hook.js';
 import { startSessionServer } from './session_server.js';
 
 export const SESSION_USAGE = `Usage:
-  dashql session hook <event> --harness <name>
+  dashql session hook <event> --harness <name> [--connected]
       Called by a hook of the harness with its payload on stdin: SessionStart, UserPromptSubmit, PostToolUse, Stop or
       SessionEnd. Starts the server of the session if it has none and sends the event to it. SessionStart prints the
-      link that shows the session in DashQL. Never fails the harness.
+      link that shows the session in DashQL. Never fails the harness. In a harness that dashql connect runs, only the
+      hooks of dashql connect (--connected) send the events, to the server of dashql connect.
   dashql session serve --session <id> --harness <name> [--folder <dir>] [--port <port>]
       Runs the server of a session on 127.0.0.1 until the harness ends the session.
   dashql session link [--session <id>]
       Prints the link of a running session, the latest one by default.
 
 DASHQL_SERVERS is the folder of the running servers of sessions (~/.dashql/servers), DASHQL_APP_URL the page of the links
-(https://dashql.app).`;
+(https://dashql.app). DASHQL_SESSION_ENDPOINT and DASHQL_SESSION_TOKEN name the server of dashql connect.`;
 
 /// A running session, as its server leaves it in the folder of the servers
 interface SessionFile {
@@ -38,9 +41,24 @@ export interface SessionEnvironment {
     appUrl: string;
     /// Start `dashql session serve` with the arguments after `session serve`, detached from the hook
     startServer: (args: string[]) => void;
+    /// The server of `dashql connect` that runs the harness, null outside of it
+    connected: SessionTarget | null;
+}
+
+/// Where the hooks of `dashql connect` send the events, in the environment of the harness
+export const SESSION_ENDPOINT_ENV = 'DASHQL_SESSION_ENDPOINT';
+export const SESSION_TOKEN_ENV = 'DASHQL_SESSION_TOKEN';
+
+/// The server of a session that a hook sends to
+export interface SessionTarget {
+    /// The base URL, `http://127.0.0.1:<port>`
+    endpoint: string;
+    token: string;
 }
 
 export function processSessionEnvironment(): SessionEnvironment {
+    const endpoint = process.env[SESSION_ENDPOINT_ENV];
+    const token = process.env[SESSION_TOKEN_ENV];
     return {
         servers: process.env.DASHQL_SERVERS || path.join(homedir(), '.dashql', 'servers'),
         home: process.env.DASHQL_HOME || null,
@@ -49,6 +67,7 @@ export function processSessionEnvironment(): SessionEnvironment {
             // Node runs the module of dashql again, a hook must not wait for the server
             spawn(process.execPath, [process.argv[1], 'session', 'serve', ...args], { detached: true, stdio: 'ignore' }).unref();
         },
+        connected: endpoint && token ? { endpoint, token } : null,
     };
 }
 
@@ -84,12 +103,15 @@ async function alive(file: SessionFile): Promise<boolean> {
     }
 }
 
-/// The options of a command, `--name value` or `--name=value`
-function options(args: string[]): { positional: string[]; named: Map<string, string> } {
+/// The options of a command, `--name value` or `--name=value`, and the `flags` without a value.
+/// The arguments after `--` are `rest`.
+export function options(args: string[], flags: ReadonlySet<string> = new Set()): { positional: string[]; named: Map<string, string>; set: Set<string>; rest: string[] } {
     const positional: string[] = [];
     const named = new Map<string, string>();
+    const set = new Set<string>();
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
+        if (arg === '--') return { positional, named, set, rest: args.slice(i + 1) };
         if (!arg.startsWith('--')) {
             positional.push(arg);
             continue;
@@ -97,18 +119,34 @@ function options(args: string[]): { positional: string[]; named: Map<string, str
         const eq = arg.indexOf('=');
         if (eq >= 0) {
             named.set(arg.slice(2, eq), arg.slice(eq + 1));
+        } else if (flags.has(arg.slice(2))) {
+            set.add(arg.slice(2));
         } else {
             if (i + 1 >= args.length) throw `option ${arg} needs a value`;
             named.set(arg.slice(2), args[++i]);
         }
     }
-    return { positional, named };
+    return { positional, named, set, rest: [] };
+}
+
+/// Send an event to the server of a session
+export async function postSessionEvent(target: SessionTarget, event: AgentSessionEvent): Promise<void> {
+    await fetch(`${target.endpoint}/v1/events`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${target.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+        signal: AbortSignal.timeout(2000),
+    });
 }
 
 async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): Promise<number> {
-    const { positional, named } = options(args);
+    const { positional, named, set } = options(args, new Set(['connected']));
     const [name] = positional;
     const harness = named.get('harness') ?? 'agent';
+    // In a harness that `dashql connect` runs, its own hooks send the events; hooks in the settings of the harness
+    // would send them twice or start a second server
+    const connected = set.has('connected');
+    if (connected !== (env.connected != null)) return EXIT_OK;
     let payload: unknown = {};
     try {
         const input = new TextDecoder().decode(await cli.readStdin());
@@ -118,6 +156,15 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
     }
     const event = sessionEventOf(name ?? '', harness, payload);
     if (event == null) return EXIT_OK;
+    if (env.connected != null) {
+        try {
+            await postSessionEvent(env.connected, event);
+        } catch (error) {
+            cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
+        }
+        if (event.event === 'SessionStart') cli.stdout('DashQL shows this session live\n');
+        return EXIT_OK;
+    }
     const session = (payload as { session_id?: unknown })?.session_id;
     const id = typeof session === 'string' && session.length > 0 ? session : 'default';
     let file = readSessionFile(env.servers, id);
@@ -136,12 +183,7 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
         }
     }
     try {
-        await fetch(`http://127.0.0.1:${file.port}/v1/events`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${file.token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(event),
-            signal: AbortSignal.timeout(2000),
-        });
+        await postSessionEvent({ endpoint: `http://127.0.0.1:${file.port}`, token: file.token }, event);
     } catch (error) {
         cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
     }

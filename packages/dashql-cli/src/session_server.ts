@@ -288,10 +288,18 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     // Comments keep the streams open through proxies and tell a page that the server lives
     const keepAlive = setInterval(() => { for (const stream of streams) stream.write(': alive\n\n'); }, 15_000);
     keepAlive.unref();
-    await new Promise<void>((resolve, reject) => {
-        server.once('error', reject);
-        server.listen(options.port ?? 0, '127.0.0.1', () => resolve());
-    });
+    try {
+        await new Promise<void>((resolve, reject) => {
+            server.once('error', reject);
+            server.listen(options.port ?? 0, '127.0.0.1', () => resolve());
+        });
+    } catch (error) {
+        // A port that is taken leaves no journal behind
+        clearInterval(keepAlive);
+        clearInterval(journalTimer);
+        if (journal != null) rmSync(journal, { force: true });
+        throw error;
+    }
     return {
         port: (server.address() as { port: number }).port,
         token,

@@ -27,6 +27,7 @@ function testEnvironment(): { env: SessionEnvironment; servers: SessionServer[] 
                 writeFileSync(path.join(serversFolder, `${named.get('session')}.json`), JSON.stringify({ session: named.get('session'), port: server.port, token: server.token, pid: process.pid }));
             });
         },
+        connected: null,
     };
     return { env, servers };
 }

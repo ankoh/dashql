@@ -65,6 +65,7 @@ bazel build //...
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
+| `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @ankoh/dashql-cli` |
 | `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-runtime`, bundled for Node with Vite: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `session serve` for the live view of an agent session |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
@@ -126,6 +127,7 @@ bazel test //...
 | `//packages/dashql-cli:tsc_typecheck_test` | Type check of the command line tool and its tests, with the types of Node |
 | `//packages/dashql-cli:example_snippets_formatted_test` | The example snippets of the app are what `dashql format` prints, in the dialect of their engine |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
+| `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on the core and hyperdb-wasm of the build, the bundle runs as its command |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql-runtime:tsc_typecheck_test` | Type check of the runtime against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql-runtime:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime (`src/testing/`), with the globals of vitest |

@@ -1,6 +1,8 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@aspect_bazel_lib//lib:tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
@@ -132,6 +134,99 @@ js_test(
     data = [":dashql"],
     entry_point = "test/binary_test.mjs",
     env = {"DASHQL_BINARY": "$(rootpath :dashql)"},
+)
+
+# The package on npm: the bundle with the metadata of npm/package.json, `npx -y @ankoh/dashql-cli connect ...` runs it.
+# The core and hyperdb-wasm stay dependencies, the bundle reads their Wasm files from their packages.
+genrule(
+    name = "npm_files",
+    srcs = [
+        ":bundle",
+        "npm/package.json",
+        "README.md",
+        "//:LICENSE",
+        "//:NOTICE",
+    ],
+    outs = [
+        "npm_package_files/dist/dashql.js",
+        "npm_package_files/package.json",
+        "npm_package_files/README.md",
+        "npm_package_files/LICENSE",
+        "npm_package_files/NOTICE",
+    ],
+    cmd = " && ".join([
+        "cp $(location :bundle) $(RULEDIR)/npm_package_files/dist/dashql.js",
+        "cp $(location npm/package.json) $(RULEDIR)/npm_package_files/package.json",
+        "cp $(location README.md) $(RULEDIR)/npm_package_files/README.md",
+        "cp $(location //:LICENSE) $(RULEDIR)/npm_package_files/LICENSE",
+        "cp $(location //:NOTICE) $(RULEDIR)/npm_package_files/NOTICE",
+    ]),
+)
+
+npm_package(
+    name = "npm_package",
+    package = "@ankoh/dashql-cli",
+    srcs = [":npm_files"],
+    include_transitive_sources = False,
+    include_transitive_types = False,
+    replace_prefixes = {"npm_package_files/": ""},
+)
+
+mtree_spec(
+    name = "npm_tarball_mtree",
+    srcs = [":npm_package"],
+)
+
+mtree_mutate(
+    name = "npm_mtree",
+    mtree = ":npm_tarball_mtree",
+    strip_prefix = "packages/dashql-cli/npm_package",
+    package_dir = "package",
+)
+
+tar(
+    name = "npm_tarball",
+    srcs = [":npm_package"],
+    mtree = ":npm_mtree",
+    out = "dashql-cli.tgz",
+    compress = "gzip",
+    args = ["--format=ustar", "--uid=0", "--gid=0", "--uname=root", "--gname=root"],
+)
+
+# The package on npm depends on the versions that the bundle was built with. A js_test takes the files of its own
+# package, the manifests of the root and the core are copied here.
+genrule(
+    name = "npm_package_test_manifests",
+    srcs = [
+        "//:package.json",
+        "//packages/dashql-core-js:package.json",
+    ],
+    outs = [
+        "npm_manifests/root_package.json",
+        "npm_manifests/core_package.json",
+    ],
+    cmd = " && ".join([
+        "cp $(location //:package.json) $(RULEDIR)/npm_manifests/root_package.json",
+        "cp $(location //packages/dashql-core-js:package.json) $(RULEDIR)/npm_manifests/core_package.json",
+    ]),
+)
+
+js_test(
+    name = "npm_package_test",
+    size = "small",
+    data = [
+        ":bundle",
+        "npm/package.json",
+        "npm_manifests/core_package.json",
+        "npm_manifests/root_package.json",
+    ],
+    entry_point = "test/npm_package_test.mjs",
+    env = {
+        "NPM_PACKAGE_JSON": "$(rootpath npm/package.json)",
+        "CORE_PACKAGE_JSON": "$(rootpath npm_manifests/core_package.json)",
+        "ROOT_PACKAGE_JSON": "$(rootpath npm_manifests/root_package.json)",
+        "DASHQL_BUNDLE": "$(rootpath :bundle)",
+    },
 )
 
 # The snippets of the app are what dashql format prints, in the dialect of their engine

@@ -19,7 +19,8 @@ export default {
         minify: false,
         emptyOutDir: true,
         rolldownOptions: {
-            output: { entryFileNames: 'dashql.js' },
+            // npm runs the command of the package as a script
+            output: { entryFileNames: 'dashql.js', banner: '#!/usr/bin/env node' },
         },
     },
     ssr: {

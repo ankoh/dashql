@@ -1,0 +1,21 @@
+// The package of dashql on npm: its dependencies are the versions that the bundle was built with, and the bundle runs
+// as the command of the package
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { test } from 'node:test';
+
+const read = name => readFileSync(resolve(process.env[name]), 'utf8');
+
+test('depends on the core and the embedded Hyper that the bundle was built with', () => {
+    const published = JSON.parse(read('NPM_PACKAGE_JSON'));
+    const core = JSON.parse(read('CORE_PACKAGE_JSON'));
+    const root = JSON.parse(read('ROOT_PACKAGE_JSON'));
+    assert.equal(published.dependencies['@ankoh/dashql-core'], core.version, 'publish the core first and raise the version in npm/package.json');
+    assert.equal(published.dependencies['hyperdb-wasm'], { ...root.devDependencies, ...root.dependencies }['hyperdb-wasm']);
+    assert.equal(published.bin.dashql, './dist/dashql.js');
+});
+
+test('the bundle runs as the command of the package', () => {
+    assert.ok(read('DASHQL_BUNDLE').startsWith('#!/usr/bin/env node\n'));
+});
