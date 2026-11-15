@@ -6,6 +6,7 @@
 //! shares the session of the workbook. A script changes its revision with every change, the host reads only the
 //! scripts whose revision moved.
 
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -165,7 +166,8 @@ impl From<RuntimeOutcome> for WorkbookOutcome {
 /// The scripts of a workbook
 #[wasm_bindgen]
 pub struct Workbook {
-    inner: RuntimeWorkbook,
+    /// The workbook, shared with its runs (`workbook_run.rs`)
+    pub(crate) inner: Rc<RefCell<RuntimeWorkbook>>,
     /// The scripts of storage that `replaceFromStorage` and `matchesStoredScripts` take
     stored: Vec<StoredScript>,
 }
@@ -173,15 +175,27 @@ pub struct Workbook {
 impl Workbook {
     /// A workbook that a service of the runtime created, e.g. the restore
     pub(crate) fn from_runtime(inner: RuntimeWorkbook) -> Workbook {
-        Workbook { inner, stored: Vec::new() }
+        Workbook { inner: Rc::new(RefCell::new(inner)), stored: Vec::new() }
+    }
+
+    /// The workbook. A run borrows it only between its awaits, a borrow that fails is an error instead of a panic.
+    pub(crate) fn get(&self) -> Result<Ref<'_, RuntimeWorkbook>, JsError> {
+        self.inner.try_borrow().map_err(|_| js_error(Error::invalid_argument("the workbook is busy")))
+    }
+
+    pub(crate) fn get_mut(&self) -> Result<RefMut<'_, RuntimeWorkbook>, JsError> {
+        self.inner.try_borrow_mut().map_err(|_| js_error(Error::invalid_argument("the workbook is busy")))
     }
 
     fn apply(&mut self, action: WorkbookAction) -> Result<WorkbookOutcome, JsError> {
-        self.inner.apply(action).map(WorkbookOutcome::from).map_err(js_error)
+        self.get_mut()?.apply(action).map(WorkbookOutcome::from).map_err(js_error)
     }
 
-    fn script(&self, key: ScriptKey) -> Result<&WorkbookScript, JsError> {
-        self.inner.script(key).ok_or_else(|| js_error(Error::invalid_argument("unknown script")))
+    /// Read a script
+    fn with_script<R>(&self, key: ScriptKey, read: impl FnOnce(&WorkbookScript) -> R) -> Result<R, JsError> {
+        let workbook = self.get()?;
+        let script = workbook.script(key).ok_or_else(|| js_error(Error::invalid_argument("unknown script")))?;
+        Ok(read(script))
     }
 }
 
@@ -190,7 +204,7 @@ impl Workbook {
     /// An empty workbook, the editors count offsets in `offset_unit`
     #[wasm_bindgen(constructor)]
     pub fn new(id: &str, name: Option<String>, offset_unit: u8) -> Workbook {
-        Workbook { inner: RuntimeWorkbook::new(id, name, None, EditorOffsetUnit(offset_unit)), stored: Vec::new() }
+        Workbook::from_runtime(RuntimeWorkbook::new(id, name, None, EditorOffsetUnit(offset_unit)))
     }
 
     // Restoring a workbook from storage
@@ -207,21 +221,24 @@ impl Workbook {
         params: Option<String>,
         default_database: &str,
         default_schema: &str,
-    ) {
+    ) -> Result<(), JsError> {
         let connection = connection(connection_id, catalog, dialect, local, params, default_database, default_schema);
-        self.inner.set_stored_pending_connection(Some(connection));
+        self.get_mut()?.set_stored_pending_connection(Some(connection));
+        Ok(())
     }
 
     /// Mark the workbook as the ephemeral workbook of the greeter
     #[wasm_bindgen(js_name = setEphemeral)]
-    pub fn set_ephemeral(&mut self, ephemeral: bool) {
-        self.inner.set_ephemeral(ephemeral);
+    pub fn set_ephemeral(&mut self, ephemeral: bool) -> Result<(), JsError> {
+        self.get_mut()?.set_ephemeral(ephemeral);
+        Ok(())
     }
 
     /// Set the link to a cloud that storage holds, none without a workbook id
     #[wasm_bindgen(js_name = setStoredCloudLink)]
-    pub fn set_stored_cloud_link(&mut self, workbook_id: Option<String>, version_id: String, preview: bool) {
-        self.inner.set_stored_cloud_link(workbook_id.map(|workbook_id| CloudLink { workbook_id, version_id, preview }));
+    pub fn set_stored_cloud_link(&mut self, workbook_id: Option<String>, version_id: String, preview: bool) -> Result<(), JsError> {
+        self.get_mut()?.set_stored_cloud_link(workbook_id.map(|workbook_id| CloudLink { workbook_id, version_id, preview }));
+        Ok(())
     }
 
     /// Add a script that storage holds, returns its key
@@ -241,13 +258,14 @@ impl Workbook {
         unresolved_connection_id: Option<String>,
     ) -> Result<u32, JsError> {
         let connection = connection(connection_id, catalog, dialect, local, params, default_database, default_schema);
-        self.inner.add_stored_script(file_name, text, connection, unresolved_connection_id).map_err(js_error)
+        self.get_mut()?.add_stored_script(file_name, text, connection, unresolved_connection_id).map_err(js_error)
     }
 
     /// Set the attachments that storage lists
     #[wasm_bindgen(js_name = setStoredAttachments)]
     pub fn set_stored_attachments(&mut self, names: Vec<String>, sizes: &[f64], mtimes: &[f64]) -> Result<(), JsError> {
-        self.inner.set_stored_attachments(&data_files(names, sizes, mtimes)?);
+        let files = data_files(names, sizes, mtimes)?;
+        self.get_mut()?.set_stored_attachments(&files);
         Ok(())
     }
 
@@ -273,23 +291,23 @@ impl Workbook {
 
     /// Does storage hold the scripts as they are? Takes the staged scripts.
     #[wasm_bindgen(js_name = matchesStoredScripts)]
-    pub fn matches_stored_scripts(&mut self) -> bool {
+    pub fn matches_stored_scripts(&mut self) -> Result<bool, JsError> {
         let stored = std::mem::take(&mut self.stored);
-        self.inner.matches_stored_scripts(&stored)
+        Ok(self.get()?.matches_stored_scripts(&stored))
     }
 
     /// Replace the scripts with the staged scripts of storage, returns whether anything changed
     #[wasm_bindgen(js_name = replaceFromStorage)]
     pub fn replace_from_storage(&mut self) -> Result<bool, JsError> {
         let stored = std::mem::take(&mut self.stored);
-        self.inner.replace_from_storage(stored).map_err(js_error)
+        self.get_mut()?.replace_from_storage(stored).map_err(js_error)
     }
 
     /// Promote an ephemeral workbook with scripts to a full workbook with a name that no other workbook has
-    pub fn promote(&mut self, taken_names: Vec<String>) -> WorkbookOutcome {
-        let effect = self.inner.promote(taken_names.iter().map(String::as_str));
+    pub fn promote(&mut self, taken_names: Vec<String>) -> Result<WorkbookOutcome, JsError> {
+        let effect = self.get_mut()?.promote(taken_names.iter().map(String::as_str));
         let outcome = RuntimeOutcome { changed: effect.is_some(), effects: effect.into_iter().collect(), editor_update: None };
-        outcome.into()
+        Ok(outcome.into())
     }
 
     // Actions
@@ -511,31 +529,26 @@ impl Workbook {
         self.apply(WorkbookAction::SetCloudLink { link })
     }
 
-    /// Apply the analysis that the planner made of a script, a packed `EditorUpdate`
-    #[wasm_bindgen(js_name = applyPlannerAnalysis)]
-    pub fn apply_planner_analysis(&mut self, key: u32, update: &[u8]) -> Result<WorkbookOutcome, JsError> {
-        let update = flatbuffers::root::<EditorUpdate>(update).map_err(|_| js_error(Error::invalid_argument("invalid editor update")))?.unpack();
-        self.apply(WorkbookAction::ApplyPlannerAnalysis { updates: vec![(key, update)] })
-    }
-
     /// Give the table parameters of the workbook to a session that is no script of it, e.g. the draft of the composer.
     /// Returns whether the analysis of the session is outdated by them.
     #[wasm_bindgen(js_name = attachTableParameters)]
-    pub fn attach_table_parameters(&self, session: &ScriptSession) -> bool {
-        self.inner.attach_table_parameters(&mut session.inner.borrow_mut())
+    pub fn attach_table_parameters(&self, session: &ScriptSession) -> Result<bool, JsError> {
+        let mut session = session.inner.try_borrow_mut().map_err(|_| js_error(Error::invalid_argument("the session is busy")))?;
+        Ok(self.get()?.attach_table_parameters(&mut session))
     }
 
     // Reading the state
 
     /// The revision of the workbook, it changes with every change
-    pub fn revision(&self) -> f64 {
-        self.inner.revision() as f64
+    pub fn revision(&self) -> Result<f64, JsError> {
+        Ok(self.get()?.revision() as f64)
     }
 
     /// The plain fields of the workbook as JSON: the name, whether it is ephemeral, the pending connection, the cloud
     /// link, the attachments and the script list of the workbook file
-    pub fn properties(&self) -> String {
-        let attachments = self.inner.attachments().map(|attachments| {
+    pub fn properties(&self) -> Result<String, JsError> {
+        let workbook = self.get()?;
+        let attachments = workbook.attachments().map(|attachments| {
             attachments
                 .iter()
                 .map(|a| json!({
@@ -547,70 +560,69 @@ impl Workbook {
                 }))
                 .collect::<Vec<_>>()
         });
-        json!({
-            "name": self.inner.name(),
-            "ephemeral": self.inner.ephemeral(),
-            "pendingConnectionId": self.inner.pending_connection().map(|c| c.connection_id.as_str()),
-            "cloud": cloud_json(self.inner.cloud()),
+        Ok(json!({
+            "name": workbook.name(),
+            "ephemeral": workbook.ephemeral(),
+            "pendingConnectionId": workbook.pending_connection().map(|c| c.connection_id.as_str()),
+            "cloud": cloud_json(workbook.cloud()),
             "attachments": attachments,
-            "scriptList": script_list_json(&self.inner.script_list()),
+            "scriptList": script_list_json(&workbook.script_list()),
         })
-        .to_string()
+        .to_string())
     }
 
     /// The keys of the scripts in feed order
     #[wasm_bindgen(js_name = scriptKeys)]
-    pub fn script_keys(&self) -> Vec<u32> {
-        self.inner.scripts().iter().map(WorkbookScript::key).collect()
+    pub fn script_keys(&self) -> Result<Vec<u32>, JsError> {
+        Ok(self.get()?.scripts().iter().map(WorkbookScript::key).collect())
     }
 
     /// The revision of a script
     #[wasm_bindgen(js_name = scriptRevision)]
     pub fn script_revision(&self, key: u32) -> Result<f64, JsError> {
-        Ok(self.script(key)?.revision() as f64)
+        self.with_script(key, |script| script.revision() as f64)
     }
 
     /// The plain fields of a script as JSON
     #[wasm_bindgen(js_name = scriptSnapshot)]
     pub fn script_snapshot(&self, key: u32) -> Result<String, JsError> {
-        Ok(script_json(self.script(key)?).to_string())
+        self.with_script(key, |script| script_json(script).to_string())
     }
 
     /// Is the analysis of a script outdated, also by a change that the workbook missed?
     #[wasm_bindgen(js_name = isAnalysisOutdated)]
     pub fn is_analysis_outdated(&self, key: u32) -> Result<bool, JsError> {
-        Ok(self.script(key)?.is_analysis_outdated())
+        self.with_script(key, WorkbookScript::is_analysis_outdated)
     }
 
     /// The session of a script, shared with the workbook
     #[wasm_bindgen(js_name = scriptSession)]
     pub fn script_session(&self, key: u32) -> Result<ScriptSession, JsError> {
-        let script = self.script(key)?;
-        Ok(ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone() })
+        self.with_script(key, |script| ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone() })
     }
 
     /// The latest analysis of a script, a packed `EditorUpdate`
     #[wasm_bindgen(js_name = scriptEditorUpdate)]
     pub fn script_editor_update(&self, key: u32) -> Result<Option<Vec<u8>>, JsError> {
-        Ok(self.script(key)?.editor_update().map(|update| finish!(update)))
+        self.with_script(key, |script| script.editor_update().map(|update| finish!(update)))
     }
 
     /// The diff of the staged rewrite of a script, a packed `ScriptDiff`
     #[wasm_bindgen(js_name = scriptPendingDiff)]
     pub fn script_pending_diff(&self, key: u32) -> Result<Option<Vec<u8>>, JsError> {
-        Ok(self.script(key)?.pending_diff().map(|pending| finish!(pending.diff)))
+        self.with_script(key, |script| script.pending_diff().map(|pending| finish!(pending.diff)))
     }
 
     /// The visualization of a script, a packed `CompiledVisualization`
     #[wasm_bindgen(js_name = scriptVisualization)]
     pub fn script_visualization(&self, key: u32) -> Result<Option<Vec<u8>>, JsError> {
-        Ok(self.script(key)?.visualization().map(|visualization| finish!(visualization.visualization)))
+        self.with_script(key, |script| script.visualization().map(|visualization| finish!(visualization.visualization)))
     }
 
     /// The processing statistics of the latest analyses of a script, the oldest first, each a packed
     /// `EditorProcessingStatistics`
     #[wasm_bindgen(js_name = scriptStatistics)]
     pub fn script_statistics(&self, key: u32, index: u32) -> Result<Option<Vec<u8>>, JsError> {
-        Ok(self.script(key)?.statistics().nth(index as usize).map(|statistics| finish!(statistics)))
+        self.with_script(key, |script| script.statistics().nth(index as usize).map(|statistics| finish!(statistics)))
     }
 }

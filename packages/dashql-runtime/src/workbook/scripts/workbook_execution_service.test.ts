@@ -12,7 +12,8 @@ import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionRespons
 import { createTestRuntime, testCore, type TestRuntime } from '../../testing/test_runtime.js';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from './workbook_execution.js';
 import { workbookExecutionIsBusy, type WorkbookExecutionOptions } from './workbook_execution_service.js';
-import { REGISTER_QUERY, type WorkbookScripts } from './workbook_scripts.js';
+import { createWorkbookScripts } from './workbook_scripts.js';
+import { createEmptyMetadata } from './script_types.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
 
 /// Run a step of a test and wait for it
@@ -51,27 +52,19 @@ function fixture(workbookId: string, deferStream = false) {
         await acquisition.promise;
         return stream;
     });
-    const scriptSession = {
-        analyze: vi.fn(() => ({ status: core.buffers.editor.EditorUpdateStatus.OK, analysisAvailable: true })),
-        loadIntoCatalog: vi.fn(),
-        getCatalogEntryId: () => 1,
-        getTextVersion: () => 1n,
-        getCatalogRevision: () => 1n,
-    };
-    const plan = vi.fn(() => ({ unpack: () => ({
-        valid: true,
-        scripts: [{ scriptId: 1, textVersion: 1n, analyzedTextVersion: 1n, analyzedCatalogRevision: 1n, planned: true }],
-        // Command-only nodes avoid exercising result computation in the lifecycle tests of the service.
-        nodes: [0, 1].map(statementId => ({ script: 0, statementId, producesOutput: false, sql: `command ${statementId}`, connection: 0, materialization: 0xffffffff })),
-        edges: [], diagnostics: [], materializations: [],
-    }) }));
-    const workbook = {
-        workbookId, pendingConnection: null, instance: { planSession: plan },
-        scriptRefs: { '1_commands.sql': { scriptId: 1, fileName: '1_commands.sql' } },
-        scriptOrder: ['1_commands.sql'],
-        scripts: { 1: { scriptKey: 1, fileName: '1_commands.sql', scriptSession, latestQueryId: null,
-            connection: { connectionId: `${workbookId}-database` } } },
-    } as unknown as WorkbookScripts;
+    // Two commands that don't depend on each other, a connection without a protocol runs them one at a time
+    const workbook = createWorkbookScripts({
+        instance: dql, workbookId, name: workbookId, pendingConnection: null, workbookMetadata: createEmptyMetadata(),
+        scripts: [{
+            name: '1_commands.sql', sql: 'create table a (x int);\ncreate table b (x int);',
+            connection: { connectionId: `${workbookId}-database`, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() },
+        }],
+    });
+    // The runs of the workbook on the Rust runtime
+    const plan = vi.spyOn(workbook.native!.workbook, 'run');
+    const scriptKey = workbook.scriptRefs['1_commands.sql'].scriptId;
+    /// The latest query of the script
+    const latestQueryId = () => workbook.native!.workbook.scriptSnapshot(scriptKey).latestQueryId;
     // A connection on the Rust connection of the core, online with a channel. The catalog loader of the runtime follows
     // the connections that come online: their params and catalog updates.
     const database: ConnectionState = createTestConnection(dql, {
@@ -82,10 +75,8 @@ function fixture(workbookId: string, deferStream = false) {
     });
     restoreCatalogUpdates(database, true, null);
     expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
-    const modify = vi.fn<ModifyWorkbookScripts>(action => {
-        if (action.type === REGISTER_QUERY) workbook.scripts[action.value[0]].latestQueryId = action.value[1];
-    });
-    return { workbook, database, plan, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,
+    const modify = vi.fn<ModifyWorkbookScripts>(() => {});
+    return { workbook, database, plan, latestQueryId, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,
         get signal() { return signal; } };
 }
 
@@ -192,7 +183,7 @@ describe('WorkbookExecutionService', () => {
         step(() => current.start(fixtures[0].modify));
         expect(fixtures[0].plan).toHaveBeenCalledTimes(1);
         expect(fixtures[0].executeQuery).toHaveBeenCalledTimes(1);
-        expect(fixtures[0].modify.mock.calls.filter(([action]) => action.type === REGISTER_QUERY)).toHaveLength(1);
+        expect(fixtures[0].latestQueryId()).not.toBeNull();
     });
 
     it.each(['execution', 'cancellation'] as const)('keeps stopping busy until both promises drain, with %s settling first', async first => {
@@ -269,7 +260,7 @@ describe('WorkbookExecutionService', () => {
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
         expect(f.stream.cancel).toHaveBeenCalledTimes(1);
         expect(f.stream.produce).not.toHaveBeenCalled();
-        expect(f.modify.mock.calls.filter(([action]) => action.type === REGISTER_QUERY)).toHaveLength(1);
+        expect(f.latestQueryId()).not.toBeNull();
     });
 
     it('completes schema-less commands without requesting their unresolved schema', async () => {
@@ -291,7 +282,7 @@ describe('WorkbookExecutionService', () => {
         expect(f.stream.produce).toHaveBeenCalledTimes(2);
         expect(getSchema).not.toHaveBeenCalled();
         expect(f.stream.cancel).not.toHaveBeenCalled();
-        expect(f.modify.mock.calls.filter(([action]) => action.type === REGISTER_QUERY)).toHaveLength(2);
+        expect(f.latestQueryId()).not.toBeNull();
     });
 
     it('does not start with an active query', async () => {

@@ -18,7 +18,8 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { useWorkbookExecution } from './use_workbook_execution.js';
 import { workbookExecutionIsBusy } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
-import { REGISTER_QUERY, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useWorkbookScriptsRegistry, type ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
@@ -59,27 +60,16 @@ function fixture(workbookId: string, deferStream = false) {
         await acquisition.promise;
         return stream;
     });
-    const scriptSession = {
-        analyze: vi.fn(() => ({ status: core.buffers.editor.EditorUpdateStatus.OK, analysisAvailable: true })),
-        loadIntoCatalog: vi.fn(),
-        getCatalogEntryId: () => 1,
-        getTextVersion: () => 1n,
-        getCatalogRevision: () => 1n,
-    };
-    const plan = vi.fn(() => ({ unpack: () => ({
-        valid: true,
-        scripts: [{ scriptId: 1, textVersion: 1n, analyzedTextVersion: 1n, analyzedCatalogRevision: 1n, planned: true }],
-        // Command-only nodes avoid exercising result computation in lifecycle tests.
-        nodes: [0, 1].map(statementId => ({ script: 0, statementId, producesOutput: false, sql: `command ${statementId}`, connection: 0, materialization: 0xffffffff })),
-        edges: [], diagnostics: [], materializations: [],
-    }) }));
-    const workbook = {
-        workbookId, pendingConnection: null, instance: { planSession: plan },
-        scriptRefs: { '1_commands.sql': { scriptId: 1, fileName: '1_commands.sql' } },
-        scriptOrder: ['1_commands.sql'],
-        scripts: { 1: { scriptKey: 1, fileName: '1_commands.sql', scriptSession, latestQueryId: null,
-            connection: { connectionId: `${workbookId}-database` } } },
-    } as unknown as WorkbookScripts;
+    // Two commands that don't depend on each other, a connection without a protocol runs them one at a time
+    const workbook = createWorkbookScripts({
+        instance: dql, workbookId, name: workbookId, pendingConnection: null, workbookMetadata: createEmptyMetadata(),
+        scripts: [{
+            name: '1_commands.sql', sql: 'create table a (x int);\ncreate table b (x int);',
+            connection: { connectionId: `${workbookId}-database`, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() },
+        }],
+    });
+    // The runs of the workbook on the Rust runtime
+    const plan = vi.spyOn(workbook.native!.workbook, 'run');
     // A connection on the Rust connection of the core, online with a channel and a catalog that describes it
     const database: ConnectionState = createTestConnection(dql, {
         connectionId: `${workbookId}-database`,
@@ -88,9 +78,7 @@ function fixture(workbookId: string, deferStream = false) {
     });
     restoreCatalogUpdates(database, true, null);
     expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
-    const modify = vi.fn<ModifyWorkbookScripts>(action => {
-        if (action.type === REGISTER_QUERY) workbook.scripts[action.value[0]].latestQueryId = action.value[1];
-    });
+    const modify = vi.fn<ModifyWorkbookScripts>(() => {});
     return { workbook, database, plan, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,
         get signal() { return signal; } };
 }

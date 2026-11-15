@@ -12,6 +12,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { WorkbookResultKeyHost } from '@ankoh/dashql-core';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
@@ -156,18 +157,17 @@ describe('WorkbookFileSaveOverlay', () => {
         bytes.set([80, 65, 82, 49]);
         const cache = memoryQueryResultCache();
         cache.put(key, null, bytes);
-        // Two scripts, one with a cached result
-        const instance = { planSession: () => ({ unpack: () => ({
-            valid: true, nodes: [], edges: [], diagnostics: [], materializations: [],
-            scripts: ['cached', 'missing'].map(signature => ({ planned: true, cacheable: true, signature, referencedScripts: [] })),
-        }) }) };
+        // Two scripts, one with a cached result. The Rust workbook plans them and derives their keys from their signatures.
+        const instance = {};
+        const native = { workbook: { resultKeys: async (_targets: unknown, host: WorkbookResultKeyHost) => await Promise.all(['cached', 'missing']
+            .map(async signature => ({ key: (await host.resultKey(TEST_CONNECTION_ID, signature))!, signature, reusable: host.cachesResults(TEST_CONNECTION_ID) }))) } };
         registerScriptRunServices(instance as never, {
             createMounts: () => null, cachesResults: () => true, cache, maxConcurrentQueries: () => 1,
             cacheKey: async (_connectionId, signature) => signature === 'cached' ? key : 'b'.repeat(64),
         });
         const script = (fileName: string) => ({ fileName, connection: { connectionId: TEST_CONNECTION_ID }, scriptSession: {} });
         const workbook = {
-            ...WORKBOOK, instance, scriptOrder: ['1.sql', '2.sql'],
+            ...WORKBOOK, instance, native, scriptOrder: ['1.sql', '2.sql'],
             scriptRefs: { '1.sql': { scriptId: 1 }, '2.sql': { scriptId: 2 } }, scripts: { 1: script('1.sql'), 2: script('2.sql') },
         } as unknown as WorkbookScripts;
         try {

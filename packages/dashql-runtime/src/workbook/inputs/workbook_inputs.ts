@@ -6,7 +6,6 @@ import { attachmentPrefix, planAttachments } from '../attachments/workbook_attac
 import { orderedWorkbookScripts, workbookAnalysisSignature, type ScriptData, type WorkbookScripts } from '../scripts/workbook_scripts.js';
 
 const SqlTypeKind = core.buffers.analyzer.SqlTypeKind;
-const EdgeKind = core.buffers.execution.DataflowEdgeKind;
 
 /// The control that edits the value of an input, from its type
 export enum WorkbookInputControl {
@@ -208,33 +207,4 @@ export function workbookInputLiteral(instance: core.DashQL, type: WorkbookInputT
     } catch (e: any) {
         return { error: String(e?.message ?? e) };
     }
-}
-
-/// The scripts that an input change reruns: the scripts that use one of the inputs and every script downstream of
-/// them, by the references and relation edges of the dataflow. A script that runs only on request (`@manual`) is left
-/// out, the scripts downstream of it are not. Indexes the scripts of the dataflow.
-export function affectedScriptIndices(dataflow: core.buffers.execution.SessionDataflowT, inputs: readonly string[]): number[] {
-    const names = new Set(inputs);
-    const affected = new Set<number>();
-    const pending: number[] = [];
-    for (const edge of dataflow.edges) {
-        if (edge.kind !== EdgeKind.INPUT) continue;
-        const input = dataflow.inputs[edge.fromScript];
-        if (input == null || !names.has(String(input.name ?? ''))) continue;
-        if (!affected.has(edge.toScript)) {
-            affected.add(edge.toScript);
-            pending.push(edge.toScript);
-        }
-    }
-    while (pending.length > 0) {
-        const script = pending.pop()!;
-        for (const edge of dataflow.edges) {
-            if (edge.kind === EdgeKind.INPUT || edge.kind === EdgeKind.INVALID_REFERENCE || edge.fromScript !== script) continue;
-            if (!affected.has(edge.toScript)) {
-                affected.add(edge.toScript);
-                pending.push(edge.toScript);
-            }
-        }
-    }
-    return [...affected].filter(script => !dataflow.scripts[script]?.manual).sort((l, r) => l - r);
 }

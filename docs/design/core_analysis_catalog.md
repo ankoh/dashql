@@ -473,9 +473,9 @@ analyze as in step 4. Passive rendering never analyzes. `CATALOG_DID_UPDATE` mar
 connection outdated; a native reload that adds, removes, moves or changes any script marks every script
 of the workbook outdated.
 
-**Planning and execution** (`workbook_execution.ts`, and `script_run.ts` for a run of one script)
+**Planning and execution** (`packages/dashql-core-runtime/src/workbook_run/`, for a run of the workbook and of one script)
 analyzes and publishes every script, re-analyzes them at the final catalog version, then calls
-`planSession()`. The planner reads the published declarations and the inputs, and flags a relation whose
+`plan_session`. The planner reads the published declarations and the inputs, and flags a relation whose
 published kind (`TableDeclaration.is_view`) differs from the input. A connection of the plan names its default
 database and schema, statements on `t` and `db.schema.t` are ordered as one relation.
 

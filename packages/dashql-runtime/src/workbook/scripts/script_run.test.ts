@@ -9,11 +9,11 @@ import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.
 import { QueryCacheMissError } from '../../query/query_result_cache.js';
 import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
 import { StorageWriter } from '../../storage/storage_writer.js';
-import { computeScriptResultKeys, createExecutionMounts, createMountPrefix, isWorkbookExecutionRunning, planWorkbookScripts, prepareWorkbookScripts, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';
+import { createExecutionMounts, isWorkbookExecutionRunning, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';
 import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
 import { runWorkbookScript, runWorkbookScriptForResult } from './rerun_query.js';
 import {
-    ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, createWorkbookScripts, reduceWorkbookScripts,
+    ANALYZE_OUTDATED_SCRIPT, DELETE_SCRIPT, PROJECT_WORKBOOK, REGISTER_QUERY, createWorkbookScripts, reduceWorkbookScripts,
     scriptResultOwner,
     replaceScriptSessionText, SET_SCRIPT_CONNECTION, type WorkbookScripts, type WorkbookScriptsAction,
 } from './workbook_scripts.js';
@@ -76,34 +76,38 @@ function fixture(entries: Array<[string, string]>, remote: string[] = [], cachin
     };
     const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
     const run = (fileName: string, options: ScriptRunOptions = {}) => runPlannedScript(services, live, script(fileName), executeQuery, modifyWorkbookScripts, options);
+    /// Analyze the scripts like a run, every script or the target with what it needs
+    const analyze = () => {
+        live.native!.workbook.analyzeForRun();
+        apply({ type: PROJECT_WORKBOOK, value: null });
+    };
     /// The target plan of a script after analyzing the workbook
     const planOf = async (fileName: string) => {
-        const scripts = live.scriptOrder.map(file => script(file));
-        await prepareWorkbookScripts(scripts, async () => {});
-        return planWorkbookScripts({
-            instance: dql, scripts, files: live.scriptOrder,
-            mountPrefix: createMountPrefix(), targets: [live.scriptOrder.indexOf(fileName)],
-        }).graph;
+        analyze();
+        return live.native!.workbook.planRun([live.scriptOrder.indexOf(fileName)], '/mnt/external/cache');
     };
-    return { workbook: () => live, script, run, planOf, services, calls, cache, mounts, modifyWorkbookScripts, executeQuery };
+    return { workbook: () => live, script, run, analyze, planOf, services, calls, cache, mounts, modifyWorkbookScripts, executeQuery };
 }
 
 describe('script runs', () => {
     it('derives the cache key of a script from the keys of the scripts it references', async () => {
         const f = fixture([['base.sql', 'select 1 as a;'], ['writes.sql', 'create table t (a int);\nselect a from t;'], ['bar.sql', 'select * from :base;'], ['baz.sql', 'create table u as select * from :base;\nselect a from u;']]);
+        f.analyze();
         const workbook = f.workbook();
-        const scripts = workbook.scriptOrder.map(file => f.script(file));
-        await prepareWorkbookScripts(scripts, async () => {});
-        const { graph } = planWorkbookScripts({ instance: dql, scripts, files: workbook.scriptOrder, mountPrefix: createMountPrefix() });
-        const keys = await computeScriptResultKeys(graph, async (index, signature) => `${index}:${signature}`, () => true);
-        expect(keys[0]).toEqual({ key: `0:${graph.scripts[0].signature}`, signature: graph.scripts[0].signature, reusable: true });
+        const graph = workbook.native!.workbook.planRun(null, '/mnt/external/cache');
+        const keysOf = (caching: boolean) => workbook.native!.workbook.resultKeys(null, {
+            resultKey: async (_connectionId, signature) => `k:${signature}`,
+            cachesResults: () => caching,
+        });
+        const keys = await keysOf(true);
+        expect(keys[0]).toEqual({ key: `k:${graph.scripts[0].signature}`, signature: graph.scripts[0].signature, reusable: true });
         // A script that references a cacheable script covers the key of that script
-        expect(keys[2]).toEqual({ key: `2:${graph.scripts[2].signature}\n${keys[0]!.key}`, signature: `${graph.scripts[2].signature}\n${keys[0]!.key}`, reusable: true });
+        expect(keys[2]).toEqual({ key: `k:${graph.scripts[2].signature}\n${keys[0]!.key}`, signature: `${graph.scripts[2].signature}\n${keys[0]!.key}`, reusable: true });
         // A script with other statements than queries has a key, its results are not reused
-        expect(keys[1]).toEqual({ key: `1:${graph.scripts[1].signature}`, signature: graph.scripts[1].signature, reusable: false });
-        expect(keys[3]).toEqual({ key: `3:${graph.scripts[3].signature}\n${keys[0]!.key}`, signature: `${graph.scripts[3].signature}\n${keys[0]!.key}`, reusable: false });
+        expect(keys[1]).toEqual({ key: `k:${graph.scripts[1].signature}`, signature: graph.scripts[1].signature, reusable: false });
+        expect(keys[3]).toEqual({ key: `k:${graph.scripts[3].signature}\n${keys[0]!.key}`, signature: `${graph.scripts[3].signature}\n${keys[0]!.key}`, reusable: false });
         // The results of a script on a connection that doesn't cache are not reused, nor are those of its consumers
-        const uncached = await computeScriptResultKeys(graph, async (index, signature) => `${index}:${signature}`, index => index !== 0);
+        const uncached = await keysOf(false);
         expect(uncached[0]).toEqual({ ...keys[0], reusable: false });
         expect(uncached[2]).toEqual({ ...keys[2], reusable: false });
     });
@@ -145,7 +149,6 @@ describe('script runs', () => {
         expect(f.calls.map(call => call.sql)).toEqual(['select 1 as a', 'create table t (a int)']);
         // The select is the result of the script
         expect(table?.getChild('a')?.get(0)).toBe(1);
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ type: REGISTER_SCRIPT_RESULT, value: [f.script('foo.sql').scriptKey, 1] });
         expect(f.script('foo.sql').latestQueryId).toBe(1);
         expect(f.script('foo.sql').latestResultQueryId).toBe(1);
     });
@@ -154,10 +157,7 @@ describe('script runs', () => {
         const f = fixture([['foo.sql', '/* @vis table */\nSELECT   1   AS a']]);
         await f.run('foo.sql');
         expect(f.calls.map(call => call.sql)).toEqual(['SELECT   1   AS a']);
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({
-            type: SET_SCRIPT_EXECUTION_VISUALIZATION,
-            value: [f.script('foo.sql').scriptKey, expect.objectContaining({ sql: 'SELECT   1   AS a', visualization: expect.objectContaining({ renderer: 'table' }) })],
-        });
+        expect(f.script('foo.sql').annotations.visualizeQuery).toMatchObject({ renderer: 'table', sql: 'SELECT   1   AS a' });
     });
 
     it('inlines the query of a referenced script without running the scripts that write its relations', async () => {
@@ -307,7 +307,7 @@ describe('script runs', () => {
         expect(f.calls.map(call => call.connection)).toEqual(['remote', 'local']);
         expect(f.calls[1].sql).toContain(`external('/mnt/external/cache/${fooFile}', format => 'parquet')`);
         // The script shows the result of the plan, not the miss
-        expect(f.modifyWorkbookScripts).not.toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [f.script('bar.sql').scriptKey, 99] });
+        expect(f.script('bar.sql').latestQueryId).not.toBe(99);
         expect(f.script('bar.sql').latestResultQueryId).toBe(2);
     });
 
@@ -398,11 +398,10 @@ describe('script runs', () => {
 
     it('fails a run when the scripts of the workbook change meanwhile', async () => {
         const f = fixture([['foo.sql', 'select 1 as a;\nselect 2 as b;']]);
-        let changed = false;
         // The script is removed from the workbook while its first statement runs
-        f.services.liveWorkbook = () => changed ? { ...f.workbook(), scriptOrder: [] } : f.workbook();
+        f.services.liveWorkbook = () => f.workbook();
         f.executeQuery.mockImplementation(() => {
-            changed = true;
+            f.modifyWorkbookScripts({ type: DELETE_SCRIPT, value: 'foo.sql' });
             return [1, Promise.resolve(tableFromArrays({ a: [1] }))];
         });
         await expect(f.run('foo.sql')).rejects.toThrow('Workbook changed during execution');

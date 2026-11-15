@@ -12,7 +12,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use dashql_buffers::diff::ScriptDiffT;
-use dashql_buffers::execution::{CompiledVisualizationT, ScriptCompilationStatementKind};
+use dashql_buffers::execution::{CompiledVisualizationT, ExecutionGraphT, ScriptCompilationStatementKind};
 use dashql_buffers::editor::{
     EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorUpdateStatus, EditorUpdateT,
 };
@@ -28,7 +28,8 @@ use dashql_core_script::script_session::ScriptSession;
 
 use crate::attachments::{attachment_parameter_name, read_workbook_attachments, DataFile, WorkbookAttachment};
 use crate::names::{free_workbook_name, script_display_name, script_file_name, unique_script_base};
-use crate::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
+use crate::planner::dataflow::{derive_session_dataflow, Dataflow};
+use crate::planner::{plan_session, ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
 use crate::planner::script_references::check_script_references;
 
 /// The key of a script, its entry in the catalog of its connection. A script keeps its key when it moves to another
@@ -502,9 +503,6 @@ pub enum WorkbookAction {
     /// The published workbook that the workbook is linked to, none removes the link. A link without `preview`
     /// imports a cloud preview.
     SetCloudLink { link: Option<CloudLink> },
-    /// The analyses that the planner of a run made. An analysis of a text or a catalog that changed since is dropped,
-    /// a moved cursor is projected again. The planner published the declarations already.
-    ApplyPlannerAnalysis { updates: Vec<(ScriptKey, EditorUpdateT)> },
 }
 
 impl WorkbookAction {
@@ -537,6 +535,19 @@ pub struct WorkbookOutcome {
     pub effects: Vec<WorkbookEffect>,
     /// The update of an editor event, the editor projects it
     pub editor_update: Option<EditorUpdateT>,
+}
+
+/// What a plan of a run covers
+#[derive(Default)]
+pub struct RunPlanRequest<'a> {
+    /// The target scripts by their indexes in feed order, every script without
+    pub targets: Option<&'a [u32]>,
+    /// The scripts whose materialized results the host provides
+    pub materialized: &'a [u32],
+    /// The directory that the host mounts materialized results in
+    pub mount_prefix: &'a str,
+    /// The files of the materialized results of scripts below the mount prefix, by script index
+    pub materialization_files: &'a [(u32, String)],
 }
 
 /// The scripts of a workbook
@@ -725,6 +736,12 @@ impl Workbook {
 
     /// Run a function with a plan request of the scripts and attachments of the workbook
     fn with_plan_request<R>(&self, f: impl FnOnce(&SessionPlanRequest) -> R) -> R {
+        self.with_run_plan_request(&RunPlanRequest::default(), f)
+    }
+
+    /// Run a function with a plan request of the scripts and attachments of the workbook for a run: its scope, the
+    /// scripts whose materialized results the host provides, the mount prefix and the files of the materialized results
+    fn with_run_plan_request<R>(&self, run: &RunPlanRequest, f: impl FnOnce(&SessionPlanRequest) -> R) -> R {
         let mut connections: Vec<&ScriptConnection> = Vec::new();
         let mut script_connections: Vec<u32> = Vec::with_capacity(self.scripts.len());
         for script in &self.scripts {
@@ -756,11 +773,16 @@ impl Workbook {
             .iter()
             .zip(&sessions)
             .zip(&script_connections)
-            .map(|((script, session), connection)| PlannerScript {
+            .enumerate()
+            .map(|(index, ((script, session), connection))| PlannerScript {
                 script: session.script(),
                 name: script_display_name(&script.file_name),
                 connection: *connection,
-                materialization_file: None,
+                materialization_file: run
+                    .materialization_files
+                    .iter()
+                    .find(|(script, _)| *script as usize == index)
+                    .map(|(_, file)| file.as_str()),
             })
             .collect();
         let attachments = self.attachments.as_deref().unwrap_or_default();
@@ -774,12 +796,71 @@ impl Workbook {
         f(&SessionPlanRequest {
             connections: &planner_connections,
             scripts: &planner_scripts,
-            scope: PlanScope::Session,
-            materialized: &[],
-            mount_prefix: "",
+            scope: match run.targets {
+                Some(targets) => PlanScope::Targets(targets),
+                None => PlanScope::Session,
+            },
+            materialized: run.materialized,
+            mount_prefix: run.mount_prefix,
             attachments: &planner_attachments,
             attachment_prefix: &attachment_prefix,
         })
+    }
+
+    /// Plan the scripts of the workbook for a run, with their analyses as they are
+    pub fn plan_run(&self, run: &RunPlanRequest) -> ExecutionGraphT {
+        self.with_run_plan_request(run, plan_session)
+    }
+
+    /// The dataflow of the scripts of the workbook, with their analyses as they are
+    pub fn dataflow(&self) -> Dataflow {
+        self.with_plan_request(derive_session_dataflow)
+    }
+
+    /// Analyze every script for a run and publish its declarations into the catalog of its connection, then analyze
+    /// every script again at the catalog revisions that the publishing left. The scripts take the analyses. Fails with
+    /// the message of a script that doesn't analyze.
+    pub fn analyze_for_run(&mut self) -> std::result::Result<(), String> {
+        for _pass in 0..2 {
+            for script in self.scripts.iter_mut() {
+                script.analyze();
+                script.revision = next_revision();
+                let update = script.editor_update.as_ref();
+                if !update.is_some_and(|update| update.status == EditorUpdateStatus::OK && update.analysis_available) {
+                    let message = update.and_then(|update| update.status_message.clone()).filter(|message| !message.is_empty());
+                    let message = message.unwrap_or_else(|| format!("Failed to analyze {}", script.file_name));
+                    self.revision = next_revision();
+                    return Err(message);
+                }
+            }
+        }
+        self.revision = next_revision();
+        Ok(())
+    }
+
+    /// Analyze the scripts whose analysis is outdated, e.g. by a catalog update that landed since the preparation of
+    /// a run. An analysis that publishes other declarations can outdate other scripts, they analyze in the next pass.
+    /// Returns whether a script analyzed.
+    pub fn analyze_outdated_scripts(&mut self) -> bool {
+        let mut changed = false;
+        for _pass in 0..=self.scripts.len() {
+            let mut analyzed = false;
+            for script in self.scripts.iter_mut() {
+                if script.is_analysis_outdated() {
+                    script.analyze();
+                    script.revision = next_revision();
+                    analyzed = true;
+                }
+            }
+            if !analyzed {
+                break;
+            }
+            changed = true;
+        }
+        if changed {
+            self.revision = next_revision();
+        }
+        changed
     }
 
     /// Publish the table parameters after the scripts or the attachments changed. The scripts whose analysis is
@@ -1010,29 +1091,6 @@ impl Workbook {
                     self.cloud = link;
                     outcome.changed = true;
                     outcome.effects.push(self.properties_write());
-                }
-            }
-            WorkbookAction::ApplyPlannerAnalysis { updates } => {
-                for (key, update) in updates {
-                    let Some(script) = self.script_mut(key) else {
-                        continue;
-                    };
-                    let current = update.status == EditorUpdateStatus::OK
-                        && update.analysis_available
-                        && update.text_version == script.session.borrow_mut().text_version()
-                        && update.catalog_revision == script.connection.catalog.borrow().version() as u64;
-                    if !current {
-                        continue;
-                    }
-                    // A moved cursor can supersede the snapshot of the planner without changing the text or the catalog
-                    let update = if update.state_revision == script.session.borrow_mut().state_revision() {
-                        update
-                    } else {
-                        script.session.borrow_mut().analyze(&script.connection.catalog.borrow())
-                    };
-                    script.take_analysis(update);
-                    script.revision = next_revision();
-                    outcome.changed = true;
                 }
             }
             WorkbookAction::CreateScript { index, text, base, connection } => {

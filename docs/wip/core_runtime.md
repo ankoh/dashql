@@ -13,8 +13,9 @@ platform), the query executor the fourth (`QueryExecutorService` over `src/execu
 Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host, the
 catalog loader the fifth (`CatalogLoaderService` over `catalog_loader/service.rs`): it schedules the updates of the
 catalogs, runs their metadata queries through the query executor, fetches the metadata of Salesforce and registers the
-client functions of the connections. The storage format of workbooks is called by the storage, the imports and the
-exports of the TypeScript runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
+client functions of the connections, the runs of workbooks the sixth (`src/workbook_run/`): a run analyzes, plans and
+runs the scripts of a workbook. The storage format of workbooks is called by the storage, the imports and the exports of
+the TypeScript runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
@@ -97,9 +98,9 @@ buffers in between. The boundary moves to what the UI reads.
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
    The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer), and
-   so are the restore and the persistence of connections, see [The restore](#the-restore), and
-   the query executor with one HTTP layer, see [The query executor](#the-query-executor), and the catalog loader, see
-   [The catalog loader](#the-catalog-loader).
+   so are the restore and the persistence of connections, see [The restore](#the-restore), the query executor with
+   one HTTP layer, see [The query executor](#the-query-executor), the catalog loader, see
+   [The catalog loader](#the-catalog-loader), and the runs of workbooks, see [The runs of workbooks](#the-runs-of-workbooks).
 
 ## The whole runtime in Wasm
 
@@ -130,7 +131,7 @@ call that fails is an error of the task, never a panic.
 **Order.** The host trait and the executor with the storage writer as the first service (done), the format of
 workbooks (done); the catalog loader and the
 query executor once the connection and query states are switched; the connectors one by one behind the existing
-`QueryChannel`; the runs of workbooks; the restore (done) and `createRuntime` last. ZIP archives (`zip.js` with
+`QueryChannel`; the runs of workbooks (done); the restore (done) and `createRuntime` last. ZIP archives (`zip.js` with
 `CompressionStream`) and the compilation of chart specs (`vega-lite`) stay host calls until a reason to move them.
 
 ## The computations
@@ -512,6 +513,59 @@ change.
   rejects. The metrics of a Hyper result over HTTP count its batches and rows. The executor reads the auth headers of
   a Hyper connection once per query.
 
+## The runs of workbooks
+
+`runWorkbookExecution`, `runPlannedScript` and the result keys of scripts (`computeScriptResultCacheKey`,
+`computeWorkbookResultCacheKeys`) of the TypeScript runtime are adapters over the runs of the crate
+(`src/workbook_run/`), bound as `Workbook.run` of the module, which returns a `WorkbookRun` (`DashQLWorkbook.run` and
+`DashQLWorkbookRun` of `@ankoh/dashql-core`). `WorkbookExecutionService`, `runWorkbookScript` and
+`runWorkbookScriptForResult` kept their APIs, the hooks of the app didn't change.
+
+- **A run is a task on the workbook.** The module shares the workbook with its runs (`Rc<RefCell<Workbook>>`). A run
+  analyzes every script and publishes its declarations, then analyzes every script again at the catalog revisions that
+  the publishing left (`Workbook::analyze_for_run`). The scripts take the analyses, there is no action that hands them
+  over. Before every plan the scripts whose analysis a catalog update outdated analyze again.
+- **Plans.** `Workbook::plan_run` plans the scripts with `planner::plan_session`: every script, the targets with what
+  they need, or the scripts that a change of inputs affects (`plan::affected_scripts` on the dataflow of the workbook).
+  A run of a script needs a statement of its target. The result keys follow the plan (`plan::result_keys`): the host
+  derives a key from a signature, the run decides whether the key is reusable.
+- **Cached results.** A script with a reusable key whose file the cache holds and that follows no script that runs is
+  served from the cache: the run keeps the file, the terminal query of the script reads the cache only, and the run
+  plans again with the file as a result that the host provides. A miss runs the script.
+- **The schedule.** A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a
+  connection run at once, in node order. A statement releases the nodes after it once its result arrived, the node of
+  a materialized script once the host wrote its result as Parquet file. The nodes of a connection that can't run or
+  could not be set up are skipped with every node that follows them. A failed statement cancels the running ones, the
+  run settles once they ended and then releases its files.
+- **Writes.** The run registers the queries and the results of the scripts on the workbook and captures the
+  visualization of every output (`RegisterQuery`, `RegisterScriptResult`, `SetExecutionVisualization`), then tells the
+  host. The adapter projects the workbook again with the action `PROJECT_WORKBOOK`, once per turn.
+- **The host.** `RunHost` runs a statement: the adapter hands it to the query executor with the arguments of a planned
+  statement (`QueryExecutionArgs` with the title, the description and `QueryMetadata.planned` that the run describes)
+  and keeps the result table. The host cancels statements, derives keys, keeps the files of the query result cache,
+  writes and mounts the materialized results and the attachments, sets up connections, reports the state of the run
+  and the events of the scripts, and yields. A run holds its workbook in TypeScript (`acquireWorkbookExecution`), the
+  hooks of the app subscribe to the holds.
+- **Cancellation.** `WorkbookRun.cancel` stops a run: the state turns `stopping`, the running statements are cancelled
+  through the host, the run ends `cancelled` once they ended. An abort signal of the adapter cancels the run.
+- **No borrow across an await.** The run borrows the workbook only between its awaits and tells the host after the
+  borrow ended. The host may change the workbook during a statement, the next statement fails the run if a script, the
+  order of the scripts or a session changed, a stale text fails it before the first statement.
+- **The tests.** `tests/workbook_run_test.rs` runs real workbooks on a fake host: the order of a plan, concurrency per
+  connection, failures and cancellation, cached results, materializations, runs of a script and changes of inputs.
+  `workbook_execution.test.ts`, `workbook_execution_integration.test.ts` and `script_run.test.ts` of the TypeScript
+  runtime run the adapter with a fake executor, the query result cache and the mounts; they read plans with
+  `DashQLWorkbook.planRun` and result keys with `DashQLWorkbook.resultKeys`.
+- **Changed on purpose.** The run analyzes the scripts on the workbook and the action `APPLY_PLANNER_ANALYSIS` is gone,
+  so is `ApplyPlannerAnalysis` of the workbook. The run writes the workbook directly, the adapter dispatches
+  `PROJECT_WORKBOOK` instead of the actions of the queries and visualizations. Before a plan only the scripts with an
+  outdated analysis analyze again. An attachment edge of the dataflow no longer counts as an edge of a script when a
+  change of inputs collects the scripts it affects. Every statement has an abort signal of its own, which the
+  cancellation of the run aborts, and reports its result as ready to the run. The result keys are derived one after
+  another. A run checks the Rust workbook: a projection of the app with another order of scripts no longer fails a
+  run. The `done` of a script and the `started` of a script that it releases come in either order. A plan without the
+  mounts of the cache has a mount prefix with a counter instead of a random UUID.
+
 ## Typing
 
 Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,
@@ -543,6 +597,11 @@ about that.
   the host.
 - A channel of the host converts its record batches to Arrow IPC, the embedded Hyper decodes its IPC first.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
+- The service of the runs (`WorkbookExecutionService`: one run per workbook, the connections that a run takes, the
+  changes of inputs that wait for the workbook, stopping a run when a connection drops) and the holds of workbooks stay
+  in TypeScript, the run itself is Rust.
+- A statement of a run reaches the query executor of the crate through its adapter, which registers the query in the
+  history of its connection and keeps the result table; the run and the executor are not one Rust value yet.
 - The setups of the connectors still run in TypeScript (`trino_connection_setup.ts`, `salesforce_connection_setup.ts`,
   `hyper_connection_setup.tsx` of the app) and so does the health check (`health_check.ts`). `TrinoSetup` and
   `SalesforceSetup` of the crate are state machines that no service drives yet; a service over them needs an OAuth host
@@ -557,7 +616,6 @@ about that.
 - A script that publishes its own declarations changes its catalog, so a script that was just analyzed can look
   outdated once more. A second analysis settles it.
 - The base name of a new script comes with the action, the random names stay in TypeScript.
-- `ApplyPlannerAnalysis` exists because the engine of the runs is still TypeScript.
 - The promotion of the ephemeral workbook needs the names of the other workbooks, the adapter calls `promote` after
   an action until a registry of workbooks moves too.
 - The states of the app share the Rust workbook: only the latest state of a workbook can be reduced, like the registry

@@ -1,11 +1,28 @@
 import * as core from '@ankoh/dashql-core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_execution_args.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { StorageWriter } from '../../storage/storage_writer.js';
+import { TestLogger } from '../../testing/test_logger.js';
+import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
 import { runWorkbookExecution, type ScriptRunEvent, type WorkbookExecutionState } from './workbook_execution.js';
-import { REGISTER_QUERY, REGISTER_SCRIPT_RESULT, type WorkbookScripts } from './workbook_scripts.js';
+import { createWorkbookScripts, DELETE_SCRIPT, reduceWorkbookScripts, type ScriptConnection, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
+import { createEmptyMetadata } from './script_types.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
+
+// The adapter of the runs of the Rust runtime: the statements reach the query executor of the host, the states and
+// the events of the scripts reach the host. The scheduling itself is tested in Rust
+// (packages/dashql-core-runtime/tests/workbook_run_test.rs).
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: core.DashQL;
+const logger = new TestLogger();
+
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -14,97 +31,53 @@ function deferred<T>() {
     return { promise, resolve, reject };
 }
 
-function fixture(entries: Array<{ file: string; outputs: boolean[]; connection?: string }> = [
-    { file: '10_last.sql', outputs: [true] },
-    { file: '2_commands.sql', outputs: [false, true, false] },
-    { file: '1_empty.sql', outputs: [] as boolean[] },
+/// A workbook with scripts on connections (`connection` by default), in feed order
+function fixture(entries: Array<[string, string, string?]> = [
+    ['1_empty.sql', ''],
+    ['2_commands.sql', 'create table t (x int);\nselect x from t;\ninsert into t values (1);'],
+    ['10_last.sql', 'select x from t;'],
 ]) {
-    const preparation: string[] = [];
-    let catalogRevision = 0n;
-    const scriptSessions = entries.map((entry, index) => ({
-        version: 1n,
-        getCatalogEntryId: () => index + 100,
-        getTextVersion() { return this.version; },
-        getCatalogRevision: () => catalogRevision,
-        analyze: vi.fn(() => {
-            preparation.push(`analyze:${entry.file}`);
-            return { status: core.buffers.editor.EditorUpdateStatus.OK, analysisAvailable: true, statusMessage: null };
-        }),
-        loadIntoCatalog: vi.fn(() => {
-            preparation.push(`load:${entry.file}`);
-            catalogRevision++;
-        }),
-    }));
-    const ordered = entries.map((entry, index) => ({ ...entry, index }))
-        .sort((a, b) => a.file.localeCompare(b.file, undefined, { numeric: true }));
-    const graph = {
-        valid: true,
-        scripts: [] as Array<{ scriptId: number; textVersion: bigint; analyzedTextVersion: bigint; analyzedCatalogRevision: bigint; planned: boolean }>,
-        nodes: ordered.flatMap((entry, script) => entry.outputs.map((producesOutput, statementId) => ({
-            script, statementId, producesOutput, sql: `${entry.file}:${statementId + 1}`, connection: 0, materialization: 0xffffffff,
-        }))),
-        edges: [] as Array<{ from: number; to: number }>,
-        diagnostics: [] as Array<{ message: string }>,
-        materializations: [],
+    const connections = new Map<string, ScriptConnection>();
+    const connectionOf = (id = 'connection') => {
+        let connection = connections.get(id);
+        if (connection == null) {
+            connection = { connectionId: id, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
+            connections.set(id, connection);
+        }
+        return connection;
     };
-    // Most lifecycle tests model a sequential script. Parallel-scheduler tests replace these
-    // explicit planner dependencies with the graph shape they need to exercise.
-    graph.edges.push(...graph.nodes.slice(1).map((_node, index) => ({ from: index, to: index + 1 })));
-    const unpack = vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT);
-    // The plan of the workbook covers the scripts of every connection
-    const plan = vi.fn((request: core.SessionPlanRequest) => {
-        graph.scripts = request.scripts.map(({ session: scriptSession }) => ({
-            scriptId: scriptSession.getCatalogEntryId(), textVersion: scriptSession.getTextVersion(),
-            analyzedTextVersion: scriptSession.getTextVersion(), analyzedCatalogRevision: scriptSession.getCatalogRevision(), planned: true,
-        }));
-        for (const node of graph.nodes) node.connection = request.scripts[node.script].connection;
-        return { unpack };
+    let live: WorkbookScripts = createWorkbookScripts({
+        instance: dql, workbookId: crypto.randomUUID(), name: 'Execution',
+        pendingConnection: entries.length === 0 ? connectionOf() : null, workbookMetadata: createEmptyMetadata(),
+        scripts: entries.map(([name, sql, connection]) => ({ name, sql, connection: connectionOf(connection) })),
     });
-    const workbook = {
-        workbookId: 'workbook', connectionId: 'connection', instance: { planSession: plan }, connectionCatalog: {},
-        scriptRefs: Object.fromEntries(entries.map((entry, index) => [entry.file, { scriptId: index + 100 }])),
-        scriptOrder: ordered.map(entry => entry.file),
-        scripts: Object.fromEntries(entries.map((entry, index) => [index + 100, {
-            scriptKey: index + 100, fileName: entry.file, scriptSession: scriptSessions[index], latestQueryId: 50 + index,
-            latestResultQueryId: 50 + index, connection: { connectionId: entry.connection ?? 'connection' },
-        }])),
-    } as unknown as WorkbookScripts;
+    const writer = new StorageWriter(logger, new WorkbookTestBackend());
+    const apply = (action: WorkbookScriptsAction) => { live = reduceWorkbookScripts(live, action, writer, logger); return live; };
+    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => { apply(action); });
     let nextQueryId = 0;
-    const executeQuery = vi.fn<QueryExecutor>(() => [++nextQueryId, Promise.resolve(null)]);
+    const executeQuery = vi.fn<QueryExecutor>((_connectionId, args) => [++nextQueryId, Promise.resolve(args.analyzeResults ? tableFromArrays({ value: [1] }) : null)]);
     const cancelQuery = vi.fn<CancelQuery>(async () => {});
-    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => {
-        if (action.type === REGISTER_QUERY) workbook.scripts[action.value[0]].latestQueryId = action.value[1];
-        if (action.type === REGISTER_SCRIPT_RESULT) workbook.scripts[action.value[0]].latestResultQueryId = action.value[1];
-    });
-    const getWorkbook = vi.fn((): WorkbookScripts | null => workbook);
+    const getWorkbook = vi.fn((): WorkbookScripts | null => live);
     const controller = new AbortController();
     const states: WorkbookExecutionState[] = [];
     const onState = vi.fn((state: WorkbookExecutionState) => { states.push(state); });
     const yieldToBrowser = vi.fn(async () => {});
-    const args: Parameters<typeof runWorkbookExecution>[0] = { workbook, getWorkbook, executeQuery, cancelQuery, modifyWorkbookScripts,
-        signal: controller.signal, onState, yieldToBrowser };
+    const args = (): Parameters<typeof runWorkbookExecution>[0] => ({
+        workbook: live, getWorkbook, executeQuery, cancelQuery, modifyWorkbookScripts, signal: controller.signal, onState, yieldToBrowser,
+    });
+    const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
     const lastState = () => states[states.length - 1];
-    return { args, workbook, scriptSessions, graph, plan, unpack, preparation,
-        executeQuery, cancelQuery, modifyWorkbookScripts, getWorkbook, controller, states, onState, yieldToBrowser, lastState };
+    const queries = () => executeQuery.mock.calls.map(([connectionId, args]) => [connectionId, args.query]);
+    return { args, apply, script, getWorkbook, executeQuery, cancelQuery, modifyWorkbookScripts, controller, states, onState, yieldToBrowser, lastState, queries };
 }
 
 describe('runWorkbookExecution', () => {
-    it('prepares and executes natural committed order, including empty scripts', async () => {
+    it('analyzes, plans and runs the scripts in the order of the plan, including empty scripts', async () => {
         const f = fixture();
-        const run = runWorkbookExecution(f.args);
-        await run;
-        expect(f.preparation).toEqual([
-            'analyze:1_empty.sql', 'load:1_empty.sql',
-            'analyze:2_commands.sql', 'load:2_commands.sql',
-            'analyze:10_last.sql', 'load:10_last.sql',
-            'analyze:1_empty.sql', 'analyze:2_commands.sql', 'analyze:10_last.sql',
-            'analyze:1_empty.sql', 'analyze:2_commands.sql', 'analyze:10_last.sql',
-        ]);
-        expect(f.plan.mock.calls[0][0].scripts.map(script => script.session)).toEqual([f.scriptSessions[2], f.scriptSessions[1], f.scriptSessions[0]]);
-        expect(f.plan.mock.calls[0][0].scripts.map(script => script.name)).toEqual(['1_empty', '2_commands', '10_last']);
-        expect(f.executeQuery.mock.calls.map(([connection, args]) => [connection, args.query])).toEqual([
-            ['connection', '2_commands.sql:1'], ['connection', '2_commands.sql:2'],
-            ['connection', '2_commands.sql:3'], ['connection', '10_last.sql:1'],
+        await runWorkbookExecution(f.args());
+        expect(f.queries()).toEqual([
+            ['connection', 'create table t (x int)'], ['connection', 'select x from t'],
+            ['connection', 'insert into t values (1)'], ['connection', 'select x from t'],
         ]);
         expect(f.lastState()).toEqual({
             phase: 'succeeded', totalScripts: 3, completedScripts: 3,
@@ -115,33 +88,27 @@ describe('runWorkbookExecution', () => {
         expect(f.states.some(state => state.completedScripts === 1 && state.completedStatements === 0)).toBe(true);
         expect(f.states.filter(state => state.activeFileName === '2_commands.sql').map(state => state.activeStatementIndex))
             .toEqual(expect.arrayContaining([1, 2, 3]));
-        expect(f.unpack).toHaveBeenCalledOnce();
+        // The analyses of the run are the analyses of the scripts
+        for (const script of Object.values(f.getWorkbook()!.scripts)) {
+            expect(script.analysisOutdated).toBe(false);
+            expect(script.editorUpdate?.analysisAvailable).toBe(true);
+        }
+        // The statements say where they come from
+        const [, args] = f.executeQuery.mock.calls[3];
+        expect(args).toMatchObject({ cacheable: false, throwOnError: true, analyzeResults: true, publishResults: true });
+        expect(args.metadata).toMatchObject({ title: '10_last.sql 1/1', issuer: 'Workbook run', workbookId: f.getWorkbook()!.workbookId });
+        expect(args.metadata.planned).toMatchObject({ run: 'workbook', script: '10_last.sql', statement: 1, statements: 1, statementType: 'SELECT', result: true });
     });
 
     it('runs the scripts that a change of inputs affects', async () => {
-        const f = fixture();
-        const EdgeKind = core.buffers.execution.DataflowEdgeKind;
-        // The input :min feeds 2_commands, which 10_last reads
-        const dataflow = {
-            scripts: [], inputs: [{ name: 'min' }, { name: 'other' }],
-            edges: [
-                { fromScript: 0, fromStatement: 0, toScript: 1, toStatement: 0, kind: EdgeKind.INPUT, name: 'min' },
-                { fromScript: 1, fromStatement: 0, toScript: 0, toStatement: 0, kind: EdgeKind.INPUT, name: 'other' },
-                { fromScript: 1, fromStatement: 2, toScript: 2, toStatement: 0, kind: EdgeKind.INLINE_REFERENCE, name: '2_commands' },
-            ],
-        };
-        const derive = vi.fn(() => ({ unpack: () => dataflow }));
-        (f.workbook.instance as any).deriveSessionDataflow = derive;
-        await runWorkbookExecution({ ...f.args, inputs: ['min'] });
-        expect(derive).toHaveBeenCalledOnce();
-        expect(f.plan.mock.calls[0][0].targets).toEqual([1, 2]);
-        expect(f.lastState().phase).toBe('succeeded');
+        const f = fixture([['1_min.sql', '/* @param :min = 3 */\nselect 1 where 2 > :min;'], ['2_other.sql', 'select 2;']]);
+        await runWorkbookExecution({ ...f.args(), inputs: ['min'] });
+        expect(f.queries()).toEqual([['connection', 'select 1 where 2 > 3']]);
+        expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalScripts: 1 });
 
         // A change that no script reads runs nothing
-        const g = fixture();
-        (g.workbook.instance as any).deriveSessionDataflow = derive;
-        await runWorkbookExecution({ ...g.args, inputs: ['nope'] });
-        expect(g.plan).not.toHaveBeenCalled();
+        const g = fixture([['1_min.sql', '/* @param :min = 3 */\nselect 1 where 2 > :min;']]);
+        await runWorkbookExecution({ ...g.args(), inputs: ['nope'] });
         expect(g.executeQuery).not.toHaveBeenCalled();
         expect(g.lastState()).toEqual(expect.objectContaining({ phase: 'succeeded', totalScripts: 0 }));
     });
@@ -150,26 +117,17 @@ describe('runWorkbookExecution', () => {
         const f = fixture();
         const firstYield = deferred<void>();
         f.yieldToBrowser.mockImplementationOnce(() => firstYield.promise);
-        const run = runWorkbookExecution(f.args);
+        const run = runWorkbookExecution(f.args());
+        await vi.waitFor(() => expect(f.yieldToBrowser).toHaveBeenCalledOnce());
         expect(f.lastState()).toMatchObject({ phase: 'planning', totalScripts: 3 });
-        expect(f.preparation).toEqual([]);
-        expect(f.yieldToBrowser).toHaveBeenCalledOnce();
+        expect(f.executeQuery).not.toHaveBeenCalled();
         firstYield.resolve();
         await run;
-        expect(f.plan).toHaveBeenCalledOnce();
+        expect(f.lastState().phase).toBe('succeeded');
     });
 
-    it('yields while executing a batch of immediately resolved commands', async () => {
-        const f = fixture([{ file: '1_commands.sql', outputs: Array(8).fill(false) }]);
-        await runWorkbookExecution(f.args);
-        // Initial status, before graph planning, then after the eighth command.
-        expect(f.yieldToBrowser).toHaveBeenCalledTimes(3);
-        expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedStatements: 8 });
-    });
-
-    it('starts an eligible query after its predecessor result is ready', async () => {
-        const f = fixture([{ file: '1.sql', outputs: [false, false] }]);
-        f.args.maxConcurrentQueries = () => 4;
+    it('starts an eligible statement once the result of its predecessor is ready', async () => {
+        const f = fixture([['1.sql', 'create table t (x int);\ninsert into t values (1);']]);
         const first = deferred<null>();
         const started = deferred<void>();
         f.executeQuery.mockImplementationOnce((_connection, args) => {
@@ -177,251 +135,112 @@ describe('runWorkbookExecution', () => {
             started.resolve();
             return [1, first.promise];
         });
-        const run = runWorkbookExecution(f.args);
+        const run = runWorkbookExecution(f.args());
         await started.promise;
-        expect(f.executeQuery).toHaveBeenCalledTimes(2);
-        expect(f.lastState()?.completedStatements).toBe(0);
+        await vi.waitFor(() => expect(f.executeQuery).toHaveBeenCalledTimes(2));
+        // The second statement ran before the first one settled
+        expect(f.lastState()?.completedStatements).toBeLessThan(2);
         first.resolve(null);
         await run;
-        expect(f.executeQuery).toHaveBeenCalledTimes(2);
+        expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedStatements: 2 });
     });
 
-    it('waits for result readiness before launching dependent queries', async () => {
-        const f = fixture([{ file: '1.sql', outputs: [false, false] }]);
-        f.args.maxConcurrentQueries = () => 4;
-        f.graph.edges.push({ from: 0, to: 1 });
-        const resultsReady = deferred<void>();
-        const first = deferred<null>();
-        const started = deferred<void>();
-        f.executeQuery.mockImplementationOnce((_connection, args) => {
-            resultsReady.promise.then(() => args.onResultsReady?.());
-            started.resolve();
-            return [1, first.promise];
-        });
-        const run = runWorkbookExecution(f.args);
-        await started.promise;
-        expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        resultsReady.resolve();
-        await new Promise<void>(resolve => setTimeout(resolve));
-        expect(f.executeQuery).toHaveBeenCalledTimes(2);
-        first.resolve(null);
-        await run;
+    it('fails a run whose plan is invalid before any statement', async () => {
+        const f = fixture([['1_bar.sql', 'select * from :unknown;']]);
+        await runWorkbookExecution(f.args());
+        expect(f.executeQuery).not.toHaveBeenCalled();
+        expect(f.lastState()).toMatchObject({ phase: 'failed' });
+        expect(f.lastState().error).toContain('1_bar.sql');
     });
 
-    it.each(['invalid', 'text', 'analysis', 'membership', 'workbook', 'instance', 'missing'])
-        ('rejects %s plans before backend execution', async kind => {
-            const f = fixture();
-            if (kind === 'invalid') {
-                f.graph.valid = false;
-                f.graph.diagnostics.push({ message: 'Invalid SQL' });
-            }
-            f.onState.mockImplementation(state => {
-                f.states.push(state);
-                if (state.phase !== 'running') return;
-                switch (kind) {
-                    case 'text': f.scriptSessions[2].version++; break;
-                    case 'analysis': f.graph.scripts[0].analyzedTextVersion = 0n; break;
-                    case 'membership': delete f.workbook.scriptRefs['1_empty.sql']; break;
-                    case 'workbook': f.workbook.scripts[102].scriptSession = f.workbook.scripts[101].scriptSession; break;
-                    case 'instance': f.getWorkbook.mockReturnValue({ ...f.workbook, instance: {} as core.DashQL }); break;
-                    case 'missing': f.getWorkbook.mockReturnValue(null); break;
-                }
-            });
-            await runWorkbookExecution(f.args);
-            expect(f.executeQuery).not.toHaveBeenCalled();
-            expect(f.lastState()?.phase).toBe('failed');
-            expect(f.lastState()?.error).toBeTruthy();
-            expect(f.unpack).toHaveBeenCalledOnce();
-        });
-
-    it('runs a plan whose catalog moved on since planning', async () => {
+    it('fails a run when the workbook is gone before its statements', async () => {
         const f = fixture();
         f.onState.mockImplementation(state => {
             f.states.push(state);
-            if (state.phase === 'running') f.graph.scripts[0].analyzedCatalogRevision = 0n;
+            if (state.phase === 'running') f.getWorkbook.mockReturnValue(null);
         });
-        await runWorkbookExecution(f.args);
-        expect(f.executeQuery).toHaveBeenCalled();
-        expect(f.lastState()?.phase).toBe('succeeded');
-    });
-
-    it('checks editor update status before publishing', async () => {
-        const f = fixture();
-        f.scriptSessions[2].analyze.mockReturnValue({ status: -1 as core.buffers.editor.EditorUpdateStatus,
-            analysisAvailable: true, statusMessage: null });
-        await runWorkbookExecution(f.args);
-        expect(f.scriptSessions[2].loadIntoCatalog).not.toHaveBeenCalled();
-        expect(f.plan).not.toHaveBeenCalled();
+        await runWorkbookExecution(f.args());
         expect(f.executeQuery).not.toHaveBeenCalled();
-        expect(f.lastState()?.phase).toBe('failed');
+        expect(f.lastState()).toMatchObject({ phase: 'failed', error: 'Workbook changed during execution' });
     });
 
     it('fails fast while retaining the failing query and earlier successful work', async () => {
         const f = fixture();
         f.executeQuery.mockImplementationOnce(() => [1, Promise.resolve(null)])
             .mockImplementationOnce(() => [2, Promise.reject(new Error('Backend failure'))]);
-        await expect(runWorkbookExecution(f.args)).resolves.toBeUndefined();
+        await expect(runWorkbookExecution(f.args())).resolves.toBeUndefined();
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
-        expect(f.workbook.scripts[101].latestQueryId).toBe(2);
-        expect(f.lastState()).toMatchObject({ phase: 'failed', error: 'Backend failure',
-            completedScripts: 1, completedStatements: 1, activeStatementIndex: 2 });
-    });
-
-    it('accepts null results for command-only scripts', async () => {
-        const f = fixture([{ file: '1_commands.sql', outputs: [false, false] }]);
-        await runWorkbookExecution(f.args);
-        expect(f.executeQuery.mock.calls.every(([, args]) => args.analyzeResults === false)).toBe(true);
-        expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 1, completedStatements: 2 });
-        expect(f.workbook.scripts[100].latestResultQueryId).toBe(50);
-        f.graph.nodes[0].producesOutput = true;
-        await runWorkbookExecution(f.args);
-        expect(f.modifyWorkbookScripts.mock.calls.some(([action]) => action.type === REGISTER_SCRIPT_RESULT)).toBe(false);
+        expect(f.script('2_commands.sql').latestQueryId).toBe(2);
+        expect(f.lastState()).toMatchObject({ phase: 'failed', error: 'Backend failure', completedStatements: 1, activeStatementIndex: 2 });
     });
 
     it('analyzes only the last output and restores it after successful trailing commands', async () => {
-        const f = fixture([{ file: '1_output.sql', outputs: [true, false, true, false] }]);
+        const f = fixture([['1_output.sql', 'create table t (x int);\nselect 1;\nselect 2;\ninsert into t values (3);']]);
         f.executeQuery.mockImplementation(() => [f.executeQuery.mock.calls.length, Promise.resolve(tableFromArrays({ value: [1] }))]);
-        await runWorkbookExecution(f.args);
+        await runWorkbookExecution(f.args());
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([false, false, true, false]);
-        for (const [, args] of f.executeQuery.mock.calls) {
-            expect(args).toMatchObject({ cacheable: false, throwOnError: true, abortSignal: f.controller.signal });
-        }
-        expect(f.modifyWorkbookScripts.mock.calls.filter(([action]) => action.type === REGISTER_QUERY).map(([action]) => action.value)).toEqual([
-            [100, 1], [100, 2], [100, 3], [100, 4], [100, 3],
-        ]);
-        expect(f.workbook.scripts[100].latestQueryId).toBe(3);
-        expect(f.workbook.scripts[100].latestResultQueryId).toBe(3);
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ type: REGISTER_SCRIPT_RESULT, value: [100, 3] });
+        expect(f.script('1_output.sql').latestQueryId).toBe(3);
+        expect(f.script('1_output.sql').latestResultQueryId).toBe(3);
     });
 
     it('keeps the output result after a trailing command fails', async () => {
-        const f = fixture([{ file: '1_output.sql', outputs: [true, false] }]);
-        f.executeQuery.mockImplementationOnce(() => [1, Promise.resolve(tableFromArrays({ value: [1] }))])
-            .mockImplementationOnce(() => [2, Promise.reject(new Error('Command failed'))]);
-        await runWorkbookExecution(f.args);
-        expect(f.workbook.scripts[100].latestQueryId).toBe(2);
-        expect(f.modifyWorkbookScripts.mock.calls.filter(([action]) => action.type === REGISTER_QUERY)).toHaveLength(2);
+        const f = fixture([['1_output.sql', 'create table t (x int);\nselect 1;\ninsert into t values (3);']]);
+        f.executeQuery.mockImplementationOnce(() => [1, Promise.resolve(null)])
+            .mockImplementationOnce(() => [2, Promise.resolve(tableFromArrays({ value: [1] }))])
+            .mockImplementationOnce(() => [3, Promise.reject(new Error('Command failed'))]);
+        await runWorkbookExecution(f.args());
         expect(f.lastState()?.phase).toBe('failed');
-        expect(f.workbook.scripts[100].latestResultQueryId).toBe(1);
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ type: REGISTER_SCRIPT_RESULT, value: [100, 1] });
-        await runWorkbookExecution(f.args);
-        expect(f.workbook.scripts[100].latestResultQueryId).toBe(1);
+        expect(f.script('1_output.sql').latestQueryId).toBe(3);
+        expect(f.script('1_output.sql').latestResultQueryId).toBe(2);
     });
 
-    it('keeps the output result when a later output fails', async () => {
-        const f = fixture([{ file: '1_output.sql', outputs: [true] }]);
-        f.executeQuery.mockImplementationOnce(() => [1, Promise.resolve(tableFromArrays({ value: [1] }))])
-            .mockImplementationOnce(() => [2, Promise.reject(new Error('Output failed'))]);
-        await runWorkbookExecution(f.args);
-        await runWorkbookExecution(f.args);
-        expect(f.workbook.scripts[100].latestQueryId).toBe(2);
-        expect(f.workbook.scripts[100].latestResultQueryId).toBe(1);
-    });
-
-    it('uses captured SQL after execution starts, even when live text changes', async () => {
+    it('stops queued statements when a workbook script is removed during the run', async () => {
         const f = fixture();
         f.executeQuery.mockImplementationOnce(() => {
-            f.scriptSessions[1].version++;
+            f.apply({ type: DELETE_SCRIPT, value: '10_last.sql' });
             return [1, Promise.resolve(null)];
         });
-        await runWorkbookExecution(f.args);
-        expect(f.executeQuery.mock.calls[1][1].query).toBe('2_commands.sql:2');
-        expect(f.lastState()?.phase).toBe('succeeded');
-    });
-
-    it('stops queued SQL when a workbook script is removed during execution', async () => {
-        const f = fixture();
-        f.executeQuery.mockImplementationOnce(() => {
-            delete f.workbook.scriptRefs['10_last.sql'];
-            return [1, Promise.resolve(null)];
-        });
-        await runWorkbookExecution(f.args);
+        await runWorkbookExecution(f.args());
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        expect(f.lastState()?.phase).toBe('failed');
+        expect(f.lastState()).toMatchObject({ phase: 'failed' });
         expect(f.lastState()?.error).toContain('Workbook changed');
     });
 
-    it.each(['execution', 'cancellation'])('drains both promises when %s settles first on abort', async first => {
-        const f = fixture();
+    it('stops a run on abort: cancels the running query on its connection and settles once it is done', async () => {
+        const f = fixture([['1_b.sql', 'select 1;', 'b'], ['2_b.sql', 'select 2;', 'b']]);
         const execution = deferred<null>();
-        const cancellation = deferred<void>();
         const started = deferred<void>();
-        f.executeQuery.mockImplementationOnce(() => { started.resolve(); return [42, execution.promise]; });
-        f.cancelQuery.mockReturnValue(cancellation.promise);
-        const run = runWorkbookExecution(f.args);
+        f.executeQuery.mockImplementationOnce((_connection, args) => {
+            started.resolve();
+            args.abortSignal?.addEventListener('abort', () => execution.reject(new DOMException('Aborted', 'AbortError')));
+            return [42, execution.promise];
+        });
+        const run = runWorkbookExecution(f.args());
         await started.promise;
         f.controller.abort();
-        expect(f.cancelQuery).toHaveBeenCalledExactlyOnceWith('connection', 42);
         expect(f.lastState()?.phase).toBe('stopping');
-        if (first === 'execution') {
-            execution.resolve(null);
-            await execution.promise;
-        } else {
-            cancellation.resolve();
-            await cancellation.promise;
-        }
-        expect(f.lastState()?.phase).toBe('stopping');
-        expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        execution.resolve(null);
-        cancellation.resolve();
         await run;
+        expect(f.cancelQuery).toHaveBeenCalledExactlyOnceWith('b', 42);
+        expect(f.executeQuery).toHaveBeenCalledTimes(1);
         expect(f.lastState()).toMatchObject({ phase: 'cancelled', error: null, completedStatements: 0 });
-        expect(f.executeQuery).toHaveBeenCalledTimes(1);
     });
 
-    it('handles cancellation rejection immediately while execution remains pending', async () => {
-        const f = fixture();
-        const execution = deferred<null>();
-        const started = deferred<void>();
-        f.executeQuery.mockImplementationOnce(() => { started.resolve(); return [42, execution.promise]; });
-        f.cancelQuery.mockRejectedValue(new Error('Cancel failed'));
-        const run = runWorkbookExecution(f.args);
-        await started.promise;
-        f.controller.abort();
-        await f.cancelQuery.mock.results[0].value.catch(() => {});
-        expect(f.lastState()?.phase).toBe('stopping');
-        execution.reject(new Error('Aborted'));
-        await expect(run).resolves.toBeUndefined();
-        expect(f.lastState()?.phase).toBe('cancelled');
-    });
-
-    it('waits for analysis synchronization and catches synchronous executor errors', async () => {
-        const f = fixture();
-        const registration = deferred<WorkbookScripts | null>();
-        f.modifyWorkbookScripts.mockReturnValueOnce(registration.promise);
-        const run = runWorkbookExecution(f.args);
-        await Promise.resolve();
-        expect(f.executeQuery).not.toHaveBeenCalled();
-        registration.resolve(f.workbook);
-        await run;
-        expect(f.lastState()?.phase).toBe('succeeded');
-
+    it('fails a run whose executor throws, and launches nothing when it was aborted already', async () => {
         const failed = fixture();
         failed.executeQuery.mockImplementation(() => { throw new Error('Cannot launch'); });
-        await expect(runWorkbookExecution(failed.args)).resolves.toBeUndefined();
+        await expect(runWorkbookExecution(failed.args())).resolves.toBeUndefined();
         expect(failed.lastState()).toMatchObject({ phase: 'failed', error: 'Cannot launch' });
         expect(failed.executeQuery).toHaveBeenCalledTimes(1);
-    });
 
-    it('handles synchronous cancellation errors without launching queued work', async () => {
-        const f = fixture();
-        f.cancelQuery.mockImplementation(() => { throw new Error('Cannot cancel'); });
-        f.modifyWorkbookScripts.mockImplementation(action => { if (action.type === REGISTER_QUERY) f.controller.abort(); });
-        await expect(runWorkbookExecution(f.args)).resolves.toBeUndefined();
-        expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        expect(f.cancelQuery).toHaveBeenCalledTimes(1);
-        expect(f.lastState()?.phase).toBe('cancelled');
-    });
+        const aborted = fixture();
+        aborted.controller.abort();
+        await runWorkbookExecution(aborted.args());
+        expect(aborted.executeQuery).not.toHaveBeenCalled();
+        expect(aborted.lastState()?.phase).toBe('cancelled');
 
-    it('launches nothing when already aborted and removes its abort listener after finishing', async () => {
-        const f = fixture();
-        f.controller.abort();
-        await runWorkbookExecution(f.args);
-        expect(f.plan).not.toHaveBeenCalled();
-        expect(f.executeQuery).not.toHaveBeenCalled();
-        expect(f.lastState()?.phase).toBe('cancelled');
+        // A run that ended ignores a later abort
         const completed = fixture();
-        await runWorkbookExecution(completed.args);
+        await runWorkbookExecution(completed.args());
         const count = completed.states.length;
         completed.controller.abort();
         expect(completed.states).toHaveLength(count);
@@ -430,78 +249,57 @@ describe('runWorkbookExecution', () => {
 
     it('runs the scripts of every connection in one plan, one statement of a connection at a time', async () => {
         const f = fixture([
-            { file: '1_a.sql', outputs: [true], connection: 'a' },
-            { file: '2_a.sql', outputs: [true], connection: 'a' },
-            { file: '3_b.sql', outputs: [false, true], connection: 'b' },
-            { file: '4_a.sql', outputs: [true], connection: 'a' },
+            ['1_a.sql', 'select 1;', 'a'],
+            ['2_a.sql', 'select 2;', 'a'],
+            ['3_b.sql', 'select 3;\nselect 4;', 'b'],
+            ['4_a.sql', 'select 5;', 'a'],
         ]);
-        // Independent statements: the connections run side by side
-        f.graph.edges.length = 0;
         const running = new Map<string, number>();
         let overlap = false;
+        let both = false;
         f.executeQuery.mockImplementation((connection: string) => {
             running.set(connection, (running.get(connection) ?? 0) + 1);
             if (running.get(connection)! > 1) overlap = true;
-            if ([...running.values()].filter(count => count > 0).length > 1) running.set('both', 1);
-            const done = Promise.resolve(null).then(result => { running.set(connection, running.get(connection)! - 1); return result; });
+            if ([...running.values()].filter(count => count > 0).length > 1) both = true;
+            const done = new Promise<null>(resolve => setTimeout(() => resolve(null))).then(result => {
+                running.set(connection, running.get(connection)! - 1);
+                return result;
+            });
             return [f.executeQuery.mock.calls.length, done];
         });
-        await runWorkbookExecution(f.args);
-        expect(f.plan).toHaveBeenCalledOnce();
-        expect(f.plan.mock.calls[0][0].connections.map(connection => connection.id)).toEqual(['a', 'b']);
-        const calls = f.executeQuery.mock.calls.map(([connection, args]) => [connection, args.query]);
-        expect(calls.filter(([connection]) => connection === 'a')).toEqual([['a', '1_a.sql:1'], ['a', '2_a.sql:1'], ['a', '4_a.sql:1']]);
-        expect(calls.filter(([connection]) => connection === 'b')).toEqual([['b', '3_b.sql:1'], ['b', '3_b.sql:2']]);
-        // A connection runs one statement at a time, the other connection runs meanwhile
+        await runWorkbookExecution(f.args());
+        const calls = f.queries();
+        expect(calls.filter(([connection]) => connection === 'a')).toEqual([['a', 'select 1'], ['a', 'select 2'], ['a', 'select 5']]);
+        expect(calls.filter(([connection]) => connection === 'b')).toEqual([['b', 'select 3'], ['b', 'select 4']]);
         expect(overlap).toBe(false);
-        expect(running.has('both')).toBe(true);
+        expect(both).toBe(true);
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalStatements: 5, completedStatements: 5, completedScripts: 4 });
-    });
-
-    it('cancels a query on the connection that runs it', async () => {
-        const f = fixture([{ file: '1_b.sql', outputs: [true], connection: 'b' }]);
-        const started = deferred<void>();
-        const execution = deferred<null>();
-        f.executeQuery.mockImplementationOnce(() => { started.resolve(); return [42, execution.promise]; });
-        const run = runWorkbookExecution(f.args);
-        await started.promise;
-        f.controller.abort();
-        expect(f.cancelQuery).toHaveBeenCalledExactlyOnceWith('b', 42);
-        execution.resolve(null);
-        await run;
     });
 
     it('reports what happens to every script', async () => {
         const f = fixture();
         const events: Array<[string, ScriptRunEvent]> = [];
-        await runWorkbookExecution({ ...f.args, onScript: (file, event) => events.push([file, event]) });
-        expect(events).toEqual([
+        await runWorkbookExecution({ ...f.args(), onScript: (file, event) => events.push([file, event]) });
+        expect(events.slice(0, 3)).toEqual([
             ['1_empty.sql', { type: 'done', key: null, queryId: null }],
             ['2_commands.sql', { type: 'planned', follows: [] }],
             ['10_last.sql', { type: 'planned', follows: ['2_commands.sql'] }],
-            ['2_commands.sql', { type: 'started' }],
-            // A statement releases the statements after it once its result is ready, before it settles
-            ['10_last.sql', { type: 'started' }],
-            ['2_commands.sql', { type: 'done', key: null, queryId: 2 }],
-            ['10_last.sql', { type: 'done', key: null, queryId: 4 }],
         ]);
+        // A statement releases the statements after it once its result is ready, before it settles
+        const of = (file: string) => events.filter(([f]) => f === file).map(([, event]) => event);
+        expect(of('2_commands.sql')).toEqual([{ type: 'planned', follows: [] }, { type: 'started' }, { type: 'done', key: null, queryId: 2 }]);
+        expect(of('10_last.sql')).toEqual([{ type: 'planned', follows: ['2_commands.sql'] }, { type: 'started' }, { type: 'done', key: null, queryId: 4 }]);
     });
 
     it('reports the failed script and cancels the scripts that run beside it', async () => {
-        const f = fixture([
-            { file: '1_a.sql', outputs: [true], connection: 'a' },
-            { file: '2_b.sql', outputs: [true], connection: 'b' },
-            { file: '3_a.sql', outputs: [true], connection: 'a' },
-        ]);
-        f.graph.edges.length = 0;
-        f.graph.edges.push({ from: 0, to: 2 });
+        const f = fixture([['1_a.sql', 'select 1;', 'a'], ['2_b.sql', 'select 2;', 'b'], ['3_a.sql', 'select 3;', 'a']]);
         const slow = deferred<null>();
         f.executeQuery.mockImplementation((connection: string) => connection === 'a'
             ? [1, slow.promise]
             : [2, Promise.reject(new Error('Backend failure'))]);
         f.cancelQuery.mockImplementation(async () => { slow.reject(new Error('Cancelled')); });
         const events: Array<[string, string]> = [];
-        await runWorkbookExecution({ ...f.args, onScript: (file, event) => events.push([file, event.type]) });
+        await runWorkbookExecution({ ...f.args(), onScript: (file, event) => events.push([file, event.type]) });
         expect(events).toEqual([
             ['1_a.sql', 'planned'], ['2_b.sql', 'planned'], ['3_a.sql', 'planned'],
             ['1_a.sql', 'started'], ['2_b.sql', 'started'],
@@ -511,11 +309,7 @@ describe('runWorkbookExecution', () => {
     });
 
     it('sets up the connections at once and skips the scripts of one that fails', async () => {
-        const f = fixture([
-            { file: '1_a.sql', outputs: [true], connection: 'a' },
-            { file: '2_b.sql', outputs: [true], connection: 'b' },
-        ]);
-        f.graph.edges.length = 0;
+        const f = fixture([['1_a.sql', 'select 1;', 'a'], ['2_b.sql', 'select 2;', 'b']]);
         const setups: string[] = [];
         const setupB = deferred<void>();
         const prepareConnection = vi.fn(async (connectionId: string) => {
@@ -526,7 +320,7 @@ describe('runWorkbookExecution', () => {
             }
         });
         const events: Array<[string, ScriptRunEvent]> = [];
-        const run = runWorkbookExecution({ ...f.args, prepareConnection, onScript: (file, event) => events.push([file, event]) });
+        const run = runWorkbookExecution({ ...f.args(), prepareConnection, onScript: (file, event) => events.push([file, event]) });
         await vi.waitFor(() => expect(setups).toEqual(['a', 'b']));
         setupB.resolve();
         await run;
@@ -536,15 +330,15 @@ describe('runWorkbookExecution', () => {
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', skippedFiles: ['2_b.sql'] });
     });
 
-    it('runs the targets', async () => {
-        const f = fixture();
-        await runWorkbookExecution({ ...f.args, targets: [1] });
-        expect(f.plan.mock.calls[0][0].targets).toEqual([1]);
+    it('runs the targets with what they need', async () => {
+        const f = fixture([['1_a.sql', 'select 1;'], ['2_b.sql', 'select 2;']]);
+        await runWorkbookExecution({ ...f.args(), targets: [1] });
+        expect(f.queries()).toEqual([['connection', 'select 2']]);
     });
 
     it('succeeds on an empty workbook', async () => {
         const f = fixture([]);
-        await runWorkbookExecution(f.args);
+        await runWorkbookExecution(f.args());
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalScripts: 0, totalStatements: 0 });
         expect(f.executeQuery).not.toHaveBeenCalled();
     });

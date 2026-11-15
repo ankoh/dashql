@@ -10,12 +10,12 @@ import { QueryCacheMissError } from '../../query/query_result_cache.js';
 import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.js';
 import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from './workbook_execution.js';
 import {
-    APPLY_PLANNER_ANALYSIS,
     createWorkbookScripts,
     type WorkbookScripts,
     type WorkbookScriptsAction,
     reduceWorkbookScripts,
     REGISTER_QUERY,
+    PROJECT_WORKBOOK,
     REGISTER_SCRIPT_RESULT,
     replaceScriptSessionText,
     SET_SCRIPT_CONNECTION,
@@ -38,8 +38,6 @@ import type { ConnectionParams } from '../../connections/connection_params.js';
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL;
-/// The planner of the core, a fixture spies on it, a second fixture of a test must not plan with the spy of the first
-let nativePlan: core.DashQL['planSession'];
 const logger = new TestLogger();
 
 /// The embedded database that writes and reads the workbook archives
@@ -48,7 +46,6 @@ let terminateArchiveDatabase: (() => Promise<void>) | null = null;
 
 beforeAll(async () => {
     dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
-    nativePlan = dql.planSession.bind(dql);
     archiveDatabase = await openTestHyperDB('dashql-workbook-execution');
     terminateArchiveDatabase = () => archiveDatabase.terminate();
 }, 60_000);
@@ -83,17 +80,6 @@ function fixture(entries: Array<[string, string]>) {
     const cancelQuery = vi.fn<CancelQuery>(async () => {});
     const states: WorkbookExecutionState[] = [];
     const controller = new AbortController();
-    const graphs: core.buffers.execution.ExecutionGraphT[] = [];
-    const plan = vi.spyOn(dql, 'planSession').mockImplementation(input => {
-        const buffer = nativePlan(input);
-        const unpack = buffer.unpack.bind(buffer);
-        vi.spyOn(buffer, 'unpack').mockImplementation(() => {
-            const graph = unpack();
-            graphs.push(graph);
-            return graph;
-        });
-        return buffer;
-    });
     const run = (options: Partial<Parameters<typeof runWorkbookExecution>[0]> = {}) => runWorkbookExecution({
         workbook: live, getWorkbook: () => live, executeQuery, cancelQuery, modifyWorkbookScripts,
         signal: controller.signal, onState: state => { states.push(state); },
@@ -101,8 +87,10 @@ function fixture(entries: Array<[string, string]>) {
     });
     const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
     const lastState = () => states[states.length - 1];
+    /// The plan of the workbook with the analyses as they are, e.g. as a run left them
+    const plan = () => live.native!.workbook.planRun(null, '/mnt/external/cache');
     return { run, apply, script, getWorkbook: () => live, modifyWorkbookScripts, executeQuery,
-        cancelQuery, controller, calls, states, lastState, graphs, plan, write };
+        cancelQuery, controller, calls, states, lastState, plan, write };
 }
 
 describe('workbook execution with real core planning', () => {
@@ -119,16 +107,16 @@ describe('workbook execution with real core planning', () => {
         await f.run();
         expect(f.lastState()?.error).toBeNull();
         const main = f.script('1_create.sql').connection.connectionId;
-        expect(f.plan).toHaveBeenCalledOnce();
-        expect(f.plan.mock.calls[0][0].connections.map(connection => connection.id)).toEqual([main, remote.connectionId]);
-        expect(f.plan.mock.calls[0][0].scripts.map(script => [script.name, script.connection])).toEqual([['1_create', 0], ['2_remote', 1], ['3_query', 0]]);
+        const graph = f.plan();
+        expect(graph.connections.map(connection => connection.connectionId)).toEqual([main, remote.connectionId]);
+        expect(graph.scripts.map(script => [script.name, script.connection])).toEqual([['1_create', 0], ['2_remote', 1], ['3_query', 0]]);
         expect(f.calls.map(call => [call.databaseId, call.sql])).toEqual([
             [main, 'create table items (id int)'],
             [remote.connectionId, 'select 42'],
             [main, 'select id from items'],
         ]);
         // The query resolves the table that the first script created in the same catalog
-        expect(f.graphs[0].unresolvedReferences).toEqual([]);
+        expect(graph.unresolvedReferences).toEqual([]);
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
     });
 
@@ -180,7 +168,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
             [main, 'select id from items where id > 1'],
             [main, 'with "1_foo" as (\nselect id from items where id > 1\n)\nselect count(*) from "1_foo"'],
         ]);
-        expect(f.graphs[0].references.map(reference => reference.cteName)).toEqual(['1_foo']);
+        expect(f.plan().references.map(reference => reference.cteName)).toEqual(['1_foo']);
     });
 
     it.each([false, true])('materializes a script of another connection for the embedded database and mounts it before the scan (caching %s)', async caching => {
@@ -214,13 +202,12 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
         expect(f.lastState()?.error).toBeNull();
         // The remote query runs first, its result is mounted, the embedded database scans it
-        const graph = f.graphs[f.graphs.length - 1];
+        const graph = f.plan();
         const fooKey = `remote:${graph.scripts[0].signature}`;
         // A result with a reusable key is a new file of its key, any other one a transient file
         const file = `${caching ? fooKey : 'transient'}.${run}.parquet`;
         expect(events).toEqual(['query:remote', `mount:${file}`, 'query:local', 'release']);
-        const path = graph.materializations[0].path!;
-        expect(path).toBe(`/mnt/external/cache/${file}`);
+        const path = `/mnt/external/cache/${file}`;
         expect(f.calls.map(call => call.sql)).toEqual([
             'select 1 as a',
             `with "1_foo" as (select * from external('${path}', format => 'parquet'))\nselect count(*) from "1_foo"`,
@@ -253,7 +240,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
             });
             const options = { cache, resultKey: async (_connectionId: string, signature: string) => `key:${signature}`, cachesResults: () => true };
             const keyOf = (index: number): string => {
-                const graph = f.graphs[0];
+                const graph = f.plan();
                 const script = graph.scripts[index];
                 return `key:${[script.signature, ...(script.referencedScripts ?? []).map(r => keyOf(r))].join('\n')}`;
             };
@@ -279,7 +266,6 @@ call clfn.item_get (id => :id, size => 2);`]]);
             f.cache.put(f.keyOf(1));
             f.cache.put(f.keyOf(3));
             f.queries.length = 0;
-            f.graphs.length = 0;
             await f.run(f.options);
             expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 4, error: null });
             expect(f.queries.map(q => [q.sql, q.cacheOnly])).toEqual([
@@ -290,8 +276,6 @@ call clfn.item_get (id => :id, size => 2);`]]);
             ]);
             // The served script registers its result
             expect(f.script('1_foo.sql').latestQueryId).not.toBeNull();
-            // The plan of the scripts that run leaves out the served script
-            expect(f.graphs[f.graphs.length - 1].nodes.map(node => node.script)).toEqual([0, 2, 3]);
         });
 
         it('reads no cached results on a refresh', async () => {
@@ -380,7 +364,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
             expect(queries).toEqual([{ connection: 'local', sql: 'select 2', cacheOnly: false }]);
             expect(mounts.writeTable).not.toHaveBeenCalled();
 
-            const fooKey = `remote:${f.graphs[0].scripts[0].signature}`;
+            const fooKey = `remote:${f.plan().scripts[0].signature}`;
             const file = cache.put(fooKey);
             queries.length = 0;
             await f.run(options);
@@ -550,7 +534,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
             };
             // Plan once to learn the signature of foo
             await f.run({ mounts });
-            const fooKey = `remote:${f.graphs[0].scripts[0].signature}`;
+            const fooKey = `remote:${f.plan().scripts[0].signature}`;
             const file = cache.put(fooKey);
             queries.length = 0;
             await f.run({
@@ -591,18 +575,13 @@ call clfn.item_get (id => :id, size => 2);`]]);
         await f.run();
         expect(f.lastState()?.error).toBeNull();
 
-        expect(f.plan).toHaveBeenCalledOnce();
-        expect(f.plan.mock.calls[0][0].scripts.map(script => script.session)).toEqual([
-            f.script('1_create.sql').scriptSession,
-            f.script('2_insert.sql').scriptSession,
-            f.script('10_query.sql').scriptSession,
-        ]);
+        const graph = f.plan();
+        expect(graph.scripts.map(script => script.name)).toEqual(['1_create', '2_insert', '10_query']);
         expect(f.calls).toEqual([
             { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 1, sql: 'create table items (id int)' },
             { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 2, sql: 'insert into items values (7)' },
             { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 3, sql: 'select id from items' },
         ]);
-        const graph = f.graphs[0];
         expect(graph.valid).toBe(true);
         expect(graph.nodes.map(node => [node.script, node.statementId, node.producesOutput]))
             .toEqual([[0, 0, false], [1, 0, false], [2, 0, true]]);
@@ -642,16 +621,11 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
         await f.run();
 
+        // The run changes the Rust workbook, the app projects it again
         const actions = f.modifyWorkbookScripts.mock.calls.map(([action]) => action);
-        expect(actions.filter(action => action.type !== SET_SCRIPT_EXECUTION_VISUALIZATION).map(action => action.type))
-            .toEqual([APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_QUERY, REGISTER_SCRIPT_RESULT]);
-        const analysis = actions[0];
-        expect(analysis.type).toBe(APPLY_PLANNER_ANALYSIS);
-        if (analysis.type === APPLY_PLANNER_ANALYSIS) {
-            for (const { scriptKey, editorUpdate } of analysis.value) {
-                expect(f.getWorkbook().scripts[scriptKey].editorUpdate).toBe(editorUpdate);
-            }
-        }
+        expect(actions.length).toBeGreaterThan(0);
+        expect(actions.every(action => action.type === PROJECT_WORKBOOK)).toBe(true);
+        expect(f.script('2_query.sql').latestResultQueryId).toBe(2);
         expect(f.script('1_create.sql').latestQueryId).toBe(1);
         expect(f.script('2_query.sql').latestQueryId).toBe(2);
         expect(f.write).not.toHaveBeenCalled();
@@ -667,7 +641,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         f.apply({ type: REGISTER_SCRIPT_RESULT, value: [f.script('1_outputs.sql').scriptKey, 0] });
         await f.run();
 
-        expect(f.graphs[0].nodes.map(node => node.producesOutput)).toEqual([false, true, true, false, true, true]);
+        expect(f.plan().nodes.map(node => node.producesOutput)).toEqual([false, true, true, false, true, true]);
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults))
             .toEqual([false, false, true, false, false, true]);
         expect(f.script('1_outputs.sql').latestQueryId).toBe(3);
@@ -680,8 +654,8 @@ call clfn.item_get (id => :id, size => 2);`]]);
         const f = fixture([['1_explain.sql', 'explain select 2;']]);
         await f.run();
 
-        expect(f.graphs[0].valid).toBe(true);
-        expect(f.graphs[0].nodes[0]).toMatchObject({ producesOutput: true, visualization: null });
+        expect(f.plan().valid).toBe(true);
+        expect(f.plan().nodes[0]).toMatchObject({ producesOutput: true, visualization: null });
         expect(f.calls.map(call => call.sql)).toEqual(['explain select 2']);
         expect(f.executeQuery.mock.calls[0][1]).toMatchObject({ analyzeResults: true, publishResults: true });
         expect(f.script('1_explain.sql').annotations.visualizeQuery).toBeNull();
@@ -695,7 +669,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
             + 'delete from items;']]);
         await f.run();
 
-        expect(f.graphs[0].valid).toBe(true);
+        expect(f.plan().valid).toBe(true);
         expect(f.calls.map(call => call.sql)).toEqual([
             'create table items (id int)', 'select id from items', 'select 2 as value', 'delete from items',
         ]);
@@ -710,9 +684,6 @@ call clfn.item_get (id => :id, size => 2);`]]);
             'create table items (id int);\n/* @vis table */\nselect id from items;\n'
             + '/**\n * @vis table\n * @board row=0 column=0 width=6 height=3\n */\nselect 2 as value;\n'
             + 'delete from items;');
-        const actions = f.modifyWorkbookScripts.mock.calls.map(([action]) => action);
-        const captured = actions.findIndex(action => action.type === SET_SCRIPT_EXECUTION_VISUALIZATION);
-        expect(actions[captured - 1]).toEqual({ type: REGISTER_QUERY, value: [f.script('1_visualize.sql').scriptKey, 3] });
         expect(f.write).not.toHaveBeenCalled();
         expect(f.lastState().phase).toBe('succeeded');
     });
@@ -786,30 +757,6 @@ call clfn.item_get (id => :id, size => 2);`]]);
         expect(f.script('1_query.sql').annotations.visualizeQuery).toBeNull();
     });
 
-    it('rejects malformed captured metadata on an earlier output before any backend call', async () => {
-        const f = fixture([['1_query.sql',
-            'create table items (id int);\n/* @vis table */\nselect 1;\nselect 2;']]);
-        const planner = f.plan.getMockImplementation()!;
-        f.plan.mockImplementation(input => {
-            const buffer = planner(input);
-            const unpack = vi.mocked(buffer.unpack).getMockImplementation()!;
-            vi.mocked(buffer.unpack).mockImplementation(() => {
-                const graph = unpack();
-                graph.nodes[1].visualization!.renderer = 'vegalite';
-                graph.nodes[1].visualization!.vegaliteSpec = '{';
-                return graph;
-            });
-            return buffer;
-        });
-        await f.run();
-
-        expect(f.graphs[0].valid).toBe(true);
-        expect(f.executeQuery).not.toHaveBeenCalled();
-        expect(f.modifyWorkbookScripts).not.toHaveBeenCalled();
-        expect(f.lastState()).toMatchObject({ phase: 'failed', completedStatements: 0,
-            error: 'Invalid captured visualization metadata' });
-    });
-
     it('runs an unsupported SET as a barrier in workbook order', async () => {
         const f = fixture([
             ['1_valid.sql', 'select 1;'],
@@ -818,9 +765,9 @@ call clfn.item_get (id => :id, size => 2);`]]);
         ]);
         await f.run();
 
-        expect(f.graphs).toHaveLength(1);
-        expect(f.graphs[0].valid).toBe(true);
-        expect(f.graphs[0].diagnostics.map(d => [d.error, d.message])).toEqual([
+        const graph = f.plan();
+        expect(graph.valid).toBe(true);
+        expect(graph.diagnostics.map(d => [d.error, d.message])).toEqual([
             [false, 'unsupported statement effects; backend session semantics are not guaranteed']]);
         expect(f.calls.map(call => call.sql)).toEqual(['select 1', 'set foo = 1', 'select 2']);
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedStatements: 3 });
@@ -829,38 +776,34 @@ call clfn.item_get (id => :id, size => 2);`]]);
     it('plans again from edited live workbooks on rerun rather than reusing captured SQL', async () => {
         const f = fixture([['1_query.sql', 'select 1;']]);
         await f.run();
-        const previousVersion = f.graphs[0].scripts[0].textVersion;
+        const previousVersion = f.plan().scripts[0].textVersion;
         f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2; select 3;' } });
         await f.run();
 
-        expect(f.plan).toHaveBeenCalledTimes(2);
-        expect(f.graphs).toHaveLength(2);
-        expect(f.graphs[1].scripts[0].textVersion).not.toBe(previousVersion);
-        expect(f.graphs[1].scripts[0].textVersion).toBe(f.script('1_query.sql').scriptSession.getTextVersion());
+        expect(f.plan().scripts[0].textVersion).not.toBe(previousVersion);
+        expect(f.plan().scripts[0].textVersion).toBe(f.script('1_query.sql').scriptSession.getTextVersion());
         expect(f.calls.map(call => call.sql)).toEqual(['select 1', 'select 2', 'select 3']);
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([true, false, true]);
         expect(f.script('1_query.sql').latestQueryId).toBe(3);
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalStatements: 2, completedStatements: 2 });
     });
 
-    it('invalidates a plan when live text changes during APPLY_PLANNER_ANALYSIS synchronization', async () => {
+    it('fails a plan when the live text changes before its statements run', async () => {
         const f = fixture([['1_query.sql', 'select 1;']]);
-        f.modifyWorkbookScripts.mockImplementationOnce(async action => {
-            expect(action.type).toBe(APPLY_PLANNER_ANALYSIS);
-            f.apply(action);
-            await Promise.resolve();
-            f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2;' } });
-            return f.getWorkbook();
+        await f.run({
+            onState: state => {
+                f.states.push(state);
+                if (state.phase === 'running' && f.script('1_query.sql').scriptSession.getText() === 'select 1;') {
+                    f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2;' } });
+                }
+            },
         });
-        await f.run();
 
-        expect(f.graphs[0].valid).toBe(true);
-        expect(f.graphs[0].scripts[0].textVersion).not.toBe(f.script('1_query.sql').scriptSession.getTextVersion());
         expect(f.script('1_query.sql').scriptSession.getText()).toBe('select 2;');
         expect(f.executeQuery).not.toHaveBeenCalled();
         expect(f.script('1_query.sql').latestQueryId).toBeNull();
         expect(f.lastState()).toMatchObject({ phase: 'failed', completedStatements: 0, completedScripts: 0 });
-        expect(f.lastState().error).toMatch(/stale execution plan|workbook changed while planning/i);
+        expect(f.lastState().error).toMatch(/stale execution plan/i);
     });
 
     it('scans a Parquet attachment of the workbook from the mount of its attachments', async () => {
@@ -871,7 +814,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         expect(f.lastState()?.error).toBeNull();
         const workbookId = f.getWorkbook().workbookId;
         expect(mountAttachments).toHaveBeenCalledWith(workbookId);
-        expect(f.plan.mock.calls[0][0].attachments).toEqual([{ name: 'sales', file: 'sales.parquet', stamp: '10-1', columns: null }]);
+        expect(f.plan().attachments.map(attachment => [attachment.name, attachment.file])).toEqual([['sales', 'sales.parquet']]);
         expect(f.calls.map(call => call.sql)).toEqual([
             `with sales as (select * from external('/mnt/external/attachments/${workbookId}/sales.parquet', format => 'parquet'))\nselect count(*) from sales`,
         ]);

@@ -147,6 +147,19 @@ rust_test(
 )
 
 # The tasks of the computations on a fake compute host
+# The runs of workbooks on a fake host
+rust_test(
+    name = "workbook_run_test",
+    size = "small",
+    srcs = ["tests/workbook_run_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_runtime",
+        "//packages/dashql-core:dashql_core",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
+
 rust_test(
     name = "compute_service_test",
     size = "small",

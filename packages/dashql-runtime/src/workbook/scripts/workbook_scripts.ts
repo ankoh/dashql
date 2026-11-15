@@ -248,7 +248,8 @@ export interface ScriptData {
 }
 
 export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
-export const APPLY_PLANNER_ANALYSIS = Symbol('APPLY_PLANNER_ANALYSIS');
+/// The Rust workbook changed outside of an action, e.g. a run registered a query: project it again
+export const PROJECT_WORKBOOK = Symbol('PROJECT_WORKBOOK');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
@@ -275,7 +276,7 @@ export const SET_WORKBOOK_CLOUD_LINK = Symbol('SET_WORKBOOK_CLOUD_LINK');
 
 export type WorkbookScriptsAction =
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
-    | VariantKind<typeof APPLY_PLANNER_ANALYSIS, Array<{ scriptKey: number; editorUpdate: core.buffers.editor.EditorUpdateT }>>
+    | VariantKind<typeof PROJECT_WORKBOOK, null>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, ScriptSessionUpdate>
     | VariantKind<typeof CATALOG_DID_UPDATE, string>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
@@ -446,16 +447,8 @@ export function reduceWorkbookScripts(state: WorkbookScripts, action: WorkbookSc
         case ANALYZE_OUTDATED_SCRIPT:
             if (state.scripts[action.value] == null) return state;
             return settle(state, [workbook.analyzeOutdatedScript(action.value)], storage);
-        case APPLY_PLANNER_ANALYSIS:
-            return settle(state, action.value
-                .filter(({ scriptKey }) => state.scripts[scriptKey] != null)
-                .map(({ scriptKey, editorUpdate }) => {
-                    // The workbook takes an update of the current state of the session as it is
-                    if (editorUpdate.stateRevision === state.scripts[scriptKey].scriptSession.getStateRevision()) {
-                        native.knowUpdate(scriptKey, editorUpdate);
-                    }
-                    return workbook.applyPlannerAnalysis(scriptKey, editorUpdate);
-                }), storage);
+        case PROJECT_WORKBOOK:
+            return native.project(state);
         case UPDATE_FROM_PROCESSOR: {
             const update = action.value;
             const prevScript = state.scripts[update.scriptKey];

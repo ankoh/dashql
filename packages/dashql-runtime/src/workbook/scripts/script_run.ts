@@ -7,13 +7,10 @@ import { QueryType } from '../../query/query_execution_state.js';
 import {
     ScriptPlanError,
     acquireWorkbookExecution,
-    computeScriptResultKeys,
-    createMountPrefix,
-    planWorkbookScripts,
     releaseWorkbookExecution,
     runWorkbookPlan,
+    workbookRunError,
     type ExecutionMounts,
-    type RunQueries,
 } from './workbook_execution.js';
 import { REGISTER_QUERY, scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
 import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
@@ -49,13 +46,12 @@ const PLAIN_SERVICES: ScriptRunServices = {
     maxConcurrentQueries: () => 1,
 };
 
-/// The scripts of a workbook in workbook order and the index of a script
+/// The files of the scripts of a workbook in workbook order and the index of a script
 function workbookScriptsOf(workbook: WorkbookScripts, target: ScriptData) {
     const files = [...workbook.scriptOrder];
-    const scripts = files.map(file => workbook.scripts[workbook.scriptRefs[file].scriptId]);
-    const targetIndex = scripts.findIndex(script => script.scriptKey === target.scriptKey);
+    const targetIndex = files.findIndex(file => workbook.scriptRefs[file]?.scriptId === target.scriptKey);
     if (targetIndex < 0) throw new Error(`${target.fileName} is no script of the workbook`);
-    return { files, scripts, targetIndex };
+    return { files, targetIndex };
 }
 
 /// The options of the run of a script
@@ -69,9 +65,9 @@ export interface ScriptRunOptions {
     logger?: LoggerLike;
 }
 
-/// Run a script: plan it with the scripts it needs and run the plan (`runWorkbookPlan`). Resolves with the last output
-/// of the script, rejects if the plan is invalid, a statement fails or another run holds the workbook. A failed
-/// statement cancels the other statements of the run.
+/// Run a script: plan it with the scripts it needs and run the plan on the Rust runtime (`runWorkbookPlan`). Resolves
+/// with the last output of the script, rejects if the plan is invalid, a statement fails or another run holds the
+/// workbook. A failed statement cancels the other statements of the run.
 ///
 /// The plan of the script includes the statements before the terminal queries of the scripts it inlines and the
 /// scripts it materializes (docs/design/script_references.md). The result of the script is cached if its key is
@@ -88,15 +84,11 @@ export async function runPlannedScript(
     // The app disables the runs of a held workbook, a run that starts meanwhile fails
     if (!options.held && !acquireWorkbookExecution(workbook)) throw new Error('Another script of the workbook is running');
     const { workbookId } = workbook;
-    // Aborted once a statement failed, cancels the other statements
-    const cancellation = new AbortController();
-    const queries: RunQueries = { active: new Map(), cancellations: new Map() };
     // Did a statement start? An error before shows where the result of the script would be.
     let launched = false;
     // The query of the last output of the target, its result is the result of the run
     let result: Promise<arrow.Table | null> | null = null;
     const executeNode: QueryExecutor = (connectionId, args) => {
-        launched = true;
         const [queryId, execution] = executeQuery(connectionId, args);
         if (args.metadata.resultOwner === scriptResultOwner(workbookId, target.scriptKey) && args.analyzeResults) result = execution;
         return [queryId, execution];
@@ -104,19 +96,16 @@ export async function runPlannedScript(
     try {
         const { files, targetIndex } = workbookScriptsOf(workbook, target);
         const liveWorkbook = services.liveWorkbook;
-        const outputs = await runWorkbookPlan({
+        const outcome = await runWorkbookPlan({
             workbook, getWorkbook: liveWorkbook != null ? () => liveWorkbook(workbookId) : () => workbook,
-            targets: [targetIndex], run: { kind: 'script', target: files[targetIndex] },
-            executeQuery: executeNode, modifyWorkbookScripts, signal: cancellation.signal, queries,
-            cancelActive: () => cancellation.abort(), cooperate: () => yieldToBrowser(), emit: () => {},
+            executeQuery: executeNode, modifyWorkbookScripts,
             mounts: services.createMounts(), mountAttachments: services.mountAttachments,
-            resultKey: services.cacheKey, cachesResults: services.cachesResults,
-            cache: services.cache, refresh: options.refresh ?? false,
-            maxConcurrentQueries: services.maxConcurrentQueries, logger: options.logger,
+            resultKey: services.cacheKey, cachesResults: services.cachesResults, cache: services.cache,
+            maxConcurrentQueries: services.maxConcurrentQueries, cooperate: () => yieldToBrowser(), logger: options.logger,
+            plan: { run: 'script', target: files[targetIndex], targets: [targetIndex], refresh: options.refresh ?? false, reportsState: false },
         });
-        if (outputs[targetIndex] != null) {
-            await modifyWorkbookScripts({ type: REGISTER_QUERY, value: [target.scriptKey, outputs[targetIndex]!] });
-        }
+        launched = outcome.launched;
+        if (outcome.failure != null) throw workbookRunError(outcome);
         return await (result ?? Promise.resolve(null));
     } catch (error) {
         // The script shows why it can't be planned or run where it shows the error of a failed statement, e.g. a
@@ -150,6 +139,16 @@ async function recordPlanError(
     await execution.catch(() => null);
 }
 
+/// The result keys of the scripts of a workbook of the Rust runtime, planned without analyzing
+function workbookResultKeys(services: ScriptRunServices, workbook: WorkbookScripts, targets: number[] | null): Promise<Array<core.WorkbookResultKey | null>> {
+    const native = workbook.native;
+    if (native == null) return Promise.resolve(workbook.scriptOrder.map(() => null));
+    return native.workbook.resultKeys(targets, {
+        resultKey: (connectionId, signature) => services.cacheKey(connectionId, signature),
+        cachesResults: connectionId => services.cachesResults(connectionId),
+    });
+}
+
 /// The cache key of the result of a script, the key that a run of the script reads and writes. Null if the result
 /// is not reusable or the current analysis of the scripts it needs can't be planned. Plans without analyzing.
 export async function computeScriptResultCacheKey(
@@ -157,14 +156,8 @@ export async function computeScriptResultCacheKey(
     workbook: WorkbookScripts,
     target: ScriptData,
 ): Promise<string | null> {
-    const { files, scripts, targetIndex } = workbookScriptsOf(workbook, target);
-    const { graph } = planWorkbookScripts({
-        instance: workbook.instance, scripts, files,
-        mountPrefix: createMountPrefix(), targets: [targetIndex], workbook,
-    });
-    if (!graph.valid) return null;
-    const connectionOf = (index: number) => scripts[index].connection.connectionId;
-    const keys = await computeScriptResultKeys(graph, (index, signature) => services.cacheKey(connectionOf(index), signature), index => services.cachesResults(connectionOf(index)));
+    const { targetIndex } = workbookScriptsOf(workbook, target);
+    const keys = await workbookResultKeys(services, workbook, [targetIndex]);
     const key = keys[targetIndex];
     return key?.reusable ? key.key : null;
 }
@@ -176,14 +169,7 @@ export async function computeWorkbookResultCacheKeys(
     services: ScriptRunServices,
     workbook: WorkbookScripts,
 ): Promise<Array<string | null>> {
-    const files = [...workbook.scriptOrder];
-    const scripts = files.map(file => workbook.scripts[workbook.scriptRefs[file].scriptId]);
-    const { graph } = planWorkbookScripts({
-        instance: workbook.instance, scripts, files, mountPrefix: createMountPrefix(), workbook,
-    });
-    if (!graph.valid) return scripts.map(() => null);
-    const connectionOf = (index: number) => scripts[index].connection.connectionId;
-    const keys = await computeScriptResultKeys(graph, (index, signature) => services.cacheKey(connectionOf(index), signature), index => services.cachesResults(connectionOf(index)));
+    const keys = await workbookResultKeys(services, workbook, null);
     return keys.map(key => key?.reusable ? key.key : null);
 }
 

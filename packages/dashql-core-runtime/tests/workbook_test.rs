@@ -749,32 +749,19 @@ fn keeps_the_reference_to_an_unresolved_connection_until_a_connection_is_picked(
 }
 
 #[test]
-fn applies_the_analyses_of_the_planner_that_are_current() {
-    let (mut workbook, main) = workbook(&[("items.sql", "create table items (id int)"), ("query.sql", "select id from items")]);
+fn analyzes_and_publishes_every_script_for_a_run() {
+    let (mut workbook, main) = workbook(&[("query.sql", "select id from items"), ("items.sql", "create table items (id int)")]);
     let (items, query) = (key(&workbook, "items.sql"), key(&workbook, "query.sql"));
-    settle(&mut workbook);
-    // The planner analyzed the scripts with the catalog as it is
-    let snapshot = |workbook: &Workbook, key| {
-        let script = workbook.script(key).unwrap();
-        let mut update = script.editor_update().unwrap().clone();
-        update.analysis_updated = true;
-        update
-    };
-    let updates = vec![(items, snapshot(&workbook, items)), (query, snapshot(&workbook, query))];
-    let statistics = workbook.script(query).unwrap().statistics().count();
+    workbook.analyze_for_run().unwrap();
+    // The query resolves the table of the script after it, the second pass analyzed it at the final catalog revision
+    assert!(main.catalog.borrow().contains(items));
+    let script = workbook.script(query).unwrap();
+    assert!(!script.is_analysis_outdated());
+    assert!(script.editor_update().unwrap().analysis_available);
+    // A catalog update outdates the scripts, the run analyzes them again before it plans
     workbook.apply(WorkbookAction::CatalogDidUpdate { connection_id: "main".into() }).unwrap();
-    assert!(workbook.script(query).unwrap().analysis_outdated());
-    let outcome = workbook.apply(WorkbookAction::ApplyPlannerAnalysis { updates: updates.clone() }).unwrap();
-    assert!(outcome.changed && outcome.effects.is_empty());
-    assert!(!workbook.script(query).unwrap().analysis_outdated());
-    // An analysis of the planner counts in the statistics of the script
-    assert_eq!(workbook.script(query).unwrap().statistics().count(), statistics + 1);
-    // An analysis of a catalog that changed since is dropped
-    main.catalog.borrow_mut().drop_script(items);
-    workbook.apply(WorkbookAction::CatalogDidUpdate { connection_id: "main".into() }).unwrap();
-    let outcome = workbook.apply(WorkbookAction::ApplyPlannerAnalysis { updates }).unwrap();
-    assert!(!outcome.changed);
-    assert!(workbook.script(query).unwrap().analysis_outdated());
+    assert!(workbook.analyze_outdated_scripts());
+    assert!(!workbook.analyze_outdated_scripts());
 }
 
 #[test]

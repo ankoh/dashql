@@ -269,8 +269,8 @@ Each step ships on its own and keeps the behavior.
      tracked execution and the profile layout of the query progress (`query/profile/`);
    - `CatalogLoaderService` (`connections/catalog/catalog_loader_service.ts`), with the update of Hyper catalogs. The
      runtime passes each new registry, the loader reconsiders its queue in a microtask;
-   - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the engine of the runs and the
-     runs of single scripts;
+   - `WorkbookExecutionService` (`workbook/scripts/workbook_execution_service.ts`), with the runs of single scripts;
+     the engine of the runs is Rust (`docs/wip/core_runtime.md`, The runs of workbooks);
    - `ConnectionPersistenceService` (`connections/connection_persistence_service.ts`).
 
    The rest waited for the seams of step 4, with the runtime object that replaced the nesting of providers.

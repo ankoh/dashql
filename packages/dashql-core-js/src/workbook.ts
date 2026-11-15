@@ -126,6 +126,76 @@ export interface WorkbookStoredScript {
     unresolvedConnectionId?: string | null;
 }
 
+import type { WorkbookRunHost, WorkbookResultKeyHost } from './wasm/dashql_core.js';
+export type { WorkbookRunHost, WorkbookResultKeyHost, WorkbookRunStatementEnd } from './wasm/dashql_core.js';
+
+/// The options of a run of a workbook
+export interface WorkbookRunOptions {
+    /// A run of the workbook or of the script `target`
+    run: 'workbook' | 'script';
+    target?: string | null;
+    /// The indexes of the scripts that run with what they need, every script without
+    targets?: readonly number[] | null;
+    /// Run the scripts that a change of these inputs affects
+    inputs?: readonly string[] | null;
+    /// Read no cached results
+    refresh?: boolean;
+    /// Report the state of the run to the host
+    reportsState?: boolean;
+}
+
+/// The result key of a script
+export interface WorkbookResultKey {
+    key: string;
+    /// The signature that the key derives from
+    signature: string;
+    /// May a run read a file of the key instead of running the script?
+    reusable: boolean;
+}
+
+/// The failure of a run
+export interface WorkbookRunFailure {
+    kind: 'plan' | 'cancelled' | 'error';
+    message: string;
+    /// Did the host fail with a value? It comes next to the failure.
+    hostValue: boolean;
+}
+
+/// How a run ended
+export interface WorkbookRunOutcome {
+    /// The queries of the last outputs of the scripts in feed order
+    outputs: Array<number | null>;
+    failure: WorkbookRunFailure | null;
+    /// Did the run hand a statement to the host?
+    launched: boolean;
+    /// What the host failed with
+    error: unknown;
+}
+
+/// A run of a workbook
+export class DashQLWorkbookRun {
+    private readonly native: glue.WorkbookRun;
+    /// Settles once the run ended
+    public readonly outcome: Promise<WorkbookRunOutcome>;
+
+    public constructor(native: glue.WorkbookRun) {
+        this.native = native;
+        this.outcome = (native.result() as Promise<{ outcome: string; error: unknown }>).then(result => ({
+            ...(JSON.parse(result.outcome) as Omit<WorkbookRunOutcome, 'error'>),
+            error: result.error,
+        })).finally(() => native.free());
+    }
+
+    /// Stop the run, the running statements are cancelled
+    public cancel(): void {
+        try {
+            this.native.cancel();
+        } catch {
+            // The run ended and was freed
+        }
+    }
+}
+
 type NativeWorkbook = glue.Workbook;
 type ConnectionArgs = [string, glue.Catalog, number, boolean, string | undefined, string, string];
 
@@ -368,17 +438,36 @@ export class DashQLWorkbook {
         return this.outcome(this.ptr.assertNotNull().setCloudLink(link?.workbookId, link?.versionId ?? '', link?.preview ?? false));
     }
 
-    /// Apply the analysis that the planner of a run made of a script
-    public applyPlannerAnalysis(key: number, update: buffers.editor.EditorUpdateT): WorkbookOutcome {
-        const builder = new flatbuffers.Builder();
-        builder.finish(update.pack(builder));
-        return this.outcome(this.ptr.assertNotNull().applyPlannerAnalysis(key, builder.asUint8Array()));
-    }
-
     /// Give the table parameters of the workbook to a session that is no script of it, e.g. the draft of the composer.
     /// Returns whether the analysis of the session is outdated by them.
     public attachTableParameters(session: DashQLScriptSession): boolean {
         return this.ptr.assertNotNull().attachTableParameters(session.ptr.assertNotNull());
+    }
+
+    // Runs
+
+    /// Start a run of the scripts on a host (`packages/dashql-core-runtime/src/workbook_run`). The run analyzes the
+    /// scripts, plans them, serves the cached results and runs the statements through the host.
+    public run(host: WorkbookRunHost, options: WorkbookRunOptions): DashQLWorkbookRun {
+        return new DashQLWorkbookRun(this.ptr.assertNotNull().run(host, JSON.stringify(options)));
+    }
+
+    /// Analyze every script for a run and publish its declarations, throws the message of a script that doesn't analyze
+    public analyzeForRun(): void {
+        this.ptr.assertNotNull().analyzeForRun();
+    }
+
+    /// The plan of a run with the analyses as they are: of the targets with what they need, of every script without
+    public planRun(targets: readonly number[] | null, mountPrefix: string): buffers.execution.ExecutionGraphT {
+        const bytes = this.ptr.assertNotNull().planRun(targets == null ? undefined : Uint32Array.from(targets), mountPrefix);
+        return buffers.execution.ExecutionGraph.getRootAsExecutionGraph(new flatbuffers.ByteBuffer(bytes)).unpack();
+    }
+
+    /// The result keys of the scripts in feed order, null for a script without a key. Plans the targets, every script
+    /// without, with the analyses as they are; all null if the plan is invalid.
+    public async resultKeys(targets: readonly number[] | null, host: WorkbookResultKeyHost): Promise<Array<WorkbookResultKey | null>> {
+        const keys = await this.ptr.assertNotNull().resultKeys(targets == null ? undefined : Uint32Array.from(targets), host) as string;
+        return JSON.parse(keys) as Array<WorkbookResultKey | null>;
     }
 
     // Reading the state

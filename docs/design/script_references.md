@@ -127,7 +127,7 @@ already has their results; the queries it inlines are part of its statements.
 
 ## Running a Workbook
 
-A run of the workbook (`runWorkbookExecution`) and a run of a script run a plan the same way (`runWorkbookPlan`): they
+A run of the workbook (`runWorkbookExecution`) and a run of a script run a plan the same way (`workbook_run` of the core runtime): they
 analyze every script, publish the declarations into the catalogs of their connections and plan every script, or the
 target with what it needs. The plan checks the scripts and gives the result keys. A script with a reusable cached
 result doesn't run unless it follows a script that runs: a script whose nodes follow a node of a script that runs, by
@@ -135,7 +135,7 @@ an edge of the plan, runs too, whether its result is cached or not. Otherwise it
 the run plans the other scripts again with the served scripts as `materialized`: a plan of the workbook leaves them
 out, a plan of targets drops the served targets. A script that inlines a served script still runs its query, a script
 that scans it reads the cached file. A refresh (`refresh` of `runWorkbookExecution`, `ScriptRunOptions.refresh`)
-reads no cached results and runs every script of the plan. `runExecutionGraph` starts a node once its predecessors are done,
+reads no cached results and runs every script of the plan. The run (`run_graph`) starts a node once its predecessors are done,
 at most `maxConcurrentQueries` nodes of a connection run at once, and nodes of different connections run side by
 side. The files of a run (`ExecutionMounts`, `createExecutionMounts`) are files of the query result cache of the app
 (`query_cache.md`), the mount prefix of the plan is the mount of the cache. The host names the file of every
@@ -163,7 +163,7 @@ error of a failed statement. The workbook execution service registers the servic
 run mounts no results of other connections and caches nothing. A script connection knows whether it is the embedded
 Hyper (`ScriptConnection.local`).
 
-The result key of a script covers the keys of the scripts it references (`computeScriptResultKeys`, see
+The result key of a script covers the keys of the scripts it references (`result_keys` in `workbook_run/plan.rs` of the core runtime, see
 `query_cache.md`). When the key is reusable, i.e. the connections of the script and of the scripts it references
 cache results, a materialized script with a reusable cached key is served from the cache instead of running
 (`materialized` of the plan): the plan scans the newest file of its key. The cached result of the script is served

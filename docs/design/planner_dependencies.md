@@ -11,8 +11,8 @@ in `packages/dashql-core-runtime/src/planner/mod.rs` and `ScriptReferences` and 
 
 A node is a statement. Node ids follow session order, the order of the scripts in the request, and within a script
 the statement order (`plan_session` numbers the included statements script by script). Every edge points from a
-lower to a higher node id, so the node order is a topological order; `runExecutionGraph` rejects a plan that breaks
-it.
+lower to a higher node id, so the node order is a topological order; the run (`run_graph` in
+`packages/dashql-core-runtime/src/workbook_run/engine.rs`) starts ready nodes in node order and fails a plan with a cycle.
 
 A node records:
 
@@ -35,10 +35,10 @@ A node records:
 - `barrier`: the node is ordered against every node of its connection (Barriers).
 
 The app takes the last node of a script in the plan that produces output as the output of the script
-(`runExecutionGraph`): it analyzes and publishes its result and registers it as the result of the script. That node
+(`run_graph`): it analyzes and publishes its result and registers it as the result of the script. That node
 is not necessarily the `script_result` node.
 
-Every query of a node carries where the statement comes from (`QueryMetadata.planned`, `describePlannedStatements`):
+Every query of a node carries where the statement comes from (`QueryMetadata.planned`, `planned_statements` in `workbook_run/plan.rs`):
 the run, the node, the script and the position of the statement among the statements of the script in the plan, the
 inlined scripts, the materialized results it scans, the file it writes and the edges it runs after. The query history
 shows it as title, e.g. `bar.sql 1/1 · inlines foo.sql · scans base.sql`, and description. The log target
@@ -95,7 +95,7 @@ An edge points from a prerequisite to a dependent. The reasons of `ExecutionGrap
 
 Conflict edges carry the entity or unresolved reference of the dependent's access, the other edges carry neither.
 Edges are a set of `(from, to, entity, unresolved reference, reason)`, so one pair of nodes can have several edges;
-`runExecutionGraph` counts a pair once. There are no self-edges.
+`run_graph` counts a pair once. There are no self-edges.
 
 ### Relation Conflicts
 
@@ -151,7 +151,7 @@ for every materialized script the materialization (`inputs`).
 An inlined query gets no node and no edge of its own, it is part of the statement and takes part in the conflicts
 through the reads the statement inherits. A materialized query is the node of its script, MATERIALIZATION is an edge
 from it to the statement, if the plan computes the result. A result that the host provides has no node
-(`ExecutionGraphMaterialization.node` is absent) and no edge; `runExecutionGraph` pins its file before the run.
+(`ExecutionGraphMaterialization.node` is absent) and no edge; `run_graph` pins its file before the run.
 
 A MATERIALIZATION edge whose producer has a higher node id than the statement is not added, it is the error "bar.sql
 references foo.sql, which runs later; move foo.sql above bar.sql", also in a plan of targets. Since node ids follow
@@ -256,7 +256,7 @@ have no side effects.
 A plan of targets orders its nodes by conflicts, barriers and MATERIALIZATION edges, and SEQUENCE edges within each
 script. A run of a script whose plan has materializations plans twice when the host mounts results: once without
 provided results, to compute the result keys, and again with the cached results of reusable keys as provided
-(`runWorkbookPlan`).
+(`plan_and_run` in `workbook_run/engine.rs`).
 
 One run holds a workbook at a time (`acquireWorkbookExecution`), a run of the whole workbook or of one of its scripts.
 The app disables the runs of a held workbook, a run that starts meanwhile fails. A run for the result of a script
@@ -276,6 +276,6 @@ reusable (`query_cache.md`). Whether a cached result is used also depends on the
 ## Outputs of a Target
 
 A target may have several outputs. The last node of a script in the plan that produces output is its output
-(`runExecutionGraph`), e.g. the SELECT of `select 1; create table t (a int)`, while `script_result` marks only a
+(`run_graph`), e.g. the SELECT of `select 1; create table t (a int)`, while `script_result` marks only a
 terminal statement that produces output. Referenced scripts have a single statement, so their output and their
 `script_result` node are the same.
