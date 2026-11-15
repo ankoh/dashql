@@ -36,13 +36,12 @@ use dashql_buffers::execution::{
     ExecutionGraphAttachmentT, ExecutionGraphEntityType, ExecutionGraphMaterializationT, ExecutionGraphNodeT, ExecutionGraphScriptReferenceT, ExecutionGraphScriptT,
     ExecutionGraphT, ExecutionGraphUnresolvedReferenceT,
 };
-use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType as Type, TempType, TextSpanT};
+use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType as Type, TempType, TextSpanT};
 use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, RelationExpression, TableRole};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
 use dashql_core::pack;
 use dashql_core::script::Script;
 use dashql_parser::attrs;
-use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
@@ -635,12 +634,6 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             nodes.push(node);
             continue;
         }
-        let text_at = |offset: u32, length: u32| -> String {
-            let text = scanned.text.as_bytes();
-            let begin = (offset as usize).min(text.len());
-            let end = (begin + length as usize).min(text.len());
-            String::from_utf8_lossy(&text[begin..end]).into_owned()
-        };
         let descriptions = parsed.associate_descriptions();
         let terminal = p.terminal();
         for (statement_id, statement) in parsed.statements.iter().enumerate() {
