@@ -8,6 +8,7 @@ import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
 import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorType } from './connection.js';
 import { DashQLComputations } from './computations.js';
+import { DashQLStorageWriter } from './storage_writer.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -33,6 +34,7 @@ export type DashQLBindings = Pick<
     | 'Workbook'
     | 'Connection'
     | 'Computations'
+    | 'StorageWriter'
 >;
 
 /// The shell of the module, the host runs its effects
@@ -204,6 +206,11 @@ async function loadDefaultWasm(): Promise<Uint8Array | URL> {
     return url;
 }
 
+/// The instantiation of the module by this copy of the package
+let moduleInstantiation: Promise<void> | null = null;
+/// Did this copy of the package instantiate the module?
+let moduleInstantiated = false;
+
 export class DashQL {
     encoder: TextEncoder;
     decoder: TextDecoder;
@@ -232,10 +239,27 @@ export class DashQL {
     /// A wasm-bindgen module is instantiated once per JS module: instances share the wasm memory
     /// but own their native objects independently.
     public static async create(options?: DashQLModuleOptions): Promise<DashQL> {
-        const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadDefaultWasm();
-        await glue.default({ module_or_path: moduleOrPath });
+        if (moduleInstantiation == null) {
+            // Instantiations at the same time would replace the memory of the module under each other
+            const instantiation = (async () => {
+                const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadDefaultWasm();
+                await glue.default({ module_or_path: moduleOrPath });
+            })();
+            moduleInstantiation = instantiation;
+            instantiation.catch(() => {
+                if (moduleInstantiation === instantiation) moduleInstantiation = null;
+            });
+        }
+        await moduleInstantiation;
+        moduleInstantiated = true;
         // A plain copy of the module namespace, the namespace itself is frozen
         return new DashQL({ ...glue });
+    }
+
+    /// A DashQL instance of the module that this copy of the package instantiated already, null before. Like the
+    /// instances of `create`, it shares the wasm memory and owns its native objects.
+    public static instantiated(): DashQL | null {
+        return moduleInstantiated ? new DashQL({ ...glue }) : null;
     }
 
     public registerMemory(ptr: Ptr<symbol>) {
@@ -410,6 +434,12 @@ export class DashQL {
     /// Create the computations of result tables in the Rust runtime, through the instance like a workbook
     public createComputations(): DashQLComputations {
         return DashQLComputations.create(this);
+    }
+
+    /// Create the storage writer of the Rust runtime on a host, through the instance like a workbook. It writes workbook
+    /// files of the given format version.
+    public createStorageWriter(host: glue.StorageWriterHost, formatVersion: number): DashQLStorageWriter {
+        return DashQLStorageWriter.create(this, host, formatVersion);
     }
 
     /// Create the table parameters of a session, the tables that `:foo` in table position reads

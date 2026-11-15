@@ -22,8 +22,10 @@ rust_shared_library(
         "//packages/dashql-runtime-rs:dashql_runtime",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
+        "@core_crates//:js-sys",
         "@core_crates//:serde_json",
         "@core_crates//:wasm-bindgen",
+        "@core_crates//:wasm-bindgen-futures",
     ],
 )
 

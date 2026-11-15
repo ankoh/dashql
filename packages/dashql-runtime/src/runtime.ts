@@ -75,7 +75,9 @@ export interface Runtime {
 /// instantiated when the runtime restores the stored state, the services ask the platform for it when they need it.
 export function createRuntime(platform: RuntimePlatform): Runtime {
     const { logger, storage, http, scheduler } = platform;
+    // The writer of the platform may exist before the core, it sets one up the way the platform does
     const storageWriter = platform.storageWriter ?? new StorageWriter(logger, storage);
+    storageWriter.provideCore(platform.setupCore);
 
     const workbooks = new WorkbookScriptsRegistryService({ logger, storageWriter }, scheduler);
     const connections = new ConnectionRegistryService({ logger, storageWriter, references: workbooks.references }, scheduler);
@@ -163,6 +165,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         async restore(progress = () => { }) {
             const instance = await platform.setupCore('runtime');
             computations.setCore(instance);
+            storageWriter.provideCore(instance);
             const restored = await restoreAppState(instance, storage, logger, progress);
             connections.store.update({
                 connections: restored.connectionStates,

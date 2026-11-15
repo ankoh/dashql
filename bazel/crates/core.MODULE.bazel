@@ -52,6 +52,11 @@ crate_core.spec(package = "unicode-width", version = "=0.2.3")
 
 # Must match the wasm-bindgen-cli bundled with rules_rust_wasm_bindgen (MODULE.bazel).
 crate_core.spec(package = "wasm-bindgen", version = "=0.2.105")
+
+# The executor of the runtime in the core module: the promises of the host as futures (//packages/dashql-core-wasm).
+# They move together with wasm-bindgen.
+crate_core.spec(package = "js-sys", version = "=0.3.82")
+crate_core.spec(package = "wasm-bindgen-futures", version = "=0.4.55")
 crate_core.spec(package = "yaml-rust2", version = "=0.13.0")
 crate_core.from_specs(
     name = "core_crates",

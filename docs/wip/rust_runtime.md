@@ -5,7 +5,8 @@ Status: the workbook scripts, the connections and the computations of the app ru
 the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts` of the TypeScript
 runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`), `reduceConnectionState` one over the
 connection (`connections/connection_native.ts`), `reduceComputationState` one over the computations
-(`compute/computation_native.ts`). The catalog loader, the connectors and the tasks of the computations are ported
+(`compute/computation_native.ts`). The storage writer is the first service on a host (`storage/storage_writer.ts`
+over `src/storage/`). The catalog loader, the connectors and the tasks of the computations are ported
 without I/O and not used yet. The name of the package is provisional.
 
 ## Why
@@ -29,8 +30,8 @@ buffers in between. The boundary moves to what the UI reads.
 - **The workbook owns its scripts.** `Workbook` holds every script with its session, its connection (with the
   shared catalog), its latest analysis, its staged rewrite and its query ids, the attachments and the table
   parameters. An action changes the workbook in place and returns `WorkbookEffect`s: the files to write, delete or
-  rename, the script list and the properties of the workbook file. The host batches the writes, the debouncing of the
-  storage writer stays in TypeScript. A dropped script leaves the catalog of its connection.
+  rename, the script list and the properties of the workbook file. The host passes them to the storage writer, which
+  debounces them. A dropped script leaves the catalog of its connection.
 - **Sessions are shared.** The workbook shares the session of a script with a `ScriptSession` handle of the module, the
   editors of the app still apply their events to it and report the update (`ReportEditorUpdate`, the action
   `UPDATE_FROM_PROCESSOR`). The editor that sends its events to `ApplyEditorEvent` of the workbook is the end state.
@@ -56,7 +57,8 @@ buffers in between. The boundary moves to what the UI reads.
 - **No panics.** A panic traps the whole module, a thrown error of a reducer in TypeScript only drops the action.
   Actions return `Result`, a failed action leaves the workbook unchanged, and the crate avoids indexing and unwraps
   on input.
-- **I/O stays in TypeScript** until the services move: fetch, OPFS, Web Locks, the embedded Hyper.
+- **I/O stays with the host**: fetch, OPFS, Web Locks, the embedded Hyper. A service of the crate asks for it through
+  a trait of the host, see [The host and the executor](#the-host-and-the-executor).
 
 ## Stages
 
@@ -75,6 +77,7 @@ buffers in between. The boundary moves to what the UI reads.
    of the runtime and the app run on Rust, see [The computations](#the-computations).
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
+   The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer).
 
 ## The whole runtime in Wasm
 
@@ -102,7 +105,7 @@ hands its results to the host as IPC bytes already.
 then applies an action. `spawn_local` runs it in the browser, cancellation is a token that the action checks. A host
 call that fails is an error of the task, never a panic.
 
-**Order.** The host trait and the executor with the storage writer as the first service; the catalog loader and the
+**Order.** The host trait and the executor with the storage writer as the first service (done); the catalog loader and the
 query executor once the connection and query states are switched; the connectors one by one behind the existing
 `QueryChannel`; the runs of workbooks; the restore and `createRuntime` last. ZIP archives (`zip.js` with
 `CompressionStream`) and the compilation of chart specs (`vega-lite`) stay host calls until a reason to move them.
@@ -133,6 +136,57 @@ JSON, a computation is read as a JSON snapshot once its revision moved.
   over on `restore`. A platform without a core instantiates the default one.
 - **Changed on purpose.** The progress of a task that the scheduler doesn't know is dropped, the TypeScript reducer
   registered such a task as a new one. A failed action is logged and leaves the state as it is.
+
+## The host and the executor
+
+`dashql_runtime::host` holds what every service asks of the platform: the trait `Host` with the clock (`now`), timers
+(`sleep`, a future that clears its timer when it is dropped), tasks (`spawn`, a task starts after the caller returned)
+and the log. A service adds a trait for its I/O on top, the storage writer `storage::StorageHost` with the operations of
+the storage backend that it uses. Their async methods don't need `Send`: the futures of the module hold JavaScript
+values and run on one thread. A failed host call returns a `HostError`, the error of the task: it keeps what the host
+failed with and hands it back unchanged, and the host classifies the failures that the runtime decides on, e.g. a
+script that changed outside the app.
+
+- **No borrow across an await.** A service keeps its state behind a `RefCell`. A task reads it, awaits the host, then
+  applies the result. What the host is told (resolved writes, statistics, notifications, the log) is collected while
+  the state is borrowed and passed on after, so the host may call the service again from any of them.
+- **The module.** `JsHost` of `packages/dashql-core-wasm/src/storage_writer.rs` implements the traits over a JavaScript
+  object whose methods return promises (`StorageWriterHost` in the generated declarations): `JsFuture` awaits them,
+  `spawn_local` of `wasm-bindgen-futures` runs the tasks on the event loop, `future_to_promise` gives the results of a
+  service to JavaScript. Imported methods catch, a host that throws fails the call instead of unwinding through the
+  module.
+- **The tests.** `tests/storage_writer_test.rs` runs the writer on a fake host: an executor of a single thread, a clock
+  that only the test advances and a storage in memory. Debouncing is tested to the millisecond.
+- **Signals.** `host::signal` has a value that is sent once and a future that can be cancelled, the writer needs no
+  crate for them.
+
+## The storage writer
+
+`StorageWriter` of the TypeScript runtime is an adapter over the writer of the crate (`storage/writer.rs`), bound as
+the class `StorageWriter` of the module (`DashQLStorageWriter` of `@ankoh/dashql-core`, created with
+`DashQL.createStorageWriter`). Its API stayed, its callers didn't change.
+
+- **Decisions in Rust.** The keys and their chains, debouncing and coalescing (a newer task keeps the timer of the first
+  one), pausing the writer and workbooks, flushing, the statistics and the generations of keys, deleted workbooks,
+  holding a write that would overwrite a script that changed outside the app, retrying the failed writes of a flushed
+  workbook. The tasks that patch the workbook file read it, patch it as a JSON value and skip a write that changes
+  nothing (`storage/workbook_file.rs`); a patched file keeps the order of its keys.
+- **I/O in the host.** Loading and saving workbook files, scripts and connection files, the exclusive update of the
+  connection entries of the app manifest (the host calls back into the writer with the entries), deleting. The natural
+  order of the attachment list follows the collator of the host. A task carries a text or a function that reads the
+  latest text when the write runs, e.g. the scripts of a workbook that is written as a whole.
+- **Before the core.** The app creates the writer in its storage provider, above the provider of the core. The writer
+  takes the core it is given or the one that the package instantiated already (`DashQL.instantiated`), else it asks
+  for one with the first write and the calls before it wait and run in order. The runtime gives the writer the setup
+  of the platform and the core it restores with. Until the core is there the queries of the writer see none of the
+  waiting calls: a test that queries a writer before any core was instantiated gives the writer the core when it
+  creates it. `DashQL.create` instantiates the module once, two instantiations at the same time replaced the memory of
+  the module under each other.
+- **Changed on purpose.** A task starts in a task of the host, the TypeScript writer called the backend within
+  `writeDurable`. Written bytes count UTF-8 bytes. A durable write of a deleted workbook resolves as cancelled, the
+  TypeScript writer threw. Resuming re-arms a timer once, the TypeScript writer could keep the timer of a task that was
+  scheduled while paused next to the new one. `getPendingKeys` lists every pending key, a test read the pending tasks
+  of the TypeScript writer.
 
 ## The tasks of the computations
 
@@ -251,6 +305,8 @@ about that.
 ## Open
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
+- The loader patches workbook files and connection entries with the TypeScript helpers of `storage_writer.ts`
+  (`patchWorkbookConnection`, `upsertConnectionEntry`), the writer has its own in Rust until the restore moves.
 - The query history of the shell (`query/shell_query_execution.ts`) still runs on `reduceQueryAction` in TypeScript.
 - The progress model of a query runs in the query executor in TypeScript, the Rust history gets the plain fields of a
   progress update, the adapter keeps the structured progress. The planned statement of a query stays in TypeScript.

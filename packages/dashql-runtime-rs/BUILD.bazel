@@ -1,4 +1,5 @@
-# The state of DashQL in Rust on top of the core: the scripts of a workbook and the actions on them. A spike, see
+# The state of DashQL in Rust on top of the core: the scripts of a workbook and the actions on them, and the services on
+# a host, e.g. the storage writer. A spike, see
 # docs/wip/rust_runtime.md.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
@@ -179,6 +180,17 @@ rust_test(
         "//packages/dashql-core:dashql_core",
         "@core_crates//:arrow-array",
         "@core_crates//:arrow-schema",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "storage_writer_test",
+    size = "small",
+    srcs = ["tests/storage_writer_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_runtime",
         "@core_crates//:serde_json",
     ],
 )

@@ -68,6 +68,7 @@ macro_rules! finish {
 mod workbook;
 mod connection;
 mod computations;
+mod storage_writer;
 
 /// A formatting config from the numeric arguments of the JS API
 fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u32, debug_mode: bool, keyword_case: u8) -> FormattingConfigT {

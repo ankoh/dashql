@@ -2,17 +2,20 @@
 //! and the computations of query results. An action changes a state in place and returns the effects for the host.
 //!
 //! The app runs its workbook scripts on `workbook`, its connections with their query histories on `connections` and
-//! `query`, its computations on `compute`. The catalog loader and the connectors are ported without I/O and not used
-//! yet, see `docs/wip/rust_runtime.md`.
+//! `query`, its computations on `compute` and its storage writes on `storage`. The catalog loader and the connectors
+//! are ported without I/O and not used yet, see `docs/wip/rust_runtime.md`. The services of the runtime are async
+//! functions on a `host::Host`, the platform they run on.
 
 pub mod attachments;
 pub mod catalog_loader;
 pub mod clfn;
 pub mod compute;
 pub mod connections;
+pub mod host;
 pub mod names;
 pub mod query;
 pub mod salesforce;
+pub mod storage;
 pub mod trino;
 pub mod workbook;
 pub mod workbook_format;

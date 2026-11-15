@@ -37,7 +37,7 @@ import { testConnections, testWorkbook, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } f
 describe('V2 storage writer flat mutations', () => {
     it.each(['name-first', 'connection-first'])('retains rename and connection copy in separate debounced tasks (%s)', async order => {
         const backend = new WorkbookTestBackend();
-        const writer = new StorageWriter(new TestLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend, await testCore());
         const params = { trino: { endpoint: 'committed', catalogName: '', auth: { authType: 'AUTH_BASIC' as const } } };
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ ...testConnections({ connectionId: TEST_CONNECTION_ID, params } as any) }));
         for (const endpoint of ['saved', 'saved again']) {
@@ -431,7 +431,7 @@ describe('storage writer workbook flush', () => {
 
     it('never forces the writes of a held workbook', async () => {
         const backend = new WorkbookTestBackend();
-        const writer = new StorageWriter(new TestLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend, await testCore());
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         void writer.write(groupWorkbookConnectionCopyWrites(TEST_WORKBOOK_ID, TEST_CONNECTION_ID), patch(TEST_WORKBOOK_ID, 'held'), 10_000);
         writer.pauseWorkbook(TEST_WORKBOOK_ID);
@@ -475,7 +475,7 @@ describe('storage writer external changes', () => {
 
     it('holds a write that would overwrite an external change until the workbook resumes', async () => {
         const backend = new ExternallyChangedBackend();
-        const writer = new StorageWriter(new TestLogger(), backend);
+        const writer = new StorageWriter(new TestLogger(), backend, await testCore());
         const changed: string[] = [];
         writer.subscribeExternalChanges(workbookId => changed.push(workbookId));
 

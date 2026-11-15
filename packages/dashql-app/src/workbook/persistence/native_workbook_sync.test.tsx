@@ -40,13 +40,15 @@ interface Api {
     workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
 }
 
-/// The app after its restoration: the registries hold what the restoration read
-function App(props: { restored: RestoredAppState; capture: (api: Api) => void }) {
+/// The app after its restoration: the registries hold what the restoration read, the storage writer has the core of
+/// the restoration like the writer of the app has the core of the app
+function App(props: { core: core.DashQL; restored: RestoredAppState; capture: (api: Api) => void }) {
     const [, writer] = useStorage();
     const logger = useLogger();
     const [connections, setConnections] = useConnectionRegistry();
     const [workbooks, setWorkbooks] = useWorkbookScriptsRegistry();
     React.useEffect(() => {
+        writer.provideCore(props.core);
         setConnections(registry => ({
             ...registry,
             connections: props.restored.connectionStates,
@@ -57,7 +59,7 @@ function App(props: { restored: RestoredAppState; capture: (api: Api) => void })
             workbookScriptsMap: props.restored.workbookScripts,
             workbookScriptsByConnection: props.restored.workbookScriptsByConnection,
         }));
-    }, [props.restored, setConnections, setWorkbooks]);
+    }, [props.core, props.restored, setConnections, setWorkbooks, writer]);
     React.useLayoutEffect(() => {
         props.capture({ writer, logger, connections, workbooks });
     });
@@ -119,7 +121,7 @@ describe('NativeWorkbookSync', () => {
                 <LoggerProvider>
                     <StorageProvider backend={backend}>
                         <TestRuntime>
-                            <App restored={restored} capture={next => { api = next; }} />
+                            <App core={dql} restored={restored} capture={next => { api = next; }} />
                         </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>,
@@ -484,7 +486,7 @@ describe('NativeWorkbookSync', () => {
                     <LoggerProvider>
                         <StorageProvider backend={backend}>
                             <TestRuntime>
-                                <App restored={restored} capture={next => { api = next; }} />
+                                <App core={dql} restored={restored} capture={next => { api = next; }} />
                             </TestRuntime>
                         </StorageProvider>
                     </LoggerProvider>,
