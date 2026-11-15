@@ -34,9 +34,10 @@ Please consult relevant docs in that directory before making changes.
   embedded Hyper of Node; where tests go: `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers)
     - `docs/wip/dashql_runtime.md`
 
-- The core runtime (`packages/dashql-core-runtime`, crate `dashql_core_runtime`: the state of DashQL in Rust, linked
-  into the core module; the app runs its workbook scripts, connections, computations and storage writes on it, the
-  catalog loader, connectors and workbook format are ported without I/O; services are async on a `Host`)
+- The core runtime (`packages/dashql-core-runtime`, crate `dashql_core_runtime`: the state and the services of DashQL in
+  Rust, linked into the core module; the app runs its workbook scripts, connections, queries, computations, catalog
+  loader, connection setups, workbook runs, restore, storage writes and workbook format on it; services are async on a
+  `Host` the platform implements; `dashql-core-script` is the per-script session of the core)
     - `docs/wip/core_runtime.md`
 
 - The command line tool (`packages/dashql-cli`: the Node `dashql` with `lint`, `format`, `run` on Trino and the

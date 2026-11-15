@@ -36,7 +36,7 @@ pub struct AttachedDatabase {
 }
 
 /// The Hyper channel of a connection: Salesforce connections speak to Hyper over HTTP (`V3_HTTP`)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SalesforceChannelSetup {
     /// The tenant of the Data Cloud token
     pub endpoint: String,
@@ -44,6 +44,8 @@ pub struct SalesforceChannelSetup {
     pub request_metadata: Vec<(String, String)>,
     /// Database.com queries the configured Hyper Cloud database
     pub attached_databases: Vec<AttachedDatabase>,
+    /// The tokens, the channel of the host keeps them for the queries and the metadata
+    pub tokens: SalesforceTokens,
 }
 
 /// The attached database of a Database.com connection
@@ -200,13 +202,47 @@ impl SalesforceSetup {
             Err(error) => return self.fail(error),
         };
         let actions = vec![SalesforceAction::GeneratedPkceChallenge(pkce.clone())];
+        // The log names the parameters of the request, the state, the challenge and the login hint are redacted
+        let redacted = "<redacted>";
+        let mut parameters = serde_json::Map::new();
+        parameters.insert("client_id".into(), self.params.app_consumer_key.clone().into());
+        parameters.insert("redirect_uri".into(), self.config.oauth_redirect.clone().into());
+        parameters.insert("code_challenge".into(), redacted.into());
+        parameters.insert("code_challenge_method".into(), "S256".into());
+        parameters.insert("response_type".into(), "code".into());
+        parameters.insert("state".into(), redacted.into());
+        if self.force_relogin {
+            parameters.insert("prompt".into(), "login".into());
+        }
+        if !self.params.login.is_empty() {
+            parameters.insert("login_hint".into(), redacted.into());
+        }
+        let provider = state.salesforce_provider.as_ref();
+        let logged_state = serde_json::json!({
+            "flowId": redacted,
+            "flowVariant": state.flow_variant,
+            "debugMode": state.debug_mode,
+            "callbackUrl": state.callback_url,
+            "flavor": state.flavor,
+            "salesforceProvider": {
+                "instanceUrl": provider.map(|p| p.instance_url.clone()),
+                "appConsumerKey": provider.map(|p| p.app_consumer_key.clone()),
+                "requestedAt": provider.map(|p| p.requested_at),
+                "expiresAt": provider.map(|p| p.expires_at),
+            },
+        });
         self.phase = Phase::Authorizing { state, pkce };
         let mut output = Self::next(actions, SalesforceSetupStep::Authorize { url: url.clone(), flow_id: flow_id.to_string() });
         let endpoint = url.split_once('?').map_or(url.as_str(), |(endpoint, _)| endpoint).to_string();
         output.log.push(SalesforceSetupLog {
             warning: false,
             message: "Opening Salesforce OAuth authorization URL".to_string(),
-            details: vec![("endpoint".to_string(), endpoint), ("flowVariant".to_string(), self.flow.redirect_variant.clone())],
+            details: vec![
+                ("endpoint".to_string(), endpoint),
+                ("flowVariant".to_string(), self.flow.redirect_variant.clone()),
+                ("authorizationParameters".to_string(), serde_json::Value::Object(parameters).to_string()),
+                ("oauthState".to_string(), logged_state.to_string()),
+            ],
         });
         output
     }
@@ -335,6 +371,15 @@ impl SalesforceSetup {
             endpoint: tokens.data_cloud.instance_url.clone(),
             request_metadata: vec![("audience".to_string(), audience), ("authorization".to_string(), format!("Bearer {jwt}"))],
             attached_databases,
+            tokens: tokens.clone(),
+        }
+    }
+
+    /// The user of the core login once the tokens are there, none if it couldn't be read
+    pub fn user_info(&self) -> Option<&SalesforceCoreUserInfo> {
+        match &self.phase {
+            Phase::Channel { user_info, .. } | Phase::DataCloudToken { user_info, .. } => user_info.as_ref(),
+            _ => None,
         }
     }
 
@@ -351,6 +396,11 @@ impl SalesforceSetup {
 
     /// The host failed to connect the channel
     pub fn on_channel_failed(&mut self, error: &str) -> SalesforceSetupOutput {
+        self.fail(SalesforceError::new(error))
+    }
+
+    /// A step of the host failed, e.g. the authorization page couldn't open
+    pub fn on_host_failed(&mut self, error: &str) -> SalesforceSetupOutput {
         self.fail(SalesforceError::new(error))
     }
 

@@ -18,81 +18,38 @@ import {
     RECEIVED_ACCESS_TOKEN,
 } from './trino_connection_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { LoggableException, Logger, stringifyError } from '../../platform/logger/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 import { RESET_CONNECTION } from '../connection_state.js';
-import { requestTrinoAccessToken, TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
+import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
-import { trinoSessionDefaults } from './trino_catalogs.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
-import { generatePKCEChallenge } from '../../utils/pkce.js';
 import type { OAuthFlow } from '../../oauth/oauth_flow.js';
 import { HttpClient } from '../../platform/http/http_client.js';
-import { dateToTimestamp } from '../proto_helper.js';
+import { loadSetupCore, SetupRun } from '../connection_setup_native.js';
 
 const LOG_CTX = "trino_setup";
 
-// Default OAuth callback URL for Trino
-const DEFAULT_OAUTH_CALLBACK_URL = "http://localhost:56512/Callback";
-// Default OAuth scopes if the connection does not configure any
-const DEFAULT_OAUTH_SCOPES = ["openid", "email", "profile", "offline_access"];
+/// The actions of the Trino setup by their names in the Rust runtime
+const ACTIONS: Record<string, TrinoConnectorAction['type']> = {
+    OAUTH_STARTED,
+    OAUTH_CANCELLED,
+    OAUTH_FAILED,
+    GENERATING_PKCE_CHALLENGE,
+    GENERATED_PKCE_CHALLENGE,
+    OAUTH_BROWSER_OPENED,
+    RECEIVED_OAUTH_CODE,
+    REQUESTING_ACCESS_TOKEN,
+    RECEIVED_ACCESS_TOKEN,
+    TRINO_CHANNEL_SETUP_STARTED,
+    TRINO_CHANNEL_SETUP_CANCELLED,
+    TRINO_CHANNEL_SETUP_FAILED,
+    TRINO_CHANNEL_READY,
+};
 
-/// Setup Trino connection with basic auth (username/password)
-async function setupTrinoConnectionBasic(
-    modifyState: Dispatch<TrinoConnectorAction>,
-    logger: Logger,
-    params: connection.TrinoConnectionParams,
-    client: TrinoApiClientInterface,
-    abortSignal: AbortSignal
-): Promise<TrinoChannelInterface> {
-    let channel: TrinoChannelInterface;
-    try {
-        // Start the channel setup
-        modifyState({
-            type: TRINO_CHANNEL_SETUP_STARTED,
-            value: params,
-        });
-        abortSignal.throwIfAborted();
-
-        // Create the channel
-        const auth = params.auth ?? ({
-            authType: "AUTH_BASIC",
-            basic: ({
-                username: "",
-                secret: "",
-            })
-        });
-        const endpoint = new TrinoApiEndpoint(params.endpoint, auth);
-        channel = new TrinoChannel(logger, client, endpoint, trinoSessionDefaults(params));
-
-        // Mark the channel as ready
-        modifyState({
-            type: TRINO_CHANNEL_READY,
-            value: channel,
-        });
-        abortSignal.throwIfAborted();
-
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-            logger.warn("Cancelled setup", {}, LOG_CTX);
-            modifyState({
-                type: TRINO_CHANNEL_SETUP_CANCELLED,
-                value: error.message,
-            });
-        } else {
-            logger.warn("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
-            modifyState({
-                type: TRINO_CHANNEL_SETUP_FAILED,
-                value: error,
-            });
-        }
-        throw error;
-    }
-
-    return channel;
-}
-
-/// Setup Trino connection with OAuth
-async function setupTrinoConnectionOAuth(
+/// Set up a Trino connection: basic auth opens the channel, OAuth logs in through the loopback server of the platform
+/// first. The setup runs in the Rust runtime (`connection_setup/trino.rs`), the channel is a `TrinoChannel` on the
+/// client.
+export async function setupTrinoConnection(
     modifyState: Dispatch<TrinoConnectorAction>,
     logger: Logger,
     params: connection.TrinoConnectionParams,
@@ -103,175 +60,37 @@ async function setupTrinoConnectionOAuth(
     forceReLogin: boolean,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
-    let channel: TrinoChannelInterface;
-
-    if (params.auth?.authType != "AUTH_OAUTH" || !params.auth?.oauth) {
-        throw new LoggableException("OAuth configuration is required for OAuth authentication", {}, LOG_CTX);
-    }
-    const oauthConfig = params.auth.oauth;
-
-    try {
-        // Start OAuth flow
-        logger.debug("Starting Trino OAuth flow", {}, LOG_CTX);
-        modifyState({ type: OAUTH_STARTED, value: params });
-        abortSignal.throwIfAborted();
-
-        // Generate PKCE challenge
-        logger.debug("Generating PKCE challenge", {}, LOG_CTX);
-        modifyState({ type: GENERATING_PKCE_CHALLENGE, value: null });
-        const pkceChallenge = await generatePKCEChallenge();
-        abortSignal.throwIfAborted();
-        modifyState({ type: GENERATED_PKCE_CHALLENGE, value: pkceChallenge });
-
-        // The redirect goes to a loopback server of the platform
-        const callbackUrl = oauthConfig.callbackUrl || DEFAULT_OAUTH_CALLBACK_URL;
-
-        // Build the authorization URL
-        const state = crypto.randomUUID();
-        const scopes = oauthConfig.scopes?.length ? oauthConfig.scopes : DEFAULT_OAUTH_SCOPES;
-        const authURLParams = new URLSearchParams({
-            client_id: oauthConfig.clientId,
-            redirect_uri: callbackUrl,
-            response_type: 'code',
-            code_challenge: pkceChallenge.value,
-            code_challenge_method: 'S256',
-            scope: scopes.join(' '),
-            state,
-        });
-        if (forceReLogin) {
-            // Force the identity provider to re-authenticate instead of silently reusing an
-            // existing session cookie in the system browser.
-            authURLParams.set('prompt', 'login');
-        }
-        const authUrl = new URL(`${oauthConfig.authorizationUrl}?${authURLParams.toString()}`);
-
-        // Open the browser for OAuth and wait for the callback
-        logger.debug("Opening OAuth URL", { url: authUrl.toString() }, LOG_CTX);
-        const callbackData = await oauthFlow.authorizeWithLoopback(authUrl, callbackUrl, abortSignal, event => {
-            if (event === 'EXTERNAL_BROWSER_OPENED') {
-                modifyState({
-                    type: OAUTH_BROWSER_OPENED,
-                    value: null,
-                });
+    const core = await loadSetupCore();
+    // The OAuth state of the channel, from the steps of the flow
+    let oauthPkce: auth.OAuthPKCEChallenge | null = null;
+    let authCode: auth.TemporaryToken | null = null;
+    const run = new SetupRun({
+        logger,
+        http: httpClient,
+        oauthFlow,
+        signal: abortSignal,
+        dispatch: (action, channel) => {
+            const type = ACTIONS[action.type];
+            if (type == null) return;
+            if (type === GENERATED_PKCE_CHALLENGE) oauthPkce = action.value;
+            if (type === RECEIVED_OAUTH_CODE) authCode = action.value;
+            modifyState({ type, value: type === TRINO_CHANNEL_READY ? channel : action.value } as TrinoConnectorAction);
+        },
+        openTrinoChannel: description => {
+            const auth = params.auth ?? { authType: "AUTH_BASIC", basic: { username: "", secret: "" } };
+            const endpoint = new TrinoApiEndpoint(description.endpoint, auth);
+            if (description.accessToken != null) {
+                endpoint.oauthState = {
+                    oauthPkce: oauthPkce ?? undefined,
+                    authCode: authCode ?? undefined,
+                    accessToken: description.accessToken,
+                } as connection.TrinoOAuthState;
             }
-        });
-        abortSignal.throwIfAborted();
-
-        // Check for errors
-        if (callbackData.error) {
-            throw new LoggableException(callbackData.errorDescription || callbackData.error, {}, LOG_CTX);
-        }
-        if (callbackData.state !== state) {
-            throw new LoggableException("OAuth callback state does not match the authorization request", {}, LOG_CTX);
-        }
-        if (!callbackData.code) {
-            throw new LoggableException("No authorization code received", {}, LOG_CTX);
-        }
-        const authCode = {
-            token: callbackData.code,
-            createdAt: dateToTimestamp(new Date())!
-        };
-
-        logger.debug("Received authorization code", {}, LOG_CTX);
-        modifyState({
-            type: RECEIVED_OAUTH_CODE,
-            value: {
-                token: authCode.token,
-                createdAt: authCode.createdAt,
-            },
-        });
-
-        // Exchange the code for an access token
-        modifyState({
-            type: REQUESTING_ACCESS_TOKEN,
-            value: null,
-        });
-        logger.debug("Exchanging authorization code for token", { tokenEndpoint: oauthConfig.tokenUrl }, LOG_CTX);
-        const accessToken = await requestTrinoAccessToken(httpClient, oauthConfig.tokenUrl, new URLSearchParams({
-            grant_type: 'authorization_code',
-            client_id: oauthConfig.clientId,
-            code: callbackData.code,
-            redirect_uri: callbackUrl,
-            code_verifier: pkceChallenge.verifier,
-        }));
-        abortSignal.throwIfAborted();
-
-        logger.debug("Received access token", {}, LOG_CTX);
-        modifyState({
-            type: RECEIVED_ACCESS_TOKEN,
-            value: accessToken,
-        });
-
-        // Now setup the channel with the access token
-        modifyState({
-            type: TRINO_CHANNEL_SETUP_STARTED,
-            value: params,
-        });
-        abortSignal.throwIfAborted();
-
-        // Create the channel
-        const endpoint = new TrinoApiEndpoint(params.endpoint, params.auth);
-        endpoint.oauthState = ({
-            oauthPkce: pkceChallenge,
-            authCode,
-            accessToken
-        });
-        channel = new TrinoChannel(logger, client, endpoint, trinoSessionDefaults(params));
-
-        // Mark the channel as ready
-        modifyState({
-            type: TRINO_CHANNEL_READY,
-            value: channel,
-        });
-        abortSignal.throwIfAborted();
-
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-            logger.info("Cancelled OAuth flow", {}, LOG_CTX);
-            modifyState({
-                type: OAUTH_CANCELLED,
-                value: {
-                    message: error.message || "OAuth flow was aborted",
-                },
-            });
-        } else {
-            logger.warn("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
-            modifyState({
-                type: OAUTH_FAILED,
-                value: {
-                    message: error.message || "OAuth flow failed",
-                },
-            });
-        }
-        throw error;
-    }
-
-    return channel;
-}
-
-/// Main setup function that routes to the appropriate auth method
-export async function setupTrinoConnection(
-    modifyState: Dispatch<TrinoConnectorAction>,
-    logger: Logger,
-    params: connection.TrinoConnectionParams,
-    config: TrinoConnectorConfig,
-    client: TrinoApiClientInterface,
-    httpClient: HttpClient,
-    oauthFlow: OAuthFlow,
-    forceReLogin: boolean,
-    abortSignal: AbortSignal
-): Promise<TrinoChannelInterface> {
-    // Determine auth type
-    params = structuredClone(params);
-    delete params.draftRows;
-    const authType = params.auth?.authType ?? "AUTH_BASIC";
-    switch (authType) {
-        case "AUTH_OAUTH":
-            return await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, oauthFlow, forceReLogin, abortSignal);
-        case "AUTH_BASIC":
-        default:
-            return await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
-    }
+            return new TrinoChannel(logger, client, endpoint, { catalog: description.catalog, schema: description.schema });
+        },
+    });
+    const { channel } = await run.result<{ channel: number }>(core.connectionSetup.trino(run.host(), params, forceReLogin), LOG_CTX);
+    return run.channels.get(channel) as TrinoChannelInterface;
 }
 
 export interface TrinoSetupApi {

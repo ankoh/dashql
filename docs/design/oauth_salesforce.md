@@ -15,10 +15,11 @@ code from Salesforce, encodes it into an app event, and hands it back to the ori
 
 ## Shared setup (all paths)
 
-`authenticateSalesforce` (`connections/salesforce/salesforce_authentication.ts` of `@ankoh/dashql-runtime`) runs these
-steps. It is called by the connection setup (`salesforce_connection_setup.ts`) and by the shell. The `OAuthFlow` that
-they pass in (`oauth/oauth_flow.ts` of the runtime, `oauth/app_oauth_flow.ts` in the app) opens the authorization page
-and waits for the redirect page.
+The setup of the Rust runtime (`connection_setup/salesforce.rs` over `SalesforceSetup` of `salesforce/setup.rs`) runs
+these steps. The connection setup (`setupSalesforceConnection` of `salesforce_connection_setup.ts`) and the login of the
+shell (`authenticateSalesforce` of `salesforce_authentication.ts`) of `@ankoh/dashql-runtime` are adapters over it. The
+`OAuthFlow` that they pass in (`oauth/oauth_flow.ts` of the runtime, `oauth/app_oauth_flow.ts` in the app) opens the
+authorization page and waits for the redirect page, the platform generates the PKCE challenge and the flow id.
 
 1. Generate a PKCE challenge (`code_verifier` + `code_challenge` via S256).
 2. Take `flowVariant` from the `OAuthFlow`, by platform type:
@@ -35,7 +36,7 @@ and waits for the redirect page.
      salesforceProvider: { instanceUrl, appConsumerKey, requestedAt, expiresAt },  // expiresAt = requestedAt + 2 h
    }
    ```
-4. Build the Salesforce authorization URL (`buildSalesforceAuthorizationUrl`):
+4. Build the Salesforce authorization URL (`build_salesforce_authorization_url` of `salesforce/auth.rs` in the Rust runtime):
    ```
    {instanceUrl}/services/oauth2/authorize
      ?client_id={appConsumerKey}
@@ -53,7 +54,7 @@ and waits for the redirect page.
 
 After the redirect arrives:
 
-7. Validate it (`validateSalesforceOAuthCallbackState`): the `flowId`, `flowVariant`, `instanceUrl`,
+7. Validate it (`validate_salesforce_oauth_callback_state`): the `flowId`, `flowVariant`, `instanceUrl`,
    `appConsumerKey` and `expiresAt` must match the state that was sent, and the state must not have
    expired. An OAuth `error` of the redirect fails the setup with its `errorDescription`, a redirect without
    `code` fails too.

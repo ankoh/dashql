@@ -1,7 +1,5 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { dateToTimestamp } from '../proto_helper.js';
-
 import {
     SETUP_CANCELLED,
     SETUP_FAILED,
@@ -19,198 +17,103 @@ import {
     REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
     SalesforceConnectionStateAction,
     SF_CHANNEL_READY,
+    SF_CHANNEL_SETUP_CANCELLED,
+    SF_CHANNEL_SETUP_FAILED,
     SF_CHANNEL_SETUP_STARTED,
 } from './salesforce_connection_state.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { SalesforceApiClient, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { Dispatch } from '../../utils/variant.js';
-import { Logger, stringifyError } from '../../platform/logger/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 import type { OAuthFlow } from '../../oauth/oauth_flow.js';
+import type { HttpClient } from '../../platform/http/http_client.js';
 import { RESET_CONNECTION } from '../connection_state.js';
-import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
-import { authenticateSalesforce, SalesforceAuthenticationProgress } from './salesforce_authentication.js';
+import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 import { ConnectorType } from '../connector_info.js';
-import { getHyperCloudAttachedDatabase } from './salesforce_catalog_update.js';
+import { loadSetupCore, SetupRun } from '../connection_setup_native.js';
 
 const LOG_CTX = "salesforce_setup";
 
 /// The connectors that share the Salesforce setup
 export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.DBCOM;
 
-// We use the web-server OAuth Flow with or without consumer secret.
-//
-// !! Don't embed an External Client App secret !!
-//
-// For untrusted clients, like this SPA, the web server OAuth flow can be configure to NOT require a consumer secret but
-// still use PKCE. PKCE makes this more preferrable than the alternative user-agent flow for untrusted clients since it
-// ensures that the application that starts the authentication flow is the same one that finishes it.
-// (Salesforce discourages using the user-agent flow, see https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_user_agent_flow.htm&type=5)
-//
-// Make sure this is checked (should be by default):
-//      Setup > App Manager > Your App > "Require Proof Key for Code Exchange (PKCE)"
-// Uncheck this:
-//      Setup > App Manager > Your App > "Require Secret for Web Server Flow"
-// What you'll eventually need as well (not, if you only use the native apps):
-//      Setup > CORS > Enable CORS for OAuth endpoints
-//      Setup > CORS > Allowed Origins List > Add your Origin
-//
-// Docs:
-//  - Web Server Flow: https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_web_server_flow.htm&type=5
-//  - User Agent Flow: https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_user_agent_flow.htm&type=5
-//  - PKCE: https://oauth.net/2/pkce/
-//
-// PKCE flow:
-//  1. Client creates the code_verifier. (RFC 7636, Section 4.1)
-//  2. Client creates the code_challenge by transforming the code_verifier using S256 encryption. (RFC 7636, Section 4.2)
-//  3. Client sends the code_challenge and code_challenge_method with the initial authorization request. (RFC 7636, Section 4.3)
-//  4. Server responds with an authorization_code. (RFC 7636, Section 4.4)
-//  5. Client sends authorization_code and code_verifier to the token endpoint. (RFC 7636, Section 4.5)
-//  6. Server transforms the code_verifier using the code_challenge_method from the initial authorization request and checks the result against the code_challenge. If the value of both strings match, then the server has verified that the requests came from the same client and will issue an access_token. (RFC 7636, Section 4.6)
+/// The actions of the Salesforce setup by their names in the Rust runtime
+const ACTIONS: Record<string, SalesforceConnectionStateAction['type']> = {
+    SETUP_STARTED,
+    SETUP_CANCELLED,
+    SETUP_FAILED,
+    GENERATING_PKCE_CHALLENGE,
+    GENERATED_PKCE_CHALLENGE,
+    OAUTH_NATIVE_LINK_OPENED,
+    OAUTH_WEB_WINDOW_OPENED,
+    OAUTH_WEB_WINDOW_CLOSED,
+    RECEIVED_CORE_AUTH_CODE,
+    REQUESTING_CORE_AUTH_TOKEN,
+    RECEIVED_CORE_AUTH_TOKEN,
+    RECEIVED_CORE_USER_INFO,
+    REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
+    RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
+    SF_CHANNEL_SETUP_STARTED,
+    SF_CHANNEL_SETUP_CANCELLED,
+    SF_CHANNEL_SETUP_FAILED,
+    SF_CHANNEL_READY,
+};
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, oauthFlow: OAuthFlow, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
-    params = structuredClone(params);
-    let hyperChannel: HyperDatabaseChannel;
-    let sfChannel: SalesforceDatabaseChannel;
-    try {
-        // Start the authorization process
-        modifyState({
-            type: SETUP_STARTED,
-            value: params,
-        });
-        abortSignal.throwIfAborted();
-        if (!config.auth?.oauthRedirect) {
-            throw new Error(`missing oauth redirect url`);
-        }
-        const onAuthenticationProgress = (progress: SalesforceAuthenticationProgress) => {
-            switch (progress.stage) {
-                case 'GENERATING_PKCE_CHALLENGE':
-                    modifyState({ type: GENERATING_PKCE_CHALLENGE, value: null });
-                    break;
-                case 'GENERATED_PKCE_CHALLENGE':
-                    modifyState({ type: GENERATED_PKCE_CHALLENGE, value: progress.pkceChallenge });
-                    break;
-                case 'OAUTH_NATIVE_LINK_OPENED':
-                    modifyState({ type: OAUTH_NATIVE_LINK_OPENED, value: null });
-                    break;
-                case 'OAUTH_WEB_WINDOW_OPENED':
-                    modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: null });
-                    break;
-                case 'OAUTH_WEB_WINDOW_CLOSED':
-                    modifyState({ type: OAUTH_WEB_WINDOW_CLOSED, value: null });
-                    break;
-                case 'RECEIVED_CORE_AUTH_CODE':
-                    modifyState({
-                        type: RECEIVED_CORE_AUTH_CODE,
-                        value: { token: progress.code, createdAt: dateToTimestamp(new Date())! },
-                    });
-                    break;
-                case 'REQUESTING_CORE_AUTH_TOKEN':
-                    modifyState({ type: REQUESTING_CORE_AUTH_TOKEN, value: null });
-                    break;
-                case 'RECEIVED_CORE_AUTH_TOKEN':
-                    modifyState({ type: RECEIVED_CORE_AUTH_TOKEN, value: progress.coreAccessToken });
-                    break;
-                case 'RECEIVED_CORE_USER_INFO':
-                    modifyState({ type: RECEIVED_CORE_USER_INFO, value: progress.coreUserInfo });
-                    break;
-                case 'REQUESTING_DATA_CLOUD_ACCESS_TOKEN':
-                    modifyState({ type: REQUESTING_DATA_CLOUD_ACCESS_TOKEN, value: null });
-                    break;
-                case 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN':
-                    modifyState({ type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN, value: progress.dataCloudAccessToken });
-                    break;
-            }
-        };
-        const { coreAccessToken, dataCloudAccessToken: dcToken } = await authenticateSalesforce({
-            logger,
-            params,
-            authConfig: config.auth,
-            oauthFlow,
-            apiClient,
-            forceReLogin,
-            abortSignal,
-            onProgress: onAuthenticationProgress,
-        });
-        abortSignal.throwIfAborted();
+/// The HTTP client that the setup sends the requests of Salesforce with: the one of the API client, or the one passed
+export function salesforceHttpClient(apiClient: SalesforceApiClientInterface, http: HttpClient | null = null): HttpClient | null {
+    return http ?? (apiClient instanceof SalesforceApiClient ? apiClient.httpClient : null);
+}
 
-        // Start the channel setup, Salesforce connections speak to Hyper over http
-        const connParams: connection.HyperConnectionParams = {
-            protocol: 'V3_HTTP',
-            endpoint: dcToken.instanceUrl ?? "",
-            tls: {
-                clientKeyPath: "",
-                clientCertPath: "",
-                caCertsPath: ""
-            },
-            attachedDatabases: [],
-            metadata: {
-                message: "",
-                details: {}
-            } as any,
-        };
-        modifyState({
-            type: SF_CHANNEL_SETUP_STARTED,
-            value: connParams,
-        });
-        abortSignal.throwIfAborted()
+/// The params of the Hyper channel of a Salesforce connection over HTTP
+function channelParams(endpoint: string): connection.HyperConnectionParams {
+    return {
+        protocol: 'V3_HTTP',
+        endpoint,
+        tls: { clientKeyPath: "", clientCertPath: "", caCertsPath: "" },
+        attachedDatabases: [],
+        metadata: {},
+    } as connection.HyperConnectionParams;
+}
 
-        // Static connection context.
-        // Inject the database name, the audience header and the bearer token
-        const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
-        // Database.com queries the configured Hyper Cloud database
-        const attachedDatabases: AttachedDatabase[] = [];
-        if (connector === ConnectorType.DBCOM) {
-            attachedDatabases.push(getHyperCloudAttachedDatabase(params));
-        }
-        const connectionContext: HyperDatabaseConnectionContext = {
-            getAttachedDatabases(): AttachedDatabase[] {
-                return attachedDatabases;
-            },
-            async getRequestMetadata(): Promise<Record<string, string>> {
-                return {
-                    audience: authInfo?.offcoreTenantId ?? "",
-                    authorization: `Bearer ${authInfo?.offcoreRawJwt}`,
-                };
-            },
-            getQueryParameters(): Record<string, string> {
-                return {};
-            }
-        };
+// We use the web-server OAuth Flow with PKCE and without consumer secret, see `connection_setup/salesforce.rs` of the
+// Rust runtime. Don't embed an External Client App secret!
 
-        // Create the channel
-        if (!httpClient) throw new Error(`No client available for protocol ${connParams.protocol}`);
-        hyperChannel = await httpClient.connect(connParams, connectionContext);
-        sfChannel = new SalesforceDatabaseChannel(apiClient, coreAccessToken, dcToken, hyperChannel);
-        abortSignal.throwIfAborted();
-
-        // Mark the channel as ready
-        modifyState({
-            type: SF_CHANNEL_READY,
-            value: sfChannel,
-        });
-        abortSignal.throwIfAborted();
-
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-            logger.info("Cancelled OAuth flow", {}, LOG_CTX);
-            modifyState({
-                type: SETUP_CANCELLED,
-                value: error,
-            });
-        } else if (error instanceof Error) {
-            logger.warn("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
-            modifyState({
-                type: SETUP_FAILED,
-                value: {
-                    message: error.message,
-                },
-            });
-        }
-        // Rethrow the error
-        throw error;
-    }
-
-    return sfChannel;
+/// Set up a Salesforce or Database.com connection: the OAuth flow of the platform, the core token, the Data Cloud
+/// token and the Hyper channel over HTTP. The setup runs in the Rust runtime (`connection_setup/salesforce.rs`) and
+/// sends its requests with the HTTP client of the API client, the channel is a `SalesforceDatabaseChannel`.
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, oauthFlow: OAuthFlow, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, forceReLogin: boolean, abortSignal: AbortSignal, http: HttpClient | null = null): Promise<SalesforceDatabaseChannel> {
+    const core = await loadSetupCore();
+    let endpoint = "";
+    const run = new SetupRun({
+        logger,
+        http: salesforceHttpClient(apiClient, http),
+        oauthFlow,
+        signal: abortSignal,
+        dispatch: (action, channel) => {
+            const type = ACTIONS[action.type];
+            if (type == null) return;
+            if (type === RECEIVED_DATA_CLOUD_ACCESS_TOKEN) endpoint = action.value?.instanceUrl ?? "";
+            const value = type === SF_CHANNEL_READY ? channel
+                : type === SF_CHANNEL_SETUP_STARTED ? channelParams(endpoint)
+                    : action.value;
+            modifyState({ type, value } as SalesforceConnectionStateAction);
+        },
+        connectSalesforceChannel: async description => {
+            if (!httpClient) throw new Error(`No client available for protocol V3_HTTP`);
+            // Inject the database name, the audience header and the bearer token
+            const context: HyperDatabaseConnectionContext = {
+                getAttachedDatabases: () => description.attachedDatabases,
+                getRequestMetadata: async () => description.requestMetadata,
+                getQueryParameters: () => ({}),
+            };
+            const hyperChannel = await httpClient.connect(channelParams(description.endpoint), context);
+            return new SalesforceDatabaseChannel(apiClient, description.tokens.core, description.tokens.dataCloud, hyperChannel);
+        },
+        closeChannel: channel => void (channel as HyperDatabaseChannel).close(),
+    });
+    const setup = core.connectionSetup.salesforce(run.host(), connector === ConnectorType.DBCOM, params, config.auth ?? {}, forceReLogin);
+    const { channel } = await run.result<{ channel: number }>(setup, LOG_CTX);
+    return run.channels.get(channel) as SalesforceDatabaseChannel;
 }
 
 export interface SalesforceSetupApi {
@@ -218,9 +121,9 @@ export interface SalesforceSetupApi {
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
-export function createSalesforceSetup(httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, oauthFlow: OAuthFlow, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
+export function createSalesforceSetup(httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, oauthFlow: OAuthFlow, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger, http: HttpClient | null = null): (SalesforceSetupApi | null) {
     const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
-        return setupSalesforceConnection(updateState, logger, connector, params, config, oauthFlow, salesforceApi, httpClient, forceReLogin, abort);
+        return setupSalesforceConnection(updateState, logger, connector, params, config, oauthFlow, salesforceApi, httpClient, forceReLogin, abort, http);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({

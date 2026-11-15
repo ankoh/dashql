@@ -69,7 +69,8 @@ pub enum SetupOutput {
     Authorize { url: String, callback_url: String },
     /// Send the request of the access token and pass the outcome to `on_token_response`
     RequestToken(HttpRequest),
-    /// Keep the channel under its id, the connection refers to it once it is ready
+    /// Keep the channel under its id and pass the outcome to `on_channel_opened`, or a failure to `fail`. The
+    /// connection refers to the channel once it is ready.
     OpenChannel { id: ChannelId, channel: TrinoChannel },
     /// Run the query of the health check on the channel through the query executor and pass the outcome to
     /// `on_health_check`
@@ -89,6 +90,8 @@ enum Phase {
     Authorizing { pkce: OAuthPkceChallenge, state: String, callback_url: String },
     /// The access token is requested
     RequestingToken,
+    /// The host keeps the channel
+    OpeningChannel,
     /// The health check runs
     HealthCheck,
     /// The setup ended
@@ -106,6 +109,8 @@ pub struct TrinoSetup {
     channel_id: ChannelId,
     /// The options
     options: TrinoSetupOptions,
+    /// Does the connection sign in with OAuth?
+    oauth: bool,
     /// How far the setup got
     phase: Phase,
 }
@@ -118,7 +123,7 @@ impl TrinoSetup {
         params.remove("draftRows");
         let channel = TrinoChannel::from_params(&params);
         let oauth = channel.auth.auth_type == TrinoAuthType::OAuth;
-        let mut setup = Self { params, channel, channel_id, options, phase: Phase::Done };
+        let mut setup = Self { params, channel, channel_id, options, oauth, phase: Phase::Done };
         let mut out = Vec::new();
         if !oauth {
             setup.open_channel(&mut out);
@@ -273,25 +278,12 @@ impl TrinoSetup {
         out
     }
 
-    /// Abort the setup, e.g. the user cancelled it
-    pub fn abort(&mut self) -> Vec<SetupOutput> {
+    /// The host kept the channel: it is ready, the health check runs next if the setup runs it
+    pub fn on_channel_opened(&mut self) -> Vec<SetupOutput> {
         let mut out = Vec::new();
-        let action = match std::mem::replace(&mut self.phase, Phase::Done) {
-            Phase::Done => return out,
-            Phase::GeneratingPkce | Phase::Authorizing { .. } | Phase::RequestingToken => {
-                ConnectionAction::Trino(TrinoAction::OAuthCancelled(DetailedError::new("OAuth flow was aborted")))
-            }
-            Phase::HealthCheck => ConnectionAction::HealthCheckCancelled,
-        };
-        out.push(SetupOutput::Dispatch(action));
-        out.push(SetupOutput::Failed(TrinoError::new(TrinoErrorKind::Aborted, "The setup was aborted")));
-        out
-    }
-
-    /// Set up the channel, then run the health check
-    fn open_channel(&mut self, out: &mut Vec<SetupOutput>) {
-        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: self.params.clone() })));
-        out.push(SetupOutput::OpenChannel { id: self.channel_id, channel: self.channel.clone() });
+        if self.phase != Phase::OpeningChannel {
+            return out;
+        }
         out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelReady(self.channel_id))));
         if self.options.health_check {
             out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckStarted));
@@ -301,6 +293,53 @@ impl TrinoSetup {
             self.phase = Phase::Done;
             out.push(SetupOutput::Succeeded);
         }
+        out
+    }
+
+    /// A step of the host failed, e.g. the login page couldn't open. An OAuth setup fails its flow, a setup with
+    /// basic auth its channel.
+    pub fn fail(&mut self, message: &str) -> Vec<SetupOutput> {
+        let mut out = Vec::new();
+        match std::mem::replace(&mut self.phase, Phase::Done) {
+            Phase::Done => {}
+            Phase::HealthCheck => {
+                let error = DetailedError::new(message);
+                out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckFailed(error.clone())));
+                out.push(SetupOutput::Failed(TrinoError { kind: TrinoErrorKind::HealthCheck, message: error.message, data: error.data }));
+            }
+            Phase::OpeningChannel if !self.oauth => {
+                out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(DetailedError::new(message)))));
+                out.push(SetupOutput::Failed(TrinoError::new(TrinoErrorKind::Protocol, message)));
+            }
+            _ => self.fail_oauth(TrinoError::new(TrinoErrorKind::OAuth, message), &mut out),
+        }
+        out
+    }
+
+    /// Abort the setup, e.g. the user cancelled it. An OAuth setup cancels its flow, a setup with basic auth its
+    /// channel.
+    pub fn abort(&mut self) -> Vec<SetupOutput> {
+        let mut out = Vec::new();
+        let action = match std::mem::replace(&mut self.phase, Phase::Done) {
+            Phase::Done => return out,
+            Phase::OpeningChannel if !self.oauth => {
+                ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(DetailedError::new("The setup was aborted")))
+            }
+            Phase::GeneratingPkce | Phase::Authorizing { .. } | Phase::RequestingToken | Phase::OpeningChannel => {
+                ConnectionAction::Trino(TrinoAction::OAuthCancelled(DetailedError::new("OAuth flow was aborted")))
+            }
+            Phase::HealthCheck => ConnectionAction::HealthCheckCancelled,
+        };
+        out.push(SetupOutput::Dispatch(action));
+        out.push(SetupOutput::Failed(TrinoError::new(TrinoErrorKind::Aborted, "The setup was aborted")));
+        out
+    }
+
+    /// Set up the channel, the host keeps it
+    fn open_channel(&mut self, out: &mut Vec<SetupOutput>) {
+        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: self.params.clone() })));
+        out.push(SetupOutput::OpenChannel { id: self.channel_id, channel: self.channel.clone() });
+        self.phase = Phase::OpeningChannel;
     }
 
     /// The OAuth flow failed, the connection keeps only the message

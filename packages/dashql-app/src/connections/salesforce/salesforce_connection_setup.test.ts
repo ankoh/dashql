@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { createSalesforceSetup, setupSalesforceConnection } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup';
-import type { SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
+import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
@@ -11,6 +11,7 @@ import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
 import { SETUP_CANCELLED, SETUP_FAILED, SETUP_STARTED, SF_CHANNEL_READY } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
 import { RESET_CONNECTION } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -33,32 +34,9 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
             login: '',
             databaseName,
         } as connection.SalesforceConnectionParams;
-        const coreToken: connection.SalesforceCoreAccessToken = {
-            createdAt: new Date(0).toISOString(),
-            accessToken: 'core-token',
-            instanceUrl: params.instanceUrl,
-        };
-        const dataCloudToken: connection.SalesforceDataCloudAccessToken = {
-            createdAt: new Date(0).toISOString(),
-            expiresAt: new Date(7_200_000).toISOString(),
-            instanceUrl: 'https://hyper.example.com/',
-            jwt: {
-                raw: 'offcore-token',
-                header: { alg: 'RS256' },
-                payload: {
-                    exp: 7_200,
-                    audienceTenantId: 'tenant-id',
-                    customAttributes: { dataspace: 'analytics' },
-                },
-            },
-        };
-        const api = {
-            getCoreAccessToken: vi.fn().mockResolvedValue(coreToken),
-            getCoreUserInfo: vi.fn().mockResolvedValue({ preferredUsername: 'test@example.com', photos: {} }),
-            getDataCloudAccessToken: exchangeFails
-                ? vi.fn().mockRejectedValue(new Error('exchange failed'))
-                : vi.fn().mockResolvedValue(dataCloudToken),
-        } as unknown as SalesforceApiClientInterface;
+        // The setup sends its requests with the HTTP client of the API client
+        const http = fakeSalesforceHttp({ exchangeError: exchangeFails ? 'exchange failed' : null });
+        const api = new SalesforceApiClient(new TestLogger(), http);
         const events = {
             waitForOAuthRedirect: vi.fn(async (_signal, matches) => {
                 const url = new URL(open.mock.calls[0][0]);
@@ -86,7 +64,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
         if (exchangeFails) {
             await expect(setup).rejects.toThrow('exchange failed');
             expect(client.connect).not.toHaveBeenCalled();
-            expect(api.getDataCloudAccessToken).toHaveBeenCalledWith(coreToken, expect.any(AbortSignal));
+            expect(http.paths).toContain('/services/a360/token');
             expect(dispatch).toHaveBeenLastCalledWith({ type: SETUP_FAILED, value: { message: expect.any(String) } });
             return;
         }
@@ -100,10 +78,11 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
             : []);
         expect(await context?.getRequestMetadata()).toEqual({
             audience: 'tenant-id',
-            authorization: 'Bearer offcore-token',
+            authorization: `Bearer ${DATA_CLOUD_JWT}`,
         });
-        expect(channel.coreToken).toBe(coreToken);
-        expect(channel.dataCloudToken).toBe(dataCloudToken);
+        expect(channel.coreToken.accessToken).toBe('core-token');
+        expect(channel.dataCloudToken.jwt.raw).toBe(DATA_CLOUD_JWT);
+        expect(channel.dataCloudToken.instanceUrl).toBe('https://hyper.example.com/');
         expect(params.login).toBe('');
         expect(dispatch).toHaveBeenLastCalledWith({ type: SF_CHANNEL_READY, value: channel });
     });

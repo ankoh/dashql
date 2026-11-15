@@ -14,13 +14,16 @@ Salesforce Data Cloud and the client functions run their protocols in Rust over 
 catalog loader the fifth (`CatalogLoaderService` over `catalog_loader/service.rs`): it schedules the updates of the
 catalogs, runs their metadata queries through the query executor, fetches the metadata of Salesforce and registers the
 client functions of the connections, the runs of workbooks the sixth (`src/workbook_run/`): a run analyzes, plans and
-runs the scripts of a workbook. The storage format of workbooks is called by the storage, the imports and the exports of
-the TypeScript runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
+runs the scripts of a workbook, the setups of the connectors and the health checks the seventh (`connection_setup/`):
+Trino, Salesforce and Hyper set up their connections over an OAuth host. The storage format of workbooks is called by
+the storage, the imports and the exports of the TypeScript runtime (`src/workbook_format/`, see
+[The format of workbooks](#the-format-of-workbooks)).
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
 schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `Computations`, `StorageWriter`,
-`AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`) belong to DashQL and change with it, their snapshots cross as JSON.
+`AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`, `ConnectionSetupRun`) belong to
+DashQL and change with it, their snapshots cross as JSON.
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -100,7 +103,8 @@ buffers in between. The boundary moves to what the UI reads.
    The host trait, the executor and the storage writer are done, see [The storage writer](#the-storage-writer), and
    so are the restore and the persistence of connections, see [The restore](#the-restore), the query executor with
    one HTTP layer, see [The query executor](#the-query-executor), the catalog loader, see
-   [The catalog loader](#the-catalog-loader), and the runs of workbooks, see [The runs of workbooks](#the-runs-of-workbooks).
+   [The catalog loader](#the-catalog-loader), the runs of workbooks, see [The runs of workbooks](#the-runs-of-workbooks),
+   and the setups of the connectors, see [The setups of the connectors](#the-setups-of-the-connectors).
 
 ## The whole runtime in Wasm
 
@@ -357,6 +361,53 @@ the runtime hands it every registry and requests refreshes as before.
   module, the app has no batch worker anymore. A Hyper update that partly failed logs `Partially updated the catalog`.
   An update logs on the targets of the log of the loader, not on a trace of its own.
 
+## The setups of the connectors
+
+The setup functions of the TypeScript runtime are adapters over the setups of the crate (`src/connection_setup/`):
+`setupTrinoConnection`, `setupSalesforceConnection`, `authenticateSalesforce` and `performHealthCheck` of the runtime
+and `setupHyperConnection` of the app. They are bound as free functions of the module (`connectionSetupTrino`,
+`connectionSetupSalesforce`, `connectionSetupAuthenticateSalesforce`, `connectionSetupHyper`,
+`connectionSetupHealthCheck`, `DashQL.connectionSetup` of `@ankoh/dashql-core`) that start a `ConnectionSetupRun`.
+Their APIs stayed, the settings pages, the startup, the cloud login and the login of the shell call them as before.
+
+- **An OAuth host.** `connection_setup::OAuthHost` adds the OAuth flows to `HttpHost`: the PKCE challenge and a random
+  id come from the crypto of the platform, the core has no SHA-256 and no randomness. `authorize_with_loopback` opens
+  the authorization URL and waits for the loopback redirect (Trino), `authorize_with_redirect_page` waits for the
+  callback of the redirect page whose state has the flow id (Salesforce), in the browser as a window and in the desktop
+  app as a link. The flow reports the window and the external browser as events while it waits, a cancelled token
+  stops it. The adapter implements the host over the `OAuthFlow` of the platform, the tests over a fake.
+- **A setup is an async function.** It drives the state machine of its connector (`TrinoSetup`, `SalesforceSetup`, the
+  steps of a Hyper channel in `connection_setup/hyper.rs`) over the host: it applies every action of the connection
+  through `SetupHost::dispatch`, awaits the host for the flow, the requests and the channel, and returns the id of the
+  channel. The token requests and the REST calls of Salesforce go over `fetch` with the HTTP client of the platform.
+- **A run has a host of its own.** The host of a run is one setup: it applies the actions to one connection and keeps
+  the channels of the setup by id. An action crosses as `{connector, type, value}`, the type is the name of the action
+  of the connector in TypeScript, and the adapter puts the channel object in place of its id.
+- **The channels stay what the executor reads.** The host creates the channel from what the setup describes: a
+  `TrinoChannel` on the API client with the endpoint, the defaults and the OAuth token, a `SalesforceDatabaseChannel`
+  over the Hyper channel of the HTTP client with the tokens, the attached database of Database.com and the bearer
+  token. A Hyper over HTTP and the Hyper of a link are channels of the HTTP client that describe themselves to the
+  executor, the setup resolves the params of a link with the token of the page. The embedded Hyper and gRPC through the
+  native proxy of the desktop app stay channels of the host.
+- **The health check runs through the executor.** `check_health` dispatches its start, asks the host to run the probe
+  query of the connector with the metadata of a health check (`run_probe`), and maps the outcome to the action of the
+  connection. The host runs it with the query executor of the app on the channel of the setup, so it shows up in the
+  query viewer. A failed probe fails with the error of the query.
+- **Cancellation.** The signal of the caller cancels the run. A run that is cancelled before it starts reports its
+  start and its cancellation. A connect runs to its end, a channel that is ready after the cancellation is closed. A
+  failed host call keeps what the host failed with, the caller gets the same error.
+- **The tests.** `tests/connection_setup_test.rs` runs the setups and the health check on a fake host: the flows, the
+  token requests, the channels, failures and cancellations. The tests of the app run the adapters on the module, the
+  ones of Salesforce against a fake Salesforce over the HTTP client.
+- **Changed on purpose.** The requests of the Salesforce setup and the login go over the HTTP client of the API client,
+  not through the methods of `SalesforceApiClientInterface`, the tests answer them as a fake Salesforce. The setup and
+  the login of Salesforce log on the target `salesforce_setup`. A health check that is cancelled before its probe
+  dispatches its cancellation and runs no probe, one that is cancelled while the probe runs ends at once and the probe
+  runs to its end in the executor. A Trino setup with OAuth that is cancelled before it starts reports
+  `OAUTH_STARTED` and `OAUTH_CANCELLED`. A cancelled Hyper setup keeps the message of the cancellation of the runtime.
+  `buildSalesforceAuthorizationUrl`, `validateSalesforceOAuthCallbackState` and `checkSalesforceConnectionSetup` of
+  TypeScript are gone, the crate has them.
+
 ## The Trino connector
 
 The Trino connector of the crate (`src/trino/`) does no I/O, the query executor drives its queries. The channel (`TrinoChannel`)
@@ -369,7 +420,7 @@ QueryInfos of the profile only while the profile is shown. The rows of a page be
 coercions of the TypeScript runtime. A timestamp with a named time zone asks the host for the offsets of the zone, the
 crate has no time zone database. The setup of a connection (`TrinoSetup`) is a state machine as well: it reports every
 step as an action on the connection and asks the host for the PKCE challenge, the login in the browser, the token
-request, the channel and the health check.
+request, the channel and the health check. `connection_setup::setup_trino` drives it.
 
 - **Changed on purpose.** Integers keep all their digits, invalid base64 becomes null instead of failing the batch,
   basic auth encodes UTF-8, an error or rows in the response to the statement are handled like a page, a token
@@ -378,7 +429,8 @@ request, the channel and the health check.
 ## The client functions and Salesforce
 
 The client functions (`src/clfn/`) and the Salesforce connector (`src/salesforce/`) are ported without I/O, the query
-executor runs the calls and the catalog loader registers the specs, the setup of Salesforce isn't used yet. A call is a state machine: it starts from the description of the core, returns the next request,
+executor runs the calls and the catalog loader registers the specs, `connection_setup::setup_salesforce` drives the
+setup. A call is a state machine: it starts from the description of the core, returns the next request,
 a wait or the result table, and takes the response with the time. The runtime reads the spec for its requests, and the
 core checks it when a binding registers it on the catalog of a connection. The registrations of the connections ask the
 host to load a spec and register it once it arrives. A result is a table of typed cells that becomes a record batch or
@@ -597,17 +649,16 @@ about that.
   the host.
 - A channel of the host converts its record batches to Arrow IPC, the embedded Hyper decodes its IPC first.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
+- The mock setup of Salesforce (`salesforce_connection_setup_mock.ts`, the mock config of the app) stays in TypeScript,
+  it answers from `SalesforceAPIClientMock` without requests. The owner of the cancellation of a setup per connection
+  (`connection_setup_cancellation.ts`) holds abort controllers of the host and stays.
+- The Salesforce setup reads the HTTP client from a `SalesforceApiClient`, an API client of another kind passes its
+  HTTP client next to it.
 - The service of the runs (`WorkbookExecutionService`: one run per workbook, the connections that a run takes, the
   changes of inputs that wait for the workbook, stopping a run when a connection drops) and the holds of workbooks stay
   in TypeScript, the run itself is Rust.
 - A statement of a run reaches the query executor of the crate through its adapter, which registers the query in the
   history of its connection and keeps the result table; the run and the executor are not one Rust value yet.
-- The setups of the connectors still run in TypeScript (`trino_connection_setup.ts`, `salesforce_connection_setup.ts`,
-  `hyper_connection_setup.tsx` of the app) and so does the health check (`health_check.ts`). `TrinoSetup` and
-  `SalesforceSetup` of the crate are state machines that no service drives yet; a service over them needs an OAuth host
-  (the authorization page and its callback through `OAuthFlow`, PKCE and the random state from the crypto of the
-  platform), channels of the host for the gRPC of Hyper and the mock of Salesforce, and the mapping of their actions to
-  the registry of the app.
 - The batches of a catalog update parse on the main thread. A host call to a worker with a core of its own would move
   the bundled functions of Hyper off the event loop.
 

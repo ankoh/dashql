@@ -74,6 +74,7 @@ mod restore;
 mod connection_persistence;
 mod workbook_run;
 mod catalog_loader;
+mod connection_setup;
 mod workbook_format;
 
 /// A formatting config from the numeric arguments of the JS API

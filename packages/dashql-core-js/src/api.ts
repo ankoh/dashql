@@ -13,6 +13,7 @@ import { DashQLQueryExecutor } from './query_executor.js';
 import { DashQLCatalogLoader } from './catalog_loader.js';
 import { DashQLAppRestore } from './restore.js';
 import { DashQLWorkbookFormat } from './workbook_format.js';
+import { DashQLConnectionSetup } from './connection_setup.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -49,6 +50,11 @@ export type DashQLBindings = Pick<
     | 'workbookLink'
     | 'resolveWorkbookScripts'
     | 'CacheEviction'
+    | 'connectionSetupTrino'
+    | 'connectionSetupSalesforce'
+    | 'connectionSetupAuthenticateSalesforce'
+    | 'connectionSetupHyper'
+    | 'connectionSetupHealthCheck'
 >;
 
 /// The shell of the module, the host runs its effects
@@ -473,6 +479,11 @@ export class DashQL {
     }
 
     /// The storage format of workbooks: the workbook file, migrations, bundles, the workbook tables and archives
+    /// The setups of the connectors and the health checks, each run on a host of its own
+    public get connectionSetup(): DashQLConnectionSetup {
+        return new DashQLConnectionSetup(this.bindings);
+    }
+
     public get workbookFormat(): DashQLWorkbookFormat {
         return new DashQLWorkbookFormat(this.bindings);
     }

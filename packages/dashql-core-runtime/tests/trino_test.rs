@@ -1152,20 +1152,17 @@ fn sets_up_a_connection_with_basic_auth_and_checks_its_health() {
     let (mut setup, out) = TrinoSetup::start(&params, 7, TrinoSetupOptions { health_check: true, ..Default::default() });
     let mut without_draft = params.clone();
     without_draft.remove("draftRows");
-    assert_eq!(
-        actions(&out),
-        [
-            ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: without_draft.clone() }),
-            ConnectionAction::Trino(TrinoAction::ChannelReady(7)),
-            ConnectionAction::HealthCheckStarted,
-        ]
-    );
+    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: without_draft.clone() })]);
     let rest = apply_setup(&mut connection, out);
-    let [SetupOutput::OpenChannel { id: 7, channel }, SetupOutput::RunHealthCheck { channel: 7, query: "select 1" }] = rest.as_slice() else {
+    let [SetupOutput::OpenChannel { id: 7, channel }] = rest.as_slice() else {
         panic!("unexpected outputs {rest:?}");
     };
     assert_eq!(channel.defaults.catalog.as_deref(), Some("hive"));
     assert_eq!(channel.auth.username, "user");
+    let out = setup.on_channel_opened();
+    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::ChannelReady(7)), ConnectionAction::HealthCheckStarted]);
+    let rest = apply_setup(&mut connection, out);
+    assert_eq!(rest, [SetupOutput::RunHealthCheck { channel: 7, query: "select 1" }]);
     assert_eq!(connection.health(), ConnectionHealth::Connecting);
     assert_eq!(connection.details().channel, Some(7));
 
@@ -1180,13 +1177,15 @@ fn sets_up_a_connection_with_basic_auth_and_checks_its_health() {
 fn fails_the_setup_when_the_health_check_fails() {
     let params = object(json!({ "endpoint": ENDPOINT }));
     let (mut setup, _) = TrinoSetup::start(&params, 1, TrinoSetupOptions { health_check: true, ..Default::default() });
+    setup.on_channel_opened();
     let rejected = DetailedError::new("Query failed");
     let out = setup.on_health_check(HealthCheckOutcome::Failed(rejected.clone()));
     assert_eq!(actions(&out), [ConnectionAction::HealthCheckFailed(rejected)]);
     assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.kind == TrinoErrorKind::HealthCheck));
     // Without the health check, the channel is the end of the setup
-    let (_, out) = TrinoSetup::start(&params, 1, TrinoSetupOptions::default());
-    assert_eq!(out.last(), Some(&SetupOutput::Succeeded));
+    let (mut setup, _) = TrinoSetup::start(&params, 1, TrinoSetupOptions::default());
+    assert_eq!(setup.on_channel_opened().last(), Some(&SetupOutput::Succeeded));
+    assert!(setup.is_done());
 }
 
 /// Trino params with OAuth
@@ -1238,9 +1237,11 @@ fn sets_up_a_connection_with_oauth() {
 
     let token = json_response(json!({ "access_token": "token-1", "token_type": "Bearer", "expires_in": 60 }));
     let rest = apply_setup(&mut connection, setup.on_token_response(&token, 6_000));
-    let [SetupOutput::OpenChannel { id: 3, channel }, SetupOutput::RunHealthCheck { .. }] = rest.as_slice() else {
+    let [SetupOutput::OpenChannel { id: 3, channel }] = rest.as_slice() else {
         panic!("unexpected outputs {rest:?}");
     };
+    let rest = apply_setup(&mut connection, setup.on_channel_opened());
+    assert!(matches!(rest.as_slice(), [SetupOutput::RunHealthCheck { channel: 3, .. }]), "{rest:?}");
     let statement = channel.http_request(&TrinoRequest::SubmitStatement { text: "select 1".into() }).unwrap();
     assert_eq!(statement.header("Authorization"), Some("Bearer token-1"));
     assert_eq!(channel.access_token.as_ref().and_then(|token| token.expires_at), Some(66_000));
@@ -1304,7 +1305,24 @@ fn aborts_the_setup_in_any_step() {
     assert!(setup.abort().is_empty());
 
     let (mut setup, _) = TrinoSetup::start(&object(json!({ "endpoint": ENDPOINT })), 1, TrinoSetupOptions { health_check: true, ..Default::default() });
+    setup.on_channel_opened();
     assert_eq!(actions(&setup.abort()), [ConnectionAction::HealthCheckCancelled]);
+
+    // A setup with basic auth that is aborted before its channel is ready cancels the channel setup
+    let (mut setup, _) = TrinoSetup::start(&object(json!({ "endpoint": ENDPOINT })), 1, TrinoSetupOptions::default());
+    assert!(!setup.is_done());
+    let out = setup.abort();
+    assert!(matches!(actions(&out).as_slice(), [ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(_))]), "{out:?}");
+    assert!(setup.on_channel_opened().is_empty());
+
+    // A step of the host that fails fails the channel setup of basic auth and the flow of OAuth
+    let (mut setup, _) = TrinoSetup::start(&object(json!({ "endpoint": ENDPOINT })), 1, TrinoSetupOptions::default());
+    let out = setup.fail("no channel");
+    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(DetailedError::new("no channel")))]);
+    let (mut setup, _) = TrinoSetup::start(&oauth_params(), 1, TrinoSetupOptions::default());
+    let out = setup.fail("no loopback server");
+    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::OAuthFailed(DetailedError::new("no loopback server")))]);
+    assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.message == "no loopback server"));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

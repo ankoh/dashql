@@ -8,7 +8,7 @@ import {
     HYPER_CHANNEL_SETUP_STARTED,
     HyperConnectorAction,
 } from '@ankoh/dashql-runtime/connections/hyper/hyper_connection_state';
-import { Logger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { HyperConnectorConfig } from '@ankoh/dashql-runtime/connections/connector_configs';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import {
@@ -25,83 +25,58 @@ import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metri
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
-import { hyperLinkChannelParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
+import { loadSetupCore, SetupRun } from '@ankoh/dashql-runtime/connections/connection_setup_native';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
 
 const LOG_CTX = "hyper_setup";
 
-function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null): HyperDatabaseClient {
-    if (protocol === 'V3_HTTP') {
-        if (!httpClient) throw new Error("HTTP client is not available");
-        return httpClient;
-    }
-    if (!grpcClient) throw new Error(`gRPC client is not available (required for protocol ${protocol})`);
-    return grpcClient;
-}
+/// The actions of the Hyper setup by their names in the Rust runtime
+const ACTIONS: Record<string, HyperConnectorAction['type']> = {
+    HYPER_CHANNEL_SETUP_STARTED,
+    HYPER_CHANNEL_SETUP_CANCELLED,
+    HYPER_CHANNEL_SETUP_FAILED,
+    HYPER_CHANNEL_READY,
+};
 
+/// Set up a Hyper connection. The setup runs in the Rust runtime (`connection_setup/hyper.rs`): it picks the channel of
+/// the protocol and resolves the params of a link with its token, the host connects the channel. The embedded Hyper and
+/// gRPC through the native proxy stay channels of the host, HTTP channels describe themselves to the query executor.
 export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal, logMetrics: HyperLogMetrics | null = null, connectionId: string | null = null): Promise<HyperDatabaseChannel | null> {
-    params = structuredClone(params);
-    delete params.draftRows;
-    let channel: HyperDatabaseChannel | null = null;
-    try {
-        // Start the channel setup
-        updateState({
-            type: HYPER_CHANNEL_SETUP_STARTED,
-            value: params,
-        });
-        abortSignal.throwIfAborted()
-
-        if (params.protocol === 'WASM') {
-            const database = await setupEmbeddedDatabase('hyper_wasm_connector');
-            // The Hyper log attributes the queries of the session to the connection by its client context
-            channel = await connectEmbeddedHyper(database, params, connectionId == null ? undefined : connectionClientContext(connectionId));
-            if (connectionId != null) logMetrics?.watch({ database, sessions: true }, connectionId);
-        } else {
-            // The Hyper of a link is reached with the token of the link, it is never stored
-            let connectParams = params;
-            if (params.protocol === 'V3_HTTP_LINK') {
-                const token = connectionId == null ? undefined : getHyperLinkTabState().tokens[connectionId];
-                if (token == null) throw new Error("Open the link of this Hyper again, e.g. the one that `hyperd run --ui` prints");
-                connectParams = hyperLinkChannelParams(params, token);
+    const core = await loadSetupCore();
+    // The Hyper log attributes the queries of the channel to the connection by its client context
+    const clientContext = connectionId == null ? null : connectionClientContext(connectionId);
+    const run = new SetupRun({
+        logger,
+        signal: abortSignal,
+        dispatch: (action, channel) => {
+            const type = ACTIONS[action.type];
+            if (type == null) return;
+            const value = type === HYPER_CHANNEL_READY ? [channel, action.value.params] : action.value;
+            updateState({ type, value } as HyperConnectorAction);
+        },
+        connectHyperChannel: async (kind, channelParams: connection.HyperConnectionParams) => {
+            if (kind === 'embedded') {
+                const database = await setupEmbeddedDatabase('hyper_wasm_connector');
+                const channel = await connectEmbeddedHyper(database, channelParams, clientContext ?? undefined);
+                if (connectionId != null) logMetrics?.watch({ database, sessions: true }, connectionId);
+                return channel;
             }
-            const client = resolveClient(connectParams.protocol, grpcClient, httpClient);
-            // The Hyper log attributes the queries of the channel to the connection by its client context
-            channel = await client.connect(connectParams, hyperConnectionContext(connectParams, connectionId == null ? null : connectionClientContext(connectionId)));
+            const client = kind === 'http' ? httpClient : grpcClient;
+            if (!client) {
+                throw new Error(kind === 'http' ? "HTTP client is not available" : `gRPC client is not available (required for protocol ${channelParams.protocol})`);
+            }
+            const channel = await client.connect(channelParams, hyperConnectionContext(channelParams, clientContext));
             // Every query of a remote channel runs in a session of its own
-            const database = new HyperChannelDatabase(clientContext => client.connect(connectParams, hyperConnectionContext(connectParams, clientContext)));
+            const database = new HyperChannelDatabase(context => client.connect(channelParams, hyperConnectionContext(channelParams, context)));
             if (connectionId != null) logMetrics?.watch({ database, sessions: false }, connectionId);
-        }
-        abortSignal.throwIfAborted();
-
-        // Mark the channel as ready
-        updateState({
-            type: HYPER_CHANNEL_READY,
-            value: [channel, params],
-        });
-        abortSignal.throwIfAborted();
-
-    } catch (error: any) {
-        await channel?.close();
-        if (error.name === 'AbortError') {
-            logger.warn("Cancelled setup", {}, LOG_CTX);
-            updateState({
-                type: HYPER_CHANNEL_SETUP_CANCELLED,
-                value: {
-                    message: stringifyError(error)
-                },
-            });
-        } else if (error instanceof Error) {
-            logger.warn("Setup failed", { "error": error?.message }, LOG_CTX);
-            updateState({
-                type: HYPER_CHANNEL_SETUP_FAILED,
-                value: {
-                    message: error.message,
-                },
-            });
-        }
-        throw error;
-    }
-    return channel;
+            return channel;
+        },
+        // The Hyper of a link is reached with the token of the link, it is never stored
+        hyperLinkToken: () => connectionId == null ? null : (getHyperLinkTabState().tokens[connectionId] ?? null),
+        closeChannel: channel => void (channel as HyperDatabaseChannel).close(),
+    });
+    const { channel } = await run.result<{ channel: number }>(core.connectionSetup.hyper(run.host(), params), LOG_CTX);
+    return (run.channels.get(channel) ?? null) as HyperDatabaseChannel | null;
 }
 export interface HyperSetupApi {
     setup(dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abortSignal: AbortSignal, connectionId: string): Promise<HyperDatabaseChannel | null>
