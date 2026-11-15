@@ -5,8 +5,9 @@ import * as styles from './data_table.module.css';
 import { Grid, useGridCallbackRef } from 'react-window';
 
 import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@ankoh/dashql-runtime/compute/arrow_formatter';
-import { ComputationAction, TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
-import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+import { resolveSummaries, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
+import { useComputationDispatch, useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
@@ -29,7 +30,6 @@ const LOG_CTX = 'data_table';
 interface Props {
     className?: string;
     table: TableComputationState;
-    dispatchComputation: Dispatch<ComputationAction>;
     debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
@@ -87,12 +87,27 @@ interface RenderedCells {
     columnStop: number;
 }
 
+/// The grid of the computation of a result, once its table is there
 export const DataTable = React.memo((props: Props) => {
+    const tables = useComputationTables(props.table);
+    if (tables.dataTable == null) return null;
+    return <DataTableGrid {...props} dataTable={tables.dataTable} />;
+});
+
+function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const config = useAppConfig();
     const logger = useLogger();
-    const dispatchComputation = props.dispatchComputation;
+    const runtime = useOptionalCoreRuntime();
     const computationState = props.table;
-    const dataTable = computationState.dataTable;
+    const dispatchComputation = useComputationDispatch(computationState.tableId);
+    const dataTable = props.dataTable;
+    const tables = useComputationTables(computationState);
+    const matchingRows = tables.matchingRows;
+    // The summaries of the columns that the plots draw, they keep their objects while their tables are the same
+    const summaries = React.useMemo(
+        () => resolveSummaries(computationState, runtime ?? { table: () => undefined }, logger),
+        [runtime, logger, computationState.tableAggregation, computationState.columnAggregates, computationState.filteredColumnAggregates, computationState.columnGroups, dataTable],
+    );
     const [gridApi, setGridApi] = useGridCallbackRef(null);
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
@@ -106,13 +121,13 @@ export const DataTable = React.memo((props: Props) => {
 
     // Get the row-id indirection column from ordering or filtering
     const visibleRowIndices = React.useMemo(
-        () => resolveSearchedRowIndices(computationState),
-        [computationState.orderingTable, computationState.filterTable, computationState.dataSearchTable, computationState.dataSearch.matchingRows],
+        () => resolveSearchedRowIndices(computationState, tables),
+        [computationState.orderingTable, computationState.dataSearchTable, tables],
     );
 
     // Data row count. Headers are rendered separately via portals
     // When an indirection table is active, show only the derived visible rows
-    const totalRowCount = visibleRowIndices?.length ?? dataTable.numRows ?? 0;
+    const totalRowCount = visibleRowIndices?.length ?? dataTable.numRows;
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
@@ -147,7 +162,7 @@ export const DataTable = React.memo((props: Props) => {
                 headerRowCount
             };
         }
-        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
+        return computeTableLayout(tableFormatter, { columnGroups: computationState.columnGroups, dataTable }, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
     }, [
         computationState.columnGroups,
         tableFormatter,
@@ -182,7 +197,7 @@ export const DataTable = React.memo((props: Props) => {
         gridLayout,
     );
 
-    const { orderByColumn, getSortDirection } = useDataTableOrdering(computationState, dispatchComputation);
+    const { orderByColumn, getSortDirection } = useDataTableOrdering(computationState, dataTable, dispatchComputation);
 
     // Maintain the focused cell outside of React state, cells subscribe to their own row
     const [focusStore] = React.useState(() => new DataTableFocusStore());
@@ -208,7 +223,7 @@ export const DataTable = React.memo((props: Props) => {
         const visibleRow = Number.parseInt(event.currentTarget.dataset["visibleRow"]!);
         const dataRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
         const fieldId = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
-        const field = computationState.dataTable.schema.fields[fieldId];
+        const field = dataTable.schema.fields[fieldId];
         if (field == null) return;
         const isText = field.type.typeId === arrow.Type.Utf8 || field.type.typeId === arrow.Type.LargeUtf8;
         const isStructured = isArrowStructuredType(field.type);
@@ -247,19 +262,19 @@ export const DataTable = React.memo((props: Props) => {
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
         onClick: onClickCell,
-        table: computationState.dataTable,
+        table: dataTable,
         focus: focusStore,
         rightmostVisibleColumn: gridLayout.columnCount - 1,
-        matchingRows: computationState.dataSearch.matchingRows,
+        matchingRows,
         searchColumnIndexByGroup,
     }), [
         // Data dependencies that legitimately require cell re-renders
         computationState.columnGroups,
-        computationState.dataTable,
+        dataTable,
         visibleRowIndices,
         gridLayout,
         tableFormatter,
-        computationState.dataSearch.matchingRows,
+        matchingRows,
         searchColumnIndexByGroup,
         // Stable callbacks - included for correctness but won't cause re-renders
         focusStore,
@@ -326,25 +341,25 @@ export const DataTable = React.memo((props: Props) => {
 
     // Keep the header cell props stable so that the memoized header cells skip unrelated renders
     const nameCellProps = React.useMemo(() => ({
-        table: computationState.dataTable,
+        table: dataTable,
         gridLayout,
         dataFrame: computationState.dataFrame,
         rightmostVisibleColumn: gridLayout.columnCount - 1,
         getSortDirection,
         onOrderByColumn: orderByColumn,
         onShowTable: props.onShowTable,
-    }), [computationState.dataTable, gridLayout, computationState.dataFrame, getSortDirection, orderByColumn, props.onShowTable]);
+    }), [dataTable, gridLayout, computationState.dataFrame, getSortDirection, orderByColumn, props.onShowTable]);
     const selectionEpoch = computationState.filterTable?.version ?? computationState.version;
     const dataSearchRequestId = computationState.dataSearchTable?.requestId ?? null;
     const plotCellProps = React.useMemo(() => ({
         gridLayout,
         columnGroups: computationState.columnGroups,
-        columnAggregations: computationState.columnAggregates,
+        columnAggregations: summaries.columnAggregates,
         columnAggregationTasks: computationState.tasks.columnAggregationTasks,
-        filteredColumnAggregations: computationState.filteredColumnAggregates,
+        filteredColumnAggregations: summaries.filteredColumnAggregates,
         filteredColumnAggregationTasks: computationState.tasks.filteredColumnAggregationTasks,
         filteredColumnAggregationOutdated: computationState.filteredColumnAggregatesOutdated,
-        tableAggregation: computationState.tableAggregation,
+        tableAggregation: summaries.tableAggregation,
         selectionEpoch,
         dataSearchRequestId,
         crossFilters,
@@ -357,12 +372,10 @@ export const DataTable = React.memo((props: Props) => {
     }), [
         gridLayout,
         computationState.columnGroups,
-        computationState.columnAggregates,
+        summaries,
         computationState.tasks.columnAggregationTasks,
-        computationState.filteredColumnAggregates,
         computationState.tasks.filteredColumnAggregationTasks,
         computationState.filteredColumnAggregatesOutdated,
-        computationState.tableAggregation,
         selectionEpoch,
         dataSearchRequestId,
         crossFilters,
@@ -449,4 +462,4 @@ export const DataTable = React.memo((props: Props) => {
             />
         </div>
     );
-});
+}

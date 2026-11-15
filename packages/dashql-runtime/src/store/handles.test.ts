@@ -3,8 +3,6 @@ import type * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { HandleTable, handlesOf } from './handles.js';
-import { analyzeTable } from '../compute/analyze_table.js';
-import { DELETE_COMPUTATION } from '../compute/computation_state.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from '../connections/catalog/catalog_update_state.js';
 import type { ConnectionParams } from '../connections/connection_params.js';
 import {
@@ -169,16 +167,16 @@ describe('The handles of a runtime', () => {
             score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
         });
-        await analyzeTable(1, table, rt.computations.dispatch, database, rt.logger, connectionId);
-        const computation = rt.computations.store.current.tableComputations[1];
-        expect(computation.tableAggregation?.table.numRows).toBe(1);
-        const lifetime = computation.dataTableLifetime;
-        expect(handles.size).toBeGreaterThan(before);
+        await rt.coreRuntime.analyzeTable(1, table, { connectionId });
+        const computation = rt.coreRuntime.store.get('computation', 1);
+        expect(rt.coreRuntime.table(computation?.tableAggregation?.table)?.numRows).toBe(1);
+        expect(rt.coreRuntime.handles.size).toBeGreaterThan(0);
 
         // Everything goes: the computation, the history of the shell, the connection, the runtime
-        rt.computations.dispatch({ type: DELETE_COMPUTATION, value: [1] });
-        await vi.waitFor(() => expect(rt.computations.store.current.tableComputations[1]).toBeUndefined());
-        expect(lifetime?.signal.aborted).toBe(true);
+        rt.coreRuntime.deleteComputation(1);
+        rt.coreRuntime.flush();
+        expect(rt.coreRuntime.store.get('computation', 1)).toBeNull();
+        expect(rt.coreRuntime.handles.size).toBe(0);
         shell.release();
         await rt.destroy();
         runtime = null;

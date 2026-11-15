@@ -6,9 +6,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { ComputeConnectionProvider } from '../../compute/compute_connection_provider.js';
-import { COMPUTATION_FROM_QUERY_RESULT } from '@ankoh/dashql-runtime/compute/computation_state';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -90,7 +89,7 @@ interface Api {
 
 function Capture(props: { capture: (api: Api) => void; children: React.ReactElement }) {
     const [, setRegistry] = useConnectionRegistry();
-    const [computations, dispatch] = useComputationRegistry();
+    const coreRuntime = useCoreRuntime();
     const { mode } = useWorkbookViewMode();
     const reconfigure = useAppReconfigure();
     props.capture({
@@ -102,11 +101,11 @@ function Capture(props: { capture: (api: Api) => void; children: React.ReactElem
             }
             return next;
         }),
-        computations: () => Object.keys(computations.tableComputations).map(Number),
-        createComputation: (queryId, table) => dispatch({
-            type: COMPUTATION_FROM_QUERY_RESULT,
-            value: [queryId, table, [], new AbortController()],
-        }),
+        computations: () => coreRuntime.store.ids('computation'),
+        // The analysis starts the computation of the result, without a compute database it stops after that
+        createComputation: (queryId, table) => {
+            void coreRuntime.analyzeTable(queryId, table).catch(() => { });
+        },
         mode: () => mode,
         reconfigure: settings => reconfigure(config => ({ ...(config ?? {}), settings } as AppConfig)),
     });

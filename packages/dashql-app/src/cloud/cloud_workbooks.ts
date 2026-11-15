@@ -1,7 +1,6 @@
 import * as React from 'react';
 
-import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
-import { useComputationDispatch } from '../compute/computation_registry.js';
+import { useDeleteComputation } from '../runtime/runtime_hooks.js';
 import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore, type ConnectionReferences } from '../connections/connection_registry.js';
 import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
@@ -207,7 +206,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     const readRegistry = useWorkbookScriptsRegistryReader();
     const dispatchScripts = useWorkbookScriptsDispatch();
     const deleteScripts = useWorkbookScriptsDeletion();
-    const computationDispatch = useComputationDispatch();
+    const deleteComputation = useDeleteComputation();
     const connectionStore = useConnectionRegistryStore();
     const references = useConnectionReferences();
     const storageReader = useStorageReader();
@@ -234,7 +233,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
                 const connection = connectionStore.current.connections.get(connectionId);
                 if (connection == null) continue;
                 for (const queryId of findWorkbookQueries(connection, workbookId)) {
-                    computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
+                    deleteComputation(queryId);
                 }
             }
             // The connections that the preview registered go with it
@@ -248,7 +247,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         } finally {
             discarding.delete(workbookId);
         }
-    }, [computationDispatch, connectionStore, deleteConnection, deleteScripts, logger, readRegistry, references, storageReader, storageWriter]);
+    }, [deleteComputation, connectionStore, deleteConnection, deleteScripts, logger, readRegistry, references, storageReader, storageWriter]);
 
     /// Read a version of a published workbook, the latest without one
     const readVersion = React.useCallback(async (cloudId: string, cloudWorkbookId: string, versionId?: string) => {

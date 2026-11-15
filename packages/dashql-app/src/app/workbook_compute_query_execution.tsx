@@ -1,9 +1,8 @@
 import * as React from 'react';
 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
-import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
-import { useComputationStore } from '../compute/computation_registry.js';
-import type { ComputeTaskContext } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import { clientContextOf, type ComputeQueryExecution, type ComputeTaskContext } from '@ankoh/dashql-runtime/compute/compute_platform';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { useConnectionDispatch } from '../connections/connection_registry.js';
@@ -15,13 +14,13 @@ const LOG_CTX = 'scheduler';
 export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChildren) {
     // Resolve the connection when the task starts, subscribing to the computations would re-create the
     // execution factory and re-render the scheduler for every task step.
-    const computations = useComputationStore();
+    const runtime = useOptionalCoreRuntime();
     const dispatch = useConnectionDispatch();
     const createExecution = React.useCallback((task: ComputeTaskContext) => {
-        const computation = computations.current.tableComputations[task.tableId];
+        const computation = runtime?.store.get('computation', task.tableId) ?? null;
         const connectionId = computation?.connectionId ?? null;
         const execution: ComputeQueryExecution = (query, execute) => {
-            if (connectionId == null) return execute(computation?.clientContext ?? null);
+            if (connectionId == null) return execute(clientContextOf(computation?.clientContext));
             return executeTrackedQuery({
                 query,
                 tracker: { dispatch: action => dispatch(connectionId, action) },
@@ -38,7 +37,7 @@ export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChil
             });
         };
         return execution;
-    }, [computations, dispatch]);
+    }, [runtime, dispatch]);
 
     return (
         <ComputeQueryExecutionProvider createExecution={createExecution}>

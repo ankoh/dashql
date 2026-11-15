@@ -1,63 +1,30 @@
 import { describe, expect, it } from 'vitest';
+import type * as core from '@ankoh/dashql-core';
 
-import { LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, type ColumnGroup } from '../computation_types.js';
-import {
-    buildColumnSearchSQL,
-    collectSearchableResultColumns,
-    parseDataSearchMatches,
-} from './query_result_search_sql.js';
+import { collectSearchableResultColumns, parseDataSearchMatches } from './query_result_search_sql.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
-function stringGroup(name: string): ColumnGroup {
+function valueColumn(name: string, fields: Partial<core.ComputationValueColumn> = {}): core.ComputationValueColumn {
     return {
-        type: STRING_COLUMN,
-        value: {
-            inputFieldName: name,
-            inputFieldType: {} as any,
-            inputFieldNullable: true,
-            statsFields: null,
-            valueIdFieldName: null,
-        },
+        inputFieldName: name,
+        inputFieldType: 'Utf8',
+        inputFieldNullable: true,
+        statsFields: null,
+        binFieldName: null,
+        binCount: 0,
+        valueIdFieldName: null,
+        ...fields,
     };
 }
 
 describe('query result search SQL', () => {
-    const columnGroups: ColumnGroup[] = [
-        {
-            type: ROWNUMBER_COLUMN,
-            value: { rowNumberFieldName: '_rownum' },
-        },
-        stringGroup('column_name'),
-        {
-            type: ORDINAL_COLUMN,
-            value: {
-                inputFieldName: 'score',
-                inputFieldType: {} as any,
-                inputFieldNullable: false,
-                statsFields: null,
-                binFieldName: '_2_bin',
-                binCount: 8,
-            },
-        },
-        {
-            type: LIST_COLUMN,
-            value: {
-                inputFieldName: 'tags',
-                inputFieldType: {} as any,
-                inputFieldNullable: true,
-                statsFields: null,
-                valueIdFieldName: null,
-            },
-        },
-        {
-            type: SKIPPED_COLUMN,
-            value: {
-                inputFieldName: 'blob',
-                inputFieldType: {} as any,
-                inputFieldNullable: true,
-            },
-        },
-        stringGroup('col"umn'),
+    const columnGroups: core.ComputationColumnGroup[] = [
+        { type: 'ROWNUMBER', value: { rowNumberFieldName: '_rownum' } },
+        { type: 'STRING', value: valueColumn('column_name') },
+        { type: 'ORDINAL', value: valueColumn('score', { inputFieldType: 'Float64', binFieldName: '_2_bin', binCount: 8 }) },
+        { type: 'LIST', value: valueColumn('tags') },
+        { type: 'SKIPPED', value: { inputFieldName: 'blob', inputFieldType: 'Binary', inputFieldNullable: true } },
+        { type: 'STRING', value: valueColumn('col"umn') },
     ];
 
     it('collects original data columns and excludes row numbers and skipped groups', () => {
@@ -67,35 +34,6 @@ describe('query result search SQL', () => {
             { columnIdx: 2, columnGroupIdx: 3, fieldName: 'tags' },
             { columnIdx: 3, columnGroupIdx: 5, fieldName: 'col"umn' },
         ]);
-    });
-
-    it('inlines searchable column names for substring matching', () => {
-        const sql = buildColumnSearchSQL(collectSearchableResultColumns(columnGroups), '_na');
-        expect(sql).toBe(
-            `SELECT column_idx, column_group_idx\n` +
-            `FROM (\n` +
-            `    VALUES\n` +
-            `        (0, 1, 'column_name'),\n` +
-            `        (1, 2, 'score'),\n` +
-            `        (2, 3, 'tags'),\n` +
-            `        (3, 5, 'col"umn')\n` +
-            `) AS columns(column_idx, column_group_idx, name)\n` +
-            `WHERE name ILIKE '%_na%'\n` +
-            `ORDER BY column_idx`
-        );
-    });
-
-    it('quotes single quotes in column names and ILIKE patterns', () => {
-        const sql = buildColumnSearchSQL(
-            [{ columnIdx: 0, columnGroupIdx: 1, fieldName: "o'neil" }],
-            "o'neil",
-        );
-        expect(sql).toContain(`(0, 1, 'o''neil')`);
-        expect(sql).toContain(`WHERE name ILIKE '%o''neil%'`);
-    });
-
-    it('builds no Columns search when there are no searchable columns', () => {
-        expect(buildColumnSearchSQL([], 'x')).toBeNull();
     });
 
     it('parses Arrow list values into matching column indexes', () => {

@@ -53,7 +53,7 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 - `reduceWorkbookScripts(state, action, storage, logger)` (`workbook/scripts/workbook_scripts.ts`, 29 actions)
 - `reduceConnectionState(prev, action, logger)` (`connections/connection_state.ts`), an adapter over the Rust connection
   (`connections/connection_native.ts`, see [core_runtime.md](core_runtime.md))
-- `compute/computation_state.ts`; the query history of the shell is an adapter over a Rust history
+- the computations are views of the runtime of the module (`core_runtime.ts`); the query history of the shell is an adapter over a Rust history
   (`query/shell_query_execution.ts`, see [core_runtime.md](core_runtime.md))
 
 ### Imports that pulled UI code into the domain
@@ -244,9 +244,11 @@ CLI wire the services in one place, and the tests of `runtime.ts` cover the wiri
   `useConnectionById` and the others read the stores and the services of the runtime. Outside of the provider, e.g. in
   a test of a component, the state hooks return no state and the functions throw when they are called, like the
   contexts without a provider before.
-- **Computations.** `createComputations` (`compute/computations.ts`) creates them for the runtime and for the shell of
-  Hyper, which has no runtime (`StandaloneComputations`). Their state lives in the core (see
-  [core_runtime.md](core_runtime.md)), they take the core of the platform with their first action.
+- **Computations.** They are the first domain of the `Runtime` class of the module (see [runtime_api.md](runtime_api.md)).
+  `CoreRuntime` (`core_runtime.ts`) holds it with its platform object and its store, the runtime creates one as its
+  `coreRuntime` and the shell of Hyper, which has no runtime, one of its own (`StandaloneCoreRuntime`). Components
+  read the views with `useView` and its aliases and dispatch with `useDispatch` (`runtime/runtime_hooks.tsx`); the
+  first command takes the core of the platform.
 - **Tests.** `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`) is the provider in the tests of
   components: the catalog loader stopped like in `createTestRuntime`, and the functions of the query executor that a
   test replaces.

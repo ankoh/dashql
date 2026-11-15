@@ -19,7 +19,8 @@ use dashql_core_runtime::compute::types::{
     ColumnAggregate, ColumnGroup, ColumnSummaryAnalysis, ComputationTask, DataSearchColumn, DataSearchTask, FilterOp,
     ScalarFilter, TableFilteringTask, TaskStatus,
 };
-use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome};
+use dashql_core_runtime::compute::types::OrderByConstraint;
+use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, SearchKind};
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 
@@ -75,6 +76,8 @@ struct Database {
     tables: BTreeMap<String, ResultTable>,
     /// The calls, in order
     calls: Vec<String>,
+    /// The queries, in order
+    queries: Vec<String>,
     /// The runs that the service cancelled
     cancelled: Vec<RunId>,
     /// The effects of the changes that the tasks reported
@@ -159,6 +162,16 @@ impl ComputeHost for FakeHost {
     }
 
     async fn query(&self, sql: &str, _context: &ComputeContext) -> std::result::Result<Vec<u8>, HostError> {
+        self.database.borrow_mut().queries.push(sql.to_string());
+        // The search of the column names reads no table, it matches the column group of the name
+        if sql.contains("AS columns(column_idx") {
+            let matches = table(vec![("column_idx", a(Int64Array::from(vec![1]))), ("column_group_idx", a(Int64Array::from(vec![2])))]);
+            return matches.to_ipc_stream().map_err(|e| HostError::new(e.to_string()));
+        }
+        if sql.starts_with("SELECT count(*)") {
+            let count = table(vec![("count", a(Int64Array::from(vec![1])))]);
+            return count.to_ipc_stream().map_err(|e| HostError::new(e.to_string()));
+        }
         let name = read_table(sql).ok_or_else(|| HostError::new(format!("no table in {sql}")))?;
         let database = self.database.borrow();
         let table = database.tables.get(&name).ok_or_else(|| HostError::new(format!("no table {name}")))?;
@@ -233,6 +246,12 @@ fn analysis_answer(title: &str, sql: &str) -> std::result::Result<ResultTable, S
             ("count", a(Int64Array::from(vec![2, 1, 1]))),
         ])),
         "Table filtering" => Ok(table(vec![("_rownum", a(Int64Array::from(vec![1, 4])))])),
+        "Table ordering" => Ok(table(vec![("_rownum", a(Int64Array::from(vec![2, 4, 1, 3])))])),
+        "Filtered column aggregation" if sql.contains("binLowerBound") => Ok(table(vec![
+            ("bin", a(Int64Array::from(vec![Some(0), Some(15), None]))),
+            ("count", a(Int64Array::from(vec![1, 1, 0]))),
+            ("binLowerBound", a(Float64Array::from(vec![Some(10.0), Some(40.0), None]))),
+        ])),
         "Data search" => Ok(table(vec![
             ("row_idx", a(Int64Array::from(vec![1]))),
             ("column_indices", a(ListArray::from_iter_primitive::<Int32Type, _, _>(vec![Some(vec![Some(0)])]))),
@@ -515,4 +534,151 @@ fn deleting_a_computation_cancels_its_runs_and_drops_its_data_frames() {
     assert_eq!(setup.database.borrow().cancelled.len(), 1);
     assert!(setup.service.read(|state| state.computation(1).is_none() && state.data_frames().is_empty()));
     assert!(setup.data_frame_tables().is_empty());
+}
+
+// The requests of the app
+
+fn score_ascending() -> Vec<OrderByConstraint> {
+    vec![OrderByConstraint { field: "score".into(), ascending: Some(true), nulls_first: Some(false) }]
+}
+
+/// The tasks of a computation that ran, by title
+fn created(setup: &Setup, title: &str) -> usize {
+    let suffix = format!("({title})");
+    setup.database.borrow().calls.iter().filter(|call| call.starts_with("create") && call.ends_with(&suffix)).count()
+}
+
+#[test]
+fn a_selection_filters_the_rows_and_orders_them_again() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+
+    // An ordering runs once, asking again for the same ordering runs nothing
+    setup.service.order_by(1, score_ascending()).unwrap();
+    setup.executor.run_until_stalled();
+    setup.service.order_by(1, score_ascending()).unwrap();
+    setup.executor.run_until_stalled();
+    assert_eq!(created(&setup, "Table ordering"), 1);
+    assert!(setup.service.read(|state| state.computation(1).unwrap().ordering_table.is_some()));
+
+    // A range of the histogram of the score filters the rows, the ordering follows the filter
+    setup.service.histogram_filter(1, 1, Some((0.0, 1.0))).unwrap();
+    setup.service.histogram_filter(1, 1, Some((0.0, 1.0))).unwrap();
+    setup.executor.run_until_stalled();
+    assert_eq!(created(&setup, "Table filtering"), 1);
+    assert_eq!(created(&setup, "Table ordering"), 2);
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        let filter = computation.filter_table.as_ref().expect("a filter");
+        assert_eq!(filter.table.rows(), 2);
+        let ordering = computation.ordering_table.as_ref().expect("an ordering");
+        assert!(ordering.version.filter_matches(filter.version));
+        assert!(computation.filtered_column_aggregate_outdated(1));
+    });
+
+    // The summary of the score over the selected rows, once
+    setup.service.request_filtered_column_aggregation(1, 1).unwrap();
+    setup.service.request_filtered_column_aggregation(1, 1).unwrap();
+    setup.executor.run_until_stalled();
+    assert_eq!(created(&setup, "Filtered column aggregation"), 1);
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        assert!(computation.filtered_column_aggregate(1).is_some());
+        assert!(!computation.filtered_column_aggregate_outdated(1));
+    });
+
+    // Clearing the selection drops the filter and orders all rows again
+    setup.service.clear_cross_filters(1).unwrap();
+    setup.executor.run_until_stalled();
+    assert_eq!(created(&setup, "Table ordering"), 3);
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        assert!(computation.filter_table.is_none());
+        assert!(computation.ordering_table.is_some());
+    });
+
+    // A frequent value of the name selects, selecting it again clears it
+    setup.service.most_frequent_value_filter(1, 2, Some(1)).unwrap();
+    assert_eq!(setup.service.read(|state| state.computation(1).unwrap().cross_filters.column_filters.len()), 1);
+    setup.service.most_frequent_value_filter(1, 2, Some(1)).unwrap();
+    assert!(setup.service.read(|state| state.computation(1).unwrap().cross_filters.column_filters.is_empty()));
+
+    // An empty ordering clears it
+    setup.service.order_by(1, Vec::new()).unwrap();
+    setup.executor.run_until_stalled();
+    assert!(setup.service.read(|state| state.computation(1).unwrap().ordering_table.is_none()));
+    setup.executor.run_until_stalled();
+    assert_eq!(setup.data_frame_tables(), setup.state_data_frame_tables());
+}
+
+#[test]
+fn searches_run_once_the_data_frame_is_there() {
+    let setup = setup(analysis_answer);
+    let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
+    setup.database.borrow_mut().gates.insert("System column computation", gate);
+    let handles = setup.analysis_handles();
+    let analysis = setup.run(setup.service.analyze_table(1, result(), handles, None, None, AnalyzeTableOptions::default()));
+
+    // The searches wait for the data frame with the system columns
+    setup.service.set_search_pattern(1, SearchKind::Data, "a".into()).unwrap();
+    setup.service.set_search_pattern(1, SearchKind::Columns, "nam".into()).unwrap();
+    setup.executor.run_until_stalled();
+    assert_eq!(created(&setup, "Data search"), 0);
+    release.send(());
+    setup.executor.run_until_stalled();
+    assert!(analysis.borrow().as_ref().is_some_and(|result| result.is_ok()));
+    assert_eq!(created(&setup, "Data search"), 1);
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        assert_eq!(computation.data_search.matching_rows.as_ref().map(|rows| rows.len()), Some(1));
+        assert!(!computation.data_search.pending);
+        assert_eq!(computation.column_search.matching_column_groups, Some(vec![2]));
+        assert!(computation.filtered_column_aggregate_outdated(1));
+    });
+
+    // With a filter and a data search the summary over the selected rows counts their intersection
+    setup.service.histogram_filter(1, 1, Some((0.0, 1.0))).unwrap();
+    setup.executor.run_until_stalled();
+    setup.service.request_filtered_column_aggregation(1, 1).unwrap();
+    setup.executor.run_until_stalled();
+    assert!(setup.database.borrow().queries.iter().any(|sql| sql.starts_with("SELECT count(*)")));
+    assert_eq!(created(&setup, "Filtered column aggregation"), 1);
+
+    // Ending the searches
+    setup.service.set_search_pattern(1, SearchKind::Data, String::new()).unwrap();
+    setup.service.set_search_pattern(1, SearchKind::Columns, String::new()).unwrap();
+    setup.executor.run_until_stalled();
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        assert!(computation.data_search_table.is_none());
+        assert!(computation.column_search.matching_column_groups.is_none());
+    });
+    setup.executor.run_until_stalled();
+    assert_eq!(setup.data_frame_tables(), setup.state_data_frame_tables());
+}
+
+#[test]
+fn an_ordering_to_wait_for_skips_unknown_fields() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let unknown = vec![OrderByConstraint { field: "gone".into(), ascending: None, nulls_first: None }];
+    let output = setup.run(setup.service.order_by_and_wait(1, unknown));
+    assert!(matches!(output.borrow().as_ref(), Some(Ok(()))));
+    assert_eq!(created(&setup, "Table ordering"), 0);
+    let output = setup.run(setup.service.order_by_and_wait(1, score_ascending()));
+    assert!(matches!(output.borrow().as_ref(), Some(Ok(()))));
+    assert!(setup.service.read(|state| state.computation(1).unwrap().ordering_table.is_some()));
+}
+
+#[test]
+fn requests_of_an_unknown_computation_change_nothing() {
+    let setup = setup(analysis_answer);
+    assert!(!setup.service.order_by(7, score_ascending()).unwrap().changed);
+    assert!(!setup.service.histogram_filter(7, 1, Some((0.0, 1.0))).unwrap().changed);
+    assert!(!setup.service.most_frequent_value_filter(7, 2, Some(1)).unwrap().changed);
+    assert!(!setup.service.set_search_pattern(7, SearchKind::Data, "a".into()).unwrap().changed);
+    setup.service.request_filtered_column_aggregation(7, 1).unwrap();
+    assert!(!setup.service.delete_computation(7).unwrap().changed);
+    setup.executor.run_until_stalled();
+    assert!(setup.database.borrow().calls.is_empty());
 }

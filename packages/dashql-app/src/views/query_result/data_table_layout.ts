@@ -1,6 +1,5 @@
 import * as arrow from 'apache-arrow';
 
-import { TableComputationState } from "@ankoh/dashql-runtime/compute/computation_state";
 import { ArrowTableFormatter } from "@ankoh/dashql-runtime/compute/arrow_formatter";
 import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@ankoh/dashql-runtime/compute/computation_types";
 
@@ -52,7 +51,13 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
     return columnCount;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
+/// What the layout of a table reads: its column groups and the table with the system columns
+export interface DataTableLayoutInput {
+    columnGroups: ColumnGroup[];
+    dataTable: arrow.Table;
+}
+
+export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTableLayoutInput, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
     // Allocate column offsets
     let columnCount = computeColumnCount(state.columnGroups, showSystemColumns, visibleColumnGroups);
     const columnFields = new Uint32Array(columnCount);

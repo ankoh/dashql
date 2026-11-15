@@ -21,8 +21,7 @@ import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_fo
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { useComputationDispatch } from '../../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
+import { useDeleteComputation } from '../../runtime/runtime_hooks.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/shell_files.js';
 import { useShellFiles } from '../../shell/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/shell_examples.js';
@@ -83,10 +82,10 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     }, []);
     // Closing the overlay keeps the result so that it can open again, the computation of a result is released once
     // another result replaces it
-    const computationDispatch = useComputationDispatch();
+    const deleteComputation = useDeleteComputation();
     const releaseResult = React.useCallback((queryId: number) => {
-        computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
-    }, [computationDispatch]);
+        deleteComputation(queryId);
+    }, [deleteComputation]);
     React.useEffect(() => {
         if (resultQueryId == null) return;
         return () => releaseResult(resultQueryId);

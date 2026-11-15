@@ -4,7 +4,7 @@ import * as styles from './query_result_view.module.css';
 import { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { DataTable } from './data_table.js';
 import { TableColumnHeader } from './data_table_cell.js';
-import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { useComputation } from '../../runtime/runtime_hooks.js';
 import { classNames } from '../../utils/classnames.js';
 
 interface Props {
@@ -21,15 +21,9 @@ interface Props {
 }
 
 export function QueryResultView(props: Props) {
-    const [computationState, computationDispatch] = useComputationRegistry();
-
-    // Query is null?
-    if (props.query == null) {
-        return <div />;
-    }
-    // Resolve the table computation
-    const tableComputation = computationState.tableComputations[props.query.queryId] ?? null;
-    if (tableComputation == null) {
+    // The computation of the result of the query
+    const tableComputation = useComputation(props.query?.queryId);
+    if (props.query == null || tableComputation == null) {
         return <div />;
     }
     // Toggle data info
@@ -38,7 +32,6 @@ export function QueryResultView(props: Props) {
             <DataTable
                 className={styles.data_table}
                 table={tableComputation}
-                dispatchComputation={computationDispatch}
                 debugMode={props.debugMode}
                 maxRows={props.maxRows}
                 columnHeader={props.columnHeader}

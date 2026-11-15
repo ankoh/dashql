@@ -8,15 +8,13 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { ArrowTableFormatter, dataTypeToString } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
     type ColumnAggregationVariant,
-    type ColumnGroup,
+    type SummaryColumn,
     ORDINAL_COLUMN,
     type OrdinalColumnAggregation,
-    type OrdinalGridColumnGroup,
     type TableAggregation,
     type WithFilterEpoch,
 } from '@ankoh/dashql-runtime/compute/computation_types';
 import { filteredAggregate, ordinalAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
-import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
@@ -26,7 +24,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const TYPE = dataTypeToString(new arrow.Float64());
 
-function scoreColumn(binCount: number, nullable: boolean): ColumnGroup {
+function scoreColumn(binCount: number, nullable: boolean): { type: typeof ORDINAL_COLUMN; value: SummaryColumn } {
     return {
         type: ORDINAL_COLUMN,
         value: {
@@ -36,6 +34,7 @@ function scoreColumn(binCount: number, nullable: boolean): ColumnGroup {
             statsFields: { countFieldName: '_0_count', distinctCountFieldName: null, minAggregateFieldName: '_0_min', maxAggregateFieldName: '_0_max' },
             binFieldName: 'score_bin',
             binCount,
+            valueIdFieldName: null,
         },
     };
 }
@@ -49,7 +48,6 @@ function tableAggregate(rows: number, notNull: number, max: number): TableAggreg
         _0_max: Float64Array.from([max]),
     });
     return {
-        dataFrame: mockDataFrame('stats'),
         table: stats,
         tableFieldsByName: new Map(stats.schema.fields.map((field, index) => [field.name, index])),
         tableFormatter: new ArrowTableFormatter(stats.schema, stats.batches, new TestLogger()),
@@ -71,13 +69,13 @@ function bins(counts: bigint[]) {
 }
 
 /// Aggregate the column with the bins the compute query returns
-function aggregate(table: TableAggregation, column: ColumnGroup, values: arrow.Table): OrdinalColumnAggregation {
-    return ordinalAggregate(table, column.value as OrdinalGridColumnGroup, values);
+function aggregate(table: TableAggregation, column: { type: typeof ORDINAL_COLUMN; value: SummaryColumn }, values: arrow.Table): OrdinalColumnAggregation {
+    return ordinalAggregate(table, column.value, values);
 }
 
 /// Aggregate the column among the selected rows
-function aggregateFiltered(table: TableAggregation, column: ColumnGroup, values: arrow.Table, selectionRowCount: number): WithFilterEpoch<ColumnAggregationVariant> {
-    return filteredAggregate({ type: ORDINAL_COLUMN, value: ordinalAggregate(table, column.value as OrdinalGridColumnGroup, values, selectionRowCount) });
+function aggregateFiltered(table: TableAggregation, column: { type: typeof ORDINAL_COLUMN; value: SummaryColumn }, values: arrow.Table, selectionRowCount: number): WithFilterEpoch<ColumnAggregationVariant> {
+    return filteredAggregate({ type: ORDINAL_COLUMN, value: ordinalAggregate(table, column.value, values, selectionRowCount) });
 }
 
 /// 10 rows: [0, 10) (1), [10, 20) (4), [20, 30) (2), [30, 40) (1), null (2)

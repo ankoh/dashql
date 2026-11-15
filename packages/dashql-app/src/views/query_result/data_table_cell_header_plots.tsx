@@ -3,13 +3,14 @@ import * as styles from './data_table.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
-import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
+import type * as core from '@ankoh/dashql-core';
+import { ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, TrackedTask, WithFilterEpoch, ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
 import { RectangleWaveSpinner } from '../../ui/foundations/spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
-import { CrossFilters, HISTOGRAM_FILTER } from '@ankoh/dashql-runtime/compute/cross_filters';
+import { crossFilterOf } from './use_cross_filters.js';
 
 /// ---------------------------------------------------------------------------
 /// Header Plots Cell (row 1)
@@ -21,14 +22,14 @@ export interface HeaderPlotsCellProps {
     gridLayout: DataTableLayout;
     columnGroups: ColumnGroup[];
     columnAggregations: (ColumnAggregationVariant | null)[];
-    columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
+    columnAggregationTasks: (TrackedTask | null)[];
     filteredColumnAggregations: (WithFilterEpoch<ColumnAggregationVariant> | null)[];
-    filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
+    filteredColumnAggregationTasks: (TrackedTask | null)[];
     filteredColumnAggregationOutdated: boolean[];
     tableAggregation: TableAggregation | null;
     selectionEpoch: ComputationStateVersion;
     dataSearchRequestId: number | null;
-    crossFilters: CrossFilters;
+    crossFilters: core.ComputationCrossFilter[];
     isVisible: boolean;
     rightmostVisibleColumn: number;
     onRequestFilteredColumnAggregation: (columnId: number) => void;
@@ -44,27 +45,22 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
 
     // Resolve the column summary
     let columnAggregate: ColumnAggregationVariant | null = null;
-    let columnAggregationTask: WithProgress<ColumnAggregationTask> | null = null;
+    let columnAggregationTask: TrackedTask | null = null;
     let filteredColumnAggregate: WithFilterEpoch<ColumnAggregationVariant> | null = null;
-    let filteredColumnAggregationTask: WithProgress<WithFilter<ColumnAggregationTask>> | null = null;
+    let filteredColumnAggregationTask: TrackedTask | null = null;
     let filteredColumnAggregationOutdated = false;
     const columnAggregateId = props.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
     if (columnAggregateId != -1) {
-        columnAggregate = props.columnAggregations[columnAggregateId];
-        columnAggregationTask = props.columnAggregationTasks[columnAggregateId];
-        filteredColumnAggregate = props.filteredColumnAggregations[columnAggregateId];
-        filteredColumnAggregationTask = props.filteredColumnAggregationTasks[columnAggregateId];
+        columnAggregate = props.columnAggregations[columnAggregateId] ?? null;
+        columnAggregationTask = props.columnAggregationTasks[columnAggregateId] ?? null;
+        filteredColumnAggregate = props.filteredColumnAggregations[columnAggregateId] ?? null;
+        filteredColumnAggregationTask = props.filteredColumnAggregationTasks[columnAggregateId] ?? null;
         filteredColumnAggregationOutdated = props.filteredColumnAggregationOutdated[columnAggregateId] ?? false;
     }
 
+    // The summary over the selected rows of a column that shows, the runtime computes it once per selection
     React.useEffect(() => {
         if (columnAggregateId == -1 || !props.isVisible || !filteredColumnAggregationOutdated) {
-            return;
-        }
-        const hasUpToDateRunningTask = filteredColumnAggregationTask?.progress.status === TaskStatus.TASK_RUNNING
-            && filteredColumnAggregationTask.tableVersion.filterMatches(props.selectionEpoch)
-            && (filteredColumnAggregationTask.dataSearchTable?.requestId ?? null) === props.dataSearchRequestId;
-        if (hasUpToDateRunningTask) {
             return;
         }
         props.onRequestFilteredColumnAggregation(columnAggregateId);
@@ -90,9 +86,9 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
     // value column of such groups (meta/system columns stay blank).
     const columnGroupId = props.gridLayout.columnGroupByColumnIndex[props.columnIndex];
     const columnGroup = props.columnGroups[columnGroupId] as ColumnGroup | undefined;
-    const crossFilter = props.crossFilters.columnFilters[columnGroupId];
-    const histogramSelection = crossFilter?.type === HISTOGRAM_FILTER
-        ? crossFilter.value.selection
+    const crossFilter = crossFilterOf(props.crossFilters, columnGroupId);
+    const histogramSelection = crossFilter?.kind === 'histogram'
+        ? crossFilter.selection
         : null;
     const isValueColumn = props.gridLayout.isSystemColumn[props.columnIndex] == 0;
     const hasNoSummaryByDesign = isValueColumn && columnGroup?.type == LIST_COLUMN;

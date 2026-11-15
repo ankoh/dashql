@@ -7,7 +7,6 @@ import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
 import { DashQLConnection, type ConnectorType, type DashQLConnectionOptions } from './connection.js';
-import { DashQLComputations } from './computations.js';
 import { DashQLQueryHistory, DashQLQueryProgressFollower } from './query_history.js';
 import { DashQLStorageWriter } from './storage_writer.js';
 import { DashQLQueryExecutor } from './query_executor.js';
@@ -42,7 +41,7 @@ export type DashQLBindings = Pick<
     | 'QueryHistory'
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
-    | 'Computations'
+    | 'Runtime'
     | 'StorageWriter'
     | 'QueryExecutor'
     | 'CatalogLoader'
@@ -468,9 +467,11 @@ export class DashQL {
         return DashQLQueryHistory.create(this, limit);
     }
 
-    /// Create the computations of result tables in the Rust runtime, through the instance like a workbook
-    public createComputations(): DashQLComputations {
-        return DashQLComputations.create(this);
+    /// Create the runtime of DashQL on a platform (docs/wip/runtime_api.md), through the instance like a workbook. The
+    /// runtime is a class of the module, its methods take and return the generated views, actions and change sets;
+    /// `free()` frees it after `destroy()`.
+    public createRuntime(platform: glue.RuntimePlatform): glue.Runtime {
+        return this.bindings.Runtime.create(platform);
     }
 
     /// Create the storage writer of the Rust runtime on a host, through the instance like a workbook. It writes workbook

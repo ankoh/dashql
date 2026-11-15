@@ -8,62 +8,31 @@ import * as styles from './data_table.module.css';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
-    type ColumnAggregationTask,
     type ColumnAggregationVariant,
     type ColumnGroup,
-    type OrdinalGridColumnGroup,
-    type StringGridColumnGroup,
-    ComputationStateVersion,
+    type ComputationStateVersion,
     LIST_COLUMN,
     ORDINAL_COLUMN,
     ROWNUMBER_COLUMN,
     STRING_COLUMN,
     type TableAggregation,
     TaskStatus,
-    type WithFilter,
-    type WithProgress,
+    type TrackedTask,
 } from '@ankoh/dashql-runtime/compute/computation_types';
-import { ordinalAggregate, stringAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
-import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
-import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
+import { ordinalAggregate, stringAggregate, summaryColumn } from '@ankoh/dashql-runtime/testing/column_aggregates';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { valueColumn } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { HeaderPlotsCell, type HeaderPlotsCellProps } from './data_table_cell_header_plots.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const NAME: ColumnGroup = {
-    type: STRING_COLUMN,
-    value: {
-        inputFieldName: 'name',
-        inputFieldType: new arrow.Utf8(),
-        inputFieldNullable: true,
-        statsFields: { countFieldName: '_0_count', distinctCountFieldName: '_0_distinct', minAggregateFieldName: null, maxAggregateFieldName: null },
-        valueIdFieldName: 'name_id',
-    },
-};
-const SCORE: ColumnGroup = {
-    type: ORDINAL_COLUMN,
-    value: {
-        inputFieldName: 'score',
-        inputFieldType: new arrow.Float64(),
-        inputFieldNullable: false,
-        statsFields: { countFieldName: '_1_count', distinctCountFieldName: null, minAggregateFieldName: '_1_min', maxAggregateFieldName: '_1_max' },
-        binFieldName: 'score_bin',
-        binCount: 4,
-    },
-};
-const EMBEDDING: ColumnGroup = {
-    type: LIST_COLUMN,
-    value: {
-        inputFieldName: 'embedding',
-        inputFieldType: new arrow.List(new arrow.Field('item', new arrow.Float32())),
-        inputFieldNullable: true,
-        statsFields: null,
-        valueIdFieldName: null,
-    },
-};
+const NAME_STATS = { countFieldName: '_0_count', distinctCountFieldName: '_0_distinct', minAggregateFieldName: null, maxAggregateFieldName: null };
+const SCORE_STATS = { countFieldName: '_1_count', distinctCountFieldName: null, minAggregateFieldName: '_1_min', maxAggregateFieldName: '_1_max' };
+const NAME: ColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8', { statsFields: NAME_STATS, valueIdFieldName: 'name_id' }) };
+const SCORE: ColumnGroup = { type: ORDINAL_COLUMN, value: valueColumn('score', 'Float64', { inputFieldNullable: false, statsFields: SCORE_STATS, binFieldName: 'score_bin', binCount: 4 }) };
+const EMBEDDING: ColumnGroup = { type: LIST_COLUMN, value: valueColumn('embedding', 'List(Float32)') };
 /// The row numbers, name, score, the value ids of name (a system column), the embedding and a column without aggregate
 const COLUMN_GROUPS: ColumnGroup[] = [{ type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } }, NAME, SCORE, EMBEDDING];
 const LAYOUT: DataTableLayout = {
@@ -89,7 +58,6 @@ function tableAggregate(): TableAggregation {
         _1_max: Float64Array.from([40]),
     });
     return {
-        dataFrame: mockDataFrame('stats'),
         table: stats,
         tableFieldsByName: new Map(stats.schema.fields.map((field, index) => [field.name, index])),
         tableFormatter: new ArrowTableFormatter(stats.schema, stats.batches, new TestLogger()),
@@ -98,20 +66,9 @@ function tableAggregate(): TableAggregation {
 }
 const TABLE = tableAggregate();
 
-function aggregationTask(columnId: number, columnEntry: ColumnGroup): ColumnAggregationTask {
-    return {
-        tableId: 1,
-        tableVersion: new ComputationStateVersion(1, 1),
-        columnId,
-        columnEntry,
-        inputDataFrame: mockDataFrame('input'),
-        tableAggregate: TABLE,
-    };
-}
-
 async function nameAggregate(): Promise<ColumnAggregationVariant> {
     const values = tableFromArrays({ key: ['a', 'b', 'c'], keyId: BigInt64Array.from([1n, 2n, 3n]), count: BigInt64Array.from([5n, 3n, 2n]) });
-    return { type: STRING_COLUMN, value: stringAggregate(TABLE, NAME.value as StringGridColumnGroup, values) };
+    return { type: STRING_COLUMN, value: stringAggregate(TABLE, summaryColumn('name', new arrow.Utf8(), { statsFields: NAME_STATS, valueIdFieldName: 'name_id' }), values) };
 }
 
 async function scoreAggregate(): Promise<ColumnAggregationVariant> {
@@ -123,24 +80,13 @@ async function scoreAggregate(): Promise<ColumnAggregationVariant> {
         binLowerBound: Float64Array.from(ids.map(bin => bin * 10)),
         binUpperBound: Float64Array.from(ids.map(bin => (bin + 1) * 10)),
     });
-    return { type: ORDINAL_COLUMN, value: ordinalAggregate(TABLE, SCORE.value as OrdinalGridColumnGroup, bins) };
+    const score = summaryColumn('score', new arrow.Float64(), { inputFieldNullable: false, statsFields: SCORE_STATS, binFieldName: 'score_bin', binCount: 4 });
+    return { type: ORDINAL_COLUMN, value: ordinalAggregate(TABLE, score, bins) };
 }
 
-function progress(status: TaskStatus) {
-    return { status, startedAt: new Date(), completedAt: null, failedAt: null, failedWithError: null };
-}
-function withProgress<T extends object>(task: T, status: TaskStatus): WithProgress<T> {
-    return { ...task, progress: progress(status) };
-}
-function filteredTask(status: TaskStatus, version: ComputationStateVersion, dataSearchRequestId: number | null): WithProgress<WithFilter<ColumnAggregationTask>> {
-    return withProgress({
-        ...aggregationTask(1, NAME),
-        tableVersion: version,
-        filterTable: null,
-        dataSearchTable: dataSearchRequestId == null ? null : { requestId: dataSearchRequestId } as never,
-        selectionRowCount: 0,
-        unfilteredAggregate: {} as ColumnAggregationVariant,
-    }, status);
+/// A task of a column with its status
+function tracked(status: TaskStatus, version: ComputationStateVersion = { data: 1, filter: 1 }): TrackedTask {
+    return { taskId: 1, tableVersion: version, progress: { status, startedAt: 0, completedAt: null, failedAt: null, failedWithError: null } };
 }
 
 const nextFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -162,14 +108,14 @@ describe('HeaderPlotsCell', () => {
             gridLayout: LAYOUT,
             columnGroups: COLUMN_GROUPS,
             columnAggregations: [null, name, score, null],
-            columnAggregationTasks: [null, withProgress(aggregationTask(1, NAME), TaskStatus.TASK_SUCCEEDED), withProgress(aggregationTask(2, SCORE), TaskStatus.TASK_SUCCEEDED), null],
+            columnAggregationTasks: [null, tracked(TaskStatus.TASK_SUCCEEDED), tracked(TaskStatus.TASK_SUCCEEDED), null],
             filteredColumnAggregations: [null, null, null, null],
             filteredColumnAggregationTasks: [null, null, null, null],
             filteredColumnAggregationOutdated: [false, false, false, false],
             tableAggregation: TABLE,
-            selectionEpoch: new ComputationStateVersion(1, 2),
+            selectionEpoch: { data: 1, filter: 2 },
             dataSearchRequestId: null,
-            crossFilters: new CrossFilters(),
+            crossFilters: [],
             isVisible: true,
             rightmostVisibleColumn: 5,
             onRequestFilteredColumnAggregation: vi.fn(),
@@ -222,11 +168,11 @@ describe('HeaderPlotsCell', () => {
         const missingTable = await render({ ...props, tableAggregation: null });
         expect(missingTable.textContent).toBe('Table summary is null');
 
-        const running = await render({ ...props, columnAggregationTasks: [null, withProgress(aggregationTask(1, NAME), TaskStatus.TASK_RUNNING), null, null] });
+        const running = await render({ ...props, columnAggregationTasks: [null, tracked(TaskStatus.TASK_RUNNING), null, null] });
         expect(running.classList.contains(styles.plots_progress)).toBe(true);
         expect(running.firstElementChild?.classList.contains(styles.plots_progress_spinner)).toBe(true);
 
-        const failed = await render({ ...props, columnAggregationTasks: [null, withProgress(aggregationTask(1, NAME), TaskStatus.TASK_FAILED), null, null] });
+        const failed = await render({ ...props, columnAggregationTasks: [null, tracked(TaskStatus.TASK_FAILED), null, null] });
         expect(failed.textContent).toBe('Failed');
 
         // An aggregate without a task shows nothing
@@ -260,9 +206,7 @@ describe('HeaderPlotsCell', () => {
         expect(unfiltered.querySelector('svg')).not.toBeNull();
         expect(d3.brushSelection(brush())).toBeNull();
 
-        const crossFilters = new CrossFilters();
-        crossFilters.addHistogramFilter(2, SCORE.value as never, [1, 3]);
-        const filtered = await render({ ...props, columnIndex: 2, crossFilters });
+        const filtered = await render({ ...props, columnIndex: 2, crossFilters: [{ kind: 'histogram', column: 2, selection: [1, 3] }] });
         expect(filtered.querySelector('svg')).not.toBeNull();
         expect(d3.brushSelection(brush())).not.toBeNull();
         // Showing the selection does not report it back
@@ -289,32 +233,13 @@ describe('HeaderPlotsCell', () => {
         expect(request).toHaveBeenCalledExactlyOnceWith(1);
     });
 
-    it('does not request a filtered aggregate that is already running for the selection', async () => {
+    it('requests the filtered aggregate again when the selection moves, the runtime computes it once', async () => {
         const props = await succeeded();
         const outdated = [false, true, false, false];
-        const running = (version: ComputationStateVersion, dataSearchRequestId: number | null) => [null, filteredTask(TaskStatus.TASK_RUNNING, version, dataSearchRequestId), null, null];
-
-        const upToDate = vi.fn();
-        await render({ ...props, filteredColumnAggregationOutdated: outdated, filteredColumnAggregationTasks: running(props.selectionEpoch, 4), dataSearchRequestId: 4, onRequestFilteredColumnAggregation: upToDate });
-        expect(upToDate).not.toHaveBeenCalled();
-        root!.unmount();
-        root = null;
-
-        // A task of an older selection or of another data search does not count
-        const olderSelection = vi.fn();
-        await render({ ...props, filteredColumnAggregationOutdated: outdated, filteredColumnAggregationTasks: running(new ComputationStateVersion(1, 1), null), onRequestFilteredColumnAggregation: olderSelection });
-        expect(olderSelection).toHaveBeenCalledExactlyOnceWith(1);
-        root!.unmount();
-        root = null;
-
-        const otherSearch = vi.fn();
-        await render({ ...props, filteredColumnAggregationOutdated: outdated, filteredColumnAggregationTasks: running(props.selectionEpoch, 3), dataSearchRequestId: 4, onRequestFilteredColumnAggregation: otherSearch });
-        expect(otherSearch).toHaveBeenCalledExactlyOnceWith(1);
-        root!.unmount();
-        root = null;
-
-        const finished = vi.fn();
-        await render({ ...props, filteredColumnAggregationOutdated: outdated, filteredColumnAggregationTasks: [null, filteredTask(TaskStatus.TASK_SUCCEEDED, props.selectionEpoch, null), null, null], onRequestFilteredColumnAggregation: finished });
-        expect(finished).toHaveBeenCalledExactlyOnceWith(1);
+        const request = vi.fn();
+        await render({ ...props, filteredColumnAggregationOutdated: outdated, filteredColumnAggregationTasks: [null, tracked(TaskStatus.TASK_RUNNING, props.selectionEpoch), null, null], onRequestFilteredColumnAggregation: request });
+        expect(request).toHaveBeenCalledExactlyOnceWith(1);
+        await render({ ...props, filteredColumnAggregationOutdated: outdated, selectionEpoch: { data: 1, filter: 3 }, onRequestFilteredColumnAggregation: request });
+        expect(request).toHaveBeenCalledTimes(2);
     });
 });

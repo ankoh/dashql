@@ -9,7 +9,9 @@ import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
 import { useColorScheme } from '../../config/color_scheme.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { useComputation } from '../../runtime/runtime_hooks.js';
+import { useComputationTables } from '../query_result/computation_tables.js';
+import type { ComputationTables } from '../query_result/computation_tables.js';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 import {
     filterTableToVegaCrossFilterRows,
@@ -28,7 +30,8 @@ export interface VegaLiteViewDependencies {
         embed: VegaEmbed;
         expressionInterpreter: VegaExpressionInterpreter;
     }>;
-    useComputationRegistry(): [ReturnType<typeof useComputationRegistry>[0]];
+    /// The computation of the result of a query with its tables, null without one
+    useResultComputation(queryId: number | null): { rowNumberColumnName: string | null; tables: ComputationTables } | null;
     useNearViewport(ref: React.RefObject<HTMLElement | null>, mounted: boolean): boolean;
 }
 
@@ -55,13 +58,20 @@ export function useNearViewport(ref: React.RefObject<HTMLElement | null>, mounte
     return near;
 }
 
+/// The computation of the result of a query with its tables, null without one
+function useResultComputation(queryId: number | null): { rowNumberColumnName: string | null; tables: ComputationTables } | null {
+    const computation = useComputation(queryId);
+    const tables = useComputationTables(computation);
+    return React.useMemo(
+        () => computation == null ? null : { rowNumberColumnName: computation.rowNumberColumnName, tables },
+        [computation?.rowNumberColumnName, computation == null, tables],
+    );
+}
+
 const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
     loadVega,
     useNearViewport,
-    useComputationRegistry: () => {
-        const [state] = useComputationRegistry();
-        return [state];
-    },
+    useResultComputation,
 };
 
 interface Props {
@@ -143,7 +153,6 @@ export function VegaLiteView(props: Props): React.ReactElement {
     // The canvas does not follow the color scheme or the flavor, the chart is embedded again with their new colors
     const colorScheme = useColorScheme();
     const flavorId = useAppFlavor().id;
-    const [computationState] = dependencies.useComputationRegistry();
 
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
     // Analysis emits a fresh spec object for editor transactions, including cursor-only updates.
@@ -156,11 +165,11 @@ export function VegaLiteView(props: Props): React.ReactElement {
     // Prefer the analyzed data table (it carries the cross-filter row-id indirection); fall back
     // to the raw result table when there is no computation registered. The analyzed table is a
     // superset of the result columns (system columns are ignored by the spec).
-    const tableComputation = queryId != null ? computationState.tableComputations[queryId] ?? null : null;
-    const dataTable = tableComputation?.dataTable ?? (succeeded ? props.query?.resultTable ?? null : null);
+    const tableComputation = dependencies.useResultComputation(queryId);
+    const dataTable = tableComputation?.tables.dataTable ?? (succeeded ? props.query?.resultTable ?? null : null);
     const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
 
-    const filterTable = tableComputation?.filterTable ?? null;
+    const filterTable = tableComputation?.tables.filterTable ?? null;
     // The chart container is rendered only for a spec with a result, see below
     const nearViewport = dependencies.useNearViewport(containerRef, spec != null && succeeded && dataTable != null);
     // The rows are converted for the embedded chart only
@@ -183,7 +192,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
     const crossFilterMask = React.useMemo<VegaCrossFilterMask>(() => ({
         active: filterTable != null,
         rows: filterTable != null && maskSelectedFieldName != null
-            ? filterTableToVegaCrossFilterRows(filterTable.dataTable, maskSelectedFieldName)
+            ? filterTableToVegaCrossFilterRows(filterTable, maskSelectedFieldName)
             : [],
     }), [filterTable, maskSelectedFieldName]);
     const crossFilterMaskRef = React.useRef(crossFilterMask);

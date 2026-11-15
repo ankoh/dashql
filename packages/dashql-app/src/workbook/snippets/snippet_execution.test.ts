@@ -2,8 +2,8 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { createComputations } from '@ankoh/dashql-runtime/compute/computations';
+import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
@@ -58,17 +58,17 @@ describe('Snippet execution', () => {
         expect(recipes.length).toBeGreaterThan(0);
         const logger = new TestLogger();
         // The tasks of the analysis run in the core
-        const computations = createComputations(logger, core);
+        const runtime = new CoreRuntime({ logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: core, computeDatabase: database! });
         for (const [index, recipe] of recipes.entries()) {
             const text = snippetText(recipe, ConnectorType.HYPER);
             const result = await connection!.query(text).catch((error: unknown) => {
                 throw new Error(`snippet ${recipe.id} failed: ${String(error)}`);
             });
             expect(result.numRows, recipe.id).toBeGreaterThan(0);
-            await analyzeTable(index, result, computations.dispatch, database!, logger).catch((error: unknown) => {
+            await runtime.analyzeTable(index, result).catch((error: unknown) => {
                 throw new Error(`snippet ${recipe.id} failed in compute: ${String(error)}`);
             });
         }
-        computations.destroy();
+        runtime.destroy();
     }, 60_000);
 });

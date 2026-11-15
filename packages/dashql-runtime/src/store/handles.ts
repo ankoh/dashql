@@ -18,7 +18,7 @@ export type HandleEffect =
 
 /// An object that an abort reaches, e.g. an `AbortController` or the record of a query
 export interface Abortable {
-    abort(reason?: unknown): void;
+    abort?(reason?: unknown): void;
 }
 
 /// An object that a close reaches, e.g. a channel
@@ -42,6 +42,11 @@ export class HandleTable {
         return handle;
     }
 
+    /// Replace the object of a handle, e.g. a table that was built under its handle
+    set(handle: number, object: unknown): void {
+        if (this.objects.has(handle)) this.objects.set(handle, object);
+    }
+
     /// The object of a handle, undefined for none or one that was released
     get<T>(handle: number | null | undefined): T | undefined {
         return handle == null ? undefined : (this.objects.get(handle) as T | undefined);
@@ -62,7 +67,8 @@ export class HandleTable {
     /// Abort the object of a handle with a reason, the handle stays until a release
     abort(handle: number, reason: string): void {
         const object = this.objects.get(handle) as Abortable | null | undefined;
-        object?.abort(new DOMException(reason, 'AbortError'));
+        // A token without an abort, e.g. the lifetime of a computation, is aborted by its release
+        object?.abort?.(new DOMException(reason, 'AbortError'));
     }
 
     /// Run the effects on handles in order, returns the other effects in order

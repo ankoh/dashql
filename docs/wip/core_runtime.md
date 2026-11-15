@@ -6,8 +6,9 @@ stored state, the persistence of connections and the storage format of workbooks
 connection with the history of its queries, the query history of the shell and the computations, linked into the core
 module. `reduceWorkbookScripts`
 of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
-`reduceConnectionState` one over the connection (`connections/connection_native.ts`), `reduceComputationState` one
-over the computations (`compute/computation_native.ts`). The storage writer is the first service on a host
+`reduceConnectionState` one over the connection (`connections/connection_native.ts`). The computations have no
+adapter: they are the first domain of the `Runtime` class of the module, the app reads their views through a store
+and dispatches to them (see [The computations](#the-computations) and [runtime_api.md](runtime_api.md)). The storage writer is the first service on a host
 (`storage/storage_writer.ts` over `src/storage/`), the restore the second (`workbook/persistence/app_state_loader.ts`
 over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
 platform), the query executor the fourth (`QueryExecutorService` over `src/executor/`): Trino, Hyper over HTTP,
@@ -22,7 +23,7 @@ the storage, the imports and the exports of the TypeScript runtime (`src/workboo
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
-schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `QueryHistory`, `Computations`,
+schemas of `proto/fb`. The classes of the runtime (`Runtime`, `Workbook`, `Connection`, `QueryHistory`,
 `StorageWriter`, `AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`,
 `ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON, the ones of the
 computations, the workbook, the connections, the query histories, the storage writer, the restore and the persistence
@@ -154,62 +155,54 @@ query executor once the connection and query states are switched; the connectors
 
 ## The computations
 
-`reduceComputationState` of the TypeScript runtime is an adapter over the computations of the crate
-(`compute/computation_native.ts`), bound as the class `Computations` of the module
-(`packages/dashql-core-wasm/src/computations.rs`, `DashQLComputations` of `@ankoh/dashql-core`, created with
-`DashQL.createComputations`). The class holds the `ComputeService` of the crate with the state and runs the tasks.
-Ids, versions and names cross as typed arguments, tasks, results and cross filters as JS objects of the views of
-`computations/view.rs` (serde-wasm-bindgen, declarations from tsify), a computation is read as a snapshot once its
-revision moved.
+The computations are the first domain of `Runtime`, the class of the module of [runtime_api.md](runtime_api.md)
+(`packages/dashql-core-wasm/src/runtime.rs`, `DashQL.createRuntime(platform)`). The class holds the `ComputeService` of
+the crate on `JsPlatform` (`src/host.rs`), the host over the one platform object of TypeScript. The app reads a
+computation as a view (`views('computation', ids)`, `ComputationView` of `runtime/computation.rs`), dispatches the
+requests of its components (`dispatch({ computation: id }, action)`) and starts an analysis with a command
+(`analyzeTable`). `CoreRuntime` of the TypeScript runtime (`core_runtime.ts`) builds the platform object, holds the
+store of the views (`store/runtime_store.ts`) and attaches the runtime of the module once the core is there.
 
-- **An analysis runs in Rust.** `analyzeTable` of the TypeScript runtime keeps its signature and dispatches
-  `ANALYZE_TABLE` with the result and the compute database. The adapter hands the result over as Arrow IPC once
-  (`analyzeTable` of the module), the service imports it, computes the statistics, the system columns and the
-  summaries, and the promise settles with the analysis. A task that the views schedule on such a computation (filter,
-  ordering, filtered summary, data search) runs in Rust as well (`runTask`), its result settles with the projected
-  object. The abort controller of a data search cancels its run (`cancelTask`).
-- **The adapter is the compute host.** `NativeComputations` implements the `ComputeHost` of the module over the
-  compute database (`EmbeddedComputeDatabase`): it imports Arrow IPC with `insertArrowTable`, creates tables with
-  `createTableAs`, reads them back as Arrow IPC, drops them through the `DataFrameRegistry` and aborts the calls of a
-  cancelled run. A task tells it that the state changed (`changed`), the computations of the runtime project the state
-  into their store then.
+- **An analysis runs in Rust.** `analyzeTable(tableId, table, options)` takes the result by its handle in the handle
+  table, reads it as Arrow IPC once (`tables.read` of the platform), registers a token of the lifetime of the
+  computation and analyzes it: the import, the statistics, the system columns, the summaries of the columns and, with
+  the option, an ordering like the one of the result that it replaces. The promise settles with the analysis, after
+  the store took its changes.
+- **The app asks, the service derives.** The actions of the computations are the requests of the components: an
+  ordering (`orderBy`), the selections (`histogramFilter`, `mostFrequentValueFilter`, `clearCrossFilters`), the
+  searches (`setResultSearchPattern`), the summary of a column over the selected rows
+  (`requestFilteredColumnAggregation`) and `deleteComputation`. The service builds the tasks from the state and runs
+  them, see [The tasks of the computations](#the-tasks-of-the-computations). The scheduler of the app, the task
+  variants with their promises, the queue of the filters and the search effects of the app went.
+- **The compute platform.** `compute` of the platform (`compute/compute_platform.ts`) imports Arrow IPC with
+  `insertArrowTable`, creates tables with `createTableAs`, reads them back as Arrow IPC, drops them and aborts the calls
+  of a cancelled run. The SELECT of a task runs through the query execution of the app (`setQueryExecution`), e.g. into
+  the query history of the connection of the computation. The platform reads the compute database when it is called,
+  it arrives after the settings.
 - **Arrow tables stay with the host.** Arrow data never lives in the core module: every table of the computations,
   the result of an analysis and the derived tables (filter, ordering, search, statistics, summaries, system columns),
   is an object of the handle table, and the state names it by its handle with what it read of it, the rows, the schema
   and for the statistics the values of their row. A task reads the rows that its plan needs from the IPC of the
-  compute database, then hands the table over (`registerTable` of the compute host); the effects release a table
-  that the state no longer holds, also right away one that an action handed over and the state didn't take. The UI
-  reads a table by its handle and wraps it like
-  the results of the tasks of the host: the filter, ordering and search tables, the statistics with their formatter,
-  the summaries with their analysis. The counts and shares of an analysis come from Rust, the host formats the
-  minimum, the maximum, the lower bounds of the bins and the frequent values (`arrow_formatter.ts`). A table of an
-  action of the host is registered in the handle table, the action names it by its handle.
-- **The lifetime of a computation is a handle.** The host registers the lifetime of a computation (its abort
-  controller with the objects of the computation) and hands it over with `COMPUTATION_FROM_QUERY_RESULT` or the
-  analysis; a computation that is replaced or deleted aborts and releases it, which cancels its runs.
-- **Data frames are ids of the compute database.** The service and the adapter allocate them from one counter of the
-  thread (`allocateId`), a data frame of the runtime is the table `__df_<id>`. Computations that share a compute
-  database, e.g. of the shell and of tests, don't share table names. The state holds a data frame once, the host
-  holds one while it reads it (`acquire`, `release`, e.g. the search of the columns). The host releases the data
-  frames of the effects of its own actions, the service drops the ones that the actions of its tasks release.
-- **The queries of the tasks are tracked where they were.** `ComputationScheduler` of the app gives the computations
-  the query execution of its provider (`setQueryExecution`), the host runs the SELECT of a task through it, e.g. into
-  the query history of the connection of the computation.
-- **Computations of the host.** A computation that an action of the host starts (`COMPUTATION_FROM_QUERY_RESULT`)
-  has no runner of its tasks: the reducer tests start one and hand over the results of its tasks with the actions of
-  their success. The app starts every computation with an analysis.
-- **The projection keeps identity.** A computation keeps its object while its revision doesn't move
-  (`RevisionCache`); a changed one shares the unchanged parts of its view with the previous view (`share`), and the
-  version, the column groups, the searches, the arrays of summaries and the tracked tasks keep their objects while
-  their parts are the same. A
-  tracked task of the app names its scheduler task, a task of an analysis has its table, its version and its progress.
-- **The core comes with the first action.** The runtime and the shell create the computations before the core is set
-  up. The first action asks the platform for it and the actions wait until it is there, the runtime hands its core
-  over on `restore`. A platform without a core instantiates the default one.
-- **Changed on purpose.** The progress of a task that the scheduler doesn't know is dropped, the TypeScript reducer
-  registered such a task as a new one. A failed action is logged and leaves the state as it is. An analysis whose
-  computation is gone ends without an error, the TypeScript analysis waited for its task forever. The tasks of an
-  analysis log through the logger of the computations, not the one that `analyzeTable` gets.
+  compute database, then hands the table over (`tables.begin` and `tables.finish`). The effects that release and abort
+  handles go into the change set, the store applies them when it takes the changes, with the views that no longer name
+  them. The app resolves a table with `useTable(handle)`; it formats the summaries for the plots (`resolveSummaries` of
+  `compute/computation_types.ts`) and parses the matching rows of a data search from its table
+  (`resolveMatchingRows`), once per table.
+- **The lifetime of a computation is a handle.** The analysis registers a token in the handle table and hands it
+  over; a computation that is replaced or deleted aborts and releases it, which cancels its runs.
+- **Data frames are ids of the compute database.** The service allocates them from one counter of the thread, a data
+  frame of the runtime is the table `__df_<id>`. Runtimes that share a compute database, e.g. of the shell and of
+  tests, don't share table names. The service drops the data frames that the state releases; nothing in the host reads
+  a data frame any more.
+- **The shell of Hyper** has a runtime of the module of its own (`StandaloneCoreRuntime` of the app) on the database of
+  the shell; no bindings of the computations remain besides `Runtime`.
+- **The core comes with the first command.** The runtime and the shell create `CoreRuntime` before the core is set
+  up. The first command asks the platform for it, the runtime hands its core over on `restore`. A dispatch before the
+  core fails: no computation exists without one. A platform without a core instantiates the default one.
+- **Changed on purpose.** The tasks that the app scheduled are requests of the app now; a request that the state
+  answers runs nothing, the app may ask from any number of components. A failed task of the same inputs is not run
+  again until an input changes. An analysis whose computation is gone ends without an error. The tasks of an analysis
+  log through the logger of the runtime.
 
 ## The host and the executor
 
@@ -347,9 +340,21 @@ ordinal and string column.
   run.
 - **No borrow across an await.** The state sits behind a `RefCell` that a task borrows only between its awaits. The
   host learns of a change after the borrow ended, so it may read the state from `changed`.
+- **The requests of the app.** The app says what it wants of a computation: an ordering, a selection in a histogram or
+  of a frequent value, a search of the columns or of the data, the summary of a column over the selected rows. The
+  service derives the tasks from the state and runs them (`order_by`, `histogram_filter`,
+  `most_frequent_value_filter`, `set_search_pattern`, `request_filtered_column_aggregation`): a request that the state
+  answers, or that a running or failed task of the same inputs answers, runs nothing; a filtering runs one at a time
+  and the latest selection after it. After every task the service derives again (`refresh`): a new filter or data
+  search orders the rows again, a search that the app asked for before the data frame was there starts once the system
+  columns are computed. The search of the column names runs its SQL on the compute database and is a run that a new
+  pattern cancels. The rows of a selection of a filter and a data search at once are counted by a query that
+  intersects their data frames. Ported from `useCrossFilters`, `useDataTableOrdering` and `useQueryResultSearch` of
+  the app.
 - **The tests.** `tests/compute_service_test.rs` runs the service on a fake host: an executor of a single thread and a
-  compute database in memory that answers the SELECT of a task by its title. `compute/computations.test.ts` of the
-  TypeScript runtime runs an analysis, a filter, an ordering and a data search on the embedded Hyper.
+  compute database in memory that answers the SELECT of a task by its title; the requests of the app run there too.
+  `core_runtime.test.ts` of the TypeScript runtime runs an analysis, a filter, an ordering, the summaries over the
+  selected rows and both searches through the `Runtime` of the module on the embedded Hyper.
 - **Formatting stays with the host.** The analysis of a histogram keeps the minimum and the maximum as Arrow values in
   the type of the column and the lower bounds of the bins as numbers or epoch milliseconds. The host formats them as it
   formats the cells of the grid.
@@ -758,12 +763,12 @@ statistics of the script with a call and an unpacking each.
 
 ## Open
 
-- The computations of the host (`COMPUTATION_FROM_QUERY_RESULT`, the actions of the success of a task, the scheduler
-  tasks that the host would run) remain for the reducer tests only, in Rust and in `computation_native.ts`.
-  `ResultComputations` of the query executor stays in TypeScript, the crate has its port.
-- A result crosses from the query executor to the computations as Arrow IPC that `apache-arrow` writes, and the host
-  imports it through `insertArrowTable`, which writes it again. The parts of the stream could go to the compute
-  database as they arrive instead.
+- The actions of the success of a task and the scheduler tasks that the host would run remain in the state of the
+  crate for its tests; the host can't reach them. `ResultComputations` of the query executor stays in TypeScript, the
+  crate has its port.
+- A result crosses from the query executor to the computations as Arrow IPC that `apache-arrow` writes
+  (`tables.read` of the platform), and the compute platform imports it through `insertArrowTable`, which writes it
+  again. The parts of the stream could go to the compute database as they arrive instead.
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
 - The connections of a native workbook that changed on disk are still created in TypeScript

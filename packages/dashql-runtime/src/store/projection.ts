@@ -67,6 +67,21 @@ export class RevisionCache<K, V> {
         return dropped;
     }
 
+    /// The projection of a slice, undefined without one
+    peek(id: K): V | undefined {
+        return this.entries.get(id)?.value;
+    }
+
+    /// Forget a slice
+    delete(id: K): void {
+        this.entries.delete(id);
+    }
+
+    /// The ids of the slices
+    keys(): IterableIterator<K> {
+        return this.entries.keys();
+    }
+
     clear(): void {
         this.entries.clear();
     }

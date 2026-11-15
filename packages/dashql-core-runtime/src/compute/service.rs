@@ -32,14 +32,19 @@ use crate::handles::Handle;
 use dashql_core::error::{Error, Result};
 
 use crate::host::signal::{cancellable, CancelHandle};
-use crate::host::LogLevel;
+use crate::host::{HostError, LogLevel};
 
 use super::host::{ComputeContext, ComputeHost, RunId};
 use super::tasks::analyze_table::{
     column_aggregation_tasks, start_table_analysis, system_columns_task, table_aggregation_task, AnalyzeTableOptions,
 };
 use super::tasks::column_aggregation::{plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult};
-use super::tasks::data_search::plan_data_search;
+use super::cross_filters::CrossFilters;
+use super::tasks::data_search::{
+    build_column_search_sql, collect_searchable_result_columns, parse_column_search_matches, plan_data_search,
+    DATA_SEARCH_ROW_FIELD,
+};
+use super::tasks::sql::quote_ident;
 use super::tasks::result_table::ResultTable;
 use super::tasks::system_columns::plan_system_columns;
 use super::tasks::table_aggregation::plan_table_aggregation;
@@ -47,11 +52,12 @@ use super::tasks::table_filtering::plan_table_filtering;
 use super::tasks::table_ordering::plan_table_ordering;
 use super::tasks::{data_frame_table_name, TableStats, TaskQuery};
 use super::types::{
-    ArrowTable, ColumnAggregate, ColumnGroup, ColumnSummary, ColumnSummaryAnalysis, ComputationTask, DataFrameId,
-    DataSearchTable, FilterTable, FilteredColumnAggregate, LifetimeId, OrderingTable, TableAggregation, TableId, TaskId,
-    TaskProgressUpdate, TaskStatus, Timestamp,
+    same_ordering, ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnSummary, ColumnSummaryAnalysis,
+    ComputationTask, DataFrameId, DataSearchTable, DataSearchTask, FilterTable, FilteredColumnAggregate,
+    FilteredColumnAggregationTask, LifetimeId, OrderByConstraint, OrderingTable, TableAggregation, TableFilteringTask,
+    TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus, Timestamp,
 };
-use super::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState};
+use super::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind, TableComputation};
 
 /// The title of the import of a result
 const IMPORT_TITLE: &str = "Table import";
@@ -75,7 +81,7 @@ pub enum TaskOutput {
     DataSearch(DataSearchTable),
 }
 
-/// A run of a task or of an import
+/// A run of a task, of an import or of a search of the columns
 struct Run {
     /// The computation
     table_id: TableId,
@@ -85,6 +91,8 @@ struct Run {
     task: Option<TaskId>,
     /// The request of a data search
     search: Option<u64>,
+    /// The request of a search of the columns
+    column_search: Option<u64>,
     /// Cancels the run
     cancel: CancelHandle,
 }
@@ -99,6 +107,8 @@ struct Inner {
     state: ComputationState,
     /// The running runs
     runs: BTreeMap<RunId, Run>,
+    /// The summaries over the selected rows that count their selection before they are scheduled, by table and column
+    counting: std::collections::BTreeSet<(TableId, u32)>,
 }
 
 impl Inner {
@@ -145,7 +155,7 @@ impl<H: ComputeHost> Clone for ComputeService<H> {
 impl<H: ComputeHost> ComputeService<H> {
     /// A service without computations
     pub fn new(host: H) -> Self {
-        let inner = Inner { state: ComputationState::new(), runs: BTreeMap::new() };
+        let inner = Inner { state: ComputationState::new(), runs: BTreeMap::new(), counting: Default::default() };
         Self { shared: Rc::new(Shared { host, inner: RefCell::new(inner) }) }
     }
 
@@ -313,14 +323,21 @@ fn cancelled_error(title: &str) -> Error {
     Error::invalid_argument(format!("{title} was cancelled"))
 }
 
+/// What a run runs for: a task, a data search or a search of the columns
+#[derive(Clone, Copy, Default)]
+struct RunOf {
+    task: Option<TaskId>,
+    search: Option<u64>,
+    column_search: Option<u64>,
+}
+
 /// Run a future as a run of a computation that can be cancelled. The future gets the context of the run.
 async fn in_run<H, F, T>(
     shared: &Rc<Shared<H>>,
     table_id: TableId,
     info: &ComputationInfo,
     title: &'static str,
-    task: Option<TaskId>,
-    search: Option<u64>,
+    of: RunOf,
     future: impl FnOnce(ComputeContext) -> F,
 ) -> Result<T>
 where
@@ -336,7 +353,8 @@ where
         run,
     };
     let (future, cancel) = cancellable(future(context));
-    shared.inner.borrow_mut().runs.insert(run, Run { table_id, lifetime: info.lifetime, task, search, cancel });
+    let RunOf { task, search, column_search } = of;
+    shared.inner.borrow_mut().runs.insert(run, Run { table_id, lifetime: info.lifetime, task, search, column_search, cancel });
     let result = future.await;
     shared.inner.borrow_mut().runs.remove(&run);
     result.unwrap_or_else(|| Err(cancelled_error(title)))
@@ -557,7 +575,7 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
         ComputationTask::DataSearch(search) => Some(search.request_id),
         _ => None,
     };
-    let result = in_run(shared, table_id, &info, title, Some(task_id), search, |context| {
+    let result = in_run(shared, table_id, &info, title, RunOf { task: Some(task_id), search, column_search: None }, |context| {
         let shared = shared.clone();
         let task = task.clone();
         let schema = info.schema.clone();
@@ -653,11 +671,11 @@ async fn analyze<H: ComputeHost>(
     // Import the result with the row numbers as the first data frame
     let import = start.import;
     let ipc = import.table.to_ipc_stream()?;
-    let imported = in_run(shared, table_id, &info, IMPORT_TITLE, None, None, |context| {
+    let imported = in_run(shared, table_id, &info, IMPORT_TITLE, RunOf::default(), |context| {
         let shared = shared.clone();
         let name = import.table_name.clone();
         async move {
-            let failed = |e: crate::host::HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
+            let failed = |e: HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
             shared.host.import_table(input, &name, ipc, &context).await.map_err(failed)
         }
     })
@@ -680,6 +698,8 @@ async fn analyze<H: ComputeHost>(
     let Some(TaskOutput::SystemColumns(table, data_frame, column_groups)) = schedule_and_run(shared, task.into()).await? else {
         return Ok(());
     };
+    // The filters, the ordering and the searches that the app asked for before the data frame was there
+    refresh(shared, table_id);
 
     // The summaries of the columns
     let started = shared.host.now();
@@ -709,4 +729,478 @@ impl From<super::types::SystemColumnsTask> for ComputationTask {
     fn from(task: super::types::SystemColumnsTask) -> Self {
         ComputationTask::SystemColumns(task)
     }
+}
+
+// The requests of the app. The app says what it wants of a computation: an ordering, a selection in the summary of a
+// column, a search, the summary of a column over the selected rows. The service derives the tasks from the state and
+// runs them; a request that the state already answers, or that a running task answers, runs nothing. After a task the
+// service derives again: a new filter orders the rows again, a search that the app asked for before the data frame
+// was there starts once it is.
+//
+// Ported from `useCrossFilters`, `useDataTableOrdering` and `useQueryResultSearch` of the app
+// (`packages/dashql-app/src/views/query_result/`).
+
+impl<H: ComputeHost> ComputeService<H> {
+    /// Delete the computation of a table, its runs are cancelled
+    pub fn delete_computation(&self, table_id: TableId) -> Result<ComputationOutcome> {
+        apply(&self.shared, ComputationAction::DeleteComputation { table_id }, false)
+    }
+
+    /// Order the rows by the constraints, none clears the ordering
+    pub fn order_by(&self, table_id: TableId, constraints: Vec<OrderByConstraint>) -> Result<ComputationOutcome> {
+        if constraints.is_empty() {
+            return apply(&self.shared, ComputationAction::ClearTableOrdering { table_id }, false);
+        }
+        let task = {
+            let inner = self.shared.inner.borrow();
+            inner.state.computation(table_id).and_then(|computation| ordering_task(computation, Some(&constraints)))
+        };
+        match task {
+            Some(task) => start_task(&self.shared, task),
+            None => Ok(ComputationOutcome::default()),
+        }
+    }
+
+    /// Order the rows and wait for the ordering, e.g. of the result of a query that replaces an ordered one. An
+    /// ordering of fields that the table doesn't have is skipped.
+    pub fn order_by_and_wait(
+        &self,
+        table_id: TableId,
+        constraints: Vec<OrderByConstraint>,
+    ) -> impl Future<Output = Result<()>> + 'static {
+        let shared = self.shared.clone();
+        async move {
+            let task = {
+                let inner = shared.inner.borrow();
+                inner.state.computation(table_id).and_then(|computation| {
+                    let known = constraints.iter().all(|c| computation.data_table_fields.iter().any(|field| *field == c.field));
+                    if constraints.is_empty() || !known {
+                        return None;
+                    }
+                    ordering_task(computation, Some(&constraints))
+                })
+            };
+            if let Some(task) = task {
+                schedule_and_run(&shared, task).await?;
+            }
+            Ok(())
+        }
+    }
+
+    /// Select a range of bins in the histogram of a column group, none clears the selection of the column
+    pub fn histogram_filter(&self, table_id: TableId, column_group: u32, brush: Option<(f64, f64)>) -> Result<ComputationOutcome> {
+        let filters = {
+            let inner = self.shared.inner.borrow();
+            let Some(computation) = inner.state.computation(table_id) else {
+                return Ok(ComputationOutcome::default());
+            };
+            let Some(ColumnGroup::Ordinal(group)) = computation.column_groups.get(column_group as usize) else {
+                return Ok(ComputationOutcome::default());
+            };
+            if computation.cross_filters.contains_histogram_filter(column_group, brush) {
+                return Ok(ComputationOutcome::default());
+            }
+            let mut filters = computation.cross_filters.clone();
+            filters.add_histogram_filter(column_group, group, brush);
+            filters
+        };
+        self.set_cross_filters(table_id, filters)
+    }
+
+    /// Select a frequent value of a column group, selecting the selected value again or none clears the selection
+    pub fn most_frequent_value_filter(
+        &self,
+        table_id: TableId,
+        column_group: u32,
+        value_id: Option<i64>,
+    ) -> Result<ComputationOutcome> {
+        let filters = {
+            let inner = self.shared.inner.borrow();
+            let Some(computation) = inner.state.computation(table_id) else {
+                return Ok(ComputationOutcome::default());
+            };
+            let Some(ColumnGroup::String(group)) = computation.column_groups.get(column_group as usize) else {
+                return Ok(ComputationOutcome::default());
+            };
+            if group.value_id_field_name.is_none() {
+                return Ok(ComputationOutcome::default());
+            }
+            let current = &computation.cross_filters;
+            let value_id = if current.contains_most_frequent_value_filter(column_group, value_id) { None } else { value_id };
+            let mut filters = current.clone();
+            filters.add_most_frequent_value_filter(column_group, group, value_id);
+            filters
+        };
+        self.set_cross_filters(table_id, filters)
+    }
+
+    /// Clear the selections of all columns
+    pub fn clear_cross_filters(&self, table_id: TableId) -> Result<ComputationOutcome> {
+        self.set_cross_filters(table_id, CrossFilters::new())
+    }
+
+    fn set_cross_filters(&self, table_id: TableId, filters: CrossFilters) -> Result<ComputationOutcome> {
+        let outcome = apply(&self.shared, ComputationAction::SetCrossFilters { table_id, filters }, false)?;
+        refresh(&self.shared, table_id);
+        Ok(outcome)
+    }
+
+    /// Search the columns or the data, an empty pattern ends the search
+    pub fn set_search_pattern(&self, table_id: TableId, kind: SearchKind, pattern: String) -> Result<ComputationOutcome> {
+        if kind == SearchKind::Columns {
+            let runs = self.shared.inner.borrow_mut().take_runs(|run| run.table_id == table_id && run.column_search.is_some());
+            cancel_runs(&self.shared, runs);
+        }
+        let outcome = apply(&self.shared, ComputationAction::SetResultSearchPattern { table_id, kind, pattern }, false)?;
+        refresh(&self.shared, table_id);
+        Ok(outcome)
+    }
+
+    /// Compute the summary of a column over the selected rows if it is outdated, e.g. once the column shows
+    pub fn request_filtered_column_aggregation(&self, table_id: TableId, column_id: u32) -> Result<()> {
+        let shared = &self.shared;
+        let request = {
+            let inner = shared.inner.borrow();
+            if inner.counting.contains(&(table_id, column_id)) {
+                return Ok(());
+            }
+            match inner.state.computation(table_id) {
+                Some(computation) => filtered_aggregation_request(computation, column_id),
+                None => None,
+            }
+        };
+        let Some(request) = request else {
+            return Ok(());
+        };
+        let task = request.task;
+        let sql = match request.count {
+            SelectionCount::Rows(rows) => return start_task(shared, task.with_selection(rows)).map(|_| ()),
+            SelectionCount::Query { sql } => sql,
+        };
+        let Some(info) = computation_info(shared, table_id) else {
+            return Ok(());
+        };
+        shared.inner.borrow_mut().counting.insert((table_id, column_id));
+        let task_shared = shared.clone();
+        shared.host.spawn(Box::pin(async move {
+            let shared = task_shared;
+            let counted = in_run(&shared, table_id, &info, "Filtered column aggregation", RunOf::default(), |context| {
+                let shared = shared.clone();
+                async move {
+                    let failed = |e: HostError| Error::invalid_argument(format!("counting the selected rows failed: {e}"));
+                    let ipc = shared.host.query(&sql, &context).await.map_err(failed)?;
+                    let table = ResultTable::from_ipc_stream(&ipc)?;
+                    let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
+                    Ok(count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0))
+                }
+            })
+            .await;
+            shared.inner.borrow_mut().counting.remove(&(table_id, column_id));
+            let error = match counted {
+                Ok(rows) => start_task(&shared, task.with_selection(rows)).err(),
+                Err(error) => Some(error),
+            };
+            if let Some(error) = error {
+                let error = error.to_string();
+                shared.host.log(LogLevel::Warn, "Failed to summarize a column over the selected rows", &[("error", &error)]);
+            }
+        }));
+        Ok(())
+    }
+
+    /// Derive the tasks of a computation again, e.g. after its analysis
+    pub fn refresh(&self, table_id: TableId) {
+        refresh(&self.shared, table_id);
+    }
+}
+
+/// How the rows of a selection are counted: known, or by a query that intersects the filter and the data search
+enum SelectionCount {
+    Rows(u64),
+    Query { sql: String },
+}
+
+/// A summary over the selected rows to compute, the rows of the selection still to count
+struct FilteredAggregationRequest {
+    task: FilteredColumnAggregationTask,
+    count: SelectionCount,
+}
+
+impl FilteredColumnAggregationTask {
+    fn with_selection(mut self, rows: u64) -> ComputationTask {
+        self.selection_row_count = rows;
+        ComputationTask::FilteredColumnAggregation(self)
+    }
+}
+
+/// The summary of a column over the selected rows that is outdated and that no task computes, none if there is
+/// nothing to compute
+fn filtered_aggregation_request(computation: &TableComputation, column_id: u32) -> Option<FilteredAggregationRequest> {
+    let column = column_id as usize;
+    if !computation.filtered_column_aggregate_outdated(column) {
+        return None;
+    }
+    let table_aggregate = computation.table_aggregation.clone()?;
+    let input_data_frame = computation.data_frame?;
+    let column_entry = computation.column_groups.get(column)?.clone();
+    let unfiltered_aggregate = computation.column_aggregate(column)?.clone();
+    let filter_table = computation.filter_table.clone();
+    let data_search_table = computation.data_search_table.clone();
+    let version = filter_table.as_ref().map_or(computation.version, |filter| filter.version);
+    let search = data_search_table.as_ref().map(|search| search.request_id);
+    // A task that runs or failed for the same selection
+    let tracked = computation.tasks.filtered_column_aggregation.get(column).and_then(Option::as_ref);
+    if let Some(tracked) = tracked {
+        let same = tracked.task.column.table_version.filter_matches(version)
+            && tracked.task.data_search_table.as_ref().map(|search| search.request_id) == search;
+        if same && tracked.progress.status != TaskStatus::Succeeded {
+            return None;
+        }
+    }
+    let count = match (&filter_table, &data_search_table) {
+        (Some(filter), None) => SelectionCount::Rows(filter.table.rows()),
+        (None, Some(search)) => SelectionCount::Rows(search.table.rows()),
+        (Some(filter), Some(search)) => {
+            let row_number = quote_ident(&filter.input_row_number_column_name);
+            let sql = format!(
+                "SELECT count(*) AS count FROM {} WHERE {row_number} IN (SELECT {} FROM {})",
+                quote_ident(&data_frame_table_name(filter.data_frame)),
+                quote_ident(DATA_SEARCH_ROW_FIELD),
+                quote_ident(&data_frame_table_name(search.data_frame)),
+            );
+            SelectionCount::Query { sql }
+        }
+        (None, None) => return None,
+    };
+    let task = FilteredColumnAggregationTask {
+        column: ColumnAggregationTask {
+            table_id: computation.table_id,
+            table_version: version,
+            column_id,
+            column_entry,
+            input_data_frame,
+            table_aggregate,
+        },
+        filter_table,
+        data_search_table,
+        selection_row_count: 0,
+        unfiltered_aggregate,
+    };
+    Some(FilteredAggregationRequest { task, count })
+}
+
+/// The filtering of the cross filters, none if the filter is current, a filtering runs or failed for the same
+/// selection, or there is nothing to filter
+fn filtering_task(computation: &TableComputation) -> Option<ComputationTask> {
+    let input_data_frame = computation.data_frame?;
+    let row_number_column_name = computation.row_number_column_name.clone()?;
+    let filters = computation.cross_filters.filter_transforms();
+    if let Some(tracked) = &computation.tasks.filtering {
+        if tracked.progress.status == TaskStatus::Running {
+            return None;
+        }
+        if tracked.task.filters == filters {
+            let current = computation.filter_table.as_ref().is_none_or(|filter| filter.version.filter_matches(computation.version));
+            if tracked.progress.status == TaskStatus::Failed || current {
+                return None;
+            }
+        }
+    }
+    if filters.is_empty() && computation.filter_table.is_none() {
+        return None;
+    }
+    Some(ComputationTask::TableFiltering(TableFilteringTask {
+        table_id: computation.table_id,
+        table_version: computation.version,
+        input_data_table: computation.data_table.clone(),
+        input_data_frame,
+        row_number_column_name,
+        filters,
+    }))
+}
+
+/// The ordering of the rows: by the constraints, or by the ones that the computation orders by. None if the ordering
+/// is current, an ordering runs or failed for the same rows, a filter or a data search still runs, or there is no
+/// ordering.
+fn ordering_task(computation: &TableComputation, constraints: Option<&[OrderByConstraint]>) -> Option<ComputationTask> {
+    let tracked = computation.tasks.ordering.as_ref();
+    let constraints = match constraints {
+        Some(constraints) => constraints,
+        None => tracked
+            .map(|tracked| tracked.task.ordering_constraints.as_slice())
+            .filter(|constraints| !constraints.is_empty())
+            .unwrap_or(&computation.data_table_ordering),
+    };
+    if constraints.is_empty() {
+        return None;
+    }
+    let input_data_frame = computation.data_frame?;
+    let row_number_column_name = computation.row_number_column_name.clone()?;
+    let filtering = computation.tasks.filtering.as_ref().is_some_and(|tracked| tracked.progress.status == TaskStatus::Running);
+    if filtering || computation.data_search.pending {
+        return None;
+    }
+    let filter = computation.filter_table.as_ref().map(|filter| filter.version);
+    let search = computation.data_search_table.as_ref().map(|search| search.request_id);
+    if let Some(tracked) = tracked {
+        let task = &tracked.task;
+        let same = task.table_version.filter_matches(computation.version)
+            && task.filter_table.as_ref().map(|filter| filter.version) == filter
+            && task.data_search_table.as_ref().map(|search| search.request_id) == search
+            && same_ordering(&task.ordering_constraints, constraints);
+        let done = match tracked.progress.status {
+            TaskStatus::Running | TaskStatus::Failed => true,
+            TaskStatus::Succeeded => computation.ordering_table.is_some(),
+        };
+        if same && done {
+            return None;
+        }
+    }
+    Some(ComputationTask::TableOrdering(TableOrderingTask {
+        table_id: computation.table_id,
+        table_version: computation.version,
+        input_data_table: computation.data_table.clone(),
+        input_data_frame,
+        filter_table: computation.filter_table.clone(),
+        data_search_table: computation.data_search_table.clone(),
+        row_number_column_name,
+        ordering_constraints: constraints.to_vec(),
+    }))
+}
+
+/// The search of the data that the app asked for, none if it is applied, runs already or has no data frame
+fn data_search_task(computation: &TableComputation) -> Option<ComputationTask> {
+    let search = &computation.data_search;
+    if search.requested_pattern.is_empty() || search.request_id == search.applied_request_id {
+        return None;
+    }
+    let input_data_frame = computation.data_frame?;
+    let row_number_column_name = computation.row_number_column_name.clone()?;
+    if computation.tasks.data_search.as_ref().is_some_and(|tracked| tracked.task.request_id == search.request_id) {
+        return None;
+    }
+    Some(ComputationTask::DataSearch(DataSearchTask {
+        table_id: computation.table_id,
+        table_version: computation.version,
+        input_data_frame,
+        row_number_column_name,
+        columns: collect_searchable_result_columns(&computation.column_groups),
+        pattern: search.requested_pattern.clone(),
+        request_id: search.request_id,
+    }))
+}
+
+/// A search of the columns that the app asked for
+enum ColumnSearch {
+    /// No column matches, there are no columns
+    Empty { data_frame: DataFrameId, request_id: u64 },
+    /// Run the query of the search
+    Query { data_frame: DataFrameId, request_id: u64, sql: String },
+}
+
+fn column_search(computation: &TableComputation, runs: &BTreeMap<RunId, Run>) -> Option<ColumnSearch> {
+    let search = &computation.column_search;
+    if search.requested_pattern.is_empty() || search.request_id == search.applied_request_id {
+        return None;
+    }
+    let data_frame = computation.data_frame?;
+    let request_id = search.request_id;
+    if runs.values().any(|run| run.table_id == computation.table_id && run.column_search == Some(request_id)) {
+        return None;
+    }
+    let columns = collect_searchable_result_columns(&computation.column_groups);
+    Some(match build_column_search_sql(&columns, &search.requested_pattern) {
+        Some(sql) => ColumnSearch::Query { data_frame, request_id, sql },
+        None => ColumnSearch::Empty { data_frame, request_id },
+    })
+}
+
+/// Schedule a task and run it in a task of the host, then derive the tasks of its computation again
+fn start_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task: ComputationTask) -> Result<ComputationOutcome> {
+    let table_id = task.table_id();
+    let outcome = apply(shared, ComputationAction::ScheduleTask { task, now: now(shared) }, true)?;
+    if let Some(task_id) = outcome.task_id {
+        let task_shared = shared.clone();
+        shared.host.spawn(Box::pin(async move {
+            // A failed run reported its error as the progress of its task
+            let _ = run_task(&task_shared, task_id).await;
+            refresh(&task_shared, table_id);
+        }));
+    }
+    Ok(outcome)
+}
+
+/// Derive the tasks of a computation from its state and start them: the filtering, the searches and the ordering
+fn refresh<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId) {
+    let (filtering, data_search, column_search) = {
+        let inner = shared.inner.borrow();
+        let Some(computation) = inner.state.computation(table_id) else {
+            return;
+        };
+        (filtering_task(computation), data_search_task(computation), column_search(computation, &inner.runs))
+    };
+    let failed = |error: Error| {
+        let error = error.to_string();
+        shared.host.log(LogLevel::Warn, "Failed to schedule a task", &[("error", &error)]);
+    };
+    for task in [filtering, data_search].into_iter().flatten() {
+        if let Err(error) = start_task(shared, task) {
+            failed(error);
+        }
+    }
+    match column_search {
+        Some(ColumnSearch::Empty { data_frame, request_id }) => {
+            let action = ComputationAction::ColumnSearchSucceeded { table_id, data_frame, request_id, matching_column_groups: Vec::new() };
+            if let Err(error) = apply(shared, action, true) {
+                failed(error);
+            }
+        }
+        Some(ColumnSearch::Query { data_frame, request_id, sql }) => start_column_search(shared, table_id, data_frame, request_id, sql),
+        None => {}
+    }
+    // The ordering waits for the filtering and the data search that just started
+    let ordering = {
+        let inner = shared.inner.borrow();
+        inner.state.computation(table_id).and_then(|computation| ordering_task(computation, None))
+    };
+    if let Some(task) = ordering {
+        if let Err(error) = start_task(shared, task) {
+            failed(error);
+        }
+    }
+}
+
+/// Search the names of the columns in a task of the host
+fn start_column_search<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId, data_frame: DataFrameId, request_id: u64, sql: String) {
+    let Some(info) = computation_info(shared, table_id) else {
+        return;
+    };
+    let task_shared = shared.clone();
+    shared.host.spawn(Box::pin(async move {
+        let shared = task_shared;
+        let of = RunOf { task: None, search: None, column_search: Some(request_id) };
+        let searched = in_run(&shared, table_id, &info, "Column search", of, |context| {
+            let shared = shared.clone();
+            async move {
+                let failed = |e: HostError| Error::invalid_argument(format!("the column search failed: {e}"));
+                let ipc = shared.host.query(&sql, &context).await.map_err(failed)?;
+                parse_column_search_matches(&ResultTable::from_ipc_stream(&ipc)?)
+            }
+        })
+        .await;
+        let action = match searched {
+            Ok(matching_column_groups) => ComputationAction::ColumnSearchSucceeded { table_id, data_frame, request_id, matching_column_groups },
+            Err(error) => {
+                let message = error.to_string();
+                let table = table_id.to_string();
+                shared.host.log(LogLevel::Warn, "Column search failed", &[("table", &table), ("error", &message)]);
+                ComputationAction::ResultSearchFailed { table_id, data_frame, kind: SearchKind::Columns, request_id, error: message }
+            }
+        };
+        // A superseded search changes nothing
+        if let Err(error) = apply(&shared, action, true) {
+            let error = error.to_string();
+            shared.host.log(LogLevel::Warn, "Failed to apply a column search", &[("error", &error)]);
+        }
+    }));
 }

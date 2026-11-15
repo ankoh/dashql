@@ -1,13 +1,7 @@
 import { vi } from 'vitest';
+import type * as core from '@ankoh/dashql-core';
 
-import type * as arrow from 'apache-arrow';
-
-import { createArrowFieldIndex, SCHEDULE_TASK, type ComputationAction, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
-import { ComputationStateVersion, type ColumnGroup, type ResultSearchState, type TaskVariant } from '@ankoh/dashql-runtime/compute/computation_types';
-import { CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
-import type { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';
-import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import type { ColumnGroup, ResultSearchState, TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
 
 /// A search without a pattern
 export function createResultSearchState(): ResultSearchState {
@@ -17,16 +11,32 @@ export function createResultSearchState(): ResultSearchState {
         requestId: 0,
         appliedRequestId: 0,
         matchingColumnGroups: null,
-        matchingRows: null,
+        hasMatchingRows: false,
         pending: false,
         error: null,
     };
 }
 
-/// The state of the computation of a table as a plain object, as the computations project it before their tasks ran
-export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
+/// A value column of a column group
+export function valueColumn(name: string, inputFieldType: string, fields: Partial<core.ComputationValueColumn> = {}): core.ComputationValueColumn {
     return {
-        tableId: computationId,
+        inputFieldName: name,
+        inputFieldType,
+        inputFieldNullable: true,
+        statsFields: null,
+        binFieldName: null,
+        binCount: 0,
+        valueIdFieldName: null,
+        ...fields,
+    };
+}
+
+/// The view of the computation of table 1 before its tasks ran: the table by the handle 1, the data frame 1 and the
+/// row number column `rownum`
+export function mockTableComputation(columnGroups: ColumnGroup[], fields: Partial<TableComputationState> = {}): TableComputationState {
+    return {
+        tableId: 1,
+        revision: 1,
         connectionId: null,
         clientContext: null,
         tasks: {
@@ -35,51 +45,40 @@ export function createTableComputationState(computationId: number, table: arrow.
             dataSearchTask: null,
             tableAggregationTask: null,
             systemColumnTask: null,
-            columnAggregationTasks: Array(tableColumns.length + 1).fill(null),
-            filteredColumnAggregationTasks: Array(tableColumns.length + 1).fill(null),
+            columnAggregationTasks: Array(columnGroups.length).fill(null),
+            filteredColumnAggregationTasks: Array(columnGroups.length).fill(null),
         },
-        dataTable: table,
-        version: new ComputationStateVersion(0, 0),
-        dataTableFieldsByName: createArrowFieldIndex(table),
-        columnGroups: tableColumns,
-        columnAggregates: Array.from({ length: tableColumns.length }, () => null),
-        rowNumberColumnGroup: null,
-        rowNumberColumnName: null,
-        dataTableLifetime: tableLifetime,
+        version: { data: 0, filter: 0 },
+        dataTable: 1,
+        dataTableRows: 3,
+        dataTableFields: [],
+        dataFrame: 1,
+        columnGroups,
         dataTableOrdering: [],
-        crossFilters: new CrossFilters(),
-        dataFrame: null,
+        crossFilters: [],
         filterTable: null,
         orderingTable: null,
         columnSearch: createResultSearchState(),
         dataSearch: createResultSearchState(),
         dataSearchTable: null,
-        filteredColumnAggregates: Array.from({ length: tableColumns.length }, () => null),
-        filteredColumnAggregatesOutdated: Array.from({ length: tableColumns.length }, () => false),
-        tableAggregation: null,
-    };
-}
-
-/// Table 1 with the column groups, a data frame of a table without a database and the row number column `rownum`
-export function mockTableComputation(columnGroups: ColumnGroup[], fields: Partial<TableComputationState> = {}): TableComputationState {
-    const table = tableFromArrays({ rownum: Int32Array.from([0, 1, 2]) });
-    return {
-        ...createTableComputationState(1, table, columnGroups, new AbortController()),
-        dataFrame: mockDataFrame('input'),
+        rowNumberColumnGroup: null,
         rowNumberColumnName: 'rownum',
+        tableAggregation: null,
+        columnAggregates: Array.from({ length: columnGroups.length }, () => null),
+        filteredColumnAggregates: Array.from({ length: columnGroups.length }, () => null),
+        filteredColumnAggregatesOutdated: Array.from({ length: columnGroups.length }, () => false),
         ...fields,
     };
 }
 
-/// A dispatch of computation actions that records the actions and the scheduled tasks.
-/// The tasks of scheduleTask() settle when the test resolves or rejects their result.
+/// A dispatch of the actions of a computation that records them
 export function recordingDispatch() {
-    const actions: ComputationAction[] = [];
-    const dispatch = vi.fn((action: ComputationAction) => { actions.push(action); });
-    const scheduled = (type: symbol) => actions
-        .filter(action => action.type === SCHEDULE_TASK)
-        .map(action => action.value as TaskVariant & { result: AsyncValue<unknown, Error> })
-        .filter(task => task.type === type);
-    const ofType = (type: symbol) => actions.filter(action => action.type === type);
-    return { dispatch, actions, scheduled, ofType };
+    const actions: core.RuntimeAction[] = [];
+    const dispatch = vi.fn((action: core.RuntimeAction): core.DispatchOutcome => {
+        actions.push(action);
+        return { ok: true, changed: true, error: null };
+    });
+    const ofKind = <K extends core.RuntimeAction['kind']>(kind: K) =>
+        actions.filter((action): action is Extract<core.RuntimeAction, { kind: K }> => action.kind === kind);
+    return { dispatch, actions, ofKind };
 }

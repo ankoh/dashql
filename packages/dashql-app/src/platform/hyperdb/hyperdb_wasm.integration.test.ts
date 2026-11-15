@@ -1,7 +1,6 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
 import { WebFile } from '../file/web_file.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
@@ -619,15 +618,25 @@ describe('HyperDB embedded database integration', () => {
     });
 
 
-    it('keeps shared tables visible across physical DataFrame connections', async () => {
+    it('keeps shared tables visible across pooled connections', async () => {
         const inputName = '__hyper_input';
         const summaryName = '__hyper_summary';
-        await DataFrame.withConnection(database!, conn => conn.insertArrowTable(tableFromArrays({
+        // The pooled connections of the compute platform of the runtime, one per call
+        const withConnection = async <T>(fn: (conn: Awaited<ReturnType<HyperDB['connect']>>) => Promise<T>): Promise<T> => {
+            const conn = await database!.connect({ pooled: true });
+            try {
+                return await fn(conn);
+            } finally {
+                await conn.close();
+            }
+        };
+        await withConnection(conn => conn.insertArrowTable(tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
         }), { name: inputName, create: true }));
-        const input = new DataFrame(database!, inputName);
-        const read = (dataFrame: DataFrame) => dataFrame.withConnection(conn => conn.query(`SELECT * FROM "${dataFrame.tableName}"`));
+        const input = inputName;
+        const read = (tableName: string) => withConnection(conn => conn.query(`SELECT * FROM "${tableName}"`));
+        const drop = (tableName: string) => withConnection(conn => conn.execute(`DROP TABLE IF EXISTS "${tableName}"`));
 
         const [firstRead, secondRead] = await Promise.all([
             read(input),
@@ -641,18 +650,15 @@ describe('HyperDB embedded database integration', () => {
         expect(toPlainObjects(secondRead)).toEqual(toPlainObjects(firstRead));
         const connectsAfterReads = client.connectCount;
 
-        const summary = await DataFrame.fromSQL(
-            database!,
-            `SELECT COUNT(*)::INTEGER AS row_count FROM "${inputName}"`,
-            summaryName,
-        );
+        await withConnection(conn => conn.createTableAs(summaryName, `SELECT COUNT(*)::INTEGER AS row_count FROM "${inputName}"`));
+        const summary = summaryName;
         expect(toPlainObjects(await read(summary))).toEqual([{ row_count: 3 }]);
         // Later statements reuse the attached sessions of the parallel reads.
         expect(client.connectCount).toBe(connectsAfterReads);
 
-        await summary.destroy();
+        await drop(summary);
         await expect(read(summary)).rejects.toThrow();
-        await input.destroy();
+        await drop(input);
         await expect(read(input)).rejects.toThrow();
     });
 

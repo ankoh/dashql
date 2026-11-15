@@ -5,7 +5,6 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DataFrame } from '@ankoh/dashql-runtime/compute/data_frame';
 import { DataTableLayout } from './data_table_layout.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
 
@@ -18,7 +17,8 @@ export interface HeaderNameCellProps {
     style: React.CSSProperties;
     table: arrow.Table;
     gridLayout: DataTableLayout;
-    dataFrame: DataFrame | null;
+    /// The data frame of the table in the compute database, null until it is there
+    dataFrame: number | null;
     rightmostVisibleColumn: number;
     sortAscending: boolean | null;
     onOrderByColumn: (col: number) => void;

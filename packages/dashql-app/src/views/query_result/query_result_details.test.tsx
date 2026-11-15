@@ -15,8 +15,6 @@ const mockState = {
     logError: vi.fn(),
 };
 
-import { MOST_FREQUENT_FILTER, CrossFilters } from '@ankoh/dashql-runtime/compute/cross_filters';
-import { SET_CROSS_FILTERS } from '@ankoh/dashql-runtime/compute/computation_state';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
@@ -26,7 +24,8 @@ const dependencies = {
     QueryResultToolbar: () => null,
     QueryResultActionMenu: () => null,
     QueryResultView: () => <div data-testid="query-result-view" />,
-    useComputationRegistry: () => [mockState.computationState, mockState.dispatch],
+    useComputation: ((tableId: number | null | undefined) => tableId == null ? null : mockState.computationState.tableComputations[tableId] ?? null) as never,
+    useComputationDispatch: (() => mockState.dispatch) as never,
     useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),
     QueryResultDownloadButton: props => <QueryResultDownloadButton {...props} dependencies={{
         useFileDownloader: () => ({ downloadBufferAsFile: mockState.download }),
@@ -72,11 +71,7 @@ describe('QueryResultDetails', () => {
     });
 
     it('clears all active cross-filters from the query results bar', () => {
-        const crossFilters = new CrossFilters();
-        crossFilters.columnFilters[1] = {
-            type: MOST_FREQUENT_FILTER,
-            value: { valueId: 7, filters: [] },
-        };
+        const crossFilters = [{ kind: 'mostFrequent', column: 1, valueId: 7 }];
         mockState.computationState = {
             tableComputations: {
                 42: {
@@ -103,11 +98,7 @@ describe('QueryResultDetails', () => {
         act(() => clearButton!.click());
 
         expect(mockState.dispatch).toHaveBeenCalledTimes(1);
-        const action = mockState.dispatch.mock.calls[0][0];
-        expect(action.type).toBe(SET_CROSS_FILTERS);
-        expect(action.value[0]).toBe(42);
-        expect(action.value[1]).toBeInstanceOf(CrossFilters);
-        expect(action.value[1].columnFilters).toEqual({});
+        expect(mockState.dispatch.mock.calls[0][0]).toEqual({ kind: 'clearCrossFilters' });
     });
 
     it('disables the clear action when no cross-filters are active', () => {
@@ -115,7 +106,7 @@ describe('QueryResultDetails', () => {
             tableComputations: {
                 42: {
                     dataTable: { numRows: 3 },
-                    crossFilters: new CrossFilters(),
+                    crossFilters: [],
                 },
             },
         };
@@ -137,7 +128,7 @@ describe('QueryResultDetails', () => {
             tableComputations: {
                 42: {
                     dataTable: tableFromArrays({ _rownum: [1, 2, 3], value: [10, 20, 30], _1_bin: [0, 1, 2] }),
-                    crossFilters: new CrossFilters(),
+                    crossFilters: [],
                     filterTable: { dataTable: tableFromArrays({ _rownum: [2] }) },
                 },
             },

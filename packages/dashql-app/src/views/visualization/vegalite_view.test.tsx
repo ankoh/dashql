@@ -22,7 +22,7 @@ const dependencies = {
         embed: vegaEmbed,
         expressionInterpreter,
     }),
-    useComputationRegistry: () => [{ tableComputations: {}, schedulerTasks: {}, nextSchedulerTaskId: 1 }],
+    useResultComputation: () => null,
     useNearViewport: () => true,
 } as VegaLiteViewDependencies;
 

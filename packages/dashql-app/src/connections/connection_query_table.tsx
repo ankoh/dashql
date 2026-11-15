@@ -1,11 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { useComputationDispatch, useComputationRegistry, useComputationStore } from '../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
-import { scheduleTask } from '@ankoh/dashql-runtime/compute/computation_tasks';
-import { TABLE_ORDERING_TASK } from '@ankoh/dashql-runtime/compute/computation_types';
+import { useComputation, useCoreRuntime } from '../runtime/runtime_hooks.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -13,7 +9,6 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { allocateQueryId } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { DataTable } from '../views/query_result/data_table.js';
 import { TableColumnHeader } from '../views/query_result/data_table_cell.js';
-import { createOrderingTask } from '../views/query_result/data_table_ordering.js';
 
 const LOG_CTX = 'connection_overview';
 
@@ -30,8 +25,7 @@ function useQueryComputation(
     clientContext: EmbeddedClientContext | null,
     refreshes: number,
 ): number | null {
-    const dispatch = useComputationDispatch();
-    const computations = useComputationStore();
+    const runtime = useCoreRuntime();
     const database = useComputeDatabase();
     const logger = useLogger();
     const [tableId, setTableId] = React.useState<number | null>(null);
@@ -51,10 +45,10 @@ function useQueryComputation(
         current.unmounted = false;
         return () => {
             current.unmounted = true;
-            if (current.shown != null) dispatch({ type: DELETE_COMPUTATION, value: [current.shown] });
+            if (current.shown != null) runtime.deleteComputation(current.shown);
             current.shown = null;
         };
-    }, [dispatch]);
+    }, [runtime]);
 
     React.useEffect(() => {
         if (database == null) return;
@@ -63,27 +57,24 @@ function useQueryComputation(
             const table = await runQuery(sql);
             const id = allocateQueryId();
             try {
-                // The table has no connection, the client context attributes the queries of its computation
-                await analyzeTable(id, table, dispatch, database, logger, null, { clientContext, columnAggregates: false });
+                // The table has no connection, the client context attributes the queries of its computation. It is
+                // ordered like the previous one, an ordering of fields that the table doesn't have is skipped.
                 const previous = current.shown;
-                const ordering = previous == null ? [] : computations.current.tableComputations[previous]?.dataTableOrdering ?? [];
-                const fields = new Set(table.schema.fields.map(field => field.name));
-                if (ordering.length > 0 && ordering.every(constraint => fields.has(constraint.field))) {
-                    const task = createOrderingTask(computations.current.tableComputations[id], ordering);
-                    if (task != null) await scheduleTask(TABLE_ORDERING_TASK, task, dispatch);
-                }
+                const ordering = previous == null ? [] : runtime.store.get('computation', previous)?.dataTableOrdering ?? [];
+                runtime.setComputeDatabase(database);
+                await runtime.analyzeTable(id, table, { clientContext, columnAggregates: false, ordering });
             } catch (e) {
-                dispatch({ type: DELETE_COMPUTATION, value: [id] });
+                runtime.deleteComputation(id);
                 throw e;
             }
             if (current.unmounted) {
-                dispatch({ type: DELETE_COMPUTATION, value: [id] });
+                runtime.deleteComputation(id);
                 return;
             }
             const previous = current.shown;
             current.shown = id;
             setTableId(id);
-            if (previous != null) dispatch({ type: DELETE_COMPUTATION, value: [previous] });
+            if (previous != null) runtime.deleteComputation(previous);
         };
         if (current.pumping) return;
         // Run the newest query, one run after another
@@ -98,7 +89,7 @@ function useQueryComputation(
             }
             current.pumping = false;
         })();
-    }, [sql, refreshes, runQuery, clientContext, database, dispatch, computations, logger]);
+    }, [sql, refreshes, runQuery, clientContext, database, runtime, logger]);
     return tableId;
 }
 
@@ -115,14 +106,12 @@ export interface QueryTableProps {
 
 /// The result of a query in the data table of query results, e.g. to sort it or to show the SQL of a query
 export const QueryTable: React.FC<QueryTableProps> = ({ sql, clientContext, runQuery, refreshes = 0 }) => {
-    const [computations, dispatch] = useComputationRegistry();
     const tableId = useQueryComputation(sql, runQuery, clientContext, refreshes);
-    const computation = tableId == null ? null : computations.tableComputations[tableId] ?? null;
+    const computation = useComputation(tableId);
     if (computation == null) return null;
     return (
         <DataTable
             table={computation}
-            dispatchComputation={dispatch}
             debugMode={false}
             columnHeader={TableColumnHeader.OnlyColumnName}
             compact

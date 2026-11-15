@@ -1,31 +1,53 @@
 import * as arrow from 'apache-arrow';
 
 import { ArrowTableFormatter } from '../compute/arrow_formatter.js';
-import {
+import type {
+    ColumnAggregationVariant,
     ComputationStateVersion,
-    type ColumnAggregationVariant,
-    type OrdinalColumnAggregation,
-    type OrdinalGridColumnGroup,
-    type StringColumnAggregation,
-    type StringGridColumnGroup,
-    type TableAggregation,
-    type WithFilterEpoch,
+    OrdinalColumnAggregation,
+    StringColumnAggregation,
+    SummaryColumn,
+    TableAggregation,
+    WithFilterEpoch,
 } from '../compute/computation_types.js';
-import { mockDataFrame } from './mocks/compute_query.js';
 import { TestLogger } from './test_logger.js';
 
-// The summaries of a column as the computations project them from the runtime of the core (computation_native.ts),
-// built from the bins or the frequent values that the summary query returns. The runtime computes the numbers
-// (`packages/dashql-core-runtime/src/compute`), the views read only these objects.
+// The summaries of a column as the app resolves them from the views of the runtime (computation_types.ts), built from
+// the bins or the frequent values that the summary query returns. The runtime computes the numbers
+// (`packages/dashql-core-runtime/src/compute`), the plots read only these objects.
+
+/// The statistics of a table
+export function tableAggregation(table: arrow.Table, countStarFieldName: string): TableAggregation {
+    return {
+        table,
+        tableFieldsByName: new Map(table.schema.fields.map((field, i) => [field.name, i])),
+        tableFormatter: new ArrowTableFormatter(table.schema, table.batches, new TestLogger()),
+        countStarFieldName,
+    };
+}
+
+/// A value column of a summary
+export function summaryColumn(name: string, inputFieldType: arrow.DataType, fields: Partial<SummaryColumn> = {}): SummaryColumn {
+    return {
+        inputFieldName: name,
+        inputFieldType,
+        inputFieldNullable: true,
+        statsFields: null,
+        binFieldName: null,
+        binCount: 0,
+        valueIdFieldName: null,
+        ...fields,
+    };
+}
 
 /// The number of rows of the statistics of a table
 function rowCount(table: TableAggregation): number {
-    return Number((table.table.getChild(table.countStarFieldName!) as arrow.Vector<arrow.Int64>).get(0) ?? 0n);
+    return Number((table.table.getChild(table.countStarFieldName) as arrow.Vector<arrow.Int64>).get(0) ?? 0n);
 }
 
 /// The summary of an ordinal column from its bins: `bin`, `count`, `binWidth`, `binLowerBound`, `binUpperBound`, the
 /// last bin holds the null values. `selectionRowCount` is the number of the selected rows of a filtered summary.
-export function ordinalAggregate(table: TableAggregation, column: OrdinalGridColumnGroup, bins: arrow.Table, selectionRowCount: number | null = null): OrdinalColumnAggregation {
+export function ordinalAggregate(table: TableAggregation, column: SummaryColumn, bins: arrow.Table, selectionRowCount: number | null = null): OrdinalColumnAggregation {
     const formatter = new ArrowTableFormatter(bins.schema, bins.batches, new TestLogger());
     const rows = rowCount(table);
     const totalCount = selectionRowCount ?? rows;
@@ -42,7 +64,6 @@ export function ordinalAggregate(table: TableAggregation, column: OrdinalGridCol
     }
     return {
         columnEntry: column,
-        binnedDataFrame: mockDataFrame('bins'),
         binnedValues: bins as never,
         binnedValuesFormatter: formatter,
         columnAnalysis: {
@@ -60,7 +81,7 @@ export function ordinalAggregate(table: TableAggregation, column: OrdinalGridCol
 }
 
 /// The summary of a string column from its frequent values: `key`, `keyId` and `count`, most frequent first
-export function stringAggregate(table: TableAggregation, column: StringGridColumnGroup, frequentValues: arrow.Table, selectionRowCount: number | null = null): StringColumnAggregation {
+export function stringAggregate(table: TableAggregation, column: SummaryColumn, frequentValues: arrow.Table, selectionRowCount: number | null = null): StringColumnAggregation {
     const formatter = new ArrowTableFormatter(frequentValues.schema, frequentValues.batches, new TestLogger());
     const rows = rowCount(table);
     const totalCount = selectionRowCount ?? rows;
@@ -74,7 +95,6 @@ export function stringAggregate(table: TableAggregation, column: StringGridColum
     }
     return {
         columnEntry: column,
-        frequentValuesDataFrame: mockDataFrame('frequent_values'),
         frequentValuesTable: frequentValues as never,
         frequentValuesFormatter: formatter,
         analysis: {
@@ -92,6 +112,6 @@ export function stringAggregate(table: TableAggregation, column: StringGridColum
 }
 
 /// A summary among the selected rows, computed for a version of the filters
-export function filteredAggregate(aggregate: ColumnAggregationVariant, filterVersion: ComputationStateVersion = new ComputationStateVersion(1, 1), dataSearchRequestId: number | null = null): WithFilterEpoch<ColumnAggregationVariant> {
+export function filteredAggregate(aggregate: ColumnAggregationVariant, filterVersion: ComputationStateVersion = { data: 1, filter: 1 }, dataSearchRequestId: number | null = null): WithFilterEpoch<ColumnAggregationVariant> {
     return { ...aggregate, filterVersion, dataSearchRequestId };
 }

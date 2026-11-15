@@ -6,7 +6,7 @@ import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
-import { ComputationsProvider } from '../compute/computation_registry.js';
+import { CoreRuntimeProvider } from './runtime_hooks.js';
 import { useSalesforceAPI } from '../connections/salesforce/salesforce_connector.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
@@ -100,9 +100,9 @@ function AppRuntime(props: { children?: React.ReactNode }) {
 function ProvideRuntime(props: { runtime: Runtime; children?: React.ReactNode }) {
     return (
         <RUNTIME_CTX.Provider value={props.runtime}>
-            <ComputationsProvider value={props.runtime.computations}>
+            <CoreRuntimeProvider value={props.runtime.coreRuntime}>
                 {props.children}
-            </ComputationsProvider>
+            </CoreRuntimeProvider>
         </RUNTIME_CTX.Provider>
     );
 }

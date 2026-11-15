@@ -65,7 +65,7 @@ const dependencies = {
     useDeleteConnection: () => vi.fn(),
     useStorageReader: () => storageReader,
     useStorageWriter: () => storageWriter,
-    useComputationDispatch: () => vi.fn(),
+    useDeleteComputation: () => vi.fn(),
     // The storage overlay renders the storage item of the workbook menu as its anchor
     WorkbookStorageOverlay: (props: { renderAnchor: (p: object) => React.ReactElement }) => props.renderAnchor({}),
     WorkbookURLShareOverlay: () => null,

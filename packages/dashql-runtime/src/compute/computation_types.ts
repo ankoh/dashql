@@ -1,365 +1,66 @@
 import * as arrow from 'apache-arrow';
-import { TaskStatus } from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql-core';
 
-import { VariantKind } from '../utils/variant.js';
-import { DataFrame } from './data_frame.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { LoggableException } from '../platform/logger/logger.js';
-import { AsyncValue } from '../utils/async_value.js';
+import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
+import type { LoggerLike } from '../platform/logger/logger.js';
 
-export const ORDINAL_COLUMN = Symbol("ORDINAL_COLUMN");
-export const STRING_COLUMN = Symbol("STRING_COLUMN");
-export const LIST_COLUMN = Symbol("LIST_COLUMN");
-export const SKIPPED_COLUMN = Symbol("SKIPPED_COLUMN");
-export const ROWNUMBER_COLUMN = Symbol("ROWNUMBER_COLUMN");
+// The computation of a result as the app reads it: the view of the runtime (`ComputationView` of the module, see
+// docs/wip/runtime_api.md) with the tables of the handle table, and the summaries of the columns that the plots draw,
+// formatted like the cells of the grid.
 
-// ------------------------------------------------------------
+/// The kinds of the column groups, the tags of `ComputationColumnGroup`
+export const ORDINAL_COLUMN = 'ORDINAL';
+export const STRING_COLUMN = 'STRING';
+export const LIST_COLUMN = 'LIST';
+export const SKIPPED_COLUMN = 'SKIPPED';
+export const ROWNUMBER_COLUMN = 'ROWNUMBER';
 
-/// The comparison of a scalar filter
-export type FilterOp = "=" | "<" | "<=" | ">" | ">=";
+/// The status of a task, the numeric enum of the runtime
+export { TaskStatus } from '@ankoh/dashql-core';
 
-/// An order of the rows by a column
-export interface OrderByConstraint {
-    field: string;
-    ascending?: boolean;
-    nullsFirst?: boolean;
-}
-
+/// The view of the computation of a result table
+export type TableComputationState = core.ComputationView;
+/// A column group of the grid
+export type ColumnGroup = core.ComputationColumnGroup;
+/// The value column of an ordinal, a string or a list column group
+export type GridValueColumn = core.ComputationValueColumn;
+/// A key of an ordering
+export type OrderByConstraint = core.ComputationOrderBy;
 /// A filter of the rows by the value of a column
-export interface ScalarFilter {
-    fieldName: string;
-    op: FilterOp;
-    value: number;
+export type ScalarFilter = core.ComputationScalarFilter;
+/// The version of the data and the filter of a computation
+export type ComputationStateVersion = core.ComputationVersionValue;
+/// The search of the columns or of the data
+export type ResultSearchState = core.ComputationSearch;
+/// A task that a computation tracks with its progress
+export type TrackedTask = core.ComputationTrackedTask;
+
+/// Do two versions match in their data and their filter?
+export function filterMatches(version: ComputationStateVersion | null | undefined, other: ComputationStateVersion | null | undefined): boolean {
+    return version != null && other != null && version.data === other.data && version.filter === other.filter;
 }
 
-export class ComputationStateVersion {
-    /// The data version - incremented when underlying data changes
-    public data: number;
-    /// The filter version - incremented when filters change
-    public filter: number;
-
-    constructor(data: number = 0, filter: number = 0) {
-        this.data = data;
-        this.filter = filter;
-    }
-
-    /// Clone a computation state version
-    clone(): ComputationStateVersion {
-        return new ComputationStateVersion(this.data, this.filter);
-    }
-
-    /// Check if this version matches another in data + filter dimensions
-    filterMatches(other: ComputationStateVersion): boolean {
-        return this.data === other.data && this.filter === other.filter;
-    }
-
-    /// Serialize the version
-    public toString(): string {
-        return `${this.data}.${this.filter}`;
-    }
-};
-
-export interface TableFilteringTask {
-    /// The table id
-    tableId: number;
-    /// The table version
-    tableVersion: ComputationStateVersion;
-    /// The data frame
-    inputDataTable: arrow.Table;
-    /// The data frame
-    inputDataTableFieldIndex: Map<string, number>;
-    /// The data frame
-    inputDataFrame: DataFrame;
-    /// The row number columns
-    rowNumberColumnName: string;
-    /// The scalar filters
-    filters: ScalarFilter[];
-}
-
-export interface TableOrderingTask {
-    /// The table id
-    tableId: number;
-    /// The table version
-    tableVersion: ComputationStateVersion;
-    /// The data frame
-    inputDataTable: arrow.Table;
-    /// The data frame
-    inputDataTableFieldIndex: Map<string, number>;
-    /// The data frame
-    inputDataFrame: DataFrame;
-    /// The active filter table, if ordering should happen on a filtered subset
-    filterTable: FilterTable | null;
-    /// The active Data-search table, if ordering should happen on searched rows
-    dataSearchTable: DataSearchTable | null;
-    /// The row number column that provides stable ids into the immutable base table
-    rowNumberColumnName: string;
-    /// The ordering constraints
-    orderingConstraints: OrderByConstraint[];
-}
-
-export interface ResultSearchState {
-    /// The plain-text search requested by the user
-    requestedPattern: string;
-    /// The last successfully applied search text
-    appliedPattern: string;
-    /// Incremented for every requested search
-    requestId: number;
-    /// The last applied request
-    appliedRequestId: number;
-    /// Matching column-group indexes for a Columns search
-    matchingColumnGroups: number[] | null;
-    /// Matching original-column indexes keyed by 1-based row number
-    matchingRows: Map<number, number[]> | null;
-    /// Whether a search is currently running
-    pending: boolean;
-    /// Latest search error, if any
-    error: string | null;
-}
-
-export interface DataSearchTask {
-    /// The table id
-    tableId: number;
-    /// The data/filter version when the search was requested
-    tableVersion: ComputationStateVersion;
-    /// The source data frame
-    inputDataFrame: DataFrame;
-    /// The stable row-number column in the source data frame
-    rowNumberColumnName: string;
-    /// Original result columns searched by the query
-    columns: Array<{ columnIdx: number; columnGroupIdx: number; fieldName: string }>;
-    /// The plain-text search pattern
-    pattern: string;
-    /// The request id used to reject stale results
-    requestId: number;
-    /// Cancels materialization when superseded or when the source table is destroyed
-    abortController: AbortController;
-}
-
-export interface TableAggregationTask {
-    /// The table id
-    tableId: number;
-    /// The table version
-    tableVersion: ComputationStateVersion;
-    /// The column entries
-    columnEntries: ColumnGroup[];
-    /// The data frame
-    inputDataFrame: DataFrame;
-}
-
-export interface SystemColumnComputationTask {
-    /// The table id
-    tableId: number;
-    /// The table version
-    tableVersion: ComputationStateVersion;
-    /// The column entries
-    columnEntries: ColumnGroup[];
-    /// The input table
-    inputTable: arrow.Table;
-    /// The input data frame
-    inputDataFrame: DataFrame;
-    /// The column of the input data frame with the row numbers of the input table, from 1
-    rowNumberFieldName: string;
-    /// The stats table
-    tableAggregate: TableAggregation;
-}
-
-export interface ColumnAggregationTask {
-    /// The table id
-    tableId: number;
-    /// The table version
-    tableVersion: ComputationStateVersion;
-    /// The task id
-    columnId: number;
-    /// The column entry
-    columnEntry: ColumnGroup;
-    /// The input data frame
-    inputDataFrame: DataFrame;
-    /// The table summary
-    tableAggregate: TableAggregation;
-}
-
-// ------------------------------------------------------------
-
-/// The status of a task, the numeric enum of the Rust computations
-export { TaskStatus };
-
-export interface TaskProgress {
-    /// Task status
-    status: TaskStatus;
-    /// Task started at timestamp
-    startedAt: Date;
-    /// Task completed at timestamp
-    completedAt: Date | null;
-    /// Task failed at timestamp
-    failedAt: Date | null;
-    /// Task failed with error
-    failedWithError: LoggableException | null;
-}
-
-export type WithProgress<T> = T & { progress: TaskProgress };
-
-// ------------------------------------------------------------
-
-export type ColumnGroup =
-    | VariantKind<typeof ROWNUMBER_COLUMN, RowNumberGridColumnGroup>
-    | VariantKind<typeof SKIPPED_COLUMN, SkippedGridColumnGroup>
-    | VariantKind<typeof ORDINAL_COLUMN, OrdinalGridColumnGroup>
-    | VariantKind<typeof STRING_COLUMN, StringGridColumnGroup>
-    | VariantKind<typeof LIST_COLUMN, ListGridColumnGroup>
-    ;
-
-export interface ColumnStatsFields {
-    /// Entry count (!= null)
-    countFieldName: string;
-    /// Distinct entry count (only for strings and lists)
-    distinctCountFieldName: string | null;
-    /// Maximum value
-    minAggregateFieldName: string | null;
-    /// Minimum value
-    maxAggregateFieldName: string | null;
-}
-
-export interface RowNumberGridColumnGroup {
-    /// The input field
-    rowNumberFieldName: string;
-}
-
-export interface OrdinalGridColumnGroup {
-    /// The input field name
-    inputFieldName: string;
-    /// The input field type
+/// The value column of a column group with the Arrow type of its field
+export interface SummaryColumn extends Omit<GridValueColumn, 'inputFieldType'> {
     inputFieldType: arrow.DataType;
-    /// Is the input nullable?
-    inputFieldNullable: boolean;
-    /// The column stats
-    statsFields: ColumnStatsFields | null;
-    /// The bin field name
-    binFieldName: string | null;
-    /// The bin count
-    binCount: number;
 }
 
-export interface StringGridColumnGroup {
-    /// The input field name
-    inputFieldName: string;
-    /// The input field type
-    inputFieldType: arrow.DataType;
-    /// Is the input nullable?
-    inputFieldNullable: boolean;
-    /// The column stats
-    statsFields: ColumnStatsFields | null;
-    /// The identifier field
-    valueIdFieldName: string | null;
-}
-
-export interface ListGridColumnGroup {
-    /// The input field name
-    inputFieldName: string;
-    /// The input field type
-    inputFieldType: arrow.DataType;
-    /// Is the input nullable?
-    inputFieldNullable: boolean;
-    /// The column stats
-    statsFields: ColumnStatsFields | null;
-    /// The identifier field
-    valueIdFieldName: string | null;
-}
-
-export interface SkippedGridColumnGroup {
-    /// The input field name
-    inputFieldName: string;
-    /// The input field type
-    inputFieldType: arrow.DataType;
-    /// Is the input nullable?
-    inputFieldNullable: boolean;
-}
-
-// ------------------------------------------------------------
-
-export interface OrderingTable {
-    /// The row number column that is used for the ordering ids
-    inputRowNumberColumnName: string;
-    /// The ordering constraints
-    orderingConstraints: OrderByConstraint[];
-    /// The arrow table, only containing the row ids in display order
-    dataTable: arrow.Table;
-    /// The data frame
-    dataFrame: DataFrame;
-    /// The version when this ordering was computed
-    version: ComputationStateVersion;
-    /// The Data-search request included in the ordering, if any
-    dataSearchRequestId: number | null;
-}
-
-export interface FilterTable {
-    /// The row number column that is used for the filter
-    inputRowNumberColumnName: string;
-    /// The arrow table, only containing the row ids of the filtered rows
-    dataTable: arrow.Table;
-    /// The data frame
-    dataFrame: DataFrame;
-    /// The version when this filter was computed
-    version: ComputationStateVersion;
-}
-
-export interface DataSearchTable {
-    /// The source row-number column matched by this search
-    inputRowNumberColumnName: string;
-    /// The Arrow table containing matched row ids and matching original-column ids
-    dataTable: arrow.Table;
-    /// The materialized search result
-    dataFrame: DataFrame;
-    /// The source data version searched
-    version: ComputationStateVersion;
-    /// The request represented by this table
-    requestId: number;
-}
-
-// ------------------------------------------------------------
-
-export type ColumnAggregationVariant =
-    VariantKind<typeof ORDINAL_COLUMN, OrdinalColumnAggregation>
-    | VariantKind<typeof STRING_COLUMN, StringColumnAggregation>
-    | VariantKind<typeof LIST_COLUMN, ListColumnAggregation>
-    | VariantKind<typeof SKIPPED_COLUMN, null>
-    ;
-
-export type WithFilter<T> = T & {
-    /// The cross-filter table, if active
-    filterTable: FilterTable | null,
-    /// The Data-search table, if active
-    dataSearchTable: DataSearchTable | null,
-    /// Number of rows in the effective intersection
-    selectionRowCount: number,
-    /// The unfiltered aggregate
-    unfilteredAggregate: ColumnAggregationVariant;
-};
-
-export type WithFilterEpoch<T> = T & {
-    /// The filter version when this aggregate was computed
-    filterVersion: ComputationStateVersion,
-    /// The Data-search request when this aggregate was computed
-    dataSearchRequestId: number | null,
-};
-
+/// The statistics of all columns of a table
 export interface TableAggregation {
-    /// The statistics
-    dataFrame: DataFrame;
-    /// The statistics
+    /// The statistics, one row
     table: arrow.Table;
     /// The statistics field index
     tableFieldsByName: Map<string, number>;
-    /// The formatter for the stats table
+    /// The formatter of the statistics
     tableFormatter: ArrowTableFormatter;
-    /// Maximum value
+    /// The field of the row count
     countStarFieldName: string;
 }
 
-export interface OrdinalColumnAggregation<WidthType extends arrow.DataType = arrow.DataType, BoundType extends arrow.DataType = arrow.DataType> {
+export interface OrdinalColumnAggregation {
     /// The column entry
-    columnEntry: OrdinalGridColumnGroup;
-    /// The binned data frame
-    binnedDataFrame: DataFrame;
+    columnEntry: SummaryColumn;
     /// The binned values
     binnedValues: BinnedValuesTable;
     /// The formatter for the binned values
@@ -369,31 +70,23 @@ export interface OrdinalColumnAggregation<WidthType extends arrow.DataType = arr
 }
 
 export interface OrdinalColumnAnalysis {
-    /// The total row count
     totalCount: number;
-    /// The value count
     countNotNull: number;
-    /// The null count
     countNull: number;
-    /// The minimum value
+    /// The minimum value, formatted
     minValue: string;
-    /// The maximum value
+    /// The maximum value, formatted
     maxValue: string;
-    /// The bin count
     binCount: number;
-    /// The bin counts
     binValueCounts: BigInt64Array;
-    /// The bin percentages
     binPercentages: Float64Array;
-    /// The bin lower bounds
+    /// The lower bounds of the bins, formatted
     binLowerBounds: string[];
 }
 
 export interface StringColumnAggregation {
     /// The string column entry
-    columnEntry: StringGridColumnGroup;
-    /// The frequent values
-    frequentValuesDataFrame: DataFrame;
+    columnEntry: SummaryColumn;
     /// The frequent values
     frequentValuesTable: FrequentValuesTable;
     /// The formatter for the frequent values
@@ -403,95 +96,222 @@ export interface StringColumnAggregation {
 }
 
 export interface StringColumnAnalysis {
-    /// The total row count
     totalCount: number;
-    /// The value count
     countNotNull: number;
-    /// The null count
     countNull: number;
-    /// The distinct count
     countDistinct: number;
-    /// Is unique?
     isUnique: boolean;
-    /// The frequent values
+    /// The frequent values, formatted
     frequentValueStrings: (string | null)[];
     /// The frequent value ids (for plotting)
     frequentValueIds: BigInt64Array;
-    /// The frequent value counts
     frequentValueCounts: BigInt64Array;
-    /// The frequent value percentages
     frequentValuePercentages: Float64Array;
 }
 
-export interface ListColumnAggregation {
-    /// The list column entry
-    columnEntry: ListGridColumnGroup;
-    /// The frequent values
-    frequentValuesDataFrame: DataFrame;
-    /// The frequent values
-    frequentValuesTable: FrequentValuesTable;
-    /// The formatter for the frequent values
-    frequentValuesFormatter: ArrowTableFormatter;
-    /// The analyzed information for a list column
-    analysis: ListColumnAnalysis;
-}
+/// The summary of a column for the plots
+export type ColumnAggregationVariant =
+    | { type: typeof ORDINAL_COLUMN; value: OrdinalColumnAggregation }
+    | { type: typeof STRING_COLUMN; value: StringColumnAggregation }
+    | { type: typeof LIST_COLUMN; value: null }
+    | { type: typeof SKIPPED_COLUMN; value: null };
 
-export interface ListColumnAnalysis {
-    /// The value count
-    countNotNull: number;
-    /// The null count
-    countNull: number;
-    /// The distinct count
-    countDistinct: number;
-    /// Is unique?
-    isUnique: boolean;
-    /// The frequent value is null
-    frequentValueIsNull: Uint8Array;
-    /// The frequent value counts
-    frequentValueCounts: BigInt64Array;
-    /// The frequent value percentages
-    frequentValuePercentages: Float64Array;
-}
-
-// ------------------------------------------------------------
+export type WithFilterEpoch<T> = T & {
+    /// The filter version when this aggregate was computed
+    filterVersion: ComputationStateVersion;
+    /// The Data-search request when this aggregate was computed
+    dataSearchRequestId: number | null;
+};
 
 export type BinnedValuesTable<WidthType extends arrow.DataType = arrow.DataType, BoundType extends arrow.DataType = arrow.DataType> = arrow.Table<{
-    bin: arrow.Int32,
-    binWidth: WidthType,
-    binLowerBound: BoundType,
-    binUpperBound: BoundType,
-    count: arrow.Int64,
+    bin: arrow.Int32;
+    binWidth: WidthType;
+    binLowerBound: BoundType;
+    binUpperBound: BoundType;
+    count: arrow.Int64;
 }>;
 
 export type FrequentValuesTable<KeyType extends arrow.DataType = arrow.DataType> = arrow.Table<{
-    key: KeyType,
-    keyId: arrow.Int64,
-    count: arrow.Int64,
-}>
+    key: KeyType;
+    keyId: arrow.Int64;
+    count: arrow.Int64;
+}>;
 
-// ------------------------------------------------------------
+/// The summaries of a computation that the plots draw
+export interface ComputationSummaries {
+    tableAggregation: TableAggregation | null;
+    columnAggregates: (ColumnAggregationVariant | null)[];
+    filteredColumnAggregates: (WithFilterEpoch<ColumnAggregationVariant> | null)[];
+}
 
-export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
-    result: AsyncValue<Result, LoggableException>,
-    taskId?: number,
-};
+/// Where the summaries read the tables of the view
+export interface SummaryTables {
+    table(handle: number | null | undefined): arrow.Table | undefined;
+}
 
-export const FILTERED_COLUMN_AGGREGATION_TASK = Symbol("FILTERED_COLUMN_AGGREGATION_TASK");
-export const COLUMN_AGGREGATION_TASK = Symbol("COLUMN_AGGREGATION_TASK");
-export const TABLE_FILTERING_TASK = Symbol("TABLE_FILTERING_TASK");
-export const TABLE_ORDERING_TASK = Symbol("TABLE_ORDERING_TASK");
-export const TABLE_AGGREGATION_TASK = Symbol("TABLE_AGGREGATION_TASK");
-export const SYSTEM_COLUMN_COMPUTATION_TASK = Symbol("SYSTEM_COLUMN_COMPUTATION_TASK");
-export const DATA_SEARCH_TASK = Symbol("DATA_SEARCH_TASK");
+/// The formats of the lower bounds of the bins of temporal columns
+const TEMPORAL_BOUND_FORMAT = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
 
-export type TaskVariant =
-    | ComputationTask<typeof TABLE_FILTERING_TASK, TableFilteringTask, FilterTable | null>
-    | ComputationTask<typeof TABLE_ORDERING_TASK, TableOrderingTask, OrderingTable>
-    | ComputationTask<typeof TABLE_AGGREGATION_TASK, TableAggregationTask, [TableAggregation, ColumnGroup[]]>
-    | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, DataFrame, ColumnGroup[]]>
-    | ComputationTask<typeof COLUMN_AGGREGATION_TASK, ColumnAggregationTask, ColumnAggregationVariant>
-    | ComputationTask<typeof FILTERED_COLUMN_AGGREGATION_TASK, WithFilter<ColumnAggregationTask>, WithFilterEpoch<ColumnAggregationVariant> | null>
-    | ComputationTask<typeof DATA_SEARCH_TASK, DataSearchTask, DataSearchTable>
-    ;
+/// What the summaries built of a table, built once per table
+const built = new WeakMap<object, unknown>();
+function once<T>(table: arrow.Table, build: () => T): T {
+    if (built.has(table)) return built.get(table) as T;
+    const value = build();
+    built.set(table, value);
+    return value;
+}
 
-/// The title of the queries of a task in the query history
+/// The statistics of a computation
+export function resolveTableAggregation(view: TableComputationState, tables: SummaryTables, logger: LoggerLike): TableAggregation | null {
+    const aggregation = view.tableAggregation;
+    const table = aggregation == null ? undefined : tables.table(aggregation.table);
+    if (aggregation == null || table == null) return null;
+    return once(table, () => ({
+        table,
+        tableFieldsByName: new Map(table.schema.fields.map((field, i) => [field.name, i])),
+        tableFormatter: new ArrowTableFormatter(table.schema, table.batches, logger),
+        countStarFieldName: aggregation.countStarFieldName,
+    }));
+}
+
+/// The column of a column group with the Arrow type of its field in the table
+function summaryColumn(group: ColumnGroup | undefined, dataTable: arrow.Table | undefined): SummaryColumn | null {
+    if (group == null || (group.type !== ORDINAL_COLUMN && group.type !== STRING_COLUMN && group.type !== LIST_COLUMN)) return null;
+    const field = dataTable?.schema.fields.find(field => field.name === group.value.inputFieldName);
+    return { ...group.value, inputFieldType: field?.type ?? new arrow.Null() };
+}
+
+/// The summary of a column of the view with its analysis and the formatted values
+function resolveAggregate(
+    aggregate: core.ComputationColumnAggregate | null | undefined,
+    group: ColumnGroup | undefined,
+    stats: TableAggregation | null,
+    dataTable: arrow.Table | undefined,
+    tables: SummaryTables,
+    logger: LoggerLike,
+): ColumnAggregationVariant | null {
+    if (aggregate == null) return null;
+    if (aggregate.kind === 'skipped') return SKIPPED_AGGREGATE;
+    if (aggregate.kind === 'list') return { type: LIST_COLUMN, value: null };
+    const table = tables.table(aggregate.table);
+    const analysis = aggregate.analysis;
+    if (table == null || analysis == null || stats == null) return null;
+    return once(table, () => {
+        const column = summaryColumn(group, dataTable);
+        if (column == null) return null;
+        const formatter = new ArrowTableFormatter(table.schema, table.batches, logger);
+        if (analysis.kind === 'ordinal' && group?.type === ORDINAL_COLUMN) {
+            return {
+                type: ORDINAL_COLUMN,
+                value: {
+                    columnEntry: column,
+                    binnedValues: table as BinnedValuesTable,
+                    binnedValuesFormatter: formatter,
+                    columnAnalysis: ordinalAnalysis(analysis, stats, column, table, formatter),
+                },
+            };
+        }
+        if (analysis.kind === 'string' && group?.type === STRING_COLUMN) {
+            return {
+                type: STRING_COLUMN,
+                value: {
+                    columnEntry: column,
+                    frequentValuesTable: table as FrequentValuesTable,
+                    frequentValuesFormatter: formatter,
+                    analysis: stringAnalysis(analysis, table, formatter),
+                },
+            };
+        }
+        return null;
+    });
+}
+
+const SKIPPED_AGGREGATE: ColumnAggregationVariant = { type: SKIPPED_COLUMN, value: null };
+
+/// The epochs of the summaries over the selected rows, one object per summary
+const epochs = new WeakMap<object, WithFilterEpoch<ColumnAggregationVariant>>();
+
+/// The summaries of a computation for the plots. A summary keeps its object while its table is the same.
+export function resolveSummaries(view: TableComputationState, tables: SummaryTables, logger: LoggerLike): ComputationSummaries {
+    const dataTable = tables.table(view.dataTable);
+    const tableAggregation = resolveTableAggregation(view, tables, logger);
+    const columnAggregates = view.columnAggregates.map((aggregate, i) =>
+        resolveAggregate(aggregate, view.columnGroups[i], tableAggregation, dataTable, tables, logger));
+    const filteredColumnAggregates = view.filteredColumnAggregates.map((filtered, i) => {
+        if (filtered == null) return null;
+        const aggregate = resolveAggregate(filtered.aggregate, view.columnGroups[i], tableAggregation, dataTable, tables, logger);
+        if (aggregate == null) return null;
+        // The view of the summary keeps its object while it is the same, and so does its epoch
+        let epoch = epochs.get(filtered);
+        if (epoch == null || epoch.type !== aggregate.type || epoch.value !== aggregate.value) {
+            epoch = { ...aggregate, filterVersion: filtered.filterVersion, dataSearchRequestId: filtered.dataSearchRequestId } as WithFilterEpoch<ColumnAggregationVariant>;
+            epochs.set(filtered, epoch);
+        }
+        return epoch;
+    });
+    return { tableAggregation, columnAggregates, filteredColumnAggregates };
+}
+
+/// The matching columns of the rows of the applied data search by row number from 1, null without a data search
+export function resolveMatchingRows(view: TableComputationState | null, tables: SummaryTables): Map<number, number[]> | null {
+    if (view == null || !view.dataSearch.hasMatchingRows) return null;
+    const table = tables.table(view.dataSearchTable?.dataTable);
+    if (table == null) return EMPTY_MATCHES;
+    return once(table, () => parseDataSearchMatches(table));
+}
+
+const EMPTY_MATCHES = new Map<number, number[]>();
+
+/// The analysis of a histogram: the numbers of the runtime, the values formatted like the cells of the grid
+function ordinalAnalysis(
+    analysis: Extract<core.ComputationSummaryAnalysis, { kind: 'ordinal' }>,
+    stats: TableAggregation,
+    column: SummaryColumn,
+    binned: arrow.Table,
+    formatter: ArrowTableFormatter,
+): OrdinalColumnAnalysis {
+    const statistic = (field: string | null | undefined) => {
+        const index = field == null ? undefined : stats.tableFieldsByName.get(field);
+        return index == null || stats.table.numRows === 0 ? '' : stats.tableFormatter.getValue(0, index) ?? '';
+    };
+    const lowerBound = binned.schema.fields.findIndex(field => field.name === 'binLowerBound');
+    const binLowerBounds = analysis.binLowerBounds.map((bound, i) => {
+        if (analysis.binBounds === 'epochMillis') return bound == null ? '' : TEMPORAL_BOUND_FORMAT.format(new Date(bound));
+        return lowerBound < 0 || i >= binned.numRows ? '' : formatter.getValue(i, lowerBound) ?? '';
+    });
+    return {
+        totalCount: analysis.totalCount,
+        countNotNull: analysis.countNotNull,
+        countNull: analysis.countNull,
+        minValue: statistic(column.statsFields?.minAggregateFieldName),
+        maxValue: statistic(column.statsFields?.maxAggregateFieldName),
+        binCount: analysis.binCount,
+        binValueCounts: BigInt64Array.from(analysis.binValueCounts, count => BigInt(count)),
+        binPercentages: Float64Array.from(analysis.binPercentages),
+        binLowerBounds,
+    };
+}
+
+/// The analysis of the frequent values: the numbers of the runtime, the values formatted like the cells of the grid
+function stringAnalysis(
+    analysis: Extract<core.ComputationSummaryAnalysis, { kind: 'string' }>,
+    frequentValues: arrow.Table,
+    formatter: ArrowTableFormatter,
+): StringColumnAnalysis {
+    const key = Math.max(0, frequentValues.schema.fields.findIndex(field => field.name === 'key'));
+    const frequentValueStrings: (string | null)[] = [];
+    for (let i = 0; i < frequentValues.numRows; ++i) {
+        frequentValueStrings.push(formatter.getValue(i, key));
+    }
+    return {
+        totalCount: analysis.totalCount,
+        countNotNull: analysis.countNotNull,
+        countNull: analysis.countNull,
+        countDistinct: analysis.countDistinct,
+        isUnique: analysis.isUnique,
+        frequentValueStrings,
+        frequentValueIds: BigInt64Array.from(analysis.frequentValueIds, id => BigInt(id)),
+        frequentValueCounts: BigInt64Array.from(analysis.frequentValueCounts, count => BigInt(count)),
+        frequentValuePercentages: Float64Array.from(analysis.frequentValuePercentages),
+    };
+}

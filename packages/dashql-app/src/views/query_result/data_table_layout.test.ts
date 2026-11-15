@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
-import { createTableComputationState } from '../../tests/mocks/computation.js';
+import { valueColumn } from '../../tests/mocks/computation.js';
 import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-runtime/compute/computation_types';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
@@ -16,21 +16,14 @@ function createTableState() {
     });
     const ordinal = (name: string): ColumnGroup => ({
         type: ORDINAL_COLUMN,
-        value: {
-            inputFieldName: name,
-            inputFieldType: new arrow.Int32(),
-            inputFieldNullable: false,
-            statsFields: null,
-            binFieldName: null,
-            binCount: 0,
-        },
+        value: valueColumn(name, 'Int32', { inputFieldNullable: false }),
     });
     const columnGroups: ColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
         ordinal('a'),
         ordinal('b'),
     ];
-    const state = createTableComputationState(1, table, columnGroups, new AbortController());
+    const state = { columnGroups, dataTable: table };
     const formatter = new ArrowTableFormatter(table.schema, table.batches, new TestLogger());
     return { state, formatter };
 }
@@ -51,10 +44,10 @@ function createTableStateWithSystemColumns() {
     });
     const columnGroups: ColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
-        { type: ORDINAL_COLUMN, value: { inputFieldName: 'a', inputFieldType: new arrow.Int32(), inputFieldNullable: false, statsFields: null, binFieldName: 'a_bin', binCount: 2 } },
-        { type: STRING_COLUMN, value: { inputFieldName: 's', inputFieldType: new arrow.Utf8(), inputFieldNullable: false, statsFields: null, valueIdFieldName: 's_id' } },
+        { type: ORDINAL_COLUMN, value: valueColumn('a', 'Int32', { inputFieldNullable: false, binFieldName: 'a_bin', binCount: 2 }) },
+        { type: STRING_COLUMN, value: valueColumn('s', 'Utf8', { inputFieldNullable: false, valueIdFieldName: 's_id' }) },
     ];
-    const state = createTableComputationState(1, table, columnGroups, new AbortController());
+    const state = { columnGroups, dataTable: table };
     const formatter = new ArrowTableFormatter(table.schema, table.batches, new TestLogger());
     return { state, formatter, table };
 }

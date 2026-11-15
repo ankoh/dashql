@@ -22,8 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { useComputationDispatch } from '../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
+import { useDeleteComputation } from '../runtime/runtime_hooks.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import * as ActionList from '../ui/foundations/action_list.js';
@@ -243,7 +242,7 @@ export interface WorkbookWorkbenchSidebarDependencies {
     useDetachConnection: typeof useDetachConnection;
     useDeleteConnection: typeof useDeleteConnection;
     useWorkbookScriptsDeletion: typeof useWorkbookScriptsDeletion;
-    useComputationDispatch: typeof useComputationDispatch;
+    useDeleteComputation: typeof useDeleteComputation;
     useStorageReader: typeof useStorageReader;
     useStorageWriter: typeof useStorageWriter;
     useDashQLCoreSetup: typeof useDashQLCoreSetup;
@@ -280,7 +279,7 @@ const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarD
     useDetachConnection,
     useDeleteConnection,
     useWorkbookScriptsDeletion,
-    useComputationDispatch,
+    useDeleteComputation,
     useStorageReader,
     useStorageWriter,
     useDashQLCoreSetup,
@@ -795,7 +794,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const [, modifyCurrentWorkbook] = dependencies.useWorkbookScripts(props.workbookScripts.workbookId);
     const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
     const deleteWorkbookScripts = dependencies.useWorkbookScriptsDeletion();
-    const computationDispatch = dependencies.useComputationDispatch();
+    const deleteComputation = dependencies.useDeleteComputation();
     const storageReader = dependencies.useStorageReader();
     const storageWriter = dependencies.useStorageWriter();
     const setupCore = dependencies.useDashQLCoreSetup();
@@ -1245,7 +1244,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         // computations are dropped.
         for (const database of item.connections) {
             for (const queryId of findWorkbookQueries(database, item.workbookId)) {
-                computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
+                deleteComputation(queryId);
             }
         }
 
@@ -1254,7 +1253,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             if (next != null) navigate({ type: OPEN_WORKBOOK, value: next.workbookId });
             else openGreeter();
         }
-    }, [computationDispatch, deleteWorkbookScripts, navigate, openGreeter, workbooks, props.workbookScripts.workbookId, storageWriter]);
+    }, [deleteComputation, deleteWorkbookScripts, navigate, openGreeter, workbooks, props.workbookScripts.workbookId, storageWriter]);
 
     const openWorkbook = React.useCallback((item: WorkbookItem) => {
         navigate({ type: SELECT_WORKBOOK, value: item.workbookId });

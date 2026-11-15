@@ -24,8 +24,7 @@ import {
     type QueryExecutionProgress,
     type QueryExecutionResponseStream,
 } from '../query/query_execution_state.js';
-import { analyzeTable } from '../compute/analyze_table.js';
-import { DELETE_COMPUTATION, type ComputationAction } from '../compute/computation_state.js';
+import type { CoreRuntime } from '../core_runtime.js';
 import { ResultComputations } from './result_computations.js';
 import { QueryCacheMissError, type QueryResultCache, type QueryResultCacheEntry } from '../query/query_result_cache.js';
 import { QueryResultStream } from '../query/query_result_stream.js';
@@ -42,7 +41,6 @@ import { allocateQueryId } from '../query/tracked_query_execution.js';
 import { yieldToBrowser } from '../utils/yield_to_browser.js';
 import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { createProgressLayoutConfig } from '../query/profile/profile_layout_config.js';
-import type { Dispatch } from '../utils/variant.js';
 import { connectorOfDetails } from './connector_descriptor.js';
 import { TrinoChannel } from './trino/trino_channel.js';
 import type { HyperDatabaseChannel } from './hyper/hyperdb_grpc_client.js';
@@ -99,8 +97,8 @@ export interface QueryExecutorDependencies {
     readConnections: () => Pick<ConnectionRegistry, 'connections'>;
     /// Apply an action to a connection
     dispatchConnection: DynamicConnectionDispatch;
-    /// Apply an action to the computations
-    dispatchComputation: Dispatch<ComputationAction>;
+    /// The computations of the runtime, they analyze the results
+    computations: Pick<CoreRuntime, 'analyzeTable' | 'deleteComputation'>;
     /// The database of the computations, null until it is ready
     computeDatabase: EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
@@ -718,18 +716,18 @@ export class QueryExecutorService {
                 if (computeDb == null || table == null) return;
                 try {
                     await yieldToBrowser();
-                    await analyzeTable(queryId, table, this.deps.dispatchComputation, computeDb, record.traced, record.connectionId);
+                    await this.deps.computations.analyzeTable(queryId, table, { connectionId: record.connectionId });
                     record.cancellation.signal.throwIfAborted();
                 } catch (e) {
                     // The previous result of the owner stays
-                    this.deps.dispatchComputation({ type: DELETE_COMPUTATION, value: [queryId] });
+                    this.deps.computations.deleteComputation(queryId);
                     throw e;
                 }
                 // The result replaces the previous result of its owner, or a later result replaced it already
                 const owner = record.args.metadata.resultOwner;
                 const unused = owner == null ? null : this.resultComputations.retain(owner, queryId);
                 if (unused != null) {
-                    this.deps.dispatchComputation({ type: DELETE_COMPUTATION, value: [unused] });
+                    this.deps.computations.deleteComputation(unused);
                 }
             },
             channelOpen: queryId => this.openChannel(this.recordOf(queryId)),

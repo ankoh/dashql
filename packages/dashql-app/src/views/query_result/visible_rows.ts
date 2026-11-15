@@ -1,6 +1,7 @@
 import * as arrow from 'apache-arrow';
 
-import { TableComputationState } from '@ankoh/dashql-runtime/compute/computation_state';
+import type { TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { ComputationTables } from './computation_tables.js';
 
 /// Visit the values of an integer column as numbers, like `Number(column.get(i))` (nulls become 0).
 /// Integer chunks are read from their value buffers directly. A chunk's values are already narrowed
@@ -37,12 +38,12 @@ export function forEachIntegerValue(column: arrow.Vector, visit: (value: number,
 ///
 /// The returned array holds 0-based positional indices into the analyzed data table,
 /// ready to gather columns/rows for a renderer.
-export function resolveVisibleRowIndices(computation: TableComputationState | null): Int32Array | null {
-    if (computation == null) {
+export function resolveVisibleRowIndices(tables: Pick<ComputationTables, 'orderingTable' | 'filterTable' | 'dataSearchTable'> | null): Int32Array | null {
+    if (tables == null) {
         return null;
     }
-    const indirection = computation.orderingTable?.dataTable
-        ?? (computation.filterTable == null ? computation.dataSearchTable?.dataTable : computation.filterTable.dataTable)
+    const indirection = tables.orderingTable
+        ?? (tables.filterTable == null ? tables.dataSearchTable : tables.filterTable)
         ?? null;
     if (indirection == null) {
         return null;
@@ -64,20 +65,24 @@ export function resolveVisibleRowIndices(computation: TableComputationState | nu
 
 /// Intersect the current cross-filtered/ordered rows with the active Data search.
 /// Search result keys are stable 1-based row numbers from the analyzed data frame.
-export function resolveSearchedRowIndices(computation: TableComputationState | null): Int32Array | null {
-    if (computation == null || computation.dataSearch.matchingRows == null) {
-        return resolveVisibleRowIndices(computation);
+export function resolveSearchedRowIndices(computation: TableComputationState | null, tables: ComputationTables): Int32Array | null {
+    if (computation == null) {
+        return null;
+    }
+    const matchingRows = tables.matchingRows;
+    if (matchingRows == null) {
+        return resolveVisibleRowIndices(tables);
     }
     const visible = computation.orderingTable?.dataSearchRequestId === computation.dataSearchTable?.requestId
-        ? resolveVisibleRowIndices(computation)
-        : resolveVisibleRowIndices(computation == null ? null : { ...computation, dataSearchTable: null });
+        ? resolveVisibleRowIndices(tables)
+        : resolveVisibleRowIndices({ ...tables, dataSearchTable: null });
     if (visible == null) {
-        const rows = Array.from(computation.dataSearch.matchingRows.keys(), rowNumber => rowNumber - 1);
+        const rows = Array.from(matchingRows.keys(), rowNumber => rowNumber - 1);
         return Int32Array.from(rows);
     }
     const rows: number[] = [];
     for (const row of visible) {
-        if (computation.dataSearch.matchingRows.has(row + 1)) {
+        if (matchingRows.has(row + 1)) {
             rows.push(row);
         }
     }

@@ -1,6 +1,7 @@
 # The API between the app and the runtime
 
-Status: decided on 2026-11-15 (see [Decisions](#decisions)), nothing of it is built yet. Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+Status: decided on 2026-11-15 (see [Decisions](#decisions)). Step 1 is built: the frame (`Runtime`, `JsPlatform`,
+`RuntimeStore`, the hooks) with the computations as its first domain, see [Step 1 as built](#step-1-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -411,7 +412,7 @@ deletes more than it adds.
 
 0. **Prerequisites, landing now.** The streaming of results through the host and the handle table with the three
    effects. No step below starts before both are on main.
-1. **The frame and the computations.** `Runtime` with the change set, `views`, `dispatch` and the computations (the
+1. **The frame and the computations** (done, see [Step 1 as built](#step-1-as-built)). `Runtime` with the change set, `views`, `dispatch` and the computations (the
    smallest consumer set: 12 files, the views exist); `JsPlatform` with `clock`, `log`, `handles`, `tables`,
    `compute`; `RuntimeStore`, `useView`, `useDispatch`, `useTable`. The shell of Hyper keeps its own bindings for now
    (decision 3). Deletes `computation_native.ts`, `compute/computations.ts`, `data_frame.ts`, `analyze_table.ts`,
@@ -448,6 +449,69 @@ deletes more than it adds.
    −1,100.
 7. **The rest.** `runtime.ts` becomes the facade; the old hook names, `storeWithoutRuntime` and the binding modules
    of the app go.
+
+### Step 1 as built
+
+The frame and the computations, built on `665945575` (the handle table), before the streaming of results landed.
+
+- **`Runtime`** (`packages/dashql-core-wasm/src/runtime.rs`, `DashQL.createRuntime(platform)`): `takeChanges()`,
+  `views(kind, ids, known?)`, `dispatch(target, action)`, the command `analyzeTable(tableId, table, options)` and
+  `destroy()`. The map of view kinds is emitted next to the declarations (`RuntimeViews`, `ViewKind`, `ViewId<K>`,
+  `ViewOf<K>`, `KnownKeys<K>`), `views` is declared generic through an interface that merges into the class. A kind
+  joins with a variant of `Target`, its actions in `RuntimeAction`, its slices in `takeChanges` and a branch of
+  `views`. `Target` is `{ computation: number }`, the change set `{ changes: { kind, id, revision | null }[], effects }`
+  with the effects `release` and `abort`, the outcome of a dispatch `{ ok, changed, error }`. Every argument is a
+  `Ts<T>` or a checked number: a wrong type, an unknown kind or an id that is no integer throws a JS error, the module
+  stays usable (`runtime.test.ts` of `dashql-core-js`).
+- **The actions of the computations are requests**, not the 18 actions of the TypeScript reducer: `deleteComputation`,
+  `orderBy`, `histogramFilter`, `mostFrequentValueFilter`, `clearCrossFilters`, `setResultSearchPattern`,
+  `requestFilteredColumnAggregation`. The service of the crate derives the tasks from the state and runs them, the
+  scheduler of the app, the queue of its filters, its search effects and the column search on the data frames went
+  into `compute/service.rs` (core_runtime.md, "The tasks of the computations").
+- **`JsPlatform`** (`src/host.rs`): `Host` and `ComputeHost` once, over the `RuntimePlatform` object with `clock`,
+  `log`, `handles`, `tables` (`begin`, `append`, `finish` and `read`: the analysis reads its result by handle) and
+  `compute`, a getter. It collects the effects on handles and calls `changed(urgent)` once until the host takes the
+  changes, again when a change becomes urgent: a dispatch is urgent, a step of a task is not. Every member is reached
+  through `Reflect` and caught, a missing or throwing member fails the call with a `HostError`.
+- **`RuntimeStore`** (`packages/dashql-runtime/src/store/runtime_store.ts`): a `RevisionCache` per kind, subscriptions
+  per slice, the flush at the end of the task when urgent and before the next frame otherwise, one `views` call per
+  changed kind, `share` with the previous view, the effects applied to the handle table. `CoreRuntime`
+  (`core_runtime.ts`) builds the platform object, owns the handle table and the store, attaches the runtime of the
+  module when the core arrives and has the commands (`analyzeTable`, `deleteComputation`, `flush`, `destroy`).
+- **Hooks** (`packages/dashql-app/src/runtime/runtime_hooks.tsx`): `useView(kind, id)`, `useDispatch(target)`,
+  `useTable(handle)`, `useCoreRuntime()`, with the aliases `useComputation`, `useComputationDispatch` and
+  `useDeleteComputation`. `useRuntime()` stays the TypeScript facade of the services until step 7, `CoreRuntime` is its
+  `coreRuntime`. `StandaloneCoreRuntime` gives the shell of Hyper a runtime of the module of its own, so no bindings
+  of the computations remain besides `Runtime` (decision 3 holds for the history of the shell).
+- **Field names.** The view keeps the names of `TableComputationState`, which is now its alias; tables are handles
+  (`dataTable`, `filterTable.dataTable`, ...), the column groups keep `{ type, value }` with the kinds as strings, the
+  versions are `{ data, filter }`, the cross filters an array. The app formats the summaries for the plots from the
+  view and the tables (`resolveSummaries`), the plot cells read the objects they read before.
+- **The handle table** of the platform is the one of `CoreRuntime`; the connections keep `handlesOf(instance)` until
+  step 2 moves them onto the platform.
+
+Measured (`git diff --numstat`, sources without tests):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 2,463 | 770 | 2,364 | 214 |
+| `dashql-core-js` | 328 | 58 | 187 | 88 |
+| `dashql-core-wasm` | 1,325 | 807 | | |
+| `dashql-core-runtime` | 14 | 508 | 1 | 167 |
+| `dashql-app` | 756 | 371 | 482 | 264 |
+
+TypeScript lost 3,547 lines and gained 1,199 without tests, Rust gained 508 in the crate (the requests of the app) and
+lost 518 in the bindings. The release module shrank from 12,990,508 to 12,842,126 bytes (−1.1%), gzip (`-9`) from
+3,582,389 to 3,529,794 bytes (−1.5%): the class `Computations` with its readers of the actions of the host is larger
+than `Runtime`, the platform and the requests.
+
+What step 2 needs of the frame: a `Target` and the actions of the connections, the `connection` and `query` kinds in
+`takeChanges` and `views` (the revisions of `taken` per kind), `http`, `channels`, `resultCache` and `crypto` on the
+platform and in `JsPlatform`, the handle table of the connections on the platform instead of `handlesOf(instance)`,
+and the executor reporting into the runtime instead of the `analyzeTable` command (`QueryExecutorService` calls
+`coreRuntime.analyzeTable` and `deleteComputation` until then).
+
+### The order
 
 Steps 2 and 4 are the wide ones. Step 4 can go before 2 and 3 if the editor matters more than the connections
 (decision 7); it then reads the connections through their bindings for a while.

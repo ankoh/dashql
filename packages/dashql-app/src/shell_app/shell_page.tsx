@@ -9,9 +9,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
-import { analyzeTable } from '@ankoh/dashql-runtime/compute/analyze_table';
-import { useComputationDispatch } from '../compute/computation_registry.js';
-import { DELETE_COMPUTATION } from '@ankoh/dashql-runtime/compute/computation_state';
+import { useCoreRuntime } from '../runtime/runtime_hooks.js';
 import { ShellQueryResultOverlay } from '../workbook/shell/shell_query_result_overlay.js';
 import { EmbeddedDatabaseCatalog } from './embedded_database_catalog.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
@@ -65,7 +63,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const coreProgress = useDashQLCoreSetupProgress();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const queryExecutions = useShellQueryHistory();
-    const dispatchComputation = useComputationDispatch();
+    const coreRuntime = useCoreRuntime();
     const httpClient = useHttpClient();
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
@@ -97,8 +95,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         shellRef.current?.setKeywordCase(keywordCase);
     }, [keywordCase]);
     const releaseResult = React.useCallback((queryId: number) => {
-        dispatchComputation({ type: DELETE_COMPUTATION, value: [queryId] });
-    }, [dispatchComputation]);
+        coreRuntime.deleteComputation(queryId);
+    }, [coreRuntime]);
     const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(queryExecutions, releaseResult);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
         dropResultQuery();
@@ -262,13 +260,11 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             const nextShell = await createDashQLShell({
                 core,
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
-                    prepareResult: (queryId, table) => analyzeTable(
-                        queryId,
-                        table,
-                        dispatchComputation,
-                        database,
-                        logger,
-                    ),
+                    prepareResult: (queryId, table) => {
+                        // The computations of the results of the shell run on its database
+                        coreRuntime.setComputeDatabase(database);
+                        return coreRuntime.analyzeTable(queryId, table);
+                    },
                     // The statement succeeded, following the catalog must not fail it
                     afterStatement: async statement => {
                         try {
@@ -345,7 +341,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             fileRegistryRef.current = null;
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appEvents, dispatchComputation, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, coreRuntime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (

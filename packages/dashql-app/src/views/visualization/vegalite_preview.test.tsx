@@ -13,7 +13,7 @@ import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const dependencies = {
     loadVega: async () => ({ embed: vegaEmbed, expressionInterpreter: {} as typeof import('vega-interpreter').expressionInterpreter }),
-    useComputationRegistry: () => [{ tableComputations: {}, schedulerTasks: {}, nextSchedulerTaskId: 1 }],
+    useResultComputation: () => null,
     useNearViewport: () => true,
 } as VegaLiteViewDependencies;
 

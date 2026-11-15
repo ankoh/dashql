@@ -15,7 +15,7 @@ import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_exec
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { replayProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
 import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
-import { StandaloneComputations } from '../../compute/computation_registry.js';
+import { StandaloneCoreRuntime } from '../../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -85,12 +85,12 @@ describe('FeedEntryFooter', () => {
     function renderFooter(resultTable: arrow.Table, visualizeQuery: ResolvedVisualizeQuery | null = null) {
         // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
-            <StandaloneComputations>
+            <StandaloneCoreRuntime>
                 <FooterWithTabs
                     queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
                     visualizeQuery={visualizeQuery}
                 />
-            </StandaloneComputations>,
+            </StandaloneCoreRuntime>,
         ));
     }
 

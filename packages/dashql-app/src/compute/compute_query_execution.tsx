@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { CreateComputeQueryExecution } from '@ankoh/dashql-runtime/compute/computation_tasks';
+import type { CreateComputeQueryExecution } from '@ankoh/dashql-runtime/compute/compute_platform';
 
 export type { CreateComputeQueryExecution };
 

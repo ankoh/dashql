@@ -8,7 +8,7 @@ import type { UpdateScheduler } from './store/store.js';
 import type { StorageBackend } from './storage/storage_backend.js';
 import { StorageWriter } from './storage/storage_writer.js';
 import type { QueryResultCache } from './query/query_result_cache.js';
-import { createComputations, type Computations } from './compute/computations.js';
+import { CoreRuntime } from './core_runtime.js';
 import { ConnectionRegistryService } from './connections/connection_registry_service.js';
 import { QueryExecutorService } from './connections/query_executor_service.js';
 import { CatalogLoaderService } from './connections/catalog/catalog_loader_service.js';
@@ -52,7 +52,8 @@ export interface Runtime {
     storageWriter: StorageWriter;
     workbooks: WorkbookScriptsRegistryService;
     connections: ConnectionRegistryService;
-    computations: Computations;
+    /// The runtime of the module: the computations of results, read through its store
+    coreRuntime: CoreRuntime;
     executor: QueryExecutorService;
     catalogLoader: CatalogLoaderService;
     execution: WorkbookExecutionService;
@@ -82,7 +83,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
     const workbooks = new WorkbookScriptsRegistryService({ logger, storageWriter }, scheduler);
     const connections = new ConnectionRegistryService({ logger, storageWriter, references: workbooks.references }, scheduler);
 
-    const computations = createComputations(logger, platform.setupCore);
+    const coreRuntime = new CoreRuntime({ logger, scheduler, setupCore: platform.setupCore, computeDatabase: platform.computeDatabase ?? null });
 
     // The platform may set the compute database and the API of Salesforce later, the services read them when they use them
     let computeDatabase = platform.computeDatabase ?? null;
@@ -93,7 +94,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         http,
         readConnections: () => connections.store.current,
         dispatchConnection: connections.dispatch,
-        dispatchComputation: computations.dispatch,
+        computations: coreRuntime,
         get computeDatabase() { return computeDatabase; },
         resultCache,
         setupCore: platform.setupCore,
@@ -151,20 +152,21 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         storageWriter,
         workbooks,
         connections,
-        computations,
+        coreRuntime,
         executor,
         catalogLoader,
         execution,
         persistence,
         setComputeDatabase(database) {
             computeDatabase = database;
+            coreRuntime.setComputeDatabase(database);
         },
         setSalesforce(api) {
             salesforce = api;
         },
         async restore(progress = () => { }) {
             const instance = await platform.setupCore('runtime');
-            computations.setCore(instance);
+            coreRuntime.setCore(instance);
             storageWriter.provideCore(instance);
             const restored = await restoreAppState(instance, storage, logger, progress, storageWriter);
             connections.store.update({
@@ -188,7 +190,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
             await storageWriter.flush();
             workbooks.dispose();
             connections.dispose();
-            computations.destroy();
+            coreRuntime.destroy();
         },
     };
 }

@@ -7,15 +7,13 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import {
     type ColumnAggregationVariant,
-    type ColumnGroup,
+    type SummaryColumn,
     STRING_COLUMN,
     type StringColumnAggregation,
-    type StringGridColumnGroup,
     type TableAggregation,
     type WithFilterEpoch,
 } from '@ankoh/dashql-runtime/compute/computation_types';
 import { filteredAggregate, stringAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
-import { mockDataFrame } from '@ankoh/dashql-runtime/testing/mocks/compute_query';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
@@ -23,13 +21,15 @@ import { MostFrequentCell, type MostFrequentValueFilterCallback } from './mostfr
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const NAME: ColumnGroup = {
+const NAME: { type: typeof STRING_COLUMN; value: SummaryColumn } = {
     type: STRING_COLUMN,
     value: {
         inputFieldName: 'name',
         inputFieldType: new arrow.Utf8(),
         inputFieldNullable: true,
         statsFields: { countFieldName: '_0_count', distinctCountFieldName: '_0_distinct', minAggregateFieldName: null, maxAggregateFieldName: null },
+        binFieldName: null,
+        binCount: 0,
         valueIdFieldName: 'name_id',
     },
 };
@@ -42,7 +42,6 @@ function tableAggregate(rows: number, notNull: number, distinct: number): TableA
         _0_distinct: BigInt64Array.from([BigInt(distinct)]),
     });
     return {
-        dataFrame: mockDataFrame('stats'),
         table: stats,
         tableFieldsByName: new Map(stats.schema.fields.map((field, index) => [field.name, index])),
         tableFormatter: new ArrowTableFormatter(stats.schema, stats.batches, new TestLogger()),
@@ -61,12 +60,12 @@ function frequentValues(keys: (string | null)[], keyIds: bigint[], counts: bigin
 
 /// Aggregate the column with the frequent values the compute query returns
 function aggregate(table: TableAggregation, values: arrow.Table): StringColumnAggregation {
-    return stringAggregate(table, NAME.value as StringGridColumnGroup, values);
+    return stringAggregate(table, NAME.value, values);
 }
 
 /// Aggregate the column among the selected rows
 function aggregateFiltered(table: TableAggregation, values: arrow.Table, selectionRowCount: number): WithFilterEpoch<ColumnAggregationVariant> {
-    return filteredAggregate({ type: STRING_COLUMN, value: stringAggregate(table, NAME.value as StringGridColumnGroup, values, selectionRowCount) });
+    return filteredAggregate({ type: STRING_COLUMN, value: stringAggregate(table, NAME.value, values, selectionRowCount) });
 }
 
 /// 10 rows: a (4), b (2), null (2), c (2)
