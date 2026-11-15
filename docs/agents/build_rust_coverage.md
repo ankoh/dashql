@@ -5,7 +5,7 @@ The coverage workflow (`.github/workflows/coverage.yml`) covers the Rust core an
 `-profile` siblings), `//packages/dashql-dataflow/...`, `//packages/dashql-parser/...`, `//packages/dashql-snapshots/...`
 and the unit tests of `dashql-native-proxy` and `dashql-pack`, instruments those crates except
 `dashql-snapshots`, and uploads Bazel's combined report (`_coverage_report.dat`) to Coveralls. It uploads the LCOV of
-the app's browser tests (`//packages/dashql-app:coverage_chromium`, see `docs/reports/dashql_app_coverage_report.md`)
+the app's browser tests (`//packages/dashql-app:coverage_chromium`)
 with it. It also renders both with `genhtml` and deploys the result to [coverage.dashql.app](https://coverage.dashql.app),
 next to the raw tracefiles (`lcov_rust.info`, `lcov_app.info`), the gaps of the app (`app_gaps.txt`) and the badge of the
 README (`badge.svg`, written by `dashql-pack coverage-badge`). Coveralls keeps the history, the page only shows the

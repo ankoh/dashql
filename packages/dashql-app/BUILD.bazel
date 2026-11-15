@@ -411,7 +411,7 @@ browser_test(
     executable_root = True,
 )
 
-# Line coverage of the app sources in the browser tests, see docs/reports/dashql_app_coverage_report.md.
+# Line coverage of the app sources in the browser tests, published at https://coverage.dashql.app.
 # Writes coverage.dat (LCOV) and coverage_summary.txt to the undeclared test outputs.
 browser_test(
     name = "coverage_chromium",
