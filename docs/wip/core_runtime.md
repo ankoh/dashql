@@ -297,6 +297,27 @@ It takes the contents of files and returns parsed values, validation results, mi
   natural order follows ICU for ASCII and folds the accents of Latin-1. Bundles and params compare as values, the order
   of keys doesn't count. A field of the wrong type is dropped when a file is written again.
 
+## The Hyper connector
+
+The HTTP API of Hyper is a module of the crate (`src/hyper/`), sans-IO and not used yet. The client builds the
+requests of the V3 API, the host sends them and hands the responses back. The auth headers come with every request,
+the context of the connection holds them.
+
+- **A result is a state machine.** `HyperResultReader` starts from the query response, whose status header names the
+  query and whose body is the first chunk. `poll` returns the record batches and the progress so far, the chunk
+  requests up to the parallel chunks and a status poll while the query runs without chunks, `receive` takes a
+  response. The chunks are decoded in the order of the result as one Arrow stream, a message may span chunks.
+- **Errors keep the rich model.** An error response becomes a `HyperErrorInfo` from the JSON body or the status
+  header, with the diagnostics of the response for the log. The headers that the gRPC proxy of the desktop app
+  forwards decode to the same error.
+- **gRPC and the embedded Hyper stay host channels.** A connection over `V3_GRPC` or `WASM` names a channel of the
+  host, which runs the query and hands the Arrow IPC of the result over. The module keeps the logic around them: the
+  session options and the query queue of the embedded Hyper, the local cloud, the links to a Hyper.
+- **The connection helpers move along.** The labels, the outcome of the health check, the setup check of Salesforce,
+  the import of stored connections and whether a catalog can be refreshed are functions of `src/connections/`.
+- **Changed on purpose.** The chunks are one stream that skips a repeated schema and an end-of-stream marker inside a
+  chunk. The client logs nothing, the error carries the diagnostics. A restored connection keeps only its setup params.
+
 ## Typing
 
 Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,

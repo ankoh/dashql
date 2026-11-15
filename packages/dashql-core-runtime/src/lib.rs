@@ -12,6 +12,7 @@ pub mod clfn;
 pub mod compute;
 pub mod connections;
 pub mod host;
+pub mod hyper;
 pub mod names;
 pub mod query;
 pub mod salesforce;

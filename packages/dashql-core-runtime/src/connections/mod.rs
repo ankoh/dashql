@@ -14,9 +14,14 @@
 
 mod catalog_updates;
 mod details;
+pub mod health_check;
 mod hyper;
+pub mod import;
+pub mod label;
 mod params;
+pub mod refresh;
 mod salesforce;
+pub mod setup_check;
 mod trino;
 
 use std::cell::RefCell;
