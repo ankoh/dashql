@@ -59,6 +59,19 @@ const it = Object.assign(
     },
 );
 const test = it;
-const vi = { clearAllMocks, fn, resetAllMocks, restoreAllMocks, spyOn };
+/// Call the callback until it doesn't throw, its last error after the timeout, as vi.waitFor of Vitest
+async function waitFor<T>(callback: () => T | Promise<T>, options: number | { timeout?: number; interval?: number } = {}): Promise<T> {
+    const { timeout = 1000, interval = 50 } = typeof options === 'number' ? { timeout: options } : options;
+    const deadline = Date.now() + timeout;
+    for (;;) {
+        try {
+            return await callback();
+        } catch (error) {
+            if (Date.now() >= deadline) throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, interval));
+    }
+}
+const vi = { clearAllMocks, fn, resetAllMocks, restoreAllMocks, spyOn, waitFor };
 Object.assign(globalThis, { describe, beforeAll, afterAll, beforeEach, afterEach, expect, it, test, vi });
 export { describe, beforeAll, afterAll, beforeEach, afterEach, expect, it, test, vi };
