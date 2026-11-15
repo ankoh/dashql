@@ -61,10 +61,12 @@ defines the cross-origin isolation headers and browser cache policy:
 Release manifests such as `latest.json` and `stable.json`, along with updater routes, remain on
 `get.dashql.app` and are not configured by this Pages deployment.
 
-The global rule applies `Cross-Origin-Opener-Policy: same-origin` and
-`Cross-Origin-Embedder-Policy: require-corp` to responses on `dashql.app`, `stable.dashql.app`,
-`hyperdb.sh`, and Pages preview URLs. It also applies `Access-Control-Allow-Origin: *`, allowing static
-resources to be loaded cross-origin from any of these domains.
+The global rule applies `Cross-Origin-Opener-Policy: same-origin`,
+`Cross-Origin-Embedder-Policy: require-corp` and `Document-Isolation-Policy: isolate-and-require-corp` to
+responses on `dashql.app`, `stable.dashql.app`, `hyperdb.sh`, and Pages preview URLs. The first two isolate a
+top-level page, the third also isolates a page in a third-party iframe on Chromium
+(see [Document-Isolation-Policy](../design/document_isolation_policy.md)). It also applies
+`Access-Control-Allow-Origin: *`, allowing static resources to be loaded cross-origin from any of these domains.
 
 Cloudflare Pages automatically invalidates its deployment cache when a new deployment is
 published. The explicit TTLs above control browser caching; no additional zone Cache Rules are
@@ -84,7 +86,8 @@ curl -I https://hyperdb.sh/
 ```
 
 The responses should include `Cross-Origin-Embedder-Policy: require-corp`,
-`Cross-Origin-Opener-Policy: same-origin`, and `Access-Control-Allow-Origin: *`. The unknown client
+`Cross-Origin-Opener-Policy: same-origin`, `Document-Isolation-Policy: isolate-and-require-corp`, and
+`Access-Control-Allow-Origin: *`. The unknown client
 route should return the app HTML, entrypoints should require revalidation, and fingerprinted
 static assets should be immutable. Every `.br` WebAssembly response needs `Content-Encoding: br` and
 `Content-Type: application/wasm`.
