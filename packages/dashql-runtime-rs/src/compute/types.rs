@@ -434,6 +434,8 @@ pub struct TaskProgressUpdate {
 /// A task with its progress, as a computation tracks it
 #[derive(Clone, Debug, PartialEq)]
 pub struct TrackedTask<T> {
+    /// The scheduler task that the computation tracks, the host knows its task by it
+    pub task_id: TaskId,
     /// The task
     pub task: T,
     /// The progress

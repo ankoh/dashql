@@ -7,6 +7,7 @@ import type { Store } from '@ankoh/dashql-runtime/store/store';
 import type { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { storeWithoutRuntime, useStoreState } from '../utils/store_hooks.js';
 
 // The computations on query results (packages/dashql-runtime/src/compute/computations.ts). The RuntimeProvider
@@ -17,10 +18,12 @@ const COMPUTATIONS_CTX = React.createContext<Computations | null>(null);
 /// Provide the computations
 export const ComputationsProvider = COMPUTATIONS_CTX.Provider;
 
-/// Computations without a runtime, e.g. of the shell of Hyper, they live as long as the component
+/// Computations without a runtime, e.g. of the shell of Hyper, they live as long as the component. Their state lives in
+/// the core of the provider above, without one in the default core.
 export function StandaloneComputations(props: { children?: React.ReactNode }) {
     const logger = useLogger();
-    const [computations] = React.useState(() => createComputations(logger));
+    const setupCore = useDashQLCoreSetup();
+    const [computations] = React.useState(() => createComputations(logger, setupCore));
     return <COMPUTATIONS_CTX.Provider value={computations}>{props.children}</COMPUTATIONS_CTX.Provider>;
 }
 

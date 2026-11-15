@@ -246,7 +246,8 @@ CLI wire the services in one place, and the tests of `runtime.ts` cover the wiri
   a test of a component, the state hooks return no state and the functions throw when they are called, like the
   contexts without a provider before.
 - **Computations.** `createComputations` (`compute/computations.ts`) creates them for the runtime and for the shell of
-  Hyper, which has no runtime (`StandaloneComputations`).
+  Hyper, which has no runtime (`StandaloneComputations`). Their state lives in the core (see
+  [rust_runtime.md](rust_runtime.md)), they take the core of the platform with their first action.
 - **Tests.** `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`) is the provider in the tests of
   components: the catalog loader stopped like in `createTestRuntime`, and the functions of the query executor that a
   test replaces.

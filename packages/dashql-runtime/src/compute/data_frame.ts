@@ -94,50 +94,58 @@ export class DataFrame {
     }
 }
 
+/// The data frames of the computations that are alive.
+///
+/// The computation state owns the data frames that it holds (computation_native.ts): it tells the registry when it
+/// takes a data frame and when it lets go of one. The host holds a data frame outside of the state while it reads it,
+/// e.g. a search of the columns, with `acquire` and `release`. A data frame is dropped once neither holds it.
 export class DataFrameRegistry {
     logger: Logger;
-    registeredDataFrames: Map<DataFrame, number> = new Map();
+    /// The holds of the host by data frame
+    private readonly hostHolds: Map<DataFrame, number> = new Map();
+    /// The data frames that the computation state holds
+    private readonly heldByState: Set<DataFrame> = new Set();
 
     constructor(logger: Logger) {
         this.logger = logger;
     }
 
-    public getRegisteredDataFrames() {
-        return this.registeredDataFrames;
+    /// The data frames that are alive with their holds: the holds of the host and one of the state
+    public getRegisteredDataFrames(): Map<DataFrame, number> {
+        const frames = new Map(this.hostHolds);
+        for (const dataFrame of this.heldByState) {
+            frames.set(dataFrame, (frames.get(dataFrame) ?? 0) + 1);
+        }
+        return frames;
     }
 
+    /// Hold a data frame outside of the state, e.g. while a query reads it
     acquire(dataFrame: DataFrame | null | undefined, times: number = 1) {
         if (dataFrame == undefined || dataFrame == null) {
             return;
         }
-        if (this.registeredDataFrames.has(dataFrame)) {
-            this.registeredDataFrames.set(dataFrame, this.registeredDataFrames.get(dataFrame)! + times);
-        } else {
-            this.registeredDataFrames.set(dataFrame, times);
-        }
+        this.hostHolds.set(dataFrame, (this.hostHolds.get(dataFrame) ?? 0) + times);
     }
 
+    /// Let go of a hold of the host, the data frame is dropped if the state doesn't hold it either
     release(dataFrame?: DataFrame | null) {
         if (dataFrame == undefined || dataFrame == null) {
             return;
         }
-        if (this.registeredDataFrames.has(dataFrame)) {
-            const count = this.registeredDataFrames.get(dataFrame)! - 1;
-            if (count <= 0) {
-                this.registeredDataFrames.delete(dataFrame);
-                void dataFrame.destroy().catch(error => {
-                    this.logger.warn("Failed to destroy released data frame", {
-                        "tableName": dataFrame.tableName,
-                        "error": error instanceof Error ? error.message : String(error),
-                    }, LOG_CTX);
-                });
-            } else {
-                this.registeredDataFrames.set(dataFrame, count);
-            }
-        } else {
+        const holds = this.hostHolds.get(dataFrame);
+        if (holds == null) {
             this.logger.warn("Attempted to release unknown data frame", {
                 "tableName": dataFrame.tableName
             }, LOG_CTX);
+            return;
+        }
+        if (holds > 1) {
+            this.hostHolds.set(dataFrame, holds - 1);
+            return;
+        }
+        this.hostHolds.delete(dataFrame);
+        if (!this.heldByState.has(dataFrame)) {
+            this.destroy(dataFrame);
         }
     }
 
@@ -145,5 +153,27 @@ export class DataFrameRegistry {
         for (const dataFrame of dataFrames) {
             this.release(dataFrame);
         }
+    }
+
+    /// The computation state holds a data frame
+    adoptByState(dataFrame: DataFrame) {
+        this.heldByState.add(dataFrame);
+    }
+
+    /// The computation state let go of a data frame, it is dropped unless the host holds it
+    releaseByState(dataFrame: DataFrame) {
+        this.heldByState.delete(dataFrame);
+        if (!this.hostHolds.has(dataFrame)) {
+            this.destroy(dataFrame);
+        }
+    }
+
+    private destroy(dataFrame: DataFrame) {
+        void dataFrame.destroy().catch(error => {
+            this.logger.warn("Failed to destroy released data frame", {
+                "tableName": dataFrame.tableName,
+                "error": error instanceof Error ? error.message : String(error),
+            }, LOG_CTX);
+        });
     }
 }

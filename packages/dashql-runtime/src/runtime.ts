@@ -80,7 +80,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
     const workbooks = new WorkbookScriptsRegistryService({ logger, storageWriter }, scheduler);
     const connections = new ConnectionRegistryService({ logger, storageWriter, references: workbooks.references }, scheduler);
 
-    const computations = createComputations(logger);
+    const computations = createComputations(logger, platform.setupCore);
 
     // The platform may set the compute database and the API of Salesforce later, the services read them when they use them
     let computeDatabase = platform.computeDatabase ?? null;
@@ -162,6 +162,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         },
         async restore(progress = () => { }) {
             const instance = await platform.setupCore('runtime');
+            computations.setCore(instance);
             const restored = await restoreAppState(instance, storage, logger, progress);
             connections.store.update({
                 connections: restored.connectionStates,
@@ -184,6 +185,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
             await storageWriter.flush();
             workbooks.dispose();
             connections.dispose();
+            computations.destroy();
         },
     };
 }

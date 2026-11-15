@@ -220,7 +220,13 @@ impl TableComputation {
 
     /// Register a task with the computation, the latest of its kind. A new filtering moves the filter version. An
     /// update of an ordering or a data search that was superseded changes nothing. Returns whether the tasks changed.
-    fn register_task(&mut self, task: &mut ComputationTask, progress: Progress<'_>, effects: &mut Vec<ComputationEffect>) -> bool {
+    fn register_task(
+        &mut self,
+        task_id: TaskId,
+        task: &mut ComputationTask,
+        progress: Progress<'_>,
+        effects: &mut Vec<ComputationEffect>,
+    ) -> bool {
         let create = matches!(progress, Progress::Start(_));
         match task {
             ComputationTask::TableFiltering(task) => {
@@ -231,7 +237,7 @@ impl TableComputation {
                 }
                 let progress = progress.apply(self.tasks.filtering.as_ref().map(|tracked| &tracked.progress));
                 let task = TableFilteringTask { table_version: self.version, ..task.clone() };
-                self.tasks.filtering = Some(TrackedTask { task, progress });
+                self.tasks.filtering = Some(TrackedTask { task_id, task, progress });
             }
             ComputationTask::TableOrdering(task) => {
                 if !create
@@ -243,7 +249,7 @@ impl TableComputation {
                 }
                 let progress = progress.apply(self.tasks.ordering.as_ref().map(|tracked| &tracked.progress));
                 let task = TableOrderingTask { table_version: self.version, ..task.clone() };
-                self.tasks.ordering = Some(TrackedTask { task, progress });
+                self.tasks.ordering = Some(TrackedTask { task_id, task, progress });
             }
             ComputationTask::DataSearch(task) => {
                 if create {
@@ -257,29 +263,29 @@ impl TableComputation {
                     return false;
                 }
                 let progress = progress.apply(self.tasks.data_search.as_ref().map(|tracked| &tracked.progress));
-                self.tasks.data_search = Some(TrackedTask { task: task.clone(), progress });
+                self.tasks.data_search = Some(TrackedTask { task_id, task: task.clone(), progress });
             }
             ComputationTask::TableAggregation(task) => {
                 let progress = progress.apply(self.tasks.table_aggregation.as_ref().map(|tracked| &tracked.progress));
-                self.tasks.table_aggregation = Some(TrackedTask { task: task.clone(), progress });
+                self.tasks.table_aggregation = Some(TrackedTask { task_id, task: task.clone(), progress });
             }
             ComputationTask::SystemColumns(task) => {
                 let progress = progress.apply(self.tasks.system_columns.as_ref().map(|tracked| &tracked.progress));
-                self.tasks.system_columns = Some(TrackedTask { task: task.clone(), progress });
+                self.tasks.system_columns = Some(TrackedTask { task_id, task: task.clone(), progress });
             }
             ComputationTask::ColumnAggregation(task) => {
                 let column = task.column_id as usize;
                 let slots = &mut self.tasks.column_aggregation;
                 let previous = slots.get(column).and_then(Option::as_ref).map(|tracked| &tracked.progress);
                 let progress = progress.apply(previous);
-                set_slot(slots, column, Some(TrackedTask { task: task.clone(), progress }));
+                set_slot(slots, column, Some(TrackedTask { task_id, task: task.clone(), progress }));
             }
             ComputationTask::FilteredColumnAggregation(task) => {
                 let column = task.column.column_id as usize;
                 let slots = &mut self.tasks.filtered_column_aggregation;
                 let previous = slots.get(column).and_then(Option::as_ref).map(|tracked| &tracked.progress);
                 let progress = progress.apply(previous);
-                set_slot(slots, column, Some(TrackedTask { task: task.clone(), progress }));
+                set_slot(slots, column, Some(TrackedTask { task_id, task: task.clone(), progress }));
             }
         }
         true
@@ -667,6 +673,33 @@ impl ComputationState {
         self.held_by_all().data_frames.iter().filter(|id| **id == data_frame).count()
     }
 
+    /// Does the state hold a data frame?
+    pub fn holds_data_frame(&self, data_frame: DataFrameId) -> bool {
+        self.held_by_all().data_frames.contains(&data_frame)
+    }
+
+    /// Does the state hold an Arrow table?
+    pub fn holds_arrow_table(&self, table: ArrowTableId) -> bool {
+        self.held_by_all().tables.contains(&table)
+    }
+
+    /// The tasks that the state knows: the tasks of the scheduler and the tasks that the computations track. The host
+    /// keeps its objects of a task as long as the state knows the task.
+    pub fn task_ids(&self) -> BTreeSet<TaskId> {
+        let mut ids: BTreeSet<TaskId> = self.scheduler_tasks.keys().copied().collect();
+        for computation in self.computations.values() {
+            let tasks = &computation.tasks;
+            ids.extend(tasks.table_aggregation.as_ref().map(|tracked| tracked.task_id));
+            ids.extend(tasks.system_columns.as_ref().map(|tracked| tracked.task_id));
+            ids.extend(tasks.filtering.as_ref().map(|tracked| tracked.task_id));
+            ids.extend(tasks.ordering.as_ref().map(|tracked| tracked.task_id));
+            ids.extend(tasks.data_search.as_ref().map(|tracked| tracked.task_id));
+            ids.extend(tasks.column_aggregation.iter().flatten().map(|tracked| tracked.task_id));
+            ids.extend(tasks.filtered_column_aggregation.iter().flatten().map(|tracked| tracked.task_id));
+        }
+        ids
+    }
+
     /// Everything that the state holds
     fn held_by_all(&self) -> Held {
         let mut held = Held::default();
@@ -791,9 +824,9 @@ impl ComputationState {
                 let Some(computation) = self.computations.get_mut(&table_id) else {
                     return Changed::NONE;
                 };
-                computation.register_task(&mut task, Progress::Start(now), effects);
                 let task_id = self.next_task_id;
                 self.next_task_id = self.next_task_id.saturating_add(1);
+                computation.register_task(task_id, &mut task, Progress::Start(now), effects);
                 self.scheduler_tasks.insert(task_id, task);
                 outcome.task_id = Some(task_id);
                 Changed { table: true, scheduler: true }
@@ -805,7 +838,7 @@ impl ComputationState {
                     return Changed::NONE;
                 };
                 let mut task = task.clone();
-                let table = computation.register_task(&mut task, Progress::Update(&progress, now), effects);
+                let table = computation.register_task(task_id, &mut task, Progress::Update(&progress, now), effects);
                 Changed { table, scheduler: false }
             }
             ComputationAction::UnregisterSchedulerTask { task_id } => {

@@ -367,8 +367,12 @@ fn tracks_the_latest_data_search_task_and_ignores_progress_of_older_requests() {
     let tracked = |state: &ComputationState| state.computation(1).unwrap().tasks.data_search.clone().unwrap();
     assert_eq!(tracked(&state).task.request_id, 2);
 
+    assert_eq!(tracked(&state).task_id, second);
+    assert_eq!(state.task_ids(), BTreeSet::from([first, second]));
+
     update(&mut state, first, TaskStatus::Succeeded);
     assert_eq!(tracked(&state).progress.status, TaskStatus::Running);
+    assert_eq!(tracked(&state).task_id, second);
     update(&mut state, second, TaskStatus::Succeeded);
     assert_eq!(tracked(&state).progress.status, TaskStatus::Succeeded);
     assert_eq!(tracked(&state).progress.completed_at, Some(NOW + 1));
@@ -441,6 +445,11 @@ fn filtering_task() {
     assert_eq!(state.data_frames().len(), 1);
     // The computation, its filtering task and the scheduler task hold the data frame
     assert_eq!(state.data_frame_holds(1), 3);
+    assert!(state.holds_data_frame(1));
+    assert!(!state.holds_data_frame(2));
+    assert!(state.holds_arrow_table(INPUT_TABLE.id));
+    assert!(!state.holds_arrow_table(ROW_TABLE.id));
+    assert_eq!(tracked.task_id, task_id);
 
     update(&mut state, task_id, TaskStatus::Succeeded);
     assert_eq!(state.computation(1).unwrap().tasks.filtering.as_ref().unwrap().progress.status, TaskStatus::Succeeded);

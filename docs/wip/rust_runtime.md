@@ -2,9 +2,9 @@
 
 Status: the workbook scripts of the app run on Rust. `packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the
 scripts of a workbook, linked into the core module, and `reduceWorkbookScripts` of the TypeScript runtime is an adapter
-over it (`workbook/scripts/workbook_native.ts`). The connection state, the query execution state and the computation
-state are ported as modules of the crate with their tests, the app doesn't use them yet. The name of the package is
-provisional.
+over it (`workbook/scripts/workbook_native.ts`). The computations run on Rust the same way
+(`compute/computation_native.ts`). The connection state and the query execution state are ported as modules of the
+crate with their tests, the app doesn't use them yet. The name of the package is provisional.
 
 ## Why
 
@@ -57,9 +57,68 @@ buffers in between. The boundary moves to what the UI reads.
    the catalog updates), the query execution state (`src/query/`, with the progress model and the profile state) and
    the computation state (`src/compute/`, with the cross filters) are ported with their tests. Arrow tables and data
    frames stay in JavaScript as opaque ids, a state releases one through an effect once nothing in it holds it. Their
-   bindings and switches follow, like the ones of the workbook.
+   bindings and switches follow, like the ones of the workbook. The computations are switched, see
+   [The computations](#the-computations).
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
-   then the services move with async calls of the host.
+   then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
+
+## The whole runtime in Wasm
+
+The goal: `createRuntime(platform)` builds a runtime of the module, and the TypeScript of `packages/dashql-runtime`
+shrinks to the platforms and the adapters of the app.
+
+**What stays in the host.** `RuntimePlatform` (`runtime.ts`) already draws the line: the storage backend (OPFS, the
+folders of the desktop app, `node:fs`), `HttpClient` (fetch and the proxy of the desktop app), the scheduler and timers,
+`OAuthFlow` (windows and links), the embedded Hyper (`hyperdb-wasm`, a module of its own), the cache of query results
+and the sink of the logger. The crate sees them as a trait `Host` with async methods that don't need `Send`. The
+module implements it over a JavaScript object whose methods return promises (`wasm-bindgen-futures`), the tests of the
+crate over a fake with an executor of a single thread.
+
+**What moves.** The storage writer (debouncing, groups, pausing), the format of workbooks (files, tree, validation,
+tables, bundles), the protocols of the connectors over `Host::fetch` (Trino, the REST and query APIs of Salesforce,
+gRPC-web of Hyper with `prost`, the client functions), the catalog loader with its SQL, the query executor, the runs
+of workbooks, the restore and the persistence of connections, the registries.
+
+**Arrow in Rust.** Most of these read or build Arrow: the catalog loader reads result columns, Trino turns JSON pages
+into batches, the client functions build tables, the computations read results. The crate uses `arrow-rs` (arrays,
+schema, IPC), a result crosses to the UI as IPC bytes once, and `apache-arrow` decodes it there as today. Hyper
+hands its results to the host as IPC bytes already.
+
+**Tasks.** A service is an async function on the runtime: it reads a state, awaits the host without holding a borrow,
+then applies an action. `spawn_local` runs it in the browser, cancellation is a token that the action checks. A host
+call that fails is an error of the task, never a panic.
+
+**Order.** The host trait and the executor with the storage writer as the first service; the catalog loader and the
+query executor once the connection and query states are switched; the connectors one by one behind the existing
+`QueryChannel`; the runs of workbooks; the restore and `createRuntime` last. ZIP archives (`zip.js` with
+`CompressionStream`) and the compilation of chart specs (`vega-lite`) stay host calls until a reason to move them.
+
+## The computations
+
+`reduceComputationState` of the TypeScript runtime is an adapter over the computation state of the crate
+(`compute/computation_native.ts`), bound as the class `Computations` of the module
+(`packages/dashql-core-wasm/src/computations.rs`, `DashQLComputations` of `@ankoh/dashql-core`, created with
+`DashQL.createComputations`). Ids, versions and names cross as typed arguments, tasks, results and cross filters as
+JSON, a computation is read as a JSON snapshot once its revision moved.
+
+- **The host owns the JS objects by id.** `NativeComputations` gives the Arrow tables, the data frames, the filter,
+  ordering and search tables, the statistics and the summaries ids. It keeps an object while the state holds it and
+  lets go of it on `ReleaseArrowTable` and `ReleaseDataFrame`, aborts the lifetime of a dropped computation on
+  `AbortComputation` and the controller of a superseded search on `AbortDataSearch`. An object of an action that the
+  state didn't take stays with the host.
+- **Data frames that the host reads.** The reference counts of the `DataFrameRegistry` are gone: the state holds a data
+  frame once, the host holds one while it reads it (`acquire`, `release`, e.g. the search of the columns). A data frame
+  is dropped once neither holds it.
+- **The projection keeps identity.** A computation keeps its object while its revision doesn't move; in a changed one
+  the version, the searches, the arrays of summaries and the tracked tasks keep theirs while they are the same. A
+  tracked task names its scheduler task, the projection shows the task as the app scheduled it with the version and
+  the progress of the state. The column groups with their Arrow types, the cross filters and the matching rows of a
+  data search stay with the host, the state keeps them by value.
+- **The core comes with the first action.** The runtime and the shell create the computations before the core is set
+  up. The first action asks the platform for it and the actions wait until it is there, the runtime hands its core
+  over on `restore`. A platform without a core instantiates the default one.
+- **Changed on purpose.** The progress of a task that the scheduler doesn't know is dropped, the TypeScript reducer
+  registered such a task as a new one. A failed action is logged and leaves the state as it is.
 
 ## Typing
 
