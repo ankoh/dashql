@@ -27,6 +27,7 @@ export type DashQLBindings = Pick<
     | 'touchedRelations'
     | 'installPanicHook'
     | 'Shell'
+    | 'Workbook'
 >;
 
 /// The shell of the module, the host runs its effects

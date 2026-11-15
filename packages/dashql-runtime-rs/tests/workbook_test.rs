@@ -66,7 +66,7 @@ fn typed(workbook: &Workbook, key: ScriptKey, text: &str) -> EditorEventT {
     change.to = script.text().encode_utf16().count() as u64;
     change.insert = Some(text.to_string());
     let mut event = EditorEventT::default();
-    event.expected_text_version = script.session().text_version();
+    event.expected_text_version = script.session().borrow().text_version();
     event.changes = Some(vec![change]);
     event.analyze = true;
     event
@@ -78,7 +78,7 @@ fn cursor(workbook: &Workbook, key: ScriptKey, offset: u64) -> EditorEventT {
     selection.anchor = offset;
     selection.head = offset;
     let mut event = EditorEventT::default();
-    event.expected_text_version = workbook.script(key).unwrap().session().text_version();
+    event.expected_text_version = workbook.script(key).unwrap().session().borrow().text_version();
     event.primary_selection = Some(Box::new(selection));
     event
 }

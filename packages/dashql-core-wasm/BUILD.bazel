@@ -19,6 +19,7 @@ rust_shared_library(
         "//packages/dashql-core-shell:dashql_core_shell",
         "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-parser:dashql_parser",
+        "//packages/dashql-runtime-rs:dashql_runtime",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
         "@core_crates//:serde_json",
