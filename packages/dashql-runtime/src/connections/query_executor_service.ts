@@ -666,6 +666,13 @@ export class QueryExecutorService {
                     response.headers.forEach((value, name) => headers.push([name, value]));
                     const body = new Uint8Array(await response.arrayBuffer());
                     return { status: response.status, statusText: response.statusText, headers, body };
+                } catch (error) {
+                    // fetch names the reason of a failed request only in the cause, e.g. a refused connection, and the
+                    // core keeps only the message
+                    if (error instanceof Error && error.cause instanceof Error) {
+                        throw new Error(`${error.message}: ${error.cause.message}`);
+                    }
+                    throw error;
                 } finally {
                     this.fetchAborts.delete(requestId);
                 }
