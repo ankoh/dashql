@@ -1,7 +1,9 @@
-import { connectionParamsShareEqual, type ConnectionParams } from '../../connections/connection_params.js';
-import type { ConnectionEntry, WorkbookConnection, WorkbookData } from '../../storage/storage_backend.js';
-import { dedupeConnections } from '../../storage/storage_writer.js';
-import { isLocalHyperWasmParams } from '../../storage/workbook_validation.js';
+import type { ConnectionParams } from '../../connections/connection_params.js';
+import type { ConnectionEntry, WorkbookData } from '../../storage/storage_backend.js';
+import { workbookFormat } from '../../storage/workbook_format.js';
+
+// How the connections of an imported workbook map to the connections of the app is decided by the workbook format of
+// the core (`workbook_format::connection_import`), the import dialog asks the questions of the plan.
 
 /// A connection that a workbook brings along
 export interface ImportedConnectionRef {
@@ -37,11 +39,6 @@ export type ConnectionImportChoice =
     /// Keep the connection of the workbook as a connection of its own
     | { kind: 'separate' };
 
-/// Find the entry of a connection id
-function findEntry(entries: readonly ConnectionEntry[], connectionId: string): ConnectionEntry | null {
-    return entries.find(entry => entry.id === connectionId) ?? null;
-}
-
 /// Decide how the connections of an imported workbook map to the connections of the app.
 ///
 /// A workbook that comes back with the id of a known connection and the same params (ignoring
@@ -53,29 +50,7 @@ function findEntry(entries: readonly ConnectionEntry[], connectionId: string): C
 /// The embedded database is not a choice: the app holds a single connection to it, every embedded
 /// database of a workbook uses that one. It is registered only when the app doesn't have one.
 export function planConnectionImport(workbook: WorkbookData, entries: readonly ConnectionEntry[]): ConnectionImportPlanItem[] {
-    const refs: ImportedConnectionRef[] = workbook.connections.map(connection => ({
-        connectionId: connection.connectionId,
-        params: connection.params,
-        ...(connection.name == null ? {} : { name: connection.name }),
-    }));
-    const embedded = entries.find(entry => isLocalHyperWasmParams(entry.params)) ?? null;
-    return refs.map(ref => {
-        if (isLocalHyperWasmParams(ref.params)) {
-            return { ref, decision: embedded == null ? { kind: 'register' } : { kind: 'link', connectionId: embedded.id } };
-        }
-        const sameId = findEntry(entries, ref.connectionId);
-        if (sameId != null && connectionParamsShareEqual(sameId.params, ref.params)) {
-            return { ref, decision: { kind: 'link', connectionId: sameId.id } };
-        }
-        const candidates = [
-            ...(sameId == null ? [] : [sameId]),
-            ...entries.filter(entry => entry !== sameId && connectionParamsShareEqual(entry.params, ref.params)),
-        ];
-        if (candidates.length === 0) {
-            return { ref, decision: { kind: 'register' } };
-        }
-        return { ref, decision: { kind: 'ask', candidates } };
-    });
+    return workbookFormat().planConnectionImport<ConnectionImportPlanItem>(workbook, entries);
 }
 
 /// The plan items that need a decision of the user
@@ -102,59 +77,12 @@ export function applyConnectionImportPlan(
     plan: readonly ConnectionImportPlanItem[],
     choices: ReadonlyMap<string, ConnectionImportChoice>,
     entries: readonly ConnectionEntry[],
-    randomUUID: () => string = () => crypto.randomUUID(),
 ): ConnectionImport {
-    const byRef = new Map(plan.map(item => [item.ref.connectionId, item]));
-    const freshIds = new Map<string, string>();
-    const resolve = (connectionId: string): { connectionId: string; entry: ConnectionEntry | null } => {
-        const item = byRef.get(connectionId);
-        let link: string | null = null;
-        if (item?.decision.kind === 'link') {
-            link = item.decision.connectionId;
-        } else if (item?.decision.kind === 'ask') {
-            const choice = choices.get(connectionId);
-            if (choice?.kind === 'link') link = choice.connectionId;
-        }
-        if (link != null) {
-            const entry = entries.find(e => e.id === link);
-            if (entry != null) return { connectionId: entry.id, entry };
-        }
-        // A separate connection must not take over the id of an existing one
-        if (findEntry(entries, connectionId) == null) {
-            return { connectionId, entry: null };
-        }
-        let freshId = freshIds.get(connectionId);
-        if (freshId == null) {
-            freshId = randomUUID();
-            freshIds.set(connectionId, freshId);
-        }
-        return { connectionId: freshId, entry: null };
-    };
-    const rewrite = (connection: WorkbookConnection): WorkbookConnection => {
-        const resolved = resolve(connection.connectionId);
-        if (resolved.entry != null) return { connectionId: resolved.connectionId, params: resolved.entry.params };
-        return {
-            connectionId: resolved.connectionId,
-            params: connection.params,
-            ...(connection.name == null ? {} : { name: connection.name }),
-        };
-    };
-    // The scripts follow their connections
-    return {
-        workbook: {
-            ...workbook,
-            connections: dedupeConnections(workbook.connections.map(rewrite)),
-            scripts: workbook.scripts.map(script => ({ ...script, connectionId: resolve(script.connectionId).connectionId })),
-        },
-        connectionIds: new Map(workbook.connections.map(connection => [connection.connectionId, resolve(connection.connectionId).connectionId])),
-    };
+    const applied = workbookFormat().applyConnectionImportPlan(workbook, plan, Object.fromEntries(choices), entries);
+    return { workbook: applied.workbook as WorkbookData, connectionIds: new Map(applied.connectionIds) };
 }
 
 /// Did resolving the connections change the references of the workbook?
 export function connectionRefsChanged(before: WorkbookData, after: WorkbookData): boolean {
-    const refs = (workbook: WorkbookData) => JSON.stringify([
-        ...workbook.connections.flatMap(connection => [connection.connectionId, connection.params]),
-        ...workbook.scripts.map(script => script.connectionId),
-    ]);
-    return refs(before) !== refs(after);
+    return workbookFormat().connectionRefsChanged(before, after);
 }

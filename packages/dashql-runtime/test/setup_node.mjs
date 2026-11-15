@@ -8,9 +8,13 @@ import path from 'node:path';
 import { provideClientFunctionSpecs } from '../src/connections/clfn/clfn_specs.ts';
 import { startNodeHyperEngine, useNodeRoot } from '../src/node/node_hyperdb.ts';
 import { PROCESS_LOCKS } from '../src/node/node_locks.ts';
+import { setWorkbookFormatCoreLoader } from '../src/storage/workbook_format.ts';
+import * as core from '@ankoh/dashql-core';
 
 const require = createRequire(import.meta.url);
 globalThis.DASHQL_PRECOMPILED = readFile(require.resolve('@ankoh/dashql-core/wasm')).then(bytes => new Uint8Array(bytes));
+// The workbook format instantiates the precompiled core when a test didn't
+setWorkbookFormatCoreLoader(async () => await core.DashQL.create({ wasmBinary: await globalThis.DASHQL_PRECOMPILED }));
 // The client function specs of the extensions, vitest resolves the glob like the bundler of the app
 provideClientFunctionSpecs(import.meta.glob('@dashql/extensions/*/clfn/spec/spec.json', { import: 'default' }));
 

@@ -1,7 +1,7 @@
 # The core runtime
 
 Status: the workbook scripts, the connections, the computations, the storage writes, the queries, the restore of the
-stored state and the persistence of connections of the app run on Rust.
+stored state, the persistence of connections and the storage format of workbooks of the app run on Rust.
 `packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
 connection with the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts`
 of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`),
@@ -11,7 +11,9 @@ over the computations (`compute/computation_native.ts`). The storage writer is t
 over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
 platform), the query executor the fourth (`QueryExecutorService` over `src/executor/`): Trino, Hyper over HTTP,
 Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host. The
-catalog loader is ported without I/O and not used yet.
+storage format of workbooks is called by the storage, the imports and the exports of the TypeScript runtime
+(`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)). The catalog loader is ported without
+I/O and not used yet.
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
@@ -123,7 +125,8 @@ hands its results to the host as IPC bytes already.
 then applies an action. `spawn_local` runs it in the browser, cancellation is a token that the action checks. A host
 call that fails is an error of the task, never a panic.
 
-**Order.** The host trait and the executor with the storage writer as the first service (done); the catalog loader and the
+**Order.** The host trait and the executor with the storage writer as the first service (done), the format of
+workbooks (done); the catalog loader and the
 query executor once the connection and query states are switched; the connectors one by one behind the existing
 `QueryChannel`; the runs of workbooks; the restore (done) and `createRuntime` last. ZIP archives (`zip.js` with
 `CompressionStream`) and the compilation of chart specs (`vega-lite`) stay host calls until a reason to move them.
@@ -368,11 +371,12 @@ the core and `EXPLAIN`.
 
 ## The format of workbooks
 
-`src/workbook_format/` holds the storage format of workbooks without I/O, the app uses its validation and its
-`RestorePlanner` in the restore and nothing else yet: the layout of the
-storage, the workbook file with its validation and migrations, the file lists, the workbook tree, bundles, the workbook
-tables, the archives of imports and exports, the eviction of the query result cache and the decisions of the restore.
-It takes the contents of files and returns parsed values, validation results, migrated files and the files to write.
+`src/workbook_format/` holds the storage format of workbooks without I/O: the layout of the storage, the workbook file
+with its validation and migrations, the file lists, the workbook tree, bundles, the workbook tables, the archives of
+imports and exports, the connections of imports, the eviction of the query result cache and the decisions of the
+restore. It takes the contents of files and returns parsed values, validation results, migrated files and the files to
+write. The TypeScript runtime calls it for every decision of the format, its modules in `src/storage/` and
+`src/workbook/persistence/` read and write the files.
 
 - **Files as values.** `WorkbookData` reads a workbook file leniently: a field of the wrong type reads as absent, a
   malformed entry of the lists of scripts and attachments is left out and marks the lists, and fields the schema
@@ -385,7 +389,8 @@ It takes the contents of files and returns parsed values, validation results, mi
   scans their Parquet files. `workbook_archive_entries` orders the entries of an export with their compression. The
   bytes of attachments and results are a type of the host, e.g. a handle of a file or of a slice of an archive.
 - **Catalogs as a trait.** The workbook tables carry catalogs as rows, reading and rendering the SQL of catalog files is
-  a `CatalogSql` of the catalog of a connection.
+  a `CatalogSql`. `CoreCatalogSql` reads a file into a catalog descriptor with the core and renders it like the catalog
+  loader.
 - **The restore decides, the host acts.** `RestorePlanner` validates workbooks, resolves their copies to connections
   (the manifest wins, unknown ones are registered, the embedded database is a single connection), names the catalogs to
   restore and collects the writes after the restore. `script_list_patch`, `promotion_patch`, `connection_copy_patch`
@@ -393,6 +398,41 @@ It takes the contents of files and returns parsed values, validation results, mi
 - **Changed on purpose.** Names aren't normalized to NFC, the host passes the names of its listings normalized. The
   natural order follows ICU for ASCII and folds the accents of Latin-1. Bundles and params compare as values, the order
   of keys doesn't count. A field of the wrong type is dropped when a file is written again.
+
+### The bindings
+
+The module binds the format as free functions (`packages/dashql-core-wasm/src/workbook_format.rs`):
+`workbookFormat(op, args)` runs an operation on JSON arguments and returns its JSON, `encodeWorkbookTable` and
+`decodeWorkbookTable` turn the rows of a workbook table into Arrow IPC and back, `resolveWorkbookScripts` resolves the
+scripts of a workbook file over a resolver object of the host, and the class `CacheEviction` steps through an eviction
+of the query result cache. `DashQLWorkbookFormat` of `@ankoh/dashql-core` (`DashQL.workbookFormat`) gives the operations
+types. The bytes of attachments and results stay with the host, a bundle names them with tokens of the host. The fresh
+ids of exports and imports come from `crypto.randomUUID`.
+
+- **Pure calls.** Validation, the file lists of bundles, the connections of exports and imports, the sanitized
+  workbook tables of a share, the links of shared workbooks and connections, the questions of a connection import and
+  the resolution of the scripts of a native folder that changed on disk are calls of the format.
+- **Host-driven.** The migration of a folder (`storage/migration/workbook_migration.ts`): the host reads the top-level
+  files, the core migrates them, the host applies the changes. The head of a bundle (`readWorkbookBundleHead`): the host
+  reads the top-level files and then the catalog files of the connections that the core names. An import
+  (`workbook/persistence/workbook_import.ts`): zip.js lists the entries, the core plans the archive, the host reads the
+  entries (the embedded Hyper scans the Parquet files of the workbook tables) and the core builds the bundle. An export
+  (`workbook_export.ts`): the core builds the sanitized tables and names the entries of the archive, the embedded Hyper
+  writes the Parquet files and zip.js the archive. The eviction (`query_result_cache_eviction.ts`): the host lists and
+  deletes the files that the core names. The import of query results: the core decides which results fit the cache.
+- **The core when it is needed.** The synchronous calls of the runtime use the core that the platform provided
+  (`provideWorkbookFormatCore`: the provider of the core of the app, the storage writer, the test frame) or that the
+  package instantiated, the asynchronous ones instantiate it when nothing did yet (`storage/workbook_format.ts`), with
+  the loader that the platform sets: the app fetches its module, Node reads the file of the package, the tests use the
+  precompiled one. A workbook folder whose workbook file is at the current
+  version needs no migration, so the startup of the app checks the folders before it instantiates the core.
+- **The workbook tree stays in TypeScript.** The storage of the app reads the tree at startup, before the core is
+  instantiated, and the sidebar edits it synchronously. The core has its port (`tree.rs`), the restore gets the
+  workbooks of the tree from the host.
+- **Changed on purpose.** A migration writes a renamed file and removes the old one, the TypeScript steps renamed it.
+  The bundle head of an older folder reads all of its top-level files that the migrations know, the TypeScript steps
+  read the ones they touched. `workbookBundleToTables` reads the catalog files with the core, it takes no parser. The
+  connection import names the fresh ids of separate connections with `crypto.randomUUID`, it takes no generator.
 
 ## The Hyper connector
 

@@ -1,9 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { bundleCatalogPath, filterInvalidWorkbookCatalogs, reconcileStoredWorkbookFiles, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleCatalog } from './workbook_bundle.js';
+import { readWorkbookBundleHead, reconcileStoredWorkbookFiles } from './workbook_bundle.js';
+import { MemoryFolder } from './migration/migration_folder.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
-import type { WorkbookData } from './storage_backend.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -15,38 +15,23 @@ afterEach(() => {
     dql.resetUnsafe();
 });
 
-const bundleOf = (...catalogs: WorkbookBundleCatalog[]): WorkbookBundle => ({ workbook: {} as WorkbookData, catalogs, scripts: [] });
-
-describe('filterInvalidWorkbookCatalogs', () => {
-    it('keeps a bundle with catalogs that parse', () => {
-        const bundle = bundleOf({ connectionId: 'c1', relations: 'create table t (a int);', functions: null });
-        expect(filterInvalidWorkbookCatalogs(dql, bundle)).toEqual({ bundle, invalidFiles: [] });
-        expect(filterInvalidWorkbookCatalogs(dql, bundle).bundle).toBe(bundle);
-    });
-
-    it('drops the catalog files that do not parse', () => {
-        const bundle = bundleOf(
-            { connectionId: 'c1', relations: 'create table t (a int);', functions: 'create function (' },
-            { connectionId: 'c2', relations: 'create tabel t;', functions: null },
-        );
-        const { bundle: filtered, invalidFiles } = filterInvalidWorkbookCatalogs(dql, bundle);
-        expect(filtered.catalogs).toEqual([
-            { connectionId: 'c1', relations: 'create table t (a int);', functions: null },
-            { connectionId: 'c2', relations: null, functions: null },
-        ]);
-        expect(invalidFiles).toHaveLength(2);
-        expect(invalidFiles[0].startsWith(bundleCatalogPath('c1', ''))).toBe(true);
-        expect(invalidFiles[1].startsWith(bundleCatalogPath('c2', ''))).toBe(true);
-    });
-});
-
-describe('renameBundleCatalogs', () => {
-    it('renames the connections and keeps the first catalog of merged connections', () => {
-        const catalog = (connectionId: string, relations: string) => ({ connectionId, relations, functions: null });
-        expect(renameBundleCatalogs([catalog('a', 'A'), catalog('b', 'B'), catalog('c', 'C')], new Map([['a', 'x'], ['b', 'x']]))).toEqual([
-            catalog('x', 'A'),
-            catalog('c', 'C'),
-        ]);
+// The decisions of bundles are tested in the core (`workbook_format::bundle`), these tests drive them over folders and
+// backends
+describe('readWorkbookBundleHead', () => {
+    it('migrates the top-level files in memory and reads the catalogs of the connections of the migrated workbook', async () => {
+        const session = {
+            formatVersion: 10, sessionId: TEST_WORKBOOK_ID, name: 'n', metadata: {},
+            connections: [{ connectionId: TEST_CONNECTION_ID, params: { hyper: {} } }], scripts: [], attachments: [],
+        };
+        const relations = `connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`;
+        const folder = new MemoryFolder([['dashql-session.json', JSON.stringify(session)], [relations, 'create table t (a int);']]);
+        const head = await readWorkbookBundleHead(folder, 'Invalid folder');
+        expect(head.workbook.workbookId).toBe(TEST_WORKBOOK_ID);
+        expect(head.catalogs).toEqual([{ connectionId: TEST_CONNECTION_ID, relations: 'create table t (a int);', functions: null }]);
+        expect(head.filesValid).toBe(true);
+        // The folder is only read
+        expect([...folder.files.keys()]).toEqual(['dashql-session.json', relations]);
+        await expect(readWorkbookBundleHead(new MemoryFolder(), 'Invalid folder')).rejects.toThrow('Invalid folder: missing dashql-workbook.json');
     });
 });
 

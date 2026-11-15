@@ -78,7 +78,7 @@ describe('local cloud', () => {
             workbook: testWorkbook({ name: 'Sales', scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }),
             scripts: [{ name: 'a.sql', sql: 'select 1' }],
             catalogs: [],
-        }, () => ({ tables: [], functions: [] }));
+        });
         const sales = await publishCloudWorkbook(query, first.database, tables, { folderId: reports.folderId });
         // A reload: the worker goes away while the session attaches the database
         await first.reload();

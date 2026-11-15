@@ -227,12 +227,18 @@ Two versions describe the stored data:
   the folder `My Sessions` of `sessiontree/`, version 8 moves the connection params under `sidb` to `dbcom`, and version 9
   renames sessions as workbooks: `sessions/` becomes `workbooks/`, `sessiontree/` becomes `workbooktree/`, its folder
   files list `workbooks`, and the setting `agentSessions` becomes `agentWorkbooks`.
-- The workbook format version, `formatVersion` in `dashql-workbook.json`, describes one workbook folder. The steps in
-  `src/storage/migration/workbook/` run for every reachable workbook folder, and for folders that are registered later.
+- The workbook format version, `formatVersion` in `dashql-workbook.json`, describes one workbook folder. The steps are
+  a module of the core runtime (`packages/dashql-core-runtime/src/workbook_format/migration.rs`), they run for every
+  reachable workbook folder, and for folders that are registered later. `migrateWorkbookFolder`
+  (`src/storage/migration/workbook_migration.ts`) reads the top-level files of the folder, the core migrates them in
+  memory, and it writes the changed files first and removes the others after. A folder whose workbook file is at the
+  current version needs nothing else, so the startup checks the folders before the core is instantiated; the core is
+  instantiated for a folder that needs a step.
   Version 11 renames `dashql-session.json` as `dashql-workbook.json`, with `workbookId` and `workbookPath` in place of
   `sessionId` and `sessionPath`. The steps up to version 10 keep the names of sessions, the layout of their version.
 
-The current versions are in `src/storage/migration/versions.ts`. A migration step spells out every file and folder name it
+The current versions are in `src/storage/migration/versions.ts`, a test checks that the core migrates to the same
+workbook format version. A migration step spells out every file and folder name it
 touches instead of using the storage constants of the app: the constants describe the current layout, a step the
 layout of its version. Steps are idempotent, because an interrupted migration repeats its last step.
 

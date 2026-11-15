@@ -35,7 +35,7 @@ import {
     type WorkbookBundleWriteStep,
 } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { NativeFolder, OverlayFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
+import { NativeFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import { migrateWorkbookFolder } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
@@ -381,7 +381,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// A folder of an older version is migrated in memory, the folder itself is migrated once it is
     /// registered.
     async prepareNativeWorkbook(dir: string): Promise<PreparedNativeWorkbook> {
-        const head = await readWorkbookBundleHead(new OverlayFolder(new NativeFolder(ELECTRON_FILE_SYSTEM, dir)), `Invalid workbook folder ${dir}`);
+        const head = await readWorkbookBundleHead(new NativeFolder(ELECTRON_FILE_SYSTEM, dir), `Invalid workbook folder ${dir}`);
 
         let bundle: WorkbookBundle;
         try {

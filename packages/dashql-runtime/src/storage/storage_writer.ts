@@ -6,7 +6,7 @@ import { VariantKind } from '../utils/variant.js';
 import type { StorageBackend, WorkbookData, WorkbookCloudLink, WorkbookConnection, ConnectionEntry, ConnectionParams, WorkbookRegistryBackend, WorkbookScript } from './storage_backend.js';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_CONNECTIONS_FOLDER, isWorkbookRegistryBackend } from './storage_backend.js';
 import { WORKBOOK_FORMAT_VERSION } from './migration/versions.js';
-import { workbookAttachments } from './workbook_files.js';
+import { provideWorkbookFormatCore, workbookFormat } from './workbook_format.js';
 
 const LOG_CTX = 'storage_writer';
 
@@ -398,6 +398,7 @@ export class StorageWriter {
             return;
         }
         this.native = instance.createStorageWriter(this.createHost(), WORKBOOK_FORMAT_VERSION);
+        provideWorkbookFormatCore(instance);
         const waiting = this.waiting;
         this.waiting = [];
         for (const call of waiting) call.run(this.native);
@@ -485,7 +486,7 @@ export class StorageWriter {
             deleteScript: async (workbookId, fileName) => this.backend.deleteScript(workbookId, fileName),
             renameScript: async (workbookId, from, to) => this.backend.renameScript(workbookId, from, to),
             // The natural order of file names follows the collator of the host
-            listAttachments: async workbookId => workbookAttachments((await this.backend.listDataFiles(workbookId)).map(file => file.name)).map(attachment => attachment.name),
+            listAttachments: async workbookId => workbookFormat().workbookAttachments((await this.backend.listDataFiles(workbookId)).map(file => file.name.normalize('NFC'))),
             updateConnections: async update => this.requireRegistry().updateConnections(connections => {
                 const next = update(connections === undefined ? null : JSON.stringify(connections));
                 return next == null ? null : JSON.parse(next) as ConnectionEntry[];

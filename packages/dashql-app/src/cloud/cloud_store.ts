@@ -12,8 +12,8 @@ import {
     RESULT_TABLE_PREFIX,
     RESULTS_TABLE,
     WORKBOOK_TABLE,
-    WORKBOOK_TABLE_COLUMNS,
     WORKBOOK_TABLE_NAMES,
+    workbookTableColumns,
     workbookTableFromArrow,
     type AttachmentRow,
     type WorkbookTableName,
@@ -140,7 +140,7 @@ function selected(name: string): string {
 
 /// The columns of a workbook table in the cloud, without the key
 function workbookColumns(tableName: WorkbookTableName): CloudColumn[] {
-    return WORKBOOK_TABLE_COLUMNS[tableName].filter(column => column.name !== 'workbook_id').map(column => ({
+    return workbookTableColumns(tableName).filter(column => column.name !== 'workbook_id').map(column => ({
         name: column.name,
         type: WORKBOOK_COLUMN_TYPES[column.type],
         nullable: column.nullable,
@@ -493,7 +493,7 @@ export async function readCloudWorkbook(
     // column reads as null, a missing table as one without rows.
     const read = async <N extends WorkbookTableName>(tableName: N, cloudTableName: string): Promise<WorkbookTables[N]> => {
         const existing = view.columns.get(cloudTableName);
-        const columns = WORKBOOK_TABLE_COLUMNS[tableName].filter(column => existing?.has(column.name)).map(column => column.name);
+        const columns = workbookTableColumns(tableName).filter(column => existing?.has(column.name)).map(column => column.name);
         if (columns.length === 0) return [] as unknown as WorkbookTables[N];
         const result = await query(`SELECT ${columns.map(selected).join(', ')} FROM ${cloudTable(cloudTableName, options)} `
             + `WHERE ${versionWhere(row)} ORDER BY ${columns.map(name => qualifiedName(name)).join(', ')}`, signal);

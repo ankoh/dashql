@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
-import type { DashQL } from '@ankoh/dashql-core';
+import { DashQL } from '@ankoh/dashql-core';
 
 import { WORKBOOK_TABLE } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { sharedWorkbookTables } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
@@ -43,8 +43,10 @@ describe('Cloud workbooks', () => {
         }, link)).toEqual({ originalFileName: 'hyper', cloud: link });
     });
 
-    it('publishes a workbook without its link', () => {
-        const tables = sharedWorkbookTables({} as DashQL, {
+    it('publishes a workbook without its link', async () => {
+        // The core sanitizes the shared workbook and reads its catalogs
+        const core = await DashQL.create({ wasmBinary: await globalThis.DASHQL_PRECOMPILED! });
+        const tables = sharedWorkbookTables(core, {
             workbook: testWorkbook({ metadata: { originalFileName: 'hyper', cloud: { workbookId: CLOUD_WORKBOOK, versionId: VERSION_1, connectionId: 'cloud' } } }),
             catalogs: [],
             scripts: [],

@@ -7,7 +7,7 @@ import {
 } from '@ankoh/dashql-runtime/storage/storage_backend';
 import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { assembleWorkbookBundle, readWorkbookBundleHead } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { type MigrationFolder, OverlayFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
+import type { MigrationFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import { LEGACY_WORKBOOK_FILES } from '../../platform/events/legacy_links.js';
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
@@ -53,7 +53,7 @@ export async function readWorkbookBundleFromHttp(
     const manifestText = await fetchRequiredText(httpClient, manifestUrl, manifestName, MAX_MANIFEST_BYTES, signal);
     totalBytes += textBytes(manifestText);
     // Workbooks published by older versions are migrated in memory
-    const folder = new OverlayFolder(new HttpFolder(baseUrl, httpClient, MAX_SCRIPT_BYTES, signal, manifestName, manifestText));
+    const folder = new HttpFolder(baseUrl, httpClient, MAX_SCRIPT_BYTES, signal, manifestName, manifestText);
     const head = await readWorkbookBundleHead(folder, 'Invalid remote workbook');
     const workbook = head.workbook;
     const workbookName = workbook.name?.trim() || workbook.metadata.originalFileName || 'Unnamed workbook';
@@ -135,7 +135,7 @@ export async function readWorkbookBundleFromHttp(
 /// The top-level files of a hosted workbook, fetched when a reader asks for them.
 ///
 /// Each file is fetched at most once, a missing or unreadable file reads as null. The folder is
-/// read-only, the workbook migration changes it through an `OverlayFolder`.
+/// read-only, the workbook migration of the core changes it in memory.
 class HttpFolder implements MigrationFolder {
     /// The URL of the workbook folder
     private readonly baseUrl: URL;
@@ -171,10 +171,6 @@ class HttpFolder implements MigrationFolder {
 
     async writeText(name: string): Promise<void> {
         throw new Error(`Cannot write ${name} of a remote workbook`);
-    }
-
-    async rename(from: string): Promise<void> {
-        throw new Error(`Cannot rename ${from} of a remote workbook`);
     }
 
     async remove(name: string): Promise<void> {

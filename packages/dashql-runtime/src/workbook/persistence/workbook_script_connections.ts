@@ -1,6 +1,6 @@
 import type { ConnectionState } from '../../connections/connection_state.js';
-import type { WorkbookConnection, WorkbookData, WorkbookScript } from '../../storage/storage_backend.js';
-import { reconcileWorkbookScripts, sanitizeWorkbookFiles, withWorkbookScripts } from '../../storage/workbook_files.js';
+import type { WorkbookConnection, WorkbookData } from '../../storage/storage_backend.js';
+import { workbookFormat } from '../../storage/workbook_format.js';
 
 /// A script of a workbook file with the connection it runs on
 export interface ResolvedWorkbookScript {
@@ -44,42 +44,37 @@ export function resolveWorkbookScripts(
     resolve: WorkbookConnectionResolver,
     onUnresolved: (connectionId: string) => void = () => { },
 ): ResolvedWorkbookScripts {
-    const copies = new Map(workbook.connections.map(connection => [connection.connectionId, connection]));
-    const resolved = new Map<string, ConnectionState | null>();
-    const resolveId = (connectionId: string): ConnectionState | null => {
-        if (!resolved.has(connectionId)) {
-            const connection = resolve(connectionId, copies.get(connectionId) ?? null);
-            if (connection == null) onUnresolved(connectionId);
-            resolved.set(connectionId, connection);
-        }
-        return resolved.get(connectionId) ?? null;
+    // The core resolves the scripts, the connections cross as JSON and come back by their ids
+    const connections = new Map<string, ConnectionState>();
+    const json = (connection: ConnectionState): string => {
+        connections.set(connection.connectionId, connection);
+        return JSON.stringify({ connectionId: connection.connectionId, params: connection.params });
     };
-    const scriptOf = (name: string, connectionId: string): ResolvedWorkbookScript => {
-        const connection = resolveId(connectionId);
-        return connection != null
-            ? { name, connection }
-            : { name, connection: fallback(), unresolvedConnectionId: connectionId };
+    const resolved = workbookFormat().resolveWorkbookScripts(workbook, fileNames.map(name => name.normalize('NFC')), {
+        resolve: (connectionId, copy) => {
+            const connection = resolve(connectionId, copy == null ? null : JSON.parse(copy) as WorkbookConnection);
+            return connection == null ? null : json(connection);
+        },
+        fallback: () => json(fallback()),
+        unresolved: onUnresolved,
+    });
+    const connectionOf = (connectionId: string): ConnectionState => {
+        const connection = connections.get(connectionId);
+        if (connection == null) throw new Error(`The resolution of the scripts returned an unknown connection ${connectionId}`);
+        return connection;
     };
-    const firstConnectionId = workbook.connections[0]?.connectionId ?? null;
-    const listed = reconcileWorkbookScripts(sanitizeWorkbookFiles(workbook).scripts, fileNames, firstConnectionId ?? '').scripts;
-    const scripts = listed.map(entry => scriptOf(entry.name, entry.connectionId));
-    const pendingConnection = scripts.length > 0 ? null
-        : (firstConnectionId == null ? null : resolveId(firstConnectionId)) ?? fallback();
-    const list: WorkbookScript[] = scripts.map(script => ({ name: script.name, connectionId: script.unresolvedConnectionId ?? script.connection.connectionId }));
-    const used = [...(pendingConnection == null ? [] : [pendingConnection]), ...scripts.map(script => script.connection)]
-        .map(connection => ({ connectionId: connection.connectionId, params: connection.params }));
     return {
-        scripts,
-        pendingConnection,
-        workbook: withWorkbookScripts(workbook, list, used),
+        scripts: resolved.scripts.map(script => ({
+            name: script.name,
+            connection: connectionOf(script.connectionId),
+            ...(script.unresolvedConnectionId == null ? {} : { unresolvedConnectionId: script.unresolvedConnectionId }),
+        })),
+        pendingConnection: resolved.pendingConnectionId == null ? null : connectionOf(resolved.pendingConnectionId),
+        workbook: resolved.workbook as WorkbookData,
     };
 }
 
 /// Does a resolved workbook file differ from the stored one in its scripts or connections?
 export function workbookScriptsResolutionChanged(stored: WorkbookData, resolved: WorkbookData): boolean {
-    const refs = (workbook: WorkbookData) => JSON.stringify([
-        workbook.connections.map(connection => connection.connectionId),
-        workbook.scripts ?? [],
-    ]);
-    return refs(stored) !== refs(resolved);
+    return workbookFormat().resolutionChanged(stored, resolved);
 }

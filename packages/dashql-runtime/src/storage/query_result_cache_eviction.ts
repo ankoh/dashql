@@ -1,8 +1,10 @@
+import { loadWorkbookFormat } from './workbook_format.js';
+
 /// The eviction policy of the query result cache.
 ///
 /// The cache of the app stores query results as Parquet files in the folder `cache/` of the origin private file
 /// system (see `opfs_query_result_cache.ts`). Listing and deleting the files live behind `QueryResultCacheStore`, the
-/// policy below is shared and unit-testable.
+/// policy is a module of the core.
 ///
 /// Eviction is a true LRU keyed on `lastAccessMs`. The origin private file system exposes no last-access time, and
 /// re-touching a file on a hit would rewrite a potentially large file and clobber its write time. So each file has an
@@ -46,28 +48,24 @@ export const DEFAULT_CACHE_MAX_FILES = 1000;
 /// Evict least-recently-accessed cache files until the cache is within both the size and count thresholds, e.g.
 /// after a write.
 ///
-/// Age is last-access time (`lastAccessMs`, the marker's mtime — see the module header): the
-/// least-recently-*used* entries are dropped first, so this is a true LRU. Files are deleted
-/// oldest-access-first until `totalBytes <= maxBytes` and `count <= maxFiles`. A file that is read stays, the next
-/// one goes instead, so a single file larger than `maxBytes` empties the rest of the cache while it is read.
+/// The eviction of the workbook format of the core (`workbook_format::eviction`) decides: the least-recently-*used*
+/// entries go first (`lastAccessMs`, the marker's mtime, see the module header), until `totalBytes <= maxBytes` and
+/// `count <= maxFiles`. A file that is read stays, the next one goes instead, so a single file larger than `maxBytes`
+/// empties the rest of the cache while it is read.
 export async function evictToFit(
     store: QueryResultCacheStore,
     maxBytes: number = DEFAULT_CACHE_MAX_BYTES,
     maxFiles: number = DEFAULT_CACHE_MAX_FILES,
 ): Promise<void> {
     const files = await store.listCacheFiles();
-    let totalBytes = files.reduce((total, f) => total + f.size, 0);
-    let count = files.length;
-    const fits = () => totalBytes <= maxBytes && count <= maxFiles;
-    if (fits()) return;
-
-    // Least-recently-accessed first (ascending lastAccessMs) so we drop the coldest entries.
-    const byAge = [...files].sort((a, b) => a.lastAccessMs - b.lastAccessMs);
-    for (const f of byAge) {
-        if (fits()) break;
-        // A file that is read stays, the next one goes instead
-        if (await store.deleteCacheFile(f.name) === false) continue;
-        totalBytes -= f.size;
-        count -= 1;
+    const eviction = (await loadWorkbookFormat()).cacheEviction(files, maxBytes, maxFiles);
+    try {
+        for (let name = eviction.nextCandidate(); name != null; name = eviction.nextCandidate()) {
+            // A file that is read stays, the next one goes instead
+            if (await store.deleteCacheFile(name) === false) eviction.kept();
+            else eviction.deleted();
+        }
+    } finally {
+        eviction.destroy();
     }
 }

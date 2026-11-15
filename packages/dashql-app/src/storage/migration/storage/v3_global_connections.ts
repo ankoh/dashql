@@ -1,7 +1,7 @@
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { connectionParamsEqual, connectionParamsKey, connectionParamsWithoutDraftRows } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionEntry, ConnectionParams } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { isValidUuid } from '@ankoh/dashql-runtime/storage/workbook_validation';
+import { loadWorkbookFormat } from '@ankoh/dashql-runtime/storage/workbook_format';
 import type { MigrationFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import { migrateWorkbookFolder } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
 import type { StorageMigrationStep } from '../storage_migration.js';
@@ -208,8 +208,9 @@ export const globalConnections: StorageMigrationStep = {
 
         const sessions: MigratingSession[] = [];
         const folders = new Map<string, MigrationFolder>();
+        const format = await loadWorkbookFormat();
         for (const { sessionId, folder } of await listSessionFolders(root, manifestSessionEntries(manifest))) {
-            if (!isValidUuid(sessionId)) continue;
+            if (!format.isValidUuid(sessionId)) continue;
             try {
                 await migrateWorkbookFolder(folder, WORKBOOK_FORMAT_VERSION);
                 const text = await folder.readText('dashql-session.json');

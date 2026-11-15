@@ -901,6 +901,27 @@ fn tables_bundle() -> WorkbookBundle<Vec<u8>> {
 }
 
 #[test]
+fn reads_and_renders_catalog_files_with_the_core() {
+    let tables = vec![
+        table("hyper", "orders", vec![column("id", 0, "integer"), column("note", 1, "text")]),
+        table("hyper", "items", vec![column("name", 0, "text")]),
+    ];
+    let relations = CoreCatalogSql.relations_sql(&tables);
+    let parsed = CoreCatalogSql.parse(&relations).unwrap();
+    assert_eq!(parsed.tables, tables);
+    assert!(parsed.functions.is_empty());
+    let functions = vec![
+        function("public", "scale", false, "bigint", &[("value", "integer"), ("factor", "integer")]),
+        function("public", "total", true, "bigint", &[("value", "bigint")]),
+    ];
+    let text = CoreCatalogSql.functions_sql(&functions);
+    let parsed = CoreCatalogSql.parse(&text).unwrap();
+    assert_eq!(CoreCatalogSql.functions_sql(&parsed.functions), text);
+    assert_eq!(parsed.functions.iter().map(|f| (f.function_name.as_str(), f.is_aggregate)).collect::<Vec<_>>(), [("scale", false), ("total", true)]);
+    assert!(CoreCatalogSql.parse("create tabel t;").is_err());
+}
+
+#[test]
 fn round_trips_a_bundle_through_the_rows() {
     let bundle = tables_bundle();
     let tables = workbook_bundle_to_tables(&bundle, &JsonCatalogSql, &mut uuids()).unwrap();

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { LoggerLike } from '../../platform/logger/logger.js';
 import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.js';
-import { importWorkbookQueryResults, workbookResultKey, workbookResultPath } from './workbook_query_results.js';
+import { importWorkbookQueryResults } from './workbook_query_results.js';
 
 function testLogger() {
     return { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), exception: vi.fn() } satisfies LoggerLike;
@@ -11,14 +11,6 @@ function testLogger() {
 const result = (key: string, bytes: number[]) => ({ key, bytes: new Blob([new Uint8Array(bytes)]) });
 
 describe('workbook query results', () => {
-    it('names the files of the results folder after their keys', () => {
-        const key = 'a'.repeat(64);
-        expect(workbookResultPath(key)).toBe(`results/${key}.parquet`);
-        expect(workbookResultKey(`${key}.parquet`)).toBe(key);
-        expect(workbookResultKey(`${'A'.repeat(64)}.parquet`)).toBeNull();
-        expect(workbookResultKey('notes.txt')).toBeNull();
-    });
-
     it('imports every result it can, keeps the cached keys and logs each one', async () => {
         const [added, kept, failing] = ['a', 'b', 'c'].map(c => c.repeat(64));
         const cache = memoryQueryResultCache();

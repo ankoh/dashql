@@ -11,6 +11,7 @@ import { DashQLComputations } from './computations.js';
 import { DashQLStorageWriter } from './storage_writer.js';
 import { DashQLQueryExecutor } from './query_executor.js';
 import { DashQLAppRestore } from './restore.js';
+import { DashQLWorkbookFormat } from './workbook_format.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -40,6 +41,12 @@ export type DashQLBindings = Pick<
     | 'QueryExecutor'
     | 'AppRestore'
     | 'ConnectionPersistence'
+    | 'workbookFormat'
+    | 'encodeWorkbookTable'
+    | 'decodeWorkbookTable'
+    | 'workbookLink'
+    | 'resolveWorkbookScripts'
+    | 'CacheEviction'
 >;
 
 /// The shell of the module, the host runs its effects
@@ -456,6 +463,11 @@ export class DashQL {
     /// instance. The editors of the restored workbooks count offsets in `offsetUnit`.
     public createRestore(host: glue.RestoreHost, writer: DashQLStorageWriter, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLAppRestore {
         return DashQLAppRestore.create(this, host, writer, offsetUnit);
+    }
+
+    /// The storage format of workbooks: the workbook file, migrations, bundles, the workbook tables and archives
+    public get workbookFormat(): DashQLWorkbookFormat {
+        return new DashQLWorkbookFormat(this.bindings);
     }
 
     /// Create the table parameters of a session, the tables that `:foo` in table position reads

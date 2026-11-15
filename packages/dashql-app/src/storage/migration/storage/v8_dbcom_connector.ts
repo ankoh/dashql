@@ -1,6 +1,6 @@
 import type { StorageMigrationStep } from '../storage_migration.js';
 import { readManifestJson, writeManifestJson } from '../storage_root.js';
-import { renameSidbConnections } from '@ankoh/dashql-runtime/storage/migration/workbook/v10_dbcom_connector';
+import { loadWorkbookFormat } from '@ankoh/dashql-runtime/storage/workbook_format';
 
 /// The Database.com connector was called SIDB.
 ///
@@ -14,6 +14,7 @@ export const dbcomConnector: StorageMigrationStep = {
         if (manifest == null || !Array.isArray(manifest.connections)) {
             return;
         }
-        await writeManifestJson(root, { ...manifest, connections: renameSidbConnections(manifest.connections) });
+        const format = await loadWorkbookFormat();
+        await writeManifestJson(root, { ...manifest, connections: format.renameSidbConnections(manifest.connections) });
     },
 };

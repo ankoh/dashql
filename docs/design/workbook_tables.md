@@ -2,7 +2,8 @@
 
 A workbook that leaves the app travels as the rows of a fixed set of tables. A `.dashql` file is a ZIP that holds each
 table as a Parquet file, `<table>.parquet`. The cloud keeps published workbooks in the same tables, the rows of all
-versions merged and keyed by workbook and version (`cloud.md`). File and schema share one converter (`storage/workbook_tables.ts`); only the sink differs. The tables
+versions merged and keyed by workbook and version (`cloud.md`). File and schema share one converter, the workbook format of
+the core runtime (`workbook_format/tables.rs`, `storage/workbook_tables.ts` in TypeScript); only the sink differs. The tables
 hold exactly one workbook, so no row names its workbook.
 
 ## Sharing a Workbook
@@ -39,13 +40,13 @@ matched with the registered ones, and a workbook whose id is registered already 
   `workbook_results` name them. The text columns are `text`, the ids, `position` and `format_version` are `integer`, `is_aggregate` is
   `boolean`.
 - **Workbook file.** A reader assembles the workbook file from the rows and migrates it in memory like the top-level
-  files of a workbook folder (`readWorkbookBundleHead`). `format_version` keeps the workbook migrations in charge.
+  files of a workbook folder (`read_workbook_bundle_head`). `format_version` keeps the workbook migrations in charge.
 - **Catalogs.** The catalog files of a connection are rows: its tables with their columns, and its functions with their
   parameters. A table has a `table_id` and a function a `function_id`, numbered across the connections of the workbook in
   the order of their declarations. A column names its table and a parameter its function by that id, so the overloads
   of a function stay apart. The ids aren't declared as keys, the tables have none. An empty database or schema name means the declaration
   names none. An export reads the SQL of the files with the core into a catalog descriptor
-  (`connections/catalog/catalog_structure.ts`), an import renders the files again from the rows. The files on disk stay SQL
+  (`CoreCatalogSql` of `workbook_format/catalog.rs`), an import renders the files again from the rows. The files on disk stay SQL
   (`catalog_updates.md`). A rendered file reads back as the same rows, it isn't the text of the original file.
 - **Connections only.** Sharing a connection writes a workbook without scripts that holds the connection.
 
@@ -67,14 +68,16 @@ workbook_results.parquet                    (with query results only)
 workbook_result_<id>.parquet
 ```
 
-- **Writing.** The embedded Hyper writes the workbook tables (`exportArrowTableAsParquet`). Attachments and results are
+- **Writing.** The core turns the rows of a table into Arrow IPC, the embedded Hyper writes them as Parquet
+  (`exportArrowTableAsParquet`). The core names the entries of the archive and their compression. Attachments and results are
   Parquet files already, so they go in unchanged. Empty tables are left out, and a reader takes a missing table as one
   without rows.
 - **Compression.** The entries are deflated. Hyper compresses the pages of a Parquet file with Snappy, but not its
   footer, which is most of a small table: deflate halves the workbook tables, and an attachment that Hyper wrote as
   well. Hyper takes no Parquet option but `codec`, and deflate over Snappy pages comes out smaller than over plain ones.
   A query result stays stored, an import reads it as a slice of the archive (`query_cache.md`).
-- **Reading.** The embedded Hyper mounts every workbook table and scans it (`readWorkbookTableParquet`). An archive
+- **Reading.** The core decides what each entry of an archive is (`plan_archive`). The embedded Hyper mounts every
+  workbook table and scans it (`readWorkbookTableParquet`), the core reads the rows of the Arrow IPC. An archive
   without `workbook.parquet` is an archive of an older version, which holds the files of a workbook folder
   (`dashql-workbook.json`, `scripts/`, `attachments/`, `connections/<id>/`, `results/`). The import still reads it,
   without the embedded Hyper.

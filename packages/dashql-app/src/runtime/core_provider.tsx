@@ -7,11 +7,33 @@ import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context
 import { decodedContentLength } from '../utils/content_length.js';
 import { disposeCatalogBatchWorker, initializeCatalogBatchWorker } from '@ankoh/dashql-runtime/connections/catalog/catalog_batch';
 import { CorePanicOverlay } from './core_panic_overlay.js';
+import { provideWorkbookFormatCore, setWorkbookFormatCoreLoader } from '@ankoh/dashql-runtime/storage/workbook_format';
 
 // Load the WebAssembly asset through the core package export.
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
 import coreWasmUrl from '@ankoh/dashql-core/wasm?url';
 const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
+
+/// The instantiation of the core before its provider, e.g. when the storage setup migrates an older workbook folder
+let instantiationBeforeProvider: Promise<dashql.DashQL> | null = null;
+function instantiateBeforeProvider(): Promise<dashql.DashQL> {
+    if (instantiationBeforeProvider == null) {
+        const instantiation = (async () => {
+            const response = await fetch(DASHQL_WASM_URL);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch core wasm: ${response.status} ${response.statusText}`);
+            }
+            return await dashql.DashQL.create({ wasmBinary: new Uint8Array(await response.arrayBuffer()) });
+        })();
+        instantiationBeforeProvider = instantiation;
+        instantiation.catch(() => {
+            if (instantiationBeforeProvider === instantiation) instantiationBeforeProvider = null;
+        });
+    }
+    return instantiationBeforeProvider;
+}
+// The workbook format of the core instantiates the core of the app when nothing did yet
+setWorkbookFormatCoreLoader(instantiateBeforeProvider);
 
 export interface InstantiationProgress {
     startedAt: Date;
@@ -97,6 +119,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 const response = await fetchWithProgress(DASHQL_WASM_URL, traced);
                 const wasmBinary = new Uint8Array(await response.arrayBuffer());
                 const instance = await dashql.DashQL.create({ wasmBinary });
+                provideWorkbookFormatCore(instance);
                 owner.core = instance;
                 if (owner.disposed) {
                     disposeCatalogBatchWorker(instance);

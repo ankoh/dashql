@@ -14,7 +14,6 @@ import {
     WORKBOOK_TABLE,
     workbookBundleToTables,
     workbookTablesToBundle,
-    type CatalogParser,
     type WorkbookTables,
 } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
@@ -66,12 +65,6 @@ beforeEach(async () => {
     await installCloudStore(query);
 });
 
-/// The catalog of every catalog file
-const parse: CatalogParser = () => ({
-    tables: [{ databaseName: 'db', schemaName: 'public', tableName: 'orders', columns: [{ name: 'id', ordinalPosition: 0, dataType: 'integer' }] }],
-    functions: [{ databaseName: '', schemaName: '', functionName: 'scale', isAggregate: false, returnType: null, params: [{ name: null, type: 'bigint' }] }],
-});
-
 /// A Parquet file of a value of many types
 async function typesParquet(): Promise<Uint8Array> {
     const table = await connection.query(`SELECT 1::integer AS i, 9007199254740993::bigint AS big, 'it''s \\ "x"'::text AS t, NULL::bigint AS missing,
@@ -93,7 +86,7 @@ async function testBundle(): Promise<WorkbookBundle> {
             scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }],
             attachments: [{ name: 'types.parquet' }],
         }),
-        catalogs: [{ connectionId: TEST_CONNECTION_ID, relations: 'x', functions: 'y' }],
+        catalogs: [{ connectionId: TEST_CONNECTION_ID, relations: 'CREATE TABLE db.public.orders (id integer);', functions: 'CREATE FUNCTION scale(value bigint) RETURNS bigint;' }],
         scripts: [{ name: 'a.sql', sql: "select 'it''s'" }],
         data: [{ name: 'types.parquet', bytes: await typesParquet() }],
         results: [{ key: 'k1', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
@@ -101,7 +94,7 @@ async function testBundle(): Promise<WorkbookBundle> {
 }
 
 async function testTables(): Promise<WorkbookTables> {
-    return workbookBundleToTables(await testBundle(), parse);
+    return workbookBundleToTables(await testBundle());
 }
 
 /// Does a table of the schema of DashQL exist?

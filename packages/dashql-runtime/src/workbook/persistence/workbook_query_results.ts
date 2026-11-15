@@ -3,23 +3,9 @@ import type { WorkbookBundleResult } from '../../storage/workbook_bundle.js';
 import type { WorkbookScripts } from '../scripts/workbook_scripts.js';
 import { computeWorkbookResultCacheKeys, type ScriptRunServices } from '../scripts/script_run.js';
 import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
+import { loadWorkbookFormat } from '../../storage/workbook_format.js';
 
 const LOG_CTX = 'workbook_query_results';
-
-/// The folder of the query results in an exported workbook of older versions, `results/<key>.parquet`
-export const WORKBOOK_RESULTS_FOLDER = 'results';
-/// The file of a query result in an exported workbook, named after its cache key
-const RESULT_FILE = /^([0-9a-f]{64})\.parquet$/;
-
-/// The path of a query result in an exported workbook of older versions
-export function workbookResultPath(key: string): string {
-    return `${WORKBOOK_RESULTS_FOLDER}/${key}.parquet`;
-}
-
-/// The cache key of a file of the results folder of an exported workbook, null for any other file
-export function workbookResultKey(fileName: string): string | null {
-    return RESULT_FILE.exec(fileName)?.[1] ?? null;
-}
 
 /// The cached results of the scripts of a workbook
 export interface RetainedWorkbookQueryResults {
@@ -123,19 +109,16 @@ export async function importWorkbookQueryResults(
     logger?: LoggerLike,
 ): Promise<ImportedWorkbookQueryResults> {
     const outcome: ImportedWorkbookQueryResults = { total: results.length, added: 0, kept: 0, failed: 0, dropped: 0, bytes: 0, error: null };
-    // The results beyond the limits of the cache are left out, the ones before them would be evicted again. The import
-    // may evict the least recently read results of the app.
-    let budgetBytes = cache.capacity.maxBytes;
-    let budgetFiles = cache.capacity.maxFiles;
-    for (const result of results) {
+    // The core leaves out the results beyond the limits of the cache, the ones before them would be evicted again. The
+    // import may evict the least recently read results of the app.
+    const plan = (await loadWorkbookFormat()).planResultImport(results.map(result => result.bytes.size), cache.capacity.maxBytes, cache.capacity.maxFiles);
+    for (const [index, result] of results.entries()) {
         const fields = { key: result.key, bytes: result.bytes.size.toString() };
-        if (result.bytes.size > budgetBytes || budgetFiles < 1) {
+        if (!plan.add[index]) {
             ++outcome.dropped;
             logger?.warn('Left out an imported query result, the cache is full', fields, LOG_CTX);
             continue;
         }
-        budgetBytes -= result.bytes.size;
-        budgetFiles -= 1;
         try {
             if (await cache.importFile(result.key, result.bytes, { crc32: result.crc32 })) {
                 ++outcome.added;

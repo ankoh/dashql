@@ -7,6 +7,7 @@ export * from './storage_writer.js';
 export * from './query_executor.js';
 export * from './restore.js';
 export * from './connection_persistence.js';
+export * from './workbook_format.js';
 export * from './dataflow.js';
 export * from './batch.js';
 export * from './tokens.js';

@@ -40,39 +40,13 @@ function stat(name: string, size: number, mtimeMs: number): CacheFileStat {
     return { name, size, mtimeMs, lastAccessMs: mtimeMs };
 }
 
+// The policy is tested in the core (`workbook_format::eviction`), these tests drive it over a store
 describe('evictToFit', () => {
-    it('does nothing when the cache is within the thresholds', async () => {
-        const store = new MemoryCacheStore([stat('a.parquet', 10, 1), stat('b.parquet', 10, 2)]);
-        await evictToFit(store, /*maxBytes*/ 20, /*maxFiles*/ 2);
-        expect(store.deleted).toEqual([]);
-    });
-
     it('evicts least-recently-accessed files first until under the size threshold', async () => {
         const store = new MemoryCacheStore([stat('old.parquet', 40, 1), stat('mid.parquet', 40, 2), stat('new.parquet', 40, 3)]);
         // total 120, cap 50 -> drop old (40) then mid (40) => 40 left.
         await evictToFit(store, /*maxBytes*/ 50, /*maxFiles*/ 100);
         expect(store.deleted).toEqual(['old.parquet', 'mid.parquet']);
-    });
-
-    it('sorts by last-access time, not write time (true LRU)', async () => {
-        // 'old' was written first but accessed most recently; 'new' was written last but never
-        // re-accessed. LRU must evict the coldest by access time ('new'), not the oldest write.
-        const store = new MemoryCacheStore([
-            { name: 'old.parquet', size: 40, mtimeMs: 1, lastAccessMs: 99 },
-            { name: 'mid.parquet', size: 40, mtimeMs: 2, lastAccessMs: 50 },
-            { name: 'new.parquet', size: 40, mtimeMs: 3, lastAccessMs: 5 },
-        ]);
-        await evictToFit(store, /*maxBytes*/ 100, /*maxFiles*/ 100);
-        expect(store.deleted).toEqual(['new.parquet']);
-    });
-
-    it('keeps as many files as the file-count threshold allows', async () => {
-        const store = new MemoryCacheStore([stat('old.parquet', 1, 1), stat('mid.parquet', 1, 2), stat('new.parquet', 1, 3)]);
-        // A write left 3 files, the threshold is 2 -> drop the single coldest.
-        await evictToFit(store, /*maxBytes*/ 1000, /*maxFiles*/ 2);
-        expect(store.deleted).toEqual(['old.parquet']);
-        await evictToFit(store, 1000, 2);
-        expect(store.deleted).toEqual(['old.parquet']);
     });
 
     it('keeps the files that are read and evicts the next ones instead', async () => {

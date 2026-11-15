@@ -1,4 +1,4 @@
-import type { DashQL, FlatBufferPtr, buffers } from '@ankoh/dashql-core';
+import type { DashQL, WorkbookBundleJson } from '@ankoh/dashql-core';
 import type { DataFileData, WorkbookData, ScriptData, StorageBackend } from './storage_backend.js';
 import {
     isWorkbookRegistryBackend,
@@ -7,18 +7,13 @@ import {
     STORAGE_CONNECTIONS_FOLDER,
     STORAGE_WORKBOOK_FILE,
     StorageBackendType,
-    validateDataFileName,
 } from './storage_backend.js';
 import type { MigrationFolder } from './migration/migration_folder.js';
-import { migrateWorkbookFolder, WorkbookMigrationResult } from './migration/workbook_migration.js';
-import { WORKBOOK_CATALOG_COPY_FORMAT_VERSION } from './migration/versions.js';
-import {
-    describeWorkbookValidationError,
-    isValidUuid,
-    WorkbookValidationError,
-    validateWorkbookData,
-} from './workbook_validation.js';
-import { reconcileWorkbookScripts, remapWorkbookScripts, sanitizeWorkbookFiles, workbookAttachments, workbookConnectionIdsOf } from './workbook_files.js';
+import { readCurrentWorkbookFile, readMigrationFiles } from './migration/workbook_migration.js';
+import { loadWorkbookFormat, workbookFormat } from './workbook_format.js';
+
+// Workbook bundles are a module of the workbook format of the core (`workbook_format::bundle`). The functions below
+// read and write the files, the core decides what a bundle holds, see docs/wip/core_runtime.md.
 
 /// The durable, portable subset of a workbook. Storage-location metadata is intentionally not represented here, and
 /// cached query results only when an exported workbook carries them.
@@ -59,33 +54,7 @@ export interface WorkbookBundleCatalog {
     functions: string | null;
 }
 
-/// The path of a catalog file of a connection in a bundle, e.g. `connections/<id>/dashql-catalog-relations.sql`.
-/// The app ignores the folder of a workbook folder except when the workbook is imported.
-export function bundleCatalogPath(connectionId: string, fileName: string): string {
-    return `${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${fileName}`;
-}
-
-/// The format version of the workbook file of a folder, null if it has none
-async function readFormatVersion(folder: MigrationFolder): Promise<unknown> {
-    return (await readWorkbookField(folder, 'formatVersion')) ?? null;
-}
-
-/// Read a top-level field of the workbook file, undefined when the file is unreadable
-/// The workbook metadata is read halfway through a migration, when it may still carry the name of the sessions of
-/// older versions
-async function readWorkbookField(folder: MigrationFolder, field: string): Promise<unknown> {
-    try {
-        const text = await folder.readText(STORAGE_WORKBOOK_FILE) ?? await folder.readText(LEGACY_SESSION_FILE);
-        return text == null ? undefined : (JSON.parse(text) as Record<string, unknown>)?.[field];
-    } catch {
-        return undefined;
-    }
-}
-
-/// The name of the workbook metadata up to format version 10
-const LEGACY_SESSION_FILE = 'dashql-session.json';
-
-/// Is a path of a bundle the path of a catalog file of a connection?
+/// Is a path of a bundle the path of a catalog file of a connection, `connections/<id>/dashql-catalog-*.sql`?
 export function isBundleCatalogPath(path: string): boolean {
     const parts = path.split('/');
     return parts.length === 3 && parts[0] === STORAGE_CONNECTIONS_FOLDER
@@ -98,111 +67,59 @@ export interface WorkbookBundleHead extends Pick<WorkbookBundle, 'workbook' | 'c
     filesValid: boolean;
 }
 
-/// Complete a bundle from its top-level files and the files of its folders.
-///
-/// The file lists of the workbook file are reconciled with the files: scripts without a file are
-/// dropped and script files without an entry are appended on the connection of the script before them.
+/// Complete a bundle from its workbook file and catalogs and the files of its folders. The file lists of the workbook
+/// file follow the files: scripts without a file are dropped and script files without an entry are appended on the
+/// connection of the script before them. Needs the core instantiated.
 export function assembleWorkbookBundle(
     head: Pick<WorkbookBundle, 'workbook' | 'catalogs'>,
     scripts: ScriptData[],
     data: DataFileData[] = [],
 ): WorkbookBundle {
-    const reconciled = reconcileWorkbookScripts(head.workbook.scripts, scripts.map(script => script.name), firstConnectionId(head.workbook));
-    return {
-        workbook: {
-            ...head.workbook,
-            scripts: reconciled.scripts,
-            attachments: workbookAttachments(data.map(file => file.name)),
-        },
-        catalogs: head.catalogs,
-        scripts,
-        data,
-    };
+    const workbook = workbookFormat().assembleBundle(head.workbook, scripts.map(script => script.name), data.map(file => file.name));
+    return { workbook: workbook as WorkbookData, catalogs: head.catalogs, scripts, data };
 }
 
 /// Reconcile the file lists of a stored workbook file with the stored files, writes the workbook file
 /// only when the lists changed. Must not race with writes of the workbook file.
 export async function reconcileStoredWorkbookFiles(backend: StorageBackend, workbookId: string): Promise<WorkbookData> {
-    const [workbook, scripts, dataFiles] = await Promise.all([
+    const [workbook, scripts, dataFiles, format] = await Promise.all([
         backend.loadWorkbook(workbookId),
         backend.loadScripts(workbookId),
         backend.listDataFiles(workbookId),
+        loadWorkbookFormat(),
     ]);
-    const sanitized = sanitizeWorkbookFiles(workbook);
-    const reconciled = reconcileWorkbookScripts(sanitized.scripts, scripts.map(script => script.name), firstConnectionId(workbook));
-    const attachments = workbookAttachments(dataFiles.map(file => file.name));
-    const next: WorkbookData = { ...workbook, scripts: reconciled.scripts, attachments };
-    if (!sanitized.valid || reconciled.changed || !workbookAttachmentsEqual(workbook.attachments, attachments)) {
+    const reconciled = format.reconcileStoredFiles(workbook, scripts.map(script => script.name.normalize('NFC')), dataFiles.map(file => file.name.normalize('NFC')));
+    const next = reconciled.workbook as WorkbookData;
+    if (reconciled.write) {
         await backend.saveWorkbookManifest(workbookId, next);
     }
     return next;
 }
 
-/// The first connection of a workbook, script files without an entry run on it when no script precedes them
-function firstConnectionId(workbook: WorkbookData): string {
-    return workbook.connections[0]?.connectionId ?? '';
-}
-
-/// Do two attachment lists name the same files in the same order?
-function workbookAttachmentsEqual(a: WorkbookData['attachments'] | undefined, b: WorkbookData['attachments']): boolean {
-    return a != null && a.length === b.length && a.every((file, i) => file.name === b[i].name);
-}
-
-/// Migrate the top-level files of a workbook to the current format and read them with the catalogs
-/// of the connections in `connections/<id>/`.
-///
-/// The folder is usually held in memory, e.g. the files of an import or an `OverlayFolder` over a
-/// folder that must stay untouched. Errors start with `errorPrefix`, e.g. "Invalid ZIP".
+/// Migrate the top-level files of a workbook to the current format and read them with the catalogs of the
+/// connections in `connections/<id>/`. The folder is only read, e.g. the files of an import or a native folder that
+/// must stay untouched. Errors start with `errorPrefix`, e.g. "Invalid ZIP".
 export async function readWorkbookBundleHead(folder: MigrationFolder, errorPrefix: string): Promise<WorkbookBundleHead> {
-    // Older workbooks copied the catalog of their default connection into the top level of the
-    // folder. It is read before the migration removes the copy and the default connection.
-    const migration = await migrateWorkbookFolder(folder, WORKBOOK_CATALOG_COPY_FORMAT_VERSION);
-    const hasCatalogCopy = migration !== WorkbookMigrationResult.Missing
-        && await readFormatVersion(folder) === WORKBOOK_CATALOG_COPY_FORMAT_VERSION;
-    const [legacyRelations, legacyFunctions, legacyConnectionId] = !hasCatalogCopy ? [null, null, null] : await Promise.all([
-        folder.readText(STORAGE_CATALOG_RELATIONS),
-        folder.readText(STORAGE_CATALOG_FUNCTIONS),
-        readWorkbookField(folder, 'defaultConnectionId'),
-    ]);
-    await migrateWorkbookFolder(folder);
-    if (migration === WorkbookMigrationResult.Missing) {
-        throw new Error(`${errorPrefix}: missing ${STORAGE_WORKBOOK_FILE}`);
-    }
-    const text = await folder.readText(STORAGE_WORKBOOK_FILE);
-    if (text == null) {
-        // Metadata of an unsupported version under an older name
-        throw new Error(`${errorPrefix}: invalid ${STORAGE_WORKBOOK_FILE}: ${describeWorkbookValidationError(WorkbookValidationError.UnsupportedFormatVersion)}`);
-    }
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(text);
-    } catch {
-        throw new Error(`${errorPrefix}: invalid ${STORAGE_WORKBOOK_FILE}`);
-    }
-    if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error(`${errorPrefix}: invalid ${STORAGE_WORKBOOK_FILE}`);
-    }
-    const parsedWorkbook = parsed as WorkbookData;
-    const validation = validateWorkbookData(parsedWorkbook);
-    if (!validation.ok) {
-        throw new Error(`${errorPrefix}: invalid ${STORAGE_WORKBOOK_FILE}: ${describeWorkbookValidationError(validation.error)}`);
-    }
-    const files = sanitizeWorkbookFiles(parsedWorkbook);
-    const workbook: WorkbookData = { ...parsedWorkbook, scripts: files.scripts, attachments: files.attachments };
-    const catalogs: WorkbookBundleCatalog[] = [];
-    for (const { connectionId } of workbook.connections) {
-        const [relations, functions] = await Promise.all([
-            folder.readText(bundleCatalogPath(connectionId, STORAGE_CATALOG_RELATIONS)),
-            folder.readText(bundleCatalogPath(connectionId, STORAGE_CATALOG_FUNCTIONS)),
-        ]);
-        if (relations != null || functions != null) {
-            catalogs.push({ connectionId, relations, functions });
-        } else if (connectionId === (typeof legacyConnectionId === 'string' ? legacyConnectionId : workbook.connections[0].connectionId)
-            && (legacyRelations != null || legacyFunctions != null)) {
-            catalogs.push({ connectionId, relations: legacyRelations, functions: legacyFunctions });
+    const format = await loadWorkbookFormat();
+    // A current folder needs its workbook file only
+    const current = await readCurrentWorkbookFile(folder);
+    const files: [string, string][] = current != null
+        ? [[STORAGE_WORKBOOK_FILE, current]]
+        : await readMigrationFiles(folder, format.constants().migrationFiles);
+    let head = format.readBundleHead(files, errorPrefix);
+    // The catalogs of the connections, the core names the connections once it migrated the workbook file
+    const catalogFiles: [string, string][] = [];
+    for (const connection of (head.workbook as WorkbookData).connections) {
+        for (const fileName of [STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_FUNCTIONS]) {
+            const path = `${STORAGE_CONNECTIONS_FOLDER}/${connection.connectionId}/${fileName}`;
+            const text = await folder.readText(path);
+            if (text != null) catalogFiles.push([path, text]);
         }
     }
-    return { workbook, catalogs, filesValid: files.valid };
+    if (catalogFiles.length > 0) {
+        head = format.readBundleHead([...files, ...catalogFiles], errorPrefix);
+    }
+    return { workbook: head.workbook as WorkbookData, catalogs: head.catalogs, filesValid: head.filesValid };
 }
 
 export interface WorkbookCatalogValidationResult {
@@ -214,85 +131,28 @@ export interface WorkbookCatalogValidationResult {
 
 /// Give the connections of a bundle fresh ids, the scripts and the catalogs follow them
 export function regenerateBundleConnectionIds<B extends Pick<WorkbookBundle, 'workbook' | 'catalogs'>>(bundle: B): B {
-    const { workbook } = bundle;
-    const connectionIds = new Map(workbook.connections.map(connection => [connection.connectionId, crypto.randomUUID()]));
-    return {
-        ...bundle,
-        workbook: {
-            ...workbook,
-            connections: workbook.connections.map(connection => ({ ...connection, connectionId: connectionIds.get(connection.connectionId)! })),
-            scripts: remapWorkbookScripts(workbook.scripts, connectionIds),
-        },
-        catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds),
-    };
+    const { workbook, catalogs } = workbookFormat().regenerateConnectionIds(bundle.workbook, bundle.catalogs);
+    return { ...bundle, workbook: workbook as WorkbookData, catalogs };
 }
 
-/// Keep only the connections of a bundle that its scripts use, in the order the scripts first use them,
-/// and their catalogs.
-/// A workbook without scripts keeps the connection its first script will run on.
+/// Keep only the connections of a bundle that its scripts use, in the order the scripts first use them, and their
+/// catalogs. A workbook without scripts keeps the connection its first script will run on.
 export function pruneBundleConnections<B extends Pick<WorkbookBundle, 'workbook' | 'catalogs'>>(bundle: B): B {
-    const { workbook } = bundle;
-    const used = workbookConnectionIdsOf(workbook.scripts, workbook.connections[0]?.connectionId ?? null);
-    const copies = new Map(workbook.connections.map(connection => [connection.connectionId, connection]));
-    return {
-        ...bundle,
-        workbook: { ...workbook, connections: used.flatMap(connectionId => copies.get(connectionId) ?? []) },
-        catalogs: bundle.catalogs.filter(catalog => used.includes(catalog.connectionId)),
-    };
+    const { workbook, catalogs } = workbookFormat().pruneConnections(bundle.workbook, bundle.catalogs);
+    return { ...bundle, workbook: workbook as WorkbookData, catalogs };
 }
 
 /// Rename the connections of the catalogs of a bundle (connectionId -> new id).
 /// Connections that become one keep the first catalog.
 export function renameBundleCatalogs(catalogs: readonly WorkbookBundleCatalog[], connectionIds: ReadonlyMap<string, string>): WorkbookBundleCatalog[] {
-    const renamed = new Map<string, WorkbookBundleCatalog>();
-    for (const catalog of catalogs) {
-        const connectionId = connectionIds.get(catalog.connectionId) ?? catalog.connectionId;
-        if (!renamed.has(connectionId)) renamed.set(connectionId, { ...catalog, connectionId });
-    }
-    return [...renamed.values()];
+    return workbookFormat().renameCatalogs(catalogs, Object.fromEntries(connectionIds));
 }
 
-/// Parse catalog files on scratch scripts and omit malformed SQL before it can reach storage.
-/// Analysis is intentionally excluded: imported catalogs may reference types or objects that are
-/// only available once their connection has been restored.
-export function filterInvalidWorkbookCatalogs(
-    core: DashQL,
-    bundle: WorkbookBundle,
-): WorkbookCatalogValidationResult {
-    const invalidFiles: string[] = [];
-    let changed = false;
-    const catalogs = bundle.catalogs.map(catalog => {
-        const validate = (sql: string | null, fileName: string) => {
-            if (sql == null || parsesWithoutErrors(core, sql)) return sql;
-            invalidFiles.push(bundleCatalogPath(catalog.connectionId, fileName));
-            changed = true;
-            return null;
-        };
-        return {
-            ...catalog,
-            relations: validate(catalog.relations, STORAGE_CATALOG_RELATIONS),
-            functions: validate(catalog.functions, STORAGE_CATALOG_FUNCTIONS),
-        };
-    });
-    return { bundle: changed ? { ...bundle, catalogs } : bundle, invalidFiles };
-}
-
-function parsesWithoutErrors(core: DashQL, sql: string): boolean {
-    const catalog = core.createCatalog();
-    const script = core.createScript(catalog);
-    let parsed: FlatBufferPtr<buffers.parser.ParsedScript> | null = null;
-    try {
-        script.replaceText(sql);
-        script.parse();
-        parsed = script.getParsed();
-        const reader = parsed.read();
-        return reader.scannerErrorsLength() === 0 && reader.parserErrorsLength() === 0;
-    } catch {
-        return false;
-    } finally {
-        script.destroy();
-        catalog.destroy();
-    }
+/// Parse the catalog files and omit malformed SQL before it can reach storage. Analysis is intentionally excluded:
+/// imported catalogs may reference types or objects that are only available once their connection has been restored.
+export function filterInvalidWorkbookCatalogs(core: DashQL, bundle: WorkbookBundle): WorkbookCatalogValidationResult {
+    const { catalogs, invalidFiles } = core.workbookFormat.filterInvalidCatalogs(bundle.catalogs);
+    return { bundle: invalidFiles.length === 0 ? bundle : { ...bundle, catalogs }, invalidFiles };
 }
 
 export interface WorkbookBundleWriteOptions {
@@ -317,9 +177,10 @@ export async function readWorkbookBundle(
     backend: StorageBackend,
     withCatalog: boolean = false,
 ): Promise<WorkbookBundle> {
-    const [stored, scripts] = await Promise.all([
+    const [stored, scripts, format] = await Promise.all([
         backend.loadWorkbook(workbookId),
         backend.loadScripts(workbookId),
+        loadWorkbookFormat(),
     ]);
     const registry = withCatalog && isWorkbookRegistryBackend(backend) ? backend : null;
     const catalogs: WorkbookBundleCatalog[] = [];
@@ -332,9 +193,8 @@ export async function readWorkbookBundle(
     }
     const data = await Promise.all((await backend.listDataFiles(workbookId))
         .map(async file => ({ name: file.name, bytes: await backend.loadDataFile(workbookId, file.name) })));
-    const files = sanitizeWorkbookFiles(stored);
-    const workbook: WorkbookData = { ...stored, scripts: files.scripts, attachments: files.attachments };
-    return assembleWorkbookBundle({ workbook, catalogs }, scripts, data);
+    const workbook = format.storedBundle(stored, scripts.map(script => script.name), data.map(file => file.name));
+    return { workbook: workbook as WorkbookData, catalogs, scripts, data };
 }
 
 /// Write a fully parsed bundle to storage. This is deliberately not a replacement transaction:
@@ -344,40 +204,15 @@ export async function writeWorkbookBundle(
     backend: StorageBackend,
     options: WorkbookBundleWriteOptions = {},
 ): Promise<string> {
-    const validation = validateWorkbookData(bundle.workbook);
-    if (!validation.ok) {
-        throw new Error(`Invalid source workbook: ${describeWorkbookValidationError(validation.error)}`);
-    }
-    const workbookId = options.targetWorkbookId ?? bundle.workbook.workbookId;
-    if (!isValidUuid(workbookId)) {
-        throw new Error(`Invalid target workbook id: ${workbookId}`);
-    }
-    if (options.targetIsFresh && options.targetWorkbookId == null) {
-        throw new Error('targetIsFresh requires an explicit targetWorkbookId');
-    }
-    for (const file of bundle.data ?? []) validateDataFileName(file.name);
-
-    const workbook: WorkbookData = {
-        ...bundle.workbook,
-        workbookId,
-        scripts: reconcileWorkbookScripts(bundle.workbook.scripts ?? [], bundle.scripts.map(script => script.name),
-            firstConnectionId(bundle.workbook)).scripts,
-        attachments: workbookAttachments((bundle.data ?? []).map(file => file.name)),
-    };
-    if (backend.getBackendType() === StorageBackendType.OPFS) {
-        delete workbook.workbookPath;
-        delete workbook.storageType;
-        delete workbook.nativePath;
-    }
-    if (options.suffixNameWithCopy) {
-        const name = workbook.name?.trim();
-        if (name) {
-            workbook.name = `${name} (copy)`;
-        }
-    }
-
+    const format = await loadWorkbookFormat();
+    const write = format.prepareBundleWrite(
+        bundleJson(bundle, { withText: false }),
+        backend.getBackendType() === StorageBackendType.OPFS ? 'opfs' : 'native',
+        { targetWorkbookId: options.targetWorkbookId, suffixNameWithCopy: options.suffixNameWithCopy, targetIsFresh: options.targetIsFresh },
+    );
+    const { workbookId } = write;
     try {
-        await backend.saveWorkbookManifest(workbookId, workbook);
+        await backend.saveWorkbookManifest(workbookId, write.workbook as WorkbookData);
         options.onStep?.('scripts');
         for (const script of bundle.scripts) {
             await backend.saveScript(workbookId, script.name, script.sql);
@@ -387,7 +222,7 @@ export async function writeWorkbookBundle(
             await backend.saveDataFile(workbookId, file.name, file.bytes);
         }
     } catch (error) {
-        if (options.targetIsFresh) {
+        if (write.rollbackOnFailure) {
             try {
                 await backend.deleteWorkbook(workbookId);
             } catch {
@@ -396,7 +231,6 @@ export async function writeWorkbookBundle(
         }
         throw error;
     }
-
     return workbookId;
 }
 
@@ -407,72 +241,58 @@ export async function writeWorkbookBundle(
 export async function seedConnectionCatalogs(
     backend: StorageBackend,
     bundle: Pick<WorkbookBundle, 'workbook' | 'catalogs'>,
-    workbookId: string,
+    _workbookId: string,
 ): Promise<void> {
     if (!isWorkbookRegistryBackend(backend)) return;
+    const format = await loadWorkbookFormat();
     for (const catalog of bundle.catalogs) {
-        const files = [
-            [STORAGE_CATALOG_RELATIONS, catalog.relations],
-            [STORAGE_CATALOG_FUNCTIONS, catalog.functions],
-        ] as const;
-        const existing = await Promise.all(files.map(([fileName]) => backend.loadConnectionFile(catalog.connectionId, fileName)));
-        if (existing.some(text => text != null)) continue;
-        for (const [fileName, text] of files) {
-            if (text == null) continue;
+        const existing = await Promise.all([STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_FUNCTIONS]
+            .map(fileName => backend.loadConnectionFile(catalog.connectionId, fileName)));
+        for (const [fileName, text] of format.catalogSeedFiles(catalog, existing.some(text => text != null))) {
             await backend.saveConnectionFile(catalog.connectionId, fileName, text);
         }
     }
 }
 
 /// What differs between an expected and an actual bundle, null if nothing. Names the field or file and never a value,
-/// a value can be a secret of a connection.
+/// a value can be a secret of a connection. Needs the core instantiated.
 export function describeWorkbookBundleDifference(expected: WorkbookBundle, actual: WorkbookBundle): string | null {
-    // The files first, the workbook file lists them
-    const names = (files: readonly { name: string }[]) => files.map(file => file.name).join(', ');
-    if (names(expected.scripts) !== names(actual.scripts)) {
-        return `the scripts differ: expected [${names(expected.scripts)}], found [${names(actual.scripts)}]`;
-    }
-    const script = expected.scripts.find((script, i) => script.sql !== actual.scripts[i].sql);
-    if (script != null) return `the text of the script ${script.name} differs`;
-    const expectedData = expected.data ?? [];
-    const actualData = actual.data ?? [];
-    if (names(expectedData) !== names(actualData)) {
-        return `the attachments differ: expected [${names(expectedData)}], found [${names(actualData)}]`;
-    }
-    const file = expectedData.find((file, i) => file.bytes.byteLength !== actualData[i].bytes.byteLength
-        || file.bytes.some((byte, j) => byte !== actualData[i].bytes[j]));
-    if (file != null) return `the bytes of the attachment ${file.name} differ`;
-    const field = firstDifferentField(expected.workbook, actual.workbook, 'workbook');
-    if (field != null) return `${field} differs`;
-    if (JSON.stringify(expected.catalogs) !== JSON.stringify(actual.catalogs)) return 'the catalogs differ';
-    return workbookBundlesEqual(expected, actual) ? null : 'the bundles differ';
-}
-
-/// The path of the first field that differs, null if none. Fields that are undefined are missing, like in JSON.
-function firstDifferentField(expected: unknown, actual: unknown, path: string): string | null {
-    if (JSON.stringify(expected) === JSON.stringify(actual)) return null;
-    if (expected == null || actual == null || typeof expected !== 'object' || typeof actual !== 'object'
-        || Array.isArray(expected) !== Array.isArray(actual)) {
-        return path;
-    }
-    const a = expected as Record<string, unknown>;
-    const b = actual as Record<string, unknown>;
-    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-    for (const key of keys) {
-        const difference = firstDifferentField(a[key], b[key], Array.isArray(a) ? `${path}[${key}]` : `${path}.${key}`);
-        if (difference != null) return difference;
-    }
-    return `the order of the fields of ${path}`;
+    const [a, b] = comparableBundles(expected, actual);
+    return workbookFormat().bundleDifference(a, b);
 }
 
 /// Compare all portable durable content. Used to verify a staged replacement before touching the
-/// live workbook UUID.
+/// live workbook UUID. Needs the core instantiated.
 export function workbookBundlesEqual(a: WorkbookBundle, b: WorkbookBundle): boolean {
-    const { data: aData = [], ...aText } = a;
-    const { data: bData = [], ...bText } = b;
-    return JSON.stringify(aText) === JSON.stringify(bText)
-        && aData.length === bData.length
-        && aData.every((file, i) => file.name === bData[i].name
-            && file.bytes.byteLength === bData[i].bytes.byteLength
-            && file.bytes.every((byte, j) => byte === bData[i].bytes[j]));
+    const [left, right] = comparableBundles(a, b);
+    return workbookFormat().bundlesEqual(left, right);
+}
+
+/// The JSON of a bundle for the core. The bytes stay with the host, the core sees a token per file.
+export function bundleJson(bundle: WorkbookBundle, { withText = true }: { withText?: boolean } = {}, dataToken = (index: number) => `data:${index}`, resultToken = (index: number) => `result:${index}`): WorkbookBundleJson {
+    return {
+        workbook: bundle.workbook,
+        catalogs: bundle.catalogs,
+        scripts: bundle.scripts.map(script => ({ name: script.name, sql: withText ? script.sql : '' })),
+        data: (bundle.data ?? []).map((file, index) => ({ name: file.name, bytes: dataToken(index) })),
+        results: (bundle.results ?? []).map((result, index) => ({
+            key: result.key,
+            bytes: resultToken(index),
+            ...(result.crc32 == null ? {} : { crc32: result.crc32 }),
+        })),
+    };
+}
+
+/// Two bundles for a comparison in the core: equal attachments get equal tokens, results compare by key and checksum
+function comparableBundles(expected: WorkbookBundle, actual: WorkbookBundle): [WorkbookBundleJson, WorkbookBundleJson] {
+    const expectedData = expected.data ?? [];
+    const actualData = actual.data ?? [];
+    const sameBytes = (left: Uint8Array, right: Uint8Array) => left.byteLength === right.byteLength && left.every((byte, i) => byte === right[i]);
+    const left = bundleJson(expected, {}, index => `data:${index}`, () => 'result');
+    const right = bundleJson(actual, {}, index => {
+        const other = expectedData[index];
+        const file = actualData[index];
+        return other != null && file != null && sameBytes(other.bytes, file.bytes) ? `data:${index}` : `actual:${index}`;
+    }, () => 'result');
+    return [left, right];
 }

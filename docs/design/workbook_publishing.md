@@ -54,25 +54,26 @@ Static HTTP servers cannot enumerate folders, so `dashql-workbook.json` lists th
   of the name, and reordering scripts only rewrites the list.
 - The attachment list is kept in natural order.
 - `connections/<id>/` carries the relation and function catalogs of each connection of the workbook
-  (`bundleCatalogPath`, `packages/dashql-runtime/src/storage/workbook_bundle.ts`). Bundles of format 6 and older carry top-level catalog files, which
+  (`bundle_catalog_path`, `packages/dashql-core-runtime/src/workbook_format/bundle.rs`). Bundles of format 6 and older carry top-level catalog files, which
   are read for the default connection of that format.
 
 ## Reconciling Lists and Files
 
-Every loader, local or remote, reconciles the lists with the files it finds
-(`packages/dashql-runtime/src/storage/workbook_files.ts`):
+Every loader, local or remote, reconciles the lists with the files it finds, with the workbook format of the core
+runtime (`packages/dashql-core-runtime/src/workbook_format/files.rs`):
 
-- `sanitizeWorkbookFiles` drops entries with unsafe names (empty, longer than 255 characters, separators, NUL,
+- `sanitize_workbook_files` drops entries with unsafe names (empty, longer than 255 characters, separators, NUL,
   `.` or `..`), non-`.sql` scripts, `dashql-draft.sql`, and invalid connection ids. Duplicates are detected
-  case-insensitively after NFC normalization; the first wins. Lists are capped at 2048 entries.
-- `reconcileWorkbookScripts` drops entries without a file, adopts the file's spelling for case or NFC variants,
+  case-insensitively, the hosts pass the names of their listings in NFC; the first wins. Lists are capped at 2048
+  entries.
+- `reconcile_workbook_scripts` drops entries without a file, adopts the file's spelling for case variants,
   and appends unlisted script files in natural order on the default connection.
 - A script whose connection cannot be resolved runs on the default connection, and the workbook file keeps
-  its original reference (`workbook_script_connections.ts`). Unused connections are pruned from the list.
+  its original reference (`script_connections.rs`). Unused connections are pruned from the list.
 
 Older formats are migrated: v5 moved the order of `dashql-workbook-index.json` into the script list, v6
 turned `mainDatabase` and `attachedDatabases` into the connection list, and v7 moved the catalogs out of the
-workbook folder into the connections (`packages/dashql-app/src/storage/migration/workbook/`). Remote workbooks of older
+workbook folder into the connections (`packages/dashql-core-runtime/src/workbook_format/migration.rs`). Remote workbooks of older
 formats are migrated in memory.
 
 ## Links and Loading
@@ -137,7 +138,7 @@ OPFS and registered native workbooks both participate in the UUID check.
 ## Imported Connections
 
 Exports give every connection a fresh id, so an import finds the connections of the app by their params
-(`planConnectionImport`, `packages/dashql-runtime/src/workbook/persistence/workbook_connection_import.ts`):
+(`plan_connection_import`, `packages/dashql-core-runtime/src/workbook_format/connection_import.rs`):
 
 - A connection that the app knows under the same id and the same params (ignoring secrets) is used silently.
 - A server connection whose params match connections of the app asks the user whether to use one of them or
