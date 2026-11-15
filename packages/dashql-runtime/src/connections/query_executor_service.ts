@@ -669,8 +669,9 @@ export class QueryExecutorService {
                 } catch (error) {
                     // fetch names the reason of a failed request only in the cause, e.g. a refused connection, and the
                     // core keeps only the message
-                    if (error instanceof Error && error.cause instanceof Error) {
-                        throw new Error(`${error.message}: ${error.cause.message}`);
+                    const cause = error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
+                    if (error instanceof Error && cause instanceof Error) {
+                        throw new Error(`${error.message}: ${cause.message}`);
                     }
                     throw error;
                 } finally {
