@@ -21,6 +21,7 @@ rust_library(
         "@core_crates//:arrow-cast",
         "@core_crates//:arrow-ipc",
         "@core_crates//:arrow-schema",
+        "@core_crates//:flatbuffers",
         "@core_crates//:serde_json",
     ],
 )
@@ -89,5 +90,21 @@ rust_test(
         ":dashql_runtime",
         "@core_crates//:arrow-array",
         "@core_crates//:arrow-schema",
+    ],
+)
+
+rust_test(
+    name = "catalog_loader_test",
+    size = "small",
+    srcs = ["tests/catalog_loader_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_runtime",
+        "//packages/dashql-core:dashql_core",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:flatbuffers",
+        "@core_crates//:serde_json",
     ],
 )

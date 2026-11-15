@@ -143,6 +143,27 @@ string column.
 - **Changed on purpose.** The tables of data frames are named by id. The column types come from the schema of the
   result. The data frame of any failed task is dropped, the TypeScript dropped only the one of a data search.
 
+## The catalog loader
+
+The catalog loader is a module of the crate (`src/catalog_loader/`), sans-IO and not used yet. It generates the
+metadata SQL of the connectors, reads the result batches into tables and publishes descriptors and table updates into
+the connection layer of the catalog of a connection.
+
+- **An update is a state machine.** `CatalogUpdate::start` takes a connection, its relations or none for a full
+  refresh, and returns the update with the action that registers it. `next` asks the host for queries to run, the Data
+  Cloud metadata of a Salesforce connection, a catalog batch to parse in the batch worker or the moment to publish, the
+  answers go back with `answer_queries`, `answer_salesforce_metadata`, `answer_batch` and `publish`. The outcome names
+  the action that finishes the update and the new text of the function script, which the host sets.
+- **Batches publish only while they are current.** `CatalogGenerations` counts the batches of a catalog, a newer one
+  or a reset of the connection supersedes the older ones, and an update that was superseded or cancelled publishes
+  nothing.
+- **The scheduler hands out the updates.** `CatalogLoader` follows the connections, takes the requests for refreshes
+  and the end of every update, and returns the updates to start and to abort and when to schedule again. The timers,
+  the cancellation tokens and the logs stay with the host.
+- **Changed on purpose.** The requested refreshes are considered before the lookups, so a request that a refresh
+  answered and the lookup behind it settle in one pass. The retry wakes at the earliest attempt. Skipped functions and
+  duplicate columns come back as warnings of the outcome.
+
 ## Typing
 
 Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,

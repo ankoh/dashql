@@ -5,6 +5,7 @@
 //! executions are ported and not used yet, see `docs/wip/rust_runtime.md`.
 
 pub mod attachments;
+pub mod catalog_loader;
 pub mod compute;
 pub mod connections;
 pub mod names;
