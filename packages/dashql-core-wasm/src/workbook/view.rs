@@ -1,43 +1,340 @@
-//! The view of a script with its packed FlatBuffers, the first view of the workbook (docs/wip/runtime_projection.md)
+//! The views of the scripts of a workbook: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`)
+//! with TypeScript declarations in the generated `.d.ts` (`tsify`). See docs/wip/runtime_projection.md.
+//!
+//! The workbook lists its scripts with their revisions, a script crosses with its plain fields and its payloads: the
+//! editor update, the staged diff, the visualization and the processing statistics, each a packed FlatBuffer with a
+//! key. A payload crosses only when its key differs from the one that the host holds.
 
-use serde::Serialize;
-use tsify::{Ts, Tsify};
-use wasm_bindgen::prelude::*;
+use dashql_core_runtime::attachments::{DataFile, WorkbookAttachment};
+use dashql_core_runtime::workbook::{
+    CloudLink, ExternalChanges, ScriptList, TextChange, WorkbookEffect as RuntimeEffect, WorkbookOutcome as RuntimeOutcome,
+    WorkbookScript,
+};
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
-use super::{editor_update_key, Workbook};
+use super::editor_update_key;
 use crate::views::FlatBufferBytes;
 
-/// A script with the analysis of its editor. The editor update crosses when its key differs from the one that the
-/// host holds, it is null otherwise.
+/// The published workbook of a cloud that a workbook came from or was published to
+#[derive(Clone, Debug, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookCloudLink {
+    pub workbook_id: String,
+    pub version_id: String,
+    pub preview: bool,
+}
+
+impl From<&CloudLink> for WorkbookCloudLink {
+    fn from(link: &CloudLink) -> Self {
+        WorkbookCloudLink { workbook_id: link.workbook_id.clone(), version_id: link.version_id.clone(), preview: link.preview }
+    }
+}
+
+impl From<WorkbookCloudLink> for CloudLink {
+    fn from(link: WorkbookCloudLink) -> Self {
+        CloudLink { workbook_id: link.workbook_id, version_id: link.version_id, preview: link.preview }
+    }
+}
+
+/// A data file of a workbook as storage lists it
+#[derive(Clone, Debug, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookDataFile {
+    pub name: String,
+    pub size_bytes: f64,
+    /// The time of the last modification, 0 without one
+    #[serde(default)]
+    #[tsify(optional)]
+    pub mtime_ms: Option<f64>,
+}
+
+impl From<WorkbookDataFile> for DataFile {
+    fn from(file: WorkbookDataFile) -> Self {
+        DataFile { name: file.name, size_bytes: file.size_bytes.max(0.0) as u64, mtime_ms: file.mtime_ms.unwrap_or(0.0).max(0.0) as u64 }
+    }
+}
+
+/// A script as the workbook file lists it: its name and the connection it names
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookScriptListEntry {
+    pub name: String,
+    pub connection_id: String,
+}
+
+/// A copy of a connection that the workbook file holds, its params are JSON
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookConnectionCopy {
+    pub connection_id: String,
+    pub params: String,
+}
+
+/// The script list of the workbook file
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookScriptList {
+    pub scripts: Vec<WorkbookScriptListEntry>,
+    pub connections: Vec<WorkbookConnectionCopy>,
+}
+
+impl From<ScriptList> for WorkbookScriptList {
+    fn from(list: ScriptList) -> Self {
+        WorkbookScriptList {
+            scripts: list.scripts.into_iter().map(|s| WorkbookScriptListEntry { name: s.name, connection_id: s.connection_id }).collect(),
+            connections: list.connections.into_iter().map(|c| WorkbookConnectionCopy { connection_id: c.connection_id, params: c.params }).collect(),
+        }
+    }
+}
+
+/// What the host does after an action, in this order
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[tsify(missing_as_null)]
+pub enum WorkbookEffect {
+    WriteScript { file_name: String, text: String },
+    DeleteScript { file_name: String },
+    RenameScript { from: String, to: String },
+    WriteScriptList { list: WorkbookScriptList },
+    WriteProperties { name: Option<String>, ephemeral: bool, cloud: Option<WorkbookCloudLink> },
+    PatchConnection { connection_id: String, params: Option<String>, replaces: Vec<String> },
+}
+
+impl From<RuntimeEffect> for WorkbookEffect {
+    fn from(effect: RuntimeEffect) -> Self {
+        match effect {
+            RuntimeEffect::WriteScript { file_name, text } => WorkbookEffect::WriteScript { file_name, text },
+            RuntimeEffect::DeleteScript { file_name } => WorkbookEffect::DeleteScript { file_name },
+            RuntimeEffect::RenameScript { from, to } => WorkbookEffect::RenameScript { from, to },
+            RuntimeEffect::WriteScriptList(list) => WorkbookEffect::WriteScriptList { list: list.into() },
+            RuntimeEffect::WriteProperties { name, ephemeral, cloud } => {
+                WorkbookEffect::WriteProperties { name, ephemeral, cloud: cloud.as_ref().map(WorkbookCloudLink::from) }
+            }
+            RuntimeEffect::PatchConnection { connection_id, params, replaces } => {
+                WorkbookEffect::PatchConnection { connection_id, params, replaces }
+            }
+        }
+    }
+}
+
+/// What an action did: whether it changed the workbook, the effects for the host, the update of an editor event
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookOutcome {
+    pub changed: bool,
+    pub effects: Vec<WorkbookEffect>,
+    #[tsify(type = "FlatBuffer<buffers_editor.EditorUpdate> | null")]
+    pub editor_update: Option<FlatBufferBytes>,
+}
+
+impl From<RuntimeOutcome> for WorkbookOutcome {
+    fn from(outcome: RuntimeOutcome) -> Self {
+        WorkbookOutcome {
+            changed: outcome.changed,
+            effects: outcome.effects.into_iter().map(WorkbookEffect::from).collect(),
+            editor_update: outcome.editor_update.map(|update| FlatBufferBytes(finish!(update))),
+        }
+    }
+}
+
+/// An attachment of a workbook
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookAttachmentView {
+    pub file_name: String,
+    pub name: String,
+    pub size_bytes: u64,
+    pub mtime_ms: u64,
+    pub columns: Option<Vec<String>>,
+}
+
+impl From<&WorkbookAttachment> for WorkbookAttachmentView {
+    fn from(a: &WorkbookAttachment) -> Self {
+        WorkbookAttachmentView {
+            file_name: a.file_name.clone(),
+            name: a.name.clone(),
+            size_bytes: a.size_bytes,
+            mtime_ms: a.mtime_ms,
+            columns: a.columns.as_ref().map(|columns| columns.iter().map(|c| c.to_string()).collect()),
+        }
+    }
+}
+
+/// The workbook: its plain fields and its scripts in feed order with their revisions
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookView {
+    pub revision: u64,
+    pub name: Option<String>,
+    pub ephemeral: bool,
+    pub pending_connection_id: Option<String>,
+    pub cloud: Option<WorkbookCloudLink>,
+    /// Null until storage listed the files of the workbook
+    pub attachments: Option<Vec<WorkbookAttachmentView>>,
+    /// The script list of the workbook file
+    pub script_list: WorkbookScriptList,
+    /// The scripts in feed order as `[key, revision]`
+    pub scripts: Vec<(u32, u64)>,
+}
+
+/// A change of the text of a script in the offset unit of the editors
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookTextChange {
+    pub from: u64,
+    pub to: u64,
+    pub insert: String,
+}
+
+impl From<&TextChange> for WorkbookTextChange {
+    fn from(change: &TextChange) -> Self {
+        WorkbookTextChange { from: change.from, to: change.to, insert: change.insert.clone() }
+    }
+}
+
+/// The last change of the text of a script that the workbook made
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookExternalChanges {
+    pub from_text: String,
+    pub changes: Vec<WorkbookTextChange>,
+}
+
+impl From<&ExternalChanges> for WorkbookExternalChanges {
+    fn from(external: &ExternalChanges) -> Self {
+        WorkbookExternalChanges { from_text: external.from_text.clone(), changes: external.changes.iter().map(WorkbookTextChange::from).collect() }
+    }
+}
+
+/// A staged rewrite of a script, the diff is null when the host holds the diff of the key
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookPendingDiff {
+    pub key: u64,
+    /// The text before the rewrite
+    pub prior_text: String,
+    #[tsify(type = "FlatBuffer<buffers_diff.ScriptDiff> | null")]
+    pub diff: Option<FlatBufferBytes>,
+}
+
+/// The visualization of a script, the compiled visualization is null when the host holds the one of the key
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookScriptVisualization {
+    pub key: u64,
+    /// The SQL of the query
+    pub sql: String,
+    /// The statement with the tags
+    pub statement_id: u32,
+    #[tsify(type = "FlatBuffer<buffers_execution.CompiledVisualization> | null")]
+    pub visualization: Option<FlatBufferBytes>,
+}
+
+/// The processing statistics of an analysis, null when the host holds the ones of the key
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookScriptStatistics {
+    pub key: u64,
+    #[tsify(type = "FlatBuffer<buffers_editor.EditorProcessingStatistics> | null")]
+    pub statistics: Option<FlatBufferBytes>,
+}
+
+/// The keys of the payloads of a script that the host holds, the view leaves their bytes out
+#[derive(Clone, Debug, Default, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookScriptKeys {
+    pub editor_update: Option<String>,
+    pub pending_diff: Option<u64>,
+    pub visualization: Option<u64>,
+    /// The newest processing statistics, the host holds the older ones as well
+    pub statistics: Option<u64>,
+}
+
+/// A script with its payloads
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct WorkbookScriptView {
     pub key: u32,
     pub revision: u64,
+    /// Identifies the session of the script, a script that moved to another connection has a new one
+    pub session_id: u32,
+    pub file_name: String,
+    pub connection_id: String,
+    pub unresolved_connection_id: Option<String>,
+    pub analysis_outdated: bool,
+    pub latest_query_id: Option<u32>,
+    pub latest_result_query_id: Option<u32>,
+    pub external_changes: Option<WorkbookExternalChanges>,
     /// Names the editor update, an update with the same key is the same analysis
     pub editor_update_key: Option<String>,
-    /// The packed editor update, null without one or when the host holds the update of the key
     #[tsify(type = "FlatBuffer<buffers_editor.EditorUpdate> | null")]
     pub editor_update: Option<FlatBufferBytes>,
+    pub pending_diff: Option<WorkbookPendingDiff>,
+    pub visualization: Option<WorkbookScriptVisualization>,
+    /// The processing statistics of the latest analyses, the oldest first
+    pub statistics: Vec<WorkbookScriptStatistics>,
 }
 
-#[wasm_bindgen]
-impl Workbook {
-    /// The view of a script, the editor update only if its key isn't `known_editor_update_key`
-    #[wasm_bindgen(js_name = scriptView)]
-    pub fn script_view(&self, key: u32, known_editor_update_key: Option<String>) -> Result<Ts<WorkbookScriptView>, JsError> {
-        let view = self.with_script(key, |script| {
-            let update = script.editor_update();
-            let update_key = update.map(editor_update_key);
-            let editor_update: Option<FlatBufferBytes> = match (update, &update_key) {
-                (Some(update), Some(k)) if Some(k) != known_editor_update_key.as_ref() => {
-                    Some(FlatBufferBytes(finish!(update)))
-                }
-                _ => None,
-            };
-            WorkbookScriptView { key, revision: script.revision(), editor_update_key: update_key, editor_update }
-        })?;
-        Ok(view.into_ts()?)
+impl WorkbookScriptView {
+    /// The view of a script with the payloads whose keys the host doesn't hold
+    pub fn new(script: &WorkbookScript, known: &WorkbookScriptKeys) -> Self {
+        let update = script.editor_update();
+        let editor_update_key = update.map(editor_update_key);
+        let editor_update = match (update, &editor_update_key) {
+            (Some(update), Some(key)) if Some(key) != known.editor_update.as_ref() => Some(FlatBufferBytes(finish!(update))),
+            _ => None,
+        };
+        let pending_diff = script.pending_diff().map(|pending| WorkbookPendingDiff {
+            key: pending.revision,
+            prior_text: pending.prior_text.clone(),
+            diff: (known.pending_diff != Some(pending.revision)).then(|| FlatBufferBytes(finish!(pending.diff))),
+        });
+        let visualization_key = script.visualization_revision();
+        let visualization = script.visualization().map(|v| WorkbookScriptVisualization {
+            key: visualization_key,
+            sql: v.sql.clone(),
+            statement_id: v.statement_id,
+            visualization: (known.visualization != Some(visualization_key)).then(|| FlatBufferBytes(finish!(v.visualization))),
+        });
+        let statistics = script
+            .statistics_with_revisions()
+            .map(|(key, statistics)| WorkbookScriptStatistics {
+                key,
+                statistics: known.statistics.is_none_or(|newest| key > newest).then(|| FlatBufferBytes(finish!(statistics))),
+            })
+            .collect();
+        WorkbookScriptView {
+            key: script.key(),
+            revision: script.revision(),
+            session_id: std::rc::Rc::as_ptr(script.session()) as usize as u32,
+            file_name: script.file_name().to_string(),
+            connection_id: script.connection().connection_id.clone(),
+            unresolved_connection_id: script.unresolved_connection_id().map(str::to_string),
+            analysis_outdated: script.analysis_outdated(),
+            latest_query_id: script.latest_query_id(),
+            latest_result_query_id: script.latest_result_query_id(),
+            external_changes: script.external_changes().map(WorkbookExternalChanges::from),
+            editor_update_key,
+            editor_update,
+            pending_diff,
+            visualization,
+            statistics,
+        }
     }
 }

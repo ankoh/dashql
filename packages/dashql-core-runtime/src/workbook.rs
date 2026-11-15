@@ -108,6 +108,8 @@ pub struct PendingDiff {
     pub prior_text: String,
     /// The statement diff from the prior text to the new text
     pub diff: ScriptDiffT,
+    /// Names the diff, a staged rewrite gets a new revision
+    pub revision: u64,
 }
 
 /// A change of the text of a script, in the offset unit of the editors
@@ -222,8 +224,10 @@ pub struct WorkbookScript {
     external_changes: Option<ExternalChanges>,
     /// The visualization of the script, compiled with its analysis or captured by its last run
     visualization: Option<ScriptVisualization>,
-    /// The processing statistics of the latest analyses, the oldest first
-    statistics: std::collections::VecDeque<EditorProcessingStatisticsT>,
+    /// Names the visualization, it moves when the visualization changes
+    visualization_revision: u64,
+    /// The processing statistics of the latest analyses with the revisions that name them, the oldest first
+    statistics: std::collections::VecDeque<(u64, EditorProcessingStatisticsT)>,
     /// The latest query of the script
     latest_query_id: Option<u32>,
     /// The query whose result the script shows, independent of later queries that failed
@@ -262,8 +266,26 @@ impl WorkbookScript {
     pub fn visualization(&self) -> Option<&ScriptVisualization> {
         self.visualization.as_ref()
     }
+    /// Names the visualization, an equal revision is the same visualization
+    pub fn visualization_revision(&self) -> u64 {
+        self.visualization_revision
+    }
     pub fn statistics(&self) -> impl Iterator<Item = &EditorProcessingStatisticsT> {
-        self.statistics.iter()
+        self.statistics.iter().map(|(_, statistics)| statistics)
+    }
+    /// The processing statistics with the revisions that name them, the oldest first
+    pub fn statistics_with_revisions(&self) -> impl Iterator<Item = (u64, &EditorProcessingStatisticsT)> {
+        self.statistics.iter().map(|(revision, statistics)| (*revision, statistics))
+    }
+
+    /// Replace the visualization, returns whether it changed
+    fn set_visualization(&mut self, visualization: Option<ScriptVisualization>) -> bool {
+        if self.visualization == visualization {
+            return false;
+        }
+        self.visualization = visualization;
+        self.visualization_revision = next_revision();
+        true
     }
 
     /// Record the processing statistics of an update that analyzed the script
@@ -272,7 +294,7 @@ impl WorkbookScript {
             return;
         }
         if let Some(statistics) = &update.processing_statistics {
-            self.statistics.push_back((**statistics).clone());
+            self.statistics.push_back((next_revision(), (**statistics).clone()));
             while self.statistics.len() > STATISTICS_HISTORY_LIMIT {
                 self.statistics.pop_front();
             }
@@ -348,7 +370,7 @@ impl WorkbookScript {
     /// Compile the visualization of the script for its analysis, none without an analysis
     fn compile_visualization(&mut self) {
         let available = self.editor_update.as_ref().is_some_and(|update| update.analysis_available);
-        self.visualization = if available {
+        let visualization = if available {
             let config = execution_compilation_config(self.connection.dialect);
             let compiled = self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &config, true, true);
             let valid = compiled.errors.as_ref().is_none_or(Vec::is_empty) && compiled.kind == ScriptCompilationStatementKind::VISUALIZE;
@@ -363,6 +385,7 @@ impl WorkbookScript {
         } else {
             None
         };
+        self.set_visualization(visualization);
     }
 
     /// Replace the text of the script
@@ -1134,7 +1157,7 @@ impl Workbook {
             }
             WorkbookAction::SetExecutionVisualization { key, visualization } => {
                 if let Some(script) = self.script_mut(key).filter(|script| script.visualization != visualization) {
-                    script.visualization = visualization;
+                    script.set_visualization(visualization);
                     script.revision = next_revision();
                     outcome.changed = true;
                 }
@@ -1264,6 +1287,7 @@ impl Workbook {
             pending_diff: None,
             external_changes: None,
             visualization: None,
+            visualization_revision: next_revision(),
             statistics: Default::default(),
             latest_query_id: None,
             latest_result_query_id: None,
@@ -1420,7 +1444,7 @@ impl Workbook {
                 script.replace_text(&prior)?;
             }
             // A failed diff never blocks the rewrite, the rewrite is just not staged then
-            pending_diff = script.diff_to(text).ok().map(|diff| PendingDiff { prior_text: prior, diff });
+            pending_diff = script.diff_to(text).ok().map(|diff| PendingDiff { prior_text: prior, diff, revision: next_revision() });
         }
         script.replace_text(text)?;
         script.analyze();

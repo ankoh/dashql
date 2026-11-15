@@ -659,6 +659,21 @@ TypeScript reducer did as well, each through a call of its own), 0.2 to 0.3 ms f
 for the workbook is 0.09 ms of it, an editor that sends its events to the workbook (`ApplyEditorEvent`) would save
 about that.
 
+The views of the workbook (docs/wip/runtime_projection.md) measured again, the release module, a script of 40 lines
+(4,899 characters) typed three times next to two other scripts against an empty catalog, the median and the 10th
+percentile per keystroke over 14,297 keystrokes, base and views in alternating runs on a loaded machine:
+
+| Per keystroke | Before, p10 / p50 | Views, p10 / p50 |
+|---|---|---|
+| The editor applies the event to the session | 115 / 236 µs | 111 / 230 µs |
+| The reduction of the reported update | 97 / 181 µs | 63 / 128 µs |
+| The projection, part of the reduction | 30 / 43 µs | 18 / 25 µs |
+
+The projection crosses the view of the workbook and the view of the typed script, the editor update stays the one
+that the editor reported (its key crosses, its bytes don't) and the processing statistics cross as a delta of one.
+Before, it read the properties and the snapshot as JSON, the revision of every script with a call each, and the 20
+statistics of the script with a call and an unpacking each.
+
 ## Open
 
 - The computations of the host (`COMPUTATION_FROM_QUERY_RESULT`, the actions of the success of a task, the scheduler

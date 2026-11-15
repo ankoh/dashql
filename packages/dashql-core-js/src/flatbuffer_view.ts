@@ -14,30 +14,39 @@ export function readFlatBuffer<T>(bytes: FlatBuffer<T>, root: (bb: flatbuffers.B
     return root(new flatbuffers.ByteBuffer(bytes));
 }
 
-/// The payloads of a kind by slot, e.g. the editor updates by script. A payload keeps its accessor object while its
-/// key doesn't move.
-export class FlatBufferCache<T> {
-    private readonly entries = new Map<string | number, { key: string; table: T }>();
+/// The payloads of a kind by slot, e.g. the editor updates by script. A payload keeps its object while its key doesn't
+/// move: the accessor object of its root table `T`, or what `hydrate` made of it, e.g. the object API of the table
+/// while the consumers read that. A key is a string, e.g. the key of an editor update, or a number, e.g. a revision.
+export class FlatBufferCache<T, V = T, K extends string | number = string> {
+    private readonly entries = new Map<string | number, { key: K; value: V }>();
 
-    constructor(private readonly root: (bb: flatbuffers.ByteBuffer) => T) {}
+    constructor(
+        private readonly root: (bb: flatbuffers.ByteBuffer) => T,
+        private readonly hydrate: (table: T, bytes: FlatBuffer<T>) => V = table => table as unknown as V,
+    ) {}
 
     /// The key of the payload that the cache holds for a slot, the module leaves the bytes of this key out
-    known(slot: string | number): string | null {
+    known(slot: string | number): K | null {
         return this.entries.get(slot)?.key ?? null;
     }
 
+    /// Hold a payload that the host has already, e.g. the editor update that an editor reported
+    hold(slot: string | number, key: K, value: V): void {
+        this.entries.set(slot, { key, value });
+    }
+
     /// The payload of a slot: the held one while the key is the same, else the one of the bytes. Null without a key.
-    read(slot: string | number, key: string | null, bytes: FlatBuffer<T> | null): T | null {
+    read(slot: string | number, key: K | null, bytes: FlatBuffer<T> | null): V | null {
         if (key == null) {
             this.entries.delete(slot);
             return null;
         }
         const held = this.entries.get(slot);
-        if (held != null && held.key === key) return held.table;
+        if (held != null && held.key === key) return held.value;
         if (bytes == null) return null;
-        const table = readFlatBuffer(bytes, this.root);
-        this.entries.set(slot, { key, table });
-        return table;
+        const value = this.hydrate(readFlatBuffer(bytes, this.root), bytes);
+        this.entries.set(slot, { key, value });
+        return value;
     }
 
     /// Forget the slots that are not in the list

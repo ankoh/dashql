@@ -775,7 +775,7 @@ describe('V2 flat workbook script mutations', () => {
             { name: '2_beta.sql', sql: 'SELECT 2', connection: main },
             { name: '3_added.sql', sql: 'SELECT 3', connection: foreign },
         ] }, logger)).toThrow('different DashQL instance');
-        expect(current.native!.workbook.scriptKeys()).toEqual(Object.keys(current.scripts).map(Number));
+        expect(current.native!.workbook.view().scripts.map(([key]) => key)).toEqual(Object.keys(current.scripts).map(Number));
         expect(alpha.scriptSession.getText()).toBe('SELECT 1');
         expect(alpha.scriptSession.getCatalogEntryId()).toBe(alpha.scriptKey);
     });

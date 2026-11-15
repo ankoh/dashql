@@ -49,24 +49,8 @@ export function releaseWorkbookExecution(workbook: WorkbookScripts | string): vo
     for (const listener of [...activeWorkbookListeners]) listener();
 }
 
-export interface WorkbookExecutionState {
-    phase: 'planning' | 'running' | 'stopping' | 'succeeded' | 'failed' | 'cancelled';
-    totalScripts: number;
-    completedScripts: number;
-    /// The planned statements
-    totalStatements: number;
-    completedStatements: number;
-    /// The script of the statement that started last
-    activeFileName: string | null;
-    activeStatementIndex: number | null;
-    activeStatementCount: number | null;
-    error: string | null;
-    /// The scripts that the run left out because they need a connection that isn't connected, they have no cached
-    /// result or follow a script that runs on such a connection
-    skippedScripts: number;
-    /// The file names of the skipped scripts
-    skippedFiles: string[];
-}
+/// The state of a run as the Rust runtime reports it
+export type WorkbookExecutionState = core.WorkbookRunState;
 
 /// The Parquet files of the materialized script results of a run.
 ///
@@ -338,14 +322,13 @@ function createRunHost(args: WorkbookRunHostArgs): core.WorkbookRunHost {
                 void args.modifyWorkbookScripts({ type: PROJECT_WORKBOOK, value: null });
             });
         },
-        state: text => args.onState?.(JSON.parse(text) as WorkbookExecutionState),
-        scriptEvent: (file, text, error) => {
+        state: state => args.onState?.(state),
+        scriptEvent: (file, event, error) => {
             if (args.onScript == null) return;
-            const event = JSON.parse(text) as ScriptRunEvent | { type: 'failed'; failure: core.WorkbookRunFailure };
-            if (event.type === 'failed' && 'failure' in event) {
+            if (event.type === 'failed') {
                 args.onScript(file, { type: 'failed', error: error ?? new Error(event.failure.message) });
             } else {
-                args.onScript(file, event as ScriptRunEvent);
+                args.onScript(file, event);
             }
         },
         cooperate: () => args.cooperate(),
@@ -353,19 +336,7 @@ function createRunHost(args: WorkbookRunHostArgs): core.WorkbookRunHost {
 }
 
 /// The options of a run on the Rust runtime
-export interface WorkbookRunPlan {
-    /// A run of the workbook or of the script `target`
-    run: 'workbook' | 'script';
-    target?: string;
-    /// The scripts of the plan with what they need, every script if absent
-    targets?: number[];
-    /// Run the scripts that a change of these inputs affects
-    inputs?: readonly string[];
-    /// Read no cached results
-    refresh: boolean;
-    /// Report the state of the run
-    reportsState: boolean;
-}
+export type WorkbookRunPlan = core.WorkbookRunOptions;
 
 /// Run a plan of the scripts of a workbook on the Rust runtime. Settles once the run ended, an abort of the signal
 /// stops it.
@@ -373,10 +344,7 @@ export async function runWorkbookPlan(args: WorkbookRunHostArgs & { plan: Workbo
     const native = args.workbook.native;
     if (native == null) throw new Error('the scripts of the workbook have no Rust workbook, create them with createWorkbookScripts');
     const { plan } = args;
-    const run = native.workbook.run(createRunHost(args), {
-        run: plan.run, target: plan.target ?? null, targets: plan.targets ?? null, inputs: plan.inputs ?? null,
-        refresh: plan.refresh, reportsState: plan.reportsState,
-    });
+    const run = native.workbook.run(createRunHost(args), plan);
     const signal = args.signal;
     const stop = () => run.cancel();
     if (signal?.aborted) stop();
@@ -447,7 +415,7 @@ export async function runWorkbookExecution(args: {
             cache: args.cache ?? null, canRun: args.canRun, maxConcurrentQueries: args.maxConcurrentQueries,
             prepareConnection: args.prepareConnection, onState: args.onState, onScript: args.onScript,
             cooperate: args.yieldToBrowser ?? yieldToBrowser, logger: args.logger,
-            plan: { run: 'workbook', targets: args.targets, inputs: args.inputs, refresh: args.refresh ?? false, reportsState: true },
+            plan: { run: 'workbook', targets: args.targets, inputs: args.inputs == null ? undefined : [...args.inputs], refresh: args.refresh ?? false, reportsState: true },
         });
         if (outcome.failure != null && outcome.failure.kind !== 'cancelled') {
             args.logger?.info('The run of a workbook failed', { workbookId: workbook.workbookId, error: outcome.failure.message }, LOG_CTX);

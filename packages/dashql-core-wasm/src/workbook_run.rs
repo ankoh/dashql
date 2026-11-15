@@ -3,7 +3,8 @@
 //! The host is a JavaScript object (`WorkbookRunHost`): the clock, the log, the statements, which it hands to the
 //! query executor, the query result cache, the mounts of materialized results and attachments, and what the run
 //! reports. A statement goes to `execute` as JSON, the host returns its query with a promise of the result and one of
-//! the end. `Workbook.run` starts a run and returns a `WorkbookRun`, which stops it and settles with the outcome.
+//! the end. The options, the state, the events of the scripts and the outcome cross as views (`workbook_run/view.rs`).
+//! `Workbook.run` starts a run and returns a `WorkbookRun`, which stops it and settles with the outcome.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -13,18 +14,28 @@ use std::task::{Context, Poll};
 use dashql_core_runtime::executor::QueryId;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::workbook::RunPlanRequest;
-use dashql_core_runtime::workbook_run::json::{event_json, keys_json, options_from_json, request_json, result_json, state_json};
+use dashql_core_runtime::workbook_run::json::request_json;
 use dashql_core_runtime::workbook_run::plan::result_keys;
 use dashql_core_runtime::workbook_run::{
     start_run, RetainedFile, RunHandle, RunHost, RunState, ScriptEvent, StatementFailure, StatementHandle, StatementRequest,
 };
 use js_sys::{Function, Object, Promise, Reflect};
 use serde_json::{Map, Value};
+use tsify::Ts;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
 
 use super::workbook::Workbook;
+
+mod view;
+
+use view::{WorkbookResultKeys, WorkbookRunOptions, WorkbookRunResult, WorkbookRunState, WorkbookScriptRunEvent};
+
+/// A view as a JS value, undefined if it doesn't convert
+fn js_value<T: tsify::Tsify + serde::Serialize>(view: &T) -> JsValue {
+    Ts::from_rust(view).map(JsValue::from).unwrap_or(JsValue::UNDEFINED)
+}
 
 #[wasm_bindgen(typescript_custom_section)]
 const WORKBOOK_RUN_HOST: &str = r#"
@@ -67,10 +78,10 @@ export interface WorkbookRunHost extends WorkbookResultKeyHost {
     mountAttachments(): Promise<void>;
     workbookLive(): boolean;
     workbookChanged(): void;
-    /** The state of the run as JSON */
-    state(state: string): void;
-    /** An event of a script as JSON, a failure comes with what the host failed with */
-    scriptEvent(file: string, event: string, error: unknown): void;
+    /** The state of the run */
+    state(state: WorkbookRunState): void;
+    /** An event of a script, a failure comes with what the host failed with */
+    scriptEvent(file: string, event: WorkbookScriptRunEvent, error: unknown): void;
     cooperate(): Promise<void>;
 }
 "#;
@@ -139,9 +150,9 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = workbookChanged)]
     fn workbook_changed(this: &JsWorkbookRunHost) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch)]
-    fn state(this: &JsWorkbookRunHost, state: &str) -> Result<(), JsValue>;
+    fn state(this: &JsWorkbookRunHost, state: &JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch, js_name = scriptEvent)]
-    fn script_event(this: &JsWorkbookRunHost, file: &str, event: &str, error: &JsValue) -> Result<(), JsValue>;
+    fn script_event(this: &JsWorkbookRunHost, file: &str, event: &JsValue, error: &JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch)]
     fn cooperate(this: &JsWorkbookRunHost) -> Result<JsValue, JsValue>;
 }
@@ -357,7 +368,7 @@ impl RunHost for JsRunHost {
     }
 
     fn state(&self, state: &RunState) {
-        let _ = self.host.state(&state_json(state).to_string());
+        let _ = self.host.state(&js_value(&WorkbookRunState::from(state)));
     }
 
     fn script_event(&self, file: &str, event: &ScriptEvent) {
@@ -365,7 +376,7 @@ impl RunHost for JsRunHost {
             ScriptEvent::Failed { failure } => host_value(failure.value.as_ref()),
             _ => JsValue::UNDEFINED,
         };
-        let _ = self.host.script_event(file, &event_json(event).to_string(), &error);
+        let _ = self.host.script_event(file, &js_value(&WorkbookScriptRunEvent::from(event)), &error);
     }
 
     fn cooperate(&self) -> impl Future<Output = ()> + 'static {
@@ -395,8 +406,8 @@ impl WorkbookRun {
         self.handle.cancel();
     }
 
-    /// Resolves once the run ended with `{ outcome, error }`: the outcome as JSON (the queries of the outputs, the
-    /// failure, whether a statement was handed to the host), and what the host failed with
+    /// Resolves once the run ended with `{ outcome, error }`: the outcome (the queries of the outputs, the failure,
+    /// whether a statement was handed to the host), a `WorkbookRunResult`, and what the host failed with
     pub fn result(&self) -> Promise {
         self.result.clone()
     }
@@ -404,18 +415,15 @@ impl WorkbookRun {
 
 #[wasm_bindgen]
 impl Workbook {
-    /// Start a run of the scripts, the options are JSON: `run` is `workbook` or `script` with the file of its `target`,
-    /// `targets` the indexes of the scripts that run with what they need, `inputs` the names of changed inputs whose
-    /// scripts run, `refresh` reads no cached results, `reportsState` reports the state of the run
-    pub fn run(&self, host: JsWorkbookRunHost, options: &str) -> Result<WorkbookRun, JsError> {
-        let options: Value = serde_json::from_str(options).map_err(|e| JsError::new(&format!("invalid run options: {e}")))?;
-        let options = options_from_json(&options);
+    /// Start a run of the scripts
+    pub fn run(&self, host: JsWorkbookRunHost, options: Ts<WorkbookRunOptions>) -> Result<WorkbookRun, JsError> {
+        let options = options.to_rust()?.into();
         let (handle, run) = start_run(Rc::new(JsRunHost { host }), self.inner.clone(), options);
         let result = future_to_promise(async move {
             let result = run.await;
             let object = Object::new();
             let error = result.failure.as_ref().map(|failure| host_value(failure.value.as_ref())).unwrap_or(JsValue::UNDEFINED);
-            let _ = Reflect::set(&object, &JsValue::from_str("outcome"), &JsValue::from_str(&result_json(&result).to_string()));
+            let _ = Reflect::set(&object, &JsValue::from_str("outcome"), &js_value(&WorkbookRunResult::from(&result)));
             let _ = Reflect::set(&object, &JsValue::from_str("error"), &error);
             Ok(object.into())
         });
@@ -438,8 +446,8 @@ impl Workbook {
         Ok(finish!(graph))
     }
 
-    /// The result keys of the scripts as JSON, `null` for a script without a key, a run reads and writes the files of
-    /// the reusable ones. Plans the targets, every script without, with the analyses as they are, all null if the plan
+    /// The result keys of the scripts, a `WorkbookResultKeys`: null for a script without a key, a run reads and writes
+    /// the files of the reusable ones. Plans the targets, every script without, with the analyses as they are, all null if the plan
     /// is invalid.
     #[wasm_bindgen(js_name = resultKeys)]
     pub fn result_keys(&self, targets: Option<Vec<u32>>, host: JsResultKeyHost) -> Result<Promise, JsError> {
@@ -452,7 +460,7 @@ impl Workbook {
         let connections = Rc::new(connections);
         Ok(future_to_promise(async move {
             if !graph.valid {
-                return Ok(JsValue::from_str(&Value::Array(connections.iter().map(|_| Value::Null).collect()).to_string()));
+                return Ok(js_value(&WorkbookResultKeys(connections.iter().map(|_| None).collect())));
             }
             let keys_host = host.clone();
             let keys_connections = connections.clone();
@@ -466,7 +474,7 @@ impl Workbook {
                 |script| connections.get(script as usize).is_some_and(|connection| host.caches_results(connection).unwrap_or(false)),
             )
             .await;
-            Ok(JsValue::from_str(&keys_json(&keys).to_string()))
+            Ok(js_value(&WorkbookResultKeys::from(keys.as_slice())))
         }))
     }
 }

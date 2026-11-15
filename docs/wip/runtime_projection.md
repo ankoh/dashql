@@ -1,7 +1,7 @@
 # Projecting the runtime state
 
-Status: decided and started. The computations cross as views with generated types, the workbook has the first view
-with a FlatBuffer payload (`scriptView`). Measured on `995154de1`.
+Status: decided and started. The computations and the workbook cross as views with generated types, the payloads
+of the scripts as FlatBuffers by key inside the views. Measured on `995154de1`, the workbook on `1e96729fa`.
 
 The state of the app lives in the crate `dashql_core_runtime` inside the core module (see
 [core_runtime.md](core_runtime.md)): the workbooks with their scripts, the connections with their query histories,
@@ -124,10 +124,18 @@ pub editor_update: Option<FlatBufferBytes>,   // #[serde(with = "serde_bytes")] 
   returns the accessor object of the root table. Nothing is copied, nothing is unpacked; a consumer that needs the
   object API unpacks what it reads.
 - **Kept by key.** `FlatBufferCache` holds the accessor object of a slot (e.g. a script) with its key and returns the
-  same object while the key doesn't move. The host passes the key it holds (`scriptView(key, known)`), the module
-  leaves the bytes of that key out. A per-keystroke view crosses no editor update that the editor reported itself.
-- **Proved on the editor update** (`flatbuffer_view.test.ts`): the bytes of the view are the bytes the accessors read,
-  the same key crosses no bytes and keeps the object, a new analysis crosses again.
+  same object while the key doesn't move. The host passes the keys it holds (`scriptView(key, known)`), the module
+  leaves the bytes of those keys out. A per-keystroke view crosses no editor update that the editor reported itself:
+  the host holds it (`hold`) under the key of the update.
+- **Hydrated once per key.** While the consumers read the object API, the cache keeps what `hydrate` made of the
+  accessors, e.g. the unpacked `EditorUpdateT`, so an unpacking happens once per key and never per read.
+- **The keys of the script payloads.** The editor update by `editorUpdateKey` (its versions, its status and whether
+  it holds an analysis), the staged diff and the visualization by a revision that moves when they change, every
+  processing statistic by the revision it was recorded at. The statistics cross as a delta: the host passes the
+  newest key it holds, the module sends the bytes of the newer ones only, a keystroke crosses one.
+- **Proved on the payloads of a script** (`flatbuffer_view.test.ts`): the bytes of the view are the bytes the
+  accessors read, the same key crosses no bytes and keeps the object, a new analysis crosses again, a held update is
+  the one of its key, the known keys of the diff, the visualization and the statistics leave their bytes out.
 
 What crosses how:
 
@@ -141,7 +149,8 @@ What crosses how:
 
 ### Views and revisions
 
-- **A view per slice.** `WorkbookView`, `ScriptView`, `ConnectionView`, `QueryView`, `ComputationSnapshot` (built).
+- **A view per slice.** `WorkbookView`, `WorkbookScriptView`, `ComputationSnapshot` (built), `ConnectionView`,
+  `QueryView`.
   A view holds plain fields, ids of handles and the FlatBuffer payloads with their keys.
 - **Revisions nest.** Every slice has its revision from `next_revision`. A parent lists its children as
   `[id, revision]`: the workbook its scripts in feed order, the connection its active and finished queries, the
@@ -162,6 +171,11 @@ the lists of the parents say what changed.
   objects whose members all stay return the previous object, typed arrays and class instances compare by identity.
   It costs the size of the changed slice. A part of a view that didn't change keeps its object, and the hydration
   keeps what it built from it by comparing identities.
+- **The workbook uses both.** The view of the workbook lists the scripts as `[key, revision]`, a script whose
+  revision didn't move keeps its `ScriptData`. The view of a changed script is shared with the previous one, its
+  payloads come from three `FlatBufferCache`s and the statistics of the previous projection; the attachments, the
+  external changes, the staged diff, the visualization, the annotations and the statistics keep their objects while
+  their keys don't move. The session handles stay one per session id.
 - **The computations use both.** A computation keeps its state while its revision doesn't move. The state of a changed
   computation keeps its version, its column groups, its tracked tasks, its skipped summaries, its orderings and its
   searches while their parts of the view are the same. The JSON keys of the column groups and of the tracked tasks,
@@ -198,9 +212,12 @@ what it built. `detailsProto` of the connection goes, the view of the details is
 
 ### Per keystroke
 
-The projection of a keystroke costs 15 to 18 µs on either transport. With the views of the workbook it costs two
-crossings, one `share` over about 15 fields and no FlatBuffer unpacking. The check of every step stays the Node
-measurement of "Typing" in core_runtime.md: the projection must not exceed today's.
+The projection of a keystroke is two crossings: the view of the workbook and the view of the typed script with the
+newest processing statistics as its only payload, a `share` of each, and the unpacking of that one statistic. Before,
+it read the properties and the snapshot as JSON, the revision of every script, and unpacked the 20 statistics of the
+script again with a call each. The check of every step stays the Node measurement of "Typing" in core_runtime.md:
+the projection must not exceed today's. For the workbook (median per keystroke, the release module, alternating runs
+on a loaded machine): the projection 43 µs before, 25 µs after, the whole reduction 181 µs before, 128 µs after.
 
 ## The registries in Rust
 
@@ -228,14 +245,15 @@ Each step keeps the app and the tests green, the steps up to 5 keep the objects 
 
 1. **Views and generated types.** Views with `Serialize` and `Tsify`, the inputs with `Deserialize`, the bindings on
    `Ts<T>`, `@ankoh/dashql-core` re-exports the declarations and the enums. Done for the computations: their JSON
-   readers and builders, the hand-written interfaces of `dashql-core-js` and `TaskStatus` went. Next the connection,
-   the workbook, the storage writer and the restore (68 `json!` calls left in the bindings of the state, 65 more in
-   the format of workbooks).
+   readers and builders, the hand-written interfaces of `dashql-core-js` and `TaskStatus` went. Done for the workbook
+   and its runs: the properties, the script list, the effects, the outcomes, the options, the state, the events and
+   the result keys of a run, the cloud link and the data files as inputs. A connection with its catalog stays typed
+   arguments, the catalog is an object of the module. Next the connection, the storage writer and the restore.
 2. **Handles and the three effects.** `HandleTable`, Rust keeps handle ids, the effects become release, close and
    abort. The id maps and the effect switches of the three adapters go.
-3. **The cache and the hydrators.** `projection.ts` is built and the computations use it. Then `views(kind, ids)` in
-   the bindings, the parents list their children, the connection (its in-place maps go) and the workbook with its
-   FlatBuffer payloads by key (`scriptView` is its first view).
+3. **The cache and the hydrators.** `projection.ts` is built, the computations and the workbook use it, the
+   workbook lists its scripts with their revisions and its payloads cross by key. Then `views(kind, ids)` in the
+   bindings and the connection (its in-place maps go).
 4. **The `Runtime` object.** The registries, the index, the promotion, the fan-out of connection actions and the
    effects to the storage writer in Rust; the store as a cache with subscriptions per slice.
 5. **Actions through one dispatch.** The generated action unions, string constants, one `dispatch`. The switches of
@@ -257,12 +275,31 @@ Each step keeps the app and the tests green, the steps up to 5 keep the objects 
 TypeScript lost 287 lines without the generic projection, Rust gained 463: a view with its `From` takes two lines per
 field where a `json!` builder took one, and the inputs are views too. The shapes exist once, in Rust.
 
+### The workbook, steps 1 and 3
+
+| | Deleted | Added |
+|---|---|---|
+| `dashql-core-wasm/src/workbook.rs` (the `json!` builders, the readers per payload, the outcome class) | 213 | 77 |
+| `dashql-core-wasm/src/workbook/view.rs` (16 views and their conversions, the payloads by key) | 25 | 322 |
+| `dashql-core-wasm/src/workbook_run.rs` and `workbook_run/view.rs` (the options, state, events, outcome, keys of a run) | 23 | 267 |
+| `dashql-core-runtime/src/workbook_run/json.rs` (the JSON of a run but the statement) | 89 | 3 |
+| `dashql-core-runtime/src/workbook.rs` (the revisions of the diff, the visualization and the statistics) | 7 | 31 |
+| `dashql-core-js/src/workbook.ts` (the interfaces, the JSON, the readers per payload) | 241 | 91 |
+| `dashql-core-js/src/flatbuffer_view.ts` (`hydrate`, `hold`, numeric keys) | 11 | 20 |
+| `dashql-runtime/src/workbook/scripts/workbook_native.ts` (the projection on the caches) | 72 | 110 |
+| `dashql-runtime/src/workbook/scripts/workbook_execution.ts` (the parsed state and events, the run types) | 41 | 9 |
+
+Without tests TypeScript lost 135 lines, Rust gained 345 (tests: TypeScript +46, the views of the scripts and their
+keys are proved in `flatbuffer_view.test.ts`). The optimized module shrank from 12,947,623 to 12,909,966 bytes, gzip
+from 3,551,545 to 3,550,379: the `json!` builders cost more code than the views and their serializers.
+
 ## Risks
 
 - **Wasm size.** The views of the computations, their `Deserialize` impls through serde-wasm-bindgen and the editor
   update view grow the optimized module from 12,275,611 to 12,457,717 bytes (+1.5%), gzip from 3,280,244 to
-  3,355,769 bytes (+2.3%), 182 KB for 34 views and one FlatBuffer view. The other states have about as many views
-  again; the size is measured with every step, and an input that only a test needs goes back to typed arguments.
+  3,355,769 bytes (+2.3%), 182 KB for 34 views and one FlatBuffer view. The 26 views of the workbook and its runs
+  shrink it (12,947,623 to 12,909,966 bytes), they replace more `json!` code than they add. The size is measured with
+  every step, and an input that only a test needs goes back to typed arguments.
 - **Two copies of `@ankoh/dashql-core`.** The generated types are erased; the generated enums are numbers in both
   copies, so comparisons hold. The cache and the handle table never use `instanceof` or the classes of the package.
 - **The declarations import the generated FlatBuffer code** by a relative path (`../gen/dashql/buffers/`). The path

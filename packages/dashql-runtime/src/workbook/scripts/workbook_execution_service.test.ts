@@ -64,7 +64,7 @@ function fixture(workbookId: string, deferStream = false) {
     const plan = vi.spyOn(workbook.native!.workbook, 'run');
     const scriptKey = workbook.scriptRefs['1_commands.sql'].scriptId;
     /// The latest query of the script
-    const latestQueryId = () => workbook.native!.workbook.scriptSnapshot(scriptKey).latestQueryId;
+    const latestQueryId = () => workbook.native!.workbook.scriptView(scriptKey, { editorUpdate: null, pendingDiff: null, visualization: null, statistics: null }).latestQueryId;
     // A connection on the Rust connection of the core, online with a channel. The catalog loader of the runtime follows
     // the connections that come online: their params and catalog updates.
     const database: ConnectionState = createTestConnection(dql, {
