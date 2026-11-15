@@ -19,6 +19,17 @@ const PAGE_TIMEOUT = 60_000;
 /// The editor with the script of a workbook that holds the text
 const scriptEditor = (page, text) => page.locator('.cm-content').filter({ hasText: text });
 
+/// A query of the feed runs on an engine that is up, it does not get the time of a boot
+const QUERY_TIMEOUT = 20_000;
+
+/// Wait until the query of the script cell is done, in a workbook with a single one.
+/// A failed query fails the test right away with its message, it doesn't wait for a timeout.
+async function waitForQuery(page) {
+    const done = page.locator('[data-testid="entry-status"]:is([data-status="succeeded"], [data-status="failed"])');
+    await done.waitFor({ timeout: QUERY_TIMEOUT });
+    if (await done.getAttribute('data-status') !== 'succeeded') throw new Error(`The query failed: ${await done.textContent()}`);
+}
+
 /// Open the app and run a query in the composer of the new workbook
 async function openWorkbookWithQuery(page, navigate) {
     await navigate('/');
@@ -27,7 +38,7 @@ async function openWorkbookWithQuery(page, navigate) {
     await page.locator('.cm-content').first().click();
     await page.keyboard.type('select 42 as answer');
     await page.getByTestId('composer-send').click();
-    await page.getByText('Statement executed successfully').waitFor();
+    await waitForQuery(page);
     // The result card counts the rows, the bar of Wobble tells them too
     await page.getByText('1 row, 4 bytes').waitFor();
     await page.getByText('42', { exact: true }).last().waitFor();
@@ -62,7 +73,7 @@ async function testAppWrappedScript(page, navigate) {
     const columns = Array.from({ length: 30 }, (_, i) => `1 as column_${i}_with_a_long_name`);
     await page.keyboard.insertText(`select ${columns.join(', ')};`);
     await page.getByTestId('composer-send').click();
-    await page.getByText('Statement executed successfully').waitFor();
+    await waitForQuery(page);
     const { contentHeight, scrollerHeight, overflow, rowHeight } = await scriptEditor(page, 'column_0_with_a_long_name').evaluate(content => {
         const scroller = content.closest('.cm-scroller');
         return {
@@ -97,7 +108,7 @@ async function testAppGreeter(page, navigate) {
     await page.locator('.cm-content').first().click();
     await page.keyboard.type('select 42 as answer');
     await page.getByTestId('composer-send').click();
-    await page.getByText('Statement executed successfully').waitFor();
+    await waitForQuery(page);
     await page.waitForURL(url => url.pathname.startsWith('/workbooks/'));
     const workbookPathname = pathnameOf(page);
     await page.getByTestId('workbook-row-menu').waitFor();
@@ -454,7 +465,7 @@ async function testAppDragRegions(page, navigate) {
     const columns = Array.from({ length: 200 }, (_, i) => `${i} as column_${i}`);
     await page.keyboard.insertText(`select\n${columns.join(',\n')};`);
     await page.getByTestId('composer-send').click();
-    await page.getByText('Statement executed successfully').waitFor();
+    await waitForQuery(page);
 
     // The row reaches behind both bars when the feed follows its end
     const cell = page.getByTestId('script-cell').first();

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './entry_status_bar.module.css';
 
 import { EntryStatus } from './entry_status_model.js';
-import { StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
@@ -122,10 +122,14 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
     );
 
     return (
-        <div className={classNames(styles.status_bar, {
-            [styles.status_bar_compact]: compact,
-            [styles.status_bar_collapsed]: expanded === false,
-        })}>
+        <div
+            className={classNames(styles.status_bar, {
+                [styles.status_bar_compact]: compact,
+                [styles.status_bar_collapsed]: expanded === false,
+            })}
+            data-testid="entry-status"
+            data-status={IndicatorStatus[status.indicator].toLowerCase()}
+        >
             {tabs != null ? (
                 <>
                     {onToggleExpanded != null && (
