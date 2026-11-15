@@ -107,10 +107,11 @@ typescript_bin.tsc_test(
     ] + _DEPENDENCIES,
 )
 
-# The commands with the process of a test: arguments, files, stdin, the output and the exit codes
+# The commands with the process of a test: arguments, files, stdin, the output and the exit codes. dashql run starts the
+# embedded Hyper in many tests, about 35 seconds on a workstation, more on a runner of CI
 vitest_bin.vitest_test(
     name = "test",
-    size = "small",
+    size = "medium",
     args = [
         "run",
         "--config",
