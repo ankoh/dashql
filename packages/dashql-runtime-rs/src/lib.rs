@@ -10,4 +10,5 @@ pub mod compute;
 pub mod connections;
 pub mod names;
 pub mod query;
+pub mod trino;
 pub mod workbook;

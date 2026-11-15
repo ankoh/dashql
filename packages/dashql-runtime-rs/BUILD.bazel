@@ -108,3 +108,18 @@ rust_test(
         "@core_crates//:serde_json",
     ],
 )
+
+rust_test(
+    name = "trino_test",
+    size = "small",
+    srcs = ["tests/trino_test.rs"],
+    # The recorded Trino responses that the tests replay
+    compile_data = ["//tests/snapshots/profiles/trino/recordings:files"],
+    edition = "2021",
+    deps = [
+        ":dashql_runtime",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:serde_json",
+    ],
+)

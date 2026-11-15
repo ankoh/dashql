@@ -164,6 +164,24 @@ the connection layer of the catalog of a connection.
   answered and the lookup behind it settle in one pass. The retry wakes at the earliest attempt. Skipped functions and
   duplicate columns come back as warnings of the outcome.
 
+## The Trino connector
+
+The Trino connector of the crate (`src/trino/`) does no I/O, the app doesn't use it yet. The channel (`TrinoChannel`)
+holds the endpoint, the auth with the OAuth token and the default catalog and schema, and turns a request of the
+protocol into an HTTP request with its headers. A query (`TrinoQuery`) is a state machine: it asks for requests and
+timers by id, takes the responses and the fired timers with the time they happened, and reports the schema, the
+progress, the record batches and the end. It follows the next URIs until Trino stops sending one, requests the next
+page before it converts the current one, retries busy or unreachable coordinators with growing delays, and fetches the
+QueryInfos of the profile only while the profile is shown. The rows of a page become an Arrow record batch with the
+coercions of the TypeScript runtime. A timestamp with a named time zone asks the host for the offsets of the zone, the
+crate has no time zone database. The setup of a connection (`TrinoSetup`) is a state machine as well: it reports every
+step as an action on the connection and asks the host for the PKCE challenge, the login in the browser, the token
+request, the channel and the health check.
+
+- **Changed on purpose.** Integers keep all their digits, invalid base64 becomes null instead of failing the batch,
+  basic auth encodes UTF-8, an error or rows in the response to the statement are handled like a page, a token
+  response without a token is an error.
+
 ## Typing
 
 Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,
