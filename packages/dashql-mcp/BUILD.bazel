@@ -1,0 +1,41 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+
+# The MCP server of DashQL, a Cloudflare Worker with an MCP App that frames the embed, see README.md.
+# Wrangler bundles src/worker.ts itself when it deploys, so nothing is compiled here.
+
+_SOURCES = glob(["src/**/*.ts"])
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + ["tsconfig.json"],
+)
+
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.json"],
+    chdir = "packages/dashql-mcp",
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/@modelcontextprotocol/sdk",
+        "//:node_modules/vitest",
+    ],
+)
+
+vitest_bin.vitest_test(
+    name = "test",
+    size = "small",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+    ],
+    chdir = "packages/dashql-mcp",
+    data = _SOURCES + [
+        "vitest.config.mjs",
+        "//:node_modules/@modelcontextprotocol/sdk",
+        "//:node_modules/vitest",
+    ],
+)

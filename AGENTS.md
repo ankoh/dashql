@@ -81,6 +81,8 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/slack_app.md` (the Slack app, `packages/dashql-slack`: a Cloudflare Worker per channel on
       `slack.dashql.app` that turns embed links into Work Objects; the flow of events, the entities, the Slack
       settings and secrets, the order of the setup, what to look at when nothing shows)
+    - `packages/dashql-mcp/README.md` (the MCP server, a Cloudflare Worker per channel on `mcp.dashql.app` with one
+      MCP App that frames `/embed`, to test the engine in ChatGPT and other MCP Apps hosts)
 
 - Web app theme (colors only from the theme tokens, light-dark(), the color scheme toggle, dark chrome)
     - `docs/design/app_theme.md`
