@@ -1,6 +1,5 @@
 // The restore of the stored state on a fake host: an executor of a single thread and a storage in memory that serves
-// the restore and the storage writer. The semantics follow
-// packages/dashql-runtime/src/workbook/persistence/app_state_loader.test.ts.
+// the restore and the storage writer.
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap, VecDeque};

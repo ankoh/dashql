@@ -1,20 +1,21 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { createWorkbookScripts, scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsRegistry } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { scriptResultOwner } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -26,19 +27,8 @@ beforeAll(async () => {
     core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
 });
 
-/// A workbook s1 with the script orders.sql of the text
-function workbook(text: string): [WorkbookScripts, number] {
-    const connection = { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: core.createCatalog() };
-    const workbookScripts = createWorkbookScripts({
-        instance: core,
-        workbookId: 's1',
-        name: 'Orders',
-        pendingConnection: null,
-        workbookMetadata: {} as WorkbookScripts['workbookMetadata'],
-        scripts: [{ name: 'orders.sql', sql: text, connection }],
-    });
-    return [workbookScripts, workbookScripts.scriptRefs['orders.sql'].scriptId];
-}
+/// The params of the embedded Hyper of the tests
+const EMBEDDED = { hyper: { endpoint: '', protocol: 'WASM' } } as ConnectionParams;
 
 /// A query result of the columns, owned by the script of the workbook
 function query(columns: Record<string, unknown[]>, owner: string | null, status = QueryExecutionStatus.SUCCEEDED): QueryExecutionState {
@@ -50,42 +40,44 @@ function query(columns: Record<string, unknown[]>, owner: string | null, status 
     } as unknown as QueryExecutionState;
 }
 
-type Registry = ReturnType<typeof useWorkbookScriptsRegistry>[0];
-
 describe('QueryResultActionMenu', () => {
     let root: ReturnType<typeof createTestRoot> | null = null;
-    let registry: Registry | null = null;
-    beforeEach(() => {
-        vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
-    });
+    /// The runtime of the test and the key of the script orders.sql of the workbook s1
+    let runtime: CoreRuntime | null = null;
+    let scriptKey = 0;
     afterEach(() => {
         root?.unmount();
         root = null;
-        registry = null;
+        runtime = null;
         vi.restoreAllMocks();
         core.resetUnsafe();
     });
 
-    function Seed(props: { workbooks: WorkbookScripts[]; children: React.ReactElement }) {
-        const [current, setRegistry] = useWorkbookScriptsRegistry();
+    /// Create the workbook s1 with the script orders.sql of the text in the runtime of the test
+    function Seed(props: { text: string; children: React.ReactElement }) {
+        const coreRuntime = useCoreRuntime();
         const [ready, setReady] = React.useState(false);
-        registry = current;
         React.useEffect(() => {
-            setRegistry(r => ({ ...r, workbookScriptsMap: new Map(props.workbooks.map(s => [s.workbookId, s])) }));
+            runtime = coreRuntime;
+            createTestConnection(coreRuntime, { connectionId: 'db', params: EMBEDDED });
+            coreRuntime.createWorkbook('db', 'Orders', false, undefined, 's1');
+            coreRuntime.dispatchWorkbook('s1', { kind: 'createScript', value: { text: props.text, base: 'orders' } });
+            coreRuntime.flush();
+            scriptKey = coreRuntime.workbook('s1')!.scriptKeys[0];
             setReady(true);
-        }, [props.workbooks, setRegistry]);
+        }, [coreRuntime, props.text]);
         return ready ? props.children : null;
     }
 
-    async function render(result: QueryExecutionState, workbooks: WorkbookScripts[]) {
+    async function render(text: string, result: (scriptKey: number) => QueryExecutionState) {
         root = createTestRoot();
         await act(async () => {
             root!.render(
                 <LoggerProvider>
                     <StorageProvider backend={new WorkbookTestBackend()}>
-                        <TestRuntime>
-                            <Seed workbooks={workbooks}>
-                                <div data-testid="menu-host"><WithResultTables><QueryResultActionMenu query={result} /></WithResultTables></div>
+                        <TestRuntime core={core}>
+                            <Seed text={text}>
+                                <Menu result={result} />
                             </Seed>
                         </TestRuntime>
                     </StorageProvider>
@@ -95,6 +87,10 @@ describe('QueryResultActionMenu', () => {
         await act(async () => {
             await vi.waitFor(() => expect(root!.container.querySelector('[data-testid="menu-host"]')).not.toBeNull());
         });
+    }
+
+    function Menu(props: { result: (scriptKey: number) => QueryExecutionState }) {
+        return <div data-testid="menu-host"><WithResultTables><QueryResultActionMenu query={props.result(scriptKey)} /></WithResultTables></div>;
     }
 
     it('renders nothing for a result without a script, outside of any provider', async () => {
@@ -110,23 +106,24 @@ describe('QueryResultActionMenu', () => {
         await act(async () => { trigger()!.click(); });
         await act(async () => { await vi.waitFor(() => expect(item()).not.toBeNull()); });
     }
-    const scriptText = (scriptKey: number) => registry!.workbookScriptsMap.get('s1')!.scripts[scriptKey].scriptSession.getText();
+    const scriptOf = (key: number) => {
+        runtime!.flush();
+        return runtime!.store.get('script', key)!;
+    };
+    const scriptText = (key: number) => scriptOf(key).scriptSession.getText();
 
     it('has no menu for results without a script', async () => {
-        const [workbookScripts] = workbook('select 1 as a');
-        await render(query({ a: [1] }, null), [workbookScripts]);
+        await render('select 1 as a', () => query({ a: [1] }, null));
         expect(trigger()).toBeNull();
     });
 
     it('cannot open the menu without a result', async () => {
-        const [workbookScripts, scriptKey] = workbook('select 1 as a');
-        await render(query({}, scriptResultOwner('s1', scriptKey), QueryExecutionStatus.FAILED), [workbookScripts]);
+        await render('select 1 as a', key => query({}, scriptResultOwner('s1', key), QueryExecutionStatus.FAILED));
         expect(trigger()!.disabled).toBe(true);
     });
 
     it('stages the projection of the result columns as a diff of the script', async () => {
-        const [workbookScripts, scriptKey] = workbook('select 1 as a, 2 as b');
-        await render(query({ a: [1], b: [2] }, scriptResultOwner('s1', scriptKey)), [workbookScripts]);
+        await render('select 1 as a, 2 as b', key => query({ a: [1], b: [2] }, scriptResultOwner('s1', key)));
         await open();
         expect(item()!.disabled).toBe(false);
         expect(item()!.textContent).toBe('Project Columns');
@@ -140,12 +137,12 @@ describe('QueryResultActionMenu', () => {
 )
 select a, b
 from base`);
-        expect(registry!.workbookScriptsMap.get('s1')!.scripts[scriptKey].pendingDiff?.priorText).toBe('select 1 as a, 2 as b');
+        expect(scriptOf(scriptKey).pendingDiff?.priorText).toBe('select 1 as a, 2 as b');
     });
 
     it('says why a script cannot get the projection', async () => {
-        const [noQuery, noQueryKey] = workbook('select 1 as a; drop table t;');
-        await render(query({ a: [1] }, scriptResultOwner('s1', noQueryKey)), [noQuery]);
+        await render('select 1 as a; drop table t;', key => query({ a: [1] }, scriptResultOwner('s1', key)));
+        const noQueryKey = scriptKey;
         await open();
         expect(item()!.disabled).toBe(true);
         expect(item()!.textContent).toBe('Project ColumnsThe last statement is no query');
@@ -154,22 +151,20 @@ from base`);
         expect(scriptText(noQueryKey)).toBe('select 1 as a; drop table t;');
         root!.unmount();
 
-        const [noColumns, noColumnsKey] = workbook('select');
-        await render(query({}, scriptResultOwner('s1', noColumnsKey)), [noColumns]);
+        await render('select', key => query({}, scriptResultOwner('s1', key)));
         await open();
         expect(item()!.disabled).toBe(true);
         expect(item()!.textContent).toBe('Project ColumnsThe result has no columns');
     });
 
     it('disables the projection of a result whose script is gone', async () => {
-        const [workbookScripts] = workbook('select 1 as a');
-        await render(query({ a: [1] }, scriptResultOwner('s1', 999)), [workbookScripts]);
+        await render('select 1 as a', () => query({ a: [1] }, scriptResultOwner('s1', 999)));
         await open();
         expect(item()!.disabled).toBe(true);
         expect(item()!.textContent).toBe('Project Columns');
 
         // Clicking the disabled item does not change the script
         await act(async () => { item()!.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-        expect(scriptText(Number(Object.keys(workbookScripts.scripts)[0]))).toBe('select 1 as a');
+        expect(scriptText(scriptKey)).toBe('select 1 as a');
     });
 });

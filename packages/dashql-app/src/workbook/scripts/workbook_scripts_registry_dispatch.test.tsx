@@ -4,16 +4,15 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-
-import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { createWorkbookScripts, isCloudPreview, isEphemeralWorkbook, REGISTER_QUERY, RENAME_WORKBOOK, REORDER_SCRIPTS, SET_WORKBOOK_CLOUD_LINK, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { StorageWriter, WRITE_WORKBOOK_PROPERTIES } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { useWorkbookScripts, useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useScript, useWorkbookScripts } from './workbook_scripts_registry.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -23,106 +22,96 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-/// A workbook with the script `1.sql`, its key is the key that the tests read
-function fixture(workbookId: string): WorkbookScripts {
-    const connection = { connectionId: `${workbookId}-database`, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
-    return createWorkbookScripts({
-        instance: dql, workbookId, name: null, workbookMetadata: createEmptyMetadata(), pendingConnection: null,
-        scripts: [{ name: '1.sql', sql: 'select 1', connection }],
-    });
-}
+/// The params of the embedded Hyper of the tests
+const EMBEDDED = { hyper: { endpoint: '', protocol: 'WASM' } } as ConnectionParams;
+/// The ids of the workbooks of the test, UUIDs that storage accepts
+const A = '11111111-1111-4111-8111-111111111111';
+const B = '22222222-2222-4222-8222-222222222222';
 
-function SeedRegistry(props: { workbooks: WorkbookScripts[]; children: React.ReactNode }) {
-    const [, setRegistry] = useWorkbookScriptsRegistry();
+/// Create the workbooks with the script `1.sql` in the runtime, their keys are the keys that the tests read
+function Seed(props: { onRuntime: (runtime: CoreRuntime, keys: number[]) => void; children: React.ReactNode }) {
+    const runtime = useCoreRuntime();
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
-        setRegistry(registry => ({
-            ...registry,
-            workbookScriptsMap: new Map(props.workbooks.map(workbook => [workbook.workbookId, workbook])),
-        }));
+        createTestConnection(runtime, { connectionId: 'database', params: EMBEDDED });
+        const keys = [A, B].map(workbookId => {
+            runtime.createWorkbook('database', null, false, undefined, workbookId);
+            runtime.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: 'select 1', base: '1' } });
+            runtime.flush();
+            return runtime.workbook(workbookId)!.scriptKeys[0];
+        });
+        props.onRuntime(runtime, keys);
         setReady(true);
-    }, [props.workbooks, setRegistry]);
+    }, [runtime]);
     return ready ? props.children : null;
 }
 
 type ScriptsHook = ReturnType<typeof useWorkbookScripts>;
-type ScriptsRegistry = ReturnType<typeof useWorkbookScriptsRegistry>[0];
 
-function Consumer(props: { workbookId: string; capture: (scripts: ScriptsHook, registry: ScriptsRegistry) => void }) {
+function Consumer(props: { workbookId: string; scriptKey: number; capture: (scripts: ScriptsHook, latestQueryId: number | null) => void }) {
     const scripts = useWorkbookScripts(props.workbookId);
-    const [registry] = useWorkbookScriptsRegistry();
-    React.useLayoutEffect(() => props.capture(scripts, registry));
+    const script = useScript(props.scriptKey);
+    React.useLayoutEffect(() => props.capture(scripts, script?.latestQueryId ?? null));
     return null;
 }
 
-// The actions of the registry are tested in the runtime (workbook/scripts/workbook_scripts_registry_service.test.ts), this
-// is the hook of the app on it
+// The actions of the workbooks are tested in the runtime (`runtime_workbooks.test.ts` of `dashql-core-js`), this is the
+// hook of the app on it
 describe('useWorkbookScripts dispatch', () => {
-    it('keeps retained and current modifiers bound to their workbooks when a reused route batches actions', async () => {
-        const write = vi.spyOn(StorageWriter.prototype, 'write').mockResolvedValue(true);
-        const workbooks = [fixture('a'), fixture('b')];
-        const [keyA, keyB] = workbooks.map(workbook => workbook.scriptRefs['1.sql'].scriptId);
+    it('keeps retained and current modifiers bound to their workbooks when a reused route dispatches', async () => {
         const backend = new WorkbookTestBackend();
         const container = document.createElement('div');
         document.body.appendChild(container);
         const root = createRoot(container);
+        let runtime!: CoreRuntime;
+        let keys: number[] = [];
         let current!: ScriptsHook;
-        let registry!: ScriptsRegistry;
-        const capture = (scripts: ScriptsHook, nextRegistry: ScriptsRegistry) => {
+        let latestQueryId: number | null = null;
+        const capture = (scripts: ScriptsHook, queryId: number | null) => {
             current = scripts;
-            registry = nextRegistry;
+            latestQueryId = queryId;
         };
-        const render = async (workbookId: string) => {
+        const render = async (workbookId: string, scriptKey: number) => {
             await act(async () => {
                 root.render(<LoggerProvider>
                     <StorageProvider backend={backend}>
-                        <TestRuntime>
-                            <SeedRegistry workbooks={workbooks}>
-                                {/* No key: changing the route id must reuse the hook and its pending queue. */}
-                                <Consumer workbookId={workbookId} capture={capture} />
-                            </SeedRegistry>
+                        <TestRuntime core={dql}>
+                            <Seed onRuntime={(rt, k) => { runtime = rt; keys = k; }}>
+                                {/* No key: changing the route id must reuse the hook */}
+                                <Consumer workbookId={workbookId} scriptKey={scriptKey} capture={capture} />
+                            </Seed>
                         </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>);
             });
-            // The seeded registry renders the consumer from a scheduled (non-sync) update.
             await vi.waitFor(() => expect(current?.[0]?.workbookId).toBe(workbookId));
         };
 
         try {
-            await render('a');
+            await render(A, 0);
+            await render(A, keys[0]);
             const modifyA = current[1];
-            await render('b');
+            await render(B, keys[1]);
             const modifyB = current[1];
             expect(modifyB).not.toBe(modifyA);
 
-            let resultA!: ReturnType<typeof modifyA>;
-            let resultB!: ReturnType<typeof modifyB>;
-            await act(async () => {
-                // Both calls enqueue synchronously before the shared queue's microtask flush.
-                resultA = modifyA({ type: REGISTER_QUERY, value: [keyA, 101] });
-                resultB = modifyB({ type: REGISTER_QUERY, value: [keyB, 202] });
-                expect(registry.workbookScriptsMap.get('a')?.scripts[keyA].latestQueryId).toBeNull();
-                expect(registry.workbookScriptsMap.get('b')?.scripts[keyB].latestQueryId).toBeNull();
-            });
-
-            const [resolvedA, resolvedB] = await Promise.all([resultA, resultB]);
-            expect(resolvedA).toMatchObject({ workbookId: 'a', scripts: { [keyA]: { latestQueryId: 101 } } });
-            expect(resolvedB).toMatchObject({ workbookId: 'b', scripts: { [keyB]: { latestQueryId: 202 } } });
-            await vi.waitFor(() => expect(current[0]?.scripts[keyB].latestQueryId).toBe(202));
-            expect(registry.workbookScriptsMap.get('a')?.scripts[keyA].latestQueryId).toBe(101);
-            expect(registry.workbookScriptsMap.get('b')?.scripts[keyB].latestQueryId).toBe(202);
+            // Both actions apply at once to their workbooks, the views follow with the next flush
             act(() => {
-                modifyA({ type: RENAME_WORKBOOK, value: 'Offline workbook' });
+                expect(modifyA({ kind: 'registerQuery', value: { scriptKey: keys[0], queryId: 101 } }).ok).toBe(true);
+                expect(modifyB({ kind: 'registerQuery', value: { scriptKey: keys[1], queryId: 202 } }).ok).toBe(true);
             });
-            await vi.waitFor(() => expect(write).toHaveBeenCalledWith(expect.any(String), {
-                type: WRITE_WORKBOOK_PROPERTIES, value: ['a', { name: 'Offline workbook' }],
-            }, expect.any(Number)));
+            await vi.waitFor(() => expect(latestQueryId).toBe(202));
+            expect(runtime.store.get('script', keys[0])?.latestQueryId).toBe(101);
+
+            // A rename is written into the workbook file of its workbook
+            act(() => {
+                modifyA({ kind: 'renameWorkbook', value: { name: 'Offline workbook' } });
+            });
+            await runtime.storage.flush();
+            expect((await backend.loadWorkbook(A)).name).toBe('Offline workbook');
         } finally {
-            write.mockRestore();
             act(() => root.unmount());
             container.remove();
         }
     });
-
 });

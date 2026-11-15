@@ -10,8 +10,6 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
@@ -47,22 +45,14 @@ const CONNECTION = {
     details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: null } } },
 } as unknown as ConnectionState;
 
-// The workbook uses the connection without a script
-const WORKBOOK = {
-    workbookId: TEST_WORKBOOK_ID, scripts: {}, scriptRefs: {}, scriptOrder: [], instance: {},
-    pendingConnection: { connectionId: TEST_CONNECTION_ID },
-} as unknown as WorkbookScripts;
-
 describe('WorkbookURLShareOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
     let connections: ReturnType<typeof useConnectionRegistry> | null;
-    let workbooks: ReturnType<typeof useWorkbookScriptsRegistry> | null;
 
     function Capture() {
         connections = useConnectionRegistry();
         coreRuntime = useCoreRuntime();
-        workbooks = useWorkbookScriptsRegistry();
         return null;
     }
 
@@ -86,7 +76,8 @@ describe('WorkbookURLShareOverlay', () => {
         await root.render(tree(false));
         await act(async () => {
             addTestConnections(coreRuntime!, [CONNECTION]);
-            workbooks![1](reg => ({ ...reg, workbookScriptsMap: new Map([[TEST_WORKBOOK_ID, WORKBOOK]]) }));
+            // The workbook uses the connection without a script, it keeps its name on disk
+            coreRuntime!.createWorkbook(TEST_CONNECTION_ID, null, false, undefined, TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));
     }
@@ -96,7 +87,6 @@ describe('WorkbookURLShareOverlay', () => {
         backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'Orders' }));
         connections = null;
-        workbooks = null;
     });
     afterEach(() => {
         root.unmount();

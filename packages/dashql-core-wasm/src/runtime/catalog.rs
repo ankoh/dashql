@@ -188,6 +188,10 @@ impl Connections {
                 None => versions.push((connection_id.to_string(), 1)),
             }
         }
+        let listener = self.catalog_listener.borrow().clone();
+        if let Some(listener) = listener {
+            listener(connection_id);
+        }
         self.platform.signal(true);
     }
 

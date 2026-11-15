@@ -1,14 +1,8 @@
 import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { DataflowEdgeKind, deriveDataflowGraph, forgetDataflowGraph, mergeDataflowGraph, statementTypeLabel, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';
+import { DataflowEdgeKind, deriveDataflowGraph, mergeDataflowGraph, statementTypeLabel, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';
 import { analyzedTestWorkbook } from './dataflow_test_workbook.js';
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
-afterEach(() => { dql.resetUnsafe(); });
 
 function edges(graph: DataflowGraph): string[] {
     const name = (key: number) => graph.scripts.find(s => s.scriptKey === key)?.fileName;
@@ -16,13 +10,13 @@ function edges(graph: DataflowGraph): string[] {
 }
 
 describe('dataflow graph', () => {
-    it('derives the statements and the edges of a workbook with the core', () => {
-        const workbook = analyzedTestWorkbook(dql, [
+    it('derives the statements and the edges of a workbook from the derived view of the runtime', async () => {
+        const test = await analyzedTestWorkbook([
             ['schema.sql', 'create table t (a int);\ninsert into t values (1)'],
             ['report.sql', 'select a\nfrom t'],
             ['chart.sql', 'select * from :report'],
         ]);
-        const graph = deriveDataflowGraph(workbook);
+        const graph = deriveDataflowGraph(null, test.derived, test.scripts);
         expect(graph.scripts.map(s => s.fileName)).toEqual(['schema.sql', 'report.sql', 'chart.sql']);
         expect(graph.scripts[0].statements.map(s => [statementTypeLabel(s.statementType), s.label])).toEqual([['CREATE', 't'], ['INSERT', 't']]);
         // A query is labeled with its first line
@@ -32,12 +26,12 @@ describe('dataflow graph', () => {
             'schema.sql.1 -> report.sql.0 table t',
             'report.sql.0 -> chart.sql.0 inline report',
         ]);
-        // The same workbook gives the same graph, until the workbook is forgotten
-        expect(deriveDataflowGraph(workbook)).toBe(graph);
-        forgetDataflowGraph(workbook.workbookId);
-        const derived = deriveDataflowGraph(workbook);
+        // The same derived view gives the same graph, derived again it keeps its identity
+        const derived = deriveDataflowGraph(null, test.derived, test.scripts);
         expect(derived).not.toBe(graph);
         expect(derived).toEqual(graph);
+        expect(deriveDataflowGraph(graph, test.derived, test.scripts)).toBe(graph);
+        await test.runtime.destroy();
     });
 
     it('labels statement types with their first word', () => {

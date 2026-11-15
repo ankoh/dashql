@@ -9,8 +9,10 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { SET_SCRIPT_TEXT, scriptResultOwner, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { scriptResultOwner, type ScriptData, type ScriptDataMap } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { useWorkbookScriptsDispatch } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
 import { useQueryResultTable } from '../../connections/query_executor.js';
@@ -30,9 +32,9 @@ function isProjectionError(text: string | ResultProjectionError): text is Result
 }
 
 /// The script of a workbook that owns a query result
-function findResultScript(workbookScripts: WorkbookScripts, owner: string): ScriptData | null {
-    for (const script of Object.values(workbookScripts.scripts)) {
-        if (scriptResultOwner(workbookScripts.workbookId, script.scriptKey) === owner) return script;
+function findResultScript(workbookId: string, scripts: ScriptDataMap, owner: string): ScriptData | null {
+    for (const script of Object.values(scripts)) {
+        if (scriptResultOwner(workbookId, script.scriptKey) === owner) return script;
     }
     return null;
 }
@@ -57,7 +59,7 @@ interface ScriptResultProps extends Props {
 }
 
 function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps): React.ReactElement {
-    const readRegistry = useWorkbookScriptsRegistryReader();
+    const runtime = useCoreRuntime();
     const dispatchWorkbookScripts = useWorkbookScriptsDispatch();
     const config = useAppConfig();
     const [open, setOpen] = React.useState(false);
@@ -71,18 +73,18 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
     const openMenu = () => {
         setProjection(null);
         setOpen(true);
-        const workbookScripts = readRegistry().workbookScriptsMap.get(workbookId);
-        const script = workbookScripts == null ? null : findResultScript(workbookScripts, owner);
-        if (workbookScripts == null || script == null || resultTable == null) return;
+        const script = findResultScript(workbookId, runtime.workbookScripts(workbookId), owner);
+        const instance = runtime.core;
+        if (instance == null || script == null || resultTable == null) return;
         const formatConfig = createScriptFormatConfig(
             dashql.buffers.formatting.FormattingMode.PRETTY,
             false,
             undefined,
             getKeywordCase(config?.settings),
-            formattingDialectForConnector(script.connection.connectorInfo.connectorType),
+            formattingDialectForConnector(runtime.connection(script.connectionId)?.connectorType as ConnectorType | undefined),
         );
         const columnNames = resultTable.schema.fields.map(field => field.name);
-        const text = addResultProjection(workbookScripts.instance, script.scriptSession.getText(), columnNames, formatConfig);
+        const text = addResultProjection(instance, script.scriptSession.getText(), columnNames, formatConfig);
         // The errors are strings as well
         setProjection(isProjectionError(text) ? text : { scriptKey: script.scriptKey, text });
     };
@@ -90,8 +92,8 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
         setOpen(false);
         if (projection == null || typeof projection !== 'object') return;
         // Staged as a diff like the formatting, the user accepts or rejects it in the editor
-        void dispatchWorkbookScripts(workbookId, {
-            type: SET_SCRIPT_TEXT,
+        dispatchWorkbookScripts(workbookId, {
+            kind: 'setScriptText',
             value: { scriptKey: projection.scriptKey, text: projection.text, withDiff: true },
         });
     };

@@ -6,9 +6,12 @@ import type { OAuthFlow } from '../oauth/oauth_flow.js';
 import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import type { HttpClient } from '../platform/http/http_client.js';
 import type { QueryResultCache } from '../query/query_result_cache.js';
+import { CoreRuntime } from '../core_runtime.js';
 import { createRuntime, type Runtime, type RuntimePlatform } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
-import type { StorageBackend } from '../storage/storage_backend.js';
+import type { StorageBackend, WorkbookData } from '../storage/storage_backend.js';
+import { WORKBOOK_FORMAT_VERSION } from '../storage/migration/versions.js';
+import type { ScriptDataMap, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
 import { TestLogger } from './test_logger.js';
 import { WorkbookTestBackend } from './workbook_test_backend.js';
 
@@ -43,6 +46,94 @@ export interface TestRuntime extends Runtime {
     addConnection(options: TestConnectionOptions): ConnectionState;
     /// The connection as the runtime holds it now
     connection(connectionId: string): ConnectionState;
+    /// Create a workbook on a connection with scripts of names and texts in feed order, every script analyzed with the
+    /// declarations of the others, and return it once its view is in the store
+    addWorkbook(connectionId: string, scripts?: Array<[string, string]>, options?: { name?: string; ephemeral?: boolean }): WorkbookScripts;
+    /// The scripts of a workbook of the last flush by key
+    scripts(workbookId: string): ScriptDataMap;
+}
+
+/// Analyze the outdated scripts of a workbook until none is outdated: a script that publishes its declarations
+/// outdates the scripts that read them
+export function analyzeWorkbook(runtime: Runtime, workbookId: string): void {
+    const core = runtime.coreRuntime;
+    for (let round = 0; round < 4; ++round) {
+        core.flush();
+        const outdated = (core.workbook(workbookId)?.scriptKeys ?? []).filter(key => core.runtime?.isAnalysisOutdated(key));
+        if (outdated.length === 0) break;
+        for (const scriptKey of outdated) core.dispatchWorkbook(workbookId, { kind: 'analyzeOutdatedScript', value: { scriptKey } });
+    }
+    core.flush();
+}
+
+/// A runtime of the module of a test with the core of the tests and a storage in memory, its catalog loader stopped
+export function testStorageRuntime(dql: dashql.DashQL, storage: StorageBackend = new WorkbookTestBackend(), logger = new TestLogger()): CoreRuntime {
+    const runtime = new CoreRuntime({ logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, storage });
+    runtime.runCatalogLoader(false);
+    return runtime;
+}
+
+/// A script of a stored workbook: its file name, its text and the id of its connection
+export type StoredTestScript = [fileName: string, text: string, connectionId: string];
+
+/// Write a workbook into a storage with scripts on connections of a runtime, the workbook file holds copies of their
+/// params. Returns the id of the workbook.
+export async function storeTestWorkbook(
+    runtime: CoreRuntime,
+    storage: StorageBackend,
+    scripts: readonly StoredTestScript[],
+    options: { workbookId?: string; name?: string; pendingConnectionId?: string } = {},
+): Promise<string> {
+    const workbookId = options.workbookId ?? crypto.randomUUID();
+    const connectionIds = [...new Set(scripts.map(([, , connectionId]) => connectionId))];
+    if (connectionIds.length === 0 && options.pendingConnectionId != null) connectionIds.push(options.pendingConnectionId);
+    const connections = connectionIds.map(connectionId => {
+        const connection = runtime.connection(connectionId);
+        if (connection == null) throw new Error(`the runtime has no connection ${connectionId}`);
+        return { connectionId, params: connection.params as WorkbookData['connections'][number]['params'] };
+    });
+    const workbook: WorkbookData = {
+        formatVersion: WORKBOOK_FORMAT_VERSION,
+        workbookId,
+        name: options.name ?? 'Test',
+        connections,
+        scripts: scripts.map(([name, , connectionId]) => ({ name, connectionId })),
+        attachments: [],
+        metadata: {},
+    } as WorkbookData;
+    await storage.saveWorkbookManifest(workbookId, workbook);
+    for (const [name, text] of scripts) await storage.saveScript(workbookId, name, text);
+    return workbookId;
+}
+
+/// Write a workbook into the storage of a runtime and restore it into the runtime against its connections. The scripts
+/// are not analyzed, like the scripts of a workbook that the app restores. Returns the workbook once its view is in the
+/// store.
+export async function restoreTestWorkbook(
+    runtime: CoreRuntime,
+    storage: StorageBackend,
+    scripts: readonly StoredTestScript[],
+    options: { workbookId?: string; name?: string; pendingConnectionId?: string } = {},
+): Promise<WorkbookScripts> {
+    const workbookId = await storeTestWorkbook(runtime, storage, scripts, options);
+    await runtime.restoreWorkbook(workbookId);
+    const workbook = runtime.workbook(workbookId);
+    if (workbook == null) throw new Error(`the workbook ${workbookId} was not restored`);
+    return workbook;
+}
+
+/// Create a workbook on a connection of a runtime with scripts of names and texts, see `TestRuntime.addWorkbook`
+export function addTestWorkbook(runtime: Runtime, connectionId: string, scripts: Array<[string, string]> = [], options: { name?: string; ephemeral?: boolean } = {}): WorkbookScripts {
+    const core = runtime.coreRuntime;
+    const workbook = core.createWorkbook(connectionId, options.name ?? 'Test', options.ephemeral ?? false);
+    for (const [fileName, text] of scripts) {
+        const outcome = core.dispatchWorkbook(workbook.workbookId, { kind: 'createScript', value: { text, base: fileName.replace(/\.sql$/i, '') } });
+        if (!outcome.ok) throw new Error(outcome.error ?? `the script ${fileName} was not created`);
+    }
+    analyzeWorkbook(runtime, workbook.workbookId);
+    const created = core.workbook(workbook.workbookId);
+    if (created == null) throw new Error('the workbook was not created');
+    return created;
 }
 
 export async function createTestRuntime(options: TestRuntimeOptions = {}): Promise<TestRuntime> {
@@ -72,6 +163,12 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
             const connection = runtime.coreRuntime.connection(connectionId);
             if (connection == null) throw new Error(`the runtime has no connection ${connectionId}`);
             return connection;
+        },
+        addWorkbook(connectionId: string, scripts?: Array<[string, string]>, options?: { name?: string; ephemeral?: boolean }) {
+            return addTestWorkbook(runtime, connectionId, scripts, options);
+        },
+        scripts(workbookId: string) {
+            return runtime.coreRuntime.workbookScripts(workbookId);
         },
     });
 }

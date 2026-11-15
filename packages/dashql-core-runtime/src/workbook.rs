@@ -765,6 +765,17 @@ impl Workbook {
     /// Run a function with a plan request of the scripts and attachments of the workbook for a run: its scope, the
     /// scripts whose materialized results the host provides, the mount prefix and the files of the materialized results
     fn with_run_plan_request<R>(&self, run: &RunPlanRequest, f: impl FnOnce(&SessionPlanRequest) -> R) -> R {
+        self.with_run_planner(run, |request, _| f(request))
+    }
+
+    /// Run a function with a plan request of the scripts and attachments of the workbook and the sessions of its
+    /// scripts in feed order, e.g. to derive the views of the planner in the offset unit of each session
+    pub fn with_planner<R>(&self, f: impl FnOnce(&SessionPlanRequest, &[Ref<ScriptSession>]) -> R) -> R {
+        self.with_run_planner(&RunPlanRequest::default(), f)
+    }
+
+    /// Run a function with a plan request for a run and the sessions of the scripts
+    fn with_run_planner<R>(&self, run: &RunPlanRequest, f: impl FnOnce(&SessionPlanRequest, &[Ref<ScriptSession>]) -> R) -> R {
         let mut connections: Vec<&ScriptConnection> = Vec::new();
         let mut script_connections: Vec<u32> = Vec::with_capacity(self.scripts.len());
         for script in &self.scripts {
@@ -816,7 +827,7 @@ impl Workbook {
             .map(|(attachment, stamp)| PlannerAttachment { name: &attachment.name, file: &attachment.file_name, stamp })
             .collect();
         let attachment_prefix = format!("{ATTACHMENT_MOUNT_ROOT}/{}", self.id);
-        f(&SessionPlanRequest {
+        let request = SessionPlanRequest {
             connections: &planner_connections,
             scripts: &planner_scripts,
             scope: match run.targets {
@@ -827,7 +838,8 @@ impl Workbook {
             mount_prefix: run.mount_prefix,
             attachments: &planner_attachments,
             attachment_prefix: &attachment_prefix,
-        })
+        };
+        f(&request, &sessions)
     }
 
     /// Plan the scripts of the workbook for a run, with their analyses as they are

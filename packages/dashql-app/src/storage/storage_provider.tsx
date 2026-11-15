@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { type StorageBackend, StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
@@ -9,11 +9,9 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { migrateStorage } from './migration/storage_migration.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
+import { useCoreRuntime, useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
-
-// Storage context for the writer
-const StorageWriterContext = React.createContext<StorageWriter | null>(null);
 
 // Storage context for reading
 export interface StorageReader {
@@ -93,43 +91,9 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         initialization.current = initBackend();
     }, [providedBackend]);
 
-    // Create storage writer instance
-    const writer = React.useMemo(() => {
-        if (!backend) return null;
-        return new StorageWriter(logger, backend);
-    }, [logger, backend]);
-
-    // Write the pending changes when the page goes away, the writer debounces them.
-    // Browsers don't wait for the writes when the page unloads, a hidden page usually still finishes them.
-    // Electron asks for the writes before it closes a window and waits for them.
-    React.useEffect(() => {
-        if (!writer) return;
-        const flush = async () => {
-            try {
-                await writer.flush();
-            } catch (error) {
-                logger.error("Failed to flush the storage writer", { error: stringifyError(error) }, "storage_provider");
-            }
-        };
-        const flushIfHidden = () => {
-            if (document.visibilityState === 'hidden') void flush();
-        };
-        const flushOnPageHide = () => void flush();
-        window.addEventListener('pagehide', flushOnPageHide);
-        document.addEventListener('visibilitychange', flushIfHidden);
-        const removeElectronFlush = globalThis.dashqlElectron?.onFlush(flush);
-        return () => {
-            window.removeEventListener('pagehide', flushOnPageHide);
-            document.removeEventListener('visibilitychange', flushIfHidden);
-            removeElectronFlush?.();
-        };
-    }, [writer, logger]);
-
-    // Another tab takes over the app, the migration and the pending writes finish first
+    // Another tab takes over the app, the migration finishes first. The runtime stops its writer.
     useAppHandOver(async () => {
         await initialization.current;
-        writer?.pause();
-        await writer?.flush();
     });
 
 
@@ -158,7 +122,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         };
     }, [backend, logger]);
 
-    if (!backend || !writer || !reader) {
+    if (!backend || !reader) {
         // Still migrating or initializing, the app providers below are not set up yet
         return <AppSetupPage status={{ ...APP_SETUP_NOT_STARTED, applyMigrations: migrationStatus }} error={migrationError} showInternals={false} />;
     }
@@ -166,9 +130,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     return (
         <StorageMigrationStatusContext.Provider value={migrationStatus}>
             <StorageReaderContext.Provider value={reader}>
-                <StorageWriterContext.Provider value={writer}>
-                    {children}
-                </StorageWriterContext.Provider>
+                {children}
             </StorageReaderContext.Provider>
         </StorageMigrationStatusContext.Provider>
     );
@@ -179,18 +141,21 @@ export function useStorageMigrationStatus(): IndicatorStatus {
     return React.useContext(StorageMigrationStatusContext);
 }
 
+/// The storage writer of the runtime (`CoreRuntime.storage`), the workbooks and connections of the runtime write
+/// through it
 export function useStorageWriter(): StorageWriter {
-    const writer = React.useContext(StorageWriterContext);
-    if (!writer) {
-        throw new Error('useStorageWriter must be used within StorageProvider');
-    }
-    return writer;
+    return useCoreRuntime().storage;
+}
+
+/// The writer of the storage of the runtime, null outside of a runtime, e.g. in a view that runs on its own
+export function useOptionalStorageWriter(): StorageWriter | null {
+    return useOptionalCoreRuntime()?.storage ?? null;
 }
 
 export function useStorage(): [StorageReader, StorageWriter] {
     const reader = React.useContext(StorageReaderContext);
-    const writer = React.useContext(StorageWriterContext);
-    if (!reader || !writer) {
+    const writer = useCoreRuntime().storage;
+    if (!reader) {
         throw new Error('useStorage must be used within StorageProvider');
     }
     return [reader, writer];

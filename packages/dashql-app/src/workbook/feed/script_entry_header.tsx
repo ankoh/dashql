@@ -11,11 +11,12 @@ import { useStorageReader } from '../../storage/storage_provider.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useConnectionLabeler } from '../connection_labels.js';
-import { SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
+import { useScript } from '../scripts/workbook_scripts_registry.js';
+import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useScriptRunServices, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
@@ -50,7 +51,7 @@ export interface ScriptEntryHeaderProps {
 export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((props: ScriptEntryHeaderProps) => {
     const { workbookScripts, modifyWorkbookScripts } = props;
     const workbookId = workbookScripts.workbookId;
-    const scriptData = workbookScripts.scripts[props.scriptKey];
+    const scriptData = useScript(props.scriptKey) ?? undefined;
     const fileName = scriptData?.fileName ?? 'script.sql';
     const config = useAppConfig();
     const logger = useLogger();
@@ -61,7 +62,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
 
     // The connection of the script, labeled like the feed labels it
     const labeler = useConnectionLabeler();
-    const connectionState = scriptData != null ? props.scriptConnections.get(scriptData.connection.connectionId) ?? null : null;
+    const connectionState = scriptData != null ? props.scriptConnections.get(scriptData.connectionId) ?? null : null;
     const connection = React.useMemo(
         () => connectionState == null ? null : scriptConnectionView(connectionState, labeler(connectionState)),
         [connectionState, labeler],
@@ -72,7 +73,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
-    const connectorType = scriptData?.connection.connectorInfo.connectorType;
+    const connectorType = connectionState?.connectorType as ConnectorType | undefined;
     const formattingDialect = formattingDialectForConnector(connectorType);
     const isFormattable = React.useMemo(
         () => isScriptFormattable(scriptData ?? null, formattingDialect),
@@ -81,30 +82,32 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const editorView = props.editorView ?? null;
     const format = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
         formatScriptEditor(editorView, scriptData ?? null, mode, (text) => {
-            modifyWorkbookScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: props.scriptKey, text, withDiff: true } });
+            modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: props.scriptKey, text, withDiff: true } });
         }, formattingDebugMode, keywordCase, formattingDialect);
     }, [editorView, scriptData, props.scriptKey, modifyWorkbookScripts, formattingDebugMode, keywordCase, formattingDialect]);
 
+    const services = useScriptRunServices();
     const execute = React.useCallback(() => {
-        if (scriptData == null || !online || workbookExecution.runActive) return;
-        runWorkbookScript(workbookScripts, scriptData, executeQuery, modifyWorkbookScripts, logger);
-    }, [scriptData, online, workbookExecution.runActive, workbookScripts, executeQuery, modifyWorkbookScripts, logger]);
+        if (scriptData == null || services == null || !online || workbookExecution.runActive) return;
+        void runWorkbookScript(services, workbookScripts, scriptData, executeQuery, modifyWorkbookScripts, logger);
+    }, [scriptData, services, online, workbookExecution.runActive, workbookScripts, executeQuery, modifyWorkbookScripts, logger]);
+    const readScript = useLiveScriptReader();
     const rename = React.useCallback((name: string) => {
-        void renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current);
-    }, [workbookScripts, modifyWorkbookScripts, fileName, props.draftRenameRef]);
+        renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
+    }, [workbookScripts, modifyWorkbookScripts, fileName, props.draftRenameRef, readScript]);
     const selection = useScriptSelection();
     const remove = React.useCallback(() => {
         if (scriptData == null) return;
         if (props.onDelete != null) props.onDelete(scriptData);
-        else void deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
+        else deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
     }, [scriptData, props.onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
     // A snippet replaces the text of the script, a script with text shows the replacement as a diff to accept or reject
     const applySnippet = React.useCallback((text: string) => {
         const priorText = scriptData?.scriptSession.getText() ?? '';
-        modifyWorkbookScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: props.scriptKey, text, withDiff: priorText.trim().length > 0 } });
+        modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: props.scriptKey, text, withDiff: priorText.trim().length > 0 } });
     }, [scriptData, props.scriptKey, modifyWorkbookScripts]);
     const setVisSpec = React.useCallback((spec: string) => {
-        modifyWorkbookScripts({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey: props.scriptKey, spec } });
+        modifyWorkbookScripts({ kind: 'setScriptVisSpec', value: { scriptKey: props.scriptKey, spec } });
     }, [props.scriptKey, modifyWorkbookScripts]);
     const storage = React.useMemo<ScriptStorage>(() => ({
         fileName,

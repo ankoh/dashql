@@ -81,7 +81,8 @@ function createConnection(connectionId: string, options: {
                 active: false,
                 health: ConnectionHealth.ONLINE,
             });
-            into.dispatch({ connection: connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
+            // The catalog of the test is loaded by the test, the catalog loader doesn't describe the connection
+            into.runCatalogLoader(false);
             into.flush();
             if (options.relationsSql != null) loadRelations(this.catalog, options.relationsSql);
             if (options.clientFunctions != null) this.catalog.registerClientFunctions(options.clientFunctions);

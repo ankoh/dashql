@@ -4,10 +4,9 @@ import { connectionMaxConcurrentQueries } from '../../connections/connector_desc
 import type { CancelQuery, QueryExecutor } from '../../connections/query_execution_args.js';
 import { computeQueryCacheKeyForConnection } from '../../query/query_platform.js';
 import { isHyperWasmConnection } from '../../connections/connection_label.js';
-import type { ModifyWorkbookScripts, WorkbookScriptsRegistry } from './workbook_scripts_registry_state.js';
-import { createExecutionMounts, isWorkbookExecutionRunning, runWorkbookExecution, type WorkbookExecutionState } from './workbook_execution.js';
+import { createExecutionMounts, isWorkbookExecutionRunning, runWorkbookExecution, type WorkbookExecutionState, type WorkbookRuns } from './workbook_execution.js';
 import type { ScriptRunServices } from './script_run.js';
-import { isCloudPreview, scriptConnectionIds, SET_ATTACHMENT_COLUMNS, type WorkbookScriptsAction } from './workbook_scripts.js';
+import { isCloudPreview, scriptConnectionIds, type WorkbookAction, type WorkbookScripts } from './workbook_scripts.js';
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
 import { supportsParquet } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import type { QueryResultCache } from '../../query/query_result_cache.js';
@@ -29,14 +28,18 @@ export interface WorkbookExecutionOptions {
 /// What the runs of workbooks need. The host replaces them as they change, a run reads the latest ones when it starts.
 export interface WorkbookExecutionDependencies {
     logger: Logger;
-    /// The workbook scripts as the last update left them
-    readWorkbooks: () => WorkbookScriptsRegistry;
+    /// The workbooks of the last flush of the store
+    readWorkbooks: () => Iterable<WorkbookScripts>;
+    /// A workbook of the last flush of the store
+    readWorkbook: (workbookId: string) => WorkbookScripts | null;
+    /// The runs of the runtime
+    runs: WorkbookRuns;
     /// The latest connection registry
     readConnections: () => Pick<ConnectionRegistry, 'connections'>;
     executeQuery: QueryExecutor;
     cancelQuery: CancelQuery;
-    /// Apply an action to the scripts of a workbook
-    dispatchWorkbookScripts: (workbookId: string, action: WorkbookScriptsAction) => unknown;
+    /// Apply an action to a workbook
+    dispatchWorkbookScripts: (workbookId: string, action: WorkbookAction) => unknown;
     /// The database of the computations, null until it is ready. It reads the cached results.
     computeDatabase: EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
@@ -90,7 +93,7 @@ export class WorkbookExecutionService {
     private readonly runs = new Map<string, { controller: AbortController; online: ReadonlySet<string> }>();
     private readonly runningDatabases = new Set<string>();
     /// The input changes that wait for the workbook, by workbook id
-    private readonly pendingInputs = new Map<string, { modify: ModifyWorkbookScripts; inputs: Set<string> }>();
+    private readonly pendingInputs = new Map<string, { inputs: Set<string> }>();
     /// The Parquet attachments whose columns were read, by workbook, file and stamp
     private readonly describedAttachments = new Set<string>();
 
@@ -103,6 +106,7 @@ export class WorkbookExecutionService {
         this.deps = deps;
         const service = this;
         this.scriptRunServices = {
+            runs: deps.runs,
             createMounts: () => {
                 const { computeDatabase, resultCache } = service.deps;
                 return resultCache != null && supportsParquet(computeDatabase) ? createExecutionMounts(resultCache, computeDatabase) : null;
@@ -122,7 +126,6 @@ export class WorkbookExecutionService {
             },
             get cache() { return service.deps.resultCache; },
             maxConcurrentQueries: connectionId => maxConcurrentQueries(service.deps.readConnections().connections.get(connectionId)),
-            liveWorkbook: workbookId => service.deps.readWorkbooks().workbookScriptsMap.get(workbookId) ?? null,
         };
     }
 
@@ -134,11 +137,11 @@ export class WorkbookExecutionService {
 
     /// Follow new registries: read the columns of new Parquet attachments, stop the runs of workbooks that are gone and
     /// of connections that dropped
-    followRegistries(workbooks: WorkbookScriptsRegistry, connections: Pick<ConnectionRegistry, 'connections'>): void {
+    followRegistries(workbooks: Iterable<WorkbookScripts>, connections: Pick<ConnectionRegistry, 'connections'>): void {
         const { computeDatabase, logger, dispatchWorkbookScripts } = this.deps;
         // The columns of the Parquet attachments, read once per file and stamp with the compute database
         if (supportsParquet(computeDatabase)) {
-            for (const workbook of workbooks.workbookScriptsMap.values()) {
+            for (const workbook of workbooks) {
                 for (const attachment of workbook.attachments ?? []) {
                     if (attachment.columns != null) continue;
                     const stamp = attachmentStamp(attachment);
@@ -148,7 +151,7 @@ export class WorkbookExecutionService {
                     const { workbookId } = workbook;
                     const fileName = attachment.fileName;
                     readAttachmentColumns(computeDatabase, workbookId, fileName)
-                        .then(columns => dispatchWorkbookScripts(workbookId, { type: SET_ATTACHMENT_COLUMNS, value: { fileName, stamp, columns } }))
+                        .then(columns => dispatchWorkbookScripts(workbookId, { kind: 'setAttachmentColumns', value: { fileName, stamp, columns } }))
                         .catch(error => logger.warn('Reading the columns of an attachment failed', { workbookId, fileName, error: stringifyError(error) }, LOG_CTX));
                 }
             }
@@ -156,7 +159,7 @@ export class WorkbookExecutionService {
         // A run stops if a connection that it executes statements on drops, the others only serve cached results
         for (const [id, { controller, online }] of this.runs) {
             if (controller.signal.aborted) continue;
-            const workbook = workbooks.workbookScriptsMap.get(id);
+            const workbook = this.deps.readWorkbook(id);
             const dropped = [...online].find(connectionId =>
                 connections.connections.get(connectionId)?.connectionHealth !== ConnectionHealth.ONLINE);
             if (!workbook) {
@@ -172,11 +175,11 @@ export class WorkbookExecutionService {
     }
 
     /// Start a run of a workbook, or queue a change of inputs until the workbook is free
-    start = (workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts, options?: WorkbookExecutionOptions): void => {
+    start = (workbookId: string, options?: WorkbookExecutionOptions): void => {
         const { executeQuery, cancelQuery, computeDatabase: computeDb, resultCache: queryResultCache, logger } = this.deps;
         const connections = this.deps.readConnections();
         // The registry as the last update left it, an input change starts its run right after writing its tags
-        const workbook = this.deps.readWorkbooks().workbookScriptsMap.get(workbookId);
+        const workbook = this.deps.readWorkbook(workbookId);
         if (!workbook || workbook.scriptOrder.length === 0) return;
         // A preview of a published workbook runs only on the embedded Hyper, the scripts of its other connections serve
         // the published results until it is imported
@@ -206,14 +209,14 @@ export class WorkbookExecutionService {
             const inputs = new Set([...(pending?.inputs ?? []), ...options.inputs]);
             if (pending != null || !isFree()) {
                 // The latest values win: stop the run that holds the workbook and start once the workbook is free
-                this.pendingInputs.set(workbookId, { modify: modifyWorkbookScripts, inputs });
+                this.pendingInputs.set(workbookId, { inputs });
                 this.runs.get(workbookId)?.controller.abort();
                 if (pending == null) {
                     logger.info('A change of inputs waits for the workbook', { workbookId, inputs: [...inputs].join(', '), reason: blocker() }, LOG_CTX);
                     void whenWorkbookFree(isFree).then(free => {
                         const next = this.pendingInputs.get(workbookId);
                         this.pendingInputs.delete(workbookId);
-                        if (next != null && free) this.start(workbookId, next.modify, { inputs: [...next.inputs] });
+                        if (next != null && free) this.start(workbookId, { inputs: [...next.inputs] });
                         else if (next != null) this.deps.logger.warn('Dropped a change of inputs, the workbook stayed busy', {
                             workbookId, inputs: [...next.inputs].join(', '), reason: blocker(),
                         }, LOG_CTX);
@@ -244,9 +247,9 @@ export class WorkbookExecutionService {
         for (const connectionId of connectionIds) this.runningDatabases.add(connectionId);
         void runWorkbookExecution({
             workbook,
-            getWorkbook: () => this.deps.readWorkbooks().workbookScriptsMap.get(workbookId) ?? null,
+            runs: this.deps.runs,
             inputs: options?.inputs,
-            executeQuery, cancelQuery, modifyWorkbookScripts,
+            executeQuery, cancelQuery,
             maxConcurrentQueries: connectionId => maxConcurrentQueries(connections.connections.get(connectionId)),
             // The embedded Hyper scans the results of the scripts of other connections, mounted from the compute database
             mounts: queryResultCache != null && supportsParquet(computeDb) ? createExecutionMounts(queryResultCache, computeDb) : null,

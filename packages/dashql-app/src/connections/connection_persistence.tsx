@@ -3,7 +3,7 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionSaveResult as RuntimeSaveResult } from '@ankoh/dashql-runtime/core_runtime';
-import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { useConnection } from './connection_registry.js';
 

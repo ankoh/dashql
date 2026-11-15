@@ -631,7 +631,7 @@ function updateDiff(state: DashQLProcessorState, prevState: DashQLProcessorState
             // reject relies on the dispatcher having restored the prior text via `changes` in the
             // same transaction (already mirrored to the rope by the docChanged branch in `update`).
             // The FlatBufferPtr is owned by the workbook's ScriptData and freed there once the
-            // cleared state round-trips back through UPDATE_FROM_PROCESSOR.
+            // cleared state round-trips back through the reported editor update.
             if (state.scriptPendingDiff != null) {
                 state = copyLazily(state, prevState);
                 state.scriptPendingDiff = null;

@@ -7,9 +7,10 @@ import * as core from '@ankoh/dashql-core';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
+import { useWorkbooks } from './scripts/workbook_scripts_registry.js';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
@@ -34,12 +35,12 @@ describe('workbook creation', () => {
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
         let coreRuntime!: CoreRuntime;
         let createWorkbook!: WorkbookCreation;
-        let registry!: WorkbookScriptsRegistry;
+        let workbooks!: ReadonlyMap<string, WorkbookScripts>;
         let writer!: StorageWriter;
         function Harness() {
             coreRuntime = useCoreRuntime();
             createWorkbook = useWorkbookCreation();
-            [registry] = useWorkbookScriptsRegistry();
+            workbooks = useWorkbooks();
             writer = useStorageWriter();
             return null;
         }
@@ -52,7 +53,7 @@ describe('workbook creation', () => {
             const database = createTestConnection(coreRuntime, { connectionId: TEST_CONNECTION_ID, params });
             let workbookId = '';
             await act(async () => { workbookId = createWorkbook(database, 'Default').workbookId; });
-            expect(registry.workbookScriptsMap.get(workbookId)?.name).toBe('Default');
+            expect(workbooks.get(workbookId)?.name).toBe('Default');
             // Workbooks without a name get free ones, also when created back to back
             let firstId = '';
             let secondId = '';
@@ -60,9 +61,9 @@ describe('workbook creation', () => {
                 firstId = createWorkbook(database).workbookId;
                 secondId = createWorkbook(database).workbookId;
             });
-            expect(registry.workbookScriptsMap.get(firstId)?.name).toBe('Untitled');
-            expect(registry.workbookScriptsMap.get(secondId)?.name).toBe('Untitled 2');
-            expect(registry.workbookScriptsByConnection.get(TEST_CONNECTION_ID)).toEqual([workbookId, firstId, secondId]);
+            expect(workbooks.get(firstId)?.name).toBe('Untitled');
+            expect(workbooks.get(secondId)?.name).toBe('Untitled 2');
+            expect(coreRuntime.connection(TEST_CONNECTION_ID)?.workbooks).toEqual([workbookId, firstId, secondId]);
             await writer.flush();
             const workbook = backend.workbooks.get(workbookId)!;
             expect(workbook.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params }]);
@@ -81,13 +82,13 @@ describe('workbook creation', () => {
         const connection = (connectionId: string): ConnectionState => createTestConnection(coreRuntime, { connectionId, params });
         let createWorkbook!: WorkbookCreation;
         let ephemeralWorkbook!: ReturnType<typeof useEphemeralWorkbook>;
-        let registry!: WorkbookScriptsRegistry;
+        let workbooks!: ReadonlyMap<string, WorkbookScripts>;
         let writer!: StorageWriter;
         function Harness() {
             coreRuntime = useCoreRuntime();
             createWorkbook = useWorkbookCreation();
             ephemeralWorkbook = useEphemeralWorkbook();
-            [registry] = useWorkbookScriptsRegistry();
+            workbooks = useWorkbooks();
             writer = useStorageWriter();
             return null;
         }
@@ -106,18 +107,18 @@ describe('workbook creation', () => {
                 namedId = createWorkbook(database).workbookId;
             });
             expect(secondId).toBe(firstId);
-            expect(isEphemeralWorkbook(registry.workbookScriptsMap.get(firstId)!)).toBe(true);
-            expect(registry.workbookScriptsMap.get(firstId)?.name).toBe('New Workbook');
-            expect(registry.workbookScriptsMap.get(namedId)?.name).toBe('Untitled');
+            expect(isEphemeralWorkbook(workbooks.get(firstId)!)).toBe(true);
+            expect(workbooks.get(firstId)?.name).toBe('New Workbook');
+            expect(workbooks.get(namedId)?.name).toBe('Untitled');
             await writer.flush();
             expect(backend.workbooks.get(firstId)!.metadata.ephemeral).toBe(true);
 
             // Only the connection of a link moves the workbook
             await act(async () => { ephemeralWorkbook(connection('other')); });
-            expect(registry.workbookScriptsMap.get(firstId)?.pendingConnection?.connectionId).toBe(TEST_CONNECTION_ID);
+            expect(workbooks.get(firstId)?.pendingConnectionId).toBe(TEST_CONNECTION_ID);
             setHyperLinkToken('linked', 'token');
             await act(async () => { ephemeralWorkbook(connection('linked')); });
-            expect(registry.workbookScriptsMap.get(firstId)?.pendingConnection?.connectionId).toBe('linked');
+            expect(workbooks.get(firstId)?.pendingConnectionId).toBe('linked');
         } finally {
             sessionStorage.removeItem('dashql.hyper_links');
             act(() => root.unmount());

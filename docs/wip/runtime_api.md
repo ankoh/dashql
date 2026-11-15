@@ -4,7 +4,8 @@ Status: decided on 2026-11-15 (see [Decisions](#decisions)). Step 1 is built: th
 `RuntimeStore`, the hooks) with the computations as its first domain, see [Step 1 as built](#step-1-as-built). Step 2
 is built: the connections with their query histories, the query executor and the saves of connections, see
 [Step 2 as built](#step-2-as-built). Step 3 is built: the setups of the connections and the catalog loader, see
-[Step 3 as built](#step-3-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+[Step 3 as built](#step-3-as-built). Step 4 is built: the workbooks, the storage writer and the restore, see
+[Step 4 as built](#step-4-as-built). Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -435,7 +436,7 @@ deletes more than it adds.
    pages. Deletes `connection_setup_native.ts`, `connection_setup_cancellation.ts`, `health_check.ts`,
    `catalog_loader_service.ts`, the Trino and Salesforce setup wrappers, `connection_setup.rs` and
    `catalog_loader.rs`. TypeScript about −900.
-4. **The workbooks, the storage writer and the restore.** The workbooks enter the runtime with the index of their
+4. **The workbooks, the storage writer and the restore** (done, see [Step 4 as built](#step-4-as-built)). The workbooks enter the runtime with the index of their
    connections, the promotion and the fan-out of catalog updates; the writer and the restore are services of it; the
    platform gets `storage`; `reportEditorUpdate`, `restore`, `restoreWorkbook`, `storage`; the derived slices replace
    the module caches of the app. The 28 and 22 files of the workbook and the script, the editor, the CLI's restore.
@@ -604,7 +605,7 @@ Measured (`git diff --numstat`, sources without tests):
 | `dashql-core-js` | 658 | 56 | 445 | 428 |
 | `dashql-core-wasm` | 1,676 | 2,512 | | |
 | `dashql-core-runtime` | 65 | 514 | | |
-| `dashql-app` | 434 | 580 | 743 | 789 |
+| `dashql-app` | 437 | 599 | 922 | 1,017 |
 
 TypeScript lost 4,039 lines and gained 1,995 without tests, Rust gained 1,285 net (the registry in the crate, the
 executor host and the connections of the runtime object in the bindings, the unit tests of the crate counted as
@@ -692,9 +693,10 @@ Measured (`git diff --numstat` with the new files, sources without tests; the te
 TypeScript lost 2,080 lines and gained 673 without tests (−1,407 net), and 1,134 lines of tests for 492. Rust gained
 1,285 and lost 1,108: the bindings of the setups and the loader (`connection_setup.rs`, `catalog_loader.rs`, 981 lines
 with their hosts) became `runtime/setups.rs`, `runtime/catalog.rs` and the queries of the runtime (`run_internal`)
-over the platform. The release module (`--compilation_mode=opt`) grew from 16,753,862 to 16,788,613 bytes (+0.2%),
-gzip (`-9`) from 4,047,094 to 4,050,059 bytes (+0.1%): the two hosts with their JSON readers went, the commands and the
-platform calls came.
+over the platform. The module built with `--compilation_mode=opt`, without wasm-opt, grew from 16,753,862 to 16,788,613
+bytes (+0.2%), gzip (`-9`) from 4,047,094 to 4,050,059 bytes (+0.1%): the two hosts with their JSON readers went, the
+commands and the platform calls came. The release module of `eeca6cc9a` (`--config=release`, with `wasm-opt -O3`) is
+13,165,480 bytes, gzip (`-9`) 3,631,990 bytes.
 
 What step 4 needs: the workbooks enter the runtime with the index of their connections, which replaces
 `setConnectionReferences` and the follow of `catalogVersion` in `createRuntime` (a new catalog analyzes the scripts of
@@ -703,6 +705,113 @@ the connection in Rust); the storage writer and the restore become services of i
 are the commands. The restore restores the catalog updates of a connection in Rust instead of `restoreCatalogUpdates`.
 The startup of the app then sets up the connections of the workbook it opens from the workbook slice instead of
 `useWorkbookConnections`.
+
+### Step 4 as built
+
+The workbooks, the storage writer and the restore, built on `eeca6cc9a` (step 3).
+
+- **`Runtime` holds the workbooks** (`packages/dashql-core-wasm/src/runtime/workbooks.rs`): the workbooks of the crate in
+  the order they were registered, with the metadata of their workbook files that a workbook doesn't keep (the origin,
+  the whole link to a cloud), and the workbooks that the restore refused. An action names a connection by its id, the
+  runtime gives the scripts the connection of its registry with its catalog (`script_connection_of` of the crate). The
+  effects of an action are writes of the storage writer of the runtime, an ephemeral workbook that got a script is
+  promoted, the registry of the connections learns which workbooks use a connection after every action that can change
+  it (this replaces `setConnectionReferences`), and an announced catalog outdates the analyses of the scripts on the
+  connection in Rust (this replaces the follow of `catalogVersion` and `CATALOG_DID_UPDATE` in `createRuntime`).
+- **The unions.** `Target` gained `{ workbook: string }`. `RuntimeAction` gained the actions of a workbook
+  (`createScript`, `deleteScript`, `renameScript`, `reorderScripts`, `setScriptText`, `acceptPendingDiff`,
+  `rejectPendingDiff`, `setScriptVisSpec`, `setWorkbookInput`, `analyzeOutdatedScript`, `registerQuery`,
+  `registerScriptResult`, `renameWorkbook`, `setScriptConnection`, `setPendingConnection`, `replaceConnection`,
+  `detachConnection`, `setWorkbookAttachments`, `setAttachmentColumns`, `renameAttachment`, `setCloudLink`,
+  `replaceFromStorage`) and of the runtime (`createWorkbook`, `deleteWorkbook`); `setConnectionReferences` and
+  `restoreCatalogUpdates` went. The base name of a new script comes with the action, the random names stay in
+  TypeScript.
+- **The views.** `workbookList` (`'root'`: the workbooks with their names, whether they are ephemeral or a cloud
+  preview, and the invalid workbooks), `workbook` (by id: the name, the metadata, the pending connection, the cloud
+  link, the attachments, the script list of the workbook file, the keys, file names and connections of the scripts in
+  feed order, the connections it uses), `script` (by key, script keys are unique in the module: the fields of the
+  script and its payloads as FlatBuffers by key, as before), `workbookDerived` (by workbook: the checked references,
+  the dataflow and the inputs as FlatBuffers, the planner of the crate run on the workbook when the store reads it,
+  `Workbook::with_planner`) and `storage` (`'root'`: the workbooks whose writes a change outside the app holds). A
+  keystroke changes the `script` slice and the `workbookDerived` slice, the `workbook` slice keeps its revision while a
+  hash of what its view shows doesn't move (`workbook_key`), the derived slice while a hash of the names, connections,
+  texts and analyses of the scripts and the attachments doesn't (`derived_key`).
+- **The commands.** `reportEditorUpdate(workbookId, scriptKey, sessionId, update, holdsPendingDiff)` (an update of a
+  stale session is dropped, an editor that holds no staged rewrite accepted it), `scriptSession`, `isAnalysisOutdated`,
+  `attachTableParameters`, `matchesStoredScripts`, `restore(progress)`, `restoreWorkbook(workbookId)`,
+  `deleteInvalidWorkbook`, `storage(command)` (`flush`, `settle`, `pause`, `resume`, `pauseWorkbook`, `resumeWorkbook`,
+  `reviveWorkbook`, `flushWorkbook`, `deleteWorkbook`, `cancelPendingWrites`, `cancelPendingConnectionFileWrites`),
+  `storageWrite` (the writes that no state describes, e.g. a script that the user kept over a change on disk),
+  `storagePendingKeys`, `storageWriteGenerations`, `storageStatistics` (no slice: they change with every write),
+  `isWorkbookPaused`, and the runs on a workbook of the runtime: `startWorkbookRun`, `planRun`, `resultKeys`,
+  `analyzeForRun` (step 5 makes them `runWorkbook` and `runScript`). `setStorageWriter` and `adoptRestoredConnection`
+  went with the classes `Workbook`, `StorageWriter`, `AppRestore` and `RestoredState` of the module.
+- **The platform grew `storage`** (`RuntimeStorage`): the reads and writes of the storage writer and the reads of the
+  restore. `JsStorage` (`runtime/storage.rs`) is the host of the writer and of the restore over it, the writer of the
+  runtime is created with the runtime and the connections write through it. `createRuntimeStorage` of
+  `storage/runtime_storage.ts` builds it over the `StorageBackend` of the platform.
+- **The restore runs in the runtime.** `restore` and `restoreWorkbook` run the restore of the crate on `storage` of the
+  platform and take the restored connections and workbooks (`adopt_restored`); the catalog updates of a connection are
+  restored from its files in Rust. The outcome names them (`RestoreOutcome`). The command line tool restores the
+  folder of a run with `restoreWorkbook`; the app restores at startup with `restore` and an import or a duplicate with
+  `restoreWorkbook`.
+- **TypeScript.** `WorkbookScripts` and `ScriptData` are the projections of the `workbook` and `script` slices with the
+  names the app reads (`workbook_projection.ts`: the payloads of a script once per key, the session handle of its
+  session, the scripts by file name), `WorkbookDerived` the projection of the derived view (the reference reports, the
+  dataflow and the inputs read from its FlatBuffers). The store takes a projection per kind (`ViewProjection`), the
+  structured progress of the queries is one. `CoreRuntime` has the commands (`createWorkbook`, `deleteWorkbook`,
+  `dispatchWorkbook`, `reportEditorUpdate`, `restore`, `restoreWorkbook`, ...) and `storage`, the facade of the commands
+  of the writer (`StorageWriter` of `runtime_storage.ts`). `createRuntime` has no registry of the workbooks and no
+  writer of its own, the runs read the workbooks of the store. Deleted: `workbook_native.ts`, the registry service and
+  state of the workbooks, `storage_writer.ts`, `app_state_loader.ts`, `workbook_script_connections.ts`, `UpdateQueue`,
+  `script_reference_reports.ts` of the app, `restore.ts` and `storage_writer.ts` of `dashql-core-js` and most of its
+  `workbook.ts`, the bindings `workbook.rs`, `storage_writer.rs` and `restore.rs` (their views moved to
+  `runtime/workbooks/view.rs` and `runtime/storage/`).
+- **Hooks** (`workbook/scripts/workbook_scripts_registry.tsx` of the app): `useWorkbookScripts(id)` (the slice and the
+  dispatch), `useScript(key)`, `useWorkbookDerived(id)`, `useWorkbookScriptMap(id)` (the scripts of a workbook for the
+  views that show all of them: the feed, the dashboard, the dataflow), `useWorkbooks()`, `useWorkbookList()`,
+  `useWorkbookReader()`, `useWorkbookScriptsDispatch()`, `useInvalidWorkbooks()`, `useWorkbookScriptsCreation()`,
+  `useWorkbookScriptsDeletion()`. The editor reports its updates with `reportEditorUpdate`; the dataflow, the reference
+  marks of the editors and the input strip read the derived view, the module caches with `workbookAnalysisSignature`
+  went. The startup sets up the connections of the workbook it opens from the `connectionIds` of its slice. The
+  storage writer is the one of the runtime (`useStorageWriter`), the `RuntimeProvider` flushes it when the page hides
+  and pauses it when another tab takes over.
+- **Changed on purpose.** An action applies at once and returns its outcome synchronously, a read sees it with the next
+  flush; the callers that awaited the next state flush and read. A keystroke renders the subscribers of its script and
+  of the derived view, not of the workbook. The statistics of the writes are read when the view of the writer shows
+  them, not pushed. The row of a script takes its connector from the view of its connection. An update of a session
+  that a script no longer holds is dropped in Rust. The workbooks that use a connection are derived in Rust after every
+  action that can change them.
+
+Measured (`git diff --numstat` with the new files, sources without tests; the test helpers of `testing/` and
+`tests/` count as tests; the bindings count the views that moved files as deleted and added, about 815 lines):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 2,580 | 920 | 2,406 | 570 |
+| `dashql-core-js` | 576 | 152 | 350 | 356 |
+| `dashql-core-wasm` | 2,121 | 2,486 | | |
+| `dashql-core-runtime` | 5 | 16 | 3 | 2 |
+| `dashql-app` | 907 | 1,037 | 678 | 570 |
+| `dashql-cli` | 14 | 8 | | |
+
+TypeScript lost 4,076 lines and gained 2,108 without tests (−1,968 net), and 3,434 lines of tests for 1,496 (the tests
+count the benchmark). Rust gained about 365 net in the bindings: `workbook.rs`, `storage_writer.rs` and `restore.rs`
+(1,189 lines) became `runtime/workbooks.rs`, `runtime/storage.rs` and the commands and slices of `runtime.rs`. The
+release module (`--config=release`) grew from 13,165,480 to 13,419,875 bytes (+1.9%), gzip (`-9`) from 3,631,990 to
+3,673,026 bytes (+1.1%): the readers of the 24 new variants of `RuntimeAction` and the storage commands, the slices and
+the derived view came, the three classes with their JS hosts went. The typing benchmark is in "Typing" of
+[core_runtime.md](core_runtime.md): the projection of a keystroke is 16 to 17 µs median, the update and the projection
+92 to 95 µs against 93 to 97 µs of the base.
+
+What step 5 needs: `runWorkbook(workbookId, options, events)`, `runScript` and `stopRun` replace `startWorkbookRun`,
+`planRun`, `resultKeys` and `analyzeScript` and the host of a run (`WorkbookRunHost` of `workbook_run.rs` with its
+statements through `CoreRuntime.execute`): the statements run on the executor of the runtime, the mounts, the query
+result cache and the attachments go to the platform. The service of the runs (`WorkbookExecutionService`: one run
+per workbook, the connections a run takes, waiting changes of inputs, stopping a run when a connection drops) and the
+holds of the workbooks (`acquireWorkbookExecution`) move into Rust as the `run` slice; `useWorkbookExecution` and
+`useScriptRunServices` read it. The command line tool runs on `runWorkbook` with its
+listener of script events and reads the progress from the `query` slices.
 
 ### The order
 

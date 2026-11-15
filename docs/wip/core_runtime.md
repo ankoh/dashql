@@ -1,34 +1,30 @@
 # The core runtime
 
-Status: the workbook scripts, the connections, the computations, the storage writes, the queries, the restore of the
-stored state, the persistence of connections and the storage format of workbooks of the app run on Rust.
+Status: the workbooks with their scripts, the connections, the computations, the storage writes, the queries, the
+restore of the stored state, the persistence of connections and the storage format of workbooks of the app run on Rust.
 `packages/dashql-core-runtime` (crate `dashql_core_runtime`) holds the scripts of a workbook, the state of a
 connection with the history of its queries, the query history of the shell and the computations, linked into the core
-module. `reduceWorkbookScripts`
-of the TypeScript runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`). The computations,
-the connections with the histories of their queries, the histories without a connection and the query executor have
-no adapter: they are the domains of the `Runtime` class of the module, the app reads their views through a store and
-dispatches to them (see [The computations](#the-computations), [The connections](#the-connections) and
-[runtime_api.md](runtime_api.md)). The storage writer is the first service on a host
-(`storage/storage_writer.ts` over `src/storage/`), the restore the second (`workbook/persistence/app_state_loader.ts`
-over `src/restore/`), the tasks of the computations the third (`compute/service.rs` on the compute database of the
-platform), the query executor the fourth (`runtime/queries.rs` of the bindings over `src/executor/`): Trino, Hyper over HTTP,
-Salesforce Data Cloud and the client functions run their protocols in Rust over the HTTP client of the host, the
-catalog loader the fifth (`runtime/catalog.rs` of the bindings over `catalog_loader/service.rs`): it schedules the
-updates of the catalogs, runs their metadata queries on the executor of the runtime, fetches the metadata of Salesforce
-and registers the client functions of the connections, the runs of workbooks the sixth (`src/workbook_run/`): a run
-analyzes, plans and runs the scripts of a workbook, the setups of the connectors and the health checks the seventh
-(`runtime/setups.rs` of the bindings over `connection_setup/`): Trino, Salesforce and Hyper set up their connections
-over the OAuth flows of the platform. The storage format of workbooks is called by
-the storage, the imports and the exports of the TypeScript runtime (`src/workbook_format/`, see
-[The format of workbooks](#the-format-of-workbooks)).
+module. The workbooks, the computations, the connections with the histories of their queries, the histories without a
+connection and the query executor have no adapter: they are the domains of the `Runtime` class of the module, the app
+reads their views through a store and dispatches to them (see [The workbooks](#the-workbooks),
+[The computations](#the-computations), [The connections](#the-connections) and [runtime_api.md](runtime_api.md)).
+The services of the runtime run on its platform: the storage writer (`runtime/storage.rs` of the bindings over
+`src/storage/`) and the restore (`Runtime.restore` over `src/restore/`) on `storage` of the platform, the tasks of the
+computations (`compute/service.rs` on the compute database of the platform), the query executor
+(`runtime/queries.rs` of the bindings over `src/executor/`): Trino, Hyper over HTTP, Salesforce Data Cloud and the
+client functions run their protocols in Rust over the HTTP client of the host, the catalog loader
+(`runtime/catalog.rs` of the bindings over `catalog_loader/service.rs`): it schedules the updates of the catalogs, runs
+their metadata queries on the executor of the runtime, fetches the metadata of Salesforce and registers the client
+functions of the connections, the runs of workbooks (`src/workbook_run/`): a run analyzes, plans and runs the scripts
+of a workbook of the runtime, and the setups of the connectors and the health checks (`runtime/setups.rs` of the
+bindings over `connection_setup/`): Trino, Salesforce and Hyper set up their connections over the OAuth flows of the
+platform. The storage format of workbooks is called by the storage, the imports and the exports of the TypeScript
+runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
-schemas of `proto/fb`. The classes of the runtime (`Runtime`, `Workbook`, `StorageWriter`, `AppRestore`,
-`WorkbookRun`, `QueryProgressFollower`) belong to DashQL and change with it,
-their snapshots cross as JSON, the ones of the computations, the workbook, the connections, the queries, the storage
-writer, the restore and the saves of connections as JS objects of views with generated types (see
+schemas of `proto/fb`. The classes of the runtime (`Runtime`, `WorkbookRun`, `QueryProgressFollower`) belong to DashQL
+and change with it, their state crosses as JS objects of views with generated types (see
 [runtime_projection.md](runtime_projection.md)).
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
@@ -58,19 +54,18 @@ buffers in between. The boundary moves to what the UI reads.
 - **The workbook owns its scripts.** `Workbook` holds every script with its session, its connection (with the
   shared catalog), its latest analysis, its staged rewrite and its query ids, the attachments and the table
   parameters. An action changes the workbook in place and returns `WorkbookEffect`s: the files to write, delete or
-  rename, the script list and the properties of the workbook file. The host passes them to the storage writer, which
+  rename, the script list and the properties of the workbook file. The runtime hands them to its storage writer, which
   debounces them. A dropped script leaves the catalog of its connection.
-- **Sessions are shared.** The workbook shares the session of a script with a `ScriptSession` handle of the module, the
-  editors of the app still apply their events to it and report the update (`ReportEditorUpdate`, the action
-  `UPDATE_FROM_PROCESSOR`). The editor that sends its events to `ApplyEditorEvent` of the workbook is the end state.
-- **The UI reads projections.** Every script and the workbook have a revision from one counter of the module, it
-  changes with every change. `NativeWorkbook.project` builds the `WorkbookScripts` objects of the app from the
-  workbook: a script keeps its `ScriptData` while its revision doesn't move, its editor update while the analysis is
-  the same, its session handle while it keeps its session. Plain fields cross as JSON, editor updates, staged diffs and
-  visualizations as packed FlatBuffers.
-- **Actions are method calls.** The class `Workbook` of the module (`packages/dashql-core-wasm/src/workbook.rs`) takes
-  typed arguments, `DashQLWorkbook` of `@ankoh/dashql-core` wraps it. The connections are a domain of `Runtime`
-  (`packages/dashql-core-wasm/src/runtime/connections.rs`), their actions are the ones of the union of the runtime.
+- **Sessions are shared.** The workbook shares the session of a script with a `ScriptSession` handle of the module
+  (`Runtime.scriptSession`), the editors of the app apply their events to it and report the update
+  (`Runtime.reportEditorUpdate`). The editor that sends its events to `ApplyEditorEvent` of the workbook is the end
+  state.
+- **The UI reads views.** The workbook, every script and the derived view of a workbook are slices of the runtime
+  (see [The workbooks](#the-workbooks)). Plain fields cross as JS objects, editor updates, staged diffs,
+  visualizations, processing statistics and the derived references, dataflow and inputs as packed FlatBuffers.
+- **Actions are one dispatch.** The workbooks and the connections are domains of `Runtime`
+  (`packages/dashql-core-wasm/src/runtime/workbooks.rs`, `runtime/connections.rs`), their actions are the ones of the
+  union of the runtime.
   Params, errors, relation names, metadata, progress and metrics cross as JS objects of the views of
   `connection/view.rs` and `query_history/view.rs`, the status, the health, the connector, the catalog updates and
   the queries have numeric enums of the module.
@@ -105,8 +100,8 @@ buffers in between. The boundary moves to what the UI reads.
    picking, replacing and detaching connections, attachments, table parameters, rewriting references on renames, the
    compiled visualization of a script and the one of a run, processing statistics, the analyses of the planner, cloud
    previews and links, the promotion of the ephemeral workbook, the replacement from storage.
-3. **Bindings and the switch.** Done: the class of the module, the adapter, the restore of the loader, the registry
-   service. The reducer tests of the runtime run against the Rust workbook.
+3. **Bindings and the switch.** Done: the workbooks are a domain of the runtime of the module, see
+   [The workbooks](#the-workbooks); the app reads their views.
 4. **The other state.** The connection state (`src/connections/`, with the Hyper, Trino and Salesforce connectors and
    the catalog updates), the query execution state (`src/query/`, with the progress model and the profile state) and
    the computation state (`src/compute/`, with the cross filters) are ported with their tests. The connections and the
@@ -154,6 +149,40 @@ workbooks (done); the catalog loader and the
 query executor once the connection and query states are switched; the connectors one by one behind the existing
 `QueryChannel`; the runs of workbooks (done); the restore (done) and `createRuntime` last. ZIP archives (`zip.js` with
 `CompressionStream`) and the compilation of chart specs (`vega-lite`) stay host calls until a reason to move them.
+
+## The workbooks
+
+The workbooks are a domain of `Runtime` (`runtime/workbooks.rs` of the bindings, see
+[runtime_api.md](runtime_api.md#step-4-as-built)): the runtime holds the workbooks of the crate in the order they were
+registered, with the metadata of their workbook files that a workbook doesn't keep (the origin, the whole link to a
+cloud), and the workbooks that the restore refused.
+
+- **Actions by connection id.** An action of a workbook (`dispatch({ workbook: id }, action)`) names a connection by its
+  id, the runtime gives the scripts the connection of its registry with the catalog of the connection
+  (`script_connection_of`). Creating a workbook is an action of the runtime (`createWorkbook`), it writes the workbook
+  file, its script list and its first manifest.
+- **Effects stay in Rust.** The effects of an action are writes of the storage writer of the runtime under the keys of
+  the workbook (`write_effects`), the host sees none of them.
+- **The runtime does what the registry of TypeScript did.** An ephemeral workbook that got a script is promoted with a
+  name that no other workbook has, the registry of the connections learns which workbooks use a connection after every
+  action that can change it, and an announced catalog of a connection outdates the analyses of the scripts on it
+  (`catalog_listener` of the connections).
+- **Per keystroke.** `reportEditorUpdate(workbookId, scriptKey, sessionId, update, holdsPendingDiff)` takes the packed
+  update of an editor; an update of a session that the script no longer holds is dropped, an editor that holds no
+  staged rewrite of the script accepted it. The workbook writes the text of the script, the slice of the script changes,
+  the workbook keeps its slice.
+- **Slices.** The `workbook` slice changes with the key of what its view shows (`workbook_key`, a hash of everything
+  but the texts and analyses of the scripts), the `script` slice with the revision of the script, the `workbookDerived`
+  slice with the key of what it derives from (`derived_key`: the names, connections, texts and analyses of the scripts
+  and the attachments). The derived view runs the planner of the crate on the workbook (`Workbook::with_planner`) when
+  the store reads it: the checked references, the dataflow and the inputs, packed like the free functions of the
+  planner. The store of TypeScript reads the payloads of a script once per key (`ScriptProjection`), the FlatBuffers of
+  a derived view once per view.
+- **Runs.** A run shares the workbook of the runtime (`startWorkbookRun`), it is live while the runtime holds the
+  workbook, and its writes tell the platform.
+- **The tests.** `runtime_workbooks.test.ts` of `dashql-core-js` (the actions and their writes, a keystroke as the change
+  of a script only, the payloads by key, the promotion, a restore of what the runtime wrote) and the tests of the
+  runtime package on the embedded Hyper.
 
 ## The computations
 
@@ -214,20 +243,20 @@ the order they were registered with the histories of their queries, the historie
 the shell) by name, and hands out the ids of all queries from one sequence.
 
 - **The rules of the registry are Rust.** A connection that workbooks use is never deleted and switches its connector
-  only while one workbook uses it, the embedded Hyper is never deleted. The workbooks that use a connection come from
-  the registry of the workbooks of TypeScript (`setConnectionReferences`) until the workbooks are part of the runtime.
+  only while one workbook uses it, the embedded Hyper is never deleted. The workbooks of the runtime tell the registry
+  which workbooks use a connection after every action that can change it.
 - **The setups run in the runtime.** `setupConnection` and `cancelSetup` are commands of the runtime, see
   [The setups of the connectors](#the-setups-of-the-connectors). A setup that the host runs itself, the mock of
   Salesforce of the app and the fixtures of tests, applies its steps by the name of the action of the connector
   (`setupStep`, read by `setup_action_from_json`, the inverse of `setup_action_json`); a channel crosses as a handle that
   the connection takes, a step that fails releases it.
-- **The saves run in the runtime.** The runtime writes through the storage writer of the module that the host gives it
-  (`setStorageWriter`): a change of a connection schedules what storage keeps of it (`connection_writes`), a created
-  active connection writes its entry with its creation time, a deleted one leaves the app manifest. `saveConnection`
+- **The saves run in the runtime.** The runtime writes through its storage writer: a change of a connection schedules
+  what storage keeps of it (`connection_writes`), a created active connection writes its entry with its creation time,
+  a deleted one leaves the app manifest. `saveConnection`
   writes the entry of the app manifest, commits the params and writes the copies of the workbooks; `retrySave` writes
   the copies of the last save again. The view of a connection shows its save.
-- **The restore adopts.** The restored connections go into the runtime (`adoptRestoredConnection`), a restore of a
-  single workbook adds the connections that it registered.
+- **The restore is a command.** `restore` creates the restored connections in the runtime, `restoreWorkbook` adds the
+  connections that a single workbook registered.
 - **The tests.** `connections/registry.rs` (the order, the ordinals, the rules, a reset that stops the queries, the
   histories without a connection), `connection_setup/mod.rs` (a step read back from its JSON) and
   `runtime_connections.test.ts` of `dashql-core-js` (the views, the steps of a setup with a channel, a setup with its
@@ -248,11 +277,11 @@ on, e.g. a script that changed outside the app.
 - **No borrow across an await.** A service keeps its state behind a `RefCell`. A task reads it, awaits the host, then
   applies the result. What the host is told (resolved writes, statistics, notifications, the log) is collected while
   the state is borrowed and passed on after, so the host may call the service again from any of them.
-- **The module.** `JsHost` of `packages/dashql-core-wasm/src/storage_writer.rs` implements the traits over a JavaScript
-  object whose methods return promises (`StorageWriterHost` in the generated declarations): `JsFuture` awaits them,
-  `spawn_local` of `wasm-bindgen-futures` runs the tasks on the event loop, `future_to_promise` gives the results of a
-  service to JavaScript. Imported methods catch, a host that throws fails the call instead of unwinding through the
-  module.
+- **The module.** `JsPlatform` of `packages/dashql-core-wasm/src/host.rs` implements the traits over the platform
+  object of the runtime, `JsStorage` of `runtime/storage.rs` the storage and the restore over `storage` of it: their
+  members return promises, `JsFuture` awaits them, `spawn_local` of `wasm-bindgen-futures` runs the tasks on the event
+  loop, `future_to_promise` gives the results of a service to JavaScript. Every call catches, a member that throws
+  fails the call instead of unwinding through the module.
 - **The tests.** `tests/storage_writer_test.rs` runs the writer on a fake host: an executor of a single thread, a clock
   that only the test advances and a storage in memory. Debouncing is tested to the millisecond.
 - **Signals.** `host::signal` has a value that is sent once and a future that can be cancelled, the writer needs no
@@ -260,9 +289,11 @@ on, e.g. a script that changed outside the app.
 
 ## The storage writer
 
-`StorageWriter` of the TypeScript runtime is an adapter over the writer of the crate (`storage/writer.rs`), bound as
-the class `StorageWriter` of the module (`DashQLStorageWriter` of `@ankoh/dashql-core`, created with
-`DashQL.createStorageWriter`). Its API stayed, its callers didn't change.
+The writer of the crate (`storage/writer.rs`) is a service of `Runtime`: the workbooks and the connections write
+through it, the host runs its commands with `Runtime.storage(command)` (flush, settle, pause and resume the writer or a
+workbook, revive, flush and delete a workbook, discard pending writes) and schedules the writes that no state describes
+with `storageWrite`, e.g. the scripts that the user kept over a change outside the app. `StorageWriter` of
+`storage/runtime_storage.ts` of the TypeScript runtime is the facade of these commands (`CoreRuntime.storage`).
 
 - **Decisions in Rust.** The keys and their chains, debouncing and coalescing (a newer task keeps the timer of the first
   one), pausing the writer and workbooks, flushing, the statistics and the generations of keys, deleted workbooks,
@@ -270,22 +301,21 @@ the class `StorageWriter` of the module (`DashQLStorageWriter` of `@ankoh/dashql
   workbook. The tasks that patch the workbook file read it, patch it as a JSON value and skip a write that changes
   nothing (`storage/workbook_file.rs`); a patched file keeps the order of its keys.
 - **I/O in the host.** Loading and saving workbook files, scripts and connection files, the exclusive update of the
-  connection entries of the app manifest (the host calls back into the writer with the entries), deleting. The natural
+  connection entries of the app manifest (the host calls back into the writer with the entries), deleting: `storage`
+  of the platform (`createRuntimeStorage` over the `StorageBackend` of the platform). The natural
   order of the attachment list follows the collator of the host. A task carries a text or a function that reads the
   latest text when the write runs, e.g. the scripts of a workbook that is written as a whole.
-- **Views.** A task is a view of `storage_writer/view.rs` (`StorageWriteTask`, a union by `type`), the outcome of a
+- **Views.** A task is a view of `runtime/storage/view.rs` (`StorageWriteTask`, a union by `type`), the outcome of a
   write (`StorageWriteOutcome`, by `status`), the statistics of a key and the generations of a workbook are views too.
   A text crosses as the string or the function itself. Workbook files and connection entries cross as plain JS values
   (`JsonValue` of `views.rs`), read the way `JSON.stringify` reads them: a member that is undefined is left out, it
-  doesn't become null in a file. The log details are an object of strings. The variants of a task are read one by one,
-  serde reads the fields of an internally tagged enum from a buffer that a function can't pass through.
-- **Before the core.** The app creates the writer in its storage provider, above the provider of the core. The writer
-  takes the core it is given or the one that the package instantiated already (`DashQL.instantiated`), else it asks
-  for one with the first write and the calls before it wait and run in order. The runtime gives the writer the setup
-  of the platform and the core it restores with. Until the core is there the queries of the writer see none of the
-  waiting calls: a test that queries a writer before any core was instantiated gives the writer the core when it
-  creates it. `DashQL.create` instantiates the module once, two instantiations at the same time replaced the memory of
-  the module under each other.
+  doesn't become null in a file. The variants of a task are read one by one, serde reads the fields of an internally
+  tagged enum from a buffer that a function can't pass through.
+- **State of the runtime.** The workbooks whose writes a change outside the app holds are the `storage` slice
+  (`heldWorkbooks`), resuming a workbook releases it. The statistics of the keys change with every write and are no
+  slice, the view of the app reads them when it shows them (`storageStatistics`).
+- **Before the core.** A command before the core waits for it (`CoreRuntime.ready`), a flush and a settle have nothing
+  to wait for. The app flushes the writer of its runtime when the page hides and pauses it when another tab takes over.
 - **Changed on purpose.** A task starts in a task of the host, the TypeScript writer called the backend within
   `writeDurable`. Written bytes count UTF-8 bytes. A durable write of a deleted workbook resolves as cancelled, the
   TypeScript writer threw. Resuming re-arms a timer once, the TypeScript writer could keep the timer of a task that was
@@ -294,17 +324,17 @@ the class `StorageWriter` of the module (`DashQLStorageWriter` of `@ankoh/dashql
 
 ## The restore
 
-`restoreAppState` and `restoreSingleWorkbook` of the TypeScript runtime are adapters over the restore of the crate
-(`src/restore/`), bound as the class `AppRestore` of the module (`DashQLAppRestore` of `@ankoh/dashql-core`, created
-with `DashQL.createRestore`). The runtime restores through it on `restore()`, the command line tool loads the workbook
-of a folder through it. Their callers didn't change.
+The restore of the crate (`src/restore/`) runs as two commands of `Runtime`: `restore(progress)` restores the
+connections of the app manifest and the workbooks of the workbook tree of the storage of the platform,
+`restoreWorkbook(workbookId)` a single workbook of it, e.g. an import or the folder of `dashql run`. The runtime takes
+what they restored, the outcome names the connections and the workbooks (`RestoreOutcome`), the workbooks that were
+refused a load are in the list of the workbooks.
 
 - **A host on top of the writer.** `restore::RestoreHost` extends `storage::StorageHost` with the reads of the restore:
   the workbooks of the tree, the connection entries of the app manifest, the scripts and the data files of a workbook,
   the files of a connection, the progress, and whether the storage owns connections. A storage of a single workbook
-  folder doesn't, it restores no catalogs and writes no connections. The adapter builds it over the `StorageBackend` of
-  the platform from the host of the storage writer, the tests of the crate over a storage in memory
-  (`tests/restore_test.rs`).
+  folder doesn't, it restores no catalogs and writes no connections. `JsStorage` of the bindings implements it over
+  `storage` of the platform, the tests of the crate over a storage in memory (`tests/restore_test.rs`).
 - **The steps.** The restore reads the connection entries of the app manifest and creates their connections with the
   catalogs of their files, then restores the workbooks of the tree in order: it checks the id, loads and validates the
   workbook file, resolves its connections with the `RestorePlanner`, creates the connections that only the workbook
@@ -319,17 +349,16 @@ of a folder through it. Their callers didn't change.
   cleared catalog files are durable writes of the app manifest and the files of the connections. Once they are
   written, the stale copies of the workbooks follow, then the script lists that changed and the promotion of an
   ephemeral workbook that holds scripts. A failed write is logged, the next restore attempts it again.
-- **Rust objects reach the runtime as they are.** The result holds the connections and the workbooks of the module.
-  The runtime adopts the connections (`adoptRestoredConnection`), the adapter adopts a workbook with the connections of
-  its scripts and their catalogs of the runtime (`NativeWorkbook.adopt`).
-- **Connections that the app holds.** A restore of a single workbook, e.g. an import or the folder of `dashql run`,
-  resolves against the live connections, which the adapter passes with their catalogs, and returns the connections that
-  the workbook registered.
+- **Rust objects reach the runtime as they are.** The result holds the connections and the workbooks of the crate,
+  the runtime takes both (`adopt_restored`), a workbook with the id of one it holds replaces it. The connections restore
+  their catalog updates from their files in Rust, the host restores nothing.
+- **Connections that the runtime holds.** A restore of a single workbook resolves against the connections of the
+  runtime with their catalogs and adds the connections that the workbook registered.
 - **Migrations stay before the restore.** The storage setup of the app migrates the root and the reachable workbook
   folders before the backend exists, the native backend a folder when it opens it. The restore validates the format
   version and shows an older workbook as invalid.
-- **Views.** What a restore restored next to the connections and workbooks (`RestoredStateView`, the connector as
-  `ConnectorType`), the progress, and the script and data files that the host lists are views of `restore/view.rs`.
+- **Views.** What a restore restored (`RestoreOutcome`, an invalid workbook with the connector as `ConnectorType`),
+  the progress, and the script and data files that the host lists are views of `runtime/storage/restore_view.rs`.
   The connection entries of the app manifest and the stored params of a live connection cross as plain JS values.
 
 The persistence of connections is a module of the crate as well (`src/connection_persistence.rs`), the runtime
@@ -417,9 +446,9 @@ tool stops the loader (`runCatalogLoader(false)`).
   (`UpdateCatalog` and the outcome of the update), so the connection, its persistence and the scripts that use it see
   them. A reset or a delete of the connection cancels its running updates (`CancelCatalogUpdate`), a forced refresh
   supersedes the running one.
-- **A new catalog is announced in the view.** An update that succeeded, partly or wholly, and a registration of client
-  functions raise the `catalogVersion` of the view of the connection; the TypeScript runtime analyzes the scripts that
-  use the connection again (`CATALOG_DID_UPDATE`) until the workbooks are part of the runtime.
+- **A new catalog is announced.** An update that succeeded, partly or wholly, and a registration of client functions
+  raise the `catalogVersion` of the view of the connection and outdate the analyses of the scripts of the workbooks that
+  use the connection (`CatalogDidUpdate`), in Rust.
 - **Salesforce over fetch.** The metadata of a data space comes from the instance over `HttpHost::fetch`
   (`SalesforceMetadataLoad`, three requests at once). An API of Salesforce that the platform passes, e.g. the mock of
   the app, answers it instead (`salesforce.metadata` of the platform).
@@ -726,9 +755,9 @@ of the app): `{ history: 'shell-<n>' }`, created with `createHistory` and droppe
 
 `runWorkbookExecution`, `runPlannedScript` and the result keys of scripts (`computeScriptResultCacheKey`,
 `computeWorkbookResultCacheKeys`) of the TypeScript runtime are adapters over the runs of the crate
-(`src/workbook_run/`), bound as `Workbook.run` of the module, which returns a `WorkbookRun` (`DashQLWorkbook.run` and
-`DashQLWorkbookRun` of `@ankoh/dashql-core`). `WorkbookExecutionService` and `runWorkbookScript` kept their APIs, the
-hooks of the app didn't change.
+(`src/workbook_run/`), bound as `Runtime.startWorkbookRun(workbookId, host, options)`, which returns a `WorkbookRun`
+(`DashQLWorkbookRun` of `@ankoh/dashql-core`). `WorkbookExecutionService` and `runWorkbookScript` kept their APIs but
+take the runs of the runtime (`WorkbookRuns`, `CoreRuntime`).
 
 - **A run is a task on the workbook.** The module shares the workbook with its runs (`Rc<RefCell<Workbook>>`). A run
   analyzes every script and publishes its declarations, then analyzes every script again at the catalog revisions that
@@ -747,8 +776,8 @@ hooks of the app didn't change.
   could not be set up are skipped with every node that follows them. A failed statement cancels the running ones, the
   run settles once they ended and then releases its files.
 - **Writes.** The run registers the queries and the results of the scripts on the workbook and captures the
-  visualization of every output (`RegisterQuery`, `RegisterScriptResult`, `SetExecutionVisualization`), then tells the
-  host. The adapter projects the workbook again with the action `PROJECT_WORKBOOK`, once per turn.
+  visualization of every output (`RegisterQuery`, `RegisterScriptResult`, `SetExecutionVisualization`), the runtime
+  tells the platform that it changed. A run is live while the runtime holds its workbook.
 - **The host.** `RunHost` runs a statement: the adapter hands it to the query executor with the arguments of a planned
   statement (`QueryExecutionArgs` with the title, the description and `QueryMetadata.planned` that the run describes)
   and keeps the result table. The host cancels statements, derives keys, keeps the files of the query result cache,
@@ -764,7 +793,7 @@ hooks of the app didn't change.
   connection, failures and cancellation, cached results, materializations, runs of a script and changes of inputs.
   `workbook_execution.test.ts`, `workbook_execution_integration.test.ts` and `script_run.test.ts` of the TypeScript
   runtime run the adapter with a fake executor, the query result cache and the mounts; they read plans with
-  `DashQLWorkbook.planRun` and result keys with `DashQLWorkbook.resultKeys`.
+  `Runtime.planRun` and result keys with `Runtime.resultKeys`.
 - **Changed on purpose.** The run analyzes the scripts on the workbook and the action `APPLY_PLANNER_ANALYSIS` is gone,
   so is `ApplyPlannerAnalysis` of the workbook. The run writes the workbook directly, the adapter dispatches
   `PROJECT_WORKBOOK` instead of the actions of the queries and visualizations. Before a plan only the scripts with an
@@ -777,28 +806,37 @@ hooks of the app didn't change.
 
 ## Typing
 
-Measured in Node on a script of 40 lines (4,660 characters) typed character by character, next to two other scripts,
-the way the editor does it: the editor applies the event to the shared session (1.4 to 2.0 ms per keystroke, the
-analysis of the core) and reports the update. The reduction then takes 0.6 to 0.9 ms: 0.4 to 0.6 ms in the workbook
-(publishing the declarations into the catalog, compiling the visualization, deriving the table parameters, which the
-TypeScript reducer did as well, each through a call of its own), 0.2 to 0.3 ms for the projection. Packing the update
-for the workbook is 0.09 ms of it, an editor that sends its events to the workbook (`ApplyEditorEvent`) would save
-about that.
+The typing benchmark (`packages/dashql-core-js/tests/bench_typing.mjs`) types a script of 40 lines (3,773 characters)
+character by character next to two other scripts against an empty catalog, the way the editor does it: the editor
+applies the event to the shared session of the script, packs its update and reports it to the runtime
+(`reportEditorUpdate`); the store takes the changes and reads the view of the typed script with the newest processing
+statistics (the editor update is the one that the editor reported, its key crosses, its bytes don't), and reads the
+derived view of the workbook when it moved, its FlatBuffers read. It runs on the release module (`wasm-opt -O3`) in
+Node and prints the 10th percentile and the median of every step:
 
-The views of the workbook (docs/wip/runtime_projection.md) measured again, the release module, a script of 40 lines
-(4,899 characters) typed three times next to two other scripts against an empty catalog, the median and the 10th
-percentile per keystroke over 14,297 keystrokes, base and views in alternating runs on a loaded machine:
+```bash
+bazel run --config=release //packages/dashql-core-js:bench_typing [-- --passes=3]
+```
 
-| Per keystroke | Before, p10 / p50 | Views, p10 / p50 |
+Measured on step 4 of [runtime_api.md](runtime_api.md) against its base `eeca6cc9a` (the reducer of TypeScript
+reported the update to the class `Workbook` of the module, wrote its effects through the storage writer of the module
+and projected the workbook and the typed script), three alternating runs of one pass each on a machine with a load of
+about 2.3 on 16 cores, the range of the medians and of the 10th percentiles:
+
+| Per keystroke | Base, p10 / p50 | Runtime, p10 / p50 |
 |---|---|---|
-| The editor applies the event to the session | 115 / 236 µs | 111 / 230 µs |
-| The reduction of the reported update | 97 / 181 µs | 63 / 128 µs |
-| The projection, part of the reduction | 30 / 43 µs | 18 / 25 µs |
+| The editor applies the event to the session | 96–98 / 148–155 µs | 100–102 / 153–155 µs |
+| The update: reported and written (base: the reduction with its writes) | 47–49 / 79–82 µs | 41–42 / 72–74 µs |
+| The projection: the changes and the view of the script | 9–10 / 11–12 µs | 12–13 / 16–17 µs |
+| The update and the projection | 59–60 / 93–97 µs | 57–58 / 92–95 µs |
+| The derivation: references, dataflow, inputs (base: the three calls of the core) | 14–15 / 29–30 µs | 26–27 / 41–43 µs |
 
-The projection crosses the view of the workbook and the view of the typed script, the editor update stays the one
-that the editor reported (its key crosses, its bytes don't) and the processing statistics cross as a delta of one.
-Before, it read the properties and the snapshot as JSON, the revision of every script with a call each, and the 20
-statistics of the script with a call and an unpacking each.
+The update is faster: the effects go to the writer in Rust instead of through TypeScript. The projection crosses the
+change set of every domain and the view of the script, 4 to 5 µs more than the two reads of the base and within the
+budget of 25 µs. The derivation ran in the app before, for every mounted editor and the dataflow once per keystroke
+behind a signature of every script; the base row counts only its three calls of the core on a plan request built
+once, not the request that the app built per keystroke nor the graph. The runtime derives when the store reads the
+derived view and crosses its three FlatBuffers.
 
 ## Open
 
@@ -812,11 +850,10 @@ statistics of the script with a call and an unpacking each.
 - The connections of a native workbook that changed on disk are read from the copies of its file in TypeScript
   (`connections/connection_restore.ts`) and created in the runtime, the restore of a single workbook could take them
   over.
-- The workbooks that use a connection come from the registry of the workbooks of TypeScript.
 - The query executor reads where a query runs from the host (`QueryPlatform`): the target of the channel of the
   connection and the key of the query result cache. The key needs the signature of the params of the connector and
   SHA-256 of the platform.
-- A profile in the browser: the numbers above are Node, with two other builds on the machine.
+- A profile in the browser: the numbers of "Typing" are Node.
 - The mock setup of Salesforce (`salesforce_connection_setup_mock.ts`, the mock config of the app) stays in TypeScript,
   it answers from `SalesforceAPIClientMock` without requests. The owner of the cancellation of a setup per connection
   (`connection_setup_cancellation.ts`) holds abort controllers of the host and stays.
@@ -835,12 +872,8 @@ statistics of the script with a call and an unpacking each.
 - A script that publishes its own declarations changes its catalog, so a script that was just analyzed can look
   outdated once more. A second analysis settles it.
 - The base name of a new script comes with the action, the random names stay in TypeScript.
-- The promotion of the ephemeral workbook needs the names of the other workbooks, the adapter calls `promote` after
-  an action until a registry of workbooks moves too.
-- The states of the app share the Rust workbook: only the latest state of a workbook can be reduced, like the registry
-  does. An older state still reads its scripts as they were, but an action on it acts on the latest workbook.
 - A new connection is created with its name, its caching choice and whether it is active (`createConnection`).
 - The script with the functions of a deleted connection is gone with the connection, the catalog of a deleted
   connection is cleared and other holders see it empty.
-- The link to a published workbook stays whole in TypeScript (the workbook file holds more than its ids), the Rust
-  workbook knows its ids and whether it is a preview.
+- The link to a published workbook is kept whole in the metadata of the workbook of the runtime (the workbook file
+  holds more than its ids), the workbook of the crate knows its ids and whether it is a preview.

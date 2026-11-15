@@ -4,7 +4,6 @@ import { isLocalCloud, useSetCloudConnection } from '../connections/cloud_connec
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { useConnectionReferences } from '../connections/connection_registry.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useDetachConnection } from '../workbook/workbook_connection_detach.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -21,16 +20,15 @@ export function useDeleteLocalCloud(): (connectionId: string) => Promise<void> {
     const setCloud = useSetCloudConnection();
     const deleteConnection = useDeleteConnection();
     const detach = useDetachConnection();
-    const setupCore = useDashQLCoreSetup();
     return React.useCallback(async (connectionId: string) => {
-        await detach(await setupCore('cloud_delete'), connectionId);
+        await detach(connectionId);
         const using = references.workbooksOf(connectionId).length;
         if (using > 0) {
             throw new Error(`${using} ${using === 1 ? 'workbook has' : 'workbooks have'} scripts on the local cloud, move them to another connection first`);
         }
         setCloud(connectionId, false);
         await deleteConnection(connectionId);
-    }, [deleteConnection, detach, references, setCloud, setupCore]);
+    }, [deleteConnection, detach, references, setCloud]);
 }
 
 /// How the menus of a cloud remove it

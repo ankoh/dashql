@@ -113,6 +113,7 @@ class TestPlatform {
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         salesforce: null,
+        storage: null,
         changed: () => { },
     };
 
@@ -179,9 +180,10 @@ describe('The connections of the runtime', () => {
         expect(Object.getPrototypeOf(main.params)).toBe(Object.prototype);
         expect(runtime.views('connection', ['gone'])).toEqual([null]);
 
-        // The workbooks that use a connection come from the host, a connection that they use is listed
-        runtime.dispatch('app', { kind: 'setConnectionReferences', value: { references: [['trino', ['w']]] } });
-        expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toEqual(['connectionList:root', 'connection:trino']);
+        // A workbook on a connection uses it, a connection that a workbook uses is listed
+        expect(runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'trino' } }).ok).toBe(true);
+        const connectionChanges = runtime.takeChanges().changes.filter(change => change.kind.startsWith('connection')).map(change => `${change.kind}:${change.id}`);
+        expect(connectionChanges).toEqual(['connectionList:root', 'connection:trino']);
         expect(viewOf(runtime, 'connection', 'trino')!.workbooks).toEqual(['w']);
         expect(runtime.dispatch({ connection: 'trino' }, { kind: 'deleteConnection' })).toMatchObject({ ok: false });
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'deleteConnection' })).toMatchObject({ ok: false });

@@ -1,8 +1,6 @@
+import type * as core from '@ankoh/dashql-core';
 import { TracedLogger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import type { AppStateRestorationProgress, RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
-import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
-import { SetWorkbookScriptsRegistryAction } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { ProgressCounter } from '@ankoh/dashql-runtime/utils/progress';
 import { InvalidWorkbook } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import { AppLoadingStatus } from './app_loading_status.js';
@@ -53,14 +51,43 @@ export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<
     return initialInlineSetup == null || !await initialInlineSetup;
 }
 
+/// What a restore of the persisted app state restored into the runtime
+export interface RestoredAppState {
+    /// The connections that the runtime took, in the order of the app manifest
+    connectionIds: string[];
+    /// The workbooks that the runtime took, in the order of the workbook tree
+    workbooks: ReadonlyMap<string, WorkbookScripts>;
+    /// The workbooks that were refused a load (keyed by bare UUID)
+    invalidWorkbooks: Map<string, InvalidWorkbook>;
+}
+
 /// Restores the persisted app state
 export interface AppStateRestorer {
-    /// Restore the connections into the runtime and the workbooks
-    restoreAppState(progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
+    /// Restore the connections and the workbooks into the runtime
+    restoreAppState(progressConsumer: (progress: AppLoadingProgress) => void): Promise<RestoredAppState>;
+}
+
+/// A counter of the progress of a restore of the runtime
+function progressCounter(counter: core.RestoreProgressCounter): ProgressCounter {
+    const out = new ProgressCounter(counter.total);
+    out.started = counter.started;
+    out.succeeded = counter.succeeded;
+    out.skipped = counter.skipped;
+    out.failed = counter.failed;
+    return out;
+}
+
+/// The progress of a restore of the runtime as the loading page shows it
+export function restoreProgress(progress: core.RestoreProgress): AppLoadingProgress {
+    return {
+        restoreConnections: progressCounter(progress.restoreConnections),
+        restoreCatalogs: progressCounter(progress.restoreCatalogs),
+        restoreWorkbookScripts: progressCounter(progress.restoreWorkbookScripts),
+    };
 }
 
 /// Main logic to setup the application
-export async function loadApp(logger: TracedLogger, storage: AppStateRestorer, resetWorkbookScripts: Dispatch<SetWorkbookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
+export async function loadApp(logger: TracedLogger, storage: AppStateRestorer, consumer: AppLoadingProgressConsumer) {
     const traced = logger.childSpan();
     traced.info("Loading application", {}, "app_loading");
     const appLoadStartTime = performance.now();
@@ -87,19 +114,9 @@ export async function loadApp(logger: TracedLogger, storage: AppStateRestorer, r
     const restoreDuration = performance.now() - restoreStartTime;
     traced.info("Restored application state", {
         connections: state.connectionIds.length.toString(),
-        workbooks: state.workbookScripts.size.toString(),
+        workbooks: state.workbooks.size.toString(),
         durationMs: restoreDuration.toFixed(2)
     }, "app_loading");
-
-    // Reset the workbook scripts registry
-    traced.info("Updating workbook scripts registry", {
-        workbookCount: state.workbookScripts.size.toString()
-    }, "app_loading");
-    resetWorkbookScripts({
-        workbookScriptsMap: state.workbookScripts,
-        workbookScriptsByConnection: state.workbookScriptsByConnection,
-        invalidWorkbooks: state.invalidWorkbooks,
-    });
 
     const totalAppLoadDuration = performance.now() - appLoadStartTime;
     traced.info("Application loading complete", {
@@ -108,7 +125,7 @@ export async function loadApp(logger: TracedLogger, storage: AppStateRestorer, r
 
     return {
         invalidWorkbooks: state.invalidWorkbooks,
-        restoredWorkbooks: state.workbookScripts,
+        restoredWorkbooks: state.workbooks,
         restoredConnections: state.connectionIds,
     };
 }

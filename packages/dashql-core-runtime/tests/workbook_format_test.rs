@@ -1253,7 +1253,7 @@ fn keeps_the_names_of_new_connections_and_drops_them_for_existing_ones() {
     assert_eq!(separate.connections[1].name.as_deref(), Some("Production"));
 }
 
-// ---- app_state_loader.test.ts (the decisions) ---------------------------------------------------
+// ---- The decisions of the restore ------------------------------------------------------------------
 
 fn planner() -> RestorePlanner {
     let mut next = uuids();

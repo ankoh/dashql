@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
-import type { WorkbookTableParameters } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import * as styles from './workbook_composer.module.css';
 
 import type { EditorView } from '@codemirror/view';
@@ -24,6 +23,12 @@ import { textChange } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scri
 import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+
+/// The table parameters of a workbook for a session that is no script of it
+export interface WorkbookTableParameters {
+    /// Give the table parameters to a session, returns whether its analysis is outdated by them
+    attach(session: core.DashQLScriptSession): boolean;
+}
 
 /// A composer without workbook scripts
 const NO_SCRIPT_NAMES: readonly string[] = [];

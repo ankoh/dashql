@@ -1,11 +1,10 @@
 import * as React from 'react';
 
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useConnectionReferences, useConnectionRegistryStore, useScriptConnectionOf } from '../connections/connection_registry.js';
+import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
-import { REPLACE_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useConnectionScriptsDispatch } from './scripts/workbook_scripts_registry.js';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 
 const LOG_CTX = 'connection_replace';
 
@@ -32,22 +31,26 @@ export type ConnectionReplace = (sourceId: string, targetId: string) => Promise<
 export function useReplaceConnection(): ConnectionReplace {
     const registryStore = useConnectionRegistryStore();
     const references = useConnectionReferences();
-    const scriptsDispatch = useConnectionScriptsDispatch();
-    const scriptConnectionOf = useScriptConnectionOf();
+    const runtime = useOptionalCoreRuntime();
     const storage = useStorageWriter();
     const deleteConnection = useDeleteConnection();
     const logger = useLogger();
 
     return React.useCallback(async (sourceId: string, targetId: string) => {
+        if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
         const target = registryStore.current.connections.get(targetId);
         if (target == null || sourceId === targetId || !registryStore.current.connections.has(sourceId)) {
             return { removed: false };
         }
-        const moving = references.workbooksOf(sourceId).length;
-        await scriptsDispatch(sourceId, { type: REPLACE_CONNECTION, value: { from: sourceId, into: scriptConnectionOf(target) } });
+        const moving = references.workbooksOf(sourceId);
+        for (const workbookId of moving) {
+            runtime.dispatchWorkbook(workbookId, { kind: 'replaceConnection', value: { from: sourceId, into: targetId } });
+        }
+        // The references follow the moved scripts
+        runtime.flush();
 
         // The workbooks of the target include the workbooks that moved before and whose files were not written then
-        const workbookIds = new Set([...references.workbooksOf(sourceId), ...references.workbooksOf(targetId)]);
+        const workbookIds = new Set([...moving, ...references.workbooksOf(sourceId), ...references.workbooksOf(targetId)]);
         const written = await Promise.all([...workbookIds].map(async workbookId => [workbookId, await storage.flushWorkbook(workbookId)] as const));
         const unwritten = written.filter(([, ok]) => !ok).map(([workbookId]) => workbookId);
         const remaining = references.workbooksOf(sourceId);
@@ -61,7 +64,7 @@ export function useReplaceConnection(): ConnectionReplace {
             return { removed: false };
         }
         await deleteConnection(sourceId);
-        logger.info('replaced connection', { connectionId: sourceId, target: targetId, workbooks: moving.toString() }, LOG_CTX);
+        logger.info('replaced connection', { connectionId: sourceId, target: targetId, workbooks: moving.length.toString() }, LOG_CTX);
         return { removed: !registryStore.current.connections.has(sourceId) };
-    }, [deleteConnection, logger, references, registryStore, scriptConnectionOf, scriptsDispatch, storage]);
+    }, [deleteConnection, logger, references, registryStore, runtime, storage]);
 }

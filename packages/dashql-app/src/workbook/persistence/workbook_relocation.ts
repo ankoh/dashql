@@ -1,6 +1,6 @@
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 
 const LOG_CTX = 'workbook_relocation';
 
@@ -39,7 +39,7 @@ export async function relocateWorkbookToNative(
         await backend.relocateWorkbookToNative(workbookId, folder);
         logger.info('relocated workbook to native storage', { workbookId, target: folder }, LOG_CTX);
 
-        // 4. Reload to re-run StorageProvider init + restoreAppState against the new layout.
+        // 4. Reload to re-run the StorageProvider init and the restore of the runtime against the new layout.
         globalThis.location.reload();
         return true;
     } catch (e: any) {

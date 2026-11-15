@@ -4,7 +4,7 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/co
 import type { ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { QueryExecutionStatus, queryIsDone } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { formatMilliseconds } from '../../utils/format.js';
 import { getQueryStatusText } from '../entry_status_model.js';
@@ -28,11 +28,11 @@ export interface ScriptQuery {
 }
 
 /// The latest queries of the scripts of a workbook, in the order of the scripts
-export function scriptQueries(workbookScripts: WorkbookScripts, connections: ReadonlyMap<string, ConnectionState>, readQuery: (queryId: number) => QueryExecutionState | null): ScriptQuery[] {
+export function scriptQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap, connections: ReadonlyMap<string, ConnectionState>, readQuery: (queryId: number) => QueryExecutionState | null): ScriptQuery[] {
     const queries: ScriptQuery[] = [];
     for (const fileName of workbookScripts.scriptOrder) {
         const scriptKey = workbookScripts.scriptRefs[fileName]?.scriptId;
-        const script = scriptKey != null ? workbookScripts.scripts[scriptKey] : undefined;
+        const script = scriptKey != null ? scripts[scriptKey] : undefined;
         const queryId = script?.latestQueryId;
         if (scriptKey == null || script == null || queryId == null) continue;
         for (const connection of connections.values()) {
@@ -230,6 +230,8 @@ export function diffPublish(prev: CloudPublishStatus | null, next: CloudPublishS
 /// Tell the runs, the connections and the publishes of a workbook to its bars of Wobble
 export function useWorkbookStatusSources(args: {
     workbookScripts: WorkbookScripts;
+    /// The scripts of the workbook by key
+    scripts: ScriptDataMap;
     connections: ReadonlyMap<string, ConnectionState>;
     label: (connection: ConnectionState) => ConnectionLabelParts;
     execution: WorkbookExecutionState | null;
@@ -237,7 +239,7 @@ export function useWorkbookStatusSources(args: {
 }): void {
     const workbookId = args.workbookScripts.workbookId;
     const readQuery = useQueryReader();
-    const queries = useStable(scriptQueries(args.workbookScripts, args.connections, readQuery));
+    const queries = useStable(scriptQueries(args.workbookScripts, args.scripts, args.connections, readQuery));
     const connections = useStable(workbookConnectionStatuses(args.connections, args.label));
     const execution = args.execution;
     const executing = execution != null && RUNNING_PHASES.has(execution.phase);

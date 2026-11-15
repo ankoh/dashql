@@ -3,6 +3,7 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { StoreView } from '@ankoh/dashql-runtime/store/runtime_store';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
@@ -34,8 +35,9 @@ export function useOptionalCoreRuntime(): CoreRuntime | null {
 const NO_SUBSCRIPTION = () => () => { };
 const NO_VIEW = () => null;
 
-/// The view of a slice, null without one. The component renders again when the slice changes.
-export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | null | undefined): core.ViewOf<K> | null {
+/// The view of a slice, null without one: the view as the runtime returns it, or the projection of the store for the
+/// workbooks, the scripts and the derived views. The component renders again when the slice changes.
+export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | null | undefined): StoreView<K> | null {
     const runtime = React.useContext(CORE_RUNTIME_CTX);
     const store = runtime?.store ?? null;
     const subscribe = React.useMemo(
@@ -43,7 +45,7 @@ export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | n
         [store, kind, id],
     );
     const getSnapshot = React.useMemo(
-        () => store == null || id == null ? NO_VIEW : () => store.get(kind, id),
+        (): () => StoreView<K> | null => store == null || id == null ? NO_VIEW : () => store.get(kind, id),
         [store, kind, id],
     );
     return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

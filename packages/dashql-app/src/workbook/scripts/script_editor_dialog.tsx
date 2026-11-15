@@ -14,11 +14,10 @@ import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
-import { ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from './script_selection.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
+import { useScript, useWorkbookDerived } from './workbook_scripts_registry.js';
 import { ScriptEditor } from './script_editor.js';
-import { checkWorkbookScriptReferences } from './script_reference_reports.js';
 import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { useWorkbookExecution } from './use_workbook_execution.js';
@@ -43,15 +42,12 @@ export interface ScriptEditorDialogProps {
 /// editor, accepted or rejected over it.
 export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactElement | null {
     const { workbookScripts, modifyWorkbookScripts, scriptKey, onClose } = props;
-    const script = workbookScripts.scripts[scriptKey];
+    const script = useScript(scriptKey);
     const workbookId = workbookScripts.workbookId;
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     // An expanded dialog fills the window
     const [expanded, setExpanded] = React.useState(false);
-    const scriptReferences = React.useMemo(
-        () => checkWorkbookScriptReferences(workbookScripts).get(scriptKey) ?? null,
-        [workbookScripts, scriptKey],
-    );
+    const scriptReferences = useWorkbookDerived(workbookId)?.references.get(scriptKey) ?? null;
     const queryState = useQueryState(workbookId, script?.latestQueryId ?? null);
     const queryProgress = useQueryProgress(queryState);
     const status = deriveEntryStatus(queryState, queryProgress);
@@ -60,7 +56,7 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     const cancel = React.useCallback(() => {
         if (script?.latestQueryId == null) return;
         if (workbookExecution.busy) workbookExecution.stop();
-        else cancelQuery(script.connection.connectionId, script.latestQueryId);
+        else cancelQuery(script.connectionId, script.latestQueryId);
     }, [script, workbookExecution.busy, workbookExecution.stop, cancelQuery]);
 
     // Escape closes an open completion first, then the dialog
@@ -77,17 +73,17 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     const selection = useScriptSelection();
     const remove = React.useCallback((target: ScriptData) => {
         if (props.onDelete != null) props.onDelete(target);
-        else void deleteScript(selection, workbookScripts, modifyWorkbookScripts, target.fileName);
+        else deleteScript(selection, workbookScripts, modifyWorkbookScripts, target.fileName);
         onClose();
     }, [props.onDelete, selection, workbookScripts, modifyWorkbookScripts, onClose]);
     // The editor accepts or rejects a diff itself and clears the staged rewrite through the workbook
     const acceptDiff = React.useCallback(() => {
         if (editorView != null) acceptPendingDiff(editorView);
-        else modifyWorkbookScripts({ type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        else modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });
     }, [editorView, modifyWorkbookScripts, scriptKey]);
     const rejectDiff = React.useCallback(() => {
         if (editorView != null) rejectPendingDiff(editorView);
-        else modifyWorkbookScripts({ type: REJECT_PENDING_DIFF, value: scriptKey });
+        else modifyWorkbookScripts({ kind: 'rejectPendingDiff', value: { scriptKey } });
     }, [editorView, modifyWorkbookScripts, scriptKey]);
     // The editor takes the focus once it is there
     React.useEffect(() => {

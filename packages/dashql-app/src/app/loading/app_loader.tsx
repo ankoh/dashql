@@ -26,6 +26,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
+    // The startup sets up the connections that the slice of the opened workbook names (`connectionIds`)
     const workbookConnections = useWorkbookConnections(routeContext.workbookId ?? null);
     const runtime = useOptionalCoreRuntime();
     // The startup sets up the connections with the runtime, the Hyper connector of the config enables it

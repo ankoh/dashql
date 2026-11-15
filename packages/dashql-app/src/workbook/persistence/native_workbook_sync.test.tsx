@@ -13,10 +13,9 @@ import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_stora
 import { WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
-import { DEBOUNCE_DURATION_SCRIPT_WRITE, groupScriptWrites, WRITE_SCRIPT, type StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
-import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
+import { useWorkbooks } from '../scripts/workbook_scripts_registry.js';
 import { NativeWorkbookSync, readStoredWorkbookScripts } from './native_workbook_sync_react.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 import { TestRuntime } from '../../tests/test_runtime.js';
@@ -37,36 +36,27 @@ const DIR = '/Users/me/workbook';
 const SCRIPT_PATH = `${DIR}/${STORAGE_SCRIPTS_FOLDER}/query.sql`;
 
 interface Api {
+    runtime: CoreRuntime;
     writer: StorageWriter;
     logger: Logger;
     connections: ReturnType<typeof useConnectionRegistry>[0];
-    workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
+    workbooks: ReturnType<typeof useWorkbooks>;
 }
 
-/// The app after its restoration: the restoration loads the connections into the runtime of the app, the registry of
-/// the workbooks holds what it read, the storage writer has the core of the restoration like the writer of the app
-function App(props: { core: core.DashQL; restore: (runtime: CoreRuntime) => Promise<RestoredAppState>; capture: (api: Api) => void }) {
+/// The app after its restoration: the restoration loads the connections and the workbooks into the runtime of the app
+function App(props: { restore: (runtime: CoreRuntime) => Promise<core.RestoreOutcome>; capture: (api: Api) => void }) {
     const [, writer] = useStorage();
     const logger = useLogger();
     const coreRuntime = useCoreRuntime();
     const [connections] = useConnectionRegistry();
-    const [workbooks, setWorkbooks] = useWorkbookScriptsRegistry();
-    const [restored, setRestored] = React.useState<RestoredAppState | null>(null);
+    const workbooks = useWorkbooks();
+    const [restored, setRestored] = React.useState<core.RestoreOutcome | null>(null);
     React.useEffect(() => {
-        writer.provideCore(props.core);
         void props.restore(coreRuntime).then(setRestored);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    React.useEffect(() => {
-        if (restored == null) return;
-        setWorkbooks(registry => ({
-            ...registry,
-            workbookScriptsMap: restored.workbookScripts,
-            workbookScriptsByConnection: restored.workbookScriptsByConnection,
-        }));
-    }, [restored, setWorkbooks]);
     React.useLayoutEffect(() => {
-        if (restored != null) props.capture({ writer, logger, connections, workbooks });
+        if (restored != null) props.capture({ runtime: coreRuntime, writer, logger, connections, workbooks });
     });
     return restored != null ? <NativeWorkbookSync /> : null;
 }
@@ -120,7 +110,7 @@ describe('NativeWorkbookSync', () => {
         const folder = backend.nativeWorkbookFolder(WORKBOOK_ID);
         const acknowledged = folder == null ? null : vi.spyOn(folder, 'acknowledgeScripts');
         const restore = async (runtime: CoreRuntime) => {
-            const restored = await restoreAppState(runtime, backend, new TestLogger(), () => { });
+            const restored = await runtime.restore();
             options.afterRestore?.();
             return restored;
         };
@@ -130,7 +120,7 @@ describe('NativeWorkbookSync', () => {
                 <LoggerProvider>
                     <StorageProvider backend={backend}>
                         <TestRuntime>
-                            <App core={dql} restore={restore} capture={next => { api = next; }} />
+                            <App restore={restore} capture={next => { api = next; }} />
                         </TestRuntime>
                     </StorageProvider>
                 </LoggerProvider>,
@@ -146,8 +136,8 @@ describe('NativeWorkbookSync', () => {
     /// Wait until no check is running
     const settled = () => vi.waitFor(() => expect(api.writer.isWorkbookPaused(WORKBOOK_ID)).toBe(false));
     const scriptText = (name = 'query.sql') => {
-        const workbook = api.workbooks.workbookScriptsMap.get(WORKBOOK_ID)!;
-        return workbook.scripts[workbook.scriptRefs[name].scriptId].scriptSession.getText();
+        const workbook = api.workbooks.get(WORKBOOK_ID)!;
+        return api.runtime.store.get('script', workbook.scriptRefs[name].scriptId)!.scriptSession.getText();
     };
     /// Another program changes a file of the folder
     const changeOnDisk = (path: string, text: string) => {
@@ -162,16 +152,10 @@ describe('NativeWorkbookSync', () => {
         await settled();
     }
     const flush = () => act(async () => { await api.writer.flush(); });
-    /// The user types into the editor, the text changes at once and its write is debounced
+    /// The user changes the text of the script, it changes at once and its write is debounced
     const localEdit = (sql: string) => {
-        const workbook = api.workbooks.workbookScriptsMap.get(WORKBOOK_ID)!;
-        const script = workbook.scripts[workbook.scriptRefs['query.sql'].scriptId].scriptSession;
-        script.replaceText(script.getTextVersion(), sql);
-        void api.writer.write(
-            groupScriptWrites(WORKBOOK_ID, 'query.sql'),
-            { type: WRITE_SCRIPT, value: [WORKBOOK_ID, 'query.sql', sql] },
-            DEBOUNCE_DURATION_SCRIPT_WRITE,
-        );
+        const workbook = api.workbooks.get(WORKBOOK_ID)!;
+        api.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'setScriptText', value: { scriptKey: workbook.scriptRefs['query.sql'].scriptId, text: sql } });
     };
 
     describe('the first check', () => {
@@ -316,7 +300,7 @@ describe('NativeWorkbookSync', () => {
             fsStore.files.delete(`${DIR}/${STORAGE_SCRIPTS_FOLDER}/second.sql`);
             fsStore.mtimes.delete(`${DIR}/${STORAGE_SCRIPTS_FOLDER}/second.sql`);
             await checkFolder();
-            await vi.waitFor(() => expect(api.workbooks.workbookScriptsMap.get(WORKBOOK_ID)!.scriptOrder).toEqual(['query.sql']));
+            await vi.waitFor(() => expect(api.workbooks.get(WORKBOOK_ID)!.scriptOrder).toEqual(['query.sql']));
             await flush();
             const stored = JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_WORKBOOK_FILE}`)!) as WorkbookData;
             expect(stored.scripts.map(script => script.name)).toEqual(['query.sql']);
@@ -331,7 +315,7 @@ describe('NativeWorkbookSync', () => {
             await checkFolder();
             await flush();
             expect(fsStore.files.get(added)).toBe('select added');
-            expect(api.workbooks.workbookScriptsMap.get(WORKBOOK_ID)!.scriptRefs['added.sql']).toBeUndefined();
+            expect(api.workbooks.get(WORKBOOK_ID)!.scriptRefs['added.sql']).toBeUndefined();
         });
     });
 
@@ -424,7 +408,7 @@ describe('NativeWorkbookSync', () => {
             fsStore.dirs.add(`${DIR}/${STORAGE_ATTACHMENTS_FOLDER}`);
             fsStore.mtimes.set(path, ++fsStore.clock);
         };
-        const attachmentNames = () => api.workbooks.workbookScriptsMap.get(WORKBOOK_ID)!.attachments?.map(attachment => attachment.fileName);
+        const attachmentNames = () => api.workbooks.get(WORKBOOK_ID)!.attachments?.map(attachment => attachment.fileName);
 
         it('are listed again when one changed outside the app', async () => {
             await seedFolder();
@@ -488,9 +472,9 @@ describe('NativeWorkbookSync', () => {
     describe('what it leaves alone', () => {
         it('does nothing in a browser', async () => {
             await seedFolder();
-            let restoring!: Promise<RestoredAppState>;
+            let restoring!: Promise<core.RestoreOutcome>;
             // The app restores the folder, then runs in a browser
-            const restore = (runtime: CoreRuntime) => (restoring = restoreAppState(runtime, backend, new TestLogger(), () => { }).then(restored => {
+            const restore = (runtime: CoreRuntime) => (restoring = runtime.restore().then(restored => {
                 delete globalThis.dashqlElectron;
                 return restored;
             }));
@@ -500,7 +484,7 @@ describe('NativeWorkbookSync', () => {
                     <LoggerProvider>
                         <StorageProvider backend={backend}>
                             <TestRuntime>
-                                <App core={dql} restore={restore} capture={next => { api = next; }} />
+                                <App restore={restore} capture={next => { api = next; }} />
                             </TestRuntime>
                         </StorageProvider>
                     </LoggerProvider>,
@@ -517,7 +501,7 @@ describe('NativeWorkbookSync', () => {
             await backend.saveWorkbookManifest(WORKBOOK_ID, workbookFile());
             await backend.saveScript(WORKBOOK_ID, 'query.sql', 'select app');
             await renderApp();
-            await vi.waitFor(() => expect(api.workbooks.workbookScriptsMap.has(WORKBOOK_ID)).toBe(true));
+            await vi.waitFor(() => expect(api.workbooks.has(WORKBOOK_ID)).toBe(true));
             const pause = vi.spyOn(api.writer, 'pauseWorkbook');
             await focusWindow();
             expect(pause).not.toHaveBeenCalled();

@@ -4,7 +4,7 @@ import type { ConnectionParams } from './connection_params.js';
 import type { WorkbookConnection } from '../storage/storage_backend.js';
 
 /// The connections of storage that the restore of the Rust runtime doesn't create, e.g. the connections of a native
-/// workbook that changed on disk. The restore of the app runs in Rust, see `workbook/persistence/app_state_loader.ts`.
+/// workbook that changed on disk. The restore of the app runs in the runtime (`CoreRuntime.restore`).
 
 /// The stored params of a connection, as the app manifest or a workbook file holds them
 export type StoredConnection = Pick<WorkbookConnection, 'params' | 'paramsDraft'> & {

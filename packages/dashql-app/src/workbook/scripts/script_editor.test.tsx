@@ -18,17 +18,18 @@ const dependencies = {
     }),
     useWorkbookScripts: () => [{
         workbookId: 'workbook',
-        scripts: {
-            7: {
-                scriptKey: 7,
-                fileName: 'query.sql',
-                scriptSession: { getText: () => 'SELECT\n    1;' },
-                connection: { catalog: {} },
-            },
-        },
+        scriptKeys: [7],
         scriptRefs: { 'query.sql': { scriptId: 7, fileName: 'query.sql' } },
         scriptOrder: ['query.sql'],
     }, vi.fn()],
+    useScript: () => ({
+        scriptKey: 7,
+        workbookId: 'workbook',
+        fileName: 'query.sql',
+        scriptSession: { getText: () => 'SELECT\n    1;' },
+        connectionId: 'main',
+    }),
+    useWorkbookDerived: () => null,
     useAppConfig: () => ({ settings: {} }),
     useLogger: () => ({ debug: vi.fn() }),
 } as unknown as ScriptEditorDependencies;
@@ -76,10 +77,11 @@ describe('ScriptEditor', () => {
             }),
             useWorkbookScripts: () => [{
                 workbookId: 'workbook',
-                scripts: { 7: { scriptKey: 7, fileName: 'query.sql', scriptSession, connection: { catalog: {} } } },
+                scriptKeys: [7],
                 scriptRefs: { 'query.sql': { scriptId: 7, fileName: 'query.sql' } },
                 scriptOrder: ['query.sql'],
             }, vi.fn()],
+            useScript: () => ({ scriptKey: 7, workbookId: 'workbook', fileName: 'query.sql', scriptSession, connectionId: 'main' }),
         } as unknown as ScriptEditorDependencies;
 
         async function renderBoundEditor(props: { lineWrapping?: boolean }): Promise<EditorView> {

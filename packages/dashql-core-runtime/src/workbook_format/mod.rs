@@ -8,7 +8,7 @@
 //! Ported from `packages/dashql-runtime/src/storage/` (`workbook_files.ts`, `workbook_tree.ts`,
 //! `workbook_validation.ts`, `workbook_bundle.ts`, `workbook_tables.ts`, `query_result_cache_eviction.ts`, the
 //! workbook migrations and the pure parts of the backends) and `src/workbook/persistence/` (import, export, the
-//! connections of imports, the query results of archives and the decisions of `app_state_loader.ts`).
+//! connections of imports, the query results of archives) and the decisions of the restore.
 
 pub mod bundle;
 pub mod catalog;

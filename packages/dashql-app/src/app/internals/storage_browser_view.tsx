@@ -21,7 +21,7 @@ import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
+import { useOptionalStorageWriter, useStorageReader } from '../../storage/storage_provider.js';
 import {
     type OPFSCleanupCandidate,
     type OPFSCleanupResult,
@@ -263,7 +263,7 @@ function describeCleanupResult(result: OPFSCleanupResult): string {
 /// visible rows only.
 export function StorageBrowserView(props: { onClose: () => void }) {
     const storageReader = useStorageReader();
-    const storageWriter = useStorageWriter();
+    const storageWriter = useOptionalStorageWriter();
     const logger = useLogger();
 
     const [roots, setRoots] = React.useState<StorageTreeRoot[]>(() => listStorageTreeRoots(storageReader));
@@ -327,7 +327,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
         setCleanup({ status: 'scanning' });
         try {
             // Pending writes may register new workbooks and connections
-            await storageWriter.flush();
+            await storageWriter?.flush();
             const candidates = await findOPFSCleanupCandidates(await getOPFSRoot());
             setCleanup(candidates.length === 0
                 ? { status: 'done', message: 'Nothing to clean up.', error: false }

@@ -11,14 +11,16 @@ import {
     runWorkbookPlan,
     workbookRunError,
     type ExecutionMounts,
+    type WorkbookRuns,
 } from './workbook_execution.js';
-import { REGISTER_QUERY, scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
+import { scriptResultOwner, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 import type { LoggerLike } from '../../platform/logger/logger.js';
 
 /// The services of the run of a script
 export interface ScriptRunServices {
+    /// The runs of the runtime that holds the workbooks
+    runs: WorkbookRuns;
     /// The mounts of the materialized results, null without a compute database
     createMounts: () => ExecutionMounts | null;
     /// Mount the attachments of a workbook in the embedded Hyper, absent without a compute database
@@ -31,20 +33,7 @@ export interface ScriptRunServices {
     cache: QueryResultCache | null;
     /// The maximum number of statements a connection runs at once
     maxConcurrentQueries: (connectionId: string) => number;
-    /// The live workbook, a run fails if its scripts, their order or connections change meanwhile. Without it, a run
-    /// checks only the text and catalog versions of its scripts.
-    liveWorkbook?: (workbookId: string) => WorkbookScripts | null;
 }
-
-/// The services of a run without a runtime: no results of other connections are mounted and no
-/// results are cached
-const PLAIN_SERVICES: ScriptRunServices = {
-    createMounts: () => null,
-    cacheKey: async () => null,
-    cachesResults: () => false,
-    cache: null,
-    maxConcurrentQueries: () => 1,
-};
 
 /// The files of the scripts of a workbook in workbook order and the index of a script
 function workbookScriptsOf(workbook: WorkbookScripts, target: ScriptData) {
@@ -95,10 +84,8 @@ export async function runPlannedScript(
     };
     try {
         const { files, targetIndex } = workbookScriptsOf(workbook, target);
-        const liveWorkbook = services.liveWorkbook;
         const outcome = await runWorkbookPlan({
-            workbook, getWorkbook: liveWorkbook != null ? () => liveWorkbook(workbookId) : () => workbook,
-            executeQuery: executeNode, modifyWorkbookScripts,
+            workbook, runs: services.runs, executeQuery: executeNode,
             mounts: services.createMounts(), mountAttachments: services.mountAttachments,
             resultKey: services.cacheKey, cachesResults: services.cachesResults, cache: services.cache,
             maxConcurrentQueries: services.maxConcurrentQueries, cooperate: () => yieldToBrowser(), logger: options.logger,
@@ -127,7 +114,7 @@ async function recordPlanError(
     modifyWorkbookScripts: ModifyWorkbookScripts,
     error: Error,
 ): Promise<void> {
-    const [queryId, execution] = executeQuery(target.connection.connectionId, {
+    const [queryId, execution] = executeQuery(target.connectionId, {
         query: target.scriptSession.getText(),
         failure: error,
         metadata: {
@@ -135,15 +122,13 @@ async function recordPlanError(
             userProvided: true, workbookId: workbook.workbookId, resultOwner: scriptResultOwner(workbook.workbookId, target.scriptKey),
         },
     });
-    await modifyWorkbookScripts({ type: REGISTER_QUERY, value: [target.scriptKey, queryId] });
+    modifyWorkbookScripts({ kind: 'registerQuery', value: { scriptKey: target.scriptKey, queryId } });
     await execution.catch(() => null);
 }
 
 /// The result keys of the scripts of a workbook of the Rust runtime, planned without analyzing
 function workbookResultKeys(services: ScriptRunServices, workbook: WorkbookScripts, targets: number[] | null): Promise<Array<core.WorkbookResultKey | null>> {
-    const native = workbook.native;
-    if (native == null) return Promise.resolve(workbook.scriptOrder.map(() => null));
-    return native.workbook.resultKeys(targets, {
+    return services.runs.resultKeys(workbook.workbookId, targets, {
         resultKey: (connectionId, signature) => services.cacheKey(connectionId, signature),
         cachesResults: connectionId => services.cachesResults(connectionId),
     });
@@ -171,19 +156,4 @@ export async function computeWorkbookResultCacheKeys(
 ): Promise<Array<string | null>> {
     const keys = await workbookResultKeys(services, workbook, null);
     return keys.map(key => key?.reusable ? key.key : null);
-}
-
-/// The services of script runs, one per core instance, registered by the runtime (runtime.ts) for every workbook
-const runners = new WeakMap<core.DashQL, ScriptRunServices>();
-
-/// Register the services of the script runs of a core instance
-export function registerScriptRunServices(instance: core.DashQL, services: ScriptRunServices | null): void {
-    if (services == null) runners.delete(instance);
-    else runners.set(instance, services);
-}
-
-/// The services of the script runs of a core instance. Without a runtime, runs neither mount the
-/// results of other connections nor cache results.
-export function scriptRunServices(instance: core.DashQL): ScriptRunServices {
-    return runners.get(instance) ?? PLAIN_SERVICES;
 }

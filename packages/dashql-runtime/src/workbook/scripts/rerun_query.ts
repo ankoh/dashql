@@ -1,16 +1,16 @@
 import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutor } from '../../connections/query_execution_args.js';
-import { WorkbookScripts, ScriptData, isAnalysisOutdated, isCloudPreview } from './workbook_scripts.js';
-import { ensureWorkbookScriptAnalyzed, ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
+import { isAnalysisOutdated, isCloudPreview, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
 import { stringifyError, type LoggerLike } from '../../platform/logger/logger.js';
 import { isWorkbookExecutionRunning } from './workbook_execution.js';
-import { runPlannedScript, scriptRunServices, type ScriptRunOptions } from './script_run.js';
+import { runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
 
 /// Run a script on its connection, resolves when the run ended. A failed statement and a plan that fails, e.g. with an
 /// unknown script, show their errors in the script. A refresh reads no cached results, neither of the script nor of
 /// the scripts it references.
 export async function runWorkbookScript(
+    services: ScriptRunServices,
     workbookScripts: WorkbookScripts,
     scriptData: ScriptData,
     executeQuery: QueryExecutor,
@@ -25,7 +25,7 @@ export async function runWorkbookScript(
         return;
     }
     logger?.info('Workbook script execution requested', {
-        connectionId: scriptData.connection.connectionId,
+        connectionId: scriptData.connectionId,
         workbookId: workbookScripts.workbookId,
         scriptKey: scriptData.scriptKey.toString(),
         analysisOutdated: scriptData.analysisOutdated.toString(),
@@ -35,7 +35,7 @@ export async function runWorkbookScript(
         textLength: scriptData.scriptSession.getText?.().length.toString(),
     }, 'workbook_execution');
     if (isAnalysisOutdated(scriptData)) {
-        const analyzed = await ensureWorkbookScriptAnalyzed(workbookScripts, scriptData.scriptKey, modifyWorkbookScripts);
+        const analyzed = services.runs.analyzeScript(workbookScripts.workbookId, scriptData.scriptKey);
         if (analyzed == null) {
             logger?.warn('Workbook execution stopped because analysis returned no script', {
                 workbookId: workbookScripts.workbookId,
@@ -50,11 +50,12 @@ export async function runWorkbookScript(
         }, 'workbook_execution');
         scriptData = analyzed;
     }
-    await executeWorkbookScript(scriptData, workbookScripts, executeQuery, modifyWorkbookScripts, logger, false, options);
+    await executeWorkbookScript(services, scriptData, workbookScripts, executeQuery, modifyWorkbookScripts, logger, false, options);
 }
 
 /// Run a script through a plan of the script and the scripts it references (docs/design/script_references.md)
 function executeWorkbookScript(
+    services: ScriptRunServices,
     scriptData: ScriptData,
     workbookScripts: WorkbookScripts,
     executeQuery: QueryExecutor,
@@ -63,7 +64,6 @@ function executeWorkbookScript(
     throwOnError: boolean = false,
     options: ScriptRunOptions = {},
 ): Promise<arrow.Table | null> {
-    const services = scriptRunServices(workbookScripts.instance);
     return runPlannedScript(services, workbookScripts, scriptData, executeQuery, modifyWorkbookScripts, { logger, ...options }).catch(error => {
         if (throwOnError) throw error;
         logger?.warn('Workbook script run failed', {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql-core';
 import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3';
 
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
@@ -10,17 +10,16 @@ import { useQueryState } from '../../connections/query_executor.js';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
-import type { ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useWorkbookDerived, useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { checkWorkbookScriptReferences } from '../scripts/script_reference_reports.js';
 import type { ScriptReferenceReport } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
 import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
-import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
+import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowGraph, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { useApplyWorkbookInput } from '../inputs/use_apply_workbook_input.js';
-import { deriveWorkbookInputs, type SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
+import type { SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
 import {
     buildDataflowScene,
     dataflowRouteKey,
@@ -42,11 +41,13 @@ import {
     type DataflowSelection,
 } from './dataflow_scene.js';
 import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
-import { createdScriptRef, deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
+import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
+import { selectCreatedScript, useLiveWorkbookReader } from '../scripts/script_creation.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
-import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const FitIcon = SymbolIcon('graph_align');
@@ -66,6 +67,8 @@ export interface DataflowCanvasDependencies {
     VisualizationPanel: typeof VisualizationPanel;
     useDataflowModule: typeof useDataflowModule;
     ScriptEntryHeader: typeof ScriptEntryHeader;
+    useWorkbookScriptMap: typeof useWorkbookScriptMap;
+    useWorkbookDerived: typeof useWorkbookDerived;
 }
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
@@ -73,7 +76,12 @@ const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
     VisualizationPanel,
     useDataflowModule,
     ScriptEntryHeader,
+    useWorkbookScriptMap,
+    useWorkbookDerived,
 };
+
+const NO_REFERENCES: ReadonlyMap<number, ScriptReferenceReport> = new Map();
+const NO_INPUTS: SessionInput[] = [];
 
 const NO_CONNECTIONS: ReadonlyMap<string, ConnectionState> = new Map();
 
@@ -163,10 +171,15 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     const commitRef = React.useRef<{ node: string; position: Position | null; size: ResizedBox | null } | null>(null);
     // Arrange lays out every box anew
     const arrangingRef = React.useRef(false);
-    const { apply: applyInput, literalOf, busyInputs } = useApplyWorkbookInput(workbookScripts, modifyWorkbookScripts);
+    const { apply: applyInput, literalOf, busyInputs } = useApplyWorkbookInput(workbookScripts.workbookId, modifyWorkbookScripts);
 
-    const graph = deriveDataflowGraph(workbookScripts);
-    const scriptOf = React.useCallback((script: DataflowScript): ScriptData | undefined => workbookScripts.scripts[script.scriptKey], [workbookScripts.scripts]);
+    // The scripts and the derived view of the runtime, the graph keeps what did not change
+    const scripts = dependencies.useWorkbookScriptMap(workbookScripts.workbookId);
+    const derived = dependencies.useWorkbookDerived(workbookScripts.workbookId);
+    const graphRef = React.useRef<DataflowGraph | null>(null);
+    const graph = React.useMemo(() => deriveDataflowGraph(graphRef.current, derived, scripts), [derived, scripts]);
+    graphRef.current = graph;
+    const scriptOf = React.useCallback((script: DataflowScript): ScriptData | undefined => scripts[script.scriptKey], [scripts]);
     const chartStatement = React.useCallback((script: DataflowScript) => {
         const statementId = scriptOf(script)?.annotations.visualizeQuery?.statementId;
         return statementId != null && statementId < script.statements.length ? statementId : null;
@@ -236,7 +249,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         if (commit == null) return;
         commitRef.current = null;
         graph.scripts.forEach((s, i) => {
-            const script = workbookScripts.scripts[s.scriptKey];
+            const script = scripts[s.scriptKey];
             const p = positions[i];
             if (script == null || p == null || s.statements.length === 0) return;
             const flow = script.annotations.flowPosition;
@@ -476,25 +489,24 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     // The selected script of the workbook, not the selection of the boxes
     const scriptSelection = useScriptSelection();
     const deleteScript = React.useCallback(
-        (script: ScriptData) => { void deleteWorkbookScript(scriptSelection, workbookScripts, modifyWorkbookScripts, script.fileName); },
+        (script: ScriptData) => { deleteWorkbookScript(scriptSelection, workbookScripts, modifyWorkbookScripts, script.fileName); },
         [scriptSelection, workbookScripts, modifyWorkbookScripts],
     );
     // The headers of the boxes show the diagnostics of the script references like the feed
-    const scriptReferences = React.useMemo(() => checkWorkbookScriptReferences(workbookScripts), [workbookScripts]);
-    const quoteIdentifier = React.useCallback((name: string) => workbookScripts.instance.quoteIdentifier(name), [workbookScripts.instance]);
+    const scriptReferences = derived?.references ?? NO_REFERENCES;
+    // The core of the runtime, or the one that the package instantiated, e.g. of a canvas without a runtime
+    const coreInstance = useOptionalCoreRuntime()?.core ?? core.DashQL.instantiated();
+    const quoteIdentifier = React.useCallback((name: string) => coreInstance?.quoteIdentifier(name) ?? quoteSqlIdentifier(name), [coreInstance]);
+    const readWorkbook = useLiveWorkbookReader();
     const createAt = React.useCallback((position: Position | null, producer: ScriptData | null) => {
-        const result = createFlowScript(position, producer, quoteIdentifier, modifyWorkbookScripts);
-        if (!result) return;
+        const outcome = createFlowScript(workbookScripts, position, producer, quoteIdentifier, modifyWorkbookScripts);
         // The created script is selected
-        void result.then(next => {
-            const created = next == null ? undefined : createdScriptRef(workbookScripts, next);
-            if (next != null && created != null) scriptSelection.select(next.workbookId, created.scriptId);
-        });
-    }, [quoteIdentifier, modifyWorkbookScripts, workbookScripts, scriptSelection]);
+        if (outcome.ok) selectCreatedScript(scriptSelection, workbookScripts, readWorkbook(workbookScripts.workbookId));
+    }, [quoteIdentifier, modifyWorkbookScripts, workbookScripts, scriptSelection, readWorkbook]);
     // The layout places a script that reads a box right of it, in a free slot
     const createDownstream = React.useCallback((box: DataflowSceneBox) => {
-        createAt(null, workbookScripts.scripts[box.script.scriptKey] ?? null);
-    }, [workbookScripts.scripts, createAt]);
+        createAt(null, scripts[box.script.scriptKey] ?? null);
+    }, [scripts, createAt]);
     const createNew = React.useCallback(() => createAt(null, null), [createAt]);
     const onCanvasDoubleClick = React.useCallback((event: React.MouseEvent<SVGSVGElement>) => {
         if (event.target !== svgRef.current) return;
@@ -557,7 +569,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         </g>
     );
     // The inputs as the feed and the dashboard show them, with their warnings
-    const workbookInputs = deriveWorkbookInputs(workbookScripts);
+    const workbookInputs = derived?.inputs ?? NO_INPUTS;
     return (
         <div
             ref={viewportRef}
@@ -638,7 +650,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 scriptConnections={props.scriptConnections ?? NO_CONNECTIONS}
                                 scriptReferences={scriptReferences.get(box.script.scriptKey) ?? null}
                                 draftRenameRef={props.draftRenameRef}
-                                script={workbookScripts.scripts[box.script.scriptKey]}
+                                script={scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
                                 dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
                                 resizing={resize?.scriptKey === box.script.scriptKey}

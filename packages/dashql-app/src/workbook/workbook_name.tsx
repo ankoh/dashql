@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
+import { useView } from '../runtime/runtime_hooks.js';
 
 /// The name of a workbook, its id if it has none
 export function WorkbookName(props: { workbookId: string }): React.ReactElement {
-    const [scriptsRegistry] = useWorkbookScriptsRegistry();
-    return <>{scriptsRegistry.workbookScriptsMap.get(props.workbookId)?.name?.trim() || props.workbookId}</>;
+    const workbook = useView('workbook', props.workbookId);
+    return <>{workbook?.name?.trim() || props.workbookId}</>;
 }
 
 /// Render the name of a workbook

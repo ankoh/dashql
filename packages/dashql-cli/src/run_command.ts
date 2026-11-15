@@ -19,10 +19,6 @@ import { JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker } from '@ank
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
 import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
-import {
-    mergeRestoredWorkbookIntoScripts,
-    restoreSingleWorkbook,
-} from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { mirrorWorkbookAttachments } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mirror';
 import { runWorkbookExecution, type ScriptRunEvent, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
@@ -228,18 +224,17 @@ function dashqlRootOf(workspace: string): string {
     return existsSync(root) ? root : path.join(homedir(), SESSION_JOURNAL_FOLDER);
 }
 
-/// Load the workbook of a folder into the runtime
+/// Load the workbook of a folder into the runtime: the storage of the runtime is the folder, the runtime restores its
+/// workbook with the connections that it names
 async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise<WorkbookScripts> {
     // The folder is the workbook, its file names its id
     const { workbookId } = await storage.loadWorkbook('');
     const core = await rt.platform.setupCore('run');
     rt.coreRuntime.setCore(core);
-    rt.storageWriter.provideCore(core);
-    // The connections save through the writer of the runtime
-    await rt.storageWriter.withNativeWriter(async native => rt.coreRuntime.setStorageWriter(native));
-    const restored = await restoreSingleWorkbook(rt.coreRuntime, storage, rt.logger, workbookId, rt.coreRuntime.registry(), rt.storageWriter);
-    rt.workbooks.store.update(registry => mergeRestoredWorkbookIntoScripts(registry, restored));
-    return restored.workbookScripts;
+    await rt.coreRuntime.restoreWorkbook(workbookId);
+    const workbook = rt.coreRuntime.workbook(workbookId);
+    if (workbook == null) throw new Error(`the workbook ${workbookId} was not restored`);
+    return workbook;
 }
 
 /// A query of the run
@@ -466,12 +461,11 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         if (!stop.signal.aborted) {
             const services = runtime.execution.scriptRunServices;
             await runWorkbookExecution({
-                workbook: runtime.workbooks.store.current.workbookScriptsMap.get(workbookId)!,
-                getWorkbook: () => runtime.workbooks.store.current.workbookScriptsMap.get(workbookId) ?? null,
+                workbook: runtime.coreRuntime.workbook(workbookId)!,
+                runs: runtime.coreRuntime,
                 targets: requested.size === 0 ? undefined : selected.map(file => files.indexOf(file)),
                 executeQuery: execute,
                 cancelQuery: (connectionId, queryId) => runtime.coreRuntime.cancel(connectionId, queryId),
-                modifyWorkbookScripts: action => runtime.workbooks.dispatch(workbookId, action),
                 signal: stop.signal,
                 onState: next => { state = next; },
                 mounts: services.createMounts(),

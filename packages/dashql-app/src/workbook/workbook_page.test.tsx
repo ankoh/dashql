@@ -25,8 +25,9 @@ const OTHER_CONNECTION = { connectionId: 'other' };
 const dependencies = {
     useWorkbookViewMode: () => ({ mode: state.mode }),
     useWorkbookScripts: () => [{
-        workbookMetadata: { ephemeral: state.ephemeral ? true : undefined },
-        workbookId: state.workbookId, name: 'Workbook', pendingConnection: { connectionId: 'database' }, scripts: {}, scriptRefs: {}, scriptOrder: [],
+        workbookMetadata: { ephemeral: state.ephemeral ? true : undefined }, ephemeral: state.ephemeral,
+        workbookId: state.workbookId, name: 'Workbook', pendingConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
+        scriptKeys: [], scriptRefs: {}, scriptOrder: [],
     }, vi.fn()],
     useConnectionRegistry: () => [{ connections: new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]) }] as any,
     useLogger: () => ({ warn: vi.fn() }),

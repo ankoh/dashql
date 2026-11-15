@@ -148,7 +148,7 @@ Exports give every connection a fresh id, so an import finds the connections of 
 - An embedded database (`"protocol": "WASM"`) always uses the embedded database of the app, without a question.
   Its id is rewritten in `connections`, in the `connectionId` of every script and in the names of its catalogs.
   The restoration of the app does the same for an embedded database with an unknown id
-  (`resolveWorkbookConnection`, `packages/dashql-runtime/src/workbook/persistence/app_state_loader.ts`).
+  (the `RestorePlanner` of `packages/dashql-core-runtime/src/workbook_format/restore.rs`).
 
 **Open problem: attached databases of the embedded database.** The params of an embedded database may list
 `attachedDatabases` (e.g. `tpch.hyper`). An imported workbook takes the params of the embedded database of the

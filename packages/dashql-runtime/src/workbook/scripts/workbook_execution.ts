@@ -5,8 +5,7 @@ import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '../../conne
 import type { ClientFunctionCallDescription } from '../../connections/clfn/clfn_spec.js';
 import { QueryType, type PlannedStatement } from '../../query/query_execution_state.js';
 import type { LoggerLike } from '../../platform/logger/logger.js';
-import { PROJECT_WORKBOOK, scriptResultOwner, type WorkbookScripts } from './workbook_scripts.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
+import { scriptResultOwner, type ScriptData, type WorkbookScripts } from './workbook_scripts.js';
 import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import { isQueryCacheMiss, type QueryResultCache } from '../../query/query_result_cache.js';
@@ -51,6 +50,16 @@ export function releaseWorkbookExecution(workbook: WorkbookScripts | string): vo
 
 /// The state of a run as the Rust runtime reports it
 export type WorkbookExecutionState = core.WorkbookRunState;
+
+/// The runs of the workbooks of the runtime of the module (`CoreRuntime`)
+export interface WorkbookRuns {
+    /// Start a run of the scripts of a workbook
+    startWorkbookRun(workbookId: string, host: core.WorkbookRunHost, options: core.WorkbookRunOptions): core.DashQLWorkbookRun;
+    /// The result keys of the scripts of a workbook, planned without analyzing
+    resultKeys(workbookId: string, targets: readonly number[] | null, host: core.WorkbookResultKeyHost): Promise<Array<core.WorkbookResultKey | null>>;
+    /// Analyze a script whose analysis is outdated, returns the script once its view is in the store
+    analyzeScript(workbookId: string, scriptKey: number): ScriptData | null;
+}
 
 /// The Parquet files of the materialized script results of a run.
 ///
@@ -168,12 +177,11 @@ interface RunStatementRequest {
 /// What the host of a run needs
 export interface WorkbookRunHostArgs {
     workbook: WorkbookScripts;
-    /// The live workbook, a run fails if it is gone or its scripts change meanwhile
-    getWorkbook: () => WorkbookScripts | null;
+    /// The runs of the runtime that holds the workbook. A run fails if the workbook is gone or its scripts change.
+    runs: WorkbookRuns;
     executeQuery: QueryExecutor;
     /// Cancel a query of a connection, the queries of a run are cancelled with their abort signals without it
     cancelQuery?: CancelQuery;
-    modifyWorkbookScripts: ModifyWorkbookScripts;
     /// The abort signal of the queries of the run, the host cancels them with it too
     signal?: AbortSignal;
     /// The mounts of the materialized script results of the run, null without a compute database
@@ -212,8 +220,6 @@ function createRunHost(args: WorkbookRunHostArgs): core.WorkbookRunHost {
     // The cached files that the run keeps
     const retained = new Map<number, () => Promise<void>>();
     let nextRetained = 0;
-    // The changes of the workbook are projected once per turn
-    let projecting = false;
     return {
         now: () => Date.now(),
         setTimer: (ms, callback) => setTimeout(callback, ms),
@@ -310,18 +316,6 @@ function createRunHost(args: WorkbookRunHostArgs): core.WorkbookRunHost {
         },
         mountsAttachments: () => args.mountAttachments != null,
         mountAttachments: () => args.mountAttachments!(workbookId),
-        workbookLive: () => {
-            const live = args.getWorkbook();
-            return live != null && live.workbookId === workbookId && live.instance === workbook.instance && live.native === workbook.native;
-        },
-        workbookChanged: () => {
-            if (projecting) return;
-            projecting = true;
-            queueMicrotask(() => {
-                projecting = false;
-                void args.modifyWorkbookScripts({ type: PROJECT_WORKBOOK, value: null });
-            });
-        },
         state: state => args.onState?.(state),
         scriptEvent: (file, event, error) => {
             if (args.onScript == null) return;
@@ -341,10 +335,8 @@ export type WorkbookRunPlan = core.WorkbookRunOptions;
 /// Run a plan of the scripts of a workbook on the Rust runtime. Settles once the run ended, an abort of the signal
 /// stops it.
 export async function runWorkbookPlan(args: WorkbookRunHostArgs & { plan: WorkbookRunPlan }): Promise<core.WorkbookRunOutcome> {
-    const native = args.workbook.native;
-    if (native == null) throw new Error('the scripts of the workbook have no Rust workbook, create them with createWorkbookScripts');
     const { plan } = args;
-    const run = native.workbook.run(createRunHost(args), plan);
+    const run = args.runs.startWorkbookRun(args.workbook.workbookId, createRunHost(args), plan);
     const signal = args.signal;
     const stop = () => run.cancel();
     if (signal?.aborted) stop();
@@ -369,10 +361,9 @@ export function workbookRunError(outcome: core.WorkbookRunOutcome): unknown {
 /// Run every script of a workbook, or the scripts that a change of inputs affects, and report the state of the run
 export async function runWorkbookExecution(args: {
     workbook: WorkbookScripts;
-    getWorkbook: () => WorkbookScripts | null;
+    runs: WorkbookRuns;
     executeQuery: QueryExecutor;
     cancelQuery: CancelQuery;
-    modifyWorkbookScripts: ModifyWorkbookScripts;
     signal: AbortSignal;
     onState: (state: WorkbookExecutionState) => void;
     /// The mounts of the materialized script results of the run, null without a compute database
@@ -408,8 +399,7 @@ export async function runWorkbookExecution(args: {
     if (!acquireWorkbookExecution(workbook, 'workbook')) return;
     try {
         const outcome = await runWorkbookPlan({
-            workbook, getWorkbook: args.getWorkbook, executeQuery: args.executeQuery, cancelQuery: args.cancelQuery,
-            modifyWorkbookScripts: args.modifyWorkbookScripts, signal: args.signal,
+            workbook, runs: args.runs, executeQuery: args.executeQuery, cancelQuery: args.cancelQuery, signal: args.signal,
             mounts: args.mounts ?? null, mountAttachments: args.mountAttachments,
             resultKey: args.resultKey ?? (async () => null), cachesResults: args.cachesResults ?? (() => false),
             cache: args.cache ?? null, canRun: args.canRun, maxConcurrentQueries: args.maxConcurrentQueries,

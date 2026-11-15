@@ -66,13 +66,10 @@ macro_rules! finish {
 
 // After the macros, the module uses them
 mod views;
-mod workbook;
 mod connection;
 mod query_history;
 mod host;
 mod runtime;
-mod storage_writer;
-mod restore;
 mod connection_persistence;
 mod workbook_run;
 mod workbook_format;
@@ -944,9 +941,14 @@ pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
 /// prefix.
 #[wasm_bindgen(js_name = checkScriptReferences)]
 pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
+    with_session_plan_request(request, pack_reference_check)
+}
+
+/// The packed `ScriptReferenceCheck` of a plan request, the text spans in the offset unit of the session of each script
+pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
     use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT};
     use dashql_core_runtime::planner::script_references::ReferenceKind;
-    with_session_plan_request(request, |core, sessions| {
+    {
         let checked = dashql_core_runtime::planner::script_references::check_script_references(core);
         let mut out = ScriptReferenceCheckT::default();
         let scripts = checked
@@ -998,16 +1000,21 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
             .collect();
         out.collisions = (!collisions.is_empty()).then_some(collisions);
         finish!(out)
-    })
+    }
 }
 
 /// Derive the dataflow of the scripts of a session (`dataflow::derive_session_dataflow`), returns the packed
 /// `SessionDataflow`. The text spans are in the offset unit of the session of each script.
 #[wasm_bindgen(js_name = deriveSessionDataflow)]
 pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
+    with_session_plan_request(request, pack_dataflow)
+}
+
+/// The packed `SessionDataflow` of a plan request, the text spans in the offset unit of the session of each script
+pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
     use dashql_buffers::execution::{DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT};
     use dashql_core_runtime::planner::dataflow::DataflowEdgeKind as Kind;
-    with_session_plan_request(request, |core, sessions| {
+    {
         let dataflow = dashql_core_runtime::planner::dataflow::derive_session_dataflow(core);
         let mut out = SessionDataflowT::default();
         out.scripts = Some(
@@ -1083,7 +1090,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
             .collect();
         out.attachments = (!attachments.is_empty()).then_some(attachments);
         finish!(out)
-    })
+    }
 }
 
 /// Pack an input of a session
@@ -1127,7 +1134,12 @@ pub fn input_literal(value: &str, sql_type: Option<String>) -> Result<String, Js
 /// `SessionInputs`. Ignores the targets, the materialized scripts and the mount prefix.
 #[wasm_bindgen(js_name = collectSessionInputs)]
 pub fn collect_session_inputs(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, |core, _| {
+    with_session_plan_request(request, |core, _| pack_inputs(core))
+}
+
+/// The packed `SessionInputs` of a plan request
+pub(crate) fn pack_inputs(core: &dashql_core_runtime::planner::SessionPlanRequest) -> Vec<u8> {
+    {
         let inputs = dashql_core_runtime::planner::session_inputs::collect_session_inputs(core);
         let mut out = dashql_buffers::execution::SessionInputsT::default();
         out.inputs = Some(
@@ -1138,7 +1150,7 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> Vec<u8> {
                 .collect(),
         );
         finish!(out)
-    })
+    }
 }
 
 /// The table parameters of a session (`table_parameters::TableParameters`)

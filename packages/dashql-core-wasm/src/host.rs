@@ -9,7 +9,7 @@
 //! module. No borrow of the platform is held while it calls JavaScript, so the platform may call the runtime again from
 //! any of its members.
 //!
-//! The helpers of the other hosts of the bindings (the storage writer, the restore) live here as well: reading the
+//! The helpers of the other hosts of the bindings (the runs of workbooks, the storage) live here as well: reading the
 //! fields of JS values, awaiting the promises of the host, requests and responses.
 
 use std::any::Any;
@@ -64,8 +64,40 @@ export interface RuntimePlatform {
     extensions: { loadSpec(extension: string): Promise<string> };
     /** An API of Salesforce that answers the metadata of the catalog, e.g. the mock of the app. Null lets the runtime fetch it. */
     readonly salesforce: RuntimeSalesforce | null;
+    /** The storage of the workbooks and the connections, the storage writer and the restore read and write through it */
+    readonly storage: RuntimeStorage | null;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
     changed(urgent: boolean): void;
+}
+
+/** The storage of the platform: the workbook files, scripts and attachments of the workbooks, the app manifest and the files of the connections. Workbook files and connection entries cross as plain JSON values. */
+export interface RuntimeStorage {
+    /** The workbook file, rejects if there is none */
+    loadWorkbook(workbookId: string): Promise<unknown>;
+    saveWorkbook(workbookId: string, workbook: unknown): Promise<void>;
+    /** Rejects with an `ExternalScriptChangeError` (by its name, with `workbookId` and `fileName`) if the file changed outside the app */
+    saveScript(workbookId: string, fileName: string, text: string): Promise<void>;
+    deleteScript(workbookId: string, fileName: string): Promise<void>;
+    renameScript(workbookId: string, from: string, to: string): Promise<void>;
+    /** The names of the attachments in natural order */
+    listAttachments(workbookId: string): Promise<string[]>;
+    /** Update the connection entries of the app manifest exclusively. The update gets the entries, null before the connections were migrated, and returns the new ones, null if nothing changed. */
+    updateConnections(update: (connections: unknown[] | null) => unknown[] | null): Promise<void>;
+    saveConnectionFile(connectionId: string, fileName: string, text: string): Promise<void>;
+    deleteConnectionFiles(connectionId: string): Promise<void>;
+    deleteWorkbook(workbookId: string): Promise<void>;
+    /** Does the storage own the connections? A storage of a single workbook folder doesn't. */
+    ownsConnections(): boolean;
+    /** The workbooks of the workbook tree in the order of the sidebar, as their ids */
+    listWorkbooks(): Promise<string[]>;
+    /** The connection entries of the app manifest, null if the manifest has none */
+    loadManifestConnections(): Promise<unknown[] | null>;
+    /** The script files of a workbook */
+    loadScripts(workbookId: string): Promise<RestoreScriptFile[]>;
+    /** The data files of a workbook */
+    listDataFiles(workbookId: string): Promise<WorkbookDataFile[]>;
+    /** A file of a connection, null if it doesn't exist */
+    loadConnectionFile(connectionId: string, fileName: string): Promise<string | null>;
 }
 
 /** A channel that a setup asks the host to connect */
@@ -603,6 +635,12 @@ impl JsPlatform {
             let Some(call) = call else { return Ok(None) };
             Ok(settled(call).await?.as_string())
         }
+    }
+
+    /// Call a member of the storage of the platform
+    pub fn storage_call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
+        let storage = member(self.object(), "storage").map_err(|_| HostError::new("the platform has no storage"))?;
+        call(&storage, name, args)
     }
 
     /// A random id

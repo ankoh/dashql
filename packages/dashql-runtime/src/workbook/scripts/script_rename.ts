@@ -1,22 +1,22 @@
-import { RENAME_SCRIPT, type WorkbookScripts } from './workbook_scripts.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
+import type { ModifyWorkbookScripts, WorkbookScripts } from './workbook_scripts.js';
 import { scriptDisplayName } from './script_types.js';
 
 /// Renames the references to a script in a draft, by display names
 export type RenameDraftReferences = (from: string, to: string) => void;
 
-/// Rename a script. The reducer rewrites the references in the other scripts, the draft follows once the name is
-/// final, the reducer disambiguates it.
-export async function renameScript(
-    workbook: WorkbookScripts,
+/// Rename a script. The workbook rewrites the references in the other scripts, the draft follows once the name is
+/// final, the workbook disambiguates it. `fileNameOf` reads the file name of a script as the runtime holds it now.
+export function renameScript(
+    workbook: Pick<WorkbookScripts, 'scriptRefs'>,
     modify: ModifyWorkbookScripts,
     fileName: string,
     newFileName: string,
     renameDraft: RenameDraftReferences | null | undefined,
-): Promise<void> {
+    fileNameOf: (scriptKey: number) => string | null,
+): void {
     const scriptId = workbook.scriptRefs[fileName]?.scriptId;
-    const next = await modify({ type: RENAME_SCRIPT, value: { fileName, newFileName } });
-    const renamed = scriptId != null ? next?.scripts[scriptId]?.fileName : undefined;
+    modify({ kind: 'renameScript', value: { fileName, newName: newFileName } });
+    const renamed = scriptId != null ? fileNameOf(scriptId) : null;
     if (renamed != null && renamed !== fileName) {
         renameDraft?.(scriptDisplayName(fileName), scriptDisplayName(renamed));
     }

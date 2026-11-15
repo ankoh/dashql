@@ -13,7 +13,8 @@ import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { usePlatformType } from '../platform/platform_type.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
-import { useStorage } from '../storage/storage_provider.js';
+import { useStorageReader } from '../storage/storage_provider.js';
+import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCoreSetup } from './core_provider.js';
 
@@ -44,8 +45,8 @@ interface Props {
 }
 
 /// The runtime of DashQL (packages/dashql-runtime/src/runtime.ts). By default over the platform of the app: the
-/// storage and its writer, the http client, the core and the embedded database of the providers above it. The hooks of the
-/// registries and the services read from it.
+/// storage, the http client, the core and the embedded database of the providers above it. The hooks of the views and
+/// the services read from it.
 export function RuntimeProvider(props: Props) {
     if (props.runtime != null) return <ProvideRuntime runtime={props.runtime}>{props.children}</ProvideRuntime>;
     return <AppRuntime>{props.children}</AppRuntime>;
@@ -54,7 +55,7 @@ export function RuntimeProvider(props: Props) {
 /// The runtime over the providers of the app, it lives as long as the component
 function AppRuntime(props: { children?: React.ReactNode }) {
     const logger = useLogger();
-    const [storage, storageWriter] = useStorage();
+    const storage = useStorageReader();
     const http = useHttpClient();
     const setupCore = useDashQLCoreSetup();
     const resultCache = useQueryResultCache();
@@ -66,7 +67,6 @@ function AppRuntime(props: { children?: React.ReactNode }) {
     const [runtime] = React.useState(() => createRuntime({
         logger,
         storage: storage.backend,
-        storageWriter,
         http: http ?? NO_HTTP,
         scheduler: FRAME_UPDATE_SCHEDULER,
         oauthFlow: new AppOAuthFlow(appEvents, platformType),
@@ -87,6 +87,38 @@ function AppRuntime(props: { children?: React.ReactNode }) {
         attached.current.salesforce = salesforce;
         runtime.setSalesforce(salesforce);
     }
+
+    // Write the pending changes when the page goes away, the writer debounces them. Browsers don't wait for the writes
+    // when the page unloads, a hidden page usually still finishes them. Electron asks for the writes before it closes a
+    // window and waits for them.
+    React.useEffect(() => {
+        const writer = runtime.coreRuntime.storage;
+        const flush = async () => {
+            try {
+                await writer.flush();
+            } catch (error) {
+                logger.error("Failed to flush the storage writer", { error: stringifyError(error) }, "runtime");
+            }
+        };
+        const flushIfHidden = () => {
+            if (document.visibilityState === 'hidden') void flush();
+        };
+        const flushOnPageHide = () => void flush();
+        window.addEventListener('pagehide', flushOnPageHide);
+        document.addEventListener('visibilitychange', flushIfHidden);
+        const removeElectronFlush = globalThis.dashqlElectron?.onFlush(flush);
+        return () => {
+            window.removeEventListener('pagehide', flushOnPageHide);
+            document.removeEventListener('visibilitychange', flushIfHidden);
+            removeElectronFlush?.();
+        };
+    }, [runtime, logger]);
+
+    // Another tab takes over the app, the pending writes finish first and nothing is written after
+    useAppHandOver(async () => {
+        runtime.coreRuntime.storage.pause();
+        await runtime.coreRuntime.storage.flush();
+    });
 
     React.useEffect(() => () => {
         void runtime.destroy().catch(error => {

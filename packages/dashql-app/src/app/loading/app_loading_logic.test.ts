@@ -17,7 +17,7 @@ describe('canShowWorkbook', () => {
 });
 
 function workbook(workbookId: string, ephemeral: boolean = false): WorkbookScripts {
-    return { workbookId, workbookMetadata: ephemeral ? { ephemeral } : {} } as WorkbookScripts;
+    return { workbookId, ephemeral, workbookMetadata: ephemeral ? { ephemeral } : {} } as WorkbookScripts;
 }
 
 describe('selectStartupWorkbook', () => {
@@ -80,12 +80,10 @@ describe('loadApp', () => {
     it('restores empty state without creating a connection or workbook', async () => {
         const restored = {
             connectionIds: [],
-            workbookScripts: new Map(),
-            workbookScriptsByConnection: new Map(),
+            workbooks: new Map(),
             invalidWorkbooks: new Map(),
         };
         const storage = { restoreAppState: vi.fn().mockResolvedValue(restored) };
-        const resetWorkbookScripts = vi.fn();
         const logger = {
             childSpan: () => ({
                 info: vi.fn(),
@@ -95,13 +93,11 @@ describe('loadApp', () => {
         const result = await loadApp(
             logger as any,
             storage as any,
-            resetWorkbookScripts,
             vi.fn(),
         );
 
         expect(result.restoredConnections).toEqual([]);
-        expect(resetWorkbookScripts).toHaveBeenCalledOnce();
-        expect(resetWorkbookScripts.mock.calls[0][0].workbookScriptsMap.size).toBe(0);
+        expect(storage.restoreAppState).toHaveBeenCalledOnce();
         expect(result.invalidWorkbooks.size).toBe(0);
         expect(result.restoredWorkbooks.size).toBe(0);
     });
@@ -109,14 +105,12 @@ describe('loadApp', () => {
     it('preserves the restored workbook manifest order', async () => {
         const restored = {
             connectionIds: [],
-            workbookScripts: new Map([['second', {}], ['first', {}]]),
-            workbookScriptsByConnection: new Map(),
+            workbooks: new Map([['second', {}], ['first', {}]]),
             invalidWorkbooks: new Map(),
         };
         const result = await loadApp(
             { childSpan: () => ({ info: vi.fn() }) } as any,
             { restoreAppState: vi.fn().mockResolvedValue(restored) } as any,
-            vi.fn(),
             vi.fn(),
         );
         expect([...result.restoredWorkbooks.keys()]).toEqual(['second', 'first']);

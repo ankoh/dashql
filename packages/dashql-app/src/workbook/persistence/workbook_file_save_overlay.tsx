@@ -20,7 +20,8 @@ import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
-import { scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
+import type { ScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
+import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
 import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -38,6 +39,7 @@ async function packAndCompressFile(
     workbookScripts: WorkbookScripts,
     settings: WorkbookExportSettings,
     cache: QueryResultCache | null,
+    services: ScriptRunServices | null,
     signal: AbortSignal,
     logger: LoggerLike | null,
 ): Promise<Blob> {
@@ -49,8 +51,8 @@ async function packAndCompressFile(
         if (database.name != null) connectionNames.set(database.connectionId, database.name);
     }
     // The cached results stay pinned until the archive holds them
-    const retained = settings.withQueryResults && cache != null
-        ? await retainWorkbookQueryResults(scriptRunServices(workbookScripts.instance), workbookScripts, cache)
+    const retained = settings.withQueryResults && cache != null && services != null
+        ? await retainWorkbookQueryResults(services, workbookScripts, cache)
         : null;
     const workbookId = workbookScripts.workbookId;
     if (retained != null) {
@@ -111,19 +113,20 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     });
     const cache = useQueryResultCache();
     const logger = useLogger() as LoggerLike | null;
+    const services = useOptionalRuntime()?.execution.scriptRunServices ?? null;
 
     // The scripts with cached results, counted when the overlay opens
     const [resultCounts, setResultCounts] = React.useState<WorkbookQueryResultCounts | null>(null);
     React.useEffect(() => {
         const workbookScripts = props.workbookScripts;
         setResultCounts(null);
-        if (!props.isOpen || workbookScripts == null || cache == null) return;
+        if (!props.isOpen || workbookScripts == null || cache == null || services == null) return;
         let cancelled = false;
-        countWorkbookQueryResults(scriptRunServices(workbookScripts.instance), workbookScripts, cache)
+        countWorkbookQueryResults(services, workbookScripts, cache)
             .then(counts => { if (!cancelled) setResultCounts(counts); })
             .catch(() => {});
         return () => { cancelled = true; };
-    }, [props.isOpen, props.workbookScripts, cache]);
+    }, [props.isOpen, props.workbookScripts, cache, services]);
 
     // The archive without the results is packed whenever the workbook or the settings change, it is small. The results
     // can be gigabytes, they are streamed into the archive when it is saved.
@@ -145,7 +148,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             const attached = resolveWorkbookConnections(databaseRegistry, references, workbookScripts.workbookId);
             if (attached == null) return;
             const file = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts,
-                { withCatalog, withLoginHint, preserveUUIDs }, null, cancellation.signal, logger);
+                { withCatalog, withLoginHint, preserveUUIDs }, null, null, cancellation.signal, logger);
             if (!cancellation.signal.aborted) {
                 setFile(file);
             }
@@ -187,7 +190,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         setSaving(true);
         setPackError(null);
         try {
-            const packed = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts, settings, cache, run.signal, logger);
+            const packed = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts, settings, cache, services, run.signal, logger);
             run.signal.throwIfAborted();
             await fileDownloader.downloadBufferAsFile(packed, fileName);
         } catch (error) {
@@ -201,7 +204,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             saveRun.current = null;
             setSaving(false);
         }
-    }, [file, fileName, withQueryResults, cache, settings, databaseRegistry, references, props.workbookScripts, storage.backend, archiveWriter, logger]);
+    }, [file, fileName, withQueryResults, cache, services, settings, databaseRegistry, references, props.workbookScripts, storage.backend, archiveWriter, logger]);
     // The results are stored as they are, the archive grows by about their size
     const fileSize = file == null ? 0 : file.size + (withQueryResults ? resultCounts?.bytes ?? 0 : 0);
 

@@ -13,7 +13,8 @@ import { PlatformEventListenerProvider, usePlatformEventListener } from '../plat
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
-import { useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
+import { useWorkbooks } from '../workbook/scripts/workbook_scripts_registry.js';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
@@ -31,7 +32,7 @@ describe('following Hyper links', () => {
     let root: Root;
     let listener!: PlatformEventListener;
     let connections!: ConnectionRegistry;
-    let workbooks!: WorkbookScriptsRegistry;
+    let workbooks!: ReadonlyMap<string, WorkbookScripts>;
     let pathname = '/';
     let markOpened!: () => void;
     let confirm: ReturnType<typeof vi.fn>;
@@ -40,7 +41,7 @@ describe('following Hyper links', () => {
         useHyperLinks(props.opened);
         listener = usePlatformEventListener();
         [connections] = useConnectionRegistry();
-        [workbooks] = useWorkbookScriptsRegistry();
+        workbooks = useWorkbooks();
         pathname = useLocation().pathname;
         return null;
     }
@@ -91,16 +92,16 @@ describe('following Hyper links', () => {
         expect(linkConnections()).toEqual([]);
 
         markOpened();
-        await waitForRender(() => expect(workbooks.workbookScriptsMap.size).toBe(1));
+        await waitForRender(() => expect(workbooks.size).toBe(1));
         const [connection] = linkConnections();
         expect(connection.params).toMatchObject({ hyper: { endpoint: LOCAL_LINK.endpoint } });
         expect(getHyperLinkTabState().current).toBe(connection.connectionId);
         expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('first');
-        const workbookIds = [...workbooks.workbookScriptsMap.entries()]
+        const workbookIds = [...workbooks.entries()]
             .filter(([, scripts]) => workbookConnectionIds(scripts).includes(connection.connectionId))
             .map(([workbookId]) => workbookId);
         expect(workbookIds.length).toBe(1);
-        expect(isEphemeralWorkbook(workbooks.workbookScriptsMap.get(workbookIds[0])!)).toBe(true);
+        expect(isEphemeralWorkbook(workbooks.get(workbookIds[0])!)).toBe(true);
         expect(pathname).toBe('/');
         // A loopback link needs no confirmation
         expect(confirm).not.toHaveBeenCalled();
@@ -108,7 +109,7 @@ describe('following Hyper links', () => {
         // A second link to the same Hyper reuses the connection and stays in the workbook
         await receive({ ...LOCAL_LINK, token: 'second' }, () => expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('second'));
         expect(linkConnections().length).toBe(1);
-        expect(workbooks.workbookScriptsMap.size).toBe(1);
+        expect(workbooks.size).toBe(1);
         expect(pathname).toBe('/');
     });
 
@@ -121,7 +122,7 @@ describe('following Hyper links', () => {
         expect(pathname).toBe('/');
 
         confirm.mockReturnValue(true);
-        await receive(REMOTE_LINK, () => expect(workbooks.workbookScriptsMap.size).toBe(1));
+        await receive(REMOTE_LINK, () => expect(workbooks.size).toBe(1));
         expect(linkConnections().map(connection => connection.params)).toMatchObject([{ hyper: { endpoint: REMOTE_LINK.endpoint } }]);
         const workbookPathname = pathname;
 

@@ -1,25 +1,25 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql-core';
 
 import { useEmbeddedConnection } from '../connections/embedded_connection_hooks.js';
-import { DETACH_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useScriptConnectionOf } from '../connections/connection_registry.js';
-import { useConnectionScriptsDispatch } from './scripts/workbook_scripts_registry.js';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 
 /// Detach a connection from the workbooks
-export type ConnectionDetach = (dql: core.DashQL, connectionId: string) => Promise<void>;
+export type ConnectionDetach = (connectionId: string) => Promise<void>;
 
 /// Detach a connection from every workbook whose next script would merely run on it.
 ///
 /// Workbooks without scripts hold the embedded Hyper again. Workbooks with scripts on the connection
-/// keep it, see DETACH_CONNECTION.
+/// keep it, see the action `detachConnection` of a workbook.
 export function useDetachConnection(): ConnectionDetach {
     const resolveEmbeddedConnection = useEmbeddedConnection();
-    const scriptsDispatch = useConnectionScriptsDispatch();
-    const scriptConnectionOf = useScriptConnectionOf();
-    return React.useCallback(async (_dql: core.DashQL, connectionId: string) => {
+    const runtime = useOptionalCoreRuntime();
+    return React.useCallback(async (connectionId: string) => {
+        if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
         const embedded = resolveEmbeddedConnection();
         if (embedded.connectionId === connectionId) return;
-        await scriptsDispatch(connectionId, { type: DETACH_CONNECTION, value: { from: connectionId, into: scriptConnectionOf(embedded) } });
-    }, [resolveEmbeddedConnection, scriptsDispatch, scriptConnectionOf]);
+        for (const workbookId of runtime.connection(connectionId)?.workbooks ?? []) {
+            runtime.dispatchWorkbook(workbookId, { kind: 'detachConnection', value: { from: connectionId, into: embedded.connectionId } });
+        }
+        runtime.flush();
+    }, [resolveEmbeddedConnection, runtime]);
 }

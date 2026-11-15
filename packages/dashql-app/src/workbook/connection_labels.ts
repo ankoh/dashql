@@ -4,20 +4,18 @@ import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connecti
 import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { connectionLabelParts, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
-import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 
 /// The ordinals that tell connections of the same connector apart, see `connectionOrdinals`.
 /// The map keeps its identity while the ordinals are unchanged.
 export function useConnectionOrdinals(): ReadonlyMap<string, number> {
     // Re-number when the workbooks use other connections
-    const [scripts] = useWorkbookScriptsRegistry();
     const references = useConnectionReferences();
     // The registry changes with every query, the selector returns a string to compare by value
     const selectKey = React.useCallback(
         (registry: Parameters<typeof connectionOrdinals>[0]) => [...connectionOrdinals(registry, references)]
             .map(([connectionId, ordinal]) => `${connectionId}=${ordinal}`)
             .join(','),
-        [references, scripts],
+        [references],
     );
     // Views outside of the runtime (e.g. in tests) number no connections
     const store = useConnectionRegistryStore();

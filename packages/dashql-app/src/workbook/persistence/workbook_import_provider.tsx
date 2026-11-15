@@ -14,13 +14,10 @@ import {
 } from '../../storage/workbook_import_transaction.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { useStorage } from '../../storage/storage_provider.js';
-import { restoreSingleWorkbook } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
-import { mergeRestoredWorkbookIntoScripts } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
 import { connectionEntryFromState, findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { getConnectorInfoForParams } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useWorkbookScriptsRegistrySetter } from '../scripts/workbook_scripts_registry.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useCancelQuery } from '../../connections/query_executor.js';
@@ -163,7 +160,6 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     const references = useConnectionReferences();
     const coreRuntime = useCoreRuntime();
     const readQuery = useQueryReader();
-    const setScripts = useWorkbookScriptsRegistrySetter();
     const cancelQuery = useCancelQuery();
     const queryResultCache = useQueryResultCache();
     const [dialog, setDialog] = React.useState<ConflictDialogState | null>(null);
@@ -321,14 +317,8 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         report?.({ step: 'open' });
         try {
             await setupCore('workbook_import');
-            const restored = await restoreSingleWorkbook(
-                coreRuntime,
-                backend,
-                logger,
-                targetWorkbookId,
-                connectionStore.current,
-            );
-            setScripts(registry => mergeRestoredWorkbookIntoScripts(registry, restored));
+            // The runtime restores the workbook against its connections and takes it
+            await coreRuntime.restoreWorkbook(targetWorkbookId);
             return targetWorkbookId;
         } catch (error) {
             try {
@@ -338,7 +328,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
             }
             throw error;
         }
-    }, [backend, connectionStore, coreRuntime, logger, setScripts, setupCore, writer]);
+    }, [backend, coreRuntime, setupCore, writer]);
 
     const requestConflictChoice = React.useCallback((
         bundle: WorkbookBundle,

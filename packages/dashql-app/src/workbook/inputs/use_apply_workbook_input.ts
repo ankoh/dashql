@@ -1,19 +1,21 @@
 import * as React from 'react';
 
-import { SET_WORKBOOK_INPUT, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
+import type { ModifyWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
-import { deriveWorkbookInputs, inputConsumerScripts, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
+import { useWorkbookDerived } from '../scripts/workbook_scripts_registry.js';
+import { inputConsumerScripts, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 
 const NO_INPUTS: ReadonlySet<string> = new Set();
 
 /// Apply the value of an input: write its `@param` tag into every script that uses it, then run the scripts that the
 /// change affects. Returns the function, the literal of a value of a control, and the inputs whose run is active.
-export function useApplyWorkbookInput(workbookScripts: WorkbookScripts, modifyWorkbookScripts: ModifyWorkbookScripts) {
-    const execution = useWorkbookExecution(workbookScripts.workbookId);
+export function useApplyWorkbookInput(workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts) {
+    const execution = useWorkbookExecution(workbookId);
     const [applied, setApplied] = React.useState<ReadonlySet<string>>(NO_INPUTS);
-    const workbookRef = React.useRef(workbookScripts);
-    workbookRef.current = workbookScripts;
+    const derived = useWorkbookDerived(workbookId);
+    const inputsRef = React.useRef(derived?.inputs ?? null);
+    inputsRef.current = derived?.inputs ?? null;
     const executionRef = React.useRef(execution);
     executionRef.current = execution;
 
@@ -28,16 +30,20 @@ export function useApplyWorkbookInput(workbookScripts: WorkbookScripts, modifyWo
         }
     }, [busy]);
 
-    const instance = workbookScripts.instance;
-    const literalOf = React.useCallback((input: SessionInput, value: string) => workbookInputLiteral(instance, input.type, value), [instance]);
+    const runtime = useOptionalCoreRuntime();
+    const literalOf = React.useCallback((input: SessionInput, value: string) => {
+        const instance = runtime?.core;
+        if (instance == null) return { error: 'The runtime has no core' };
+        return workbookInputLiteral(instance, input.type, value);
+    }, [runtime]);
     const apply = React.useCallback((name: string, literal: string) => {
-        const input = deriveWorkbookInputs(workbookRef.current).find(i => i.name === name);
+        const input = inputsRef.current?.find(i => i.name === name);
         if (input == null) return;
         setApplied(previous => new Set([...previous, name]));
-        void (async () => {
-            await modifyWorkbookScripts({ type: SET_WORKBOOK_INPUT, value: { name, literal, scriptKeys: inputConsumerScripts(input) } });
-            executionRef.current.start(modifyWorkbookScripts, { inputs: [name] });
-        })();
-    }, [modifyWorkbookScripts]);
+        modifyWorkbookScripts({ kind: 'setWorkbookInput', value: { name, literal, scriptKeys: inputConsumerScripts(input) } });
+        // The run reads the scripts with their new tags
+        runtime?.flush();
+        executionRef.current.start({ inputs: [name] });
+    }, [modifyWorkbookScripts, runtime]);
     return { apply, literalOf, busyInputs: busy ? applied : NO_INPUTS };
 }

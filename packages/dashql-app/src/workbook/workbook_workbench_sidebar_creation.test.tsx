@@ -8,7 +8,6 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import { connectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../app/router/router.js';
-import { SET_PENDING_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { CoreRuntimeProvider } from '../runtime/runtime_hooks.js';
@@ -92,7 +91,7 @@ const dependencies = {
         return props?.isOpen ? <button onClick={() => props.onConnected?.(state.local!)}>Complete setup</button> : null;
     },
     useWorkbookScriptsDeletion: () => vi.fn(),
-    useWorkbookScriptsRegistry: () => [{ workbookScriptsMap: state.workbookScriptsMap }],
+    useWorkbooks: () => state.workbookScriptsMap,
     useWorkbookScripts: () => [null, state.modifyWorkbookScripts],
     useWorkbookCreation: () => state.createWorkbook,
     useOpenGreeter: () => state.openGreeter,
@@ -229,7 +228,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId: 'current-workbook',
             name: 'Current workbook',
             workbookMetadata: {},
-            scripts: {},
+            scriptConnections: [],
         });
         state.workbookAttachedDatabases = { main, attached: [attached] };
 
@@ -292,8 +291,8 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         expect(state.newConnectionFromParams).toHaveBeenCalledWith(expect.anything(), { active: true });
         expect(state.allocateConnection).toHaveBeenCalledWith(state.newConnectionFromParams.mock.results[0].value);
         expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({
-            type: SET_PENDING_CONNECTION,
-            value: expect.objectContaining({ connectionId: trino.connectionId }),
+            kind: 'setPendingConnection',
+            value: { connectionId: trino.connectionId },
         });
         expect(state.overlayProps).toMatchObject({ connectionId: trino.connectionId, isOpen: true });
     });
@@ -315,7 +314,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId: 'salesforce-workbook',
             name: 'Salesforce workbook',
             workbookMetadata: {},
-            scripts: {},
+            scriptConnections: [],
         });
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
@@ -346,7 +345,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId,
             name: 'Current workbook',
             workbookMetadata: { originalFileName: 'current' },
-            scripts: {},
+            scriptConnections: [],
         });
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
@@ -373,7 +372,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId,
             name: 'Untitled',
             workbookMetadata: { originalFileName: 'current' },
-            scripts: {},
+            scriptConnections: [],
         });
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
@@ -400,7 +399,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         });
         expect(state.modifyWorkbookScripts).toHaveBeenCalledOnce();
-        expect(state.modifyWorkbookScripts.mock.calls[0][0]).toMatchObject({ value: 'Revenue' });
+        expect(state.modifyWorkbookScripts.mock.calls[0][0]).toMatchObject({ kind: 'renameWorkbook', value: { name: 'Revenue' } });
         expect(container.querySelector('input[aria-label="Workbook name"]')).toBeNull();
     });
 
@@ -415,7 +414,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId,
             name: 'Untitled',
             workbookMetadata: { originalFileName: 'current' },
-            scripts: {},
+            scriptConnections: [],
         });
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
@@ -439,7 +438,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId,
             name: 'Current workbook',
             workbookMetadata: { originalFileName: 'current' },
-            scripts: {},
+            scriptConnections: [],
         });
         const render = (openOverviewId: string | null) => act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
@@ -464,7 +463,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             workbookId,
             name: 'Current workbook',
             workbookMetadata: { originalFileName: 'current' },
-            scripts: {},
+            scriptConnections: [],
         });
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
@@ -494,7 +493,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.attachedDatabasesByWorkbook.set('shell', { mainDatabaseId: 'shell', attachedDatabaseIds: [] });
         state.connections.set('shell', { ...other, connectionId: 'shell' } as ConnectionState);
         for (const workbookId of ['current-workbook', 'trino-session']) {
-            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scripts: {} });
+            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scriptConnections: [] });
         }
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
@@ -513,7 +512,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
         state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [secondHyper.connectionId] });
         for (const workbookId of ['current-workbook', 'trino-session']) {
-            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scripts: {} });
+            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scriptConnections: [] });
         }
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
@@ -535,7 +534,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
         state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [] });
         for (const workbookId of ['current-workbook', 'trino-session']) {
-            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scripts: {} });
+            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scriptConnections: [] });
         }
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
@@ -555,14 +554,14 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             params: { hyper: { protocol: 'V3_HTTP' } },
         } as unknown as ConnectionState;
         for (const database of [state.local!, server]) state.connections.set(database.connectionId, database);
-        const scripts = Object.fromEntries(Object.entries(scriptConnections)
-            .map(([fileName, connectionId], i) => [i, { fileName, connection: { connectionId } }]));
         const usesLocal = Object.values(scriptConnections).includes(state.local!.connectionId);
         state.attachedDatabasesByWorkbook.set('current-workbook', {
             mainDatabaseId: server.connectionId,
             attachedDatabaseIds: usesLocal ? [state.local!.connectionId] : [],
         });
-        state.workbookScriptsMap.set('current-workbook', { workbookId: 'current-workbook', name: 'Current', workbookMetadata: {}, scripts });
+        state.workbookScriptsMap.set('current-workbook', {
+            workbookId: 'current-workbook', name: 'Current', workbookMetadata: {}, scriptConnections: Object.values(scriptConnections),
+        });
         state.workbookAttachedDatabases = { main: server, attached: usesLocal ? [state.local!] : [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
@@ -583,7 +582,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         const remove = menuItem(server.connectionId, 'delete')!;
         expect(remove.disabled).toBe(false);
         await act(async () => remove.click());
-        expect(state.detachConnection).toHaveBeenCalledWith(expect.anything(), server.connectionId);
+        expect(state.detachConnection).toHaveBeenCalledWith(server.connectionId);
         expect(state.deleteConnection).toHaveBeenCalledWith(server.connectionId);
         expect(state.detachConnection.mock.invocationCallOrder[0]).toBeLessThan(state.deleteConnection.mock.invocationCallOrder[0]);
     });

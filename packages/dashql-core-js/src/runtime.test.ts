@@ -59,6 +59,7 @@ function platform() {
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         salesforce: null,
+        storage: null,
         changed: urgent => {
             changed.push(urgent);
         },
@@ -94,7 +95,7 @@ describe('DashQL runtime', () => {
             analyzeTable(tableId: unknown, table: unknown, options: unknown): unknown;
         };
         expect(() => unchecked.dispatch({ computation: 'one' }, { kind: 'deleteComputation' })).toThrow();
-        expect(() => unchecked.dispatch({ workbook: 'a' }, { kind: 'deleteComputation' })).toThrow();
+        expect(() => unchecked.dispatch({ notebook: 'a' }, { kind: 'deleteComputation' })).toThrow();
         expect(() => unchecked.dispatch({ kind: 'deleteComputation' }, { computation: 1 })).toThrow();
         expect(() => unchecked.dispatch({ computation: 1 }, { kind: 'orderBy', value: { constraints: 'a' } })).toThrow();
         expect(() => unchecked.dispatch({ computation: 1 }, { kind: 'unknown' })).toThrow();

@@ -85,9 +85,10 @@ function scripts() {
             '01_alpha.sql': { scriptId: 1, fileName: '01_alpha.sql' },
         },
         scriptOrder: ['01_alpha.sql'],
-        scripts: {
-            1: { scriptKey: 1, fileName: '01_alpha.sql', connection: { connectionId: 'main' } },
-        },
+        scriptKeys: [1],
+        scriptConnections: ['main'],
+        connectionIds: ['main'],
+        pendingConnectionId: null,
     } as any;
 }
 
@@ -136,7 +137,7 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
         render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [] });
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!.click());
-        expect(state.execution.start).toHaveBeenCalledWith(modify);
+        expect(state.execution.start).toHaveBeenCalledWith();
         render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [1] });
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
         // A connection that is connecting would join a moment later, the run waits for it
@@ -150,7 +151,8 @@ describe('WorkbookFeedPage', () => {
         const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         const unused = { connectionId: 'unused', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         const workbook = scripts();
-        workbook.scripts[1].connection = { connectionId: 'lake' };
+        workbook.scriptConnections = ['lake'];
+        workbook.connectionIds = ['lake'];
         const render = (connections: any[]) => act(() => root.render(<WorkbookFeedPage
             workbookScripts={workbook} modifyWorkbookScripts={modify} connection={main}
             scriptConnections={new Map(connections.map(connection => [connection.connectionId, connection]))} active dependencies={dependencies} />));
@@ -162,7 +164,7 @@ describe('WorkbookFeedPage', () => {
         // The top bar shows the connections of the workbook only
         expect(state.connectionButtonsProps.connections).toEqual([lake]);
         act(() => button.click());
-        expect(state.execution.start).toHaveBeenCalledWith(modify);
+        expect(state.execution.start).toHaveBeenCalledWith();
         // While a script of the workbook runs, the workbook doesn't run
         state.execution = { ...state.execution, start: vi.fn(), runActive: true };
         render([main, lake, unused]);
@@ -176,7 +178,8 @@ describe('WorkbookFeedPage', () => {
     it('points at the connections once a run skipped the scripts that need them', async () => {
         const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         const workbook = scripts();
-        workbook.scripts[1].connection = { connectionId: 'lake' };
+        workbook.scriptConnections = ['lake'];
+        workbook.connectionIds = ['lake'];
         const render = (phase: string, skippedScripts: number, connection = lake) => {
             state.execution = { ...state.execution, busy: phase === 'running', state: {
                 phase, completedScripts: 3, totalScripts: 5, completedStatements: 3, totalStatements: 3,
@@ -209,7 +212,7 @@ describe('WorkbookFeedPage', () => {
     it('shows the connection picked for the next script in the top bar without running it', () => {
         const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
         // An empty workbook runs nothing yet, the composer drafts its first script on the picked connection
-        const workbook = { ...scripts(), scriptRefs: {}, scriptOrder: [], scripts: {}, pendingConnection: { connectionId: 'lake' } };
+        const workbook = { ...scripts(), scriptRefs: {}, scriptOrder: [], scriptKeys: [], scriptConnections: [], connectionIds: ['lake'], pendingConnectionId: 'lake' };
         act(() => root.render(<WorkbookFeedPage
             workbookScripts={workbook} modifyWorkbookScripts={vi.fn()} connection={lake}
             scriptConnections={new Map([['lake', lake]])} active dependencies={dependencies} />));
@@ -393,7 +396,7 @@ describe('WorkbookFeedPage', () => {
     });
 
     it('keeps only the connections in the header while the workbook is ephemeral', () => {
-        const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, scriptOrder: [], scripts: {}, scriptRefs: {} };
+        const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
         const header = container.querySelector('header')!;
         for (const control of ['workbook-view-switch', 'execute-all', 'share-url', 'export-workbook']) {
@@ -406,7 +409,7 @@ describe('WorkbookFeedPage', () => {
 
     it.each([WorkbookViewMode.Dashboard, WorkbookViewMode.Dataflow])('leaves a view without a switch while the workbook is ephemeral (%s)', mode => {
         state.mode = mode;
-        const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, scriptOrder: [], scripts: {}, scriptRefs: {} };
+        const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
         expect(state.setMode).toHaveBeenCalledWith(WorkbookViewMode.Workbook);
     });
@@ -532,7 +535,7 @@ describe('WorkbookFeedPage', () => {
         render(scripts());
         act(() => state.dataflowProps.onInspect(1));
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
-        render({ ...scripts(), scriptRefs: {}, scriptOrder: [], scripts: {} });
+        render({ ...scripts(), scriptRefs: {}, scriptOrder: [], scriptKeys: [], scriptConnections: [] });
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
     });
 });

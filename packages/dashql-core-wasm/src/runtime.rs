@@ -8,9 +8,9 @@
 //!
 //! The runtime owns the computations of result tables, the connections with the histories of their queries, the
 //! histories without a connection (the shell), the query executor, the setups and the health checks of the
-//! connections, the catalog loader and the saves of the connections. The other domains
-//! join it step by step: a domain adds its state to `Runtime`, its slices to `ViewKind`, its targets and actions to
-//! the unions.
+//! connections, the catalog loader, the saves of the connections, the workbooks with their scripts, the storage writer
+//! and the restore of the stored state. The other domains join it step by step: a domain adds its state to `Runtime`,
+//! its slices to `ViewKind`, its targets and actions to the unions.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
 //! call into the platform. Arguments of the wrong type fail with a JS error, nothing panics.
@@ -20,9 +20,13 @@ pub(crate) mod computation;
 pub(crate) mod connections;
 pub(crate) mod queries;
 pub(crate) mod setups;
+pub(crate) mod storage;
+pub(crate) mod workbooks;
 
 use std::cell::RefCell;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use dashql_core::error::Error;
@@ -44,18 +48,24 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
-use crate::connection::view::{ConnectionListView, ConnectionRelationName, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
+use crate::connection::view::{ConnectionListView, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetadataView, QueryProfileKeys, QueryProfileProgressView, QueryStreamMetrics, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
-use crate::restore::RestoredState;
-use crate::storage_writer::StorageWriter;
-use crate::views::{from_js, to_js, value_to_js, JsonValue};
-use crate::{Catalog, SharedCatalog};
+use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
+use crate::{js_error, Catalog, ScriptSession, SharedCatalog, ENTRY_IDS};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use connections::{Connections, NewConnection};
 use queries::QueryArgs;
 use setups::{listener, SetupOptions, SetupOutcome};
+use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
+use dashql_core_runtime::restore::{AppRestore, RestoreOptions, RestoredState};
+use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
+use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
+use storage::view::{StorageWriteGenerations, StorageWriteTask};
+use storage::{error_value, outcome_value, JsStorage, StorageCommand, StorageState, StorageView};
+use workbooks::view::{StoredScriptView, WorkbookDataFile, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView};
+use workbooks::{NewWorkbook, StoredScriptRef, Workbooks};
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_VIEWS: &str = r#"
@@ -66,6 +76,11 @@ export interface RuntimeViews {
     connection: { id: string; view: ConnectionView; known: undefined };
     query: { id: number; view: QueryView; known: (QueryProfileKeys | null)[] };
     history: { id: string; view: QueryHistoryView; known: undefined };
+    workbookList: { id: 'root'; view: WorkbookListView; known: undefined };
+    workbook: { id: string; view: WorkbookView; known: undefined };
+    script: { id: number; view: WorkbookScriptView; known: (WorkbookScriptKeys | null)[] };
+    workbookDerived: { id: string; view: WorkbookDerivedView; known: undefined };
+    storage: { id: 'root'; view: StorageView; known: undefined };
 }
 /** A kind of slices of the runtime */
 export type ViewKind = keyof RuntimeViews;
@@ -113,7 +128,9 @@ pub enum Target {
     Connection(String),
     /// A history of queries without a connection by its name, e.g. the one of the shell
     History(String),
-    /// The runtime: the list of the connections
+    /// A workbook by its id, with its scripts
+    Workbook(String),
+    /// The runtime: the lists of the connections and the workbooks
     App,
 }
 
@@ -171,11 +188,98 @@ pub enum RuntimeAction {
         #[tsify(optional)]
         cache_query_results: Option<bool>,
     },
-    /// The workbooks that use the connections, until the workbooks are part of the runtime
-    SetConnectionReferences {
-        #[tsify(type = "[string, string[]][]")]
-        references: Vec<(String, Vec<String>)>,
+    /// Create a workbook without scripts on a connection and write it, the outcome names its id
+    CreateWorkbook {
+        /// The id, a new one without
+        #[serde(default)]
+        #[tsify(optional)]
+        workbook_id: Option<String>,
+        /// The connection of its first script
+        connection_id: String,
+        #[serde(default)]
+        #[tsify(optional)]
+        name: Option<String>,
+        /// Is it the ephemeral workbook of the greeter? Its first script promotes it.
+        #[serde(default)]
+        #[tsify(optional)]
+        ephemeral: Option<bool>,
+        /// The file name the workbook is created from, e.g. the short name of its connector
+        #[serde(default)]
+        #[tsify(optional)]
+        original_file_name: Option<String>,
     },
+    /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
+    DeleteWorkbook { workbook_id: String },
+
+    // A workbook
+    /// Create a script at an index of the feed, appended without one. The base names its file, the connection is the
+    /// one of its neighbors without one.
+    CreateScript {
+        #[serde(default)]
+        #[tsify(optional)]
+        index: Option<u32>,
+        #[serde(default)]
+        #[tsify(optional)]
+        text: Option<String>,
+        base: String,
+        #[serde(default)]
+        #[tsify(optional)]
+        connection_id: Option<String>,
+    },
+    DeleteScript { file_name: String },
+    /// Rename a script, the name is a display name
+    RenameScript { file_name: String, new_name: String },
+    /// Order the scripts by their file names
+    ReorderScripts { order: Vec<String> },
+    /// Replace the text of a script, with a diff the rewrite is staged to accept or reject
+    SetScriptText {
+        script_key: u32,
+        text: String,
+        #[serde(default)]
+        #[tsify(optional)]
+        with_diff: Option<bool>,
+    },
+    AcceptPendingDiff { script_key: u32 },
+    RejectPendingDiff { script_key: u32 },
+    /// Set the Vega-Lite spec of the chart of a script
+    SetScriptVisSpec { script_key: u32, spec: String },
+    /// Set the value of an input in the scripts that use it
+    SetWorkbookInput { name: String, literal: String, script_keys: Vec<u32> },
+    /// Analyze a script if its analysis is outdated
+    AnalyzeOutdatedScript { script_key: u32 },
+    /// A query of a script started
+    RegisterQuery { script_key: u32, query_id: u32 },
+    /// A query of a script produced the result that the script shows
+    RegisterScriptResult { script_key: u32, query_id: u32 },
+    /// Rename the workbook, null removes the name
+    RenameWorkbook {
+        #[serde(default)]
+        #[tsify(optional)]
+        name: Option<String>,
+    },
+    /// Move a script to another connection
+    SetScriptConnection { file_name: String, connection_id: String },
+    /// Pick the connection of the next appended script
+    SetPendingConnection { connection_id: String },
+    /// Move the scripts and the pending connection on one connection to another
+    ReplaceConnection { from: String, into: String },
+    /// Let go of a connection that only the next script would use
+    DetachConnection { from: String, into: String },
+    /// The data files of the workbook as storage lists them
+    SetWorkbookAttachments { files: Vec<WorkbookDataFile> },
+    /// The columns of an attachment, read from the file with the stamp
+    SetAttachmentColumns { file_name: String, stamp: String, columns: Vec<String> },
+    /// An attachment whose file was renamed
+    RenameAttachment { file_name: String, new_file_name: String },
+    /// Link the workbook to a published workbook, the whole link is written into the workbook file, null removes it
+    SetCloudLink {
+        #[serde(default)]
+        #[tsify(optional)]
+        link: Option<JsonValue>,
+    },
+    /// Replace the scripts with the ones that storage holds, e.g. after the files changed outside of the app. Writes
+    /// nothing back.
+    ReplaceFromStorage { scripts: Vec<StoredScriptView> },
 
     // A connection
     /// Set the draft of the params, params of another connector are ignored
@@ -199,15 +303,6 @@ pub enum RuntimeAction {
     },
     /// Executed statements touched relations, the names have nulls for the parts that a statement left out
     RelationsTouched { names: Vec<ConnectionTableName> },
-    /// Restore the state of the catalog updates from the files of the catalog, null keeps a field
-    RestoreCatalogUpdates {
-        #[serde(default)]
-        #[tsify(optional)]
-        described: Option<bool>,
-        #[serde(default)]
-        #[tsify(optional)]
-        touched_relations: Option<Vec<ConnectionRelationName>>,
-    },
     /// A step of a setup or a health check that the host runs itself, e.g. a mock of a setup, by the name of the action
     /// of the connector (e.g. `TRINO_CHANNEL_READY`). The channel of a ready step is a handle that the connection takes.
     SetupStep {
@@ -346,7 +441,12 @@ const CONNECTION_LIST: &str = "connectionList";
 const CONNECTION: &str = "connection";
 const QUERY: &str = "query";
 const HISTORY: &str = "history";
-/// The id of the list of the connections
+const WORKBOOK_LIST: &str = "workbookList";
+const WORKBOOK: &str = "workbook";
+const SCRIPT: &str = "script";
+const WORKBOOK_DERIVED: &str = "workbookDerived";
+const STORAGE: &str = "storage";
+/// The id of the lists of the connections and the workbooks and of the storage
 const ROOT: &str = "root";
 
 /// What decides the view of a connection
@@ -370,6 +470,38 @@ struct Taken {
     histories: Vec<(String, Vec<QueryId>, u64)>,
     /// The queries of every history: the revision of the history and the revisions of its queries
     queries: Vec<(QueryOwner, u64, BTreeMap<QueryId, u64>)>,
+    /// The key of the list of the workbooks and the revision of its slice
+    workbook_list: Option<(u64, u64)>,
+    /// The workbooks: the revision of the workbook of the crate, the key of its view and the revision of its slice
+    workbooks: Vec<(String, (u64, u64, u64))>,
+    /// The scripts of all workbooks by key
+    scripts: BTreeMap<u32, u64>,
+    /// What the derived views of the workbooks derive from, and the revision of their slices
+    derived: Vec<(String, (u64, u64))>,
+    /// The revision of the view of the storage
+    storage: Option<(u64, u64)>,
+}
+
+/// What the derived view of a workbook derives from, as a hash: the names, the connections and the analyses of its
+/// scripts and its attachments. The view derives again only when they change.
+fn derived_key(workbook: &dashql_core_runtime::workbook::Workbook) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    for script in workbook.scripts() {
+        let connection = script.connection();
+        script.key().hash(&mut hasher);
+        script.file_name().hash(&mut hasher);
+        connection.connection_id.hash(&mut hasher);
+        connection.local.hash(&mut hasher);
+        script.session().try_borrow().map(|session| session.text_version()).unwrap_or_default().hash(&mut hasher);
+        script.editor_update().map(|update| (update.text_version, update.catalog_revision, update.analysis_available)).hash(&mut hasher);
+    }
+    for attachment in workbook.attachments().unwrap_or_default() {
+        attachment.file_name.hash(&mut hasher);
+        attachment.size_bytes.hash(&mut hasher);
+        attachment.mtime_ms.hash(&mut hasher);
+        attachment.columns.hash(&mut hasher);
+    }
+    hasher.finish()
 }
 
 /// Take the entry of a key out of a list
@@ -381,9 +513,11 @@ fn take_entry<K: PartialEq, V>(list: &mut Vec<(K, V)>, key: &K) -> Option<V> {
 /// The runtime of DashQL, see the module
 #[wasm_bindgen]
 pub struct Runtime {
-    platform: JsPlatform,
+    pub(crate) platform: JsPlatform,
     computations: ComputeService<JsPlatform>,
     connections: Rc<Connections>,
+    pub(crate) workbooks: Rc<Workbooks>,
+    storage: Rc<StorageState>,
     taken: RefCell<Taken>,
 }
 
@@ -471,15 +605,6 @@ impl Runtime {
             RuntimeAction::ResetConnection => ConnectionAction::Reset,
             RuntimeAction::SwitchConnectorType { connector_type } => ConnectionAction::SwitchConnectorType(connector_type.into()),
             RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
-            RuntimeAction::RestoreCatalogUpdates { described, touched_relations } => {
-                let connection = connections.registry.borrow().get(&connection_id).cloned();
-                if let Some(connection) = connection {
-                    let touched = touched_relations.map(|names| names.into_iter().map(Into::into).collect());
-                    connection.state.borrow_mut().restore_catalog_updates(described, touched);
-                    self.platform.signal(true);
-                }
-                return Ok(DispatchOutcome::changed(true));
-            }
             RuntimeAction::SetupStep { step, value, channel } => {
                 let value = value.map(|value| value.0).unwrap_or(serde_json::Value::Null);
                 match setup_action_from_json(connector, &step, &value, channel) {
@@ -627,14 +752,219 @@ impl Runtime {
                     Err(error) => DispatchOutcome::failed(error_text(error)),
                 })
             }
-            RuntimeAction::SetConnectionReferences { references } => {
-                let changed = connections.registry.borrow_mut().set_references(references);
-                if changed {
-                    connections.platform.signal(true);
-                }
-                Ok(DispatchOutcome::changed(changed))
+            RuntimeAction::CreateWorkbook { workbook_id, connection_id, name, ephemeral, original_file_name } => {
+                let created = self.workbooks.create(NewWorkbook {
+                    workbook_id,
+                    connection_id,
+                    name,
+                    ephemeral: ephemeral.unwrap_or(false),
+                    original_file_name,
+                });
+                Ok(match created {
+                    Ok(id) => DispatchOutcome::created(SliceId::Text(id)),
+                    Err(error) => DispatchOutcome::failed(error_text(error)),
+                })
             }
+            RuntimeAction::DeleteWorkbook { workbook_id } => Ok(DispatchOutcome::changed(self.workbooks.delete(&workbook_id))),
             _ => Ok(DispatchOutcome::failed("the action doesn't apply to the runtime")),
+        }
+    }
+}
+
+impl Runtime {
+    /// The changed slices of the workbooks, their scripts, their derived views and the storage
+    fn take_workbook_changes(&self, taken: &mut Taken, changes: &mut Vec<SliceChange>) {
+        let list = Workbooks::list_key(&self.workbooks.entries.borrow(), self.workbooks.invalid_revision.get());
+        if taken.workbook_list.map(|(taken, _)| taken) != Some(list) {
+            let revision = next_revision();
+            changes.push(SliceChange { kind: WORKBOOK_LIST.into(), id: SliceId::Text(ROOT.into()), revision: Some(revision) });
+            taken.workbook_list = Some((list, revision));
+        }
+
+        let mut held = std::mem::take(&mut taken.workbooks);
+        let mut held_derived = std::mem::take(&mut taken.derived);
+        let mut scripts = BTreeMap::new();
+        let entries = self.workbooks.entries.borrow();
+        for entry in entries.iter() {
+            let previous = take_entry(&mut held, &entry.id);
+            let previous_derived = take_entry(&mut held_derived, &entry.id);
+            let Ok(workbook) = entry.workbook.try_borrow() else {
+                // A workbook that is busy keeps its slices until the next changes
+                if let Some(previous) = previous {
+                    taken.workbooks.push((entry.id.clone(), previous));
+                }
+                if let Some(previous) = previous_derived {
+                    taken.derived.push((entry.id.clone(), previous));
+                }
+                continue;
+            };
+            let revision = workbook.revision();
+            let slice = match previous {
+                Some((taken_revision, key, slice)) if taken_revision == revision => (revision, key, slice),
+                previous => {
+                    let key = workbooks::workbook_key(entry, &workbook);
+                    match previous {
+                        Some((_, taken_key, slice)) if taken_key == key => (revision, key, slice),
+                        _ => {
+                            let slice = next_revision();
+                            changes.push(SliceChange { kind: WORKBOOK.into(), id: SliceId::Text(entry.id.clone()), revision: Some(slice) });
+                            (revision, key, slice)
+                        }
+                    }
+                }
+            };
+            taken.workbooks.push((entry.id.clone(), slice));
+            for script in workbook.scripts() {
+                let key = script.key();
+                if taken.scripts.get(&key) != Some(&script.revision()) {
+                    changes.push(SliceChange { kind: SCRIPT.into(), id: SliceId::Number(key.into()), revision: Some(script.revision()) });
+                }
+                scripts.insert(key, script.revision());
+            }
+            let inputs = derived_key(&workbook);
+            let derived = match previous_derived {
+                Some((taken_inputs, slice)) if taken_inputs == inputs => (taken_inputs, slice),
+                _ => {
+                    let slice = next_revision();
+                    changes.push(SliceChange { kind: WORKBOOK_DERIVED.into(), id: SliceId::Text(entry.id.clone()), revision: Some(slice) });
+                    (inputs, slice)
+                }
+            };
+            taken.derived.push((entry.id.clone(), derived));
+        }
+        drop(entries);
+        for (id, _) in held {
+            changes.push(SliceChange { kind: WORKBOOK.into(), id: SliceId::Text(id), revision: None });
+        }
+        for (id, _) in held_derived {
+            changes.push(SliceChange { kind: WORKBOOK_DERIVED.into(), id: SliceId::Text(id), revision: None });
+        }
+        for key in taken.scripts.keys() {
+            if !scripts.contains_key(key) {
+                changes.push(SliceChange { kind: SCRIPT.into(), id: SliceId::Number((*key).into()), revision: None });
+            }
+        }
+        taken.scripts = scripts;
+
+        let revision = self.storage.revision();
+        if taken.storage.map(|(taken, _)| taken) != Some(revision) {
+            let slice = next_revision();
+            changes.push(SliceChange { kind: STORAGE.into(), id: SliceId::Text(ROOT.into()), revision: Some(slice) });
+            taken.storage = Some((revision, slice));
+        }
+    }
+
+    /// The derived view of a workbook: the checked references, the dataflow and the inputs of its scripts
+    fn derived_view(&self, workbook_id: &str) -> Option<WorkbookDerivedView> {
+        let workbook = self.workbooks.get(workbook_id)?;
+        let workbook = workbook.try_borrow().ok()?;
+        let (references, dataflow, inputs) = workbook.with_planner(|request, sessions| {
+            (crate::pack_reference_check(request, sessions), crate::pack_dataflow(request, sessions), crate::pack_inputs(request))
+        });
+        Some(WorkbookDerivedView {
+            workbook_id: workbook_id.to_string(),
+            script_keys: workbook.scripts().iter().map(|script| script.key()).collect(),
+            references: FlatBufferBytes(references),
+            dataflow: FlatBufferBytes(dataflow),
+            inputs: FlatBufferBytes(inputs),
+        })
+    }
+
+    /// The connection of the scripts on a connection by id
+    fn script_connection(&self, connection_id: &str) -> Result<Rc<dashql_core_runtime::workbook::ScriptConnection>, String> {
+        self.workbooks.script_connection(connection_id).map_err(error_text)
+    }
+
+    /// Apply an action to a workbook
+    fn dispatch_workbook(&self, workbook_id: String, action: RuntimeAction) -> Result<DispatchOutcome, JsError> {
+        use dashql_core_runtime::workbook::WorkbookAction as A;
+        let workbooks = &self.workbooks;
+        let connection = |id: &str| self.script_connection(id);
+        let action = match action {
+            RuntimeAction::CreateScript { index, text, base, connection_id } => {
+                let connection = match connection_id.as_deref().map(connection).transpose() {
+                    Ok(connection) => connection,
+                    Err(error) => return Ok(DispatchOutcome::failed(error)),
+                };
+                A::CreateScript { index: index.map(|index| index as usize), text, base, connection }
+            }
+            RuntimeAction::DeleteScript { file_name } => A::DeleteScript { file_name },
+            RuntimeAction::RenameScript { file_name, new_name } => A::RenameScript { file_name, new_name },
+            RuntimeAction::ReorderScripts { order } => A::ReorderScripts { order },
+            RuntimeAction::SetScriptText { script_key, text, with_diff } => {
+                A::SetScriptText { key: script_key, text, with_diff: with_diff.unwrap_or(false) }
+            }
+            RuntimeAction::AcceptPendingDiff { script_key } => A::AcceptPendingDiff { key: script_key },
+            RuntimeAction::RejectPendingDiff { script_key } => A::RejectPendingDiff { key: script_key },
+            RuntimeAction::SetScriptVisSpec { script_key, spec } => A::SetScriptVisSpec { key: script_key, spec },
+            RuntimeAction::SetWorkbookInput { name, literal, script_keys } => A::SetWorkbookInput { name, literal, keys: script_keys },
+            RuntimeAction::AnalyzeOutdatedScript { script_key } => A::AnalyzeOutdatedScript { key: script_key },
+            RuntimeAction::RegisterQuery { script_key, query_id } => A::RegisterQuery { key: script_key, query_id },
+            RuntimeAction::RegisterScriptResult { script_key, query_id } => A::RegisterScriptResult { key: script_key, query_id },
+            RuntimeAction::RenameWorkbook { name } => A::RenameWorkbook { name },
+            RuntimeAction::SetScriptConnection { file_name, connection_id } => match connection(&connection_id) {
+                Ok(connection) => A::SetScriptConnection { file_name, connection },
+                Err(error) => return Ok(DispatchOutcome::failed(error)),
+            },
+            RuntimeAction::SetPendingConnection { connection_id } => match connection(&connection_id) {
+                Ok(connection) => A::SetPendingConnection { connection },
+                Err(error) => return Ok(DispatchOutcome::failed(error)),
+            },
+            RuntimeAction::ReplaceConnection { from, into } => match connection(&into) {
+                Ok(into) => A::ReplaceConnection { from, into },
+                Err(error) => return Ok(DispatchOutcome::failed(error)),
+            },
+            RuntimeAction::DetachConnection { from, into } => match connection(&into) {
+                Ok(into) => A::DetachConnection { from, into },
+                Err(error) => return Ok(DispatchOutcome::failed(error)),
+            },
+            RuntimeAction::SetWorkbookAttachments { files } => A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() },
+            RuntimeAction::SetAttachmentColumns { file_name, stamp, columns } => {
+                A::SetAttachmentColumns { file_name, stamp, columns: columns.into_iter().map(std::sync::Arc::<str>::from).collect() }
+            }
+            RuntimeAction::RenameAttachment { file_name, new_file_name } => A::RenameAttachment { file_name, new_file_name },
+            RuntimeAction::SetCloudLink { link } => {
+                let link = link.map(|link| link.0).filter(|link| !link.is_null());
+                return Ok(self.workbook_outcome(&workbook_id, workbooks.set_cloud_link(&workbook_id, link)));
+            }
+            RuntimeAction::ReplaceFromStorage { scripts } => {
+                let scripts = scripts
+                    .into_iter()
+                    .map(|script| StoredScriptRef {
+                        name: script.name,
+                        sql: script.sql,
+                        connection_id: script.connection_id,
+                        unresolved_connection_id: script.unresolved_connection_id,
+                    })
+                    .collect();
+                return Ok(self.workbook_outcome(&workbook_id, workbooks.replace_from_storage(&workbook_id, scripts)));
+            }
+            _ => return Ok(DispatchOutcome::failed("the action doesn't apply to a workbook")),
+        };
+        Ok(self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action)))
+    }
+
+    /// A restore over the storage of the platform that writes through the writer of the runtime
+    fn app_restore(&self) -> AppRestore<JsStorage, JsStorage> {
+        let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
+        let platform = self.platform.clone();
+        let options = RestoreOptions {
+            offset_unit: Workbooks::offset_unit(),
+            new_catalog: Box::new(|| CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone))),
+            new_uuid: Box::new(move || platform.random_uuid().unwrap_or_default()),
+        };
+        AppRestore::new(host, self.workbooks.writer.clone(), options)
+    }
+
+    /// The outcome of an action of a workbook, a failure is logged
+    fn workbook_outcome(&self, workbook_id: &str, outcome: dashql_core::error::Result<bool>) -> DispatchOutcome {
+        match outcome {
+            Ok(changed) => DispatchOutcome::changed(changed),
+            Err(error) => {
+                let details = [("workbookId", workbook_id), ("error", error.what())];
+                self.platform.log_on(LogLevel::Warn, "Workbook script action failed", &details, "workbook_scripts");
+                DispatchOutcome::failed(error_text(error))
+            }
         }
     }
 }
@@ -646,9 +976,19 @@ impl Runtime {
         let platform = JsPlatform::new(platform);
         let computations = ComputeService::new(platform.clone());
         let connections = Connections::new(platform.clone(), computations.clone());
-        // A runtime starts with an empty list of connections, the host reads none until it changes
-        let taken = Taken { list: Some((Vec::new(), 0)), ..Taken::default() };
-        Runtime { computations, connections, platform, taken: RefCell::new(taken) }
+        let storage = Rc::new(StorageState::default());
+        let host = JsStorage { platform: platform.clone(), state: storage.clone() };
+        let writer = dashql_core_runtime::storage::StorageWriter::new(host, WORKBOOK_FORMAT_VERSION.unsigned_abs());
+        *connections.writer.borrow_mut() = Some(writer.clone());
+        let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
+        // A runtime starts without connections, workbooks and writes, the host reads none until they change
+        let taken = Taken {
+            list: Some((Vec::new(), 0)),
+            workbook_list: Some((Workbooks::list_key(&[], 0), 0)),
+            storage: Some((0, 0)),
+            ..Taken::default()
+        };
+        Runtime { computations, connections, workbooks, storage, platform, taken: RefCell::new(taken) }
     }
 
     /// The slices that changed and the effects on handles since the last call
@@ -764,6 +1104,7 @@ impl Runtime {
                 changes.push(SliceChange { kind: QUERY.into(), id: SliceId::Number(query_id), revision: None });
             }
         }
+        self.take_workbook_changes(taken, &mut changes);
         to_js(&ChangeSet { changes, effects })
     }
 
@@ -835,6 +1176,49 @@ impl Runtime {
                     .collect();
                 views_to_js(&views)
             }
+            WORKBOOK_LIST => {
+                let ids = Self::text_ids(&ids, "workbook list")?;
+                let list = self.workbooks.list_view();
+                let views: Vec<Option<WorkbookListView>> = ids.iter().map(|id| (id == ROOT).then(|| list.clone())).collect();
+                views_to_js(&views)
+            }
+            WORKBOOK => {
+                let ids = Self::text_ids(&ids, "workbook")?;
+                let views: Vec<Option<WorkbookView>> = ids.iter().map(|id| self.workbooks.view(id)).collect();
+                views_to_js(&views)
+            }
+            SCRIPT => {
+                let ids = Self::number_ids(&ids, "key of a script")?;
+                let known: Vec<Option<WorkbookScriptKeys>> = if known.is_undefined() || known.is_null() {
+                    Vec::new()
+                } else {
+                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the scripts: {e}")))?
+                };
+                let views: Vec<Option<WorkbookScriptView>> = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, key)| {
+                        let key = u32::try_from(*key).ok()?;
+                        let (workbook_id, workbook) = self.workbooks.of_script(key)?;
+                        let workbook = workbook.try_borrow().ok()?;
+                        let script = workbook.script(key)?;
+                        let known = known.get(i).cloned().flatten().unwrap_or_default();
+                        Some(WorkbookScriptView::new(&workbook_id, script, &known))
+                    })
+                    .collect();
+                views_to_js(&views)
+            }
+            WORKBOOK_DERIVED => {
+                let ids = Self::text_ids(&ids, "workbook")?;
+                let views: Vec<Option<WorkbookDerivedView>> = ids.iter().map(|id| self.derived_view(id)).collect();
+                views_to_js(&views)
+            }
+            STORAGE => {
+                let ids = Self::text_ids(&ids, "storage")?;
+                let view = self.storage.view();
+                let views: Vec<Option<StorageView>> = ids.iter().map(|id| (id == ROOT).then(|| view.clone())).collect();
+                views_to_js(&views)
+            }
             _ => Err(JsError::new(&format!("the runtime has no views of the kind {kind}"))),
         }
     }
@@ -871,6 +1255,7 @@ impl Runtime {
             }
             Target::Connection(connection_id) => self.dispatch_connection(connection_id, action)?,
             Target::History(name) => self.dispatch_query(QueryOwner::History(name), action)?,
+            Target::Workbook(workbook_id) => self.dispatch_workbook(workbook_id, action)?,
             Target::App => self.dispatch_app(action)?,
         };
         to_js(&outcome)
@@ -977,12 +1362,6 @@ impl Runtime {
         })
     }
 
-    /// The writer of the storage that the changes and the saves of the connections write through
-    #[wasm_bindgen(js_name = setStorageWriter)]
-    pub fn set_storage_writer(&self, writer: &StorageWriter) {
-        *self.connections.writer.borrow_mut() = Some(writer.runtime());
-    }
-
     /// Save a connection: the given params, else its draft, else its params. The app manifest first, then the params
     /// are committed and the copies of the workbooks that use the connection are written. The view of the connection
     /// shows the save while it runs.
@@ -1085,13 +1464,6 @@ impl Runtime {
         state.function_script().map(|script| script.to_text())
     }
 
-    /// Adopt a restored connection, returns its id. None if the restore handed it out already.
-    #[wasm_bindgen(js_name = adoptRestoredConnection)]
-    pub fn adopt_restored_connection(&self, restored: &mut RestoredState, index: u32) -> Result<Option<String>, JsError> {
-        let Some(state) = restored.take_connection(index) else { return Ok(None) };
-        self.connections.adopt(state).map(Some).map_err(|e| JsError::new(e.what()))
-    }
-
     /// The recording of the progress of a query as JSON, none without structured progress
     #[wasm_bindgen(js_name = queryProgressRecording)]
     pub fn query_progress_recording(&self, query_id: f64) -> Result<Option<String>, JsError> {
@@ -1122,6 +1494,261 @@ impl Runtime {
         }
     }
 
+    // The workbooks
+
+    /// Report the update of an event that the editor of a script applied to the shared session of the script itself, a
+    /// packed `EditorUpdate`. An update of a session that the script no longer holds is dropped. An editor that holds no
+    /// staged rewrite of the script accepted it with an edit. Returns whether the workbook changed.
+    #[wasm_bindgen(js_name = reportEditorUpdate)]
+    pub fn report_editor_update(&self, workbook_id: &str, script_key: u32, session_id: u32, update: &[u8], holds_pending_diff: bool) -> Result<bool, JsError> {
+        use dashql_core_runtime::workbook::WorkbookAction;
+        let Some(workbook) = self.workbooks.get(workbook_id) else {
+            return Ok(false);
+        };
+        let pending_diff = {
+            let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
+            let script = workbook.script(script_key).filter(|script| Rc::as_ptr(script.session()) as usize as u32 == session_id);
+            match script {
+                Some(script) => script.pending_diff().is_some(),
+                None => {
+                    let key = script_key.to_string();
+                    let details = [("workbookId", workbook_id), ("scriptKey", key.as_str())];
+                    self.platform.log_on(LogLevel::Warn, "Dropping editor update of an unknown script or a stale session", &details, "workbook_scripts");
+                    return Ok(false);
+                }
+            }
+        };
+        let update = flatbuffers::root::<dashql_buffers::editor::EditorUpdate>(update).map_err(|_| JsError::new("invalid editor update"))?.unpack();
+        let mut changed = self.workbooks.apply(workbook_id, WorkbookAction::ReportEditorUpdate { key: script_key, update, accepts_diff: false }).map_err(js_error)?;
+        // The editor accepted or rejected the staged rewrite, a rejection restored the text already
+        if pending_diff && !holds_pending_diff {
+            changed |= self.workbooks.apply(workbook_id, WorkbookAction::AcceptPendingDiff { key: script_key }).map_err(js_error)?;
+        }
+        Ok(changed)
+    }
+
+    /// The session of a script, shared with its workbook. Every call returns a new handle. None for an unknown script.
+    #[wasm_bindgen(js_name = scriptSession)]
+    pub fn script_session(&self, script_key: u32) -> Option<ScriptSession> {
+        let (_, workbook) = self.workbooks.of_script(script_key)?;
+        let workbook = workbook.try_borrow().ok()?;
+        let script = workbook.script(script_key)?;
+        Some(ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone() })
+    }
+
+    /// Is the analysis of a script outdated, also by a change that the workbook missed?
+    #[wasm_bindgen(js_name = isAnalysisOutdated)]
+    pub fn is_analysis_outdated(&self, script_key: u32) -> bool {
+        let Some((_, workbook)) = self.workbooks.of_script(script_key) else { return false };
+        workbook.try_borrow().ok().and_then(|workbook| workbook.script(script_key).map(|script| script.is_analysis_outdated())).unwrap_or(false)
+    }
+
+    /// Give the table parameters of a workbook to a session that is no script of it, e.g. the draft of the composer.
+    /// Returns whether the analysis of the session is outdated by them.
+    #[wasm_bindgen(js_name = attachTableParameters)]
+    pub fn attach_table_parameters(&self, workbook_id: &str, session: &ScriptSession) -> Result<bool, JsError> {
+        let Some(workbook) = self.workbooks.get(workbook_id) else { return Ok(false) };
+        let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
+        let mut session = session.inner.try_borrow_mut().map_err(|_| JsError::new("the session is busy"))?;
+        Ok(workbook.attach_table_parameters(&mut session))
+    }
+
+    /// Does storage hold the scripts of a workbook as they are: the same files in the same order, on the same
+    /// connections, with the same texts?
+    #[wasm_bindgen(js_name = matchesStoredScripts)]
+    pub fn matches_stored_scripts(&self, workbook_id: &str, scripts: Vec<Ts<StoredScriptView>>) -> Result<bool, JsError> {
+        let Some(workbook) = self.workbooks.get(workbook_id) else { return Ok(false) };
+        let scripts = scripts
+            .iter()
+            .map(|script| {
+                let script = script.to_rust()?;
+                Ok(StoredScriptRef { name: script.name, sql: script.sql, connection_id: script.connection_id, unresolved_connection_id: script.unresolved_connection_id })
+            })
+            .collect::<Result<Vec<_>, JsError>>()?;
+        let stored = self.workbooks.stored_scripts(scripts).map_err(js_error)?;
+        let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
+        Ok(workbook.matches_stored_scripts(&stored))
+    }
+
+    // The restore
+
+    /// Restore the connections of the app manifest and the workbooks of the workbook tree of the storage of the
+    /// platform. The runtime takes them, the writes after the restore go through its writer. The listener hears the
+    /// progress. Resolves with what was restored, the workbooks that were refused a load are in the list of the
+    /// workbooks.
+    #[wasm_bindgen(unchecked_return_type = "Promise<RestoreOutcome>")]
+    pub fn restore(&self, #[wasm_bindgen(unchecked_param_type = "((progress: RestoreProgress) => void) | null")] progress: JsValue) -> Result<Promise, JsError> {
+        let listener = if progress.is_undefined() || progress.is_null() {
+            None
+        } else {
+            Some(progress.dyn_into::<Function>().map_err(|_| JsError::new("the progress of a restore is no function"))?)
+        };
+        self.storage.set_progress(listener);
+        let restore = self.app_restore();
+        let connections = self.connections.clone();
+        let workbooks = self.workbooks.clone();
+        let storage = self.storage.clone();
+        Ok(future_to_promise(async move {
+            let state = restore.restore().await;
+            storage.set_progress(None);
+            let invalid: Vec<RestoredInvalidWorkbook> = state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect();
+            workbooks.set_invalid(invalid);
+            let outcome = adopt_restored(&connections, &workbooks, state);
+            Ok(to_js(&outcome).map_err(JsValue::from)?.into())
+        }))
+    }
+
+    /// Restore a single workbook of the storage, e.g. one that was imported or the folder of a run, against the
+    /// connections of the runtime. Unknown connections are registered. A workbook with the same id is replaced. Rejects
+    /// if the workbook can't be restored.
+    #[wasm_bindgen(js_name = restoreWorkbook, unchecked_return_type = "Promise<RestoreOutcome>")]
+    pub fn restore_workbook(&self, workbook_id: String) -> Result<Promise, JsError> {
+        use dashql_core_runtime::restore::{script_connection_of, LiveConnection};
+        use dashql_core_runtime::workbook_format::restore::RestoreConnection;
+        let mut restore = self.app_restore();
+        for (connection_id, connection) in self.connections.registry.borrow().connections() {
+            let state = connection.state.borrow();
+            let params = serde_json::from_str(&state.params().to_json()).unwrap_or(serde_json::Value::Null);
+            let connection = RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None, cache_query_results: None };
+            restore.add_live_connection(LiveConnection { connection, script_connection: script_connection_of(&state) });
+        }
+        let connections = self.connections.clone();
+        let workbooks = self.workbooks.clone();
+        Ok(future_to_promise(async move {
+            match restore.restore_workbook(&workbook_id).await {
+                Ok(state) => {
+                    let outcome = adopt_restored(&connections, &workbooks, state);
+                    Ok(to_js(&outcome).map_err(JsValue::from)?.into())
+                }
+                Err(error) => Err(JsError::new(&error.message).into()),
+            }
+        }))
+    }
+
+    /// Delete the files of a workbook that was refused a load and drop it from the list
+    #[wasm_bindgen(js_name = deleteInvalidWorkbook, unchecked_return_type = "Promise<void>")]
+    pub fn delete_invalid_workbook(&self, workbook_id: String) -> Promise {
+        let deletion = self.workbooks.writer.delete_workbook(&workbook_id);
+        let workbooks = self.workbooks.clone();
+        future_to_promise(async move {
+            let deleted = deletion.await;
+            if let Err(error) = &deleted {
+                let details = [("workbookId", workbook_id.as_str()), ("error", error.message())];
+                workbooks.platform.log_on(LogLevel::Error, "Failed to delete invalid workbook", &details, "workbook_scripts");
+            }
+            workbooks.forget_invalid(&workbook_id);
+            Ok(JsValue::UNDEFINED)
+        })
+    }
+
+    // The storage writer
+
+    /// Run a command of the storage writer: flush, settle, pause and resume it or the writes of a workbook, delete a
+    /// workbook. `flushWorkbook` resolves whether every write of the workbook reached the storage, `deleteWorkbook`
+    /// rejects with what the storage failed with.
+    #[wasm_bindgen(js_name = storage, unchecked_return_type = "Promise<unknown>")]
+    pub fn storage_command(&self, command: Ts<StorageCommand>) -> Result<Promise, JsError> {
+        let command = from_js(&command)?;
+        let writer = self.workbooks.writer.clone();
+        let done = |value: JsValue| Promise::resolve(&value);
+        Ok(match command {
+            StorageCommand::Flush => {
+                let flush = writer.flush();
+                future_to_promise(async move {
+                    flush.await;
+                    Ok(JsValue::UNDEFINED)
+                })
+            }
+            StorageCommand::Settle => {
+                let settle = writer.settle();
+                future_to_promise(async move {
+                    settle.await;
+                    Ok(JsValue::UNDEFINED)
+                })
+            }
+            StorageCommand::Pause => {
+                writer.pause();
+                done(JsValue::UNDEFINED)
+            }
+            StorageCommand::Resume => {
+                writer.resume();
+                done(JsValue::UNDEFINED)
+            }
+            StorageCommand::PauseWorkbook { workbook_id } => {
+                writer.pause_workbook(&workbook_id);
+                done(JsValue::UNDEFINED)
+            }
+            StorageCommand::ResumeWorkbook { workbook_id } => {
+                writer.resume_workbook(&workbook_id);
+                self.storage.release_held(&workbook_id);
+                self.platform.signal(true);
+                done(JsValue::UNDEFINED)
+            }
+            StorageCommand::ReviveWorkbook { workbook_id } => {
+                writer.revive_workbook(&workbook_id);
+                done(JsValue::UNDEFINED)
+            }
+            StorageCommand::FlushWorkbook { workbook_id } => {
+                let flush = writer.flush_workbook(&workbook_id);
+                future_to_promise(async move { Ok(JsValue::from_bool(flush.await)) })
+            }
+            StorageCommand::DeleteWorkbook { workbook_id } => {
+                let deletion = writer.delete_workbook(&workbook_id);
+                future_to_promise(async move { deletion.await.map(|_| JsValue::UNDEFINED).map_err(|error| error_value(&error)) })
+            }
+            StorageCommand::CancelPendingWrites { workbook_id, keys } => {
+                match keys {
+                    Some(keys) => writer.cancel_pending_writes(&keys),
+                    None => writer.cancel_pending_writes_for_workbook(&workbook_id),
+                }
+                done(JsValue::UNDEFINED)
+            }
+            StorageCommand::CancelPendingConnectionFileWrites { connection_id } => {
+                writer.cancel_pending_connection_file_writes(&connection_id);
+                done(JsValue::UNDEFINED)
+            }
+        })
+    }
+
+    /// Schedule a write that no state of the runtime describes, e.g. a script that the user kept over a change outside
+    /// the app or the attachments of a workbook on disk. A durable write runs right away. Resolves with its outcome.
+    #[wasm_bindgen(js_name = storageWrite, unchecked_return_type = "Promise<StorageWriteOutcome>")]
+    pub fn storage_write(&self, key: &str, task: Ts<StorageWriteTask>, debounce_ms: f64, durable: bool) -> Result<Promise, JsError> {
+        let task = StorageWriteTask::read(task)?.try_into()?;
+        let writer = &self.workbooks.writer;
+        let result = if durable { writer.write_durable(key, task) } else { writer.write(key, task, debounce_ms) };
+        Ok(future_to_promise(async move { outcome_value(result.await) }))
+    }
+
+    /// The pending keys of the writes of a workbook, or all of them, in the order they were scheduled
+    #[wasm_bindgen(js_name = storagePendingKeys)]
+    pub fn storage_pending_keys(&self, workbook_id: Option<String>) -> Vec<String> {
+        let writer = &self.workbooks.writer;
+        match workbook_id {
+            Some(workbook_id) => writer.pending_keys_for_workbook(&workbook_id),
+            None => writer.pending_keys(),
+        }
+    }
+
+    /// The statistics of the writes by key, `[key, statistics]` in the order the keys were first written. They change
+    /// with every write and are no slice: a view of them reads them when it shows them.
+    #[wasm_bindgen(js_name = storageStatistics, unchecked_return_type = "[string, StorageWriteStatistics][]")]
+    pub fn storage_statistics(&self) -> Result<JsValue, JsError> {
+        views_to_js(&self.storage.statistics())
+    }
+
+    /// The latest generation of the keys of a workbook
+    #[wasm_bindgen(js_name = storageWriteGenerations)]
+    pub fn storage_write_generations(&self, workbook_id: &str) -> Result<Ts<StorageWriteGenerations>, JsError> {
+        to_js(&StorageWriteGenerations(self.workbooks.writer.write_generations_for_workbook(workbook_id)))
+    }
+
+    /// Are the writes of a workbook held, e.g. after one of its scripts changed outside the app?
+    #[wasm_bindgen(js_name = isWorkbookPaused)]
+    pub fn is_workbook_paused(&self, workbook_id: &str) -> bool {
+        self.workbooks.writer.is_workbook_paused(workbook_id)
+    }
+
     /// Stop the runtime: the queries are cancelled, the computations go, their runs are cancelled and their tables
     /// released with the next changes
     pub fn destroy(&self) {
@@ -1142,6 +1769,29 @@ impl Runtime {
             let deleted = self.computations.delete_computation(id);
             self.settle(deleted);
         }
+    }
+}
+
+/// Take what a restore restored: the connections and the workbooks join the runtime
+fn adopt_restored(connections: &Rc<Connections>, workbooks: &Rc<Workbooks>, state: RestoredState) -> RestoreOutcome {
+    let mut connection_ids = Vec::with_capacity(state.connections.len());
+    for connection in state.connections {
+        match connections.adopt(connection) {
+            Ok(id) => connection_ids.push(id),
+            Err(error) => connections.log(LogLevel::Error, "Failed to take a restored connection", &[("error", error.what())]),
+        }
+    }
+    let mut workbook_ids = Vec::with_capacity(state.workbooks.len());
+    for restored in state.workbooks {
+        workbook_ids.push(restored.workbook.id().to_string());
+        workbooks.adopt(restored.workbook, restored.metadata);
+    }
+    workbooks.sync_references();
+    RestoreOutcome {
+        connection_ids,
+        workbook_ids,
+        invalid_workbooks: state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect(),
+        progress: RestoreProgressView::from(&state.progress),
     }
 }
 

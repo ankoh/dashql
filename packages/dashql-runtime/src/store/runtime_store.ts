@@ -1,6 +1,7 @@
 import type * as core from '@ankoh/dashql-core';
 
 import type { HandleTable } from './handles.js';
+import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
 import { RevisionCache, share } from './projection.js';
 import type { UpdateScheduler } from './store.js';
 
@@ -10,30 +11,46 @@ export interface RuntimeViewSource {
     views<K extends core.ViewKind>(kind: K, ids: core.ViewId<K>[], known?: core.KnownKeys<K>): (core.ViewOf<K> | null)[];
 }
 
-/// The payloads of the views of a kind that the store holds: the keys it reads a view with, and the view with the
-/// payloads that didn't cross again
-interface ViewPayloads<K extends core.ViewKind> {
-    known(views: (core.ViewOf<K> | null)[]): core.KnownKeys<K>;
-    merge(prev: core.ViewOf<K> | null, next: core.ViewOf<K>): core.ViewOf<K>;
+/// What the store keeps of a slice of a kind: the view as it is, shared with the previous one, or what a projection
+/// builds from it, e.g. a script with its payloads read
+export interface ViewProjection<K extends core.ViewKind, P> {
+    /// The keys of the payloads that the store holds of the slices, their bytes don't cross again
+    known?(ids: core.ViewId<K>[], held: (P | null)[]): core.KnownKeys<K>;
+    /// The projection of a fresh view of a slice
+    project(id: core.ViewId<K>, prev: P | null, view: core.ViewOf<K>): P;
+    /// The slice is gone
+    release?(id: core.ViewId<K>, prev: P): void;
 }
 
+/// The kinds that the store keeps as projections
+export interface ProjectedViews {
+    script: ScriptData;
+    workbook: WorkbookScripts;
+    workbookDerived: WorkbookDerived;
+}
+
+/// What the store keeps of a slice of a kind
+export type StoreView<K extends core.ViewKind> = K extends keyof ProjectedViews ? ProjectedViews[K] : core.ViewOf<K>;
+
 /// The structured progress of a query crosses only when its revision or the version of its structure moved
-const QUERY_PAYLOADS: ViewPayloads<'query'> = {
-    known: views => views.map(view => {
+const QUERY_PROJECTION: ViewProjection<'query', core.QueryView> = {
+    known: (_ids, views) => views.map(view => {
         const profile = view?.latestProgressUpdate?.profile;
         return profile == null ? null : { revision: profile.revision, structureVersion: profile.structureVersion };
     }),
-    merge: (prev, next) => {
+    project: (_id, prev, next) => {
         const held = prev?.latestProgressUpdate?.profile;
         const profile = next.latestProgressUpdate?.profile;
-        if (held == null || profile == null) return next;
-        if (profile.structure == null && held.structureVersion === profile.structureVersion) profile.structure = held.structure;
-        if (profile.execution == null && held.revision === profile.revision) profile.execution = held.execution;
-        return next;
+        if (held != null && profile != null) {
+            if (profile.structure == null && held.structureVersion === profile.structureVersion) profile.structure = held.structure;
+            if (profile.execution == null && held.revision === profile.revision) profile.execution = held.execution;
+        }
+        return share(prev, next);
     },
 };
 
-const PAYLOADS: { [K in core.ViewKind]?: ViewPayloads<K> } = { query: QUERY_PAYLOADS };
+/// The projections of the kinds, the others are shared with their previous view
+type Projections = { [K in core.ViewKind]?: ViewProjection<K, StoreView<K>> };
 
 /// The views of the runtime as the app reads them (docs/wip/runtime_api.md).
 ///
@@ -44,6 +61,8 @@ const PAYLOADS: { [K in core.ViewKind]?: ViewPayloads<K> } = { query: QUERY_PAYL
 /// revision doesn't move. Reads never cross into the module.
 export class RuntimeStore {
     private source: RuntimeViewSource | null = null;
+    /// The projections of the kinds
+    private projections: Projections = { query: QUERY_PROJECTION };
     /// The views of the last flush, a revision cache per kind
     private readonly caches = new Map<core.ViewKind, RevisionCache<core.ViewId<core.ViewKind>, unknown>>();
     /// The subscribers by slice
@@ -61,9 +80,10 @@ export class RuntimeStore {
         private readonly scheduler: UpdateScheduler,
     ) { }
 
-    /// Read the views of a runtime
-    attach(source: RuntimeViewSource): void {
+    /// Read the views of a runtime, with the projections of kinds besides the queries
+    attach(source: RuntimeViewSource, projections: Projections = {}): void {
         this.source = source;
+        this.projections = { query: QUERY_PROJECTION, ...projections };
     }
 
     /// The runtime changed, flush at the end of the task when urgent, before the next frame otherwise
@@ -111,23 +131,20 @@ export class RuntimeStore {
                 this.caches.set(kind, cache);
             }
             const present = list.filter(change => change.revision != null);
-            const payloads = PAYLOADS[kind] as ViewPayloads<typeof kind> | undefined;
+            const projection = this.projections[kind] as ViewProjection<typeof kind, unknown> | undefined;
             const ids = present.map(change => change.id) as core.ViewId<typeof kind>[];
-            const known = payloads?.known(ids.map(id => (cache.peek(id) ?? null) as core.ViewOf<typeof kind> | null));
+            const known = projection?.known?.(ids, ids.map(id => cache.peek(id) ?? null));
             const views = present.length === 0 ? [] : source.views(kind, ids, known);
             present.forEach((change, i) => {
                 const view = views[i] ?? null;
                 if (view == null) {
-                    cache.delete(change.id);
+                    this.release(kind, change.id);
                 } else {
-                    cache.get(change.id, change.revision!, prev => {
-                        const merged = payloads == null ? view : payloads.merge(prev as core.ViewOf<typeof kind> | null, view);
-                        return share(prev, merged);
-                    });
+                    cache.get(change.id, change.revision!, prev => projection == null ? share(prev, view) : projection.project(change.id, prev, view));
                 }
             });
             for (const change of list) {
-                if (change.revision == null) cache.delete(change.id);
+                if (change.revision == null) this.release(kind, change.id);
                 notify.push(sliceKey(kind, change.id));
             }
             this.maps.delete(kind);
@@ -140,9 +157,18 @@ export class RuntimeStore {
         }
     };
 
+    /// Forget a slice that is gone
+    private release(kind: core.ViewKind, id: core.ViewId<core.ViewKind>): void {
+        const cache = this.caches.get(kind);
+        const prev = cache?.peek(id);
+        if (prev === undefined) return;
+        cache!.delete(id);
+        (this.projections[kind] as ViewProjection<typeof kind, unknown> | undefined)?.release?.(id, prev);
+    }
+
     /// The view of a slice of the last flush, null without one
-    get<K extends core.ViewKind>(kind: K, id: core.ViewId<K>): core.ViewOf<K> | null {
-        return (this.caches.get(kind)?.peek(id) as core.ViewOf<K> | undefined) ?? null;
+    get<K extends core.ViewKind>(kind: K, id: core.ViewId<K>): StoreView<K> | null {
+        return (this.caches.get(kind)?.peek(id) as StoreView<K> | undefined) ?? null;
     }
 
     /// The ids of the slices of a kind of the last flush
@@ -152,7 +178,7 @@ export class RuntimeStore {
 
     /// The views of all slices of a kind of the last flush by id. The map keeps its identity until a slice of the kind
     /// changes.
-    all<K extends core.ViewKind>(kind: K): ReadonlyMap<core.ViewId<K>, core.ViewOf<K>> {
+    all<K extends core.ViewKind>(kind: K): ReadonlyMap<core.ViewId<K>, StoreView<K>> {
         let map = this.maps.get(kind);
         if (map == null) {
             map = new Map();
@@ -160,7 +186,7 @@ export class RuntimeStore {
             for (const id of cache?.keys() ?? []) map.set(id, cache!.peek(id));
             this.maps.set(kind, map);
         }
-        return map as Map<core.ViewId<K>, core.ViewOf<K>>;
+        return map as Map<core.ViewId<K>, StoreView<K>>;
     }
 
     /// Subscribe to the changes of a slice

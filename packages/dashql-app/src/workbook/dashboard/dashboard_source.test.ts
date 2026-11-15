@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { markdownTemplate, persistDashboardPlacement, setDashboardRenderer } from './dashboard_source.js';
 
 describe('dashboard source persistence', () => {
@@ -17,7 +17,7 @@ describe('dashboard source persistence', () => {
 
         expect(rewriteVisBoard).toHaveBeenCalledWith(1, 2, 4, 5, 3);
         expect(modify).toHaveBeenCalledWith({
-            type: SET_SCRIPT_TEXT,
+            kind: 'setScriptText',
             value: { scriptKey: 7, text: 'rewritten sql', withDiff: false },
         });
     });
@@ -34,7 +34,7 @@ describe('dashboard source persistence', () => {
         persistDashboardPlacement(script, { id: 7, section: 'scripts', row: 2, column: 4, width: 5, height: 1 }, modify);
 
         expect(rewriteVisBoard).toHaveBeenCalledWith(2, 2, 4, 5, 1);
-        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'rewritten sql', withDiff: false } });
+        expect(modify).toHaveBeenCalledWith({ kind: 'setScriptText', value: { scriptKey: 7, text: 'rewritten sql', withDiff: false } });
     });
 
     it('writes the renderer of a collapsed card', () => {
@@ -48,7 +48,7 @@ describe('dashboard source persistence', () => {
 
         expect(setDashboardRenderer(script, 'table', '', modify)).toBe(true);
         expect(rewriteVisRenderer).toHaveBeenCalledWith(0, 'table', '');
-        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: '/* @vis table */\nselect 1', withDiff: true } });
+        expect(modify).toHaveBeenCalledWith({ kind: 'setScriptText', value: { scriptKey: 7, text: '/* @vis table */\nselect 1', withDiff: true } });
 
         // A rewrite that fails leaves the script unchanged
         const failing = { ...script, scriptSession: { rewriteVisRenderer: () => { throw new Error('nope'); } } } as unknown as ScriptData;
@@ -68,7 +68,7 @@ describe('dashboard source persistence', () => {
 
         expect(setDashboardRenderer(script, null, '', modify)).toBe(true);
         expect(rewriteVisRenderer).toHaveBeenCalledWith(1, null, '');
-        expect(modify).toHaveBeenCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 7, text: 'select 1', withDiff: true } });
+        expect(modify).toHaveBeenCalledWith({ kind: 'setScriptText', value: { scriptKey: 7, text: 'select 1', withDiff: true } });
     });
 
     it('starts a Markdown template with the columns', () => {

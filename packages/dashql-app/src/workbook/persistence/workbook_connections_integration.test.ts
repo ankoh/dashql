@@ -2,18 +2,15 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import type { ConnectionReferences, ConnectionRegistry } from '../../connections/connection_registry.js';
-import { workbookConnectionReferences } from '../scripts/workbook_scripts_registry.js';
+import type { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { writePortableWorkbookFresh } from '../../storage/workbook_import_transaction.js';
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
 import { makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import { ANALYZE_OUTDATED_SCRIPT, reduceWorkbookScripts, REORDER_SCRIPTS, scriptConnectionOf, workbookConnectionIds, SET_SCRIPT_CONNECTION, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { restoreAppState, type RestoredAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
+import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { applyConnectionImportPlan, planConnectionImport, type ConnectionImportChoice } from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
 import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
@@ -21,8 +18,9 @@ import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
-import { workbookScriptsResolutionChanged } from '@ankoh/dashql-runtime/workbook/persistence/workbook_script_connections';
+import type { StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
+import { workbookFormat } from '@ankoh/dashql-runtime/storage/workbook_format';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -31,7 +29,8 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 /// A script names its connection in the workbook file, the app resolves it to a connection of the
 /// registry and analyzes the script in the catalog of that connection. These tests drive the real
 /// core, the storage writer and the loader through the round trips that touch that mapping:
-/// restoring, changing the connection of a script, reloading, exporting and importing.
+/// restoring, changing the connection of a script, reloading, exporting and importing. Every restore starts a new
+/// runtime on the storage.
 
 /// A storage backend that owns a workbook registry, the backend of the composite storage
 class Registry extends WorkbookTestRegistry {}
@@ -68,56 +67,55 @@ async function seedWorkbook(backend: WorkbookTestBackend, scripts: SeedScript[],
 
 describe('Workbook connections', () => {
     let dql: core.DashQL;
-    const logger = new TestLogger();
 
     beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
     afterEach(() => { dql.resetUnsafe(); });
 
-    /// A restored app state with the runtime that holds its connections, every restoration starts a new app
-    type RestoredApp = RestoredAppState & { runtime: CoreRuntime };
-    const restore = async (backend: WorkbookTestBackend | CompositeStorageBackend): Promise<RestoredApp> => {
-        const runtime = testCoreRuntime(dql);
-        return { ...await restoreAppState(runtime, backend, logger, () => {}), runtime };
+    /// A runtime that restored the storage, every restoration starts a new app
+    interface RestoredApp {
+        runtime: CoreRuntime;
+    }
+    const restore = async (backend: StorageBackend): Promise<RestoredApp> => {
+        const testRuntime = await createTestRuntime({ storage: backend });
+        await testRuntime.restore();
+        return { runtime: testRuntime.coreRuntime };
     };
 
-    /// The restored scripts of the workbook
+    /// The restored workbook
     const workbookOf = (restored: RestoredApp, workbookId: string = WORKBOOK_ID): WorkbookScripts => {
-        const workbook = restored.workbookScripts.get(workbookId);
+        const workbook = restored.runtime.workbook(workbookId);
         if (workbook == null) throw new Error(`Workbook ${workbookId} was not restored`);
         return workbook;
     };
-    const scriptOf = (workbook: WorkbookScripts, fileName: string) => workbook.scripts[workbook.scriptRefs[fileName].scriptId];
+    const scriptOf = (restored: RestoredApp, fileName: string, workbookId: string = WORKBOOK_ID): ScriptData =>
+        restored.runtime.store.get('script', workbookOf(restored, workbookId).scriptRefs[fileName].scriptId)!;
 
     /// Load every script into the catalog of its connection like a workbook run does and return the
     /// number of table references of a script that its catalog does not resolve
-    const unresolvedReferences = (workbook: WorkbookScripts, fileName: string): number => {
-        for (const name of workbook.scriptOrder) {
-            const session = scriptOf(workbook, name).scriptSession;
+    const unresolvedReferences = (restored: RestoredApp, fileName: string): number => {
+        for (const name of workbookOf(restored).scriptOrder) {
+            const session = scriptOf(restored, name).scriptSession;
             session.analyze();
             session.loadIntoCatalog();
         }
-        const script = scriptOf(workbook, fileName);
+        const script = scriptOf(restored, fileName);
         script.scriptSession.analyze();
         return dql.planSession({
-            connections: [{ id: script.connection.connectionId, local: false, catalog: script.connection.catalog }],
+            connections: [{ id: script.connectionId, local: false, catalog: restored.runtime.catalog(script.connectionId)! }],
             scripts: [{ name: '', connection: 0, session: script.scriptSession }],
         }).unpack().unresolvedReferences.length;
     };
 
     /// Run a script on another connection the way the connection picker of the feed does
-    const pickConnection = (workbook: WorkbookScripts, restored: RestoredApp, writer: StorageWriter, fileName: string, connectionId: string): WorkbookScripts =>
-        reduceWorkbookScripts(workbook, {
-            type: SET_SCRIPT_CONNECTION,
-            value: { fileName, connection: scriptConnectionOf(restored.runtime, restored.runtime.connection(connectionId)!) },
-        }, writer, logger);
+    const pickConnection = (restored: RestoredApp, fileName: string, connectionId: string): void => {
+        restored.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'setScriptConnection', value: { fileName, connectionId } });
+        restored.runtime.flush();
+    };
 
     /// The connection registry of a restored app state
     const connectionRegistryOf = (restored: RestoredApp): ConnectionRegistry => restored.runtime.registry();
-    /// The connections that the workbooks of a restored app state use
-    const referencesOf = (restored: RestoredApp): ConnectionReferences => workbookConnectionReferences({
-        current: { workbookScriptsMap: restored.workbookScripts, workbookScriptsByConnection: restored.workbookScriptsByConnection, invalidWorkbooks: restored.invalidWorkbooks },
-        subscribe: () => () => { },
-    });
+    /// The workbooks that use a connection
+    const workbooksOf = (restored: RestoredApp, connectionId: string): string[] => restored.runtime.connection(connectionId)?.workbooks ?? [];
 
     describe('restoring', () => {
         it('analyzes every script in the catalog of its own connection', async () => {
@@ -131,12 +129,12 @@ describe('Workbook connections', () => {
             const workbook = workbookOf(restored);
 
             expect(workbook.scriptOrder).toEqual(['define.sql', 'remote.sql', 'local.sql']);
-            expect(scriptOf(workbook, 'remote.sql').connection.catalog).toBe(restored.runtime.catalog(TRINO_ID));
-            expect(scriptOf(workbook, 'local.sql').connection.catalog).toBe(restored.runtime.catalog(HYPER_ID));
+            expect(scriptOf(restored, 'remote.sql').connectionId).toBe(TRINO_ID);
+            expect(scriptOf(restored, 'local.sql').connectionId).toBe(HYPER_ID);
             // Only the scripts of the same connection see the table
-            expect(unresolvedReferences(workbook, 'local.sql')).toBe(0);
-            expect(unresolvedReferences(workbook, 'remote.sql')).toBe(1);
-            expect(restored.workbookScriptsByConnection.get(TRINO_ID)).toEqual([WORKBOOK_ID]);
+            expect(unresolvedReferences(restored, 'local.sql')).toBe(0);
+            expect(unresolvedReferences(restored, 'remote.sql')).toBe(1);
+            expect(workbooksOf(restored, TRINO_ID)).toEqual([WORKBOOK_ID]);
         });
 
         it('attaches a known connection that a script uses but the workbook file misses', async () => {
@@ -144,7 +142,7 @@ describe('Workbook connections', () => {
             await seedWorkbook(backend, [['remote.sql', TRINO_ID, 'select 1']], [HYPER_ID]);
             const restored = await restore(backend);
 
-            expect(scriptOf(workbookOf(restored), 'remote.sql').connection.connectionId).toBe(TRINO_ID);
+            expect(scriptOf(restored, 'remote.sql').connectionId).toBe(TRINO_ID);
             // The connection that no script uses is left out
             expect(backend.workbooks.get(WORKBOOK_ID)!.connections.map(connection => connection.connectionId)).toEqual([TRINO_ID]);
         });
@@ -155,7 +153,7 @@ describe('Workbook connections', () => {
             backend.connections = backend.connections!.filter(entry => entry.id !== TRINO_ID);
             const restored = await restore(backend);
 
-            expect(scriptOf(workbookOf(restored), 'remote.sql').connection.connectionId).toBe(TRINO_ID);
+            expect(scriptOf(restored, 'remote.sql').connectionId).toBe(TRINO_ID);
             expect(restored.runtime.connection(TRINO_ID)?.connectorType).toBe(ConnectorType.TRINO);
             expect(backend.connections!.map(entry => entry.id)).toEqual([HYPER_ID, TRINO_ID]);
         });
@@ -181,26 +179,23 @@ describe('Workbook connections', () => {
             ], [HYPER_ID]);
             // The workbook file misses the trino connection, the loader attaches it
             let restored = await restore(backend);
-            let workbook = workbookOf(restored);
-            expect(unresolvedReferences(workbook, 'query.sql')).toBe(1);
+            expect(unresolvedReferences(restored, 'query.sql')).toBe(1);
 
-            const writer = new StorageWriter(logger, backend);
-            const moved = scriptOf(workbook, 'query.sql').scriptKey;
-            workbook = pickConnection(workbook, restored, writer, 'query.sql', HYPER_ID);
+            const moved = scriptOf(restored, 'query.sql').scriptKey;
+            pickConnection(restored, 'query.sql', HYPER_ID);
             // The script keeps its key and now resolves the table of its new catalog
-            expect(scriptOf(workbook, 'query.sql').scriptKey).toBe(moved);
-            expect(scriptOf(workbook, 'query.sql').connection.connectionId).toBe(HYPER_ID);
-            expect(unresolvedReferences(workbook, 'query.sql')).toBe(0);
-            await writer.flush();
+            expect(scriptOf(restored, 'query.sql').scriptKey).toBe(moved);
+            expect(scriptOf(restored, 'query.sql').connectionId).toBe(HYPER_ID);
+            expect(unresolvedReferences(restored, 'query.sql')).toBe(0);
+            await restored.runtime.storage.flush();
             expect(backend.workbooks.get(WORKBOOK_ID)!.scripts).toEqual([
                 { name: 'define.sql', connectionId: HYPER_ID },
                 { name: 'query.sql', connectionId: HYPER_ID },
             ]);
 
             restored = await restore(backend);
-            workbook = workbookOf(restored);
-            expect(scriptOf(workbook, 'query.sql').connection.connectionId).toBe(HYPER_ID);
-            expect(unresolvedReferences(workbook, 'query.sql')).toBe(0);
+            expect(scriptOf(restored, 'query.sql').connectionId).toBe(HYPER_ID);
+            expect(unresolvedReferences(restored, 'query.sql')).toBe(0);
         });
 
         it('takes the declarations of a moved script out of the catalog it leaves', async () => {
@@ -211,30 +206,28 @@ describe('Workbook connections', () => {
                 ['remote.sql', TRINO_ID, 'select id from items'],
             ]);
             const restored = await restore(backend);
-            let workbook = workbookOf(restored);
-            const writer = new StorageWriter(logger, backend);
-            for (const name of workbook.scriptOrder) {
-                workbook = reduceWorkbookScripts(workbook, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptOf(workbook, name).scriptKey }, writer, logger);
+            for (const name of workbookOf(restored).scriptOrder) {
+                restored.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'analyzeOutdatedScript', value: { scriptKey: scriptOf(restored, name).scriptKey } });
             }
-            expect(unresolvedReferences(workbook, 'local.sql')).toBe(0);
-            expect(scriptOf(workbook, 'local.sql').analysisOutdated).toBe(false);
-            expect(scriptOf(workbook, 'remote.sql').analysisOutdated).toBe(false);
+            restored.runtime.flush();
+            expect(unresolvedReferences(restored, 'local.sql')).toBe(0);
+            expect(scriptOf(restored, 'local.sql').analysisOutdated).toBe(false);
+            expect(scriptOf(restored, 'remote.sql').analysisOutdated).toBe(false);
 
-            workbook = pickConnection(workbook, restored, writer, 'define.sql', TRINO_ID);
-            expect(scriptOf(workbook, 'local.sql').analysisOutdated).toBe(true);
-            expect(scriptOf(workbook, 'remote.sql').analysisOutdated).toBe(true);
-            expect(unresolvedReferences(workbook, 'local.sql')).toBe(1);
-            expect(unresolvedReferences(workbook, 'remote.sql')).toBe(0);
-            await writer.flush();
+            pickConnection(restored, 'define.sql', TRINO_ID);
+            expect(scriptOf(restored, 'local.sql').analysisOutdated).toBe(true);
+            expect(scriptOf(restored, 'remote.sql').analysisOutdated).toBe(true);
+            expect(unresolvedReferences(restored, 'local.sql')).toBe(1);
+            expect(unresolvedReferences(restored, 'remote.sql')).toBe(0);
+            await restored.runtime.storage.flush();
         });
 
         it('attaches a newly picked connection to the workbook file before the scripts reference it', async () => {
             const backend = new WorkbookTestBackend();
             await seedWorkbook(backend, [['query.sql', HYPER_ID, 'select 1']], [HYPER_ID]);
             const restored = await restore(backend);
-            const writer = new StorageWriter(logger, backend);
-            pickConnection(workbookOf(restored), restored, writer, 'query.sql', TRINO_ID);
-            await writer.flush();
+            pickConnection(restored, 'query.sql', TRINO_ID);
+            await restored.runtime.storage.flush();
 
             const stored = backend.workbooks.get(WORKBOOK_ID)!;
             // The workbook holds the connections of its scripts only
@@ -248,16 +241,14 @@ describe('Workbook connections', () => {
             // A hand-edited workbook file names a connection without a copy
             await seedWorkbook(backend, [['query.sql', unknownId, 'select 1'], ['other.sql', HYPER_ID, 'select 2']], [HYPER_ID]);
             const restored = await restore(backend);
-            let workbook = workbookOf(restored);
-            const query = scriptOf(workbook, 'query.sql');
-            expect(query.connection.connectionId).toBe(HYPER_ID);
+            const query = scriptOf(restored, 'query.sql');
+            expect(query.connectionId).toBe(HYPER_ID);
             expect(query.unresolvedConnectionId).toBe(unknownId);
             expect(backend.workbooks.get(WORKBOOK_ID)!.scripts[0]).toEqual({ name: 'query.sql', connectionId: unknownId });
 
             // Other changes of the script list keep the reference
-            const writer = new StorageWriter(logger, backend);
-            workbook = reduceWorkbookScripts(workbook, { type: REORDER_SCRIPTS, value: ['other.sql', 'query.sql'] }, writer, logger);
-            await writer.flush();
+            restored.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'reorderScripts', value: { order: ['other.sql', 'query.sql'] } });
+            await restored.runtime.storage.flush();
             expect(backend.workbooks.get(WORKBOOK_ID)!.scripts).toEqual([
                 { name: 'other.sql', connectionId: HYPER_ID },
                 { name: 'query.sql', connectionId: unknownId },
@@ -265,8 +256,8 @@ describe('Workbook connections', () => {
             expect(backend.workbooks.get(WORKBOOK_ID)!.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
 
             // Picking a connection replaces it
-            pickConnection(workbook, restored, writer, 'query.sql', TRINO_ID);
-            await writer.flush();
+            pickConnection(restored, 'query.sql', TRINO_ID);
+            await restored.runtime.storage.flush();
             expect(backend.workbooks.get(WORKBOOK_ID)!.scripts[1]).toEqual({ name: 'query.sql', connectionId: TRINO_ID });
         });
 
@@ -274,17 +265,16 @@ describe('Workbook connections', () => {
             const backend = new WorkbookTestBackend();
             await seedWorkbook(backend, [['query.sql', TRINO_ID, 'select 1']]);
             let restored = await restore(backend);
-            expect(referencesOf(restored).workbooksOf(TRINO_ID)).toEqual([WORKBOOK_ID]);
+            expect(workbooksOf(restored, TRINO_ID)).toEqual([WORKBOOK_ID]);
 
-            const writer = new StorageWriter(logger, backend);
-            const workbook = pickConnection(workbookOf(restored), restored, writer, 'query.sql', HYPER_ID);
+            pickConnection(restored, 'query.sql', HYPER_ID);
             // The references follow the scripts right away
-            expect(workbookConnectionIds(workbook)).not.toContain(TRINO_ID);
-            await writer.flush();
+            expect(workbookConnectionIds(workbookOf(restored))).not.toContain(TRINO_ID);
+            await restored.runtime.storage.flush();
             expect(backend.workbooks.get(WORKBOOK_ID)!.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
 
             restored = await restore(backend);
-            expect(referencesOf(restored).workbooksOf(TRINO_ID)).toEqual([]);
+            expect(workbooksOf(restored, TRINO_ID)).toEqual([]);
         });
     });
 
@@ -307,12 +297,12 @@ describe('Workbook connections', () => {
                 { name: 'remote.sql', sql: 'select 2' },
             ])!;
             expect(stored.created.map(connection => connection.connectionId)).toEqual([TRINO_ID]);
-            expect(stored.snapshot.scripts.map(script => [script.name, script.connection.connectionId])).toEqual([
+            expect(stored.scripts.map(script => [script.name, script.connectionId])).toEqual([
                 ['query.sql', HYPER_ID],
                 ['remote.sql', TRINO_ID],
             ]);
             // The workbook file stays as it was pulled
-            expect(workbookScriptsResolutionChanged(pulled, stored.workbook)).toBe(false);
+            expect(workbookFormat().resolutionChanged(pulled, stored.workbook)).toBe(false);
         });
     });
 
@@ -374,9 +364,8 @@ describe('Workbook connections', () => {
             await writePortableWorkbookFresh(backend, { ...bundle, workbook }, IMPORTED_WORKBOOK_ID);
 
             const restored = await restore(backend);
-            const imported = workbookOf(restored, IMPORTED_WORKBOOK_ID);
-            expect(scriptOf(imported, 'define.sql').connection.connectionId).toBe(HYPER_ID);
-            const remote = scriptOf(imported, 'remote.sql').connection.connectionId;
+            expect(scriptOf(restored, 'define.sql', IMPORTED_WORKBOOK_ID).connectionId).toBe(HYPER_ID);
+            const remote = scriptOf(restored, 'remote.sql', IMPORTED_WORKBOOK_ID).connectionId;
             expect(remote).not.toBe(TRINO_ID);
             expect(restored.runtime.connection(remote)?.connectorType).toBe(ConnectorType.TRINO);
             expect(restored.runtime.catalog(remote)).not.toBe(restored.runtime.catalog(TRINO_ID));
@@ -398,10 +387,9 @@ describe('Workbook connections', () => {
             await writePortableWorkbookFresh(backend, { ...bundle, workbook }, IMPORTED_WORKBOOK_ID);
 
             const restored = await restore(backend);
-            const imported = workbookOf(restored, IMPORTED_WORKBOOK_ID);
             // Both workbooks share the connections of the app
-            expect(scriptOf(imported, 'remote.sql').connection.catalog).toBe(restored.runtime.catalog(TRINO_ID));
-            expect(referencesOf(restored).workbooksOf(TRINO_ID)).toEqual([WORKBOOK_ID, IMPORTED_WORKBOOK_ID]);
+            expect(scriptOf(restored, 'remote.sql', IMPORTED_WORKBOOK_ID).connectionId).toBe(TRINO_ID);
+            expect(workbooksOf(restored, TRINO_ID)).toEqual([WORKBOOK_ID, IMPORTED_WORKBOOK_ID]);
         });
     });
 });

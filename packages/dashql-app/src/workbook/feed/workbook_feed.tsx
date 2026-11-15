@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type * as dashql from '@ankoh/dashql-core';
 import * as styles from './workbook_feed.module.css';
 
 
@@ -26,25 +27,29 @@ import {
 
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
-import { createdScriptRef, deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
-import { getScriptRefs, newScriptConnection, WorkbookScripts, type ScriptData, CREATE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
+import { getScriptRefs, newScriptConnection, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
+import { useWorkbookDerived, useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
+import { useScriptRunServices } from '../scripts/use_workbook_execution.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { renameAttachment } from '@ankoh/dashql-runtime/workbook/attachments/attachment_rename';
 import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql-runtime/workbook/attachments/workbook_attachments';
 import { useQueryExecutor } from '../../connections/query_executor.js';
-import { type ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { checkWorkbookScriptReferences } from '../scripts/script_reference_reports.js';
-import { workbookTableParameters } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import { computeScriptResultCacheKey, scriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
+import { computeScriptResultCacheKey } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { groupWorkbookAttachmentListWrites, REFRESH_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { groupWorkbookAttachmentListWrites } from '@ankoh/dashql-runtime/storage/runtime_storage';
+import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import type { WorkbookTableParameters } from './workbook_composer.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
@@ -114,6 +119,12 @@ export interface WorkbookFeedDependencies {
     useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
     runWorkbookScript: typeof runWorkbookScript;
+    useScriptRunServices: typeof useScriptRunServices;
+    useWorkbookScriptMap: typeof useWorkbookScriptMap;
+    useWorkbookDerived: typeof useWorkbookDerived;
+    useLiveWorkbookReader: typeof useLiveWorkbookReader;
+    useLiveScriptReader: typeof useLiveScriptReader;
+    useComposerCore: typeof useComposerCore;
     useAgentSession: typeof useAgentSession;
     useAgentConnect: typeof useAgentConnect;
     WorkbookComposer: typeof WorkbookComposer;
@@ -130,6 +141,12 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useAttachPendingConnection,
     useKeyEvents,
     runWorkbookScript,
+    useScriptRunServices,
+    useWorkbookScriptMap,
+    useWorkbookDerived,
+    useLiveWorkbookReader,
+    useLiveScriptReader,
+    useComposerCore,
     useAgentSession,
     useAgentConnect,
     WorkbookComposer,
@@ -169,6 +186,32 @@ function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
 
+/// What the composer drafts with: the core, the catalog of the connection of the next script, the table parameters of
+/// the workbook and the connector of the connection. Null until the runtime has its core.
+export interface ComposerCore {
+    instance: dashql.DashQL;
+    catalog: dashql.DashQLCatalog;
+    tableParameters: WorkbookTableParameters;
+    connectorType: ConnectorType | null;
+}
+
+/// The core of the composer of a workbook on the connection of its next script
+export function useComposerCore(workbookId: string, connectionId: string | null): ComposerCore | null {
+    const runtime = useOptionalCoreRuntime();
+    const instance = runtime?.core ?? null;
+    return React.useMemo(() => {
+        if (runtime == null || instance == null || connectionId == null) return null;
+        const catalog = runtime.catalog(connectionId);
+        if (catalog == null) return null;
+        return {
+            instance,
+            catalog,
+            tableParameters: { attach: session => runtime.attachTableParameters(workbookId, session) },
+            connectorType: runtime.connection(connectionId)?.connectorType as ConnectorType | undefined ?? null,
+        };
+    }, [runtime, instance, workbookId, connectionId]);
+}
+
 /// Wobble moves more and faster on the empty workbook than by default, it is the only thing moving on the page
 const LANDING_WOBBLE_TUNING: Partial<WobbleTuning> = { wobble: 0.03, wobbleSpeed: 2 };
 
@@ -182,13 +225,17 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const keywordCase = getKeywordCase(config?.settings);
     const scriptRefs = props.workbookScripts.scriptRefs;
     const scriptOrder = props.workbookScripts.scriptOrder;
+    // The scripts of the workbook, every keystroke changes one of them
+    const scripts = dependencies.useWorkbookScriptMap(props.workbookScripts.workbookId);
+    const scriptsRef = React.useRef(scripts);
+    scriptsRef.current = scripts;
     // The estimated heights only matter until a row is measured.
     // Don't re-estimate (and copy the text of every script) whenever any script changes.
     const canonicalEntries = React.useMemo(
         () => getScriptRefs(props.workbookScripts).map(entry => ({
             ...entry,
             estimatedHeight: estimateFeedEntryHeight(
-                props.workbookScripts.scripts[entry.scriptId]?.scriptSession.getText() ?? '',
+                scriptsRef.current[entry.scriptId]?.scriptSession.getText() ?? '',
             ),
         })),
         [scriptRefs, scriptOrder],
@@ -212,7 +259,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const cachingConnections = [...(props.scriptConnections ?? defaultConnections).values()]
         .filter(connectionCachesQueryResults).map(connection => connection.connectionId).join(',');
     // The composer drafts the next script, on the connection that the script will run on
-    const composerConnection = newScriptConnection(props.workbookScripts, null);
+    const composerConnectionId = newScriptConnection(props.workbookScripts, null);
+    const composerCore = dependencies.useComposerCore(props.workbookScripts.workbookId, composerConnectionId);
     const storageReader = dependencies.useStorageReader();
     const queryResultCache = useQueryResultCache();
     const storageWriter = dependencies.useStorageWriter();
@@ -230,7 +278,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const refreshDataFiles = React.useCallback(() => {
         markWorkbookAttachmentsChanged(workbookId);
         setDataFilesVersion(version => version + 1);
-        void storageWriter.write(groupWorkbookAttachmentListWrites(workbookId), { type: REFRESH_WORKBOOK_ATTACHMENTS, value: workbookId });
+        void storageWriter.write(groupWorkbookAttachmentListWrites(workbookId), { type: 'refreshWorkbookAttachments', workbookId });
     }, [workbookId, storageWriter]);
     React.useEffect(() => {
         const cancel = new AbortController();
@@ -239,7 +287,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 // The scripts read the Parquet attachments as table parameters
                 const known = latestAttachments.current ?? [];
                 if (!sameWorkbookAttachments(known, readWorkbookAttachments(files, known))) {
-                    void props.modifyWorkbookScripts({ type: SET_WORKBOOK_ATTACHMENTS, value: files });
+                    props.modifyWorkbookScripts({ kind: 'setWorkbookAttachments', value: { files: files.map(file => ({ name: file.name, sizeBytes: file.sizeBytes, mtimeMs: file.mtimeMs })) } });
                 }
                 setDataFiles({
                     workbookId, files: [...files].sort((a, b) => (
@@ -308,6 +356,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const statusLabeler = useConnectionLabeler();
     useWorkbookStatusSources({
         workbookScripts: props.workbookScripts,
+        scripts,
         connections: props.scriptConnections ?? defaultConnections,
         label: statusLabeler,
         execution: execution.state,
@@ -324,12 +373,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     // The workbook scripts change with every keystroke and the connection with every query event.
     // Callbacks read the latest values through a ref to stay stable for the memoized feed rows.
-    const latest = React.useRef({ workbookScripts: props.workbookScripts, scriptConnections });
-    latest.current = { workbookScripts: props.workbookScripts, scriptConnections };
+    const latest = React.useRef({ workbookScripts: props.workbookScripts, scripts, scriptConnections });
+    latest.current = { workbookScripts: props.workbookScripts, scripts, scriptConnections };
     const pickScriptConnection = dependencies.usePickScriptConnection(props.workbookScripts.workbookId, props.modifyWorkbookScripts);
     // New scripts, and the draft of the composer, use the default connection of the workbook
     const pickPendingConnection = dependencies.usePickPendingConnection(props.modifyWorkbookScripts);
-    const attachPendingConnection = dependencies.useAttachPendingConnection(props.workbookScripts.instance, props.modifyWorkbookScripts);
+    const attachPendingConnection = dependencies.useAttachPendingConnection(props.modifyWorkbookScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
@@ -346,19 +395,20 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const executeQuery = dependencies.useQueryExecutor();
     // A script runs while its own connection is online
     const isScriptOnline = (scriptData: ScriptData) =>
-        latest.current.scriptConnections.get(scriptData.connection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
+        latest.current.scriptConnections.get(scriptData.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
+    const scriptRunServices = dependencies.useScriptRunServices();
 
     // Refresh: run the script and the scripts it references without reading cached results, their results become the
     // newest files of their keys. Resolves the script by feed file name.
     const handleRerunEntry = React.useCallback((fileName: string) => {
-        const { workbookScripts } = latest.current;
+        const { workbookScripts, scripts } = latest.current;
         const entry = workbookScripts.scriptRefs[fileName];
-        const scriptData = entry != null ? workbookScripts.scripts[entry.scriptId] : undefined;
-        if (scriptData == null || !isScriptOnline(scriptData)) {
+        const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
+        if (scriptData == null || scriptRunServices == null || !isScriptOnline(scriptData)) {
             return;
         }
-        dependencies.runWorkbookScript(workbookScripts, scriptData, executeQuery, props.modifyWorkbookScripts, logger, { refresh: true });
-    }, [props.modifyWorkbookScripts, executeQuery, logger]);
+        dependencies.runWorkbookScript(scriptRunServices, workbookScripts, scriptData, executeQuery, props.modifyWorkbookScripts, logger, { refresh: true });
+    }, [props.modifyWorkbookScripts, scriptRunServices, executeQuery, logger]);
 
     // The cache indicator of a script looks up the key of a run of the script in the cache of the app
     const lookupCachedResult = React.useCallback(async (cacheKey: string) => (await queryResultCache?.lookup(cacheKey))?.cachedAtMs ?? null, [queryResultCache]);
@@ -366,43 +416,42 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // The cache key of a run of a script, the cache indicator of the script checks it. A new callback when connections
     // start or stop caching, so the indicators check again.
     const computeCacheKey = React.useCallback(async (scriptKey: number) => {
-        const { workbookScripts } = latest.current;
-        const scriptData = workbookScripts.scripts[scriptKey];
-        if (scriptData == null) return null;
-        return await computeScriptResultCacheKey(scriptRunServices(workbookScripts.instance), workbookScripts, scriptData);
-    }, [cachingConnections]);
+        const { workbookScripts, scripts } = latest.current;
+        const scriptData = scripts[scriptKey];
+        if (scriptData == null || scriptRunServices == null) return null;
+        return await computeScriptResultCacheKey(scriptRunServices, workbookScripts, scriptData);
+    }, [cachingConnections, scriptRunServices]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
-        const { workbookScripts } = latest.current;
+        const { workbookScripts, scripts } = latest.current;
         const entry = workbookScripts.scriptRefs[fileName];
-        const scriptData = entry != null ? workbookScripts.scripts[entry.scriptId] : undefined;
-        if (scriptData == null || !isScriptOnline(scriptData)) return;
-        dependencies.runWorkbookScript(workbookScripts, scriptData, executeQuery, props.modifyWorkbookScripts, logger);
-    }, [executeQuery, props.modifyWorkbookScripts, logger]);
+        const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
+        if (scriptData == null || scriptRunServices == null || !isScriptOnline(scriptData)) return;
+        dependencies.runWorkbookScript(scriptRunServices, workbookScripts, scriptData, executeQuery, props.modifyWorkbookScripts, logger);
+    }, [executeQuery, scriptRunServices, props.modifyWorkbookScripts, logger]);
 
     const handleDelete = React.useCallback((fileName: string) => {
-        void deleteScript(selection, latest.current.workbookScripts, props.modifyWorkbookScripts, fileName);
+        deleteScript(selection, latest.current.workbookScripts, props.modifyWorkbookScripts, fileName);
     }, [props.modifyWorkbookScripts, selection]);
 
     // A rename rewrites the references in the other scripts and in the draft of the composer
     const ownDraftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     const composerRenameScriptRef = props.draftRenameRef ?? ownDraftRenameRef;
+    const readScript = dependencies.useLiveScriptReader();
     const handleRename = React.useCallback((oldFileName: string, newFileName: string) => {
-        void renameScript(props.workbookScripts, props.modifyWorkbookScripts, oldFileName, newFileName, composerRenameScriptRef.current);
-    }, [props.workbookScripts, props.modifyWorkbookScripts, composerRenameScriptRef]);
+        renameScript(props.workbookScripts, props.modifyWorkbookScripts, oldFileName, newFileName, composerRenameScriptRef.current,
+            key => readScript(key)?.fileName ?? null);
+    }, [props.workbookScripts, props.modifyWorkbookScripts, composerRenameScriptRef, readScript]);
 
     // Move a script one position up/down within the workbook by swapping it with its neighbour in the
-    // feed order and dispatching the new full order to REORDER_SCRIPTS.
+    // feed order and dispatching the new full order.
     const moveScript = React.useCallback((fileName: string, delta: number) => {
         const order = [...latest.current.workbookScripts.scriptOrder];
         const from = order.indexOf(fileName);
         const to = from + delta;
         if (from < 0 || to < 0 || to >= order.length) return;
         [order[from], order[to]] = [order[to], order[from]];
-        props.modifyWorkbookScripts({
-            type: REORDER_SCRIPTS,
-            value: order,
-        });
+        props.modifyWorkbookScripts({ kind: 'reorderScripts', value: { order } });
     }, [props.modifyWorkbookScripts]);
     const handleMoveUp = React.useCallback((fileName: string) => moveScript(fileName, -1), [moveScript]);
     const handleMoveDown = React.useCallback((fileName: string) => moveScript(fileName, 1), [moveScript]);
@@ -415,44 +464,35 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         if (over == null || active.id === over.id) return;
         const reordered = reorderFeedEntries(entries, active.id, over.id);
         if (reordered == null) return;
-        // Keep the dropped order visible while REORDER_SCRIPTS updates the order of the workbook.
+        // Keep the dropped order visible while the reorder updates the order of the workbook.
         // Stable script ids let React and dnd-kit retain card identity without forcing a render while
         // dnd-kit still has the active drag transform applied.
         setDisplayEntries({ source: canonicalEntries, entries: reordered });
-        props.modifyWorkbookScripts({
-            type: REORDER_SCRIPTS,
-            value: reordered.map(entry => entry.fileName),
-        });
+        props.modifyWorkbookScripts({ kind: 'reorderScripts', value: { order: reordered.map(entry => entry.fileName) } });
     }, [entries, props.modifyWorkbookScripts, canonicalEntries]);
 
     const handleFormat = React.useCallback((scriptKey: number, text: string) => {
-        props.modifyWorkbookScripts({
-            type: SET_SCRIPT_TEXT,
-            value: { scriptKey, text, withDiff: true },
-        });
+        props.modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey, text, withDiff: true } });
     }, [props.modifyWorkbookScripts]);
 
     // A snippet replaces the text of a script, a script with text shows the replacement as a diff to accept or reject
     const handleApplySnippet = React.useCallback((scriptKey: number, text: string) => {
-        const priorText = props.workbookScripts.scripts[scriptKey]?.scriptSession.getText() ?? '';
-        props.modifyWorkbookScripts({
-            type: SET_SCRIPT_TEXT,
-            value: { scriptKey, text, withDiff: priorText.trim().length > 0 },
-        });
-    }, [props.modifyWorkbookScripts, props.workbookScripts.scripts]);
+        const priorText = latest.current.scripts[scriptKey]?.scriptSession.getText() ?? '';
+        props.modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey, text, withDiff: priorText.trim().length > 0 } });
+    }, [props.modifyWorkbookScripts]);
 
     // The chart builder of a card stages every edit of its spec for the `@vis vegalite` tag as a diff to accept or reject
     const handleSetVisSpec = React.useCallback((scriptKey: number, spec: string) => {
-        props.modifyWorkbookScripts({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec } });
+        props.modifyWorkbookScripts({ kind: 'setScriptVisSpec', value: { scriptKey, spec } });
     }, [props.modifyWorkbookScripts]);
 
     // Accept / reject a staged rewrite from the feed. Accept keeps the new text; reject restores the
     // prior text and re-analyzes.
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
-        props.modifyWorkbookScripts({ type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        props.modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });
     }, [props.modifyWorkbookScripts]);
     const handleRejectDiff = React.useCallback((scriptKey: number) => {
-        props.modifyWorkbookScripts({ type: REJECT_PENDING_DIFF, value: scriptKey });
+        props.modifyWorkbookScripts({ kind: 'rejectPendingDiff', value: { scriptKey } });
     }, [props.modifyWorkbookScripts]);
     const handleToggleResultExpanded = React.useCallback((scriptKey: number) => {
         setCollapsedResults(current => {
@@ -492,14 +532,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const view = lastFocusedEditor();
         if (view != null && view !== composerView) {
             const scriptKey = view.state.field(DashQLProcessorPlugin, false)?.scriptKey;
-            const target = scriptKey != null ? props.workbookScripts.scripts[scriptKey] : undefined;
+            const target = scriptKey != null ? latest.current.scripts[scriptKey] : undefined;
             if (target != null && target.fileName !== fileName) {
-                insertMentionAtCursor(view, `:${props.workbookScripts.instance.quoteIdentifier(name)}`);
+                insertMentionAtCursor(view, `:${composerCore?.instance.quoteIdentifier(name) ?? quoteSqlIdentifier(name)}`);
                 return;
             }
         }
         composerTargetScriptRef.current?.(name);
-    }, [lastFocusedEditor, composerView, props.workbookScripts.scripts, props.workbookScripts.instance]);
+    }, [lastFocusedEditor, composerView, composerCore]);
     const handleTargetScript = React.useCallback((fileName: string) => handleMention(scriptDisplayName(fileName), fileName), [handleMention]);
     const handleMentionAttachment = React.useCallback((name: string) => handleMention(name, null), [handleMention]);
     // An attachment renames like a script, the scripts and the draft that read it follow
@@ -537,7 +577,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 }
                 const workbookScripts = latest.current.workbookScripts;
                 const focused = selection.selectedRef(workbookScripts);
-                const focusedScript = focused != null ? workbookScripts.scripts[focused.scriptId] : null;
+                const focusedScript = focused != null ? latest.current.scripts[focused.scriptId] : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
                     handleAcceptDiff(focusedScript.scriptKey);
@@ -562,7 +602,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 }
                 const workbookScripts = latest.current.workbookScripts;
                 const focused = selection.selectedRef(workbookScripts);
-                const focusedScript = focused != null ? workbookScripts.scripts[focused.scriptId] : null;
+                const focusedScript = focused != null ? latest.current.scripts[focused.scriptId] : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
                     handleRejectDiff(focusedScript.scriptKey);
@@ -605,27 +645,27 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // on a connection that is not connected is only created and the connection asks for attention.
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const pendingScrollToEndRef = React.useRef(false);
+    const readWorkbook = dependencies.useLiveWorkbookReader();
     const appendScript = React.useCallback(async (text: string) => {
-        const result = props.modifyWorkbookScripts({ type: CREATE_SCRIPT, value: { index: null, text } });
-        if (!result) return null;
-        pendingScrollToEndRef.current = true;
         const prev = latest.current.workbookScripts;
-        const next = await result;
-        if (next == null) return null;
-        const created = createdScriptRef(prev, next);
-        if (created == null) return null;
-        selection.select(next.workbookId, created.scriptId);
-        const scriptData = next.scripts[created.scriptId];
+        const outcome = props.modifyWorkbookScripts(createScriptAction(prev, { text }));
+        if (!outcome.ok) return null;
+        pendingScrollToEndRef.current = true;
+        const next = readWorkbook(prev.workbookId);
+        const created = selectCreatedScript(selection, prev, next);
+        if (next == null || created == null) return null;
+        const scriptData = readScript(created.scriptId);
         return scriptData != null ? { next, scriptData } : null;
-    }, [props.modifyWorkbookScripts, selection]);
+    }, [props.modifyWorkbookScripts, selection, readWorkbook, readScript]);
     const runAppendedScript = React.useCallback((next: WorkbookScripts, scriptData: ScriptData) => {
         // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
             connectionAttention?.request(next.workbookId);
             return;
         }
-        dependencies.runWorkbookScript(next, scriptData, executeQuery, props.modifyWorkbookScripts, logger);
-    }, [connectionAttention, executeQuery, logger, props.modifyWorkbookScripts]);
+        if (scriptRunServices == null) return;
+        dependencies.runWorkbookScript(scriptRunServices, next, scriptData, executeQuery, props.modifyWorkbookScripts, logger);
+    }, [connectionAttention, scriptRunServices, executeQuery, logger, props.modifyWorkbookScripts]);
 
     // Scroll a script into view.
     // A script with results that does not fit shows its results, once its row is mounted and the results are measured.
@@ -693,29 +733,25 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     const handleCreate = React.useCallback((index: number) => {
         const prev = latest.current.workbookScripts;
-        const result = props.modifyWorkbookScripts({ type: CREATE_SCRIPT, value: { index } });
-        if (!result) return;
-        void result.then(next => {
-            if (next == null) return;
-            const created = createdScriptRef(prev, next);
-            if (created == null) return;
-            selection.select(next.workbookId, created.scriptId);
-            // The created script stays in view like a followed one, until the user scrolls, clicks or types in the feed
-            followAgentRef.current = false;
-            followedRef.current = { scriptKey: created.scriptId, target: 'script' };
-            setFollowRequest(n => n + 1);
-            const view = editorViewsRef.current.get(created.scriptId);
-            if (view != null) {
-                view.focus();
-            } else {
-                pendingCreatedScriptKeyRef.current = created.scriptId;
-            }
-        });
-    }, [props.modifyWorkbookScripts, selection]);
+        const outcome = props.modifyWorkbookScripts(createScriptAction(prev, { index }));
+        if (!outcome.ok) return;
+        const created = selectCreatedScript(selection, prev, readWorkbook(prev.workbookId));
+        if (created == null) return;
+        // The created script stays in view like a followed one, until the user scrolls, clicks or types in the feed
+        followAgentRef.current = false;
+        followedRef.current = { scriptKey: created.scriptId, target: 'script' };
+        setFollowRequest(n => n + 1);
+        const view = editorViewsRef.current.get(created.scriptId);
+        if (view != null) {
+            view.focus();
+        } else {
+            pendingCreatedScriptKeyRef.current = created.scriptId;
+        }
+    }, [props.modifyWorkbookScripts, selection, readWorkbook]);
 
     // The agent of a session in the terminal answers questions in the scripts of the workbook, the page watches
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
-        const scriptData = latest.current.workbookScripts.scripts[scriptKey];
+        const scriptData = latest.current.scripts[scriptKey];
         if (scriptData == null) return;
         handleFocus(scriptData.fileName);
         revealScript(scriptKey, 'script');
@@ -750,8 +786,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         feedLayout.listRef.current?.scrollToRow({ index: entries.length - 1, align: 'end' });
     }, [entries.length]);
 
-    // The checked script references of every script, the check runs again only when a script changes
-    const scriptReferences = React.useMemo(() => checkWorkbookScriptReferences(props.workbookScripts), [props.workbookScripts]);
+    // The checked script references of every script, the runtime checks them again when an analysis changes
+    const scriptReferences = dependencies.useWorkbookDerived(workbookId)?.references;
     // The rows mount their editors once the list has a width. The list takes a width only after the size observer of
     // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
     // lines at a few characters per row, and gets no resize event to correct that.
@@ -764,7 +800,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         lookupCachedResult,
         entries,
         storageReader: storageReader,
-        scripts: props.workbookScripts.scripts,
+        scripts,
         scriptDebugMode,
         formattingDebugMode,
         keywordCase,
@@ -792,9 +828,13 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, rowsActive, scriptConnections, props.workbookScripts.scripts, selectedFileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, rowsActive, scriptConnections, scripts, selectedFileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
+    // The composer drafts on the connection of the next script, against its catalog and the table parameters of the
+    // workbook
+    const composerConnectorType = (composerConnectionId == null ? null : scriptConnections.get(composerConnectionId)?.connectorInfo.connectorType)
+        ?? composerCore?.connectorType ?? ConnectorType.HYPER;
 
     // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
     // question. The composer stays at the same position in the tree so it keeps focus when the view docks it.
@@ -857,7 +897,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             {/* The inputs and the attachments sit on a bar above the feed */}
             <WorkbookInputStrip
                 className={styles.feed_top_strip}
-                workbookScripts={props.workbookScripts}
+                workbookId={workbookId}
                 modifyWorkbookScripts={props.modifyWorkbookScripts}
                 leading={attachmentsVisible ? (
                     <button type="button" className={styles.feed_data_chip}
@@ -955,10 +995,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             )}
             {!readOnly && <div className={styles.feed_composer_section} ref={composerSectionRef}>
                 <div className={styles.feed_composer_body}>
-                    {composerConnection != null && <dependencies.WorkbookComposer
+                    {composerConnectionId != null && composerCore != null && <dependencies.WorkbookComposer
                         key={props.workbookScripts.workbookId}
-                        instance={props.workbookScripts.instance}
-                        catalog={composerConnection.catalog}
+                        instance={composerCore.instance}
+                        catalog={composerCore.catalog}
                         variant={landing ? WorkbookComposerVariant.Hero : WorkbookComposerVariant.Docked}
                         keywordCase={keywordCase}
                         agentWorking={session != null && isAgentWorking(session)}
@@ -971,15 +1011,15 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         scriptNames={scriptNames}
                         targetScriptRef={composerTargetScriptRef}
                         renameScriptRef={composerRenameScriptRef}
-                        tableParameters={workbookTableParameters(props.workbookScripts)}
-                        snippetConnector={composerConnection.connectorInfo.connectorType}
-                        offlineWorkbookId={scriptConnections.get(composerConnection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE
+                        tableParameters={composerCore.tableParameters}
+                        snippetConnector={composerConnectorType}
+                        offlineWorkbookId={scriptConnections.get(composerConnectionId)?.connectionHealth === ConnectionHealth.ONLINE
                             ? null : props.workbookScripts.workbookId}
                         connectionPicker={(
                             <ScriptConnectionPicker
                                 workbookId={props.workbookScripts.workbookId}
                                 scriptName="new"
-                                connection={scriptConnections.get(composerConnection.connectionId) ?? null}
+                                connection={scriptConnections.get(composerConnectionId) ?? null}
                                 disabled={false}
                                 onPick={pickPendingConnection}
                                 onAttach={attachPendingConnection}

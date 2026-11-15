@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
 import { isWorkbookExecutionRunning, subscribeWorkbookExecutions, type WorkbookExecutionState } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
+import type { ScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import {
     workbookExecutionIsBusy,
     type WorkbookExecutionOptions,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution_service';
 
 // The runs of workbooks are a service of the runtime (packages/dashql-runtime/src/workbook/scripts/workbook_execution_service.ts).
-// The runtime follows the registries and registers the services of script runs with the core of every workbook.
+// The runtime follows the workbooks and the connections and stops the runs of those that are gone.
 
 const NO_STATES = new Map<string, WorkbookExecutionState>();
 const noStates = () => NO_STATES;
@@ -34,8 +34,13 @@ export function useWorkbookExecution(workbookId: string) {
             busy,
             ready,
             runActive: busy || held,
-            start: (modify: ModifyWorkbookScripts, options?: WorkbookExecutionOptions) => execution?.start(workbookId, modify, options),
+            start: (options?: WorkbookExecutionOptions) => execution?.start(workbookId, options),
             stop: () => execution?.stop(workbookId),
         };
     }, [state, held, execution, workbookId, ready]);
+}
+
+/// The services of the runs of single scripts of the runtime, null without a runtime
+export function useScriptRunServices(): ScriptRunServices | null {
+    return useOptionalRuntime()?.execution.scriptRunServices ?? null;
 }

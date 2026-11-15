@@ -24,7 +24,7 @@ import { connectionLabel } from '@ankoh/dashql-runtime/connections/connection_la
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useWorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
+import { useWorkbooks } from '../workbook/scripts/workbook_scripts_registry.js';
 import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from '../workbook/workbook_folder_row.js';
 import * as sidebarStyles from '../workbook/workbook_workbench_sidebar.module.css';
@@ -59,13 +59,13 @@ interface Props {
 /// The rows of the clouds in the workbook list, an <li> each
 export const CloudsFolder: React.FC<Props> = (props) => {
     const { clouds, openSetup } = useClouds();
-    const [registry] = useWorkbookScriptsRegistry();
+    const workbooks = useWorkbooks();
     // The clouds are listed at first, there are few
     const [expanded, setExpanded] = React.useState(true);
 
     // The previews by the cloud they show a version of
     const previews = new Map<string, WorkbookScripts[]>();
-    for (const workbook of registry.workbookScriptsMap.values()) {
+    for (const workbook of workbooks.values()) {
         if (!isCloudPreview(workbook)) continue;
         const cloudId = workbookCloudLink(workbook)!.connectionId;
         previews.set(cloudId, [...(previews.get(cloudId) ?? []), workbook]);

@@ -18,7 +18,11 @@ const VERSION_1 = 'c0ffee00-0000-4000-8000-000000000011';
 const VERSION_2 = 'c0ffee00-0000-4000-8000-000000000012';
 
 function workbook(workbookId: string, cloud?: { workbookId: string; versionId: string; connectionId: string; preview?: boolean }): WorkbookScripts {
-    return { workbookId, workbookMetadata: cloud == null ? {} : { cloud } } as unknown as WorkbookScripts;
+    return {
+        workbookId,
+        workbookMetadata: cloud == null ? {} : { cloud },
+        cloud: cloud == null ? null : { workbookId: cloud.workbookId, versionId: cloud.versionId, preview: cloud.preview === true },
+    } as unknown as WorkbookScripts;
 }
 
 describe('Cloud workbooks', () => {

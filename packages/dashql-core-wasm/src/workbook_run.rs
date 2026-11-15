@@ -4,7 +4,8 @@
 //! query executor, the query result cache, the mounts of materialized results and attachments, and what the run
 //! reports. A statement goes to `execute` as JSON, the host returns its query with a promise of the result and one of
 //! the end. The options, the state, the events of the scripts and the outcome cross as views (`workbook_run/view.rs`).
-//! `Workbook.run` starts a run and returns a `WorkbookRun`, which stops it and settles with the outcome.
+//! `Runtime.startWorkbookRun` starts a run of a workbook of the runtime and returns a `WorkbookRun`, which stops it and
+//! settles with the outcome. The run changes the workbook of the runtime, the runtime tells the platform.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -26,7 +27,12 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
 
-use super::workbook::Workbook;
+use std::cell::RefCell;
+
+use dashql_core_runtime::workbook::Workbook;
+
+use crate::host::JsPlatform;
+use crate::runtime::Runtime;
 
 mod view;
 
@@ -76,8 +82,6 @@ export interface WorkbookRunHost extends WorkbookResultKeyHost {
     mountRelease(): Promise<void>;
     mountsAttachments(): boolean;
     mountAttachments(): Promise<void>;
-    workbookLive(): boolean;
-    workbookChanged(): void;
     /** The state of the run */
     state(state: WorkbookRunState): void;
     /** An event of a script, a failure comes with what the host failed with */
@@ -145,10 +149,6 @@ extern "C" {
     fn mounts_attachments(this: &JsWorkbookRunHost) -> Result<bool, JsValue>;
     #[wasm_bindgen(method, catch, js_name = mountAttachments)]
     fn mount_attachments(this: &JsWorkbookRunHost) -> Result<JsValue, JsValue>;
-    #[wasm_bindgen(method, catch, js_name = workbookLive)]
-    fn workbook_live(this: &JsWorkbookRunHost) -> Result<bool, JsValue>;
-    #[wasm_bindgen(method, catch, js_name = workbookChanged)]
-    fn workbook_changed(this: &JsWorkbookRunHost) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch)]
     fn state(this: &JsWorkbookRunHost, state: &JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(method, catch, js_name = scriptEvent)]
@@ -217,9 +217,13 @@ impl Drop for JsSleep {
     }
 }
 
-/// The host of a run over the JS object
+/// The host of a run over the JS object, on a workbook of the runtime
 pub struct JsRunHost {
     host: JsWorkbookRunHost,
+    /// The platform of the runtime, told when the run changes the workbook
+    platform: JsPlatform,
+    /// Does the runtime still hold the workbook of the run?
+    live: Box<dyn Fn() -> bool>,
 }
 
 impl Host for JsRunHost {
@@ -360,11 +364,11 @@ impl RunHost for JsRunHost {
     }
 
     fn workbook_live(&self) -> bool {
-        self.host.workbook_live().unwrap_or(false)
+        (self.live)()
     }
 
     fn workbook_changed(&self) {
-        let _ = self.host.workbook_changed();
+        self.platform.signal(true);
     }
 
     fn state(&self, state: &RunState) {
@@ -413,12 +417,27 @@ impl WorkbookRun {
     }
 }
 
+/// A workbook of the runtime by id
+fn workbook_of(runtime: &Runtime, workbook_id: &str) -> Result<Rc<RefCell<Workbook>>, JsError> {
+    runtime.workbooks.get(workbook_id).ok_or_else(|| JsError::new(&format!("no workbook registered with id {workbook_id}")))
+}
+
 #[wasm_bindgen]
-impl Workbook {
-    /// Start a run of the scripts
-    pub fn run(&self, host: JsWorkbookRunHost, options: Ts<WorkbookRunOptions>) -> Result<WorkbookRun, JsError> {
+impl Runtime {
+    /// Start a run of the scripts of a workbook
+    #[wasm_bindgen(js_name = startWorkbookRun)]
+    pub fn start_workbook_run(&self, workbook_id: &str, host: JsWorkbookRunHost, options: Ts<WorkbookRunOptions>) -> Result<WorkbookRun, JsError> {
         let options = options.to_rust()?.into();
-        let (handle, run) = start_run(Rc::new(JsRunHost { host }), self.inner.clone(), options);
+        let workbook = workbook_of(self, workbook_id)?;
+        let workbooks = Rc::downgrade(&self.workbooks);
+        let held = Rc::downgrade(&workbook);
+        let id = workbook_id.to_string();
+        let live = Box::new(move || match (workbooks.upgrade(), held.upgrade()) {
+            (Some(workbooks), Some(held)) => workbooks.get(&id).is_some_and(|current| Rc::ptr_eq(&current, &held)),
+            _ => false,
+        });
+        let host = JsRunHost { host, platform: self.platform.clone(), live };
+        let (handle, run) = start_run(Rc::new(host), workbook, options);
         let result = future_to_promise(async move {
             let result = run.await;
             let object = Object::new();
@@ -430,29 +449,34 @@ impl Workbook {
         Ok(WorkbookRun { handle, result })
     }
 
-    /// Analyze every script for a run and publish its declarations, twice: the analyses at the catalog revisions that
-    /// the publishing left. Throws the message of a script that doesn't analyze.
+    /// Analyze every script of a workbook for a run and publish its declarations, twice: the analyses at the catalog
+    /// revisions that the publishing left. Throws the message of a script that doesn't analyze.
     #[wasm_bindgen(js_name = analyzeForRun)]
-    pub fn analyze_for_run(&mut self) -> Result<(), JsError> {
-        self.get_mut()?.analyze_for_run().map_err(|message| JsError::new(&message))
+    pub fn analyze_for_run(&self, workbook_id: &str) -> Result<(), JsError> {
+        let workbook = workbook_of(self, workbook_id)?;
+        let analyzed = workbook.try_borrow_mut().map_err(|_| JsError::new("the workbook is busy"))?.analyze_for_run();
+        self.platform.signal(true);
+        analyzed.map_err(|message| JsError::new(&message))
     }
 
-    /// The plan of a run with the analyses as they are, a packed `ExecutionGraph`: of the targets with what they need,
-    /// of every script without
+    /// The plan of a run of a workbook with the analyses as they are, a packed `ExecutionGraph`: of the targets with
+    /// what they need, of every script without
     #[wasm_bindgen(js_name = planRun)]
-    pub fn plan_run(&self, targets: Option<Vec<u32>>, mount_prefix: String) -> Result<Vec<u8>, JsError> {
+    pub fn plan_run(&self, workbook_id: &str, targets: Option<Vec<u32>>, mount_prefix: String) -> Result<Vec<u8>, JsError> {
+        let workbook = workbook_of(self, workbook_id)?;
         let request = RunPlanRequest { targets: targets.as_deref(), mount_prefix: &mount_prefix, ..RunPlanRequest::default() };
-        let graph = self.get()?.plan_run(&request);
+        let graph = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?.plan_run(&request);
         Ok(finish!(graph))
     }
 
-    /// The result keys of the scripts, a `WorkbookResultKeys`: null for a script without a key, a run reads and writes
-    /// the files of the reusable ones. Plans the targets, every script without, with the analyses as they are, all null if the plan
-    /// is invalid.
+    /// The result keys of the scripts of a workbook, a `WorkbookResultKeys`: null for a script without a key, a run
+    /// reads and writes the files of the reusable ones. Plans the targets, every script without, with the analyses as
+    /// they are, all null if the plan is invalid.
     #[wasm_bindgen(js_name = resultKeys)]
-    pub fn result_keys(&self, targets: Option<Vec<u32>>, host: JsResultKeyHost) -> Result<Promise, JsError> {
+    pub fn result_keys(&self, workbook_id: &str, targets: Option<Vec<u32>>, host: JsResultKeyHost) -> Result<Promise, JsError> {
+        let workbook = workbook_of(self, workbook_id)?;
         let (graph, connections) = {
-            let workbook = self.get()?;
+            let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
             let request = RunPlanRequest { targets: targets.as_deref(), mount_prefix: "/mnt/external/dashql-keys", ..RunPlanRequest::default() };
             let connections: Vec<String> = workbook.scripts().iter().map(|script| script.connection().connection_id.clone()).collect();
             (workbook.plan_run(&request), connections)

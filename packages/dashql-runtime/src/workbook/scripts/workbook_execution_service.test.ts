@@ -1,20 +1,15 @@
 // The runs of workbooks of the runtime (WorkbookExecutionService) on a runtime of the tests: starting and stopping, the
 // connections a run needs, previews and changes of inputs. The tests of the provider of the app on it stay in the app.
-import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, setupStepAction } from '../../connections/connection_state.js';
 import type { ConnectionParams } from '../../connections/connection_params.js';
 import { createTestConnection } from '../../testing/connection_fixtures.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
-import { createTestRuntime, testCore, type TestRuntime } from '../../testing/test_runtime.js';
+import { createTestRuntime, type TestRuntime } from '../../testing/test_runtime.js';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from './workbook_execution.js';
 import { workbookExecutionIsBusy, type WorkbookExecutionOptions } from './workbook_execution_service.js';
-import { createWorkbookScripts } from './workbook_scripts.js';
-import { createEmptyMetadata } from './script_types.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
 
 /// Run a step of a test and wait for it
 const step = (run: () => unknown) => run();
@@ -25,9 +20,11 @@ function deferred() {
     return { promise, resolve };
 }
 
-let dql: core.DashQL;
-beforeAll(async () => { dql = await testCore(); });
+/// A published workbook that a workbook is a preview of
+const PREVIEW = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true };
 
+/// A workbook with a script of two commands on a connection of its own. The runtime creates both when the test opens
+/// the workbook.
 function fixture(workbookId: string, deferStream = false) {
     const acquisition = deferred();
     if (!deferStream) acquisition.resolve();
@@ -52,20 +49,26 @@ function fixture(workbookId: string, deferStream = false) {
         await acquisition.promise;
         return stream;
     });
-    // Two commands that don't depend on each other, a connection without a protocol runs them one at a time
-    const workbook = createWorkbookScripts({
-        instance: dql, workbookId, name: workbookId, pendingConnection: null, workbookMetadata: createEmptyMetadata(),
-        scripts: [{
-            name: '1_commands.sql', sql: 'create table a (x int);\ncreate table b (x int);',
-            connection: { connectionId: `${workbookId}-database`, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() },
-        }],
-    });
     // The runs of the workbook on the Rust runtime
-    const plan = vi.spyOn(workbook.native!.workbook, 'run');
-    const scriptKey = workbook.scriptRefs['1_commands.sql'].scriptId;
+    const plan = vi.fn();
+    let runtime: TestRuntime | null = null;
     /// The latest query of the script
-    const latestQueryId = () => workbook.native!.workbook.scriptView(scriptKey, { editorUpdate: null, pendingDiff: null, visualization: null, statistics: null }).latestQueryId;
-    const modify = vi.fn<ModifyWorkbookScripts>(() => {});
+    const latestQueryId = () => {
+        const core = runtime!.coreRuntime;
+        core.flush();
+        const scriptKey = core.workbook(workbookId)!.scriptKeys[0];
+        return core.store.get('script', scriptKey)?.latestQueryId ?? null;
+    };
+    /// Create the workbook in a runtime with two commands that don't depend on each other, a connection without a
+    /// protocol runs them one at a time
+    const create = (rt: TestRuntime) => {
+        runtime = rt;
+        const core = rt.coreRuntime;
+        core.createWorkbook(database.connectionId, workbookId, false, undefined, workbookId);
+        core.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: 'create table a (x int);\ncreate table b (x int);', base: '1_commands' } });
+        if (database.preview) core.dispatchWorkbook(workbookId, { kind: 'setCloudLink', value: { link: PREVIEW } });
+        core.flush();
+    };
     /// The connection of the workbook, the runtime creates it with the health and the protocol of the fixture
     const database = {
         connectionId: `${workbookId}-database`,
@@ -74,8 +77,10 @@ function fixture(workbookId: string, deferStream = false) {
         protocol: null as string | null,
         /// The kinds of the queries that the connection runs when the workbook opens
         activeQueries: [] as QueryType[],
+        /// Is the workbook a preview of a published workbook?
+        preview: false,
     };
-    return { workbook, database, plan, latestQueryId, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,
+    return { workbookId, database, plan, create, latestQueryId, stream, executeQuery, acquisition, execution, cancellation, aborted,
         get signal() { return signal; } };
 }
 
@@ -86,7 +91,7 @@ interface Execution {
     readonly state: WorkbookExecutionState | null;
     readonly busy: boolean;
     readonly ready: boolean;
-    start(modify: ModifyWorkbookScripts, options?: WorkbookExecutionOptions): void;
+    start(options?: WorkbookExecutionOptions): void;
     stop(): void;
 }
 
@@ -102,7 +107,7 @@ describe('WorkbookExecutionService', () => {
     afterEach(async () => {
         fixtures.forEach(f => { f.acquisition.resolve(); f.execution.resolve(); f.cancellation.resolve(); });
         await vi.waitFor(() => {
-            for (const f of fixtures) expect(isWorkbookExecutionRunning(f.workbook)).toBe(false);
+            for (const f of fixtures) expect(isWorkbookExecutionRunning(f.workbookId)).toBe(false);
         });
         await runtime?.destroy();
         runtime = null;
@@ -114,7 +119,7 @@ describe('WorkbookExecutionService', () => {
             get state() { return rt.execution.states.current.get(workbookId) ?? null; },
             get busy() { return workbookExecutionIsBusy(rt.execution.states.current.get(workbookId)); },
             get ready() { return rt.execution.ready; },
-            start: (modify, options) => rt.execution.start(workbookId, modify, options),
+            start: options => rt.execution.start(workbookId, options),
             stop: () => rt.execution.stop(workbookId),
         };
     }
@@ -135,8 +140,6 @@ describe('WorkbookExecutionService', () => {
             channel: health === ConnectionHealth.NOT_STARTED ? undefined : { executeQuery: f.executeQuery },
             online: health === ConnectionHealth.ONLINE || health === ConnectionHealth.FAILED,
         });
-        // The catalog describes the connection, the runs don't wait for the catalog loader
-        rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
         if (health === ConnectionHealth.FAILED) act(f, 'HEALTH_CHECK_FAILED', { message: 'down' });
         if (health === ConnectionHealth.CONNECTING) act(f, 'HEALTH_CHECK_STARTED');
         const metadata = { title: null, description: null, issuer: null, userProvided: true };
@@ -154,16 +157,23 @@ describe('WorkbookExecutionService', () => {
                 computeDatabase: options.computeDatabase === false ? null : { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase,
             });
             const rt = runtime;
-            rt.workbooks.store.update(registry => ({ ...registry,
-                workbookScriptsMap: new Map(fixtures.map(f => [f.workbook.workbookId, f.workbook])),
-            }));
-            for (const f of fixtures) addConnection(rt, f);
+            for (const f of fixtures) {
+                addConnection(rt, f);
+                f.create(rt);
+            }
+            // The runs of the workbooks that start
+            const core = rt.coreRuntime;
+            const startRun = core.startWorkbookRun.bind(core);
+            core.startWorkbookRun = (workbookId, host, options) => {
+                fixtures.find(f => f.workbookId === workbookId)?.plan();
+                return startRun(workbookId, host, options);
+            };
         }
         current = executionOf(runtime, workbookId);
     }
 
     async function start(f = fixtures[0]) {
-        step(() => current.start(f.modify));
+        step(() => current.start());
         await vi.waitFor(() => {
             expect(f.stream.produce).toHaveBeenCalledTimes(1);
             expect(current.state?.phase).toBe('running');
@@ -176,7 +186,7 @@ describe('WorkbookExecutionService', () => {
         fixtures[0].database.health = ConnectionHealth.NOT_STARTED;
         await openWorkbook('first', { computeDatabase: false });
         expect(current.ready).toBe(false);
-        step(() => current.start(fixtures[0].modify));
+        step(() => current.start());
         expect(fixtures[0].plan).not.toHaveBeenCalled();
         expect(current.state).toBeNull();
     });
@@ -197,9 +207,9 @@ describe('WorkbookExecutionService', () => {
 
     it('prevents duplicate starts synchronously and while the run is busy', async () => {
         await openWorkbook();
-        step(() => { current.start(fixtures[0].modify); current.start(fixtures[0].modify); });
+        step(() => { current.start(); current.start(); });
         await vi.waitFor(() => expect(fixtures[0].stream.produce).toHaveBeenCalledTimes(1));
-        step(() => current.start(fixtures[0].modify));
+        step(() => current.start());
         expect(fixtures[0].plan).toHaveBeenCalledTimes(1);
         expect(fixtures[0].executeQuery).toHaveBeenCalledTimes(1);
         expect(fixtures[0].latestQueryId()).not.toBeNull();
@@ -221,7 +231,7 @@ describe('WorkbookExecutionService', () => {
         });
         expect(current.state?.phase).toBe('stopping');
         expect(current.busy).toBe(true);
-        step(() => current.start(f.modify));
+        step(() => current.start());
         expect(f.plan).toHaveBeenCalledTimes(1);
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
 
@@ -232,9 +242,9 @@ describe('WorkbookExecutionService', () => {
         await vi.waitFor(() => expect(current.state?.phase).toBe('cancelled'));
         expect(current.busy).toBe(false);
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        expect(isWorkbookExecutionRunning(f.workbook)).toBe(false);
+        expect(isWorkbookExecutionRunning(f.workbookId)).toBe(false);
 
-        step(() => current.start(f.modify));
+        step(() => current.start());
         await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
         expect(f.plan).toHaveBeenCalledTimes(2);
         expect(f.executeQuery).toHaveBeenCalledTimes(3);
@@ -243,7 +253,7 @@ describe('WorkbookExecutionService', () => {
     it('cancels a stream acquired after stop without consuming it or starting queued statements', async () => {
         const f = fixtures[0] = fixture('first', true);
         await openWorkbook();
-        step(() => current.start(f.modify));
+        step(() => current.start());
         await vi.waitFor(() => {
             expect(f.executeQuery).toHaveBeenCalledTimes(1);
             expect(current.state?.phase).toBe('running');
@@ -264,7 +274,7 @@ describe('WorkbookExecutionService', () => {
         expect(f.stream.produce).not.toHaveBeenCalled();
         expect(current.state?.phase).toBe('stopping');
         expect(current.busy).toBe(true);
-        step(() => current.start(f.modify));
+        step(() => current.start());
         expect(f.plan).toHaveBeenCalledTimes(1);
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
 
@@ -275,7 +285,7 @@ describe('WorkbookExecutionService', () => {
         await vi.waitFor(() => expect(current.state?.phase).toBe('cancelled'));
         expect(current.state).toMatchObject({ totalStatements: 2, completedStatements: 0 });
         expect(current.busy).toBe(false);
-        expect(isWorkbookExecutionRunning(f.workbook)).toBe(false);
+        expect(isWorkbookExecutionRunning(f.workbookId)).toBe(false);
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
         expect(f.stream.cancel).toHaveBeenCalledTimes(1);
         expect(f.stream.produce).not.toHaveBeenCalled();
@@ -308,10 +318,9 @@ describe('WorkbookExecutionService', () => {
         const f = fixtures[0];
         f.database.activeQueries.push(QueryType.USER_PROVIDED);
         await openWorkbook();
-        step(() => current.start(f.modify));
+        step(() => current.start());
         expect(f.plan).not.toHaveBeenCalled();
         expect(f.executeQuery).not.toHaveBeenCalled();
-        expect(f.modify).not.toHaveBeenCalled();
         expect(current.state).toBeNull();
         expect(current.busy).toBe(false);
     });
@@ -320,7 +329,7 @@ describe('WorkbookExecutionService', () => {
         const f = fixtures[0];
         f.database.health = ConnectionHealth.FAILED;
         await openWorkbook();
-        step(() => current.start(f.modify));
+        step(() => current.start());
         await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
         expect(f.plan).toHaveBeenCalled();
         expect(f.executeQuery).not.toHaveBeenCalled();
@@ -328,16 +337,15 @@ describe('WorkbookExecutionService', () => {
     });
 
     it('runs a preview of a published workbook on the embedded Hyper only, its other connections are skipped', async () => {
-        const preview = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true };
         const [embedded, remote] = fixtures;
-        for (const f of fixtures) Object.assign(f.workbook, { workbookMetadata: { cloud: preview } });
+        for (const f of fixtures) f.database.preview = true;
         // The second connection is a Hyper server, it is online but a preview doesn't run on it
         remote.database.protocol = 'V3_HTTP';
         await openWorkbook();
-        step(() => current.start(embedded.modify));
+        step(() => current.start());
         await vi.waitFor(() => expect(embedded.stream.produce).toHaveBeenCalledTimes(1));
         await openWorkbook('second');
-        step(() => current.start(remote.modify));
+        step(() => current.start());
         await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
         expect(remote.executeQuery).not.toHaveBeenCalled();
         expect(current.state).toMatchObject({ totalScripts: 1, completedScripts: 0, skippedScripts: 1, totalStatements: 0 });
@@ -347,7 +355,7 @@ describe('WorkbookExecutionService', () => {
         const f = fixtures[0];
         f.database.health = ConnectionHealth.NOT_STARTED;
         await openWorkbook();
-        step(() => current.start(f.modify, { inputs: ['min'] }));
+        step(() => current.start({ inputs: ['min'] }));
         // The fixture core derives no dataflow, the run starts and settles
         await vi.waitFor(() => expect(current.state?.phase).toMatch(/succeeded|failed/));
     });
@@ -356,9 +364,9 @@ describe('WorkbookExecutionService', () => {
         const f = fixtures[0];
         f.database.health = ConnectionHealth.CONNECTING;
         await openWorkbook();
-        step(() => current.start(f.modify));
+        step(() => current.start());
         expect(current.state).toBeNull();
-        step(() => current.start(f.modify, { inputs: ['min'] }));
+        step(() => current.start({ inputs: ['min'] }));
         expect(current.state).toBeNull();
         await step(async () => act(f, 'HEALTH_CHECK_SUCCEEDED'));
         await vi.waitFor(() => expect(current.state).not.toBeNull());
@@ -376,7 +384,7 @@ describe('WorkbookExecutionService', () => {
         const f = fixtures[0];
         f.database.activeQueries.push(QueryType.INTERNAL_SQLFRAME);
         await openWorkbook();
-        step(() => current.start(f.modify));
+        step(() => current.start());
         await vi.waitFor(() => expect(f.plan).toHaveBeenCalledTimes(1));
     });
 

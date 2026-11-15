@@ -1,44 +1,43 @@
-import * as core from '@ankoh/dashql-core';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { analyzeWorkbook, createTestRuntime, type TestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
+import type { ScriptDataMap, WorkbookDerived, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { ANALYZE_OUTDATED_SCRIPT, createWorkbookScripts, reduceWorkbookScripts, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+/// A workbook of a test on a runtime of its own: the workbook, its scripts and its derived view of the last flush
+export interface TestWorkbook {
+    runtime: TestRuntime;
+    workbook: WorkbookScripts;
+    scripts: ScriptDataMap;
+    derived: WorkbookDerived | null;
+}
 
-const STORAGE = { write: async () => true };
-const LOGGER = new TestLogger();
+/// The params of the embedded Hyper of the tests
+const EMBEDDED: ConnectionParams = { hyper: { endpoint: '', protocol: 'WASM' } } as ConnectionParams;
 
-/// Analyze the outdated scripts of a workbook until none is outdated: a script that publishes its declarations
-/// outdates the scripts that read them
-function analyzed(workbook: WorkbookScripts): WorkbookScripts {
-    for (let round = 0; round < 4; ++round) {
-        const outdated = workbook.scriptOrder.map(name => workbook.scriptRefs[name].scriptId)
-            .filter(key => workbook.native!.workbook.isAnalysisOutdated(key));
-        if (outdated.length === 0) break;
-        for (const key of outdated) {
-            workbook = reduceWorkbookScripts(workbook, { type: ANALYZE_OUTDATED_SCRIPT, value: key }, STORAGE, LOGGER);
-        }
-    }
-    return workbook;
+/// The workbook of a test as the runtime holds it now
+export function readTestWorkbook(runtime: TestRuntime, workbookId: string): TestWorkbook {
+    runtime.coreRuntime.flush();
+    const workbook = runtime.coreRuntime.workbook(workbookId);
+    if (workbook == null) throw new Error(`the runtime holds no workbook ${workbookId}`);
+    return {
+        runtime,
+        workbook,
+        scripts: runtime.coreRuntime.workbookScripts(workbookId),
+        derived: runtime.coreRuntime.store.get('workbookDerived', workbookId),
+    };
 }
 
 /// A workbook of analyzed scripts on one connection, the declarations of every script are in the catalog
-export function analyzedTestWorkbook(dql: core.DashQL, entries: Array<[string, string]>): WorkbookScripts {
-    const connection = { connectionId: 'main', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
-    return analyzed(createWorkbookScripts({
-        instance: dql,
-        workbookId: crypto.randomUUID(),
-        name: 'Dataflow',
-        pendingConnection: null,
-        workbookMetadata: createEmptyMetadata(),
-        scripts: entries.map(([name, sql]) => ({ name, sql, connection })),
-    }));
+export async function analyzedTestWorkbook(entries: Array<[string, string]>): Promise<TestWorkbook> {
+    const runtime = await createTestRuntime();
+    runtime.addConnection({ connectionId: 'main', params: EMBEDDED });
+    const workbook = runtime.addWorkbook('main', entries, { name: 'Dataflow' });
+    return readTestWorkbook(runtime, workbook.workbookId);
 }
 
 /// A workbook with one more script, analyzed with the catalog of the other scripts
-export function withTestScript(workbook: WorkbookScripts, fileName: string, text: string): WorkbookScripts {
-    const native = workbook.native!;
-    const connection = Object.values(workbook.scripts)[0].connection;
-    native.workbook.addStoredScript(fileName, text, native.connection(connection));
-    return analyzed(native.project(workbook));
+export function withTestScript(test: TestWorkbook, fileName: string, text: string): TestWorkbook {
+    const { runtime, workbook } = test;
+    runtime.coreRuntime.dispatchWorkbook(workbook.workbookId, { kind: 'createScript', value: { text, base: fileName.replace(/\.sql$/i, '') } });
+    analyzeWorkbook(runtime, workbook.workbookId);
+    return readTestWorkbook(runtime, workbook.workbookId);
 }

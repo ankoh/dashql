@@ -5,10 +5,7 @@ import * as glue from './wasm/dashql_core.js';
 import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
-import { DashQLWorkbook } from './workbook.js';
 import { DashQLQueryProgressFollower } from './query_history.js';
-import { DashQLStorageWriter } from './storage_writer.js';
-import { DashQLAppRestore } from './restore.js';
 import { DashQLWorkbookFormat } from './workbook_format.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
@@ -32,12 +29,9 @@ export type DashQLBindings = Pick<
     | 'touchedRelations'
     | 'installPanicHook'
     | 'Shell'
-    | 'Workbook'
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
     | 'Runtime'
-    | 'StorageWriter'
-    | 'AppRestore'
     | 'workbookFormat'
     | 'encodeWorkbookTable'
     | 'decodeWorkbookTable'
@@ -434,12 +428,6 @@ export class DashQL {
         return this.bindings.inputLiteral(value, type ?? undefined);
     }
 
-    /// Create the scripts of a workbook in the Rust runtime. Created through the instance, the session handles of the
-    /// workbook are the classes of the instance also where a bundle holds two copies of this package.
-    public createWorkbook(id: string, name: string | null, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLWorkbook {
-        return DashQLWorkbook.create(this, id, name, offsetUnit);
-    }
-
     /// Create the runtime of DashQL on a platform (docs/wip/runtime_api.md), through the instance like a workbook. The
     /// runtime is a class of the module, its methods take and return the generated views, actions and change sets;
     /// `free()` frees it after `destroy()`.
@@ -454,10 +442,11 @@ export class DashQL {
         return native == null ? null : new DashQLCatalog(new Ptr(CATALOG_TYPE, this, native));
     }
 
-    /// Create the storage writer of the Rust runtime on a host, through the instance like a workbook. It writes workbook
-    /// files of the given format version.
-    public createStorageWriter(host: glue.StorageWriterHost, formatVersion: number): DashQLStorageWriter {
-        return DashQLStorageWriter.create(this, host, formatVersion);
+    /// The session of a script of a workbook of a runtime of this instance, shared with the workbook. Null for an unknown
+    /// script. Every call is a handle of its own that the caller destroys.
+    public runtimeScriptSession(runtime: glue.Runtime, scriptKey: number): DashQLScriptSession | null {
+        const native = runtime.scriptSession(scriptKey);
+        return native == null ? null : new DashQLScriptSession(new Ptr(SCRIPT_SESSION_TYPE, this, native));
     }
 
     /// Create a follower of the progress of queries with a layout of its plans, e.g. the other orientation
@@ -474,12 +463,6 @@ export class DashQL {
     /// A packed query profile, e.g. of a progress view, as the FlatBuffer of the core
     public readQueryProfile(bytes: Uint8Array): FlatBufferPtr<buffers.profile.QueryProfile, buffers.profile.QueryProfileT> {
         return new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this, bytes, () => new buffers.profile.QueryProfile());
-    }
-
-    /// Create the restore of the stored state of the Rust runtime on a host, it writes through a storage writer of the
-    /// instance. The editors of the restored workbooks count offsets in `offsetUnit`.
-    public createRestore(host: glue.RestoreHost, writer: DashQLStorageWriter, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLAppRestore {
-        return DashQLAppRestore.create(this, host, writer, offsetUnit);
     }
 
     /// The storage format of workbooks: the workbook file, migrations, bundles, the workbook tables and archives

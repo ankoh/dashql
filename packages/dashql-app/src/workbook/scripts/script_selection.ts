@@ -3,8 +3,7 @@ import * as React from 'react';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { Store } from '@ankoh/dashql-runtime/store/store';
 import type { ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { DELETE_SCRIPT, type ScriptKey, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ModifyWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts_registry_state';
+import type { ModifyWorkbookScripts, ScriptKey, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
 import { useStoreState } from '../../utils/store_hooks.js';
@@ -17,16 +16,17 @@ import { useStoreState } from '../../utils/store_hooks.js';
 export type ScriptSelectionState = ReadonlyMap<string, ScriptKey>;
 
 /// The selected script of a workbook. Without a selection, or when the selected script is gone, the first script.
-export function selectedScriptRef(workbook: WorkbookScripts, selected: ScriptKey | null | undefined): ScriptRef | undefined {
-    const fileName = selected == null ? undefined : workbook.scripts[selected]?.fileName;
+export function selectedScriptRef(workbook: Pick<WorkbookScripts, 'scriptKeys' | 'scriptOrder' | 'scriptRefs'>, selected: ScriptKey | null | undefined): ScriptRef | undefined {
+    const index = selected == null ? -1 : workbook.scriptKeys.indexOf(selected);
+    const fileName = index < 0 ? undefined : workbook.scriptOrder[index];
     const ref = fileName == null ? undefined : workbook.scriptRefs[fileName];
     if (ref != null) return ref;
     const first = workbook.scriptOrder[0];
     return first == null ? undefined : workbook.scriptRefs[first];
 }
 
-/// The script that a CREATE_SCRIPT added to a workbook
-export function createdScriptRef(prev: WorkbookScripts, next: WorkbookScripts): ScriptRef | undefined {
+/// The script that a `createScript` added to a workbook
+export function createdScriptRef(prev: Pick<WorkbookScripts, 'scriptRefs'>, next: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>): ScriptRef | undefined {
     const created = next.scriptOrder.find(fileName => prev.scriptRefs[fileName] == null);
     return created == null ? undefined : next.scriptRefs[created];
 }
@@ -80,7 +80,7 @@ export function deleteScript(selection: ScriptSelection, workbook: WorkbookScrip
         if (next == null) selection.forget(workbook.workbookId);
         else selection.selectFile(workbook, next);
     }
-    return modify({ type: DELETE_SCRIPT, value: fileName });
+    return modify({ kind: 'deleteScript', value: { fileName } });
 }
 
 /// The selections of the runtimes, one per runtime

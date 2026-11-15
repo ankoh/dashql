@@ -2,14 +2,11 @@ import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_execution_args.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
-import { TestLogger } from '../../testing/test_logger.js';
-import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
+import { ConnectorType } from '../../connections/connector_info.js';
+import type { CoreRuntime } from '../../core_runtime.js';
+import { testStorageRuntime } from '../../testing/test_runtime.js';
 import { runWorkbookExecution, type ScriptRunEvent, type WorkbookExecutionState } from './workbook_execution.js';
-import { createWorkbookScripts, DELETE_SCRIPT, reduceWorkbookScripts, type ScriptConnection, type WorkbookScripts, type WorkbookScriptsAction } from './workbook_scripts.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
-import { createEmptyMetadata } from './script_types.js';
+import type { ModifyWorkbookScripts, WorkbookAction, WorkbookScripts } from './workbook_scripts.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 // The adapter of the runs of the Rust runtime: the statements reach the query executor of the host, the states and
@@ -19,10 +16,15 @@ import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL;
-const logger = new TestLogger();
+/// The runtimes of the fixtures of a test
+const runtimes: CoreRuntime[] = [];
 
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
-afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
+afterEach(() => {
+    vi.restoreAllMocks();
+    for (const runtime of runtimes.splice(0)) runtime.destroy();
+    dql.resetUnsafe();
+});
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -31,44 +33,52 @@ function deferred<T>() {
     return { promise, resolve, reject };
 }
 
-/// A workbook with scripts on connections (`connection` by default), in feed order
+/// A workbook of a runtime with scripts on connections (`connection` by default), in feed order
 function fixture(entries: Array<[string, string, string?]> = [
     ['1_empty.sql', ''],
     ['2_commands.sql', 'create table t (x int);\nselect x from t;\ninsert into t values (1);'],
     ['10_last.sql', 'select x from t;'],
 ]) {
-    const connections = new Map<string, ScriptConnection>();
+    const runtime = testStorageRuntime(dql);
+    runtimes.push(runtime);
     const connectionOf = (id = 'connection') => {
-        let connection = connections.get(id);
-        if (connection == null) {
-            connection = { connectionId: id, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog() };
-            connections.set(id, connection);
+        if (runtime.connection(id) == null) {
+            runtime.createConnection({ connectorType: ConnectorType.HYPER, setupParams: { protocol: 'V3_GRPC', endpoint: `http://${id}` } }, id);
         }
-        return connection;
+        return id;
     };
-    let live: WorkbookScripts = createWorkbookScripts({
-        instance: dql, workbookId: crypto.randomUUID(), name: 'Execution',
-        pendingConnection: entries.length === 0 ? connectionOf() : null, workbookMetadata: createEmptyMetadata(),
-        scripts: entries.map(([name, sql, connection]) => ({ name, sql, connection: connectionOf(connection) })),
-    });
-    const writer = new StorageWriter(logger, new WorkbookTestBackend());
-    const apply = (action: WorkbookScriptsAction) => { live = reduceWorkbookScripts(live, action, writer, logger); return live; };
-    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => { apply(action); });
+    const created = runtime.createWorkbook(connectionOf(entries[0]?.[2]), 'Execution', false);
+    const workbookId = created.workbookId;
+    for (const [name, sql, connection] of entries) {
+        const outcome = runtime.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: sql, base: name.replace(/\.sql$/, ''), connectionId: connectionOf(connection) } });
+        if (!outcome.ok) throw new Error(outcome.error ?? `the script ${name} was not created`);
+    }
+    runtime.flush();
+    /// The workbook as the runtime holds it now
+    const workbook = (): WorkbookScripts => {
+        runtime.flush();
+        return runtime.workbook(workbookId)!;
+    };
+    const apply = (action: WorkbookAction) => runtime.dispatchWorkbook(workbookId, action);
+    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => apply(action));
     let nextQueryId = 0;
     const executeQuery = vi.fn<QueryExecutor>((_connectionId, args) => [++nextQueryId, Promise.resolve(args.analyzeResults ? tableFromArrays({ value: [1] }) : null)]);
     const cancelQuery = vi.fn<CancelQuery>(async () => {});
-    const getWorkbook = vi.fn((): WorkbookScripts | null => live);
     const controller = new AbortController();
     const states: WorkbookExecutionState[] = [];
     const onState = vi.fn((state: WorkbookExecutionState) => { states.push(state); });
     const yieldToBrowser = vi.fn(async () => {});
     const args = (): Parameters<typeof runWorkbookExecution>[0] => ({
-        workbook: live, getWorkbook, executeQuery, cancelQuery, modifyWorkbookScripts, signal: controller.signal, onState, yieldToBrowser,
+        workbook: workbook(), runs: runtime, executeQuery, cancelQuery, signal: controller.signal, onState, yieldToBrowser,
     });
-    const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
+    const script = (fileName: string) => runtime.store.get('script', workbook().scriptRefs[fileName].scriptId)!;
+    const scripts = () => {
+        runtime.flush();
+        return runtime.workbookScripts(workbookId);
+    };
     const lastState = () => states[states.length - 1];
     const queries = () => executeQuery.mock.calls.map(([connectionId, args]) => [connectionId, args.query]);
-    return { args, apply, script, getWorkbook, executeQuery, cancelQuery, modifyWorkbookScripts, controller, states, onState, yieldToBrowser, lastState, queries };
+    return { runtime, workbookId, args, apply, workbook, script, scripts, executeQuery, cancelQuery, modifyWorkbookScripts, controller, states, onState, yieldToBrowser, lastState, queries };
 }
 
 describe('runWorkbookExecution', () => {
@@ -89,14 +99,14 @@ describe('runWorkbookExecution', () => {
         expect(f.states.filter(state => state.activeFileName === '2_commands.sql').map(state => state.activeStatementIndex))
             .toEqual(expect.arrayContaining([1, 2, 3]));
         // The analyses of the run are the analyses of the scripts
-        for (const script of Object.values(f.getWorkbook()!.scripts)) {
+        for (const script of Object.values(f.scripts())) {
             expect(script.analysisOutdated).toBe(false);
             expect(script.editorUpdate?.analysisAvailable).toBe(true);
         }
         // The statements say where they come from
         const [, args] = f.executeQuery.mock.calls[3];
         expect(args).toMatchObject({ cacheable: false, throwOnError: true, analyzeResults: true, publishResults: true });
-        expect(args.metadata).toMatchObject({ title: '10_last.sql 1/1', issuer: 'Workbook run', workbookId: f.getWorkbook()!.workbookId });
+        expect(args.metadata).toMatchObject({ title: '10_last.sql 1/1', issuer: 'Workbook run', workbookId: f.workbookId });
         expect(args.metadata.planned).toMatchObject({ run: 'workbook', script: '10_last.sql', statement: 1, statements: 1, statementType: 'SELECT', result: true });
     });
 
@@ -157,7 +167,7 @@ describe('runWorkbookExecution', () => {
         const f = fixture();
         f.onState.mockImplementation(state => {
             f.states.push(state);
-            if (state.phase === 'running') f.getWorkbook.mockReturnValue(null);
+            if (state.phase === 'running') f.runtime.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId: f.workbookId } });
         });
         await runWorkbookExecution(f.args());
         expect(f.executeQuery).not.toHaveBeenCalled();
@@ -197,7 +207,7 @@ describe('runWorkbookExecution', () => {
     it('stops queued statements when a workbook script is removed during the run', async () => {
         const f = fixture();
         f.executeQuery.mockImplementationOnce(() => {
-            f.apply({ type: DELETE_SCRIPT, value: '10_last.sql' });
+            f.apply({ kind: 'deleteScript', value: { fileName: '10_last.sql' } });
             return [1, Promise.resolve(null)];
         });
         await runWorkbookExecution(f.args());

@@ -1,6 +1,6 @@
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_bazel_lib//lib:tar.bzl", "mtree_mutate", "mtree_spec", "tar")
-load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
@@ -124,6 +124,14 @@ vitest_bin.vitest_test(
     data = [":compile_inputs", ":compile", "vitest.config.mjs", "//:node_modules/vitest", "//:node_modules/flatbuffers"],
     args = ["run", "--config", "vitest.config.mjs"],
     chdir = "packages/dashql-core-js",
+)
+
+# The typing benchmark of the runtime, run on the release module: bazel run --config=release :bench_typing
+js_binary(
+    name = "bench_typing",
+    data = [":npm_package", "//:node_modules/flatbuffers"],
+    entry_point = "tests/bench_typing.mjs",
+    tags = ["manual"],
 )
 
 js_test(

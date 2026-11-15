@@ -4,7 +4,6 @@ import { act } from '@dashql/browser-test-act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
@@ -17,7 +16,6 @@ import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
 import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_query_result_cache';
-import { registerScriptRunServices } from '@ankoh/dashql-runtime/workbook/scripts/script_run';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
@@ -28,9 +26,12 @@ import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_inf
 import * as core from '@ankoh/dashql-core';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '../../runtime/runtime_provider.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { addTestConnections } from '../../tests/test_connections.js';
 
 let coreRuntime: CoreRuntime | null = null;
+let runtime: Runtime | null = null;
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
@@ -58,24 +59,23 @@ const CONNECTION = {
 // The workbook uses the connection without a script
 const WORKBOOK = {
     workbookId: TEST_WORKBOOK_ID, workbookMetadata: { originalFileName: 'orders' },
-    scripts: {}, scriptRefs: {}, scriptOrder: [], instance: {}, pendingConnection: { connectionId: TEST_CONNECTION_ID },
+    scriptRefs: {}, scriptOrder: [], scriptKeys: [], pendingConnectionId: TEST_CONNECTION_ID, connectionIds: [TEST_CONNECTION_ID],
 } as unknown as WorkbookScripts;
 
 describe('WorkbookFileSaveOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
     let registry: Registry | null;
-    let workbooks: ReturnType<typeof useWorkbookScriptsRegistry> | null;
     let download: ReturnType<typeof vi.spyOn>;
 
     function Capture() {
         registry = useConnectionRegistry();
         coreRuntime = useCoreRuntime();
-        workbooks = useWorkbookScriptsRegistry();
+        runtime = useRuntime();
         return null;
     }
 
-    /// Render the overlay, with `known` the registry knows the connections of the workbook
+    /// Render the overlay, with `known` the runtime holds the workbook on its connection
     async function render(props: Partial<React.ComponentProps<typeof WorkbookFileSaveOverlay>>, known = true, cache?: QueryResultCache) {
         const withCache = (children: React.ReactElement) => cache != null ? <QueryResultCacheProvider cache={cache}>{children}</QueryResultCacheProvider> : children;
         const tree = (overlay: boolean) => withCache(
@@ -95,7 +95,8 @@ describe('WorkbookFileSaveOverlay', () => {
         await root.render(tree(false));
         await act(async () => {
             addTestConnections(coreRuntime!, [CONNECTION]);
-            if (known) workbooks![1](reg => ({ ...reg, workbookScriptsMap: new Map([[TEST_WORKBOOK_ID, WORKBOOK]]) }));
+            // The workbook keeps its name on disk
+            if (known) coreRuntime!.createWorkbook(TEST_CONNECTION_ID, null, false, 'orders', TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));
     }
@@ -163,21 +164,34 @@ describe('WorkbookFileSaveOverlay', () => {
         bytes.set([80, 65, 82, 49]);
         const cache = memoryQueryResultCache();
         cache.put(key, null, bytes);
-        // Two scripts, one with a cached result. The Rust workbook plans them and derives their keys from their signatures.
-        const instance = {};
-        const native = { workbook: { resultKeys: async (_targets: unknown, host: WorkbookResultKeyHost) => await Promise.all(['cached', 'missing']
-            .map(async signature => ({ key: (await host.resultKey(TEST_CONNECTION_ID, signature))!, signature, reusable: host.cachesResults(TEST_CONNECTION_ID) }))) } };
-        registerScriptRunServices(instance as never, {
-            createMounts: () => null, cachesResults: () => true, cache, maxConcurrentQueries: () => 1,
-            cacheKey: async (_connectionId, signature) => signature === 'cached' ? key : 'b'.repeat(64),
-        });
-        const script = (fileName: string) => ({ fileName, connection: { connectionId: TEST_CONNECTION_ID }, scriptSession: {} });
+        // Two scripts, one with a cached result. The runtime plans them and derives their keys from their signatures.
         const workbook = {
-            ...WORKBOOK, instance, native, scriptOrder: ['1.sql', '2.sql'],
-            scriptRefs: { '1.sql': { scriptId: 1 }, '2.sql': { scriptId: 2 } }, scripts: { 1: script('1.sql'), 2: script('2.sql') },
+            ...WORKBOOK, scriptOrder: ['1.sql', '2.sql'], scriptKeys: [1, 2],
+            scriptRefs: { '1.sql': { scriptId: 1 }, '2.sql': { scriptId: 2 } },
         } as unknown as WorkbookScripts;
-        try {
-            await render({ workbookScripts: workbook }, true, cache);
+        {
+            await render({}, true, cache);
+            const services = runtime!.execution.scriptRunServices;
+            vi.spyOn(services, 'cachesResults').mockReturnValue(true);
+            vi.spyOn(services, 'cacheKey').mockImplementation(async (_connectionId, signature) => signature === 'cached' ? key : 'b'.repeat(64));
+            vi.spyOn(coreRuntime!, 'resultKeys').mockImplementation(async (_workbookId, _targets, host: WorkbookResultKeyHost) => await Promise.all(['cached', 'missing']
+                .map(async signature => ({ key: (await host.resultKey(TEST_CONNECTION_ID, signature))!, signature, reusable: host.cachesResults(TEST_CONNECTION_ID) }))));
+            await root.render(
+                <QueryResultCacheProvider cache={cache}>
+                    <LoggerProvider>
+                        <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
+                            <DashQLCoreProvider>
+                                <StorageProvider backend={backend}>
+                                    <TestRuntime>
+                                        <Capture />
+                                        <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={workbook} />
+                                    </TestRuntime>
+                                </StorageProvider>
+                            </DashQLCoreProvider>
+                        </EmbeddedDatabaseProvider>
+                    </LoggerProvider>
+                </QueryResultCacheProvider>,
+            );
             await waitForFile();
             expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
             await act(async () => {
@@ -201,8 +215,6 @@ describe('WorkbookFileSaveOverlay', () => {
             expect(await resultTables[0].async('uint8array')).toEqual(bytes);
             const imported = await readWorkbookBundleFromZip(saved.bytes, database);
             expect(imported.results!.map(result => result.key)).toEqual([key]);
-        } finally {
-            registerScriptRunServices(instance as never, null);
         }
     });
 

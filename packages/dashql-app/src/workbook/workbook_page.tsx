@@ -52,7 +52,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     const [workbookScripts, modifyWorkbookScripts] = dependencies.useWorkbookScripts(route.workbookId ?? null);
     // The connections that the scripts of the workbook run on, and the one the next script runs on
     const [connectionRegistry] = dependencies.useConnectionRegistry();
-    const nextConnectionId = workbookScripts == null ? null : newScriptConnection(workbookScripts, null)?.connectionId ?? null;
+    const nextConnectionId = workbookScripts == null ? null : newScriptConnection(workbookScripts, null);
     const conn = nextConnectionId == null ? null : connectionRegistry.connections.get(nextConnectionId) ?? null;
     const scriptConnections = new Map<string, ConnectionState>();
     for (const connectionId of workbookScripts == null ? [] : workbookConnectionIds(workbookScripts)) {

@@ -1,4 +1,5 @@
 import * as core from '@ankoh/dashql-core';
+import * as flatbuffers from 'flatbuffers';
 import type * as arrow from 'apache-arrow';
 import type * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
@@ -26,6 +27,10 @@ import { TrinoChannel } from './connections/trino/trino_channel.js';
 import type { OAuthFlow, OAuthFlowEvent } from './oauth/oauth_flow.js';
 import type { OAuthRedirectData } from './oauth/oauth_types.js';
 import { generatePKCEChallenge } from './utils/pkce.js';
+import { createRuntimeStorage, StorageWriter } from './storage/runtime_storage.js';
+import type { StorageBackend } from './storage/storage_backend.js';
+import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook/scripts/workbook_projection.js';
+import type { ScriptData, ScriptDataMap, WorkbookAction, WorkbookScripts } from './workbook/scripts/workbook_scripts.js';
 
 const LOG_CTX = 'runtime';
 
@@ -49,6 +54,8 @@ export interface CoreRuntimeOptions {
     /// The API of Salesforce of the platform. One that isn't the client over the HTTP client, e.g. a mock, answers the
     /// metadata of the catalog.
     salesforce?: SalesforceApiClientInterface | null;
+    /// The storage of the workbooks and the connections, null without one
+    storage?: StorageBackend | null;
 }
 
 /// Connects the channels of the setups that the runtime asks for besides Trino: the embedded Hyper, Hyper over gRPC and
@@ -87,9 +94,10 @@ export type ConnectionSaveResult = core.ConnectionSaveOutcome;
 /// The runtime of the module on the platform of TypeScript (docs/wip/runtime_api.md): the `Runtime` class of the core
 /// with its platform object (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of
 /// the host, the queries that the runtime runs itself, the query result cache, the compute database, the OAuth flows,
-/// the specs of the extensions) and the store that the app reads its views from. It holds the computations, the
-/// connections with the histories of their queries, the histories without a connection, the query executor, the setups
-/// of the connections and the catalog loader.
+/// the specs of the extensions, the storage) and the store that the app reads its views from. It holds the
+/// computations, the connections with the histories of their queries, the histories without a connection, the query
+/// executor, the setups of the connections, the catalog loader, the workbooks with their scripts, the storage writer and
+/// the restore.
 ///
 /// The runtime of the module needs the instantiated core. The app creates this object before the core is set up: the
 /// views are empty and a dispatch fails until the core is there, a command asks the platform for it.
@@ -99,6 +107,8 @@ export class CoreRuntime {
     readonly handles = new HandleTable();
     /// The views of the runtime
     readonly store: RuntimeStore;
+    /// The commands of the storage writer of the runtime
+    readonly storage: StorageWriter;
     private readonly logger: Logger;
     private readonly setupCore: ((context: string) => Promise<core.DashQL>) | null;
     private computeDatabase: EmbeddedComputeDatabase | null;
@@ -122,6 +132,10 @@ export class CoreRuntime {
     private readonly flows = new Map<number, AbortController>();
     private channelConnector: ChannelConnector | null;
     private salesforce: SalesforceApiClientInterface | null;
+    private storageBackend: StorageBackend | null;
+    private runtimeStorage: core.RuntimeStorage | null = null;
+    /// The projection of the scripts of the workbooks, with the session handles of the scripts
+    private scripts: ScriptProjection | null = null;
     /// Does the catalog loader run, and the refreshes requested before the core was there
     private catalogLoading = true;
     private readonly pendingRefreshes: [string, boolean][] = [];
@@ -138,6 +152,8 @@ export class CoreRuntime {
         this.oauthFlow = options.oauthFlow ?? null;
         this.channelConnector = options.channels ?? null;
         this.salesforce = options.salesforce ?? null;
+        this.storageBackend = options.storage ?? null;
+        this.storage = new StorageWriter(this);
         this.tables = createRuntimeTables(this.handles);
         this.queries = new QueryPlatform({
             logger: this.logger,
@@ -198,6 +214,9 @@ export class CoreRuntime {
             extensions: { loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)) },
             get salesforce() {
                 return runtime.salesforceMetadata();
+            },
+            get storage() {
+                return runtime.storagePlatform();
             },
             changed: urgent => this.store.changed(urgent),
         };
@@ -309,6 +328,14 @@ export class CoreRuntime {
         }
     }
 
+    /// The storage of the platform over the storage backend
+    private storagePlatform(): core.RuntimeStorage | null {
+        if (this.runtimeStorage == null && this.storageBackend != null) {
+            this.runtimeStorage = createRuntimeStorage(this.storageBackend);
+        }
+        return this.runtimeStorage;
+    }
+
     private computePlatform(): core.ComputePlatform | null {
         if (this.compute == null && this.computeDatabase != null) {
             this.compute = createComputePlatform(this.computeDatabase, () => this.queryExecution);
@@ -325,7 +352,12 @@ export class CoreRuntime {
         this.module.setProgressLayout(createProgressLayoutConfig());
         this.module.runCatalogLoader(this.catalogLoading);
         for (const [connectionId, force] of this.pendingRefreshes.splice(0)) this.module.refreshCatalog(connectionId, force);
-        this.store.attach(this.module);
+        this.scripts = new ScriptProjection(instance, this.module);
+        this.store.attach(this.module, {
+            script: this.scripts,
+            workbook: WORKBOOK_PROJECTION,
+            workbookDerived: new WorkbookDerivedProjection(workbookId => this.store.get('workbook', workbookId)),
+        });
     }
 
     /// The core of the runtime, null until it is set
@@ -403,9 +435,10 @@ export class CoreRuntime {
         this.queryExecution = create;
     }
 
-    /// The writer of the storage that the changes and the saves of the connections write through
-    setStorageWriter(writer: core.DashQLStorageWriter): void {
-        this.module?.setStorageWriter(writer.ptr.assertNotNull());
+    /// Set the storage backend of the platform, the writes and the restores that start later use it
+    setStorage(backend: StorageBackend | null): void {
+        this.storageBackend = backend;
+        this.runtimeStorage = null;
     }
 
     /// Apply an action to a slice. Fails without a core.
@@ -486,11 +519,6 @@ export class CoreRuntime {
         if (!outcome.ok) this.logger.warn('A connection refused an action', { connectionId, error: outcome.error ?? '' }, 'connection_registry');
         return outcome;
     };
-
-    /// The workbooks that use the connections, until the workbooks are part of the runtime
-    setConnectionReferences(references: [string, string[]][]): void {
-        this.dispatch('app', { kind: 'setConnectionReferences', value: { references } });
-    }
 
     /// A connection as the runtime holds it now, not as the store saw it at the last flush, e.g. for a service that
     /// reads it right after an action
@@ -640,6 +668,136 @@ export class CoreRuntime {
         return this.module?.views('query', [queryId])[0] ?? null;
     }
 
+    // The workbooks
+
+    /// Create a workbook without scripts on a connection and write it, returns its view. The ephemeral workbook of the
+    /// greeter is promoted by its first script.
+    createWorkbook(connectionId: string, name: string | null, ephemeral: boolean, originalFileName?: string, workbookId?: string): WorkbookScripts {
+        const outcome = this.dispatch('app', {
+            kind: 'createWorkbook',
+            value: { connectionId, name: name ?? undefined, ephemeral, originalFileName, workbookId },
+        });
+        if (!outcome.ok || typeof outcome.id !== 'string') throw new Error(outcome.error ?? 'the workbook was not created');
+        this.store.flush();
+        const created = this.store.get('workbook', outcome.id);
+        if (created == null) throw new Error(`the workbook ${outcome.id} was not created`);
+        return created;
+    }
+
+    /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
+    deleteWorkbook(workbookId: string): void {
+        this.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId } });
+        this.store.flush();
+    }
+
+    /// Apply an action to a workbook. It applies at once, the views follow with the next flush.
+    dispatchWorkbook = (workbookId: string, action: WorkbookAction): core.DispatchOutcome => {
+        const outcome = this.dispatch({ workbook: workbookId }, action);
+        if (!outcome.ok) this.logger.warn('A workbook refused an action', { workbookId, action: action.kind, error: outcome.error ?? '' }, 'workbook_scripts');
+        return outcome;
+    };
+
+    /// Report the update of an event that the editor of a script applied to the shared session of the script. The
+    /// projection holds the update instead of reading it again. An editor that holds no staged rewrite accepted the one
+    /// of the script.
+    reportEditorUpdate(script: Pick<ScriptData, 'workbookId' | 'scriptKey' | 'sessionId'>, update: core.buffers.editor.EditorUpdateT, holdsPendingDiff: boolean): boolean {
+        const module = this.module;
+        if (module == null) return false;
+        this.scripts?.report(script.scriptKey, update);
+        const builder = new flatbuffers.Builder();
+        builder.finish(update.pack(builder));
+        return module.reportEditorUpdate(script.workbookId, script.scriptKey, script.sessionId, builder.asUint8Array(), holdsPendingDiff);
+    }
+
+    /// A workbook of the last flush
+    workbook(workbookId: string): WorkbookScripts | null {
+        return this.store.get('workbook', workbookId);
+    }
+
+    /// The scripts of a workbook of the last flush by key
+    workbookScripts(workbookId: string): ScriptDataMap {
+        const scripts: ScriptDataMap = {};
+        for (const key of this.store.get('workbook', workbookId)?.scriptKeys ?? []) {
+            const script = this.store.get('script', key);
+            if (script != null) scripts[key] = script;
+        }
+        return scripts;
+    }
+
+    /// Give the table parameters of a workbook to a session that is no script of it, e.g. the draft of the composer.
+    /// Returns whether the analysis of the session is outdated by them.
+    attachTableParameters(workbookId: string, session: core.DashQLScriptSession): boolean {
+        return this.module?.attachTableParameters(workbookId, session.ptr.assertNotNull()) ?? false;
+    }
+
+    /// Does storage hold the scripts of a workbook as they are?
+    matchesStoredScripts(workbookId: string, scripts: core.StoredScriptView[]): boolean {
+        return this.module?.matchesStoredScripts(workbookId, scripts) ?? false;
+    }
+
+    /// Restore the connections and the workbooks of the storage, the runtime takes them. Resolves once their views are
+    /// in the store.
+    async restore(progress?: (progress: core.RestoreProgress) => void): Promise<core.RestoreOutcome> {
+        const module = await this.ready();
+        try {
+            return await module.restore(progress ?? null);
+        } finally {
+            this.store.flush();
+        }
+    }
+
+    /// Restore a single workbook of the storage against the connections of the runtime, e.g. an imported one. Rejects
+    /// if it can't be restored.
+    async restoreWorkbook(workbookId: string): Promise<core.RestoreOutcome> {
+        const module = await this.ready();
+        try {
+            return await module.restoreWorkbook(workbookId);
+        } finally {
+            this.store.flush();
+        }
+    }
+
+    /// Delete the files of a workbook that was refused a load and drop it from the list
+    async deleteInvalidWorkbook(workbookId: string): Promise<void> {
+        const module = await this.ready();
+        try {
+            await module.deleteInvalidWorkbook(workbookId);
+        } finally {
+            this.store.flush();
+        }
+    }
+
+    // The runs of workbooks
+
+    /// Start a run of the scripts of a workbook
+    startWorkbookRun(workbookId: string, host: core.WorkbookRunHost, options: core.WorkbookRunOptions): core.DashQLWorkbookRun {
+        return new core.DashQLWorkbookRun(this.required().startWorkbookRun(workbookId, host, options));
+    }
+
+    /// The result keys of the scripts of a workbook, see `Runtime.resultKeys`
+    async resultKeys(workbookId: string, targets: readonly number[] | null, host: core.WorkbookResultKeyHost): Promise<Array<core.WorkbookResultKey | null>> {
+        return await this.required().resultKeys(workbookId, targets == null ? undefined : Uint32Array.from(targets), host) as Array<core.WorkbookResultKey | null>;
+    }
+
+    /// The plan of a run of a workbook with the analyses as they are
+    planRun(workbookId: string, targets: readonly number[] | null, mountPrefix: string): core.buffers.execution.ExecutionGraphT {
+        const bytes = this.required().planRun(workbookId, targets == null ? undefined : Uint32Array.from(targets), mountPrefix);
+        return core.buffers.execution.ExecutionGraph.getRootAsExecutionGraph(new flatbuffers.ByteBuffer(bytes)).unpack();
+    }
+
+    /// Analyze a script whose analysis is outdated, returns the script once its view is in the store
+    analyzeScript(workbookId: string, scriptKey: number): ScriptData | null {
+        this.dispatchWorkbook(workbookId, { kind: 'analyzeOutdatedScript', value: { scriptKey } });
+        this.store.flush();
+        return this.store.get('script', scriptKey);
+    }
+
+    /// Analyze every script of a workbook for a run and publish its declarations, throws the message of a script that
+    /// doesn't analyze
+    analyzeForRun(workbookId: string): void {
+        this.required().analyzeForRun(workbookId);
+    }
+
     /// Take the changes of the runtime now
     flush(): void {
         this.store.flush();
@@ -654,6 +812,7 @@ export class CoreRuntime {
         this.module = null;
         for (const catalog of this.catalogs.values()) catalog.destroy();
         this.catalogs.clear();
+        this.scripts?.destroy();
         if (module != null) {
             module.destroy();
             this.store.flush();

@@ -1,8 +1,8 @@
 import * as core from '@ankoh/dashql-core';
 
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { orderedWorkbookScripts, workbookAnalysisSignature, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { readWorkbookInputType, workbookPlanRequest, type WorkbookInputType } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
+import type { ScriptData, ScriptDataMap, WorkbookDerived } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { readWorkbookInputType, type WorkbookInputType } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
 
 const StatementType = core.buffers.parser.StatementType;
 
@@ -129,14 +129,12 @@ function edgeKey(from: DataflowPort, to: DataflowPort, kind: DataflowEdgeKind, n
     return `${from.scriptKey}.${from.statementId}>${to.scriptKey}.${to.statementId}:${kind}:${name}`;
 }
 
-/// Derive the dataflow of the scripts of a workbook with the core. A script without a current analysis has no
-/// statements and no edges.
-function computeDataflowGraph(workbook: WorkbookScripts): DataflowGraph {
-    const scripts = orderedWorkbookScripts(workbook);
-    if (scripts.length === 0) return EMPTY_GRAPH;
-    const dataflow: core.buffers.execution.SessionDataflowT = workbook.instance.deriveSessionDataflow(
-        workbookPlanRequest(scripts, scripts.map(script => script.fileName), workbook),
-    ).unpack();
+/// The graph of the dataflow that the runtime derived from the scripts of a workbook. A script without a current
+/// analysis has no statements and no edges.
+function computeDataflowGraph(derived: WorkbookDerived, scriptMap: ScriptDataMap): DataflowGraph {
+    const scripts = derived.scriptKeys.map(key => scriptMap[key]).filter((script): script is ScriptData => script != null);
+    if (scripts.length === 0 || scripts.length !== derived.scriptKeys.length) return EMPTY_GRAPH;
+    const dataflow = derived.dataflow;
     const out: DataflowScript[] = scripts.map((script, index) => {
         const derived = dataflow.scripts[index];
         const analyzed = derived?.analyzed ?? false;
@@ -157,7 +155,7 @@ function computeDataflowGraph(workbook: WorkbookScripts): DataflowGraph {
         return {
             scriptKey: script.scriptKey,
             fileName: script.fileName,
-            connectionId: script.connection.connectionId,
+            connectionId: script.connectionId,
             statements,
             current: analyzed,
         };
@@ -246,36 +244,14 @@ export function mergeDataflowGraph(previous: DataflowGraph | null, next: Dataflo
     return unchanged ? previous : { scripts, inputs, edges };
 }
 
-interface CachedGraph {
-    signature: string;
-    graph: DataflowGraph;
-}
-
-/// The last dataflow of every workbook, by workbook id
-const GRAPHS = new Map<string, CachedGraph>();
-
-/// The dataflow of the scripts of a workbook. Derives it again only when a name, a connection or an analysis of a
-/// script changed, see `mergeDataflowGraph` for what stays.
-export function deriveDataflowGraph(workbook: WorkbookScripts): DataflowGraph {
-    // Workbooks without the core, e.g. of tests, have no dataflow
-    if (workbook.scriptOrder == null || workbook.scriptOrder.length === 0 || typeof workbook.instance?.deriveSessionDataflow !== 'function') {
-        return EMPTY_GRAPH;
-    }
-    const signature = workbookAnalysisSignature(workbook);
-    const cached = GRAPHS.get(workbook.workbookId);
-    if (cached?.signature === signature) return cached.graph;
-    let graph: DataflowGraph;
+/// The dataflow of the scripts of a workbook from the derived view of the runtime, merged into the previous graph,
+/// see `mergeDataflowGraph` for what stays
+export function deriveDataflowGraph(previous: DataflowGraph | null, derived: WorkbookDerived | null, scripts: ScriptDataMap): DataflowGraph {
+    if (derived == null) return previous ?? EMPTY_GRAPH;
     try {
-        graph = mergeDataflowGraph(cached?.graph ?? null, computeDataflowGraph(workbook));
+        return mergeDataflowGraph(previous, computeDataflowGraph(derived, scripts));
     } catch (e) {
         console.warn('cannot derive the dataflow of the workbook', e);
-        return cached?.graph ?? EMPTY_GRAPH;
+        return previous ?? EMPTY_GRAPH;
     }
-    GRAPHS.set(workbook.workbookId, { signature, graph });
-    return graph;
-}
-
-/// Forget the dataflow of a workbook
-export function forgetDataflowGraph(workbookId: string): void {
-    GRAPHS.delete(workbookId);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { DELETE_SCRIPT, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 import { createdScriptRef, deleteScript, ScriptSelection, selectedScriptRef } from './script_selection.js';
 
@@ -8,7 +8,7 @@ import { createdScriptRef, deleteScript, ScriptSelection, selectedScriptRef } fr
 function workbook(files: string[], keys: number[] = files.map((_, i) => i + 1)): WorkbookScripts {
     return {
         workbookId: 'workbook',
-        scripts: Object.fromEntries(files.map((fileName, i) => [keys[i], { scriptKey: keys[i], fileName }])),
+        scriptKeys: keys.slice(0, files.length),
         scriptRefs: Object.fromEntries(files.map((fileName, i) => [fileName, { scriptId: keys[i], fileName }])),
         scriptOrder: [...files],
     } as unknown as WorkbookScripts;
@@ -41,7 +41,7 @@ describe('the script selection', () => {
         const selection = new ScriptSelection();
         selection.selectFile(current, 'b.sql');
         deleteScript(selection, current, modify, 'b.sql');
-        expect(modify).toHaveBeenCalledExactlyOnceWith({ type: DELETE_SCRIPT, value: 'b.sql' });
+        expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'deleteScript', value: { fileName: 'b.sql' } });
         expect(selection.store.current.get('workbook')).toBe(1);
         // The first script passes it to the script after it
         selection.selectFile(current, 'a.sql');

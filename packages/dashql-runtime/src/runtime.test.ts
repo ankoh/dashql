@@ -30,30 +30,30 @@ function testPlatform(storage: WorkbookTestBackend): RuntimePlatform {
     };
 }
 
-/// The next task, the registries apply their updates at the end of the current one
+/// The next task, the store takes the changes of the runtime at the end of the current one
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe('the runtime', () => {
-    it('writes what the registries hold and a second runtime restores it', async () => {
+    it('writes its workbooks and connections and a second runtime restores them', async () => {
         const storage = new WorkbookTestBackend();
         let first: Runtime | null = createRuntime(testPlatform(storage));
         let second: Runtime | null = null;
         try {
-            expect((await first.restore()).workbookScripts.size).toBe(0);
+            expect((await first.restore()).workbookIds).toEqual([]);
 
             const connection = first.coreRuntime.createConnection(newDefaultHyperWasmConnection({ active: true }));
-            const workbook = first.workbooks.create(first.coreRuntime, connection, 'Sales', false);
+            const workbook = first.coreRuntime.createWorkbook(connection.connectionId, 'Sales', false);
             await settle();
-            expect(first.workbooks.store.current.workbookScriptsMap.get(workbook.workbookId)?.name).toBe('Sales');
+            expect(first.coreRuntime.workbook(workbook.workbookId)?.name).toBe('Sales');
             expect(first.coreRuntime.registry().connections.get(connection.connectionId)?.workbooks).toEqual([workbook.workbookId]);
             await first.destroy();
             first = null;
 
             second = createRuntime(testPlatform(storage));
             const restored = await second.restore();
-            expect([...restored.workbookScripts.keys()]).toEqual([workbook.workbookId]);
-            expect(second.workbooks.store.current.workbookScriptsMap.get(workbook.workbookId)?.name).toBe('Sales');
-            // The runtime of the module adopted the stored connection, the store shows it
+            expect(restored.workbookIds).toEqual([workbook.workbookId]);
+            expect(second.coreRuntime.workbook(workbook.workbookId)?.name).toBe('Sales');
+            // The runtime of the module took the stored connection, the store shows it
             expect(second.coreRuntime.registry().connections.has(connection.connectionId)).toBe(true);
             expect(second.coreRuntime.catalog(connection.connectionId)).not.toBeNull();
         } finally {

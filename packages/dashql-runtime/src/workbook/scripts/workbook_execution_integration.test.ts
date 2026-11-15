@@ -2,29 +2,16 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../testing/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../connections/connector_info.js';
+import { newDefaultHyperWasmConnection } from '../../connections/connection_params.js';
 import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '../../connections/query_execution_args.js';
+import type { CoreRuntime } from '../../core_runtime.js';
 import { WorkbookTestBackend, TEST_WORKBOOK_ID, testConnections, testWorkbook } from '../../testing/workbook_test_backend.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
+import { restoreTestWorkbook, testStorageRuntime } from '../../testing/test_runtime.js';
 import { QueryCacheMissError } from '../../query/query_result_cache.js';
 import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.js';
 import { runWorkbookExecution, type ExecutionMounts, type WorkbookExecutionState } from './workbook_execution.js';
-import {
-    createWorkbookScripts,
-    type WorkbookScripts,
-    type WorkbookScriptsAction,
-    reduceWorkbookScripts,
-    REGISTER_QUERY,
-    PROJECT_WORKBOOK,
-    REGISTER_SCRIPT_RESULT,
-    replaceScriptSessionText,
-    SET_SCRIPT_CONNECTION,
-    SET_SCRIPT_EXECUTION_VISUALIZATION,
-    SET_SCRIPT_TEXT,
-    SET_WORKBOOK_ATTACHMENTS,
-} from './workbook_scripts.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
-import { createEmptyMetadata } from './script_types.js';
+import type { ModifyWorkbookScripts, WorkbookAction, WorkbookScripts } from './workbook_scripts.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 import { createWorkbookZip, exportWorkbookAsSharedZip } from '../persistence/workbook_export.js';
 import { readWorkbookBundleFromZip } from '../persistence/workbook_import.js';
@@ -39,6 +26,8 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL;
 const logger = new TestLogger();
+/// The runtimes of the fixtures of a test
+const runtimes: CoreRuntime[] = [];
 
 /// The embedded database that writes and reads the workbook archives
 let archiveDatabase: HyperDB;
@@ -52,24 +41,49 @@ beforeAll(async () => {
 afterAll(async () => {
     await terminateArchiveDatabase?.();
 });
-afterEach(() => { vi.restoreAllMocks(); dql.resetUnsafe(); });
+afterEach(() => {
+    vi.restoreAllMocks();
+    for (const runtime of runtimes.splice(0)) runtime.destroy();
+    dql.resetUnsafe();
+});
 
-function fixture(entries: Array<[string, string]>) {
-    const catalog = dql.createCatalog();
-    const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog, local: true };
+/// A workbook of a runtime with scripts on the embedded database, restored from storage and not analyzed yet
+async function fixture(entries: Array<[string, string]>) {
+    const storage = new WorkbookTestBackend();
+    const runtime = testStorageRuntime(dql, storage, logger);
+    runtimes.push(runtime);
+    const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: true }));
     const sorted = [...entries].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
-    let live: WorkbookScripts = createWorkbookScripts({
-        instance: dql, workbookId: crypto.randomUUID(), name: 'Execution integration',
-        pendingConnection: entries.length === 0 ? connection : null, workbookMetadata: createEmptyMetadata(),
-        scripts: sorted.map(([name, sql]) => ({ name, sql, connection })),
-    });
-    const writer = new StorageWriter(logger, new WorkbookTestBackend());
-    const write = vi.spyOn(writer, 'write');
-    const apply = (action: WorkbookScriptsAction) => {
-        live = reduceWorkbookScripts(live, action, writer, logger);
-        return live;
+    const restored = await restoreTestWorkbook(
+        runtime, storage, sorted.map(([name, sql]) => [name, sql, connection.connectionId]),
+        { name: 'Execution integration', pendingConnectionId: connection.connectionId },
+    );
+    const workbookId = restored.workbookId;
+    /// The workbook as the runtime holds it now
+    const workbook = (): WorkbookScripts => {
+        runtime.flush();
+        return runtime.workbook(workbookId)!;
     };
-    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => { apply(action); });
+    const apply = (action: WorkbookAction) => {
+        const outcome = runtime.dispatchWorkbook(workbookId, action);
+        runtime.flush();
+        return outcome;
+    };
+    /// A Trino connection of the runtime, with a new id by default
+    const remote = (connectionId: string = crypto.randomUUID()) => runtime.createConnection({
+        connectorType: ConnectorType.TRINO,
+        setupParams: { endpoint: 'https://trino.example.com', defaultCatalog: 'tpch', defaultSchema: 'tiny' },
+    }, connectionId);
+    // The writes of the workbook since the last call, e.g. none of a run
+    await runtime.storage.flush();
+    let written = storage.calls.length;
+    const writes = async () => {
+        await runtime.storage.flush();
+        const calls = storage.calls.slice(written);
+        written = storage.calls.length;
+        return calls;
+    };
+    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => apply(action));
     const calls: Array<{ databaseId: string; queryId: number; sql: string }> = [];
     let nextQueryId = 0;
     const executeQuery = vi.fn<QueryExecutor>((connectionId, args) => {
@@ -81,32 +95,36 @@ function fixture(entries: Array<[string, string]>) {
     const states: WorkbookExecutionState[] = [];
     const controller = new AbortController();
     const run = (options: Partial<Parameters<typeof runWorkbookExecution>[0]> = {}) => runWorkbookExecution({
-        workbook: live, getWorkbook: () => live, executeQuery, cancelQuery, modifyWorkbookScripts,
+        workbook: workbook(), runs: runtime, executeQuery, cancelQuery,
         signal: controller.signal, onState: state => { states.push(state); },
         ...options,
     });
-    const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
+    const script = (fileName: string) => runtime.store.get('script', workbook().scriptRefs[fileName].scriptId)!;
+    const scripts = () => {
+        runtime.flush();
+        return runtime.workbookScripts(workbookId);
+    };
     const lastState = () => states[states.length - 1];
     /// The plan of the workbook with the analyses as they are, e.g. as a run left them
-    const plan = () => live.native!.workbook.planRun(null, '/mnt/external/cache');
-    return { run, apply, script, getWorkbook: () => live, modifyWorkbookScripts, executeQuery,
-        cancelQuery, controller, calls, states, lastState, plan, write };
+    const plan = () => runtime.planRun(workbookId, null, '/mnt/external/cache');
+    return { runtime, run, apply, remote, script, scripts, workbook, modifyWorkbookScripts, executeQuery,
+        cancelQuery, controller, calls, states, lastState, plan, writes };
 }
 
 describe('workbook execution with real core planning', () => {
     it('plans the scripts of every connection at once and runs them in the catalogs of their connections', async () => {
-        const f = fixture([
+        const f = await fixture([
             ['1_create.sql', 'create table items (id int);'],
             ['2_remote.sql', 'select 42;'],
             ['3_query.sql', 'select id from items;'],
         ]);
-        const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+        const remote = f.remote();
         const remoteKey = f.script('2_remote.sql').scriptKey;
-        f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '2_remote.sql', connection: remote } });
+        f.apply({ kind: 'setScriptConnection', value: { fileName: '2_remote.sql', connectionId: remote.connectionId } });
         expect(f.script('2_remote.sql').scriptKey).toBe(remoteKey);
         await f.run();
         expect(f.lastState()?.error).toBeNull();
-        const main = f.script('1_create.sql').connection.connectionId;
+        const main = f.script('1_create.sql').connectionId;
         const graph = f.plan();
         expect(graph.connections.map(connection => connection.connectionId)).toEqual([main, remote.connectionId]);
         expect(graph.scripts.map(script => [script.name, script.connection])).toEqual([['1_create', 0], ['2_remote', 1], ['3_query', 0]]);
@@ -121,10 +139,10 @@ describe('workbook execution with real core planning', () => {
     });
 
     it('hands a client function call to the runtime with the values of its inputs, and caches nothing', async () => {
-        const f = fixture([['1_call.sql', `/* @param :id = 'Vip' */
+        const f = await fixture([['1_call.sql', `/* @param :id = 'Vip' */
 call clfn.item_get (id => :id, size => 2);`]]);
         const script = f.script('1_call.sql');
-        script.connection.catalog.registerClientFunctions(JSON.stringify({
+        f.runtime.catalog(script.connectionId)!.registerClientFunctions(JSON.stringify({
             format: 1, namespace: 'clfn', functions: [{
                 name: 'item_get', method: 'GET', path: '/items/{id}', options: [{ name: 'id', in: 'path', required: true }, { name: 'size', in: 'query' }],
             }],
@@ -147,22 +165,22 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('sends another call to the backend as written', async () => {
-        const f = fixture([['1_call.sql', 'call other.procedure (a => 1);']]);
-        f.script('1_call.sql').connection.catalog.registerClientFunctions(JSON.stringify({ format: 1, namespace: 'clfn', functions: [{ name: 'f' }] }));
+        const f = await fixture([['1_call.sql', 'call other.procedure (a => 1);']]);
+        f.runtime.catalog(f.script('1_call.sql').connectionId)!.registerClientFunctions(JSON.stringify({ format: 1, namespace: 'clfn', functions: [{ name: 'f' }] }));
         await f.run();
         expect(f.calls.map(call => call.sql)).toEqual(['call other.procedure (a => 1)']);
         expect(f.executeQuery.mock.calls[0][1].clientFunctionCall).toBeUndefined();
     });
 
     it('inlines a script reference of the same connection into the query', async () => {
-        const f = fixture([
+        const f = await fixture([
             ['0_setup.sql', 'create table items (id int);'],
             ['1_foo.sql', 'select id from items where id > 1;'],
             ['2_bar.sql', 'select count(*) from :"1_foo";'],
         ]);
         await f.run();
         expect(f.lastState()?.error).toBeNull();
-        const main = f.script('1_foo.sql').connection.connectionId;
+        const main = f.script('1_foo.sql').connectionId;
         expect(f.calls.map(call => [call.databaseId, call.sql])).toEqual([
             [main, 'create table items (id int)'],
             [main, 'select id from items where id > 1'],
@@ -172,13 +190,13 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it.each([false, true])('materializes a script of another connection for the embedded database and mounts it before the scan (caching %s)', async caching => {
-        const f = fixture([
+        const f = await fixture([
             ['1_foo.sql', 'select 1 as a;'],
             ['2_bar.sql', 'select count(*) from :"1_foo";'],
         ]);
-        const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
-        f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '1_foo.sql', connection: remote } });
-        const main = f.script('2_bar.sql').connection.connectionId;
+        const remote = f.remote();
+        f.apply({ kind: 'setScriptConnection', value: { fileName: '1_foo.sql', connectionId: remote.connectionId } });
+        const main = f.script('2_bar.sql').connectionId;
         const events: string[] = [];
         const cacheArgs: Array<Partial<QueryExecutionArgs>> = [];
         f.executeQuery.mockImplementation((connectionId, args) => {
@@ -222,8 +240,8 @@ call clfn.item_get (id => :id, size => 2);`]]);
 
     describe('cached results', () => {
         /// A workbook whose scripts read each other, the executor records the cache arguments of every query
-        const cachedFixture = () => {
-            const f = fixture([
+        const cachedFixture = async () => {
+            const f = await fixture([
                 ['0_setup.sql', 'create table items (id int);'],
                 ['1_foo.sql', 'select 1 as id;'],
                 ['2_bar.sql', 'select count(*) from :"1_foo";'],
@@ -250,7 +268,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         const BAR = 'with "1_foo" as (\nselect 1 as id\n)\nselect count(*) from "1_foo"';
 
         it('serves the cached results of scripts and runs the others', async () => {
-            const f = cachedFixture();
+            const f = await cachedFixture();
             await f.run(f.options);
             expect(f.lastState()?.error).toBeNull();
             // Without cached results every script runs, the queries with reusable keys are cached
@@ -279,7 +297,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
 
         it('reads no cached results on a refresh', async () => {
-            const f = cachedFixture();
+            const f = await cachedFixture();
             await f.run(f.options);
             f.cache.put(f.keyOf(1));
             f.queries.length = 0;
@@ -290,7 +308,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
 
         it('runs a script whose cached result is gone', async () => {
-            const f = cachedFixture();
+            const f = await cachedFixture();
             await f.run(f.options);
             f.cache.put(f.keyOf(1));
             f.missCachedResults();
@@ -307,7 +325,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
 
         it('serves the cached results while the connection is not connected and skips the other scripts', async () => {
-            const f = cachedFixture();
+            const f = await cachedFixture();
             await f.run(f.options);
             // qux reads what setup writes, setup can't run, so qux is served
             f.cache.put(f.keyOf(1));
@@ -324,21 +342,21 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
 
         it('skips nothing while the connections are connected', async () => {
-            const f = cachedFixture();
+            const f = await cachedFixture();
             await f.run({ ...f.options, canRun: () => true });
             expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 4, skippedScripts: 0 });
             expect(f.queries).toHaveLength(4);
         });
 
         it('scans the cached result of a script of a connection that is not connected, and skips the scan without it', async () => {
-            const f = fixture([
+            const f = await fixture([
                 ['1_foo.sql', 'select 1 as a;'],
                 ['2_bar.sql', 'select count(*) from :"1_foo";'],
                 ['3_local.sql', 'select 2;'],
             ]);
-            const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
-            f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '1_foo.sql', connection: remote } });
-            const main = f.script('2_bar.sql').connection.connectionId;
+            const remote = f.remote();
+            f.apply({ kind: 'setScriptConnection', value: { fileName: '1_foo.sql', connectionId: remote.connectionId } });
+            const main = f.script('2_bar.sql').connectionId;
             const cache = memoryQueryResultCache();
             const queries: Array<{ connection: string; sql: string; cacheOnly: boolean }> = [];
             f.executeQuery.mockImplementation((connectionId, args) => {
@@ -377,14 +395,14 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
 
         it('serves every script of an exported workbook with its results after an import, without a connection', async () => {
-            const f = fixture([
+            const f = await fixture([
                 ['1_foo.sql', 'select 1 as id;'],
                 ['2_bar.sql', 'select count(*) from :"1_foo";'],
                 ['3_qux.sql', '/* @vis bar x=id y=id */\nselect 2 as id;'],
             ]);
-            const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            const remote = f.remote();
             for (const fileName of ['1_foo.sql', '2_bar.sql', '3_qux.sql']) {
-                f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: remote } });
+                f.apply({ kind: 'setScriptConnection', value: { fileName, connectionId: remote.connectionId } });
             }
             const keyOf = async (_connectionId: string, signature: string) => {
                 const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signature));
@@ -400,13 +418,13 @@ call clfn.item_get (id => :id, size => 2);`]]);
                 if (args.cacheOnly) return [id, Promise.reject(new QueryCacheMissError())];
                 return [id, Promise.resolve(tableFromArrays({ id: [1] }))];
             });
-            const services = { createMounts: () => null, cacheKey: keyOf, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
+            const services = { runs: f.runtime, createMounts: () => null, cacheKey: keyOf, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
             await f.run({ cache: source, resultKey: keyOf, cachesResults: () => true });
             expect(f.lastState()).toMatchObject({ phase: 'succeeded', completedScripts: 3 });
             await vi.waitFor(() => expect(source.files.size).toBe(3));
 
             // The export carries the files under the keys that a run reads
-            const retained = await retainWorkbookQueryResults(services, f.getWorkbook(), source);
+            const retained = await retainWorkbookQueryResults(services, f.workbook(), source);
             expect(retained).toMatchObject({ cachedScripts: 3, totalScripts: 3 });
             const zip = await createWorkbookZip({ database: archiveDatabase, core: dql }, { workbook: testWorkbook(), catalogs: [], scripts: [], results: retained.results });
             await retained.release();
@@ -448,11 +466,11 @@ call clfn.item_get (id => :id, size => 2);`]]);
             ];
 
             // The sharer runs the workbook online, the results land under the keys of its connection
-            const f = fixture(files);
-            const sharer = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
+            const f = await fixture(files);
+            const sharer = f.remote();
             const sharerConnectionId = sharer.connectionId;
             const sharerKey = keysOf(live);
-            for (const [fileName] of files) f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: sharer } });
+            for (const [fileName] of files) f.apply({ kind: 'setScriptConnection', value: { fileName, connectionId: sharer.connectionId } });
             const source = memoryQueryResultCache();
             const writes: Promise<unknown>[] = [];
             f.executeQuery.mockImplementation((connectionId, args) => {
@@ -476,8 +494,8 @@ call clfn.item_get (id => :id, size => 2);`]]);
                 scripts: files.map(([name]) => ({ name, connectionId: sharerConnectionId })),
             }));
             for (const [name, sql] of files) await backend.saveScript(TEST_WORKBOOK_ID, name, sql);
-            const services = { createMounts: () => null, cacheKey: sharerKey, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
-            const retained = await retainWorkbookQueryResults(services, f.getWorkbook(), source);
+            const services = { runs: f.runtime, createMounts: () => null, cacheKey: sharerKey, cachesResults: () => true, cache: source, maxConcurrentQueries: () => 1 };
+            const retained = await retainWorkbookQueryResults(services, f.workbook(), source);
             expect(retained).toMatchObject({ cachedScripts: 3, totalScripts: 3 });
             const zip = await exportWorkbookAsSharedZip(backend, { database: archiveDatabase, core: dql }, TEST_WORKBOOK_ID, new Map([[sharerConnectionId, live]]), {
                 withLoginHint: false, queryResults: retained.results,
@@ -495,9 +513,9 @@ call clfn.item_get (id => :id, size => 2);`]]);
                 .not.toBe(await recipientKey('', 'select 1'));
             const target = memoryQueryResultCache();
             expect(await importWorkbookQueryResults(target, bundle.results!)).toMatchObject({ added: 3, kept: 0, failed: 0 });
-            const g = fixture(bundle.scripts.map(script => [script.name, script.sql]));
-            const recipient = { connectionId: shared.connectionId, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
-            for (const script of bundle.scripts) g.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: script.name, connection: recipient } });
+            const g = await fixture(bundle.scripts.map(script => [script.name, script.sql]));
+            const recipient = g.remote(shared.connectionId);
+            for (const script of bundle.scripts) g.apply({ kind: 'setScriptConnection', value: { fileName: script.name, connectionId: recipient.connectionId } });
             // The executor serves a query from the file of the key of its connection and signature, or misses
             g.executeQuery.mockImplementation((connectionId, args) => {
                 if (!args.cacheOnly) throw new Error(`${args.query} reached the backend`);
@@ -513,13 +531,13 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
 
         it('scans the cached result of a script of another connection instead of running it', async () => {
-            const f = fixture([
+            const f = await fixture([
                 ['1_foo.sql', 'select 1 as a;'],
                 ['2_bar.sql', 'select count(*) from :"1_foo";'],
             ]);
-            const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
-            f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '1_foo.sql', connection: remote } });
-            const main = f.script('2_bar.sql').connection.connectionId;
+            const remote = f.remote();
+            f.apply({ kind: 'setScriptConnection', value: { fileName: '1_foo.sql', connectionId: remote.connectionId } });
+            const main = f.script('2_bar.sql').connectionId;
             const cache = memoryQueryResultCache();
             const queries: Array<{ connection: string; sql: string; cacheOnly: boolean }> = [];
             f.executeQuery.mockImplementation((connectionId, args) => {
@@ -555,12 +573,12 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('fails a run in which a remote connection reads a script of another connection', async () => {
-        const f = fixture([
+        const f = await fixture([
             ['1_foo.sql', 'select 1 as a;'],
             ['2_bar.sql', 'select count(*) from :"1_foo";'],
         ]);
-        const remote = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
-        f.apply({ type: SET_SCRIPT_CONNECTION, value: { fileName: '2_bar.sql', connection: remote } });
+        const remote = f.remote();
+        f.apply({ kind: 'setScriptConnection', value: { fileName: '2_bar.sql', connectionId: remote.connectionId } });
         await f.run();
         expect(f.executeQuery).not.toHaveBeenCalled();
         expect(f.lastState()).toMatchObject({ phase: 'failed' });
@@ -568,7 +586,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('executes create, insert, and select across scripts in natural order with real dependencies', async () => {
-        const f = fixture([
+        const f = await fixture([
             ['10_query.sql', 'select id from items;'],
             ['2_insert.sql', 'insert into items values (7);'],
             ['1_create.sql', 'create table items (id int);'],
@@ -579,9 +597,9 @@ call clfn.item_get (id => :id, size => 2);`]]);
         const graph = f.plan();
         expect(graph.scripts.map(script => script.name)).toEqual(['1_create', '2_insert', '10_query']);
         expect(f.calls).toEqual([
-            { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 1, sql: 'create table items (id int)' },
-            { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 2, sql: 'insert into items values (7)' },
-            { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 3, sql: 'select id from items' },
+            { databaseId: f.script('1_create.sql').connectionId, queryId: 1, sql: 'create table items (id int)' },
+            { databaseId: f.script('1_create.sql').connectionId, queryId: 2, sql: 'insert into items values (7)' },
+            { databaseId: f.script('1_create.sql').connectionId, queryId: 3, sql: 'select id from items' },
         ]);
         expect(graph.valid).toBe(true);
         expect(graph.nodes.map(node => [node.script, node.statementId, node.producesOutput]))
@@ -600,16 +618,14 @@ call clfn.item_get (id => :id, size => 2);`]]);
         expect(f.cancelQuery).not.toHaveBeenCalled();
     });
 
-    it('synchronizes analysis through the reducer before backend calls and retains query registrations', async () => {
-        const f = fixture([
+    it('analyzes the scripts in the workbook before backend calls and retains query registrations', async () => {
+        const f = await fixture([
             ['1_create.sql', 'create table items (id int);'],
             ['2_query.sql', 'select id from items;'],
         ]);
-        const initial = f.getWorkbook();
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
-            expect(f.getWorkbook()).not.toBe(initial);
-            for (const script of Object.values(f.getWorkbook().scripts)) {
+            for (const script of Object.values(f.scripts())) {
                 expect(script.analysisOutdated).toBe(false);
                 expect(script.editorUpdate).toMatchObject({
                     status: core.buffers.editor.EditorUpdateStatus.OK, analysisAvailable: true,
@@ -622,24 +638,22 @@ call clfn.item_get (id => :id, size => 2);`]]);
         });
         await f.run();
 
-        // The run changes the Rust workbook, the app projects it again
-        const actions = f.modifyWorkbookScripts.mock.calls.map(([action]) => action);
-        expect(actions.length).toBeGreaterThan(0);
-        expect(actions.every(action => action.type === PROJECT_WORKBOOK)).toBe(true);
+        // The run changes the Rust workbook itself, the store reads it with the next flush
+        expect(f.modifyWorkbookScripts).not.toHaveBeenCalled();
         expect(f.script('2_query.sql').latestResultQueryId).toBe(2);
         expect(f.script('1_create.sql').latestQueryId).toBe(1);
         expect(f.script('2_query.sql').latestQueryId).toBe(2);
-        expect(f.write).not.toHaveBeenCalled();
+        expect(await f.writes()).toEqual([]);
         expect(f.lastState().phase).toBe('succeeded');
     });
 
     it('analyzes only the last output per script and restores it after trailing commands', async () => {
-        const f = fixture([
+        const f = await fixture([
             ['1_outputs.sql', 'create table items (id int); select 1; select 2; insert into items values (3);'],
             ['2_outputs.sql', 'select id from items; select 4;'],
         ]);
-        f.apply({ type: REGISTER_QUERY, value: [f.script('1_outputs.sql').scriptKey, 0] });
-        f.apply({ type: REGISTER_SCRIPT_RESULT, value: [f.script('1_outputs.sql').scriptKey, 0] });
+        f.apply({ kind: 'registerQuery', value: { scriptKey: f.script('1_outputs.sql').scriptKey, queryId: 0 } });
+        f.apply({ kind: 'registerScriptResult', value: { scriptKey: f.script('1_outputs.sql').scriptKey, queryId: 0 } });
         await f.run();
 
         expect(f.plan().nodes.map(node => node.producesOutput)).toEqual([false, true, true, false, true, true]);
@@ -652,7 +666,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('executes EXPLAIN as an output statement', async () => {
-        const f = fixture([['1_explain.sql', 'explain select 2;']]);
+        const f = await fixture([['1_explain.sql', 'explain select 2;']]);
         await f.run();
 
         expect(f.plan().valid).toBe(true);
@@ -664,7 +678,7 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('lowers multiple visualizations and retains the last output after trailing DELETE', async () => {
-        const f = fixture([['1_visualize.sql',
+        const f = await fixture([['1_visualize.sql',
             'create table items (id int);\n/* @vis table */\nselect id from items;\n'
             + '/* @vis table\n   @board row=2 column=4 width=8 height=5 */\nselect 2 as value;\n'
             + 'delete from items;']]);
@@ -685,23 +699,23 @@ call clfn.item_get (id => :id, size => 2);`]]);
             'create table items (id int);\n/* @vis table */\nselect id from items;\n'
             + '/**\n * @vis table\n * @board row=0 column=0 width=6 height=3\n */\nselect 2 as value;\n'
             + 'delete from items;');
-        expect(f.write).not.toHaveBeenCalled();
+        expect(await f.writes()).toEqual([]);
         expect(f.lastState().phase).toBe('succeeded');
     });
 
     it('uses captured visualization despite live edits during execution', async () => {
-        const f = fixture([['1_visualize.sql',
+        const f = await fixture([['1_visualize.sql',
             'create table items (id int, other int);\n'
             + '/* @vis table\n   @board row=2 column=4 */\nselect id from items;']]);
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
             const execution = executor(connectionId, args);
             if (!args.analyzeResults) {
-                f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_visualize.sql').scriptKey,
+                f.apply({ kind: 'setScriptText', value: { scriptKey: f.script('1_visualize.sql').scriptKey,
                     text: '/* @vis table */\nselect other from items;' } });
             } else {
                 execution[1] = execution[1].then(table => {
-                    f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_visualize.sql').scriptKey, text: 'select 9;' } });
+                    f.apply({ kind: 'setScriptText', value: { scriptKey: f.script('1_visualize.sql').scriptKey, text: 'select 9;' } });
                     return table;
                 });
             }
@@ -722,11 +736,11 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('clears live visualization metadata when the captured output is no visualization', async () => {
-        const f = fixture([['1_query.sql', 'create table items (id int); select 1;']]);
+        const f = await fixture([['1_query.sql', 'create table items (id int); select 1;']]);
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
             if (!args.analyzeResults) {
-                f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey,
+                f.apply({ kind: 'setScriptText', value: { scriptKey: f.script('1_query.sql').scriptKey,
                     text: '/* @vis table */\nselect 2;' } });
                 expect(f.script('1_query.sql').annotations.visualizeQuery?.renderer).toBe('table');
             }
@@ -739,27 +753,8 @@ call clfn.item_get (id => :id, size => 2);`]]);
         expect(f.lastState().phase).toBe('succeeded');
     });
 
-    it('changes only the visualization annotation without analysis, catalog publication, or storage', () => {
-        const f = fixture([['1_query.sql', 'select 1;']]);
-        const previous = f.script('1_query.sql');
-        const analyze = vi.spyOn(previous.scriptSession, 'analyze');
-        const publish = vi.spyOn(previous.scriptSession, 'loadIntoCatalog');
-        const compiled = new core.buffers.execution.CompiledVisualizationT('table');
-        f.apply({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [previous.scriptKey, { sql: 'select 1', statementId: 0, visualization: compiled }] });
-
-        const next = f.script('1_query.sql');
-        const visualizeQuery = { renderer: 'table', sql: 'select 1', statementId: 0, dashboardSpec: null };
-        expect(next).toEqual({ ...previous, annotations: { ...previous.annotations, visualizeQuery } });
-        expect(next.annotations.tableDefs).toEqual(previous.annotations.tableDefs);
-        expect(analyze).not.toHaveBeenCalled();
-        expect(publish).not.toHaveBeenCalled();
-        expect(f.write).not.toHaveBeenCalled();
-        f.apply({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [previous.scriptKey, null] });
-        expect(f.script('1_query.sql').annotations.visualizeQuery).toBeNull();
-    });
-
     it('runs an unsupported SET as a barrier in workbook order', async () => {
-        const f = fixture([
+        const f = await fixture([
             ['1_valid.sql', 'select 1;'],
             ['2_set.sql', 'set foo = 1;'],
             ['3_after.sql', 'select 2;'],
@@ -775,10 +770,10 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('plans again from edited live workbooks on rerun rather than reusing captured SQL', async () => {
-        const f = fixture([['1_query.sql', 'select 1;']]);
+        const f = await fixture([['1_query.sql', 'select 1;']]);
         await f.run();
         const previousVersion = f.plan().scripts[0].textVersion;
-        f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2; select 3;' } });
+        f.apply({ kind: 'setScriptText', value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2; select 3;' } });
         await f.run();
 
         expect(f.plan().scripts[0].textVersion).not.toBe(previousVersion);
@@ -790,12 +785,12 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('fails a plan when the live text changes before its statements run', async () => {
-        const f = fixture([['1_query.sql', 'select 1;']]);
+        const f = await fixture([['1_query.sql', 'select 1;']]);
         await f.run({
             onState: state => {
                 f.states.push(state);
                 if (state.phase === 'running' && f.script('1_query.sql').scriptSession.getText() === 'select 1;') {
-                    f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2;' } });
+                    f.apply({ kind: 'setScriptText', value: { scriptKey: f.script('1_query.sql').scriptKey, text: 'select 2;' } });
                 }
             },
         });
@@ -808,12 +803,12 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('scans a Parquet attachment of the workbook from the mount of its attachments', async () => {
-        const f = fixture([['bar.sql', 'select count(*) from :sales;']]);
-        f.apply({ type: SET_WORKBOOK_ATTACHMENTS, value: [{ name: 'sales.parquet', sizeBytes: 10, mtimeMs: 1 }, { name: 'notes.txt', sizeBytes: 3 }] });
+        const f = await fixture([['bar.sql', 'select count(*) from :sales;']]);
+        f.apply({ kind: 'setWorkbookAttachments', value: { files: [{ name: 'sales.parquet', sizeBytes: 10, mtimeMs: 1 }, { name: 'notes.txt', sizeBytes: 3 }] } });
         const mountAttachments = vi.fn(async () => {});
         await f.run({ mountAttachments });
         expect(f.lastState()?.error).toBeNull();
-        const workbookId = f.getWorkbook().workbookId;
+        const workbookId = f.workbook().workbookId;
         expect(mountAttachments).toHaveBeenCalledWith(workbookId);
         expect(f.plan().attachments.map(attachment => [attachment.name, attachment.file])).toEqual([['sales', 'sales.parquet']]);
         expect(f.calls.map(call => call.sql)).toEqual([
@@ -822,8 +817,8 @@ call clfn.item_get (id => :id, size => 2);`]]);
     });
 
     it('fails a plan that scans an attachment without the compute database', async () => {
-        const f = fixture([['bar.sql', 'select count(*) from :sales;']]);
-        f.apply({ type: SET_WORKBOOK_ATTACHMENTS, value: [{ name: 'sales.parquet', sizeBytes: 10, mtimeMs: 1 }] });
+        const f = await fixture([['bar.sql', 'select count(*) from :sales;']]);
+        f.apply({ kind: 'setWorkbookAttachments', value: { files: [{ name: 'sales.parquet', sizeBytes: 10, mtimeMs: 1 }] } });
         await f.run();
         expect(f.calls).toEqual([]);
         expect(f.lastState()).toMatchObject({ phase: 'failed', error: 'Scripts that read attachments need the compute database' });

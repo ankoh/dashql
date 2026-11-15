@@ -270,12 +270,13 @@ what it built. `detailsProto` of the connection goes, the view of the details is
 
 ### Per keystroke
 
-The projection of a keystroke is two crossings: the view of the workbook and the view of the typed script with the
-newest processing statistics as its only payload, a `share` of each, and the unpacking of that one statistic. Before,
-it read the properties and the snapshot as JSON, the revision of every script, and unpacked the 20 statistics of the
-script again with a call each. The check of every step stays the Node measurement of "Typing" in core_runtime.md:
-the projection must not exceed today's. For the workbook (median per keystroke, the release module, alternating runs
-on a loaded machine): the projection 43 µs before, 25 µs after, the whole reduction 181 µs before, 128 µs after.
+The projection of a keystroke is two crossings: the change set (`takeChanges`), which names the slice of the typed
+script and leaves the workbook alone, and the view of the typed script with the newest processing statistics as its
+only payload, then a `share` and the unpacking of that one statistic; the derived view of the workbook crosses when it
+moved. The check of every step is the typing benchmark of "Typing" in core_runtime.md
+(`//packages/dashql-core-js:bench_typing`): the projection must stay within the budget of runtime_api.md. With the
+workbooks in the runtime (median per keystroke, the release module, alternating runs): the projection 16 to 17 µs,
+the update and the projection 92 to 95 µs, the base 93 to 97 µs.
 
 ## The registries in Rust
 

@@ -1,7 +1,7 @@
 import type * as core from '@ankoh/dashql-core';
 
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { createScriptAction } from '../scripts/script_creation.js';
 import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
@@ -34,7 +34,7 @@ function writeFlow(script: ScriptData, placement: core.DataflowPlacement, modify
         console.warn('cannot write the placement of the script', e);
         return false;
     }
-    modifyWorkbookScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
+    modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: script.scriptKey, text } });
     return true;
 }
 
@@ -84,18 +84,15 @@ export function newFlowScriptText(position: { x: number; y: number } | null, pro
 /// Create a script: a query of the result of `producer` on its connection, or a query on the connection of the last
 /// script. A script without a position is placed by the layout, one that reads `producer` right of it.
 export function createFlowScript(
+    workbook: Pick<WorkbookScripts, 'scriptOrder'>,
     position: { x: number; y: number } | null,
     producer: ScriptData | null,
     quoteIdentifier: (name: string) => string,
     modifyWorkbookScripts: ModifyWorkbookScripts,
 ): ReturnType<ModifyWorkbookScripts> {
-    return modifyWorkbookScripts({
-        type: CREATE_SCRIPT,
-        value: {
-            index: null,
-            text: newFlowScriptText(position, producer, quoteIdentifier),
-            ...(producer != null ? { connection: producer.connection } : {}),
-        },
-    });
+    return modifyWorkbookScripts(createScriptAction(workbook, {
+        text: newFlowScriptText(position, producer, quoteIdentifier),
+        connectionId: producer?.connectionId,
+    }));
 }
 

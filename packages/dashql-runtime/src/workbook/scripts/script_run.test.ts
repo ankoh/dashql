@@ -2,48 +2,62 @@ import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../testing/test_logger.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
+import { ConnectorType } from '../../connections/connector_info.js';
+import { newDefaultHyperWasmConnection } from '../../connections/connection_params.js';
 import type { QueryExecutor } from '../../connections/query_execution_args.js';
+import type { CoreRuntime } from '../../core_runtime.js';
 import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 import { memoryQueryResultCache } from '../../testing/memory_query_result_cache.js';
 import { QueryCacheMissError } from '../../query/query_result_cache.js';
 import { WorkbookTestBackend } from '../../testing/workbook_test_backend.js';
-import { StorageWriter } from '../../storage/storage_writer.js';
+import { restoreTestWorkbook, testStorageRuntime } from '../../testing/test_runtime.js';
 import { createExecutionMounts, isWorkbookExecutionRunning, subscribeWorkbookExecutions, type ExecutionMounts } from './workbook_execution.js';
-import { computeScriptResultCacheKey, registerScriptRunServices, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
+import { computeScriptResultCacheKey, runPlannedScript, type ScriptRunOptions, type ScriptRunServices } from './script_run.js';
 import { runWorkbookScript } from './rerun_query.js';
-import {
-    ANALYZE_OUTDATED_SCRIPT, DELETE_SCRIPT, PROJECT_WORKBOOK, REGISTER_QUERY, createWorkbookScripts, reduceWorkbookScripts,
-    scriptResultOwner,
-    replaceScriptSessionText, SET_SCRIPT_CONNECTION, type WorkbookScripts, type WorkbookScriptsAction,
-} from './workbook_scripts.js';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry_state.js';
-import { createEmptyMetadata } from './script_types.js';
+import { scriptResultOwner, type ModifyWorkbookScripts, type ScriptData, type WorkbookAction, type WorkbookScripts } from './workbook_scripts.js';
 import { tableFromArrays } from '../../testing/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL;
 const logger = new TestLogger();
+/// The runtimes of the fixtures of a test
+const runtimes: CoreRuntime[] = [];
 
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
-afterEach(() => { vi.restoreAllMocks(); registerScriptRunServices(dql, null); dql.resetUnsafe(); });
+afterEach(() => {
+    vi.restoreAllMocks();
+    for (const runtime of runtimes.splice(0)) runtime.destroy();
+    dql.resetUnsafe();
+});
 
-/// A workbook with scripts on the embedded database, `remote` moves scripts to a Trino connection. `caching` tells
-/// whether the connections cache query results, `clientFunctions` is a spec of the Trino connection.
-function fixture(entries: Array<[string, string]>, remote: string[] = [], caching = true, clientFunctions?: string) {
-    const connection = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: dql.createCatalog(), local: true };
-    const trino = { connectionId: crypto.randomUUID(), connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: dql.createCatalog() };
-    if (clientFunctions !== undefined) trino.catalog.registerClientFunctions(clientFunctions);
-    let live: WorkbookScripts = createWorkbookScripts({
-        instance: dql, workbookId: crypto.randomUUID(), name: 'References',
-        pendingConnection: null, workbookMetadata: createEmptyMetadata(),
-        scripts: entries.map(([name, sql]) => ({ name, sql, connection })),
+/// A workbook of a runtime with scripts on the embedded database, `remote` scripts run on a Trino connection.
+/// `caching` tells whether the connections cache query results, `clientFunctions` is a spec of the Trino connection.
+/// The scripts are restored from storage, they are not analyzed yet.
+async function fixture(entries: Array<[string, string]>, remote: string[] = [], caching = true, clientFunctions?: string) {
+    const storage = new WorkbookTestBackend();
+    const runtime = testStorageRuntime(dql, storage, logger);
+    runtimes.push(runtime);
+    const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: true }));
+    const trino = runtime.createConnection({
+        connectorType: ConnectorType.TRINO,
+        setupParams: { endpoint: 'https://trino.example.com', defaultCatalog: 'tpch', defaultSchema: 'tiny' },
     });
-    const writer = new StorageWriter(logger, new WorkbookTestBackend());
-    const apply = (action: WorkbookScriptsAction) => { live = reduceWorkbookScripts(live, action, writer, logger); return live; };
-    for (const fileName of remote) apply({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: trino } });
-    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => Promise.resolve(apply(action)));
+    if (clientFunctions !== undefined) runtime.catalog(trino.connectionId)!.registerClientFunctions(clientFunctions);
+    const stored = entries.map(([name, sql]): [string, string, string] => [name, sql, remote.includes(name) ? trino.connectionId : connection.connectionId]);
+    const restored = await restoreTestWorkbook(runtime, storage, stored, { name: 'References' });
+    const workbookId = restored.workbookId;
+    /// The workbook as the runtime holds it now
+    const workbook = (): WorkbookScripts => {
+        runtime.flush();
+        return runtime.workbook(workbookId)!;
+    };
+    const apply = (action: WorkbookAction) => {
+        const outcome = runtime.dispatchWorkbook(workbookId, action);
+        runtime.flush();
+        return outcome;
+    };
+    const modifyWorkbookScripts = vi.fn<ModifyWorkbookScripts>(action => apply(action));
     const calls: Array<{ connection: 'local' | 'remote'; sql: string; cacheable?: boolean; cacheSignature?: string; refreshCache?: boolean }> = [];
     const executeQuery = vi.fn<QueryExecutor>((connectionId, args) => {
         calls.push({
@@ -68,34 +82,36 @@ function fixture(entries: Array<[string, string]>, remote: string[] = [], cachin
         return run;
     };
     const services: ScriptRunServices = {
+        runs: runtime,
         createMounts,
         cacheKey: async (connectionId, signature) => `${connectionId === connection.connectionId ? 'local' : 'remote'}:${signature}`,
         cachesResults: () => caching,
         cache,
         maxConcurrentQueries: () => 1,
     };
-    const script = (fileName: string) => live.scripts[live.scriptRefs[fileName].scriptId];
-    const run = (fileName: string, options: ScriptRunOptions = {}) => runPlannedScript(services, live, script(fileName), executeQuery, modifyWorkbookScripts, options);
+    /// A script as the runtime holds it now
+    const script = (fileName: string): ScriptData => runtime.store.get('script', workbook().scriptRefs[fileName].scriptId)!;
+    const run = (fileName: string, options: ScriptRunOptions = {}) => runPlannedScript(services, workbook(), script(fileName), executeQuery, modifyWorkbookScripts, options);
     /// Analyze the scripts like a run, every script or the target with what it needs
     const analyze = () => {
-        live.native!.workbook.analyzeForRun();
-        apply({ type: PROJECT_WORKBOOK, value: null });
+        runtime.analyzeForRun(workbookId);
+        runtime.flush();
     };
     /// The target plan of a script after analyzing the workbook
     const planOf = async (fileName: string) => {
         analyze();
-        return live.native!.workbook.planRun([live.scriptOrder.indexOf(fileName)], '/mnt/external/cache');
+        return runtime.planRun(workbookId, [workbook().scriptOrder.indexOf(fileName)], '/mnt/external/cache');
     };
-    return { workbook: () => live, script, run, analyze, planOf, services, calls, cache, mounts, modifyWorkbookScripts, executeQuery };
+    return { runtime, workbook, script, run, analyze, planOf, services, calls, cache, mounts, modifyWorkbookScripts, executeQuery };
 }
 
 describe('script runs', () => {
     it('derives the cache key of a script from the keys of the scripts it references', async () => {
-        const f = fixture([['base.sql', 'select 1 as a;'], ['writes.sql', 'create table t (a int);\nselect a from t;'], ['bar.sql', 'select * from :base;'], ['baz.sql', 'create table u as select * from :base;\nselect a from u;']]);
+        const f = await fixture([['base.sql', 'select 1 as a;'], ['writes.sql', 'create table t (a int);\nselect a from t;'], ['bar.sql', 'select * from :base;'], ['baz.sql', 'create table u as select * from :base;\nselect a from u;']]);
         f.analyze();
         const workbook = f.workbook();
-        const graph = workbook.native!.workbook.planRun(null, '/mnt/external/cache');
-        const keysOf = (caching: boolean) => workbook.native!.workbook.resultKeys(null, {
+        const graph = f.runtime.planRun(workbook.workbookId, null, '/mnt/external/cache');
+        const keysOf = (caching: boolean) => f.runtime.resultKeys(workbook.workbookId, null, {
             resultKey: async (_connectionId, signature) => `k:${signature}`,
             cachesResults: () => caching,
         });
@@ -113,7 +129,7 @@ describe('script runs', () => {
     });
 
     it('runs a script without references through a plan of its own and caches its result', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', "select ':foo' as text;"]]);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', "select ':foo' as text;"]]);
         const graph = await f.planOf('bar.sql');
         const table = await f.run('bar.sql');
         expect(table?.numRows).toBe(1);
@@ -124,7 +140,7 @@ describe('script runs', () => {
     });
 
     it('serves a cached result of a script without references without running its other statements', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;\nselect 2 as b;']]);
+        const f = await fixture([['foo.sql', 'select 1 as a;\nselect 2 as b;']]);
         await f.run('foo.sql');
         expect(f.calls.map(call => call.sql)).toEqual(['select 1 as a', 'select 2 as b']);
 
@@ -137,14 +153,14 @@ describe('script runs', () => {
     });
 
     it('does not cache results of connections that do not cache them', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;']], [], false);
+        const f = await fixture([['foo.sql', 'select 1 as a;']], [], false);
         await f.run('foo.sql');
         expect(f.calls).toEqual([expect.objectContaining({ cacheable: false, cacheSignature: undefined })]);
         expect(await computeScriptResultCacheKey(f.services, f.workbook(), f.script('foo.sql'))).toBeNull();
     });
 
     it('returns the last output of a script whose output is not the last statement', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;\ncreate table t (a int);']]);
+        const f = await fixture([['foo.sql', 'select 1 as a;\ncreate table t (a int);']]);
         const table = await f.run('foo.sql');
         expect(f.calls.map(call => call.sql)).toEqual(['select 1 as a', 'create table t (a int)']);
         // The select is the result of the script
@@ -154,14 +170,14 @@ describe('script runs', () => {
     });
 
     it('runs the SQL of a query with @vis tags as written', async () => {
-        const f = fixture([['foo.sql', '/* @vis table */\nSELECT   1   AS a']]);
+        const f = await fixture([['foo.sql', '/* @vis table */\nSELECT   1   AS a']]);
         await f.run('foo.sql');
         expect(f.calls.map(call => call.sql)).toEqual(['SELECT   1   AS a']);
         expect(f.script('foo.sql').annotations.visualizeQuery).toMatchObject({ renderer: 'table', sql: 'SELECT   1   AS a' });
     });
 
     it('inlines the query of a referenced script without running the scripts that write its relations', async () => {
-        const f = fixture([['setup.sql', 'create table t (a int);'], ['foo.sql', 'select a from t;'], ['bar.sql', 'select count(*) from :foo;']]);
+        const f = await fixture([['setup.sql', 'create table t (a int);'], ['foo.sql', 'select a from t;'], ['bar.sql', 'select count(*) from :foo;']]);
         const table = await f.run('bar.sql');
         expect(table?.numRows).toBe(1);
         // bar reads t as the backend has it, setup is no part of the plan
@@ -172,14 +188,14 @@ describe('script runs', () => {
     });
 
     it('rejects a reference to a script that is no single query', async () => {
-        const f = fixture([['foo.sql', 'create table t (a int);\nselect a from t;'], ['bar.sql', 'select count(*) from :foo;']]);
+        const f = await fixture([['foo.sql', 'create table t (a int);\nselect a from t;'], ['bar.sql', 'select count(*) from :foo;']]);
         await expect(f.run('bar.sql')).rejects.toThrow('bar.sql: foo.sql is no single SELECT that bar.sql could read');
         expect(f.executeQuery.mock.calls.map(([, args]) => args.failure?.message)).toEqual(['bar.sql: foo.sql is no single SELECT that bar.sql could read']);
     });
 
     it('materializes the result of a call that a script of the embedded database reads', async () => {
         const spec = `{ "format": 1, "namespace": "t", "functions": [{ "name": "list", "method": "GET", "columns": [{ "name": "id" }] }] }`;
-        const f = fixture([['foo.sql', 'call t.list ();'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql'], true, spec);
+        const f = await fixture([['foo.sql', 'call t.list ();'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql'], true, spec);
         await f.run('bar.sql');
         const [[, call], [, scan]] = f.executeQuery.mock.calls;
         expect(f.calls.map(c => c.connection)).toEqual(['remote', 'local']);
@@ -193,7 +209,7 @@ describe('script runs', () => {
     });
 
     it('reuses the cached result of a materialized script of another connection', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
         const fooKey = `remote:${graph.scripts[0].signature}`;
         // The first run executes foo remotely and writes its result as the cache entry of its key, bar scans it
@@ -219,7 +235,7 @@ describe('script runs', () => {
     });
 
     it('writes a materialized result that is not reused as a transient file and removes it once the run ended', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql'], false);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql'], false);
         await f.run('bar.sql');
         expect(f.calls.map(call => call.connection)).toEqual(['remote', 'local']);
         const [path] = vi.mocked(f.mounts[0].writeTable).mock.calls[0];
@@ -237,7 +253,7 @@ describe('script runs', () => {
     });
 
     it('refreshes a script and the cached results of the scripts it references', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
         const fooKey = `remote:${graph.scripts[0].signature}`;
         const barKey = `local:${graph.scripts[1].signature}\n${fooKey}`;
@@ -256,7 +272,7 @@ describe('script runs', () => {
     });
 
     it('serves the cached results of the script and of the scripts it references', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
         // The key of bar covers the remote key of foo
         const fooKey = `remote:${graph.scripts[0].signature}`;
@@ -273,7 +289,7 @@ describe('script runs', () => {
     });
 
     it('runs the script if a script it references runs', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
         // Only the result of bar is cached, foo runs and so does bar
         f.cache.put(`local:${graph.scripts[1].signature}\nremote:${graph.scripts[0].signature}`);
@@ -283,7 +299,7 @@ describe('script runs', () => {
     });
 
     it('runs the plan if the cached result of the script is gone', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         const graph = await f.planOf('bar.sql');
         const fooKey = `remote:${graph.scripts[0].signature}`;
         const fooFile = f.cache.put(fooKey);
@@ -291,7 +307,7 @@ describe('script runs', () => {
         // The file of bar is evicted before the executor reads it, the query of bar runs and scans the file of foo
         const fallback = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
-            if (args.cacheOnly && connectionId === f.script('bar.sql').connection.connectionId) return [99, Promise.reject(new QueryCacheMissError())];
+            if (args.cacheOnly && connectionId === f.script('bar.sql').connectionId) return [99, Promise.reject(new QueryCacheMissError())];
             return fallback(connectionId, args);
         });
         const table = await f.run('bar.sql');
@@ -304,7 +320,7 @@ describe('script runs', () => {
     });
 
     it('cancels the other statements once a statement failed and releases the files after they are done', async () => {
-        const f = fixture([['a.sql', 'select 1 as a;'], ['b.sql', 'select 2 as b;'], ['c.sql', 'select * from :a, :b;']], ['a.sql', 'b.sql']);
+        const f = await fixture([['a.sql', 'select 1 as a;'], ['b.sql', 'select 2 as b;'], ['c.sql', 'select * from :a, :b;']], ['a.sql', 'b.sql']);
         f.services.maxConcurrentQueries = () => 2;
         let aSettled = false;
         let aSignal: AbortSignal | undefined;
@@ -328,7 +344,7 @@ describe('script runs', () => {
     });
 
     it('refuses a run while another run holds the workbook', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']]);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']]);
         let finish: () => void = () => {};
         f.executeQuery.mockImplementation((_connectionId, args) => {
             f.calls.push({ connection: 'local', sql: args.query });
@@ -360,7 +376,7 @@ describe('script runs', () => {
     });
 
     it('describes where the statements of a plan come from in the query metadata and the logs', async () => {
-        const f = fixture([['base.sql', 'select 1 as a;'], ['foo.sql', 'select * from :base;'], ['bar.sql', 'select count(*) from :foo;']], ['base.sql']);
+        const f = await fixture([['base.sql', 'select 1 as a;'], ['foo.sql', 'select * from :base;'], ['bar.sql', 'select count(*) from :foo;']], ['base.sql']);
         const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), exception: vi.fn() };
         await f.run('bar.sql', { logger });
         const metadata = f.executeQuery.mock.calls.map(([, args]) => args.metadata);
@@ -389,11 +405,10 @@ describe('script runs', () => {
     });
 
     it('fails a run when the scripts of the workbook change meanwhile', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;\nselect 2 as b;']]);
+        const f = await fixture([['foo.sql', 'select 1 as a;\nselect 2 as b;']]);
         // The script is removed from the workbook while its first statement runs
-        f.services.liveWorkbook = () => f.workbook();
         f.executeQuery.mockImplementation(() => {
-            f.modifyWorkbookScripts({ type: DELETE_SCRIPT, value: 'foo.sql' });
+            f.modifyWorkbookScripts({ kind: 'deleteScript', value: { fileName: 'foo.sql' } });
             return [1, Promise.resolve(tableFromArrays({ a: [1] }))];
         });
         await expect(f.run('foo.sql')).rejects.toThrow('Workbook changed during execution');
@@ -401,18 +416,18 @@ describe('script runs', () => {
     });
 
     it('shows an error that stops a run before its statements on the script', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
+        const f = await fixture([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select count(*) from :foo;']], ['foo.sql']);
         // Without the compute database, nothing scans the result of foo
         f.services.createMounts = () => null;
         await expect(f.run('bar.sql')).rejects.toThrow('Scripts of other connections need the compute database');
         expect(f.executeQuery.mock.calls.map(([, args]) => [args.metadata.resultOwner, args.failure?.message])).toEqual([
             [scriptResultOwner(f.workbook().workbookId, f.script('bar.sql').scriptKey), expect.stringContaining('need the compute database')],
         ]);
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [f.script('bar.sql').scriptKey, 1] });
+        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ kind: 'registerQuery', value: { scriptKey: f.script('bar.sql').scriptKey, queryId: 1 } });
     });
 
     it('reports the errors of the plan of a script', async () => {
-        const f = fixture([['bar.sql', 'select * from :missing;'], ['empty.sql', '-- nothing']]);
+        const f = await fixture([['bar.sql', 'select * from :missing;'], ['empty.sql', '-- nothing']]);
         await expect(f.run('bar.sql')).rejects.toThrow('bar.sql: unknown script or attachment :missing');
         await expect(f.run('empty.sql')).rejects.toThrow('empty.sql holds no statement');
         // Nothing runs, the scripts record the errors as failed queries that show where their results would be
@@ -420,23 +435,16 @@ describe('script runs', () => {
             [scriptResultOwner(f.workbook().workbookId, f.script('bar.sql').scriptKey), 'bar.sql: unknown script or attachment :missing'],
             [scriptResultOwner(f.workbook().workbookId, f.script('empty.sql').scriptKey), 'empty.sql holds no statement'],
         ]);
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [f.script('bar.sql').scriptKey, 1] });
-        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [f.script('empty.sql').scriptKey, 2] });
+        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ kind: 'registerQuery', value: { scriptKey: f.script('bar.sql').scriptKey, queryId: 1 } });
+        expect(f.modifyWorkbookScripts).toHaveBeenCalledWith({ kind: 'registerQuery', value: { scriptKey: f.script('empty.sql').scriptKey, queryId: 2 } });
     });
 
-    it.each([true, false])('runs an outdated script after analyzing it with the registered services (caching %s)', async caching => {
-        const f = fixture([['foo.sql', 'select 1 as a']], [], caching);
-        registerScriptRunServices(dql, f.services);
+    it.each([true, false])('runs an outdated script after analyzing it (caching %s)', async caching => {
+        const f = await fixture([['foo.sql', 'select 1 as a']], [], caching);
         expect(f.script('foo.sql').analysisOutdated).toBe(true);
-        await runWorkbookScript(f.workbook(), f.script('foo.sql'), f.executeQuery, f.modifyWorkbookScripts, logger);
-        expect(f.modifyWorkbookScripts).toHaveBeenNthCalledWith(1, { type: ANALYZE_OUTDATED_SCRIPT, value: f.script('foo.sql').scriptKey });
+        await runWorkbookScript(f.services, f.workbook(), f.script('foo.sql'), f.executeQuery, f.modifyWorkbookScripts, logger);
+        expect(f.script('foo.sql').analysisOutdated).toBe(false);
         expect(f.calls).toEqual([expect.objectContaining({ sql: 'select 1 as a', cacheable: caching })]);
         expect(f.script('foo.sql').latestResultQueryId).toBe(1);
-    });
-
-    it('runs scripts without cache and mounts without a runtime', async () => {
-        const f = fixture([['foo.sql', 'select 1 as a']]);
-        await runWorkbookScript(f.workbook(), f.script('foo.sql'), f.executeQuery, f.modifyWorkbookScripts, logger);
-        expect(f.calls).toEqual([expect.objectContaining({ sql: 'select 1 as a', cacheable: false })]);
     });
 });

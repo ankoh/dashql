@@ -35,16 +35,12 @@ export function TestRuntime(props: TestRuntimeProps) {
 
 function TestRuntimeSetup(props: TestRuntimeProps) {
     const runtime = useRuntime();
-    // Before the components below render and fill the registries
+    // Before the components below render and create their connections and workbooks
     React.useState(() => {
         if (!props.catalogLoader) runtime.coreRuntime.runCatalogLoader(false);
         // The connections are slices of the runtime of the module, it needs its core before they are created
         const instance = props.core ?? core.DashQL.instantiated();
-        if (instance != null) {
-            runtime.coreRuntime.setCore(instance);
-            runtime.storageWriter.provideCore(instance);
-            void runtime.storageWriter.withNativeWriter(async native => runtime.coreRuntime.setStorageWriter(native)).catch(() => { });
-        }
+        if (instance != null) runtime.coreRuntime.setCore(instance);
     });
     return <TestQueryExecutor execute={props.execute} cancel={props.cancel} watchProfile={props.watchProfile}>{props.children}</TestQueryExecutor>;
 }

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql-core';
 import * as styles from './script_connection_picker.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
@@ -16,15 +15,13 @@ import {
     useConnectionReferences,
     useConnectionRegistry,
     useConnectionRegistryStore,
-    useScriptConnectionOf,
 } from '../../connections/connection_registry.js';
-import { SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ModifyWorkbookScripts } from './workbook_scripts_registry.js';
+import type { ModifyWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
 import { connectionLabelParts, connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
-import { useWorkbookScriptsRegistry } from './workbook_scripts_registry.js';
+import { useWorkbooks } from './workbook_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -62,34 +59,29 @@ export function scriptConnectionView(connection: ConnectionState, labelParts: Co
 /// follow the script.
 export function usePickScriptConnection(_workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts): (fileName: string, connectionId: string) => void {
     const registryStore = useConnectionRegistryStore();
-    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((fileName: string, connectionId: string) => {
-        const connection = registryStore.current.connections.get(connectionId);
-        if (connection == null) return;
-        modifyWorkbookScripts({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: scriptConnectionOf(connection) } });
-    }, [modifyWorkbookScripts, registryStore, scriptConnectionOf]);
+        if (!registryStore.current.connections.has(connectionId)) return;
+        modifyWorkbookScripts({ kind: 'setScriptConnection', value: { fileName, connectionId } });
+    }, [modifyWorkbookScripts, registryStore]);
 }
 
 /// Create the next script of a workbook on a connection
 export function usePickPendingConnection(modifyWorkbookScripts: ModifyWorkbookScripts): (connectionId: string) => void {
     const registryStore = useConnectionRegistryStore();
-    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((connectionId: string) => {
-        const connection = registryStore.current.connections.get(connectionId);
-        if (connection == null) return;
-        modifyWorkbookScripts({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(connection) });
-    }, [modifyWorkbookScripts, registryStore, scriptConnectionOf]);
+        if (!registryStore.current.connections.has(connectionId)) return;
+        modifyWorkbookScripts({ kind: 'setPendingConnection', value: { connectionId } });
+    }, [modifyWorkbookScripts, registryStore]);
 }
 
 /// Create the next script of a workbook on a new connection of a connector, returns the id of the connection
-export function useAttachPendingConnection(instance: core.DashQL, modifyWorkbookScripts: ModifyWorkbookScripts): (connector: ConnectorType) => string {
+export function useAttachPendingConnection(modifyWorkbookScripts: ModifyWorkbookScripts): (connector: ConnectorType) => string {
     const attach = useConnectionAttach();
-    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((connector: ConnectorType) => {
         const connection = attach(connector);
-        modifyWorkbookScripts({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(connection) });
+        modifyWorkbookScripts({ kind: 'setPendingConnection', value: { connectionId: connection.connectionId } });
         return connection.connectionId;
-    }, [attach, instance, modifyWorkbookScripts, scriptConnectionOf]);
+    }, [attach, modifyWorkbookScripts]);
 }
 
 /// The logo of the database of a connector, see useConnectorIcon
@@ -228,7 +220,7 @@ export function ConnectionMenu(props: MenuProps) {
     const connectorIcon = useConnectorIcon();
     const [connections] = useConnectionRegistry();
     // Re-render when the workbooks use other connections
-    const [scripts] = useWorkbookScriptsRegistry();
+    const workbooks = useWorkbooks();
     const references = useConnectionReferences();
     const { workbookConnections, otherConnections, ordinals } = React.useMemo(() => {
         const workbookConnections = resolveWorkbookConnections(connections, references, props.workbookId) ?? [];
@@ -238,7 +230,7 @@ export function ConnectionMenu(props: MenuProps) {
             otherConnections: listed.slice(workbookConnections.length),
             ordinals: connectionOrdinals(connections, references),
         };
-    }, [connections, references, scripts, props.workbookId]);
+    }, [connections, references, workbooks, props.workbookId]);
     const renderItem = (connection: ConnectionState) => (
         <ActionList.ListItem
             key={connection.connectionId}

@@ -2,14 +2,12 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 
 import type { ConnectionState, NewConnection } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useOptionalRuntime } from '../runtime/runtime_provider.js';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { useOptionalCoreRuntime, useView } from '../runtime/runtime_hooks.js';
-import { scriptConnectionOf, type ScriptConnection } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import {
     connectionRegistryOf,
     NO_CONNECTION_REFERENCES,
-    resolveWorkbookConnections,
     type ConnectionAllocator,
     type ConnectionDispatch,
     type ConnectionReferences,
@@ -36,9 +34,24 @@ export {
 /// The connections by id, see connection_registry_state.ts
 export type ConnectionRegistry = ConnectionRegistryState;
 
+/// The references between the connections and the workbooks of the runtime, from the views of the last flush: the
+/// workbooks that use a connection are in the view of the connection, the connections that a workbook uses in the view
+/// of the workbook
+function referencesOf(runtime: CoreRuntime): ConnectionReferences {
+    return {
+        workbooksOf: connectionId => runtime.store.get('connection', connectionId)?.workbooks ?? [],
+        connectionsOf: workbookId => runtime.store.get('workbook', workbookId)?.connectionIds ?? [],
+        subscribe: listener => {
+            const stops = [runtime.store.subscribeKind('workbook', listener), runtime.store.subscribeKind('connection', listener)];
+            return () => { for (const stop of stops) stop(); };
+        },
+    };
+}
+
 /// Get the references without subscribing to their changes
 export function useConnectionReferences(): ConnectionReferences {
-    return useOptionalRuntime()?.workbooks.references ?? NO_CONNECTION_REFERENCES;
+    const runtime = useOptionalCoreRuntime();
+    return React.useMemo(() => runtime == null ? NO_CONNECTION_REFERENCES : referencesOf(runtime), [runtime]);
 }
 
 /// Subscribe to a slice of the references.
@@ -110,28 +123,23 @@ export function useConnectionDispatch(): DynamicConnectionDispatch {
     }, [runtime]);
 }
 
-/// The connections that the scripts of a workbook use
+/// The connections that a workbook uses, from the slice of the workbook: the connections of its scripts, then its
+/// pending connection. Null while one of them is unknown.
 export function useWorkbookConnections(workbookId: string | null): ConnectionState[] | null {
     const [registry] = useConnectionRegistry();
-    const references = useConnectionReferences();
-    // Re-render when the workbook uses other connections
-    useConnectionReferencesSelector(references => workbookId == null ? '' : references.connectionsOf(workbookId).join('\n'));
+    const workbook = useView('workbook', workbookId);
     // The list keeps its identity while the connections are unchanged, consumers depend on it in effects
-    const resolved = resolveWorkbookConnections(registry, references, workbookId);
+    const connectionIds = workbook?.connectionIds ?? null;
+    let resolved: ConnectionState[] | null = null;
+    if (connectionIds != null && connectionIds.length > 0) {
+        const connections = connectionIds.map(connectionId => registry.connections.get(connectionId));
+        if (connections.every(connection => connection != null)) resolved = connections as ConnectionState[];
+    }
     const latest = React.useRef(resolved);
     const same = latest.current === resolved || (latest.current != null && resolved != null
         && latest.current.length === resolved.length && latest.current.every((connection, i) => connection === resolved[i]));
     if (!same) latest.current = resolved;
     return latest.current;
-}
-
-/// The connection that a script runs on, with the catalog of the connection of the runtime
-export function useScriptConnectionOf(): (connection: ConnectionState) => ScriptConnection {
-    const runtime = useOptionalCoreRuntime();
-    return React.useCallback((connection: ConnectionState) => {
-        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
-        return scriptConnectionOf(runtime, connection);
-    }, [runtime]);
 }
 
 /// The view of a connection, it renders again when the connection changes

@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
 import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
 import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { groupScriptWrites } from '@ankoh/dashql-runtime/storage/runtime_storage';
+import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 
 /// A browsing context of the origin that stands in for a tab, it has its own locks and channels
@@ -112,7 +112,9 @@ describe('AppOwnership', () => {
         const workbookId = crypto.randomUUID();
         const backend = new OPFSStorageBackend();
         await backend.initialize();
-        const writer = new StorageWriter(new TestLogger(), backend);
+        // The writer of a runtime on the storage of the tab
+        const runtime = await createTestRuntime({ storage: backend });
+        const writer = runtime.coreRuntime.storage;
         try {
             const owner = await AppOwnership.tryAcquire(a.environment, async () => {
                 writer.pause();
@@ -122,14 +124,17 @@ describe('AppOwnership', () => {
 
             // The write is debounced far beyond the takeover
             const write = writer.write(groupScriptWrites(workbookId, 'a.sql'), {
-                type: WRITE_SCRIPT,
-                value: [workbookId, 'a.sql', 'SELECT 42'],
+                type: 'writeScript',
+                workbookId,
+                fileName: 'a.sql',
+                text: 'SELECT 42',
             }, 60_000);
 
             await AppOwnership.takeOver(b.environment, stopNothing, 5_000);
             expect((await backend.loadScript(workbookId, 'a.sql')).sql).toBe('SELECT 42');
             expect(await write).toBe(true);
         } finally {
+            await runtime.destroy();
             const root = await getOPFSRoot();
             const workbooks = await root.getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER);
             await workbooks.removeEntry(workbookId, { recursive: true });

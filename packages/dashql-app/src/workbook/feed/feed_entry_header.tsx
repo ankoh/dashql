@@ -100,7 +100,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
     const queryState = props.queryState;
     const queryActive = queryState != null && !queryIsDone(queryState.status);
     const hasPendingDiff = props.scriptData?.pendingDiff != null;
-    const connectionId = props.connection?.connectionId ?? props.scriptData?.connection.connectionId ?? null;
+    const connectionId = props.connection?.connectionId ?? props.scriptData?.connectionId ?? null;
     const connectionHealth = props.connection?.connectionHealth ?? null;
     // A script on a connection that is not connected keeps a greyed play button that pulses the connections in the bar
     const needsConnection = !queryActive && connectionId != null && connectionHealth !== ConnectionHealth.ONLINE;

@@ -1,7 +1,6 @@
 import type { LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { chartStatementId } from '@ankoh/dashql-runtime/workbook/scripts/script_compilation';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { SET_SCRIPT_TEXT, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { DashboardPlacement } from './dashboard_layout.js';
 
 const LOG_CTX = 'dashboard';
@@ -26,7 +25,7 @@ export function persistDashboardPlacement(
     const statementId = cardStatementId(script);
     if (statementId == null) return;
     modifyWorkbookScripts({
-        type: SET_SCRIPT_TEXT,
+        kind: 'setScriptText',
         value: {
             scriptKey: script.scriptKey,
             text: script.scriptSession.rewriteVisBoard(
@@ -60,7 +59,7 @@ export function setDashboardRenderer(
         logger?.warn('Failed to write the renderer of a dashboard card', { renderer, error: String(e) }, LOG_CTX);
         return false;
     }
-    modifyWorkbookScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text, withDiff: true } });
+    modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: script.scriptKey, text, withDiff: true } });
     return true;
 }
 

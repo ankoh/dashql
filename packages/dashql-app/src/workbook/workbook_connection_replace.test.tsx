@@ -15,12 +15,11 @@ import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_
 
 import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
-import { createWorkbookScripts, scriptConnectionOf, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
+import { useWorkbooks } from './scripts/workbook_scripts_registry.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 
@@ -28,8 +27,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 const WORKBOOK_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
@@ -43,17 +41,9 @@ function connection(runtime: CoreRuntime, connectionId: string, params: any): Co
     return state;
 }
 
-/// A workbook whose next script runs on a connection
+/// A workbook of the runtime whose next script runs on a connection
 function workbook(runtime: CoreRuntime, on: ConnectionState): WorkbookScripts {
-    return createWorkbookScripts({
-        instance: dql,
-        workbookId: WORKBOOK_ID,
-        name: null,
-        workbookMetadata: createEmptyMetadata(),
-        pendingConnection: scriptConnectionOf(runtime, on),
-        scripts: [],
-        dataFiles: [],
-    });
+    return runtime.createWorkbook(on.connectionId, null, false, undefined, WORKBOOK_ID);
 }
 
 interface Api {
@@ -66,22 +56,17 @@ interface Api {
 function Capture(props: { capture: (api: Api) => void }) {
     const [registry] = useConnectionRegistry();
     const coreRuntime = useCoreRuntime();
-    const [scripts, setScripts] = useWorkbookScriptsRegistry();
+    const workbooks = useWorkbooks();
     const replace = useReplaceConnection();
     const writer = useStorageWriter();
     const compute = useComputeDatabase();
     React.useEffect(() => {
         const source = connection(coreRuntime, 'source', SOURCE_PARAMS);
         connection(coreRuntime, 'target', TARGET_PARAMS);
-        const scripts = workbook(coreRuntime, source);
-        setScripts(prev => ({
-            ...prev,
-            workbookScriptsMap: new Map([[scripts.workbookId, scripts]]),
-            workbookScriptsByConnection: new Map([[scripts.pendingConnection!.connectionId, [scripts.workbookId]]]),
-        }));
-    }, [coreRuntime, setScripts]);
+        workbook(coreRuntime, source);
+    }, [coreRuntime]);
     React.useLayoutEffect(() => {
-        if (compute) props.capture({ replace, writer, connections: registry.connections, workbooks: scripts.workbookScriptsMap });
+        if (compute) props.capture({ replace, writer, connections: registry.connections, workbooks });
     });
     return null;
 }
@@ -131,7 +116,7 @@ describe('useReplaceConnection', () => {
         await act(async () => { result = await api!.replace('source', 'target'); });
         expect(result).toEqual({ removed: true });
         await vi.waitFor(() => expect(api!.connections.has('source')).toBe(false));
-        expect(api!.workbooks.get(WORKBOOK_ID)?.pendingConnection?.connectionId).toBe('target');
+        expect(api!.workbooks.get(WORKBOOK_ID)?.pendingConnectionId).toBe('target');
         // The workbook file names the target before the connection is gone
         const stored = await backend.loadWorkbook(WORKBOOK_ID);
         expect(stored.connections.map(copy => copy.connectionId)).toEqual(['target']);
@@ -144,7 +129,7 @@ describe('useReplaceConnection', () => {
         // The workbook moved, its file still names the replaced connection
         expect(result).toEqual({ removed: false });
         expect(api!.connections.has('source')).toBe(true);
-        expect(api!.workbooks.get(WORKBOOK_ID)?.pendingConnection?.connectionId).toBe('target');
+        expect(api!.workbooks.get(WORKBOOK_ID)?.pendingConnectionId).toBe('target');
         expect((await backend.loadWorkbook(WORKBOOK_ID)).connections.map(copy => copy.connectionId)).toEqual(['source']);
 
         // Once the workbook writes again, the replacement continues

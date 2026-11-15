@@ -5,12 +5,13 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { runWorkbookScript } from '@ankoh/dashql-runtime/workbook/scripts/rerun_query';
-import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
-import { ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SCRIPT_VIS_SPEC, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useScriptRunServices, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
+import { useLiveScriptReader } from '../scripts/script_creation.js';
+import { useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import type { DashboardSpec } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
@@ -60,6 +61,8 @@ export interface DashboardDependencies {
     DashboardEditorOverlay: typeof DashboardEditorOverlay;
     DashboardTableOverlay: typeof DashboardTableOverlay;
     DashboardChartOverlay: typeof DashboardChartOverlay;
+    /// Reads a script as the runtime holds it now, e.g. the name of a renamed script
+    useLiveScriptReader: typeof useLiveScriptReader;
     /// The dependencies of the cards, the defaults of the card if unset
     card?: DashboardCardDependencies;
 }
@@ -69,10 +72,13 @@ const DEFAULT_DEPENDENCIES: DashboardDependencies = {
     DashboardEditorOverlay,
     DashboardTableOverlay,
     DashboardChartOverlay,
+    useLiveScriptReader,
 };
 
 interface Props {
     workbookScripts: WorkbookScripts;
+    /// The scripts of the workbook by key, the ones of the runtime without
+    scripts?: ScriptDataMap;
     modifyWorkbookScripts: ModifyWorkbookScripts;
     /// The connections that the scripts run on, a card refreshes while its connection is online
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
@@ -82,9 +88,9 @@ interface Props {
 }
 
 /// Every script of the workbook is a card, in the order of the workbook
-function readScripts(workbookScripts: WorkbookScripts): ScriptData[] {
-    return workbookScripts.scriptOrder
-        .map(fileName => workbookScripts.scripts[workbookScripts.scriptRefs[fileName].scriptId])
+function readScripts(workbookScripts: WorkbookScripts, scripts: ScriptDataMap): ScriptData[] {
+    return workbookScripts.scriptKeys
+        .map(key => scripts[key])
         .filter(script => script != null);
 }
 
@@ -93,8 +99,8 @@ function preferredPlacement(script: ScriptData): DashboardSpec | null {
     return script.annotations.visualizeQuery?.dashboardSpec ?? script.annotations.boardPosition ?? null;
 }
 
-function readLayout(workbookScripts: WorkbookScripts): DashboardPlacement[] {
-    return placeDashboardItems(readScripts(workbookScripts).map(script => {
+function readLayout(workbookScripts: WorkbookScripts, scripts: ScriptDataMap): DashboardPlacement[] {
+    return placeDashboardItems(readScripts(workbookScripts, scripts).map(script => {
         const spec = preferredPlacement(script);
         // A script without a visualization is a collapsed card of one row, in the section of the scripts on top
         const collapsed = script.annotations.visualizeQuery == null;
@@ -115,19 +121,21 @@ export function Dashboard(props: Props): React.ReactElement {
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
     const getScrollElement = React.useCallback(() => scrollRef.current, []);
     const resizeBaselineRef = React.useRef<DashboardPlacement[] | null>(null);
-    const [layout, setLayout] = React.useState(() => readLayout(props.workbookScripts));
+    const liveScripts = useWorkbookScriptMap(props.workbookScripts.workbookId);
+    const scriptMap = props.scripts ?? liveScripts;
+    const [layout, setLayout] = React.useState(() => readLayout(props.workbookScripts, scriptMap));
     const [gridWidth, setGridWidth] = React.useState(0);
     const [announcement, setAnnouncement] = React.useState('');
     const [overlay, setOverlay] = React.useState<DashboardOverlayState>(null);
     const logger = useLogger();
-    const scripts = readScripts(props.workbookScripts);
+    const scripts = readScripts(props.workbookScripts, scriptMap);
     const layoutSourceKey = scripts.map(script => {
         const spec = preferredPlacement(script);
         const collapsed = script.annotations.visualizeQuery == null ? 'c' : '';
         return `${script.scriptKey}${collapsed}:${spec?.row ?? ''}:${spec?.column ?? ''}:${spec?.width ?? ''}:${spec?.height ?? ''}`;
     }).join('|');
 
-    React.useEffect(() => setLayout(readLayout(props.workbookScripts)), [layoutSourceKey]);
+    React.useEffect(() => setLayout(readLayout(props.workbookScripts, scriptMap)), [layoutSourceKey]);
     React.useEffect(() => {
         const grid = gridRef.current;
         if (grid == null) return;
@@ -159,10 +167,10 @@ export function Dashboard(props: Props): React.ReactElement {
             const before = previousById.get(placement.id);
             if (before?.row === placement.row && before.column === placement.column
                 && before.width === placement.width && before.height === placement.height) continue;
-            const script = props.workbookScripts.scripts[placement.id];
+            const script = scriptMap[placement.id];
             if (script != null) persistDashboardPlacement(script, placement, props.modifyWorkbookScripts);
         }
-    }, [props.workbookScripts.scripts, props.modifyWorkbookScripts]);
+    }, [scriptMap, props.modifyWorkbookScripts]);
 
     const handleDragEnd = React.useCallback((event: DragEndEvent) => {
         const ownerId = Number(event.active.id);
@@ -177,11 +185,11 @@ export function Dashboard(props: Props): React.ReactElement {
         setLayout(next);
         persistLayout(next, layout);
         const placed = next.find(item => item.id === ownerId);
-        const script = props.workbookScripts.scripts[ownerId];
+        const script = scriptMap[ownerId];
         if (placed && script) {
             setAnnouncement(`${script.fileName} moved to row ${placed.row + 1}, column ${placed.column + 1}`);
         }
-    }, [layout, columnStep, rowStep, persistLayout, props.workbookScripts.scripts]);
+    }, [layout, columnStep, rowStep, persistLayout, scriptMap]);
 
     // The resize handler reads the layout through a ref, so that the cards keep their callback while the layout changes
     const layoutRef = React.useRef(layout);
@@ -207,8 +215,8 @@ export function Dashboard(props: Props): React.ReactElement {
 
     // The renderers of a card. A Markdown template and a bar chart are a start, the editor or the chart builder opens
     // to adjust them.
-    const scriptsRef = React.useRef(props.workbookScripts.scripts);
-    scriptsRef.current = props.workbookScripts.scripts;
+    const scriptsRef = React.useRef(scriptMap);
+    scriptsRef.current = scriptMap;
     const handleVisualize = React.useCallback((scriptKey: number, renderer: DashboardRenderer, body: string) => {
         const script = scriptsRef.current[scriptKey];
         if (script == null) return;
@@ -232,48 +240,50 @@ export function Dashboard(props: Props): React.ReactElement {
     const workbookScriptsRef = React.useRef(props.workbookScripts);
     workbookScriptsRef.current = props.workbookScripts;
     const isOnline = (script: ScriptData) =>
-        props.scriptConnections?.get(script.connection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
+        props.scriptConnections?.get(script.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
+    const services = useScriptRunServices();
     const handleRun = React.useCallback((scriptKey: number, refresh: boolean) => {
         const workbookScripts = workbookScriptsRef.current;
-        const script = workbookScripts.scripts[scriptKey];
-        if (script == null) return;
-        void dependencies.runWorkbookScript(workbookScripts, script, executeQuery, props.modifyWorkbookScripts, logger, { refresh });
-    }, [dependencies, executeQuery, props.modifyWorkbookScripts, logger]);
+        const script = scriptsRef.current[scriptKey];
+        if (script == null || services == null) return;
+        void dependencies.runWorkbookScript(services, workbookScripts, script, executeQuery, props.modifyWorkbookScripts, logger, { refresh });
+    }, [dependencies, services, executeQuery, props.modifyWorkbookScripts, logger]);
     // Stop the run of the workbook, or the query of the card
     const workbookBusy = workbookExecution.busy;
     const stopWorkbook = workbookExecution.stop;
     const handleStop = React.useCallback((scriptKey: number) => {
-        const script = workbookScriptsRef.current.scripts[scriptKey];
+        const script = scriptsRef.current[scriptKey];
         if (workbookBusy) stopWorkbook();
-        else if (script?.latestQueryId != null) cancelQuery(script.connection.connectionId, script.latestQueryId);
+        else if (script?.latestQueryId != null) cancelQuery(script.connectionId, script.latestQueryId);
     }, [workbookBusy, stopWorkbook, cancelQuery]);
     // Accept or reject a staged rewrite of a card, like in the feed
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
-        props.modifyWorkbookScripts({ type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        props.modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });
     }, [props.modifyWorkbookScripts]);
     const handleRejectDiff = React.useCallback((scriptKey: number) => {
-        props.modifyWorkbookScripts({ type: REJECT_PENDING_DIFF, value: scriptKey });
+        props.modifyWorkbookScripts({ kind: 'rejectPendingDiff', value: { scriptKey } });
     }, [props.modifyWorkbookScripts]);
     // Rename and delete a card from its menu, like a script in the feed
     const draftRenameRef = props.draftRenameRef;
+    const readScript = dependencies.useLiveScriptReader();
     const handleRename = React.useCallback((scriptKey: number, name: string) => {
         const workbookScripts = workbookScriptsRef.current;
-        const script = workbookScripts.scripts[scriptKey];
+        const script = scriptsRef.current[scriptKey];
         if (script == null) return;
-        void renameScript(workbookScripts, props.modifyWorkbookScripts, script.fileName, name, draftRenameRef?.current);
-    }, [props.modifyWorkbookScripts, draftRenameRef]);
+        renameScript(workbookScripts, props.modifyWorkbookScripts, script.fileName, name, draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
+    }, [props.modifyWorkbookScripts, draftRenameRef, readScript]);
     const selection = useScriptSelection();
     const handleDelete = React.useCallback((scriptKey: number) => {
         const workbookScripts = workbookScriptsRef.current;
-        const script = workbookScripts.scripts[scriptKey];
-        if (script != null) void deleteScript(selection, workbookScripts, props.modifyWorkbookScripts, script.fileName);
+        const script = scriptsRef.current[scriptKey];
+        if (script != null) deleteScript(selection, workbookScripts, props.modifyWorkbookScripts, script.fileName);
     }, [props.modifyWorkbookScripts, selection]);
     // The chart builder stages every edit of its spec as a diff of the script, like in the feed
     const handleSetVisSpec = React.useCallback((spec: string) => {
         if (overlay == null) return;
-        props.modifyWorkbookScripts({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey: overlay.scriptKey, spec } });
+        props.modifyWorkbookScripts({ kind: 'setScriptVisSpec', value: { scriptKey: overlay.scriptKey, spec } });
     }, [overlay, props.modifyWorkbookScripts]);
-    const overlayScript = overlay == null ? null : props.workbookScripts.scripts[overlay.scriptKey] ?? null;
+    const overlayScript = overlay == null ? null : scriptMap[overlay.scriptKey] ?? null;
 
     const placementById = new Map(layout.map(item => [item.id, item]));
     const scriptOrder = new Map(scripts.map((script, index) => [script.scriptKey, index]));
@@ -335,7 +345,7 @@ export function Dashboard(props: Props): React.ReactElement {
             {/* The inputs of the workbook sit on a bar above the scrolling cards */}
             <WorkbookInputStrip
                 className={styles.inputs}
-                workbookScripts={props.workbookScripts}
+                workbookId={props.workbookScripts.workbookId}
                 modifyWorkbookScripts={props.modifyWorkbookScripts}
             />
             {/* The cards scroll under the bar of the inputs, the shadows mark the edges like in the feed */}

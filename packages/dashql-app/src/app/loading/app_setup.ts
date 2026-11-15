@@ -12,13 +12,15 @@ import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '@ankoh/dashql-runtime/utils/progress';
-import { deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
+import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { useStorage, useStorageWriter } from '../../storage/storage_provider.js';
-import { useWorkbookScriptsDeletion, useWorkbookScriptsRegistrySetter } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { useStorageWriter } from '../../storage/storage_provider.js';
+import { useWorkbookScriptsDeletion } from '../../workbook/scripts/workbook_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
-import { restoreAppState } from '@ankoh/dashql-runtime/workbook/persistence/app_state_loader';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { InvalidWorkbook, WorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
+import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -69,10 +71,8 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     const deleteWorkbookScripts = useWorkbookScriptsDeletion();
     const storageWriter = useStorageWriter();
     const pathname = useLocation().pathname;
-    const [storageReader] = useStorage();
     const allocateConnection = useConnectionAllocator();
     const coreRuntime = useCoreRuntime();
-    const setWorkbookScriptsRegistry = useWorkbookScriptsRegistrySetter();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
@@ -146,15 +146,27 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 "Application state",
                 loadApp(traced, {
                     restoreAppState: async progressConsumer => {
-                        // The connections of the runtime restore into it and save through the writer of the app
+                        // The connections and the workbooks restore into the runtime, it writes through its writer
                         coreRuntime.setCore(core);
-                        await storageWriter.withNativeWriter(async native => coreRuntime.setStorageWriter(native));
-                        return await restoreAppState(coreRuntime, storageReader.backend, logger, progressConsumer);
+                        const restored = await coreRuntime.restore(progress => progressConsumer(restoreProgress(progress)));
+                        progressConsumer(restoreProgress(restored.progress));
+                        const workbooks = new Map<string, WorkbookScripts>();
+                        for (const workbookId of restored.workbookIds) {
+                            const workbook = coreRuntime.workbook(workbookId);
+                            if (workbook != null) workbooks.set(workbookId, workbook);
+                        }
+                        const invalidWorkbooks = new Map<string, InvalidWorkbook>(restored.invalidWorkbooks.map(invalid => [invalid.workbookId, {
+                            workbookId: invalid.workbookId,
+                            title: invalid.title,
+                            connectorType: invalid.connectorType as ConnectorType | null,
+                            error: invalid.error as WorkbookValidationError,
+                        }]));
+                        return { connectionIds: restored.connectionIds, workbooks, invalidWorkbooks };
                     },
-                }, setWorkbookScriptsRegistry, setProgress),
+                }, setProgress),
             );
 
-            // The scripts registry lists the workbooks that were refused a load. This is just an
+            // The list of the workbooks holds the workbooks that were refused a load. This is just an
             // aggregate count for the log — each refused workbook already logs a WARN with its path
             // and reason, so a second WARN here would only duplicate the diagnostic. Keep it at INFO.
             if (loaded.invalidWorkbooks.size > 0) {

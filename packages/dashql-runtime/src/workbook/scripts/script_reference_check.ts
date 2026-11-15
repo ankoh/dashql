@@ -1,12 +1,10 @@
 import * as core from '@ankoh/dashql-core';
 
-import { workbookPlanRequest } from '../inputs/workbook_inputs.js';
-import { orderedWorkbookScripts, type WorkbookScripts } from './workbook_scripts.js';
 
 const NONE = 0xFFFFFFFF;
 
 /// What a script reference reads
-enum ScriptReferenceKind {
+export enum ScriptReferenceKind {
     /// The query of the referenced script is inlined into the statement, both run on one connection
     Inline = 'inline',
     /// The statement scans the result of a script of another connection, materialized as Parquet file
@@ -18,7 +16,7 @@ enum ScriptReferenceKind {
 }
 
 /// A checked table parameter of a script, `:foo`
-interface ScriptReferenceMark {
+export interface ScriptReferenceMark {
     /// The begin of the parameter, at the prefix, in UTF-16 code units
     from: number;
     /// The end of the parameter
@@ -43,16 +41,36 @@ export interface ScriptReferenceReport {
     marks: ScriptReferenceMark[];
 }
 
-/// Check the script references of every script of a workbook, by script key. A script whose analysis is not current
-/// with its text has no report.
-export function computeScriptReferenceReports(workbook: WorkbookScripts): Map<number, ScriptReferenceReport> {
-    const scripts = orderedWorkbookScripts(workbook);
+function sameReport(l: ScriptReferenceReport, r: ScriptReferenceReport): boolean {
+    return l.textVersion === r.textVersion
+        && l.marks.length === r.marks.length
+        && l.marks.every((m, i) => {
+            const o = r.marks[i];
+            return m.from === o.from && m.to === o.to && m.parameter === o.parameter && m.target === o.target
+                && m.attachment === o.attachment && m.kind === o.kind && m.errors.length === o.errors.length
+                && m.errors.every((e, j) => e === o.errors[j]);
+        });
+}
+
+/// The checked script references of the scripts of a workbook by script key, from the check of the runtime. The
+/// scripts are in feed order with their file names, the attachments by their file names. A script without a current
+/// analysis keeps its previous report until it is analyzed again, a report that did not change keeps its identity.
+export function readScriptReferenceReports(
+    check: core.buffers.execution.ScriptReferenceCheckT,
+    scriptKeys: readonly number[],
+    files: readonly (string | null)[],
+    attachments: readonly string[],
+    prev: ReadonlyMap<number, ScriptReferenceReport> | null,
+): Map<number, ScriptReferenceReport> {
     const reports = new Map<number, ScriptReferenceReport>();
-    if (scripts.length === 0) return reports;
-    const request = workbookPlanRequest(scripts, scripts.map(script => script.fileName), workbook);
-    const check: core.buffers.execution.ScriptReferenceCheckT = workbook.instance.checkScriptReferences(request).unpack();
     check.scripts.forEach((checked, index) => {
-        if (!checked.checked) return;
+        const key = scriptKeys[index];
+        if (key == null) return;
+        const previous = prev?.get(key);
+        if (!checked.checked) {
+            if (previous != null) reports.set(key, previous);
+            return;
+        }
         const marks = checked.references.map(reference => {
             const span = reference.textSpan;
             const from = span?.offset ?? 0;
@@ -70,13 +88,14 @@ export function computeScriptReferenceReports(workbook: WorkbookScripts): Map<nu
                 from,
                 to: from + (span?.length ?? 0),
                 parameter: String(reference.parameter ?? ''),
-                target: reference.script !== NONE ? scripts[reference.script]?.fileName ?? null : null,
-                attachment: reference.attachment !== NONE ? request.attachments?.[reference.attachment]?.file ?? null : null,
+                target: reference.script !== NONE ? files[reference.script] ?? null : null,
+                attachment: reference.attachment !== NONE ? attachments[reference.attachment] ?? null : null,
                 kind,
                 errors: reference.errors.map(String),
             };
         });
-        reports.set(scripts[index].scriptKey, { textVersion: checked.textVersion, marks });
+        const report = { textVersion: checked.textVersion, marks };
+        reports.set(key, previous != null && sameReport(previous, report) ? previous : report);
     });
     return reports;
 }

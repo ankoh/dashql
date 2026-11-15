@@ -1,6 +1,5 @@
 //! The decisions of the restore of the app: which workbooks are valid, which connections their copies resolve to,
 //! which connections a workbook registers, and which writes bring the stored state in line with the restored one.
-//! Ported from `workbook/persistence/app_state_loader.ts`.
 //!
 //! The host drives the restore and does the I/O: it restores the connections of the app manifest
 //! (`RestorePlanner::restore_manifest_connection`), then for every workbook of the tree it loads the workbook file

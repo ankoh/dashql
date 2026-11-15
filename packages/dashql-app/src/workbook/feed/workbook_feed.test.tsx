@@ -16,7 +16,7 @@ import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
-import { CREATE_SCRIPT, REJECT_PENDING_DIFF, SET_SCRIPT_TEXT, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { CachedResultBean } from '../persistence/query_result_cache_controls.js';
@@ -77,8 +77,7 @@ function baseProps() {
 
 function script(scriptKey: number, fileName: string) {
     return { scriptKey, fileName, scriptSession: { getText: () => 'SELECT 1' }, analysisOutdated: true,
-        annotations: {}, statistics: [], pendingDiff: null, latestQueryId: null,
-        connection: { connectionId: 'database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: {} } };
+        annotations: {}, statistics: [], pendingDiff: null, latestQueryId: null, connectionId: 'database' };
 }
 
 describe('V2 workbook feed rows', () => {
@@ -214,6 +213,11 @@ describe('V2 workbook feed rows', () => {
     it('focuses on pointer entry and exposes integrated execution footer', () => {
         const props = baseProps();
         props.scripts[1] = { ...props.scripts[1], latestQueryId: 42 } as any;
+        // The script runs on Trino, its rows format in the dialect of Trino
+        Object.assign(props, { connections: new Map([['database', {
+            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } },
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino', labelParts: { name: 'Trino', detail: '' },
+        }]]) });
         state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {} };
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
         const article = container.querySelector('[data-testid="script-cell"]')!;
@@ -464,6 +468,9 @@ describe('V2 workbook feed rows', () => {
     });
 });
 
+/// The services of the runs of scripts, the tests replace the runs
+const SERVICES = {} as any;
+
 describe('Workbook feed composer', () => {
     const feedState = {
         keyHandlers: [] as any[],
@@ -474,6 +481,9 @@ describe('Workbook feed composer', () => {
         barOwner: null as object | null,
         runWorkbookScript: vi.fn(),
         executeQuery: vi.fn(),
+        /// The scripts of the workbook that the feed shows, and the workbook that the runtime holds after an action
+        scripts: {} as ScriptDataMap,
+        next: null as (WorkbookScripts & { scripts: ScriptDataMap }) | null,
         /// The session of an agent in the terminal that the feed gets, and what the feed gave it
         session: null as AgentSession | null,
         sessionArgs: null as AgentSessionArgs | null,
@@ -495,6 +505,12 @@ describe('Workbook feed composer', () => {
         useAttachPendingConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         runWorkbookScript: feedState.runWorkbookScript as any,
+        useScriptRunServices: () => SERVICES,
+        useWorkbookScriptMap: () => feedState.scripts,
+        useWorkbookDerived: () => null,
+        useLiveWorkbookReader: () => () => feedState.next,
+        useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
+        useComposerCore: () => ({ instance: {} as any, catalog: {} as any, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }),
         useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
         useAgentConnect: () => null,
         WorkbookComposer: (props: WorkbookComposerProps) => {
@@ -534,19 +550,22 @@ describe('Workbook feed composer', () => {
         details: { setupParams: null, channel: null, connector: { kind: 'hyper' } },
     } as any;
 
-    function workbook(fileNames: string[] = []): WorkbookScripts {
-        const scripts: WorkbookScripts['scripts'] = {};
+    /// A workbook of scripts on the connection `database`, with its scripts by key
+    function workbook(fileNames: string[] = []): WorkbookScripts & { scripts: ScriptDataMap } {
+        const scripts: ScriptDataMap = {};
         const scriptRefs: WorkbookScripts['scriptRefs'] = {};
         fileNames.forEach((fileName, i) => {
             scripts[i + 1] = script(i + 1, fileName) as any;
             scriptRefs[fileName] = { scriptId: i + 1, fileName };
         });
         return {
-            workbookId: 'workbook', name: null, instance: {} as any, workbookMetadata: {} as any,
-            pendingConnection: { connectionId: 'database', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any },
+            workbookId: 'workbook', name: null, workbookMetadata: {} as any, pendingConnectionId: 'database',
+            scriptKeys: fileNames.map((_, i) => i + 1), scriptConnections: fileNames.map(() => 'database'), connectionIds: ['database'],
             scripts, scriptRefs, scriptOrder: [...fileNames],
-        };
+        } as unknown as WorkbookScripts & { scripts: ScriptDataMap };
     }
+    /// Every action of the feed applies
+    const APPLIED = { ok: true, changed: true, error: null, id: null };
 
     /// The workbook with a catalog for the composer, the composer drafts the next script on the pending connection
     function fakeView(text: string, hasFocus = true) {
@@ -571,6 +590,8 @@ describe('Workbook feed composer', () => {
         feedState.sessionArgs = null;
         feedState.rowProps = null;
         feedState.rowLayouts.clear();
+        feedState.scripts = {};
+        feedState.next = null;
         feedState.view = fakeView('');
         attention = { workbookId: 'workbook', active: false, request: vi.fn() };
         container = document.createElement('div');
@@ -579,7 +600,8 @@ describe('Workbook feed composer', () => {
     });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-    function render(workbookScripts: WorkbookScripts, modifyWorkbookScripts: any, conn: any = onlineConn, scriptConnections?: Map<string, any>) {
+    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, modifyWorkbookScripts: any, conn: any = onlineConn, scriptConnections?: Map<string, any>) {
+        feedState.scripts = workbookScripts.scripts;
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention as any}>
                 <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts}
@@ -613,13 +635,14 @@ describe('Workbook feed composer', () => {
 
     it('appends a sent draft as a script and runs it', async () => {
         const next = workbook(['1_alpha.sql']);
-        const modify = vi.fn(() => Promise.resolve(next));
+        feedState.next = next;
+        const modify = vi.fn(() => APPLIED);
         render(workbook(), modify);
         await act(async () => feedState.composerProps!.onSend('select 1'));
-        expect(modify).toHaveBeenCalledExactlyOnceWith({ type: CREATE_SCRIPT, value: { index: null, text: 'select 1' } });
+        expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ text: 'select 1' }) });
         await vi.waitFor(() => expect(feedState.runWorkbookScript).toHaveBeenCalledOnce());
         expect(feedState.runWorkbookScript).toHaveBeenCalledExactlyOnceWith(
-            next, next.scripts[1], feedState.executeQuery, modify, expect.anything());
+            SERVICES, next, next.scripts[1], feedState.executeQuery, modify, expect.anything());
         expect(attention.request).not.toHaveBeenCalled();
     });
 
@@ -631,7 +654,8 @@ describe('Workbook feed composer', () => {
     });
 
     it('only creates the script without a healthy connection', async () => {
-        const modify = vi.fn(() => Promise.resolve(workbook(['1_alpha.sql'])));
+        feedState.next = workbook(['1_alpha.sql']);
+        const modify = vi.fn(() => APPLIED);
         render(workbook(), modify, null);
         await act(async () => feedState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledOnce();
@@ -757,13 +781,14 @@ describe('Workbook feed composer', () => {
             // The created script lands between the second and the third script and takes the focus
             const created = workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql', '4_delta.sql']);
             created.scriptOrder = ['1_alpha.sql', '2_beta.sql', '4_delta.sql', '3_gamma.sql'];
-            const modify = vi.fn(() => Promise.resolve(created));
+            feedState.next = created;
+            const modify = vi.fn(() => APPLIED);
             render(before, modify);
             for (let i = 0; i < 3; ++i) act(() => feedState.rowProps.onRowHeightChange(i, 200));
             scrollTo.mockClear();
 
             act(() => feedState.rowProps.onCreate(2));
-            expect(modify).toHaveBeenCalledExactlyOnceWith({ type: CREATE_SCRIPT, value: { index: 2 } });
+            expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ index: 2 }) });
             render(created, modify);
             await vi.waitFor(() => expect(scrollTo).toHaveBeenCalled());
             expect((scrollTo.mock.lastCall![0] as ScrollToOptions).top!).toBeGreaterThan(0);
@@ -782,7 +807,7 @@ describe('Workbook feed composer', () => {
                 return <div style={props.style} data-testid="row" data-script-key={props.entries[props.index]?.scriptId}
                     data-mounted-script-key={mountedScriptId} />;
             };
-            const renderFeed = (workbookScripts: WorkbookScripts) => act(() => root.render(<LoggerProvider>
+            const renderFeed = (workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }) => act(() => root.render(<LoggerProvider>
                 <WorkbookConnectionAttentionContext.Provider value={attention as any}>
                     <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} conn={onlineConn}
                         active={true} dependencies={{ ...feedDependencies, ScriptFeedRow }} />
@@ -830,19 +855,19 @@ describe('Workbook feed composer', () => {
     });
 
     it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
-        const modify = vi.fn(() => Promise.resolve(workbook(['1_alpha.sql'])));
+        const modify = vi.fn(() => APPLIED);
         const current = workbook(['1_alpha.sql', '2_beta.sql']);
         current.scripts[2] = { ...current.scripts[2], scriptSession: { getText: () => '  \n' } } as any;
         render(current, modify);
         expect(feedState.rowProps).not.toBeNull();
         await act(async () => feedState.rowProps.onApplySnippet(1, 'select 2;'));
-        expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'select 2;', withDiff: true } });
+        expect(modify).toHaveBeenLastCalledWith({ kind: 'setScriptText', value: { scriptKey: 1, text: 'select 2;', withDiff: true } });
         await act(async () => feedState.rowProps.onApplySnippet(2, 'select 3;'));
-        expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
+        expect(modify).toHaveBeenLastCalledWith({ kind: 'setScriptText', value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
     });
 
     it('leaves Enter and Escape to an open modal dialog instead of a staged rewrite', () => {
-        const modify = vi.fn(() => Promise.resolve(workbook(['1_alpha.sql'])));
+        const modify = vi.fn(() => APPLIED);
         const current = workbook(['1_alpha.sql']);
         current.scripts[1] = { ...current.scripts[1], pendingDiff: { priorText: '', diffBuffer: {} } } as any;
         render(current, modify);
@@ -867,7 +892,7 @@ describe('Workbook feed composer', () => {
 
         // Without the dialog, Escape rejects the staged rewrite
         expect(press('Escape')).toBe(true);
-        expect(modify).toHaveBeenLastCalledWith({ type: REJECT_PENDING_DIFF, value: 1 });
+        expect(modify).toHaveBeenLastCalledWith({ kind: 'rejectPendingDiff', value: { scriptKey: 1 } });
     });
 
 });

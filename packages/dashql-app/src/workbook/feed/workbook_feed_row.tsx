@@ -20,7 +20,7 @@ import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info'
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useCancelQuery, useQueryProgress, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../storage/storage_provider.js';
-import { getScriptRefs, type WorkbookScripts, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { getScriptRefs, type ScriptData, type ScriptDataMap } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
@@ -257,7 +257,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     }, [editorView, props.formattingDebugMode, props.keywordCase, formattingDialect, props.onFormat, props.scriptData]);
 
     // Labels use the display name (the file name without ".sql"); the raw scriptFileName remains the
-    // identity passed to handlers and to RENAME_SCRIPT.
+    // identity passed to handlers and to the rename of the script.
     const applySnippet = React.useCallback((text: string) => {
         if (scriptKey != null) props.onApplySnippet(scriptKey, text);
     }, [scriptKey, props.onApplySnippet]);
@@ -429,7 +429,7 @@ export interface ScriptFeedRowProps {
     lookupCachedResult: (cacheKey: string) => Promise<number | null>;
     storageReader: StorageReader;
     entries: ReturnType<typeof getScriptRefs>;
-    scripts: WorkbookScripts['scripts'];
+    scripts: ScriptDataMap;
     scriptDebugMode: boolean;
     formattingDebugMode: boolean;
     keywordCase: dashql.buffers.formatting.KeywordCase;
@@ -486,7 +486,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const scriptFileName = entry?.fileName ?? 'script.sql';
     const displayName = scriptDisplayName(scriptFileName);
     // Every script runs on its own connection
-    const connection = scriptData != null ? props.connections.get(scriptData.connection.connectionId) ?? null : null;
+    const connection = scriptData != null ? props.connections.get(scriptData.connectionId) ?? null : null;
 
     // A read-only workbook adds and moves no scripts
     const readOnly = useWorkbookReadOnly();
@@ -574,10 +574,10 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 <ScriptCard
                     key={entry?.scriptId}
                     workbookId={props.workbookId}
-                    connectionId={scriptData?.connection.connectionId ?? null}
+                    connectionId={scriptData?.connectionId ?? null}
                     connectionHealth={connection?.connectionHealth ?? null}
                     connectionDetails={connection?.details ?? null}
-                    connectorType={scriptData?.connection.connectorInfo.connectorType ?? ConnectorType.HYPER}
+                    connectorType={connection?.connectorInfo.connectorType ?? ConnectorType.HYPER}
                     connection={connection}
                     computeCacheKey={props.computeCacheKey}
                     lookupCachedResult={props.lookupCachedResult}

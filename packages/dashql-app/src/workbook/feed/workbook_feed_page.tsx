@@ -9,9 +9,9 @@ import {
     isEphemeralWorkbook,
     scriptConnectionIds,
     workbookConnectionIds,
+    type ModifyWorkbookScripts,
     type WorkbookScripts,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';
@@ -119,14 +119,14 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // when another workbook is selected or the script is gone.
     const [details, setDetails] = React.useState<{ workbookId: string; scriptId: number } | null>(null);
     const showDetails = details != null && details.workbookId === props.workbookScripts.workbookId
-        && props.workbookScripts.scripts[details.scriptId] != null;
+        && props.workbookScripts.scriptKeys.includes(details.scriptId);
     React.useEffect(() => setDetails(null), [props.workbookScripts.workbookId]);
     // The dialog selects its script, the commands of the workbook (Ctrl+E) run the selected script
     const selection = useScriptSelection();
     const inspectScript = React.useCallback((scriptKey: number) => {
-        const target = props.workbookScripts.scripts[scriptKey];
-        if (target?.fileName == null) return;
-        selection.selectFile(props.workbookScripts, target.fileName);
+        const fileName = props.workbookScripts.scriptOrder[props.workbookScripts.scriptKeys.indexOf(scriptKey)];
+        if (fileName == null) return;
+        selection.selectFile(props.workbookScripts, fileName);
         setDetails({ workbookId: props.workbookScripts.workbookId, scriptId: scriptKey });
     }, [props.workbookScripts, selection]);
     const closeDetails = React.useCallback(() => setDetails(null), []);
@@ -343,7 +343,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             // A run waits for the compute database, it reads the cached results
                             disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
                                 || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
-                            onClick={() => execution.busy ? execution.stop() : execution.start(props.modifyWorkbookScripts)}>
+                            onClick={() => execution.busy ? execution.stop() : execution.start()}>
                             <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
                         </dependencies.Button>
                         <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}

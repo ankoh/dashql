@@ -6,7 +6,7 @@ use dashql_core_runtime::storage::WriteOutcome;
 use serde::Serialize;
 use tsify::Tsify;
 
-use crate::storage_writer::view::StorageWriteOutcome;
+use crate::runtime::storage::view::StorageWriteOutcome;
 use crate::views::JsonValue;
 
 /// The outcome of writing the copy of a connection into a workbook

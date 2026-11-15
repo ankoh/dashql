@@ -11,13 +11,24 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { JsonView } from '../../ui/json/json_view.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
-import { StorageWriteKey, StorageWriterStatistics, StorageWriteStatisticsMap, storageWriteKeyBelongsToWorkbook, storageWriteKeyWithinWorkbook } from '@ankoh/dashql-runtime/storage/storage_writer';
+import { type StorageWriteKey, type StorageWriterStatistics, storageWriteKeyBelongsToWorkbook, storageWriteKeyWithinWorkbook } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 
 export const ROW_HEIGHT = 32;
+
+/// How often the view reads the statistics of the writer while it shows them
+export const STATISTICS_POLL_MS = 500;
+
+/// The statistics of the writer by key
+type StorageWriteStatisticsMap = ReadonlyMap<StorageWriteKey, StorageWriterStatistics>;
+
+/// What changes when the statistics change
+function statisticsSignature(statistics: StorageWriteStatisticsMap): string {
+    return [...statistics].map(([key, s]) => `${key}:${s.totalScheduledWrites}:${s.totalWrites}:${s.lastWrite?.getTime() ?? ''}`).join('\n');
+}
 
 export interface StorageWriterEntry {
     key: StorageWriteKey;
@@ -98,14 +109,20 @@ function entryToObject(entry: StorageWriterEntry): object {
 export function StorageWriterView(props: { workbookId: string | null; onClose: () => void; }) {
     const { workbookId } = props;
 
-    // Subscribe for storage write statistics
+    // The statistics change with every write, the view reads them while it shows them
     const storageWriter = useStorageWriter();
-    const [statsMap, setStatsMap] = React.useState<StorageWriteStatisticsMap | null>(storageWriter.getStatistics());
+    const [statsMap, setStatsMap] = React.useState<StorageWriteStatisticsMap | null>(() => storageWriter.getStatistics());
     React.useEffect(() => {
-        const listener = setStatsMap;
-        storageWriter.subscribeStatisticsListener(listener);
-        return () => storageWriter.unsubscribeStatisticsListener(listener);
-    }, []);
+        let signature = statsMap == null ? '' : statisticsSignature(statsMap);
+        const poll = setInterval(() => {
+            const next = storageWriter.getStatistics();
+            const nextSignature = statisticsSignature(next);
+            if (nextSignature === signature) return;
+            signature = nextSignature;
+            setStatsMap(next);
+        }, STATISTICS_POLL_MS);
+        return () => clearInterval(poll);
+    }, [storageWriter]);
 
     // Build sorted entries from the stats map, scoped to the active workbook.
     const entries = React.useMemo<StorageWriterEntry[]>(() => {

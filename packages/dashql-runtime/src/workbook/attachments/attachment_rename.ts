@@ -1,13 +1,12 @@
 import type { StorageBackend } from '../../storage/storage_backend.js';
-import { RENAME_ATTACHMENT, type WorkbookScripts } from '../scripts/workbook_scripts.js';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry_state.js';
+import type { ModifyWorkbookScripts, WorkbookScripts } from '../scripts/workbook_scripts.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
 import { markWorkbookAttachmentsChanged } from './attachment_mounts.js';
 import { attachmentParameterName, renamedAttachmentFileName } from './workbook_attachments.js';
 
 /// Rename an attachment like a script: the file moves, the scripts that read its table parameter read the new name
-/// (`RENAME_ATTACHMENT`) and so does the draft. The name takes no name of a script or another attachment, `sales`
+/// (`renameAttachment`) and so does the draft. The name takes no name of a script or another attachment, `sales`
 /// becomes `sales-2` then. Returns the new file name, null if the name is no plain file name or unchanged.
 export async function renameAttachment(
     workbook: WorkbookScripts,
@@ -25,7 +24,7 @@ export async function renameAttachment(
     // The scripts read the new name once the file has it
     await backend.renameDataFile(workbook.workbookId, fileName, newFileName);
     markWorkbookAttachmentsChanged(workbook.workbookId);
-    await modify({ type: RENAME_ATTACHMENT, value: { fileName, newFileName } });
+    modify({ kind: 'renameAttachment', value: { fileName, newFileName } });
     const [from, to] = [attachmentParameterName(fileName), attachmentParameterName(newFileName)];
     if (from != null && to != null) renameDraft?.(from, to);
     return newFileName;

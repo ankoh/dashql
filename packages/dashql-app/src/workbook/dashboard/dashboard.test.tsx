@@ -11,17 +11,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { flushContinuousUpdates } from '../../tests/react_act.js';
 import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
-import type { ModifyWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import {
-    ACCEPT_PENDING_DIFF,
-    DELETE_SCRIPT,
-    REJECT_PENDING_DIFF,
-    RENAME_SCRIPT,
-    SET_SCRIPT_TEXT,
-    SET_SCRIPT_VIS_SPEC,
-    type ScriptData,
-    type WorkbookScripts,
-} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
@@ -49,7 +39,7 @@ function script(scriptKey: number, fileName: string, options: { vis?: VisOptions
         scriptKey,
         fileName,
         latestQueryId: options.latestQueryId ?? null,
-        connection: { connectionId: 'db' },
+        connectionId: 'db',
         pendingDiff: options.pendingDiff ? { priorText: 'select 0', diffBuffer: null } : null,
         annotations: {
             lastStatementIsQuery: true,
@@ -71,13 +61,15 @@ function script(scriptKey: number, fileName: string, options: { vis?: VisOptions
     } as unknown as ScriptData;
 }
 
-function workbook(...scripts: ScriptData[]): WorkbookScripts {
+/// A workbook with its scripts by key
+function workbook(...scripts: ScriptData[]): WorkbookScripts & { scripts: ScriptDataMap } {
     return {
         workbookId: 'workbook',
+        scriptKeys: scripts.map(s => s.scriptKey),
         scriptOrder: scripts.map(s => s.fileName),
         scriptRefs: Object.fromEntries(scripts.map(s => [s.fileName, { scriptId: s.scriptKey }])),
         scripts: Object.fromEntries(scripts.map(s => [s.scriptKey, s])),
-    } as unknown as WorkbookScripts;
+    } as unknown as WorkbookScripts & { scripts: ScriptDataMap };
 }
 
 const SETUP = script(1, '1_setup.sql');
@@ -91,6 +83,8 @@ describe('Dashboard', () => {
     let executor: TestQueryExecutorFunctions;
     let runWorkbookScript: ReturnType<typeof vi.fn>;
     let dependencies: DashboardDependencies;
+    /// The file name that the runtime gives a renamed script
+    let renamedFileName: string | null;
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -104,10 +98,12 @@ describe('Dashboard', () => {
             [30, { queryId: 30, status: QueryExecutionStatus.RUNNING }],
         ]);
         modify = vi.fn();
+        renamedFileName = null;
         executor = { execute: vi.fn(), cancel: vi.fn(), watchProfile: vi.fn() } as unknown as TestQueryExecutorFunctions;
         runWorkbookScript = vi.fn(async () => {});
         dependencies = {
             runWorkbookScript: runWorkbookScript as unknown as DashboardDependencies['runWorkbookScript'],
+            useLiveScriptReader: () => (key: number) => key === 2 && renamedFileName != null ? { fileName: renamedFileName } as ScriptData : null,
             DashboardEditorOverlay: (props: { script: ScriptData; onAcceptDiff: (key: number) => void; onRejectDiff: (key: number) => void; onClose: () => void }) => (
                 <div data-testid="editor-overlay" data-script={props.script.fileName}>
                     <button data-testid="editor-accept" onClick={() => props.onAcceptDiff(props.script.scriptKey)} />
@@ -138,13 +134,14 @@ describe('Dashboard', () => {
     const backend = new WorkbookTestBackend();
     const online = new Map([['db', { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState]]);
 
-    function render(workbookScripts: WorkbookScripts, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null> } = {}) {
+    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null> } = {}) {
         act(() => root.render(
             <LoggerProvider>
                 <StorageProvider backend={backend}>
                     <TestRuntime {...executor}>
                         <WithResultTables><Dashboard
                             workbookScripts={workbookScripts}
+                            scripts={workbookScripts.scripts}
                             modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
                             scriptConnections={extra.scriptConnections ?? online}
                             draftRenameRef={extra.draftRenameRef}
@@ -199,11 +196,11 @@ describe('Dashboard', () => {
         // A card without a result runs and may use the cache, a card with a result refreshes
         act(() => cardButton(1, 'dashboard-card-run').click());
         act(() => cardButton(2, 'dashboard-card-run').click());
-        expect(workbookScripts.map(call => [call[1].scriptKey, call[5]])).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
+        expect(workbookScripts.map(call => [call[2].scriptKey, call[6]])).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
         // The runs execute with the executor of the runtime
-        workbookScripts[0][2]('db', { query: 'select 1' } as never);
+        workbookScripts[0][3]('db', { query: 'select 1' } as never);
         expect(executor.execute).toHaveBeenCalledWith('db', { query: 'select 1' });
-        expect(workbookScripts[0][3]).toBe(modify);
+        expect(workbookScripts[0][4]).toBe(modify);
 
         // A running card cancels its query
         expect(cardButton(3, 'dashboard-card-run').getAttribute('data-run-action')).toBe('stop');
@@ -217,9 +214,8 @@ describe('Dashboard', () => {
 
     it('renames and deletes a card from its menu', async () => {
         const renameDraft = vi.fn();
-        modify.mockImplementation(async (action: { type: symbol }) => action.type === RENAME_SCRIPT
-            ? { scripts: { 2: { fileName: 'revenue.sql' } } }
-            : null);
+        // The runtime renames the script
+        renamedFileName = 'revenue.sql';
         render(workbook(SETUP, SALES, TREND), { draftRenameRef: { current: renameDraft } });
 
         const menuItem = (action: string) => document.querySelector<HTMLElement>(`[data-testid="dashboard-card-menu-item"][data-action="${action}"]`)!;
@@ -231,13 +227,13 @@ describe('Dashboard', () => {
             Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'revenue');
             input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         });
-        expect(actions()).toEqual([{ type: RENAME_SCRIPT, value: { fileName: '2_sales.sql', newFileName: 'revenue' } }]);
+        expect(actions()).toEqual([{ kind: 'renameScript', value: { fileName: '2_sales.sql', newName: 'revenue' } }]);
         // The draft of the composer follows the name
         expect(renameDraft).toHaveBeenCalledWith('2_sales', 'revenue');
 
         act(() => cardButton(2, 'dashboard-card-more').click());
         act(() => menuItem('delete').click());
-        expect(actions()[1]).toEqual({ type: DELETE_SCRIPT, value: '2_sales.sql' });
+        expect(actions()[1]).toEqual({ kind: 'deleteScript', value: { fileName: '2_sales.sql' } });
     });
 
     it('switches the renderers and opens the overlays of the cards', () => {
@@ -246,11 +242,11 @@ describe('Dashboard', () => {
         // A chart starts as a bar chart and opens the chart builder, its edits are staged
         act(() => cardButton(1, 'dashboard-card-renderer-chart').click());
         expect(actions()).toEqual([
-            { type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'renderer 1 vegalite {"mark":"bar"}', withDiff: true } },
+            { kind: 'setScriptText', value: { scriptKey: 1, text: 'renderer 1 vegalite {"mark":"bar"}', withDiff: true } },
         ]);
         expect(testId('chart-overlay')!.getAttribute('data-script')).toBe('1_setup.sql');
         act(() => testId('chart-change')!.click());
-        expect(actions()[1]).toEqual({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey: 1, spec: '{"mark":"line"}' } });
+        expect(actions()[1]).toEqual({ kind: 'setScriptVisSpec', value: { scriptKey: 1, spec: '{"mark":"line"}' } });
         act(() => testId('overlay-close')!.click());
         expect(testId('chart-overlay')).toBeNull();
 
@@ -258,12 +254,12 @@ describe('Dashboard', () => {
         modify.mockClear();
         act(() => cardButton(2, 'dashboard-card-renderer-markdown').click());
         expect(actions()).toEqual([
-            { type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'renderer 0 markdown ### {{region}}\n{{revenue}}', withDiff: true } },
+            { kind: 'setScriptText', value: { scriptKey: 2, text: 'renderer 0 markdown ### {{region}}\n{{revenue}}', withDiff: true } },
         ]);
         expect(testId('editor-overlay')!.getAttribute('data-script')).toBe('2_sales.sql');
         act(() => testId('editor-accept')!.click());
         act(() => testId('editor-reject')!.click());
-        expect(actions().slice(1)).toEqual([{ type: ACCEPT_PENDING_DIFF, value: 2 }, { type: REJECT_PENDING_DIFF, value: 2 }]);
+        expect(actions().slice(1)).toEqual([{ kind: 'acceptPendingDiff', value: { scriptKey: 2 } }, { kind: 'rejectPendingDiff', value: { scriptKey: 2 } }]);
         act(() => testId('overlay-close')!.click());
         expect(testId('editor-overlay')).toBeNull();
 
@@ -272,8 +268,8 @@ describe('Dashboard', () => {
         act(() => cardButton(3, 'dashboard-card-renderer-table').click());
         act(() => cardButton(2, 'dashboard-card-renderer-collapsed').click());
         expect(actions()).toEqual([
-            { type: SET_SCRIPT_TEXT, value: { scriptKey: 3, text: 'renderer 0 table ', withDiff: true } },
-            { type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'renderer 0 null ', withDiff: true } },
+            { kind: 'setScriptText', value: { scriptKey: 3, text: 'renderer 0 table ', withDiff: true } },
+            { kind: 'setScriptText', value: { scriptKey: 2, text: 'renderer 0 null ', withDiff: true } },
         ]);
         expect(testId('editor-overlay')).toBeNull();
         expect(testId('chart-overlay')).toBeNull();
@@ -305,7 +301,7 @@ describe('Dashboard', () => {
         render(workbook(staged));
         act(() => cardButton(2, 'dashboard-card-accept').click());
         act(() => cardButton(2, 'dashboard-card-reject').click());
-        expect(actions()).toEqual([{ type: ACCEPT_PENDING_DIFF, value: 2 }, { type: REJECT_PENDING_DIFF, value: 2 }]);
+        expect(actions()).toEqual([{ kind: 'acceptPendingDiff', value: { scriptKey: 2 } }, { kind: 'rejectPendingDiff', value: { scriptKey: 2 } }]);
     });
 
     it('resizes a card with the keyboard and writes the placements that changed', () => {
@@ -317,8 +313,8 @@ describe('Dashboard', () => {
         expect(card(2).style.gridRow).toBe('4 / span 3');
         expect(card(2).style.gridColumn).toBe('1 / span 6');
         expect(actions()).toEqual([
-            { type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'board 0 3 0 6 3', withDiff: false } },
-            { type: SET_SCRIPT_TEXT, value: { scriptKey: 3, text: 'board 0 0 0 7 3', withDiff: false } },
+            { kind: 'setScriptText', value: { scriptKey: 2, text: 'board 0 3 0 6 3', withDiff: false } },
+            { kind: 'setScriptText', value: { scriptKey: 3, text: 'board 0 0 0 7 3', withDiff: false } },
         ]);
 
         // A collapsed card only changes its width
@@ -326,7 +322,7 @@ describe('Dashboard', () => {
         act(() => resizeHandle(1).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
         expect(modify).not.toHaveBeenCalled();
         act(() => resizeHandle(1).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
-        expect(actions()).toEqual([{ type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'board 1 0 0 3 1', withDiff: false } }]);
+        expect(actions()).toEqual([{ kind: 'setScriptText', value: { scriptKey: 1, text: 'board 1 0 0 3 1', withDiff: false } }]);
     });
 
     it('resizes a card with the pointer and restores the layout of a cancelled resize', async () => {
@@ -355,7 +351,7 @@ describe('Dashboard', () => {
         pointer(window, 'pointerup', 0, rowStep);
         await act(() => flushContinuousUpdates());
         expect(label()).toBe('Resize 2_sales. Current size 6 columns by 4 rows');
-        expect(actions()).toEqual([{ type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'board 0 0 6 6 4', withDiff: false } }]);
+        expect(actions()).toEqual([{ kind: 'setScriptText', value: { scriptKey: 2, text: 'board 0 0 6 6 4', withDiff: false } }]);
     });
 
     it('moves a card with the keyboard and announces its new place', async () => {
@@ -392,6 +388,6 @@ describe('Dashboard', () => {
         expect(card(3).style.gridColumn).toBe('2 / span 6');
         // The sales make room for the trend
         expect(actions().map(action => action.value.scriptKey).sort()).toEqual([2, 3]);
-        expect(actions()).toContainEqual({ type: SET_SCRIPT_TEXT, value: { scriptKey: 3, text: 'board 0 1 1 6 3', withDiff: false } });
+        expect(actions()).toContainEqual({ kind: 'setScriptText', value: { scriptKey: 3, text: 'board 0 1 1 6 3', withDiff: false } });
     });
 });

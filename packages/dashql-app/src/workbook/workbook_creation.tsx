@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
-import { useConnectionAllocator, useConnectionRegistryStore, useScriptConnectionOf } from '../connections/connection_registry.js';
+import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
 import { isHyperLinkParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
@@ -11,10 +11,9 @@ import {
     isEphemeralWorkbook,
     newScriptConnection,
     WorkbookScripts,
-    SET_PENDING_CONNECTION,
-    takenWorkbookNames,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsCreation, useWorkbookScriptsDispatch, useWorkbookScriptsRegistryReader } from './scripts/workbook_scripts_registry.js';
+import { useWorkbookScriptsCreation, useWorkbookScriptsDispatch } from './scripts/workbook_scripts_registry.js';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 
 /// Create a workbook whose first script runs on a connection, a workbook without a name gets a free one
@@ -22,10 +21,12 @@ export type WorkbookCreation = (database: ConnectionState, name?: string) => Wor
 
 export function useWorkbookCreation(): WorkbookCreation {
     const allocate = useWorkbookScriptsCreation();
-    const readRegistry = useWorkbookScriptsRegistryReader();
-    return React.useCallback((database: ConnectionState, name?: string) => (
-        allocate(database, name ?? freeWorkbookName(takenWorkbookNames(readRegistry().workbookScriptsMap.values())), false)
-    ), [allocate, readRegistry]);
+    const runtime = useOptionalCoreRuntime();
+    return React.useCallback((database: ConnectionState, name?: string) => {
+        // The ephemeral workbook gives up its name
+        const taken = [...runtime?.store.all('workbook').values() ?? []].filter(workbook => !isEphemeralWorkbook(workbook)).map(workbook => workbook.name);
+        return allocate(database.connectionId, name ?? freeWorkbookName(taken), false);
+    }, [allocate, runtime]);
 }
 
 /// The ephemeral workbook of the greeter, created on the connection if there is none.
@@ -35,20 +36,20 @@ export function useWorkbookCreation(): WorkbookCreation {
 /// workbook on the connection of a link that is gone moves back.
 export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookScripts {
     const allocate = useWorkbookScriptsCreation();
-    const readRegistry = useWorkbookScriptsRegistryReader();
+    const runtime = useOptionalCoreRuntime();
     const modifyWorkbookScripts = useWorkbookScriptsDispatch();
-    const scriptConnectionOf = useScriptConnectionOf();
     return React.useCallback((database: ConnectionState) => {
-        const existing = [...readRegistry().workbookScriptsMap.values()].find(isEphemeralWorkbook);
-        if (existing == null) return allocate(database, EPHEMERAL_WORKBOOK_NAME, true);
+        const existing = [...runtime?.store.all('workbook').values() ?? []].find(isEphemeralWorkbook);
+        if (existing == null) return allocate(database.connectionId, EPHEMERAL_WORKBOOK_NAME, true);
         const current = newScriptConnection(existing, null);
-        if (current?.connectionId !== database.connectionId && (
-            getHyperLinkTabState().current === database.connectionId || (current?.params != null && isHyperLinkParams(current.params))
+        const currentParams = current == null ? null : runtime?.connection(current)?.params;
+        if (current !== database.connectionId && (
+            getHyperLinkTabState().current === database.connectionId || (currentParams != null && isHyperLinkParams(currentParams))
         )) {
-            void modifyWorkbookScripts(existing.workbookId, { type: SET_PENDING_CONNECTION, value: scriptConnectionOf(database) });
+            modifyWorkbookScripts(existing.workbookId, { kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
         }
         return existing;
-    }, [allocate, modifyWorkbookScripts, readRegistry, scriptConnectionOf]);
+    }, [allocate, modifyWorkbookScripts, runtime]);
 }
 
 /// The ephemeral workbook on the connection that new workbooks start on, null before the app set up its connections

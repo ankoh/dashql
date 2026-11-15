@@ -6,14 +6,15 @@ import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } fr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookScripts, isCloudPreview } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { useSelectedScriptRef } from './script_selection.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { ModifyWorkbookScripts, useWorkbookScripts } from './workbook_scripts_registry.js';
+import { useScript, useWorkbookDerived, useWorkbookScripts } from './workbook_scripts_registry.js';
+import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
-import { checkWorkbookScriptReferences } from './script_reference_reports.js';
 import { applyScriptTextChanges } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
 import { DashQLScriptReferencesEffect, shownScriptReferences } from '../editor/dashql_script_references.js';
 
@@ -52,6 +53,8 @@ export interface ScriptEditorDependencies {
     CodeMirror: typeof CodeMirror;
     createCodeMirrorExtensions: typeof createCodeMirrorExtensions;
     useWorkbookScripts: typeof useWorkbookScripts;
+    useScript: typeof useScript;
+    useWorkbookDerived: typeof useWorkbookDerived;
     useAppConfig: typeof useAppConfig;
     useLogger: typeof useLogger;
 }
@@ -60,6 +63,8 @@ const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
     CodeMirror,
     createCodeMirrorExtensions,
     useWorkbookScripts,
+    useScript,
+    useWorkbookDerived,
     useAppConfig,
     useLogger,
 };
@@ -73,31 +78,32 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const logger = dependencies.useLogger();
     const config = dependencies.useAppConfig();
     const [scripts, modifyScripts] = dependencies.useWorkbookScripts(props.workbookId);
+    const coreRuntime = useOptionalCoreRuntime();
     const readOnly = scripts != null && isCloudPreview(scripts);
     const extraExtensions = React.useMemo(() => [
         ...(props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : []),
         READ_ONLY.of(EditorState.readOnly.of(readOnly)),
     ], [props.lineWrapping, readOnly]);
 
-    const scriptData = scripts?.scripts[props.scriptKey] ?? null;
+    const scriptData = dependencies.useScript(props.scriptKey);
     // Only the editor of the selected script shows a semantic focus
     const selected = useSelectedScriptRef(scripts)?.scriptId === props.scriptKey;
 
     // Update outdated scripts that are displayed in the editor.
     // The selected script is analyzed right away, all others are deferred.
     // Deferring is safe since the script stays marked as outdated until the analysis ran,
-    // and anything that needs the analysis analyzes it on demand (see ensureWorkbookScriptAnalyzed).
+    // and anything that needs the analysis analyzes it on demand (see `CoreRuntime.analyzeScript`).
     React.useEffect(() => {
         if (scripts == null || !scriptData?.analysisOutdated) {
             return;
         }
         const scriptKey = scriptData.scriptKey;
         if (selected) {
-            modifyScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+            modifyScripts({ kind: 'analyzeOutdatedScript', value: { scriptKey } });
             return;
         }
         const timeout = setTimeout(() => {
-            modifyScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+            modifyScripts({ kind: 'analyzeOutdatedScript', value: { scriptKey } });
         }, BACKGROUND_ANALYSIS_DELAY_MS);
         return () => clearTimeout(timeout);
     }, [scriptData]);
@@ -110,10 +116,10 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     }, [view, scriptData?.scriptSession]);
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
-        if (config == null || view == null || scriptData == null || scripts == null) return;
+        if (config == null || view == null || scriptData == null) return;
         // Binding a script replaces the editor state, which has to keep the extensions of the mount
         const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...extraExtensions];
-        updateEditor(view, scripts, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
+        updateEditor(view, coreRuntime, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
     }, [
         config,
         view,
@@ -121,7 +127,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         scriptData?.editorUpdate,
         scriptData?.pendingDiff,
         selected,
-        scriptData?.connection.catalog,
+        scriptData?.connectionId,
         props.onNavigateToScript,
     ]);
     // The editor follows an import of the preview
@@ -129,11 +135,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         if (view == null || view.state.readOnly === readOnly) return;
         view.dispatch({ effects: READ_ONLY.reconfigure(EditorState.readOnly.of(readOnly)) });
     }, [view, readOnly]);
-    // The checked script references of the script, the check covers every script of the workbook
-    const references = React.useMemo(
-        () => scripts == null || scriptData == null ? null : checkWorkbookScriptReferences(scripts).get(scriptData.scriptKey) ?? null,
-        [scripts],
-    );
+    // The checked script references of the script, the runtime checks every script of the workbook
+    const derived = dependencies.useWorkbookDerived(props.workbookId);
+    const references = derived?.references.get(props.scriptKey) ?? null;
     // After the effect above, which may replace the editor state
     React.useEffect(() => {
         if (view == null || shownScriptReferences(view.state) === references) return;
@@ -166,7 +170,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
+function updateEditor(view: EditorView, runtime: CoreRuntime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -177,7 +181,7 @@ function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: Sc
     if (state.scriptSession !== scriptData.scriptSession) {
         const scriptText = scriptData.scriptSession.getText();
         logger.debug("Resetting editor for a different native workbook", {
-            workbookId: scripts.workbookId,
+            workbookId: scriptData.workbookId,
             scriptKey: scriptData.scriptKey.toString(),
             editorHadSession: (state.scriptSession != null).toString(),
             nativeTextVersion: scriptData.scriptSession.getTextVersion().toString(),
@@ -208,7 +212,7 @@ function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: Sc
             mapsSelection = true;
         } else if (scriptText !== editorText) {
             logger.warn("Replacing CodeMirror text from native editor workbook", {
-                workbookId: scripts.workbookId,
+                workbookId: scriptData.workbookId,
                 scriptKey: scriptData.scriptKey.toString(),
                 editorTextLength: editorText.length.toString(),
                 scriptTextLength: scriptText.length.toString(),
@@ -238,7 +242,7 @@ function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: Sc
                 const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
                 selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
                 logger.debug("Projecting external cursor into CodeMirror", {
-                    workbookId: scripts.workbookId,
+                    workbookId: scriptData.workbookId,
                     scriptKey: scriptData.scriptKey.toString(),
                     currentCursorOffset: mainSel.head.toString(),
                     nextCursorOffset: clampedOffset.toString(),
@@ -249,21 +253,22 @@ function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: Sc
 
     // XXX Detect invalid selections
 
-    // Helper to update a script.
-    // Called when the script gets updated by the CodeMirror extension.
-    // Note that this is also called when the state is set up initially.
+    // Report an update of the CodeMirror extension to the workbook, also when the state is set up initially. An
+    // update of a session that the script no longer holds is dropped.
     const updateScript = (update: DashQLProcessorUpdateOut) => {
-        logger.debug("Dispatching editor processor update", {
-            workbookId: scripts.workbookId,
-            scriptKey: update.scriptKey.toString(),
-            textVersion: update.editorUpdate?.textVersion.toString(),
-            stateRevision: update.editorUpdate?.stateRevision.toString(),
-            cursorOffset: update.editorUpdate?.primaryCursorState?.textOffset?.toString(),
-        }, LOG_CTX);
-        modifyScripts({
-            type: UPDATE_FROM_PROCESSOR,
-            value: update,
-        });
+        if (update.scriptSession != null && update.scriptSession !== scriptData.scriptSession) {
+            logger.warn("Dropping editor update of a stale session", {
+                workbookId: scriptData.workbookId,
+                scriptKey: update.scriptKey.toString(),
+            }, LOG_CTX);
+            return;
+        }
+        if (update.editorUpdate != null) {
+            runtime?.reportEditorUpdate(scriptData, update.editorUpdate, update.scriptPendingDiff != null);
+        } else if (update.scriptPendingDiff == null && scriptData.pendingDiff != null) {
+            // The editor accepted the staged rewrite, a rejection restored the text already
+            modifyScripts({ kind: 'acceptPendingDiff', value: { scriptKey: scriptData.scriptKey } });
+        }
     };
 
 
@@ -281,7 +286,7 @@ function updateEditor(view: EditorView, scripts: WorkbookScripts, scriptData: Sc
             selected,
             keywordCase: getKeywordCase(config.settings),
 
-            lookupScriptSession: (scriptKey) => scripts.scripts[scriptKey]?.scriptSession ?? null,
+            lookupScriptSession: (scriptKey) => runtime?.store.get('script', scriptKey)?.scriptSession ?? null,
             onNavigateToScript,
 
             onUpdate: updateScript,

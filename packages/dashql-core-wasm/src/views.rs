@@ -5,8 +5,6 @@
 //! `@ankoh/dashql-core/buffers` without copying it. The declarations type it as `FlatBuffer<T>`, the bytes of a
 //! FlatBuffer whose root table is `T`. A payload crosses only when its key differs from the key that the host holds.
 
-use std::collections::BTreeMap;
-
 use js_sys::{Array, Function, Object, Reflect};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Number, Value};
@@ -119,18 +117,6 @@ impl<'de> Deserialize<'de> for JsonValue {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value: JsValue = serde_wasm_bindgen::preserve::deserialize(deserializer)?;
         Ok(JsonValue::of(&value))
-    }
-}
-
-/// The details of a log message
-#[derive(Clone, Debug, Default, Serialize, Tsify)]
-#[serde(transparent)]
-#[tsify(hashmap_as_object)]
-pub struct LogDetails(pub BTreeMap<String, String>);
-
-impl LogDetails {
-    pub fn of(details: &[(&str, &str)]) -> LogDetails {
-        LogDetails(details.iter().map(|(key, value)| (key.to_string(), value.to_string())).collect())
     }
 }
 

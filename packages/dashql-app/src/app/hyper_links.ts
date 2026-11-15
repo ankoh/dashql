@@ -6,7 +6,7 @@ import { connectionLabel } from '@ankoh/dashql-runtime/connections/connection_la
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router/router.js';
 import { isEphemeralWorkbook, workbookConnectionIds, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsRegistryReader } from '../workbook/scripts/workbook_scripts_registry.js';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { useEphemeralWorkbook } from '../workbook/workbook_creation.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
@@ -19,7 +19,7 @@ const LOG_CTX = 'hyper_link';
 
 /// The workbook that a link opens: the open workbook if it runs on the connection of the link, otherwise the first
 /// workbook on it, null if no full workbook runs on it
-export function workbookOnConnection(workbooks: Map<string, WorkbookScripts>, currentWorkbookId: string | null, connectionId: string): string | null {
+export function workbookOnConnection(workbooks: ReadonlyMap<string, WorkbookScripts>, currentWorkbookId: string | null, connectionId: string): string | null {
     const current = currentWorkbookId == null ? undefined : workbooks.get(currentWorkbookId);
     if (current != null && !isEphemeralWorkbook(current) && workbookConnectionIds(current).includes(connectionId)) return currentWorkbookId;
     for (const [workbookId, scripts] of workbooks) {
@@ -46,7 +46,7 @@ export function useHyperLinks(opened: Promise<void>): void {
     const registryStore = useConnectionRegistryStore();
     const allocate = useConnectionAllocator();
     const saveConnection = useConnectionSaver();
-    const readWorkbooks = useWorkbookScriptsRegistryReader();
+    const runtime = useOptionalCoreRuntime();
     const ephemeralWorkbook = useEphemeralWorkbook();
     const navigate = useRouterNavigate();
     const route = useRouteContext();
@@ -61,7 +61,7 @@ export function useHyperLinks(opened: Promise<void>): void {
             connection => confirmReuse(connection, target));
         if (binding.params != null) await saveConnection(binding.connection.connectionId, binding.params);
         setHyperLinkToken(binding.connection.connectionId, target.token);
-        const workbooks = readWorkbooks().workbookScriptsMap;
+        const workbooks = runtime?.store.all('workbook') ?? new Map<string, WorkbookScripts>();
         const workbookId = workbookOnConnection(workbooks, route.workbookId ?? null, binding.connection.connectionId);
         if (workbookId != null) {
             if (workbookId !== route.workbookId) navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });

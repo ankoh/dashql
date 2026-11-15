@@ -5,10 +5,9 @@
 //! catalog loader (`catalog.rs`): the registry of the crate holds the connections and the histories, the executor
 //! reports what happens to a query into its history right away, a change of the registry lets the catalog loader
 //! follow it at the end of the task. A
-//! change of a connection schedules its writes through the storage writer of the module once the host gave the
-//! runtime one (`setStorageWriter`); a save writes the app manifest, commits the params and writes the copies of the
-//! workbooks that use the connection. The workbooks that use a connection come from the host until the workbooks are
-//! part of the runtime.
+//! change of a connection schedules its writes through the storage writer of the runtime; a save writes the app
+//! manifest, commits the params and writes the copies of the workbooks that use the connection. The workbooks of the
+//! runtime tell the registry which workbooks use a connection.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -44,16 +43,16 @@ use super::setups::RunningSetup;
 use crate::connection::view::ConnectionSaveView;
 use crate::connection_persistence::view::{copies, ConnectionSaveOutcome};
 use crate::host::JsPlatform;
-use crate::storage_writer::view::StorageWriteOutcome;
-use crate::storage_writer::JsHost as StorageJsHost;
+use crate::runtime::storage::view::StorageWriteOutcome;
+use crate::runtime::storage::JsStorage;
 use crate::views::JsonValue;
 use crate::ENTRY_IDS;
 
 /// The target of the log messages of the connections
 const LOG_TARGET: &str = "connection_registry";
 
-/// The storage writer of the module that the connections write through
-pub(crate) type StorageWriter = RuntimeStorageWriter<StorageJsHost>;
+/// The storage writer of the runtime that the connections write through
+pub(crate) type StorageWriter = RuntimeStorageWriter<JsStorage>;
 
 /// What a connection was saved with last
 pub(crate) struct SaveState {
@@ -81,7 +80,7 @@ pub(crate) struct Connections {
     pub platform: JsPlatform,
     pub registry: RefCell<ConnectionRegistry>,
     pub computations: ComputeService<JsPlatform>,
-    /// The writer of the storage, none until the host gave the runtime one
+    /// The writer of the storage of the runtime
     pub writer: RefCell<Option<StorageWriter>>,
     /// The saves of the connections by id. The connections, the queries that run and the owners of results are few,
     /// they are lists.
@@ -104,6 +103,8 @@ pub(crate) struct Connections {
     pub follow_requested: Cell<bool>,
     /// The number of the announcements of a new catalog by connection
     pub catalog_versions: RefCell<Vec<(String, u64)>>,
+    /// Hears the announcements of a new catalog of a connection, the workbooks analyze the scripts on it again
+    pub catalog_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
 }
 
 impl Connections {
@@ -123,6 +124,7 @@ impl Connections {
             loader: RefCell::new(None),
             follow_requested: Cell::new(false),
             catalog_versions: RefCell::new(Vec::new()),
+            catalog_listener: RefCell::new(None),
         });
         let host = QueryHost::new(Rc::downgrade(&connections), platform.clone());
         let executor = QueryExecutor::new(Rc::new(host));

@@ -7,7 +7,6 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
 import { WorkbookTestRegistry } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { RENAME_SCRIPT } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptSelectionOf } from './scripts/script_selection.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 
@@ -54,7 +53,7 @@ const dependencies = {
     useConnectionAllocator: () => vi.fn(),
     ConnectionSettingsOverlay: () => null,
     useWorkbookScriptsDeletion: () => vi.fn(),
-    useWorkbookScriptsRegistry: () => [{ workbookScriptsMap: state.workbookScriptsMap }],
+    useWorkbooks: () => state.workbookScriptsMap,
     useWorkbookScripts: () => [null, state.modifyWorkbookScripts],
     useWorkbookCreation: () => state.createWorkbook,
     useOpenGreeter: () => state.openGreeter,
@@ -88,7 +87,8 @@ function leaveInput(input: HTMLInputElement): void {
 
 function addWorkbook(workbookId: string, name: string, scriptOrder: string[] = []): void {
     const scriptRefs = Object.fromEntries(scriptOrder.map((fileName, scriptId) => [fileName, { fileName, scriptId }]));
-    state.workbookScriptsMap.set(workbookId, { workbookId, name, workbookMetadata: {}, scripts: {}, scriptRefs, scriptOrder });
+    // A new map, like the store hands out when a workbook changes
+    state.workbookScriptsMap = new Map(state.workbookScriptsMap).set(workbookId, { workbookId, name, ephemeral: false, workbookMetadata: {}, scriptRefs, scriptOrder });
 }
 
 describe('WorkbookWorkbenchSidebar folders', () => {
@@ -262,7 +262,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
             input.value = 'income';
             leaveInput(input);
         });
-        expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({ type: RENAME_SCRIPT, value: { fileName: 'revenue.sql', newFileName: 'income' } });
+        expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({ kind: 'renameScript', value: { fileName: 'revenue.sql', newName: 'income' } });
         expect(container.querySelector('input[aria-label="Script name"]')).toBeNull();
 
         // The rename action of the menu edits the name too, an unchanged name renames nothing
@@ -294,8 +294,8 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         const NEXT_GREETER_WORKBOOK = '00000000-0000-4000-8000-00000000000f';
 
         function addEphemeralWorkbook(workbookId: string): void {
-            state.workbookScriptsMap.set(workbookId, {
-                workbookId, name: 'New Workbook', workbookMetadata: { ephemeral: true }, scripts: {}, scriptRefs: {}, scriptOrder: [],
+            state.workbookScriptsMap = new Map(state.workbookScriptsMap).set(workbookId, {
+                workbookId, name: 'New Workbook', ephemeral: true, workbookMetadata: { ephemeral: true }, scriptRefs: {}, scriptOrder: [],
             });
         }
         function ephemeralRow(): HTMLElement | null {

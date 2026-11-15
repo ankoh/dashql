@@ -19,8 +19,12 @@ describe('global workbook execution feedback', () => {
         workbookId: 'workbook',
         scriptRefs: { '01_query.sql': { scriptId: 1, fileName: '01_query.sql' } },
         scriptOrder: ['01_query.sql'],
-        scripts: { 1: { scriptKey: 1, connection: { connectionId: 'main', connectorInfo: {} }, annotations: {}, analysisOutdated: false } },
+        scriptKeys: [1],
+        scriptConnections: ['main'],
+        pendingConnectionId: null,
     };
+    const script = { scriptKey: 1, connectionId: 'main', annotations: {}, analysisOutdated: false };
+    const services = { runs: {} };
     const runWorkbookScript = vi.fn();
     const dependencies = {
         useWorkbookScripts: () => [workbookScripts, vi.fn()],
@@ -30,6 +34,8 @@ describe('global workbook execution feedback', () => {
         useCatalogLoaderQueue: () => vi.fn(),
         useLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
         useWorkbookViewMode: () => ({ mode: WorkbookViewMode.Workbook, setMode: vi.fn() }),
+        useScriptReader: () => (scriptKey: number) => scriptKey === 1 ? script : null,
+        useScriptRunServices: () => services,
         runWorkbookScript,
     } as unknown as WorkbookCommandsDependencies;
     function Probe() {
@@ -67,7 +73,7 @@ describe('global workbook execution feedback', () => {
         connection = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE };
         render();
         shortcut();
-        expect(runWorkbookScript).toHaveBeenCalledWith(workbookScripts, workbookScripts.scripts[1], execute, expect.any(Function), expect.anything());
+        expect(runWorkbookScript).toHaveBeenCalledWith(services, workbookScripts, script, execute, expect.any(Function), expect.anything());
         expect(attention?.active).toBe(false);
     });
 });

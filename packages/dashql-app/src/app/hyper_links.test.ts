@@ -12,7 +12,7 @@ const SECOND_RUN = { endpoint: 'http://127.0.0.1:2222', token: 'second' };
 describe('the workbook that a link opens', () => {
     const workbooks = new Map(Object.entries({ first: 'embedded', second: 'linked', third: 'linked' })
         .map(([workbookId, connectionId]) => [workbookId, {
-            workbookId, scripts: {}, scriptRefs: {}, scriptOrder: [], pendingConnection: { connectionId },
+            workbookId, ephemeral: false, scriptRefs: {}, scriptOrder: [], pendingConnectionId: connectionId, connectionIds: [connectionId],
         } as unknown as WorkbookScripts]));
 
     it('stays in the open workbook on the connection of the link', () => {

@@ -1,6 +1,5 @@
 import * as arrow from 'apache-arrow';
-import type * as core from '@ankoh/dashql-core';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HandleTable } from './handles.js';
 import type { ConnectionParams } from '../connections/connection_params.js';
@@ -9,10 +8,8 @@ import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionRespons
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { vectorFromArray } from '../testing/arrow_fixtures.js';
 import { openTestHyperDB } from '../testing/test_hyperdb.js';
-import { createTestRuntime, testCore, type TestRuntime } from '../testing/test_runtime.js';
+import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
 import { isWorkbookExecutionRunning } from '../workbook/scripts/workbook_execution.js';
-import { createWorkbookScripts, scriptConnectionOf } from '../workbook/scripts/workbook_scripts.js';
-import { createEmptyMetadata } from '../workbook/scripts/script_types.js';
 
 describe('HandleTable', () => {
     it('keeps an object under a new handle until it is released', () => {
@@ -54,10 +51,8 @@ describe('HandleTable', () => {
 });
 
 describe('The handles of a runtime', () => {
-    let dql: core.DashQL;
     let runtime: TestRuntime | null = null;
     let database: HyperDB | null = null;
-    beforeAll(async () => { dql = await testCore(); });
     afterEach(async () => {
         await runtime?.destroy();
         runtime = null;
@@ -65,7 +60,7 @@ describe('The handles of a runtime', () => {
         database = null;
     });
 
-    it('are all released after a connection with queries, a computation and a workbook run went', async () => {
+    it('are all released after a workbook with a run, a connection with queries and a computation went', async () => {
         database = await openTestHyperDB('handles_test');
         const rt = await createTestRuntime({ computeDatabase: database });
         runtime = rt;
@@ -85,17 +80,11 @@ describe('The handles of a runtime', () => {
             params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams,
             channel,
         });
-        // The catalog describes the connection, the runs don't wait for the catalog loader
-        rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'restoreCatalogUpdates', value: { described: true } });
-        rt.coreRuntime.flush();
-        const workbook = createWorkbookScripts({
-            instance: dql, workbookId: 'handles', name: 'handles', pendingConnection: null, workbookMetadata: createEmptyMetadata(),
-            scripts: [{ name: '1_commands.sql', sql: 'create table a (x int);', connection: scriptConnectionOf(rt.coreRuntime, rt.connection(connectionId)) }],
-        });
-        rt.workbooks.store.update(registry => ({ ...registry, workbookScriptsMap: new Map([[workbook.workbookId, workbook]]) }));
+        // A workbook of the runtime on the connection
+        const workbook = rt.addWorkbook(connectionId, [['1_commands.sql', 'create table a (x int);']], { name: 'handles' });
 
         // A run of the workbook executes its statement on the connection, through the query executor of the runtime
-        rt.execution.start(workbook.workbookId, () => { });
+        rt.execution.start(workbook.workbookId);
         await vi.waitFor(() => expect(stream.produce).toHaveBeenCalled());
         await vi.waitFor(() => expect(isWorkbookExecutionRunning(workbook.workbookId)).toBe(false));
         expect(rt.connection(connectionId).queriesFinishedOrdered.length).toBeGreaterThan(0);
@@ -127,8 +116,9 @@ describe('The handles of a runtime', () => {
         const computation = rt.coreRuntime.store.get('computation', 1);
         expect(rt.coreRuntime.table(computation?.tableAggregation?.table)?.numRows).toBe(1);
 
-        // Everything goes: the computation, the history of the shell, the connection, the runtime
+        // Everything goes: the computation, the history of the shell, the workbook, the connection, the runtime
         rt.coreRuntime.deleteComputation(1);
+        rt.coreRuntime.deleteWorkbook(workbook.workbookId);
         rt.coreRuntime.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
         rt.coreRuntime.dispatchConnection(connectionId, { kind: 'deleteConnection' });
         rt.coreRuntime.flush();

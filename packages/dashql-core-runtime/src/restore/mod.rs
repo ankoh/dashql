@@ -1,6 +1,6 @@
 //! The restore of the stored state: the connections of the app manifest with their catalogs, the workbooks of the
 //! workbook tree with their scripts and attachments, and the writes that bring the stored state in line with the
-//! restored one. Ported from `packages/dashql-runtime/src/workbook/persistence/app_state_loader.ts`.
+//! restored one. The runtime of the module runs it as its commands `restore` and `restoreWorkbook`.
 //!
 //! The restore is a service on a host (`RestoreHost`): it reads the manifest, the workbook files, the scripts, the
 //! attachments and the files of the connections through the host and writes through the storage writer. The decisions

@@ -6,8 +6,12 @@ import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import type { EmbeddedConnection } from '../../platform/database/embedded_database.js';
 import { ConnectorType } from '../connector_info.js';
 import { setupStepAction } from '../connection_state.js';
-import type { CoreRuntime } from '../../core_runtime.js';
-import { testCoreRuntime } from '../../testing/mocks/connector_state.js';
+import { CoreRuntime } from '../../core_runtime.js';
+import type { ConnectionParams } from '../../storage/storage_backend.js';
+import { STORAGE_CATALOG_RELATIONS } from '../../storage/storage_backend.js';
+import { TASK_UPDATE_SCHEDULER } from '../../store/store.js';
+import { TestLogger } from '../../testing/test_logger.js';
+import { WorkbookTestRegistry } from '../../testing/workbook_test_backend.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
 import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from './catalog_sql_generator.js';
 
@@ -60,12 +64,15 @@ describe('the catalog of a connection follows statements', () => {
         dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
         const database = await openTestHyperDB('catalog_updates_integration_test');
         connection = await database.connect();
-        runtime = testCoreRuntime(dql);
-        await runtime.ready();
         // A Hyper server that a restored catalog describes: the loader only asks about the relations of statements
         const params = { protocol: 'V3_GRPC', endpoint: 'https://hyper.example.com' };
-        const state = runtime.createConnection({ connectorType: ConnectorType.HYPER, setupParams: params }, 'connection');
-        runtime.dispatch({ connection: 'connection' }, { kind: 'restoreCatalogUpdates', value: { described: true } });
+        const storage = new WorkbookTestRegistry();
+        storage.connections = [{ id: 'connection', params: { hyper: params } as ConnectionParams }];
+        storage.connectionFiles.set(`connection/${STORAGE_CATALOG_RELATIONS}`, generateRelationsFile(null));
+        runtime = new CoreRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, storage });
+        await runtime.restore();
+        const state = runtime.connection('connection')!;
+        expect(state.connectorType).toBe(ConnectorType.HYPER);
         // The metadata queries run on the session of the statements of the test, it sees their temporary tables
         const embedded = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(connection));
         const channel = {

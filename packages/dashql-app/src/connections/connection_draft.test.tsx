@@ -16,10 +16,8 @@ import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { TestRuntime } from '../tests/test_runtime.js';
-import { useWorkbookScriptsRegistry, type WorkbookScriptsRegistry } from '../workbook/scripts/workbook_scripts_registry.js';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 /// The draft of the test connection in the app manifest
 function globalDraft(backend: WorkbookTestBackend): ConnectionParams | undefined {
@@ -43,17 +41,9 @@ function database(type: ConnectorType, active = false, into: CoreRuntime = testC
     return state;
 }
 
-/// A workbook that uses the connection without a script, the registry of the connections reads which workbooks use it
-function withWorkbookOnConnection(registry: WorkbookScriptsRegistry): WorkbookScriptsRegistry {
-    const workbook = {
-        workbookId: TEST_WORKBOOK_ID, scripts: {}, scriptRefs: {}, scriptOrder: [], instance: {},
-        pendingConnection: { connectionId: TEST_CONNECTION_ID },
-    } as unknown as WorkbookScripts;
-    return {
-        ...registry,
-        workbookScriptsMap: new Map([[TEST_WORKBOOK_ID, workbook]]),
-        workbookScriptsByConnection: new Map([[TEST_CONNECTION_ID, [TEST_WORKBOOK_ID]]]),
-    };
+/// A workbook of the runtime that uses the connection without a script, the connection knows which workbooks use it
+function workbookOnConnection(coreRuntime: CoreRuntime): void {
+    coreRuntime.createWorkbook(TEST_CONNECTION_ID, null, false, undefined, TEST_WORKBOOK_ID);
 }
 
 function reduce(state: ConnectionState, action: core.RuntimeAction) {
@@ -144,7 +134,6 @@ describe('durable connection drafts', () => {
     it.each([false, true])('saves invalid edits with active=%s into the app manifest and does not resurrect a discarded draft', async active => {
         const backend = new WorkbookTestBackend();
         let coreRuntime!: CoreRuntime;
-        let setWorkbooks!: ReturnType<typeof useWorkbookScriptsRegistry>[1];
         let edit!: React.Dispatch<React.SetStateAction<string>>;
         let dispatch!: ReturnType<typeof useConnectionById>[1];
         let writer!: StorageWriter;
@@ -152,7 +141,6 @@ describe('durable connection drafts', () => {
         let value = '';
         function Harness() {
             coreRuntime = useCoreRuntime();
-            [, setWorkbooks] = useWorkbookScriptsRegistry();
             [current, dispatch] = useConnectionById(TEST_CONNECTION_ID) as [ConnectionState, typeof dispatch];
             [value, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
                 params => params && 'trino' in params ? params.trino.endpoint : '',
@@ -164,8 +152,8 @@ describe('durable connection drafts', () => {
         try {
             await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>));
             await act(async () => {
-                setWorkbooks(withWorkbookOnConnection);
                 database(ConnectorType.TRINO, active, coreRuntime);
+                workbookOnConnection(coreRuntime);
             });
             await act(async () => edit('not a URL'));
             expect(current.active).toBe(active);
@@ -173,7 +161,7 @@ describe('durable connection drafts', () => {
             await writer.flush();
             expect(globalDraft(backend)).toEqual(edited(current.params, 'not a URL'));
             // Drafts are never replicated into the workbook
-            expect(backend.workbooks.has(TEST_WORKBOOK_ID)).toBe(false);
+            expect(backend.workbooks.get(TEST_WORKBOOK_ID)?.connections.map(copy => copy.params)).toEqual([current.params]);
             await act(async () => edit('newer unfinished value'));
             await act(async () => dispatch(DISCARD_DRAFT));
             await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
@@ -193,14 +181,12 @@ describe('durable connection drafts', () => {
     it('persists and rehydrates incomplete duplicate header rows without flattening the form', async () => {
         const backend = new WorkbookTestBackend();
         let coreRuntime!: CoreRuntime;
-        let setWorkbooks!: ReturnType<typeof useWorkbookScriptsRegistry>[1];
         let edit!: React.Dispatch<React.SetStateAction<HyperConnectionPageState>>;
         let dispatch!: ReturnType<typeof useConnectionById>[1];
         let form!: HyperConnectionPageState;
         let writer!: StorageWriter;
         function Harness() {
             coreRuntime = useCoreRuntime();
-            [, setWorkbooks] = useWorkbookScriptsRegistry();
             [, dispatch] = useConnectionById(TEST_CONNECTION_ID);
             [form, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
                 params => buildHyperConnectionPageState(params && 'hyper' in params ? params.hyper as any : undefined),
@@ -212,8 +198,8 @@ describe('durable connection drafts', () => {
         try {
             await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>));
             await act(async () => {
-                setWorkbooks(withWorkbookOnConnection);
                 database(ConnectorType.HYPER, false, coreRuntime);
+                workbookOnConnection(coreRuntime);
             });
             const rows = [{ key: '', value: 'unfinished' }, { key: '', value: '' }];
             await act(async () => edit(prev => ({ ...prev, endpoint: 'invalid', gRPCMetadata: rows })));

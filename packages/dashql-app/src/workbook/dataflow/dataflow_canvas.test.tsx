@@ -1,22 +1,31 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql-core';
 import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CREATE_SCRIPT,DELETE_SCRIPT, SET_SCRIPT_TEXT, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
-import { analyzedTestWorkbook, withTestScript } from './dataflow_test_workbook.js';
+import { analyzedTestWorkbook, withTestScript, type TestWorkbook } from './dataflow_test_workbook.js';
 import { loadDataflowModule } from './dataflow_module.js';
 
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-let dql: core.DashQL;
 let layout: core.DashQLDataflow;
 beforeAll(async () => {
-    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     layout = await loadDataflowModule();
 });
+
+/// The workbook of a test on a runtime, and the scripts that the canvas reads
+let test: TestWorkbook;
+let workbook: WorkbookScripts;
+let scripts: ScriptDataMap;
+
+/// Show a workbook of a test, its scripts are copies that a test may change
+function show(next: TestWorkbook): void {
+    test = next;
+    workbook = next.workbook;
+    scripts = { ...next.scripts };
+}
 
 const dependencies: DataflowCanvasDependencies = {
     useQueryState: () => null,
@@ -25,34 +34,40 @@ const dependencies: DataflowCanvasDependencies = {
     // The header of the feed entry needs the connections and the storage of the app
     ScriptEntryHeader: ((props: any) => (
         <div data-testid="entry-header" data-script={props.scriptKey}>
-            <button data-testid="script-delete" onClick={() => props.onDelete(props.workbookScripts.scripts[props.scriptKey])} />
+            <button data-testid="script-delete" onClick={() => props.onDelete(scripts[props.scriptKey])} />
             {props.onEdit != null && <button data-testid="script-edit" onClick={props.onEdit} />}
         </div>
     )) as unknown as DataflowCanvasDependencies['ScriptEntryHeader'],
+    useWorkbookScriptMap: () => scripts,
+    useWorkbookDerived: () => test.derived,
 };
 
 describe('DataflowCanvas', () => {
     let container: HTMLDivElement;
     let root: Root;
-    let workbook: WorkbookScripts;
     const modify = vi.fn();
+    /// Forget the actions, every action applies
+    const resetModify = () => {
+        modify.mockReset();
+        modify.mockReturnValue({ ok: true, changed: true, error: null, id: null });
+    };
 
-    beforeEach(() => {
+    beforeEach(async () => {
         container = document.createElement('div');
         container.style.width = '1000px';
         container.style.height = '600px';
         document.body.appendChild(container);
         root = createRoot(container);
-        modify.mockReset();
-        workbook = analyzedTestWorkbook(dql, [
+        resetModify();
+        show(await analyzedTestWorkbook([
             ['schema.sql', 'create table t (a int);\ninsert into t values (1)'],
             ['report.sql', 'select a from t'],
-        ]);
+        ]));
     });
-    afterEach(() => {
+    afterEach(async () => {
         act(() => root.unmount());
         container.remove();
-        dql.resetUnsafe();
+        await test.runtime.destroy();
     });
 
     const render = (onInspect?: (scriptKey: number) => void) => act(() => root.render(
@@ -162,7 +177,7 @@ describe('DataflowCanvas', () => {
     const written = () => {
         const texts = new Map<string, string>();
         for (const [action] of modify.mock.calls) {
-            if (action?.type !== SET_SCRIPT_TEXT) continue;
+            if (action?.kind !== 'setScriptText') continue;
             const fileName = Object.keys(workbook.scriptRefs).find(f => key(f) === action.value.scriptKey)!;
             texts.set(fileName, action.value.text);
         }
@@ -192,24 +207,25 @@ describe('DataflowCanvas', () => {
         expect(texts.get('schema.sql')).toMatch(/\/\*\* @flow x=-?\d+ y=-?\d+ \*\//);
     });
 
-    it('shows the same layout after a reload of the saved scripts', () => {
+    it('shows the same layout after a reload of the saved scripts', async () => {
         render();
         drag('report.sql', 0, 160);
         const shown = { schema: cardAt('schema.sql'), report: cardAt('report.sql') };
         const texts = written();
         act(() => root.unmount());
         root = createRoot(container);
-        workbook = analyzedTestWorkbook(dql, [
+        await test.runtime.destroy();
+        show(await analyzedTestWorkbook([
             ['schema.sql', texts.get('schema.sql')!],
             ['report.sql', texts.get('report.sql')!],
-        ]);
+        ]));
         // The workbook reads the tags into the annotations of the scripts
         for (const fileName of ['schema.sql', 'report.sql']) {
             const [, x, y] = texts.get(fileName)!.match(/@flow x=(-?\d+) y=(-?\d+)/)!;
-            const script = workbook.scripts[key(fileName)];
-            script.annotations = { ...script.annotations, flowPosition: { statementId: 0, x: Number(x), y: Number(y), width: null, height: null } };
+            const script = scripts[key(fileName)];
+            scripts[key(fileName)] = { ...script, annotations: { ...script.annotations, flowPosition: { statementId: 0, x: Number(x), y: Number(y), width: null, height: null } } };
         }
-        modify.mockReset();
+        resetModify();
         render();
         expect({ schema: cardAt('schema.sql'), report: cardAt('report.sql') }).toEqual(shown);
         // Nothing to save, the tags hold the layout
@@ -223,9 +239,9 @@ describe('DataflowCanvas', () => {
             return { x: Number(frame.getAttribute('x')), y: Number(frame.getAttribute('y')) };
         };
         const before = { schema: rect('schema.sql'), report: rect('report.sql') };
-        workbook = withTestScript(workbook, 'first.sql', 'select * from :report');
+        show(withTestScript(test, 'first.sql', 'select * from :report'));
         render();
-        workbook = withTestScript(workbook, 'second.sql', 'select * from :report');
+        show(withTestScript(test, 'second.sql', 'select * from :report'));
         render();
         expect([rect('schema.sql').x, rect('schema.sql').y]).toEqual([before.schema.x, before.schema.y]);
         expect([rect('report.sql').x, rect('report.sql').y]).toEqual([before.report.x, before.report.y]);
@@ -254,16 +270,16 @@ describe('DataflowCanvas', () => {
         render(onInspect);
         act(() => box('report.sql').querySelector<SVGGElement>('[data-dataflow-action="add"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
         const create = modify.mock.calls[modify.mock.calls.length - 1]?.[0];
-        expect(create?.type).toBe(CREATE_SCRIPT);
+        expect(create?.kind).toBe('createScript');
         // The layout places the new script right of the box, it has no position of its own
         expect(create?.value.text).toBe('select * from :report');
-        expect(create?.value.connection).toBe(workbook.scripts[key('report.sql')].connection);
+        expect(create?.value.connectionId).toBe(scripts[key('report.sql')].connectionId);
 
         act(() => box('report.sql').querySelector<HTMLButtonElement>('[data-testid="script-edit"]')!.click());
         expect(onInspect).toHaveBeenCalledWith(key('report.sql'));
 
         act(() => box('report.sql').querySelector<HTMLButtonElement>('[data-testid="script-delete"]')!.click());
-        expect(modify.mock.calls[modify.mock.calls.length - 1]?.[0]).toEqual({ type: DELETE_SCRIPT, value: 'report.sql' });
+        expect(modify.mock.calls[modify.mock.calls.length - 1]?.[0]).toEqual({ kind: 'deleteScript', value: { fileName: 'report.sql' } });
     });
 
     it('shows the header of the feed entry in a box, a drag on its free space moves the box', () => {
@@ -295,12 +311,12 @@ describe('DataflowCanvas', () => {
     });
 
     it('arranges the boxes again without the positions of their @flow tags, the sizes stay', () => {
-        const report = workbook.scripts[key('report.sql')];
-        report.annotations = { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 400, height: null } };
+        const report = scripts[key('report.sql')];
+        scripts[key('report.sql')] = { ...report, annotations: { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 400, height: null } } };
         render();
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="dataflow-arrange"]')!.click());
         // The script with a tag loses its position, the other one has none
-        const rewritten = modify.mock.calls.map(call => call[0]).filter(action => action.type === SET_SCRIPT_TEXT);
+        const rewritten = modify.mock.calls.map(call => call[0]).filter(action => action.kind === 'setScriptText');
         expect(rewritten.map(action => [action.value.scriptKey, action.value.text])).toEqual([[key('report.sql'), '/** @flow width=400 */\nselect a from t']]);
     });
 
@@ -324,16 +340,17 @@ describe('DataflowCanvas', () => {
     });
 
     it('resizes a box with the arrow keys and keeps the y of its @flow tag', () => {
-        const report = workbook.scripts[key('report.sql')];
+        const report = { ...scripts[key('report.sql')] };
         report.annotations = { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: null, height: null } };
+        scripts[key('report.sql')] = report;
         render();
         const handle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
         act(() => { handle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })); });
         expect(written().get('report.sql')).toMatch(/^\/\*\* @flow x=-?\d+ y=400 width=296 \*\/\nselect a from t$/);
         // Narrower than the smallest box, the width stays at its bound
-        modify.mockReset();
+        resetModify();
         const narrow = { ...report, annotations: { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 200, height: null } } };
-        workbook = { ...workbook, scripts: { ...workbook.scripts, [key('report.sql')]: narrow } };
+        scripts = { ...scripts, [key('report.sql')]: narrow };
         render();
         const narrowHandle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
         act(() => { narrowHandle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' })); });

@@ -1,9 +1,5 @@
 import * as core from '@ankoh/dashql-core';
 
-import { scriptDisplayName } from '../scripts/script_types.js';
-import { formattingDialectForConnector } from '../scripts/script_format.js';
-import { attachmentPrefix, planAttachments } from '../attachments/workbook_attachments.js';
-import { orderedWorkbookScripts, workbookAnalysisSignature, type ScriptData, type WorkbookScripts } from '../scripts/workbook_scripts.js';
 
 const SqlTypeKind = core.buffers.analyzer.SqlTypeKind;
 
@@ -54,38 +50,6 @@ export interface SessionInput {
 
 const NO_INPUTS: SessionInput[] = [];
 
-/// The request of the core for the scripts of a workbook, connections in the order of their first script. A
-/// connection speaks the dialect of its connector, the planner prints the values of inputs in it. With the workbook,
-/// the request holds its attachments and the directory the embedded Hyper mounts them in.
-export function workbookPlanRequest(
-    scripts: readonly ScriptData[],
-    files: readonly string[],
-    workbook?: Pick<WorkbookScripts, 'workbookId' | 'attachments'>,
-): core.SessionPlanRequest {
-    const connections: ScriptData['connection'][] = [];
-    for (const script of scripts) {
-        if (connections.some(c => c.connectionId === script.connection.connectionId)) continue;
-        connections.push(script.connection);
-    }
-    const connectionIds = connections.map(c => c.connectionId);
-    return {
-        connections: connections.map(c => ({
-            id: c.connectionId,
-            local: c.local ?? false,
-            catalog: c.catalog,
-            dialect: formattingDialectForConnector(c.connectorInfo?.connectorType),
-            defaults: c.catalogNameDefaults,
-        })),
-        scripts: scripts.map((script, index) => ({
-            name: scriptDisplayName(files[index]),
-            connection: connectionIds.indexOf(script.connection.connectionId),
-            session: script.scriptSession,
-        })),
-        attachments: planAttachments(workbook?.attachments),
-        attachmentPrefix: workbook == null ? undefined : attachmentPrefix(workbook.workbookId),
-    };
-}
-
 /// The type of an input of the core
 export function readWorkbookInputType(type: core.buffers.analyzer.SqlTypeT | null, source: core.buffers.execution.SessionInputTypeSource): WorkbookInputType {
     return {
@@ -98,36 +62,30 @@ export function readWorkbookInputType(type: core.buffers.analyzer.SqlTypeT | nul
     };
 }
 
-/// Collect the inputs of a plan request with the core, `scripts` are the scripts of the request that have a key
-function readWorkbookInputs(instance: core.DashQL, request: core.SessionPlanRequest, scripts: readonly Pick<ScriptData, 'scriptKey'>[]): SessionInput[] {
-    const collected = instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT;
+/// The inputs that the runtime collected from the scripts of a workbook, the consumers by the keys of the scripts in
+/// the order of the request
+export function readSessionInputs(collected: core.buffers.execution.SessionInputsT, scriptKeys: readonly number[]): SessionInput[] {
     return collected.inputs.map(input => ({
         name: String(input.name ?? ''),
         type: readWorkbookInputType(input.sqlType, input.typeSource),
         value: input.hasValue ? String(input.value ?? '') : null,
         literal: input.hasValue ? String(input.literal ?? '') : null,
         consumers: input.consumers.flatMap(c => {
-            const script = scripts[c.script];
-            return script == null ? [] : [{ scriptKey: script.scriptKey, statementId: c.statement }];
+            const scriptKey = scriptKeys[c.script];
+            return scriptKey == null ? [] : [{ scriptKey, statementId: c.statement }];
         }),
         warnings: input.warnings.map(String),
     }));
 }
 
-/// Collect the inputs of a workbook with the core
-function collectSessionInputs(workbook: WorkbookScripts): SessionInput[] {
-    const scripts = orderedWorkbookScripts(workbook);
-    if (scripts.length === 0 || typeof workbook.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
-    return readWorkbookInputs(workbook.instance, workbookPlanRequest(scripts, scripts.map(s => s.fileName), workbook), scripts);
-}
-
 /// The inputs of the draft of a composer, a script session that is no workbook script: nothing consumes them yet
 export function collectDraftInputs(instance: core.DashQL, draft: core.DashQLScriptSession, catalog: core.DashQLCatalog): SessionInput[] {
     try {
-        return readWorkbookInputs(instance, {
+        const request = {
             connections: [{ id: 'draft', local: false, catalog }],
             scripts: [{ name: 'draft', connection: 0, session: draft }],
-        }, []);
+        };
+        return readSessionInputs(instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT, []);
     } catch (e) {
         console.warn('cannot collect the inputs of the draft', e);
         return NO_INPUTS;
@@ -139,36 +97,8 @@ export function inputConsumerScripts(input: SessionInput): number[] {
     return [...new Set(input.consumers.map(c => c.scriptKey))];
 }
 
-interface CachedInputs {
-    signature: string;
-    inputs: SessionInput[];
-}
-
-/// The last inputs of every workbook, by workbook id
-const INPUTS = new Map<string, CachedInputs>();
-
 export function sameInputs(l: SessionInput[], r: SessionInput[]): boolean {
     return JSON.stringify(l) === JSON.stringify(r);
-}
-
-/// The inputs of a workbook, collected again when a script or its analysis changed. A script that is being edited
-/// keeps the inputs of its last analysis: an input stays while its analysis lags behind its text.
-export function deriveWorkbookInputs(workbook: WorkbookScripts): SessionInput[] {
-    // Workbooks without the core, e.g. of tests, have no inputs
-    if (workbook.scriptOrder == null || workbook.scriptOrder.length === 0 || typeof workbook.instance?.collectSessionInputs !== 'function') return NO_INPUTS;
-    const signature = workbookAnalysisSignature(workbook);
-    const cached = INPUTS.get(workbook.workbookId);
-    if (cached?.signature === signature) return cached.inputs;
-    let inputs: SessionInput[];
-    try {
-        inputs = collectSessionInputs(workbook);
-    } catch (e) {
-        console.warn('cannot collect the inputs of the workbook', e);
-        return cached?.inputs ?? NO_INPUTS;
-    }
-    if (cached != null && sameInputs(cached.inputs, inputs)) inputs = cached.inputs;
-    INPUTS.set(workbook.workbookId, { signature, inputs });
-    return inputs;
 }
 
 /// The control of the value of an input

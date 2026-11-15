@@ -16,9 +16,9 @@ import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bund
 import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import { useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
+import { useWorkbooks } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookImportProvider, useWorkbookImport } from './workbook_import_provider.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
@@ -81,7 +81,7 @@ interface Api {
     logger: Logger;
     connections: ReadonlyMap<string, ConnectionState>;
     coreRuntime: CoreRuntime;
-    workbooks: ReturnType<typeof useWorkbookScriptsRegistry>[0];
+    workbooks: ReturnType<typeof useWorkbooks>;
 }
 
 function Capture(props: { capture: (api: Api) => void }) {
@@ -90,7 +90,7 @@ function Capture(props: { capture: (api: Api) => void }) {
     const logger = useLogger();
     const [registry] = useConnectionRegistry();
     const coreRuntime = useCoreRuntime();
-    const [workbooks] = useWorkbookScriptsRegistry();
+    const workbooks = useWorkbooks();
     React.useLayoutEffect(() => {
         props.capture({ importer, writer, logger, connections: registry.connections, coreRuntime, workbooks });
     });
@@ -208,10 +208,10 @@ describe('WorkbookImportProvider', () => {
             // An earlier import of the bundle may have been deleted in this tab
             expect(writer).toHaveBeenCalledWith(WORKBOOK_ID);
             await vi.waitFor(() => {
-                expect(api.workbooks.workbookScriptsMap.has(WORKBOOK_ID)).toBe(true);
+                expect(api.workbooks.has(WORKBOOK_ID)).toBe(true);
                 expect(api.connections.has(HYPER_ID)).toBe(true);
             });
-            expect(api.workbooks.workbookScriptsByConnection.get(HYPER_ID)).toContain(WORKBOOK_ID);
+            expect(api.coreRuntime.connection(HYPER_ID)?.workbooks).toContain(WORKBOOK_ID);
         });
 
         it('uses the embedded database of the app instead of bringing a second one', async () => {
@@ -225,7 +225,7 @@ describe('WorkbookImportProvider', () => {
                     scripts: [{ name: 'query.sql', connectionId: OTHER_HYPER_ID }],
                 }), CENTERED);
             });
-            await vi.waitFor(() => expect(api.workbooks.workbookScriptsMap.has(OTHER_WORKBOOK_ID)).toBe(true));
+            await vi.waitFor(() => expect(api.workbooks.has(OTHER_WORKBOOK_ID)).toBe(true));
             expect(api.connections.has(OTHER_HYPER_ID)).toBe(false);
             expect(registry.workbooks.get(OTHER_WORKBOOK_ID)?.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
         });
@@ -244,7 +244,7 @@ describe('WorkbookImportProvider', () => {
             expect(resume).not.toHaveBeenCalled();
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select 1');
             // The reload restores the workbook
-            expect(api.workbooks.workbookScriptsMap.has(WORKBOOK_ID)).toBe(false);
+            expect(api.workbooks.has(WORKBOOK_ID)).toBe(false);
         });
 
         it('resumes the writer and does not reload when the write fails', async () => {
@@ -266,7 +266,7 @@ describe('WorkbookImportProvider', () => {
             registry.failWorkbookLoads = false;
             expect(registry.manifest).toEqual([]);
             expect(registry.scripts.has(WORKBOOK_ID)).toBe(false);
-            expect(api.workbooks.workbookScriptsMap.has(WORKBOOK_ID)).toBe(false);
+            expect(api.workbooks.has(WORKBOOK_ID)).toBe(false);
         });
 
         it('drops catalogs that do not parse and warns about them', async () => {
@@ -434,7 +434,7 @@ describe('WorkbookImportProvider', () => {
             expect(registry.scripts.get(id!)?.get('query.sql')).toBe('select 1');
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select old');
             expect(reload).not.toHaveBeenCalled();
-            await vi.waitFor(() => expect(api.workbooks.workbookScriptsMap.has(id!)).toBe(true));
+            await vi.waitFor(() => expect(api.workbooks.has(id!)).toBe(true));
             await vi.waitFor(() => expect(questionIsOpen()).toBe(false));
         });
 
@@ -560,7 +560,7 @@ describe('WorkbookImportProvider', () => {
             await act(async () => { id = await api.importer.importPortableBundleWithChoice(bundleOf(), 'replace'); });
             expect(id).toBe(WORKBOOK_ID);
             expect(reload).not.toHaveBeenCalled();
-            await vi.waitFor(() => expect(api.workbooks.workbookScriptsMap.has(WORKBOOK_ID)).toBe(true));
+            await vi.waitFor(() => expect(api.workbooks.has(WORKBOOK_ID)).toBe(true));
         });
 
         it('creates a copy of a registered workbook', async () => {

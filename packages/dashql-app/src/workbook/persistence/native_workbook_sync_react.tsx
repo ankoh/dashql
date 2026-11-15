@@ -1,49 +1,45 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql-core';
 
 import { useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useCoreRuntime, useView } from '../../runtime/runtime_hooks.js';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { replaceWorkbookScriptsInRegistry, useWorkbookScriptsDispatch, useWorkbookScriptsRegistry } from '../scripts/workbook_scripts_registry.js';
-import { workbookScriptsMatchStorageSnapshot, replaceWorkbookScriptsFromStorage, scriptConnectionOf, SET_WORKBOOK_ATTACHMENTS } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { useWorkbookScriptsDispatch, useWorkbooks } from '../scripts/workbook_scripts_registry.js';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useStorage } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
-import type { WorkbookScriptsStorageSnapshot, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { NamedFileStamp } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { connectionFromStorage } from '@ankoh/dashql-runtime/connections/connection_restore';
-import { resolveWorkbookScripts, workbookScriptsResolutionChanged } from '@ankoh/dashql-runtime/workbook/persistence/workbook_script_connections';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { findEmbeddedConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
 import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_validation';
+import { workbookFormat } from '@ankoh/dashql-runtime/storage/workbook_format';
 import {
-    DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_WORKBOOK_WRITE,
     groupScriptWrites,
     groupWorkbookAttachmentListWrites,
-    groupWorkbookScriptListWrites,
-    REFRESH_WORKBOOK_ATTACHMENTS,
-    WRITE_SCRIPT,
-    WRITE_WORKBOOK_SCRIPTS,
     type StorageWriter,
-} from '@ankoh/dashql-runtime/storage/storage_writer';
+} from '@ankoh/dashql-runtime/storage/runtime_storage';
 import {
     STORAGE_SCRIPTS_FOLDER,
+    STORAGE_WORKBOOK_FILE,
     type ScriptData,
+    type WorkbookConnection,
     type WorkbookData,
 } from '@ankoh/dashql-runtime/storage/storage_backend';
 
 const LOG_CTX = 'native_workbook_sync';
 
-/// The scripts of a workbook as its folder holds them, resolved like the restoration of the app does.
+/// The scripts of a workbook as its folder holds them, resolved like the restore of the runtime does.
 /// A connection that the app doesn't know is created from the copy of the workbook file, e.g. after
 /// pulling a script on a new connection. The runtime holds it right away, it is deleted again unless the reload is
 /// applied.
 export interface StoredWorkbookScripts {
-    /// The scripts as the workbook scripts take them
-    snapshot: WorkbookScriptsStorageSnapshot;
+    /// The scripts in feed order on the connections of the runtime, as the action `replaceFromStorage` takes them
+    scripts: core.StoredScriptView[];
     /// The workbook file that describes the resolved scripts
     workbook: WorkbookData;
     /// The connections that were created from copies of the workbook file
@@ -60,25 +56,30 @@ export function readStoredWorkbookScripts(
     const embedded = findEmbeddedConnection(registry.connections.values());
     if (embedded == null) return null;
     const created: ConnectionState[] = [];
-    const resolved = resolveWorkbookScripts(workbook, scripts.map(script => script.name), () => embedded, (connectionId, copy) => {
-        const known = registry.connections.get(connectionId)
-            ?? (copy != null && isLocalHyperWasmParams(copy.params) ? embedded : null);
-        if (known != null || copy == null) return known ?? null;
-        const connection = runtime.createConnection(connectionFromStorage(connectionId, copy), connectionId);
-        created.push(connection);
-        return connection;
-    });
-    const sqlByName = new Map(scripts.map(script => [script.name, script.sql]));
-    return {
-        snapshot: {
-            scripts: resolved.scripts.map(entry => ({
-                name: entry.name,
-                sql: sqlByName.get(entry.name) ?? '',
-                connection: scriptConnectionOf(runtime, entry.connection),
-                ...(entry.unresolvedConnectionId == null ? {} : { unresolvedConnectionId: entry.unresolvedConnectionId }),
-            })),
+    // The format resolves the scripts, the connections cross as the JSON of their copies
+    const json = (connection: ConnectionState) => JSON.stringify({ connectionId: connection.connectionId, params: connection.params });
+    const resolved = workbookFormat().resolveWorkbookScripts(workbook, scripts.map(script => script.name.normalize('NFC')), {
+        resolve: (connectionId, copyJson) => {
+            const copy = copyJson == null ? null : JSON.parse(copyJson) as WorkbookConnection;
+            const known = registry.connections.get(connectionId)
+                ?? (copy != null && isLocalHyperWasmParams(copy.params) ? embedded : null);
+            if (known != null || copy == null) return known == null ? null : json(known);
+            const connection = runtime.createConnection(connectionFromStorage(connectionId, copy), connectionId);
+            created.push(connection);
+            return json(connection);
         },
-        workbook: resolved.workbook,
+        fallback: () => json(embedded),
+        unresolved: () => { },
+    });
+    const sqlByName = new Map(scripts.map(script => [script.name.normalize('NFC'), script.sql]));
+    return {
+        scripts: resolved.scripts.map(entry => ({
+            name: entry.name,
+            sql: sqlByName.get(entry.name) ?? '',
+            connectionId: entry.connectionId,
+            ...(entry.unresolvedConnectionId == null ? {} : { unresolvedConnectionId: entry.unresolvedConnectionId }),
+        })),
+        workbook: resolved.workbook as unknown as WorkbookData,
         created,
     };
 }
@@ -97,7 +98,7 @@ async function confirmExternalReload(appName: string, hasPendingWrites: boolean)
 }
 
 function isReloadedStorageKey(workbookId: string, key: string): boolean {
-    return key === groupWorkbookScriptListWrites(workbookId)
+    return key === `${workbookId}/${STORAGE_WORKBOOK_FILE}:scripts`
         || key === `${workbookId}/${STORAGE_SCRIPTS_FOLDER}`
         || key.startsWith(`${workbookId}/${STORAGE_SCRIPTS_FOLDER}/`);
 }
@@ -109,16 +110,15 @@ function attachmentListing(files: NamedFileStamp[]): string {
 
 /// Keep the scripts of the app over the disk: the scripts that differ on disk are written again.
 /// Files that only exist on disk are left alone.
-function writeKeptWorkbookScripts(writer: StorageWriter, workbookScripts: WorkbookScripts, disk: ScriptData[]): void {
-    const workbookId = workbookScripts.workbookId;
+function writeKeptWorkbookScripts(writer: StorageWriter, runtime: CoreRuntime, workbookId: string, disk: ScriptData[]): void {
     const sqlByName = new Map(disk.map(script => [script.name, script.sql]));
-    for (const ref of Object.values(workbookScripts.scriptRefs)) {
-        const sql = workbookScripts.scripts[ref.scriptId]?.scriptSession.getText();
-        if (sql == null || sqlByName.get(ref.fileName) === sql) continue;
+    for (const script of Object.values(runtime.workbookScripts(workbookId))) {
+        const sql = script.scriptSession.getText();
+        if (sqlByName.get(script.fileName) === sql) continue;
         void writer.write(
-            groupScriptWrites(workbookId, ref.fileName),
-            { type: WRITE_SCRIPT, value: [workbookId, ref.fileName, sql] },
-            DEBOUNCE_DURATION_SCRIPT_WRITE,
+            groupScriptWrites(workbookId, script.fileName),
+            { type: 'writeScript', workbookId, fileName: script.fileName, text: sql },
+            DEBOUNCE_DURATION_WORKBOOK_WRITE,
         );
     }
 }
@@ -134,12 +134,13 @@ export const NativeWorkbookSync: React.FC = () => {
     const [reader, writer] = useStorage();
     const [connectionRegistry] = useConnectionRegistry();
     const coreRuntime = useCoreRuntime();
-    const [workbookScriptsRegistry, setWorkbookScriptsRegistry] = useWorkbookScriptsRegistry();
+    const workbooks = useWorkbooks();
     const dispatchWorkbookScripts = useWorkbookScriptsDispatch();
+    const heldWorkbooks = useView('storage', 'root')?.heldWorkbooks;
     const connectionRegistryRef = React.useRef(connectionRegistry);
-    const workbookScriptsRegistryRef = React.useRef(workbookScriptsRegistry);
+    const workbooksRef = React.useRef(workbooks);
     connectionRegistryRef.current = connectionRegistry;
-    workbookScriptsRegistryRef.current = workbookScriptsRegistry;
+    workbooksRef.current = workbooks;
     const queuedRef = React.useRef(new Set<string>());
     const processingRef = React.useRef(false);
     /// The workbooks that were checked once, the first check acknowledges the disk
@@ -171,10 +172,10 @@ export const NativeWorkbookSync: React.FC = () => {
                 // The scripts read the mirrored attachments, the mount looks them up again
                 markWorkbookAttachmentsChanged(workbookId);
                 void reader.backend.listDataFiles(workbookId)
-                    .then(files => dispatchWorkbookScripts(workbookId, { type: SET_WORKBOOK_ATTACHMENTS, value: files }))
+                    .then(files => dispatchWorkbookScripts(workbookId, { kind: 'setWorkbookAttachments', value: { files } }))
                     .catch(error => logger.warn('Listing the attachments failed', { workbookId, error: stringifyError(error) }, LOG_CTX));
                 // The workbook file lists the attachments, the write runs once the workbook resumes
-                void writer.write(groupWorkbookAttachmentListWrites(workbookId), { type: REFRESH_WORKBOOK_ATTACHMENTS, value: workbookId });
+                void writer.write(groupWorkbookAttachmentListWrites(workbookId), { type: 'refreshWorkbookAttachments', workbookId });
             }
             // A change is remembered once it was handled, a failed read is retried by the next check
             attachmentsRef.current.set(workbookId, attachments);
@@ -195,12 +196,10 @@ export const NativeWorkbookSync: React.FC = () => {
             if (stored == null) {
                 return;
             }
-            const snapshot = stored.snapshot;
-            const currentWorkbookScripts = workbookScriptsRegistryRef.current.workbookScriptsMap.get(workbookId);
-            if (currentWorkbookScripts == null) {
+            if (coreRuntime.workbook(workbookId) == null) {
                 return;
             }
-            if (workbookScriptsMatchStorageSnapshot(currentWorkbookScripts, snapshot)) {
+            if (coreRuntime.matchesStoredScripts(workbookId, stored.scripts)) {
                 // Only the stamps changed, or the disk changed to what the app shows
                 folder.acknowledgeScripts(stamps.scripts);
                 return;
@@ -219,8 +218,7 @@ export const NativeWorkbookSync: React.FC = () => {
             if (!decision.reload) {
                 // The app version wins, it replaces the external version on disk
                 folder.acknowledgeScripts(stamps.scripts);
-                const latest = workbookScriptsRegistryRef.current.workbookScriptsMap.get(workbookId);
-                if (latest) writeKeptWorkbookScripts(writer, latest, scripts);
+                writeKeptWorkbookScripts(writer, coreRuntime, workbookId, scripts);
                 return;
             }
             if (writer.getWorkbookWriteGeneration(workbookId, isReloadedKey) !== promptGeneration) {
@@ -245,25 +243,17 @@ export const NativeWorkbookSync: React.FC = () => {
                 });
             }
             // Files that were added or removed outside the app change the script list
-            if (workbookScriptsResolutionChanged(workbookFile, stored.workbook)) {
+            if (workbookFormat().resolutionChanged(workbookFile, stored.workbook)) {
                 const { scripts, connections } = stored.workbook;
                 void writer.write(
-                    groupWorkbookScriptListWrites(workbookId),
-                    { type: WRITE_WORKBOOK_SCRIPTS, value: [workbookId, { scripts, connections }] },
+                    `${workbookId}/${STORAGE_WORKBOOK_FILE}:scripts`,
+                    { type: 'writeWorkbookScripts', workbookId, scripts, connections },
                     DEBOUNCE_DURATION_WORKBOOK_WRITE,
                 );
             }
-            const latestWorkbookScripts = workbookScriptsRegistryRef.current.workbookScriptsMap.get(workbookId);
-            if (latestWorkbookScripts) {
-                const reloadedWorkbookScripts = replaceWorkbookScriptsFromStorage(latestWorkbookScripts, snapshot, logger);
-                setWorkbookScriptsRegistry(registry => {
-                    // Do not overwrite a workbook that was replaced by another lifecycle operation
-                    // while the native confirmation dialog was open.
-                    if (registry.workbookScriptsMap.get(workbookId) !== latestWorkbookScripts) {
-                        return registry;
-                    }
-                    return replaceWorkbookScriptsInRegistry(registry, latestWorkbookScripts, reloadedWorkbookScripts);
-                });
+            // A workbook that another operation removed while the native confirmation dialog was open stays removed
+            if (coreRuntime.workbook(workbookId) != null) {
+                dispatchWorkbookScripts(workbookId, { kind: 'replaceFromStorage', value: { scripts: stored.scripts } });
             }
             logger.info('reloaded externally changed workbook', { workbookId }, LOG_CTX);
         } catch (error) {
@@ -296,7 +286,7 @@ export const NativeWorkbookSync: React.FC = () => {
     });
 
     const enqueueAllChecks = React.useEffectEvent(() => {
-        for (const workbookId of workbookScriptsRegistryRef.current.workbookScriptsMap.keys()) {
+        for (const workbookId of workbooksRef.current.keys()) {
             enqueueCheck(workbookId);
         }
     });
@@ -308,25 +298,31 @@ export const NativeWorkbookSync: React.FC = () => {
         }
         const onFocus = () => enqueueAllChecks();
         window.addEventListener('focus', onFocus);
-        const unsubscribe = writer.subscribeExternalChanges(workbookId => enqueueCheck(workbookId));
         return () => {
             window.removeEventListener('focus', onFocus);
-            unsubscribe();
         };
-    }, [writer]);
+    }, []);
+
+    // The writer holds the writes of a workbook whose script changed outside the app, a check answers it
+    React.useEffect(() => {
+        if (!isDesktopHost()) {
+            return;
+        }
+        for (const workbookId of heldWorkbooks ?? []) enqueueCheck(workbookId);
+    }, [heldWorkbooks]);
 
     // The first check of a workbook acknowledges its scripts, the writer checks the disk from then on
     React.useEffect(() => {
         if (!isDesktopHost()) {
             return;
         }
-        for (const workbookId of workbookScriptsRegistry.workbookScriptsMap.keys()) {
+        for (const workbookId of workbooks.keys()) {
             if (!firstCheckRequestedRef.current.has(workbookId)) {
                 firstCheckRequestedRef.current.add(workbookId);
                 enqueueCheck(workbookId);
             }
         }
-    }, [workbookScriptsRegistry]);
+    }, [workbooks]);
 
     return null;
 };
