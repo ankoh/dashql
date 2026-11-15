@@ -138,6 +138,11 @@ impl ConnectionParams {
         let Value::Object(fields) = value else {
             return Err(Error::invalid_argument("connection params must be an object"));
         };
+        Self::from_object(fields)
+    }
+
+    /// Read params from a JSON object, e.g. `{"trino": {...}}`. The first connector with a field wins.
+    pub fn from_object(fields: JsonObject) -> Result<Self> {
         for connector in CONNECTOR_TYPES {
             if let Some(params) = fields.get(connector.params_key()) {
                 let Value::Object(params) = params else {
@@ -158,9 +163,14 @@ impl ConnectionParams {
 
     /// The params as JSON, e.g. `{"trino": {...}}`
     pub fn to_json(&self) -> String {
+        Value::Object(self.to_object()).to_string()
+    }
+
+    /// The params as a JSON object, e.g. `{"trino": {...}}`
+    pub fn to_object(&self) -> JsonObject {
         let mut fields = JsonObject::new();
         fields.insert(self.connector.params_key().to_string(), Value::Object(self.params.clone()));
-        Value::Object(fields).to_string()
+        fields
     }
 
     /// The params without the raw form rows, they belong only to the local draft

@@ -6,7 +6,7 @@ import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
-import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorType } from './connection.js';
+import { DashQLConnection, type ConnectorType, type DashQLConnectionOptions } from './connection.js';
 import { DashQLComputations } from './computations.js';
 import { DashQLQueryHistory } from './query_history.js';
 import { DashQLStorageWriter } from './storage_writer.js';
@@ -449,7 +449,7 @@ export class DashQL {
     /// Create a connection with the history of its queries in the Rust runtime. Created through the instance, the
     /// catalog handle of the connection is the class of the instance also where a bundle holds two copies of this
     /// package.
-    public createConnection(connectionId: string, connector: DashQLConnectorType, options: DashQLConnectionOptions = {}, now = Date.now()): DashQLConnection {
+    public createConnection(connectionId: string, connector: ConnectorType, options: DashQLConnectionOptions = {}, now = Date.now()): DashQLConnection {
         return DashQLConnection.create(this, connectionId, connector, options, now);
     }
 

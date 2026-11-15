@@ -71,12 +71,12 @@ function fixture(workbookId: string, deferStream = false) {
     // The runs of the workbook on the Rust runtime
     const plan = vi.spyOn(workbook.native!.workbook, 'run');
     // A connection on the Rust connection of the core, online with a channel and a catalog that describes it
-    const database: ConnectionState = createTestConnection(dql, {
+    let database: ConnectionState = createTestConnection(dql, {
         connectionId: `${workbookId}-database`,
         params: { hyper: {} } as any,
         channel: { executeQuery },
     });
-    restoreCatalogUpdates(database, true, null);
+    database = restoreCatalogUpdates(database, true, null);
     expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
     const modify = vi.fn<ModifyWorkbookScripts>(() => {});
     return { workbook, database, plan, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,

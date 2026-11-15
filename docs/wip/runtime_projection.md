@@ -1,7 +1,8 @@
 # Projecting the runtime state
 
-Status: decided and started. The computations and the workbook cross as views with generated types, the payloads
-of the scripts as FlatBuffers by key inside the views. Measured on `995154de1`, the workbook on `1e96729fa`.
+Status: decided and started. The computations, the workbook, the connections and the query histories cross as views
+with generated types, the payloads of the scripts as FlatBuffers by key inside the views. Measured on `995154de1`, the
+workbook on `1e96729fa`.
 
 The state of the app lives in the crate `dashql_core_runtime` inside the core module (see
 [core_runtime.md](core_runtime.md)): the workbooks with their scripts, the connections with their query histories,
@@ -84,9 +85,11 @@ three scripts, one of them of 40 lines (4,226 characters).
   app as variants (`TASK_RUNNING = 1`, `#[allow(non_camel_case_types)]`). wasm-bindgen declares it as a TypeScript
   `enum` and exports it as a frozen object of the glue, `serde_repr` serializes it as its number, and the views name
   it with `#[tsify(type = "TaskStatus")]`. `TaskStatus` of the computations is done: the hand-written enum of the
-  runtime re-exports the generated one, its 73 references in 11 files don't change. `ConnectionStatus`, `ConnectionHealth`,
-  `QueryExecutionStatus` and `CatalogUpdateTaskStatus` follow the same way, with explicit discriminants where the
-  TypeScript enum counts implicitly.
+  runtime re-exports the generated one, its 73 references in 11 files don't change. `ConnectionStatus`,
+  `ConnectionHealth`, `QueryExecutionStatus`, `CatalogUpdateTaskStatus` and the enums that the inputs of a connection
+  carry (`ConnectorType`, `CatalogUpdateVariant`, `QueryType`) are done the same way, with explicit discriminants
+  where the TypeScript enum counted implicitly. `app_enum!` of `src/views.rs` declares such an enum with its
+  conversions from and to the enum of the runtime, one line per variant.
 - **Bytes.** A field with `#[serde(with = "serde_bytes")]` crosses as a `Uint8Array`, copied once out of the memory of
   the module. tsify needs a type override for it (`#[tsify(type = "...")]`).
 - **No panics.** The deprecated `into_wasm_abi` and `from_wasm_abi` of tsify panic on a failed conversion and leak.
@@ -248,12 +251,16 @@ Each step keeps the app and the tests green, the steps up to 5 keep the objects 
    readers and builders, the hand-written interfaces of `dashql-core-js` and `TaskStatus` went. Done for the workbook
    and its runs: the properties, the script list, the effects, the outcomes, the options, the state, the events and
    the result keys of a run, the cloud link and the data files as inputs. A connection with its catalog stays typed
-   arguments, the catalog is an object of the module. Next the connection, the storage writer and the restore.
+   arguments, the catalog is an object of the module. Done for the connection and the query histories (of a connection
+   and of the shell): their `json!` builders and JSON readers, the hand-written interfaces of `connection.ts` and
+   `query_history.ts` and the six enums of the runtime went, and the 13 query actions exist once (`query_actions!` in
+   the bindings, `DashQLQueryActions` in `dashql-core-js`). Next the storage writer and the restore.
 2. **Handles and the three effects.** `HandleTable`, Rust keeps handle ids, the effects become release, close and
    abort. The id maps and the effect switches of the three adapters go.
-3. **The cache and the hydrators.** `projection.ts` is built, the computations and the workbook use it, the
-   workbook lists its scripts with their revisions and its payloads cross by key. Then `views(kind, ids)` in the
-   bindings and the connection (its in-place maps go).
+3. **The cache and the hydrators.** `projection.ts` is built, the computations, the workbook and the connections use
+   it: the workbook lists its scripts with their revisions and its payloads cross by key; the in-place maps of the
+   queries and the restore of the catalog updates into a handed-out state went, a projected `ConnectionState` never
+   changes afterwards. Then `views(kind, ids)` in the bindings and the parents list their children.
 4. **The `Runtime` object.** The registries, the index, the promotion, the fan-out of connection actions and the
    effects to the storage writer in Rust; the store as a cache with subscriptions per slice.
 5. **Actions through one dispatch.** The generated action unions, string constants, one `dispatch`. The switches of
@@ -293,13 +300,32 @@ Without tests TypeScript lost 135 lines, Rust gained 345 (tests: TypeScript +46,
 keys are proved in `flatbuffer_view.test.ts`). The optimized module shrank from 12,947,623 to 12,909,966 bytes, gzip
 from 3,551,545 to 3,550,379: the `json!` builders cost more code than the views and their serializers.
 
+### The connection and its queries, step 1
+
+| | Deleted | Added |
+|---|---|---|
+| `dashql-core-wasm/src/connection.rs`, `query_history.rs` (the JSON readers and builders, the 13 query actions twice) | 750 | 330 |
+| `dashql-core-wasm/src/connection/view.rs`, `query_history/view.rs` (26 views and 7 enums with their conversions) | | 824 |
+| `dashql-core-wasm/src/views.rs` (`to_js`, `from_js`, `app_enum!`), `ConnectionParams::{from,to}_object` | 1 | 60 |
+| `dashql-core-js` (the interfaces of `connection.ts` and `query_history.ts`, the JSON of the calls, the wrappers twice) | 501 | 246 |
+| `dashql-runtime` (`Part`, the in-place maps, the six enums, the JSON keys of the parts) | 287 | 186 |
+| Tests (core-js: the views as plain objects, invalid views throw; runtime: projected states never change) | 16 | 80 |
+
+TypeScript lost 356 lines, Rust gained 463. The projection of a connection reads the view of the connection only when
+its revision moved and the view of the queries only when theirs moved; `share` keeps the parts that are the same, and
+the details and the catalog updates of the app are built again only when their parts changed (the JSON keys of
+`Part` went). A query keeps its state in a `RevisionCache` (`QueryProjection`, shared with the shell), and the maps and
+lists of the queries are new objects when a query changed, started or finished.
+
 ## Risks
 
 - **Wasm size.** The views of the computations, their `Deserialize` impls through serde-wasm-bindgen and the editor
   update view grow the optimized module from 12,275,611 to 12,457,717 bytes (+1.5%), gzip from 3,280,244 to
   3,355,769 bytes (+2.3%), 182 KB for 34 views and one FlatBuffer view. The 26 views of the workbook and its runs
-  shrink it (12,947,623 to 12,909,966 bytes), they replace more `json!` code than they add. The size is measured with
-  every step, and an input that only a test needs goes back to typed arguments.
+  shrink it (12,947,623 to 12,909,966 bytes), they replace more `json!` code than they add. The views of the connection
+  and its queries shrink the module from 12,947,623 to 12,936,168 bytes (-0.1%) and grow it gzipped (`gzip -9`) from
+  3,535,244 to 3,548,189 bytes (+0.4%), measured on its own base. The size is measured with every step, and an input
+  that only a test needs goes back to typed arguments.
 - **Two copies of `@ankoh/dashql-core`.** The generated types are erased; the generated enums are numbers in both
   copies, so comparisons hold. The cache and the handle table never use `instanceof` or the classes of the package.
 - **The declarations import the generated FlatBuffer code** by a relative path (`../gen/dashql/buffers/`). The path

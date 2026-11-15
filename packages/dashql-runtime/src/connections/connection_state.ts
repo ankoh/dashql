@@ -1,4 +1,5 @@
 import * as core from '@ankoh/dashql-core';
+import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-core';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -151,47 +152,8 @@ export interface ConnectionState {
     snapshotQueriesActiveFinished: number;
 }
 
-export enum ConnectionStatus {
-    NOT_STARTED,
-
-    // Generate setup status
-    HEALTH_CHECK_STARTED,
-    HEALTH_CHECK_FAILED,
-    HEALTH_CHECK_CANCELLED,
-    HEALTH_CHECK_SUCCEEDED,
-
-    // Channel setup
-    CHANNEL_SETUP_STARTED,
-    CHANNEL_SETUP_FAILED,
-    CHANNEL_SETUP_CANCELLED,
-    CHANNEL_READY,
-
-    // Generate OAuth
-    AUTH_STARTED,
-    AUTH_CANCELLED,
-    AUTH_FAILED,
-    PKCE_GENERATION_STARTED,
-    PKCE_GENERATED,
-    WAITING_FOR_OAUTH_CODE_VIA_WINDOW,
-    WAITING_FOR_OAUTH_CODE_VIA_LINK,
-    OAUTH_CODE_RECEIVED,
-    ACCESS_TOKEN_REQUESTED,
-    ACCESS_TOKEN_RECEIVED,
-
-    // Salesforce OAuth
-    DATA_CLOUD_TOKEN_REQUESTED,
-    DATA_CLOUD_TOKEN_RECEIVED,
-    CORE_ACCESS_TOKEN_REQUESTED,
-    CORE_ACCESS_TOKEN_RECEIVED,
-}
-
-export enum ConnectionHealth {
-    NOT_STARTED = 0,
-    CONNECTING = 1,
-    CANCELLED = 2,
-    ONLINE = 3,
-    FAILED = 4,
-}
+/// How far the setup of a connection got and its health, numeric enums of the module
+export { ConnectionHealth, ConnectionStatus };
 
 /// Is a connection connected or connecting? An open connection keeps its protocol and can't be merged.
 export function isConnectionOpen(health: ConnectionHealth | undefined): boolean {
@@ -287,7 +249,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     const connection = native.connection;
     const now = Date.now();
     let reason = 'changed';
-    let outcome: core.DashQLConnectionOutcome;
+    let outcome: core.ConnectionOutcome;
     switch (action.type) {
         case SET_CONNECTION_DRAFT:
             // Params of another connector are ignored
@@ -315,7 +277,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             outcome = connection.delete(now);
             break;
         case SWITCH_CONNECTOR_TYPE:
-            outcome = connection.switchConnectorType(action.value as number, now);
+            outcome = connection.switchConnectorType(action.value, now);
             break;
 
         case HEALTH_CHECK_STARTED:
@@ -393,9 +355,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 }
 
 /// Apply a step of the setup of a connector. A channel of an action that fails is forgotten.
-function reduceSetupStep(native: NativeConnection, action: ConnectionAction, now: number): core.DashQLConnectionOutcome {
+function reduceSetupStep(native: NativeConnection, action: ConnectionAction, now: number): core.ConnectionOutcome {
     const connection = native.connection;
-    const withChannel = (channel: ConnectionChannel, apply: (id: number) => core.DashQLConnectionOutcome) => {
+    const withChannel = (channel: ConnectionChannel, apply: (id: number) => core.ConnectionOutcome) => {
         const known = native.hasChannel(channel);
         const id = native.registerChannel(channel);
         try {
@@ -508,7 +470,7 @@ export interface ConnectionStateOptions {
 
 /// Create the state of a connection with an empty catalog. The details name the connector and its setup params.
 export function createConnectionState(dql: core.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant, options: ConnectionStateOptions = {}): ConnectionStateWithoutId {
-    const connection = dql.createConnection('', info.connectorType as number, {
+    const connection = dql.createConnection('', info.connectorType, {
         setupParams: (details.value.proto?.setupParams ?? null) as unknown as Record<string, unknown> | null,
         active: options.active ?? false,
         params: (options.params ?? null) as Record<string, unknown> | null,
@@ -524,10 +486,10 @@ export function createConnectionState(dql: core.DashQL, info: ConnectorInfo, det
     }
 }
 
-/// Restore the state of the catalog updates from the files of the catalog, null keeps a field. The state shows it
-/// right away.
-export function restoreCatalogUpdates(state: ConnectionState, described: boolean | null, touchedRelations: RelationName[] | null): void {
-    state.native.restoreCatalogUpdates(state, described, touchedRelations);
+/// Restore the state of the catalog updates from the files of the catalog, null keeps a field. Returns the next state
+/// of the connection, the state stays as it was.
+export function restoreCatalogUpdates(state: ConnectionState, described: boolean | null, touchedRelations: RelationName[] | null): ConnectionState {
+    return state.native.restoreCatalogUpdates(state, described, touchedRelations);
 }
 
 /// Destroy a connection that was never registered: the Rust connection and its catalog handle

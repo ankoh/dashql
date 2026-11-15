@@ -1,19 +1,9 @@
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from '@ankoh/dashql-core';
 import type { ConnectionState } from '../connection_state.js';
 import type { RelationName } from './catalog_sql_generator.js';
 
-export enum CatalogUpdateVariant {
-    FULL_CATALOG_REFRESH,
-    /// Ask the connection about the relations that executed statements touched
-    RELATION_REFRESH,
-}
-
-export enum CatalogUpdateTaskStatus {
-    STARTED = 0,
-    SUCCEEDED = 1,
-    FAILED = 2,
-    CANCELLED = 3,
-    PARTIALLY_SUCCEEDED = 4,
-}
+/// What a catalog update does and how far it got, numeric enums of the module
+export { CatalogUpdateTaskStatus, CatalogUpdateVariant };
 
 export interface CatalogUpdateTaskState {
     /// The task key

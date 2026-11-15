@@ -1,12 +1,13 @@
 import { DashQL, Ptr } from './api.js';
-import type {
-    DashQLConnectionQueries,
-    DashQLQueryMetadata,
-    DashQLQueryProgress,
-    DashQLQuerySnapshot,
-    DashQLStreamMetrics,
-} from './connection.js';
 import type * as glue from './wasm/dashql_core.js';
+import type {
+    ConnectionOutcome,
+    QueriesView,
+    QueryMetadataView,
+    QueryProgressView,
+    QueryStreamMetrics,
+    QueryView,
+} from './wasm/dashql_core.js';
 
 /// A history of queries of its own in the Rust runtime (`packages/dashql-core-runtime`, see docs/wip/core_runtime.md),
 /// e.g. the one of the shell. It takes the query actions of a connection and is read like the queries of a connection.
@@ -14,54 +15,87 @@ import type * as glue from './wasm/dashql_core.js';
 
 const QUERY_HISTORY_TYPE = Symbol('QUERY_HISTORY_TYPE');
 
-/// What the host does after an action on a history
-export type DashQLQueryHistoryEffect =
-    /// Nothing shows the result table of a query anymore
-    { type: 'releaseResultTable'; queryId: number; tableId: number };
+/// The views of the queries, declared by the module (`packages/dashql-core-wasm/src/query_history/view.rs`)
+export type {
+    QueriesView,
+    QueryErrorView,
+    QueryHistoryMetrics,
+    QueryMetadataView,
+    QueryMetricsView,
+    QueryOutcomeMetrics,
+    QueryProgressView,
+    QueryResultTableView,
+    QueryStreamMetrics,
+    QueryView,
+} from './wasm/dashql_core.js';
+/// The status and the kind of a query, numeric enums of the module
+export { QueryExecutionStatus, QueryType } from './wasm/dashql_core.js';
 
-/// What an action on a history did
-export interface DashQLQueryHistoryOutcome {
-    /// Did the action change the history?
-    changed: boolean;
-    /// The effects for the host, in order
-    effects: DashQLQueryHistoryEffect[];
+/// A history of the module: the history of a connection or a history of its own, they take the same query actions
+type NativeQueries = glue.Connection | glue.QueryHistory;
+
+/// The query actions and the views of a history of the module, shared by `DashQLConnection` and `DashQLQueryHistory`.
+/// An action returns the outcome with the effects for the host, the history knows the result tables by their ids.
+export abstract class DashQLQueryActions {
+    protected abstract queriesNative(): NativeQueries;
+
+    /// Start tracking a requested query, only the plain fields of the metadata cross
+    public executeQuery(queryId: number, traceId: number, text: string, metadata: QueryMetadataView, requestedAt = Date.now()): ConnectionOutcome {
+        return this.queriesNative().executeQuery(queryId, traceId, text, metadata, requestedAt);
+    }
+    public querySending(queryId: number, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().querySending(queryId, now);
+    }
+    public queryRunning(queryId: number, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryRunning(queryId, now);
+    }
+    /// The backend reported progress, only the plain fields cross
+    public queryProgressUpdated(queryId: number, progress: QueryProgressView, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryProgressUpdated(queryId, progress, now);
+    }
+    public queryReceivedBatch(queryId: number, metrics: QueryStreamMetrics, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryReceivedBatch(queryId, metrics, now);
+    }
+    /// All batches arrived, the host keeps the table under its id
+    public queryReceivedAllBatches(queryId: number, tableId: number, rows: number, metrics: QueryStreamMetrics, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryReceivedAllBatches(queryId, tableId, rows, metrics, now);
+    }
+    public queryProcessingResults(queryId: number, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryProcessingResults(queryId, now);
+    }
+    public queryProcessedResults(queryId: number, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryProcessedResults(queryId, now);
+    }
+    public querySucceeded(queryId: number, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().querySucceeded(queryId, now);
+    }
+    public queryFailed(queryId: number, message: string, details: string | null, metrics: QueryStreamMetrics | null, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryFailed(queryId, message, details, metrics, now);
+    }
+    public queryCancelled(queryId: number, message: string, details: string | null, metrics: QueryStreamMetrics | null, now = Date.now()): ConnectionOutcome {
+        return this.queriesNative().queryCancelled(queryId, message, details, metrics, now);
+    }
+    public queryCacheRecorded(queryId: number, cacheKey: string, servedFromCache: boolean, cachedAt: number | null): ConnectionOutcome {
+        return this.queriesNative().queryCacheRecorded(queryId, cacheKey, servedFromCache, cachedAt);
+    }
+    public queryCacheDeleted(queryId: number): ConnectionOutcome {
+        return this.queriesNative().queryCacheDeleted(queryId);
+    }
+
+    /// The active and the finished queries with their revisions and the metrics of the finished ones
+    public queries(): QueriesView {
+        return this.queriesNative().queries();
+    }
+    public query(queryId: number): QueryView | null {
+        return this.queriesNative().query(queryId) ?? null;
+    }
 }
 
-/// The fields of the metadata of a query that cross into Rust
-export function plainQueryMetadata(metadata: DashQLQueryMetadata): DashQLQueryMetadata {
-    return {
-        queryType: metadata.queryType,
-        title: metadata.title,
-        description: metadata.description,
-        issuer: metadata.issuer,
-        userProvided: metadata.userProvided,
-        workbookId: metadata.workbookId,
-        resultOwner: metadata.resultOwner,
-    };
-}
+export class DashQLQueryHistory extends DashQLQueryActions {
+    public readonly ptr: Ptr<typeof QUERY_HISTORY_TYPE, glue.QueryHistory>;
 
-/// The fields of a progress update that cross into Rust
-export function plainQueryProgress(progress: DashQLQueryProgress): DashQLQueryProgress {
-    return {
-        isQueued: progress.isQueued,
-        progressPercent: progress.progressPercent,
-        resultRows: progress.resultRows,
-        rowsProcessed: progress.rowsProcessed,
-        executionTimeMs: progress.executionTimeMs,
-        metrics: progress.metrics,
-        phase: progress.phase ?? null,
-    };
-}
-
-type NativeQueryHistory = glue.QueryHistory;
-
-const json = (value: unknown): string => JSON.stringify(value);
-const optionalJson = (value: unknown): string | undefined => value == null ? undefined : JSON.stringify(value);
-
-export class DashQLQueryHistory {
-    public readonly ptr: Ptr<typeof QUERY_HISTORY_TYPE, NativeQueryHistory>;
-
-    public constructor(ptr: Ptr<typeof QUERY_HISTORY_TYPE, NativeQueryHistory>) {
+    public constructor(ptr: Ptr<typeof QUERY_HISTORY_TYPE, glue.QueryHistory>) {
+        super();
         this.ptr = ptr;
     }
 
@@ -75,74 +109,12 @@ export class DashQLQueryHistory {
         this.ptr.destroy();
     }
 
-    private native(): NativeQueryHistory {
+    protected queriesNative(): glue.QueryHistory {
         return this.ptr.assertNotNull();
     }
 
-    private outcome(outcome: glue.ConnectionOutcome): DashQLQueryHistoryOutcome {
-        try {
-            return { changed: outcome.changed, effects: JSON.parse(outcome.effects) as DashQLQueryHistoryEffect[] };
-        } finally {
-            outcome.free();
-        }
-    }
-
-    // The actions, the ones of the queries of a connection
-
-    public executeQuery(queryId: number, traceId: number, text: string, metadata: DashQLQueryMetadata, requestedAt = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().executeQuery(queryId, traceId, text, json(plainQueryMetadata(metadata)), requestedAt));
-    }
-    public querySending(queryId: number, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().querySending(queryId, now));
-    }
-    public queryRunning(queryId: number, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryRunning(queryId, now));
-    }
-    /// The backend reported progress, only the plain fields cross
-    public queryProgressUpdated(queryId: number, progress: DashQLQueryProgress, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryProgressUpdated(queryId, json(plainQueryProgress(progress)), now));
-    }
-    public queryReceivedBatch(queryId: number, metrics: DashQLStreamMetrics, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryReceivedBatch(queryId, json(metrics), now));
-    }
-    /// All batches arrived, the host keeps the table under its id
-    public queryReceivedAllBatches(queryId: number, tableId: number, rows: number, metrics: DashQLStreamMetrics, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryReceivedAllBatches(queryId, tableId, rows, json(metrics), now));
-    }
-    public queryProcessingResults(queryId: number, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryProcessingResults(queryId, now));
-    }
-    public queryProcessedResults(queryId: number, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryProcessedResults(queryId, now));
-    }
-    public querySucceeded(queryId: number, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().querySucceeded(queryId, now));
-    }
-    public queryFailed(queryId: number, message: string, details: string | null, metrics: DashQLStreamMetrics | null, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryFailed(queryId, message, details ?? undefined, optionalJson(metrics), now));
-    }
-    public queryCancelled(queryId: number, message: string, details: string | null, metrics: DashQLStreamMetrics | null, now = Date.now()): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryCancelled(queryId, message, details ?? undefined, optionalJson(metrics), now));
-    }
-    public queryCacheRecorded(queryId: number, cacheKey: string, servedFromCache: boolean, cachedAt: number | null): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryCacheRecorded(queryId, cacheKey, servedFromCache, cachedAt ?? undefined));
-    }
-    public queryCacheDeleted(queryId: number): DashQLQueryHistoryOutcome {
-        return this.outcome(this.native().queryCacheDeleted(queryId));
-    }
-
-    // Reading the state
-
     /// The revision of the history, it changes with every change of a query
     public revision(): number {
-        return this.native().revision();
-    }
-    /// The queries in the shape of the queries of a connection
-    public queries(): DashQLConnectionQueries {
-        return JSON.parse(this.native().queries()) as DashQLConnectionQueries;
-    }
-    public query(queryId: number): DashQLQuerySnapshot | null {
-        const text = this.native().query(queryId);
-        return text == null ? null : JSON.parse(text) as DashQLQuerySnapshot;
+        return this.queriesNative().revision();
     }
 }

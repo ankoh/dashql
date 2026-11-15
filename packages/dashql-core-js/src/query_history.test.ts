@@ -10,7 +10,7 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
-const METRICS: dashql.DashQLStreamMetrics = {
+const METRICS: dashql.QueryStreamMetrics = {
     totalDataBytesReceived: 0,
     totalBatchesReceived: 1,
     totalRowsReceived: 3,
@@ -21,8 +21,8 @@ const METRICS: dashql.DashQLStreamMetrics = {
     durationUntilFirstBatchMs: 2,
 };
 
-const SHELL_QUERY: dashql.DashQLQueryMetadata = {
-    queryType: 0,
+const SHELL_QUERY: dashql.QueryMetadataView = {
+    queryType: dashql.QueryType.USER_PROVIDED,
     title: 'Shell Query',
     description: null,
     issuer: 'DashQL Shell',

@@ -83,7 +83,7 @@ describe('CatalogLoaderService', () => {
         act({ type: HEALTH_CHECK_SUCCEEDED, value: null });
     }
     function restore(described: boolean, touched: RelationName[] | null = null) {
-        restoreCatalogUpdates(registry.connections.get('database')!, described, touched);
+        registry.connections.set('database', restoreCatalogUpdates(registry.connections.get('database')!, described, touched));
     }
     const updates = () => registry.connections.get('database')!.catalogUpdates;
     const dispatched = (type: symbol) => dispatch.mock.calls.filter(([, action]) => action.type === type);

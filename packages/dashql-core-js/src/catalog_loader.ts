@@ -1,5 +1,5 @@
 import { DashQL, Ptr } from './api.js';
-import type { DashQLConnection, DashQLRelationName } from './connection.js';
+import type { ConnectionRelationName, DashQLConnection } from './connection.js';
 import type * as glue from './wasm/dashql_core.js';
 
 /// The catalog loader of the Rust runtime (`packages/dashql-core-runtime/src/catalog_loader/service.rs`, see
@@ -49,7 +49,7 @@ export class DashQLCatalogLoader {
 
     /// Start an update outside of the schedule, of the relations or of the whole catalog. The promise settles once it
     /// ended and rejects only if it couldn't start.
-    public update(connectionId: string, relations: DashQLRelationName[] | null): [number, Promise<void>] {
+    public update(connectionId: string, relations: ConnectionRelationName[] | null): [number, Promise<void>] {
         const started = this.ptr.assertNotNull().update(connectionId, relations == null ? undefined : JSON.stringify(relations)) as {
             taskId: number;
             done: Promise<void>;

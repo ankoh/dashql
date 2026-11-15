@@ -61,7 +61,7 @@ function catalogConnection(connectionId: string, params: ConnectionParams, catal
     if (catalog.gone != null) {
         state.catalog.replaceTables(state.catalogRelationEntryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, { relations: catalog.gone.map(packRelationName), tables: [] });
     }
-    if (catalog.described != null) restoreCatalogUpdates(state, catalog.described, null);
+    if (catalog.described != null) state = restoreCatalogUpdates(state, catalog.described, null);
     for (const task of catalog.running ?? []) {
         state = reduceConnectionState(state, { type: UPDATE_CATALOG, value: [task.taskId, task] }, new TestLogger());
     }

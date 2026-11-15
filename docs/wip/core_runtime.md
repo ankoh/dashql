@@ -24,8 +24,9 @@ The runtime is linked into the core module, but it isn't part of the contract of
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
 schemas of `proto/fb`. The classes of the runtime (`Workbook`, `Connection`, `QueryHistory`, `Computations`,
 `StorageWriter`, `AppRestore`, `ConnectionPersistence`, `QueryExecutor`, `CatalogLoader`, `WorkbookRun`,
-`ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON, the ones of the computations
-as JS objects of views with generated types (see [runtime_projection.md](runtime_projection.md)).
+`ConnectionSetupRun`) belong to DashQL and change with it, their snapshots cross as JSON, the ones of the
+computations, the connections and the query histories as JS objects of views with generated types (see
+[runtime_projection.md](runtime_projection.md)).
 
 The crates follow the same line. `packages/dashql-core-script` (crate `dashql_core_script`) holds the script sessions,
 the compiler, batch processing, the relations that statements touch and the visualizations. It depends on the core,
@@ -67,7 +68,9 @@ buffers in between. The boundary moves to what the UI reads.
 - **Actions are method calls.** The class `Workbook` of the module (`packages/dashql-core-wasm/src/workbook.rs`) takes
   typed arguments, `DashQLWorkbook` of `@ankoh/dashql-core` wraps it. The class `Connection`
   (`packages/dashql-core-wasm/src/connection.rs`) holds the state of a connection and the history of its queries,
-  `DashQLConnection` wraps it. Params, errors and metrics cross as JSON.
+  `DashQLConnection` wraps it. Params, errors, relation names, metadata, progress and metrics cross as JS objects of
+  the views of `connection/view.rs` and `query_history/view.rs`, the status, the health, the connector, the catalog
+  updates and the queries have numeric enums of the module.
 - **A connection owns its catalog.** The connection holds its catalog with the entry ids of all catalogs of the module.
   `DashQLConnection.catalog` is one `Catalog` handle per connection that shares it, the app hands it to the scripts of
   workbooks, so the scripts publish into the catalog of the connection. The script with the functions of the
@@ -78,6 +81,12 @@ buffers in between. The boundary moves to what the UI reads.
   abort catalog updates and the queries of a stopped connection, close or release a channel, release a result table.
   A reset or a delete stops the queries: the binding drops the history (`QueryExecutionHistory::clear`) and names the
   active queries in the effect.
+- **A projected connection never changes.** `NativeConnection.project` reads the view of the connection when its
+  revision moved and the view of the queries when theirs moved, and shares their unchanged parts with the previous
+  views (`share`). The details and the catalog updates of the app are built again only when their parts changed, a
+  query keeps its state while its revision doesn't move (`RevisionCache`), and the maps and lists of the queries are
+  new objects when a query changed, started or finished. `restoreCatalogUpdates` changes the revision of the
+  connection and returns the next state, the state of the caller stays as it was.
 - **No panics.** A panic traps the whole module, a thrown error of a reducer in TypeScript only drops the action.
   Actions return `Result`, a failed action leaves the workbook unchanged, and the crate avoids indexing and unwraps
   on input.
@@ -581,9 +590,10 @@ the app didn't change. `reduceQueryAction` of TypeScript is gone, `query/query_e
 query execution and its actions.
 
 - **A history without a connection.** `QueryHistory` holds a `QueryExecutionHistory` of the crate and takes the query
-  actions of a connection, its queries read like the ones of a connection. `Connection` shares the actions and the JSON
-  of its queries with it, and the adapters share the mapping of the actions and the projection of a query
-  (`query/query_history_native.ts`).
+  actions of a connection, its queries read like the ones of a connection. `Connection` shares the actions and the
+  views of its queries with it (one macro of the bindings, `DashQLQueryActions` of `@ankoh/dashql-core`), and the
+  adapters share the mapping of the actions and the projection of the queries (`QueryProjection` in
+  `query/query_history_native.ts`): a query keeps its state while its revision doesn't move.
 - **The last 100 queries.** `QueryExecutionHistory::with_limit` keeps at most a number of queries: a query that starts
   beyond the limit drops the oldest finished queries, then the oldest active ones, and releases their result tables.
   A later action on a dropped query changes nothing. The history of a connection has no limit.

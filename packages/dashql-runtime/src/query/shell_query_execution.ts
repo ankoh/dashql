@@ -5,7 +5,7 @@ import type { LoggableException } from '../platform/logger/logger.js';
 import type { QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryExecutionTracker } from './query_execution_state.js';
 import {
     applyQueryAction,
-    projectQuery,
+    QueryProjection,
     queryRecord,
     updateQueryRecordProgress,
     type NativeQueryObjects,
@@ -26,7 +26,7 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
     private readonly records = new Map<number, QueryRecord>();
     private readonly tables = new Map<number, arrow.Table>();
     private nextTableId = 1;
-    private projected = new Map<number, { revision: number; state: QueryExecutionState }>();
+    private readonly projection = new QueryProjection('shell');
     private revision: number | null = null;
     private snapshot: readonly QueryExecutionState[] = [];
     private readonly listeners = new Set<() => void>();
@@ -57,7 +57,7 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
         this.pending = null;
         this.records.clear();
         this.tables.clear();
-        this.projected = new Map();
+        this.projection.clear();
         this.revision = null;
         if (this.snapshot.length > 0) {
             this.snapshot = [];
@@ -141,29 +141,20 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker, Native
         this.revision = revision;
         const queries = history.queries();
         const snapshot: QueryExecutionState[] = [];
-        const projected = new Map<number, { revision: number; state: QueryExecutionState }>();
+        const ids: number[] = [];
         for (const [queryId, queryRevision] of [...queries.finished, ...queries.active]) {
-            const previous = this.projected.get(queryId);
-            const state = previous != null && previous.revision === queryRevision ? previous.state : this.project(history, queryId);
+            const state = this.projection.state(history, queryId, queryRevision, this.records.get(queryId), this.tables);
             if (state == null) continue;
             snapshot.push(state);
-            projected.set(queryId, { revision: queryRevision, state });
+            ids.push(queryId);
         }
         // Forget the queries that left the history
-        for (const queryId of this.records.keys()) {
-            if (!projected.has(queryId)) this.records.delete(queryId);
+        this.projection.retain(ids);
+        const known = new Set(ids);
+        for (const queryId of [...this.records.keys()]) {
+            if (!known.has(queryId)) this.records.delete(queryId);
         }
-        this.projected = projected;
         this.snapshot = snapshot;
         for (const listener of this.listeners) listener();
-    }
-
-    /// The state of a query of the app
-    private project(history: core.DashQLQueryHistory, queryId: number): QueryExecutionState | null {
-        const record = this.records.get(queryId);
-        const snapshot = history.query(queryId);
-        if (record == null || snapshot == null) return null;
-        const resultTable = snapshot.resultTable == null ? null : (this.tables.get(snapshot.resultTable.id) ?? null);
-        return projectQuery(snapshot, record, resultTable, 'shell');
     }
 }

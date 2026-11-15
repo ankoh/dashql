@@ -2,6 +2,7 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import { LoggableException } from '../platform/logger/logger.js';
+import { RevisionCache, share } from '../store/projection.js';
 import {
     EXECUTE_QUERY,
     QUERY_CACHE_DELETED,
@@ -22,12 +23,9 @@ import {
     type QueryMetadata,
 } from './query_execution_state.js';
 
-/// The query actions of a Rust history: the queries of a connection (`DashQLConnection`) or a history of its own
-/// (`DashQLQueryHistory`, its effects are the ones of the queries of a connection)
-export type NativeQueryActions = Pick<core.DashQLConnection,
-    | 'executeQuery' | 'querySending' | 'queryRunning' | 'queryProgressUpdated' | 'queryReceivedBatch'
-    | 'queryReceivedAllBatches' | 'queryProcessingResults' | 'queryProcessedResults' | 'querySucceeded' | 'queryFailed'
-    | 'queryCancelled' | 'queryCacheRecorded' | 'queryCacheDeleted'>;
+/// The query actions and views of a Rust history: the queries of a connection (`DashQLConnection`) or a history of its
+/// own (`DashQLQueryHistory`, its effects are the ones of the queries of a connection)
+export type NativeQueryActions = core.DashQLQueryActions;
 
 /// The JavaScript objects of the queries of a Rust history, the history knows them by the ids of the queries and tables
 export interface NativeQueryObjects {
@@ -72,7 +70,7 @@ export function updateQueryRecordProgress(record: QueryRecord, progress: QueryEx
 
 /// Apply a query action to a Rust history, the objects of the query stay with the host. Returns the outcome, the host
 /// applies its effects.
-export function applyQueryAction(history: NativeQueryActions, objects: NativeQueryObjects, action: QueryExecutionAction, now: number): core.DashQLConnectionOutcome {
+export function applyQueryAction(history: NativeQueryActions, objects: NativeQueryObjects, action: QueryExecutionAction, now: number): core.ConnectionOutcome {
     switch (action.type) {
         case EXECUTE_QUERY: {
             const [queryId, query] = action.value;
@@ -126,8 +124,8 @@ export function applyQueryAction(history: NativeQueryActions, objects: NativeQue
 
 const toDate = (ms: number | null): Date | null => ms == null ? null : new Date(ms);
 
-/// The state of a query of the app from the snapshot of a Rust history and the record of the host
-export function projectQuery(snapshot: core.DashQLQuerySnapshot, record: QueryRecord, resultTable: arrow.Table | null, errorTarget: string): QueryExecutionState {
+/// The state of a query of the app from the view of a Rust history and the record of the host
+function projectQuery(snapshot: core.QueryView, record: QueryRecord, resultTable: arrow.Table | null, errorTarget: string): QueryExecutionState {
     const m = snapshot.metrics;
     return {
         queryId: snapshot.queryId,
@@ -163,4 +161,34 @@ export function projectQuery(snapshot: core.DashQLQuerySnapshot, record: QueryRe
         cacheDeleted: snapshot.cacheDeleted,
         cachedAt: toDate(snapshot.cachedAt),
     };
+}
+
+/// The projections of the queries of a Rust history (store/projection.ts): a query keeps its state while its revision
+/// doesn't move, the view of a changed query shares the parts of its previous view that are the same
+export class QueryProjection {
+    private readonly cache = new RevisionCache<number, { view: core.QueryView; state: QueryExecutionState } | null>();
+
+    constructor(private readonly errorTarget: string) { }
+
+    /// The state of a query of the app, null for a query without the record of the host
+    state(history: NativeQueryActions, queryId: number, revision: number, record: QueryRecord | undefined, tables: ReadonlyMap<number, arrow.Table>): QueryExecutionState | null {
+        if (record == null) return null;
+        const projected = this.cache.get(queryId, revision, prev => {
+            const next = history.query(queryId);
+            if (next == null) return null;
+            const view = share(prev?.view, next);
+            const resultTable = view.resultTable == null ? null : (tables.get(view.resultTable.id) ?? null);
+            return { view, state: projectQuery(view, record, resultTable, this.errorTarget) };
+        });
+        return projected?.state ?? null;
+    }
+
+    /// Forget the queries that left the history
+    retain(queryIds: Iterable<number>): void {
+        this.cache.retain(queryIds);
+    }
+
+    clear(): void {
+        this.cache.clear();
+    }
 }

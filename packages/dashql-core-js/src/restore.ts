@@ -27,7 +27,7 @@ export interface RestoreProgress {
 /// A restored connection
 export interface RestoredConnection {
     connectionId: string;
-    /// The connector, the index of `DashQLConnectorType`
+    /// The connector, the number of `ConnectorType`
     connectorType: number;
     /// The Rust connection
     connection: DashQLConnection;

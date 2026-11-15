@@ -1,24 +1,14 @@
 import * as arrow from 'apache-arrow';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-core';
 
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/variant.js';
 import type { EngineProgressPayload, QueryProfileProgress } from './query_progress_model.js';
 
-export enum QueryExecutionStatus {
-    REQUESTED = 0,
-    SENDING = 2,
-    QUEUED = 3,
-    RUNNING = 4,
-    RECEIVED_FIRST_BATCH = 5,
-    RECEIVED_ALL_BATCHES = 6,
-    PROCESSING_RESULTS = 7,
-    PROCESSED_RESULTS = 8,
-    SUCCEEDED = 9,
-    FAILED = 10,
-    CANCELLED = 11,
-}
+/// The status of the execution of a query, a numeric enum of the module
+export { QueryExecutionStatus };
 
 export function queryIsDone(status: QueryExecutionStatus) {
     switch (status) {
@@ -123,17 +113,8 @@ export interface QueryMetrics {
     streamMetrics: QueryExecutionMetrics;
 }
 
-/// A query hint
-export enum QueryType {
-    USER_PROVIDED,
-    CATALOG_QUERY_INFORMATION_SCHEMA,
-    CATALOG_QUERY_PG_ATTRIBUTE,
-    CATALOG_QUERY_PG_PROC,
-    CATALOG_QUERY_HYPER_CLOUD,
-    HEALTH_CHECK,
-    INTERNAL_SQLFRAME,
-    CLOUD_STORE,
-}
+/// The kind of a query, a numeric enum of the module
+export { QueryType };
 
 export interface QueryMetadata {
     /// The query type

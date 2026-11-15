@@ -1,15 +1,12 @@
+import { ConnectorType } from '@ankoh/dashql-core';
 
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
 export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
 export const DBCOM_CONNECTOR = Symbol('DBCOM_CONNECTOR');
 
-export enum ConnectorType {
-    HYPER = 0,
-    SALESFORCE_DATA_CLOUD = 1,
-    TRINO = 2,
-    DBCOM = 3,
-}
+/// The connectors, a numeric enum of the module
+export { ConnectorType };
 export const CONNECTOR_TYPES: ConnectorType[] = [
     ConnectorType.HYPER,
     ConnectorType.SALESFORCE_DATA_CLOUD,

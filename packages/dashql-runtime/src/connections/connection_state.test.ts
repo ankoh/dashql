@@ -11,6 +11,7 @@ import {
     RESET_CONNECTION,
     reduceConnectionState,
     RENAME_CONNECTION,
+    restoreCatalogUpdates,
     SET_CONNECTION_QUERY_RESULT_CACHING,
     SWITCH_CONNECTOR_TYPE,
     UPDATE_CATALOG,
@@ -24,7 +25,7 @@ import { HYPER_CHANNEL_SETUP_STARTED } from './hyper/hyper_connection_state.js';
 import type { HyperConnectionParams } from '@ankoh/dashql-jsonschema/connection.js';
 import { publishCatalogBatchSync } from './catalog/catalog_batch.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogOutOfDate, MAX_TOUCHED_ATTEMPTS } from './catalog/catalog_update_state.js';
-import { createQueryExecutionState, EXECUTE_QUERY, QueryType } from '../query/query_execution_state.js';
+import { createQueryExecutionState, EXECUTE_QUERY, QUERY_SENDING, QUERY_SUCCEEDED, QueryExecutionStatus, QueryType } from '../query/query_execution_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -233,6 +234,53 @@ describe('connector type switches', () => {
         const started = reduceConnectionState(state(), { type: HYPER_CHANNEL_SETUP_STARTED, value: params }, new TestLogger());
         expect(started.connectionStatus).toBe(ConnectionStatus.CHANNEL_SETUP_STARTED);
         expect(reduceConnectionState(started, { type: SWITCH_CONNECTOR_TYPE, value: ConnectorType.TRINO }, new TestLogger())).toBe(started);
+    });
+});
+
+describe('projected connection states', () => {
+    const logger = new TestLogger();
+    const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
+    const execute = (database: ConnectionState, queryId: number) =>
+        reduceConnectionState(database, { type: EXECUTE_QUERY, value: [queryId, createQueryExecutionState(queryId, queryId, 'SELECT 1', metadata, new AbortController())] }, logger);
+
+    it('never change once they are handed out', () => {
+        const empty = state();
+        const one = execute(empty, 1);
+        const oneActive = [...one.queriesActive.entries()];
+        // A query that starts or finishes gives the next state new maps, the previous states keep theirs
+        const two = execute(one, 2);
+        expect(empty.queriesActive.size).toBe(0);
+        expect([...one.queriesActive.entries()]).toEqual(oneActive);
+        expect(one.queriesActiveOrdered).toEqual([1]);
+        expect(two.queriesActiveOrdered).toEqual([1, 2]);
+        const sent = reduceConnectionState(two, { type: QUERY_SENDING, value: [2] }, logger);
+        expect(two.queriesActive.get(2)!.status).toBe(QueryExecutionStatus.REQUESTED);
+        expect(sent.queriesActive.get(2)!.status).toBe(QueryExecutionStatus.SENDING);
+        // A query that didn't change keeps its state
+        expect(sent.queriesActive.get(1)).toBe(two.queriesActive.get(1));
+        const done = reduceConnectionState(sent, { type: QUERY_SUCCEEDED, value: [1] }, logger);
+        expect(sent.queriesFinished.size).toBe(0);
+        expect(done.queriesFinishedOrdered).toEqual([1]);
+        expect(done.queriesActiveOrdered).toEqual([2]);
+        expect(sent.queriesActiveOrdered).toEqual([1, 2]);
+        // The connection kept its parts while only the queries changed
+        expect(done.details).toBe(empty.details);
+        expect(done.params).toBe(empty.params);
+        expect(done.catalogUpdates).toBe(empty.catalogUpdates);
+    });
+
+    it('restore the catalog updates into the next state', () => {
+        const database = state();
+        const relation = { databaseName: 'hyper', schemaName: '', tableName: 'a' };
+        const restored = restoreCatalogUpdates(database, true, [relation]);
+        expect(restored).not.toBe(database);
+        expect(database.catalogUpdates.described).toBe(false);
+        expect(database.catalogUpdates.touchedRelations).toEqual([]);
+        expect(restored.catalogUpdates.described).toBe(true);
+        expect(restored.catalogUpdates.touchedRelations).toEqual([relation]);
+        // The parts that the restore didn't touch stay
+        expect(restored.details).toBe(database.details);
+        expect(restored.queriesActive).toBe(database.queriesActive);
     });
 });
 

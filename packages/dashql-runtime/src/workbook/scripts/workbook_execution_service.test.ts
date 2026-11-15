@@ -67,13 +67,13 @@ function fixture(workbookId: string, deferStream = false) {
     const latestQueryId = () => workbook.native!.workbook.scriptView(scriptKey, { editorUpdate: null, pendingDiff: null, visualization: null, statistics: null }).latestQueryId;
     // A connection on the Rust connection of the core, online with a channel. The catalog loader of the runtime follows
     // the connections that come online: their params and catalog updates.
-    const database: ConnectionState = createTestConnection(dql, {
+    let database: ConnectionState = createTestConnection(dql, {
         connectionId: `${workbookId}-database`,
         // Without a protocol the connection runs one statement at a time
         params: { hyper: { endpoint: 'http://hyper' } } as ConnectionParams,
         channel: { executeQuery },
     });
-    restoreCatalogUpdates(database, true, null);
+    database = restoreCatalogUpdates(database, true, null);
     expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
     const modify = vi.fn<ModifyWorkbookScripts>(() => {});
     return { workbook, database, plan, latestQueryId, stream, executeQuery, modify, acquisition, execution, cancellation, aborted,

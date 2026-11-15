@@ -1,278 +1,59 @@
 //! The wasm-bindgen API of a connection (`dashql_core_runtime::connections`) and its query history (`dashql_core_runtime::query`).
 //!
 //! A `Connection` holds the state of a connection and the history of its queries. An action is a method call with
-//! typed arguments, params, errors and metrics cross as JSON. It returns a `ConnectionOutcome` with the effects for the
-//! host as JSON. A connection that is reset or deleted stops its queries: the binding drops the history and names the
-//! active queries in the effect. The state is read as JSON snapshots: the connection, the list of the queries with
-//! their revisions and each query. The catalog is shared with a `Catalog` handle, the scripts of workbooks analyze
-//! with the same catalog. The query actions and the JSON of the queries are the ones of a `QueryHistory` of its own
-//! (`query_history.rs`).
+//! typed arguments, the params, errors and relation names are views (`connection/view.rs`). It returns a
+//! `ConnectionOutcome` with the effects for the host. A connection that is reset or deleted stops its queries: the
+//! binding drops the history and names the active queries in the effect. The state is read as views: the connection,
+//! the list of the queries with their revisions and each query. The catalog is shared with a `Catalog` handle, the
+//! scripts of workbooks analyze with the same catalog. The query actions and the views of the queries are the ones of
+//! a `QueryHistory` of its own (`query_history.rs`).
 
 use std::cell::{Ref, RefCell};
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use dashql_core_runtime::catalog_loader::FollowedConnection;
 
-use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core::error::Error;
 use dashql_core_runtime::connections::{
-    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionDetails,
-    ConnectionEffect, ConnectionOutcome as RuntimeOutcome, ConnectionParams, ConnectionState, ConnectionStateOptions,
-    ConnectorDetails, ConnectorType, DetailedError, HyperAction, OAuthPkceChallenge, RelationName, SalesforceAction,
-    SetupTimings, TemporaryToken, TrinoAction,
+    CatalogUpdateTask, ConnectionAction, ConnectionDetails,
+    ConnectionEffect as RuntimeEffect, ConnectionOutcome as RuntimeOutcome, ConnectionState, ConnectionStateOptions, DetailedError,
+    HyperAction, OAuthPkceChallenge, SalesforceAction, TemporaryToken, TrinoAction,
 };
 use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionHistory};
-use serde_json::{json, Map, Value};
+use tsify::Ts;
 use wasm_bindgen::prelude::*;
 
-use super::query_history;
+use super::query_history::{query_actions, query_outcome};
+use super::views::{from_js, to_js};
 use super::{js_error, Catalog, SharedCatalog, ENTRY_IDS};
 
-fn invalid(message: impl Into<String>) -> JsError {
-    js_error(Error::invalid_argument(message))
-}
+pub(crate) mod view;
 
-fn parse(text: &str) -> Result<Value, JsError> {
-    serde_json::from_str(text).map_err(|e| invalid(format!("invalid JSON: {e}")))
-}
+use view::{
+    CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionEffect, ConnectionError, ConnectionOutcome, ConnectionRelationName,
+    ConnectionTableName, ConnectionView, ConnectorType, JsonParams,
+};
 
-fn params(text: &str) -> Result<ConnectionParams, JsError> {
-    ConnectionParams::from_json(text).map_err(js_error)
+fn params(params: Ts<JsonParams>) -> Result<dashql_core_runtime::connections::ConnectionParams, JsError> {
+    from_js(&params)?.connection_params().map_err(js_error)
 }
 
 /// The params of a connector, a JSON object without the field of the connector
-fn connector_params(text: &str) -> Result<Map<String, Value>, JsError> {
-    match parse(text)? {
-        Value::Object(params) => Ok(params),
-        _ => Err(invalid("the params of a connector must be an object")),
-    }
+fn connector_params(params: Ts<JsonParams>) -> Result<dashql_core_runtime::connections::JsonObject, JsError> {
+    Ok(from_js(&params)?.0)
 }
 
-fn connector(connector: u8) -> Result<ConnectorType, JsError> {
-    Ok(match connector {
-        0 => ConnectorType::Hyper,
-        1 => ConnectorType::SalesforceDataCloud,
-        2 => ConnectorType::Trino,
-        3 => ConnectorType::Dbcom,
-        _ => return Err(invalid(format!("unknown connector {connector}"))),
-    })
+fn error(error: Ts<ConnectionError>) -> Result<DetailedError, JsError> {
+    Ok(from_js(&error)?.into())
 }
 
-fn connector_index(connector: ConnectorType) -> u8 {
-    match connector {
-        ConnectorType::Hyper => 0,
-        ConnectorType::SalesforceDataCloud => 1,
-        ConnectorType::Trino => 2,
-        ConnectorType::Dbcom => 3,
-    }
-}
-
-/// An error from its JSON, `{"message": ..., "data": {...}}`
-fn detailed_error(text: &str) -> Result<DetailedError, JsError> {
-    let value = parse(text)?;
-    let message = value.get("message").and_then(Value::as_str).unwrap_or("").to_string();
-    let data: BTreeMap<String, String> = value
-        .get("data")
-        .and_then(Value::as_object)
-        .map(|data| data.iter().map(|(k, v)| (k.clone(), v.as_str().map(str::to_string).unwrap_or_else(|| v.to_string()))).collect())
-        .unwrap_or_default();
-    Ok(DetailedError { message, data })
-}
-
-fn error_json(error: Option<&DetailedError>) -> Value {
-    match error {
-        Some(error) if error.data.is_empty() => json!({ "message": error.message }),
-        Some(error) => json!({ "message": error.message, "data": error.data }),
-        None => Value::Null,
-    }
-}
-
-fn relation_json(relation: &RelationName) -> Value {
-    json!({ "databaseName": relation.database_name, "schemaName": relation.schema_name, "tableName": relation.table_name })
-}
-
-/// Relation names from their JSON, an array of `{databaseName, schemaName, tableName}`
-fn relations(text: &str) -> Result<Vec<RelationName>, JsError> {
-    let Value::Array(names) = parse(text)? else {
-        return Err(invalid("relation names must be an array"));
-    };
-    let field = |name: &Value, key: &str| name.get(key).and_then(Value::as_str).unwrap_or("").to_string();
-    Ok(names
-        .iter()
-        .map(|name| RelationName {
-            database_name: field(name, "databaseName"),
-            schema_name: field(name, "schemaName"),
-            table_name: field(name, "tableName"),
-        })
-        .collect())
-}
-
-/// The table names of the analyzer from their JSON, an array of `{databaseName, schemaName, tableName}` with nulls
-fn table_names(text: &str) -> Result<Vec<QualifiedTableNameT>, JsError> {
-    let Value::Array(names) = parse(text)? else {
-        return Err(invalid("table names must be an array"));
-    };
-    let field = |name: &Value, key: &str| name.get(key).and_then(Value::as_str).map(str::to_string);
-    Ok(names
-        .iter()
-        .map(|name| {
-            let mut table = QualifiedTableNameT::default();
-            table.database_name = field(name, "databaseName");
-            table.schema_name = field(name, "schemaName");
-            table.table_name = field(name, "tableName");
-            table
-        })
-        .collect())
-}
-
-fn timings_json(timings: &SetupTimings) -> Value {
-    let mut out = Map::new();
-    let mut set = |key: &str, value: Option<f64>| {
-        if let Some(value) = value {
-            out.insert(key.to_string(), json!(value));
-        }
-    };
-    set("channelSetupStartedAt", timings.channel_setup_started_at);
-    set("channelSetupCancelledAt", timings.channel_setup_cancelled_at);
-    set("channelSetupFailedAt", timings.channel_setup_failed_at);
-    set("channelReadyAt", timings.channel_ready_at);
-    set("healthCheckStartedAt", timings.health_check_started_at);
-    set("healthCheckCancelledAt", timings.health_check_cancelled_at);
-    set("healthCheckFailedAt", timings.health_check_failed_at);
-    set("healthCheckSucceededAt", timings.health_check_succeeded_at);
-    set("authStartedAt", timings.auth_started_at);
-    set("authCancelledAt", timings.auth_cancelled_at);
-    set("authFailedAt", timings.auth_failed_at);
-    set("openedNativeAuthLinkAt", timings.opened_native_auth_link_at);
-    set("openedWebAuthWindowAt", timings.opened_web_auth_window_at);
-    set("closedWebAuthWindowAt", timings.closed_web_auth_window_at);
-    set("coreAccessTokenRequestedAt", timings.core_access_token_requested_at);
-    set("coreAccessTokenReceivedAt", timings.core_access_token_received_at);
-    set("dataCloudAccessTokenRequestedAt", timings.data_cloud_access_token_requested_at);
-    set("dataCloudAccessTokenReceivedAt", timings.data_cloud_access_token_received_at);
-    set("oauthStartedAt", timings.oauth_started_at);
-    set("oauthCancelledAt", timings.oauth_cancelled_at);
-    set("oauthFailedAt", timings.oauth_failed_at);
-    set("oauthBrowserOpenedAt", timings.oauth_browser_opened_at);
-    set("accessTokenRequestedAt", timings.access_token_requested_at);
-    set("accessTokenReceivedAt", timings.access_token_received_at);
-    set("pkceGenStartedAt", timings.pkce_gen_started_at);
-    set("pkceGenFinishedAt", timings.pkce_gen_finished_at);
-    set("oauthCodeReceivedAt", timings.oauth_code_received_at);
-    Value::Object(out)
-}
-
-fn pkce_json(pkce: Option<&OAuthPkceChallenge>) -> Value {
-    pkce.map(|pkce| json!({ "value": pkce.value, "verifier": pkce.verifier })).unwrap_or(Value::Null)
-}
-
-fn token_json(token: Option<&TemporaryToken>) -> Value {
-    token.map(|token| json!({ "token": token.token, "createdAt": token.created_at })).unwrap_or(Value::Null)
-}
-
-fn details_json(details: &ConnectionDetails) -> Value {
-    let mut out = json!({
-        "setupTimings": timings_json(&details.setup_timings),
-        "setupParams": details.setup_params,
-        "channelError": error_json(details.channel_error.as_ref()),
-        "healthCheckError": error_json(details.health_check_error.as_ref()),
-        "channel": details.channel,
-    });
-    match &details.connector {
-        ConnectorDetails::Hyper => {}
-        ConnectorDetails::Trino(trino) => {
-            out["schemaResolutionError"] = error_json(trino.schema_resolution_error.as_ref());
-            out["oauthState"] = trino
-                .oauth_state
-                .as_ref()
-                .map(|state| {
-                    json!({
-                        "oauthPkce": pkce_json(state.oauth_pkce.as_ref()),
-                        "authCode": token_json(state.auth_code.as_ref()),
-                        "accessToken": state.access_token,
-                    })
-                })
-                .unwrap_or(Value::Null);
-        }
-        ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
-            out["setupError"] = error_json(salesforce.setup_error.as_ref());
-            out["oauthState"] = salesforce
-                .oauth_state
-                .as_ref()
-                .map(|state| {
-                    json!({
-                        "oauthParams": state.oauth_params.as_ref().map(|params| json!({
-                            "instanceUrl": params.instance_url,
-                            "appConsumerKey": params.app_consumer_key,
-                            "requestedAt": params.requested_at,
-                            "expiresAt": params.expires_at,
-                        })),
-                        "oauthPkce": pkce_json(state.oauth_pkce.as_ref()),
-                        "coreAuthCode": token_json(state.core_auth_code.as_ref()),
-                        "coreAccessToken": state.core_access_token,
-                        "dataCloudAccessToken": state.data_cloud_access_token,
-                    })
-                })
-                .unwrap_or(Value::Null);
-        }
-    }
-    out
-}
-
-fn params_json(params: Option<&ConnectionParams>) -> Value {
-    params.map(|params| json!({ params.connector.params_key(): params.params })).unwrap_or(Value::Null)
-}
-
-fn task_json(task: &CatalogUpdateTask) -> Value {
-    json!({
-        "taskId": task.task_id,
-        "variant": match task.variant {
-            CatalogUpdateVariant::FullCatalogRefresh => 0,
-            CatalogUpdateVariant::RelationRefresh => 1,
-        },
-        "status": match task.status {
-            CatalogUpdateTaskStatus::Started => 0,
-            CatalogUpdateTaskStatus::Succeeded => 1,
-            CatalogUpdateTaskStatus::Failed => 2,
-            CatalogUpdateTaskStatus::Cancelled => 3,
-            CatalogUpdateTaskStatus::PartiallySucceeded => 4,
-        },
-        "queries": task.queries,
-        "error": error_json(task.error.as_ref()),
-        "startedAt": task.started_at,
-        "finishedAt": task.finished_at,
-        "touchedRelations": task.touched_relations.iter().map(relation_json).collect::<Vec<_>>(),
-    })
-}
-
-/// What an action did: whether it changed the connection or its queries and the effects for the host as JSON
-#[wasm_bindgen]
-pub struct ConnectionOutcome {
-    changed: bool,
-    effects: String,
-}
-
-impl ConnectionOutcome {
-    pub(crate) fn new(changed: bool, effects: String) -> Self {
-        ConnectionOutcome { changed, effects }
-    }
-}
-
-#[wasm_bindgen]
-impl ConnectionOutcome {
-    /// Did the action change the connection or its queries?
-    #[wasm_bindgen(getter)]
-    pub fn changed(&self) -> bool {
-        self.changed
-    }
-
-    /// The effects as a JSON array, in order
-    #[wasm_bindgen(getter)]
-    pub fn effects(&self) -> String {
-        self.effects.clone()
-    }
+/// Views of the host, e.g. relation names
+fn views<T: tsify::Tsify + serde::de::DeserializeOwned, R: From<T>>(values: Vec<Ts<T>>) -> Result<Vec<R>, JsError>
+where
+    T::JsType: Clone,
+{
+    values.iter().map(|value| from_js(value).map(R::from)).collect()
 }
 
 /// A connection with the history of its queries
@@ -300,42 +81,35 @@ impl Connection {
     }
 
     /// Apply an action to the connection. A connection that stops its queries drops the history.
-    fn apply(&mut self, action: ConnectionAction, now: f64) -> Result<ConnectionOutcome, JsError> {
+    fn apply(&mut self, action: ConnectionAction, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let RuntimeOutcome { changed, effects } = self.state.borrow_mut().apply(action, now).map_err(js_error)?;
         let mut out = Vec::with_capacity(effects.len());
-        for effect in &effects {
+        for effect in effects {
             out.push(match effect {
-                ConnectionEffect::CancelSetup => json!({ "type": "cancelSetup" }),
-                ConnectionEffect::InvalidateCatalogBatch => json!({ "type": "invalidateCatalogBatch" }),
-                ConnectionEffect::AbortCatalogUpdates { task_ids } => json!({ "type": "abortCatalogUpdates", "taskIds": task_ids }),
-                ConnectionEffect::CloseChannel { channel } => json!({ "type": "closeChannel", "channel": channel }),
-                ConnectionEffect::ReleaseChannel { channel } => json!({ "type": "releaseChannel", "channel": channel }),
-                ConnectionEffect::StopQueries => {
-                    let (active, cleared) = self.queries.borrow_mut().clear();
-                    out.push(json!({ "type": "stopQueries", "queryIds": active }));
-                    out.extend(cleared.effects.iter().map(query_history::query_effect_json));
+                RuntimeEffect::CancelSetup => ConnectionEffect::CancelSetup,
+                RuntimeEffect::InvalidateCatalogBatch => ConnectionEffect::InvalidateCatalogBatch,
+                RuntimeEffect::AbortCatalogUpdates { task_ids } => ConnectionEffect::AbortCatalogUpdates { task_ids },
+                RuntimeEffect::CloseChannel { channel } => ConnectionEffect::CloseChannel { channel },
+                RuntimeEffect::ReleaseChannel { channel } => ConnectionEffect::ReleaseChannel { channel },
+                RuntimeEffect::StopQueries => {
+                    let (query_ids, cleared) = self.queries.borrow_mut().clear();
+                    out.push(ConnectionEffect::StopQueries { query_ids });
+                    out.extend(query_outcome(cleared).effects);
                     continue;
                 }
             });
         }
-        Ok(ConnectionOutcome { changed, effects: Value::Array(out).to_string() })
+        to_js(&ConnectionOutcome { changed, effects: out })
     }
 
     /// Apply an action to the queries
-    fn apply_query(&mut self, action: QueryExecutionAction) -> Result<ConnectionOutcome, JsError> {
-        self.queries.borrow_mut().apply(action).map(query_history::query_outcome).map_err(js_error)
+    fn apply_query(&mut self, action: QueryExecutionAction) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let outcome = self.queries.borrow_mut().apply(action).map_err(js_error)?;
+        to_js(&query_outcome(outcome))
     }
 
-    fn finish_task(&mut self, task_id: u32, status: u8, error: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = || -> Result<DetailedError, JsError> { error.as_deref().map(detailed_error).unwrap_or_else(|| Ok(DetailedError::default())) };
-        let action = match status {
-            1 => ConnectionAction::CatalogUpdateSucceeded { task_id },
-            2 => ConnectionAction::CatalogUpdateFailed { task_id, error: error()? },
-            3 => ConnectionAction::CatalogUpdateCancelled { task_id, error: error()? },
-            4 => ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, error: error()? },
-            _ => return Err(invalid(format!("no final status of a catalog update: {status}"))),
-        };
-        self.apply(action, now)
+    fn read_queries<R>(&self, read: impl FnOnce(&QueryExecutionHistory) -> R) -> R {
+        read(&self.queries.borrow())
     }
 }
 
@@ -346,20 +120,19 @@ impl Connection {
     #[wasm_bindgen(constructor)]
     pub fn new(
         connection_id: &str,
-        connector_type: u8,
-        setup_params: Option<String>,
+        connector_type: ConnectorType,
+        setup_params: Option<Ts<JsonParams>>,
         active: bool,
-        params: Option<String>,
-        params_draft: Option<String>,
+        params: Option<Ts<JsonParams>>,
+        params_draft: Option<Ts<JsonParams>>,
         now: f64,
     ) -> Result<Connection, JsError> {
-        let connector = connector(connector_type)?;
-        let mut details = ConnectionDetails::default_for(connector);
-        details.setup_params = setup_params.as_deref().map(connector_params).transpose()?;
+        let mut details = ConnectionDetails::default_for(connector_type.into());
+        details.setup_params = setup_params.map(connector_params).transpose()?;
         let options = ConnectionStateOptions {
             active,
-            params: params.as_deref().map(self::params).transpose()?,
-            params_draft: params_draft.as_deref().map(self::params).transpose()?,
+            params: params.map(self::params).transpose()?,
+            params_draft: params_draft.map(self::params).transpose()?,
         };
         let catalog = CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone));
         let state = ConnectionState::with_catalog(connection_id, details, options, now, catalog);
@@ -369,115 +142,123 @@ impl Connection {
     // The connection
 
     #[wasm_bindgen(js_name = setDraft)]
-    pub fn set_draft(&mut self, draft: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn set_draft(&mut self, draft: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let draft = params(draft)?;
         self.apply(ConnectionAction::SetDraft(draft), now)
     }
 
     #[wasm_bindgen(js_name = discardDraft)]
-    pub fn discard_draft(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn discard_draft(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::DiscardDraft, now)
     }
 
     #[wasm_bindgen(js_name = commitParams)]
-    pub fn commit_params(&mut self, params: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn commit_params(&mut self, params: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let params = self::params(params)?;
         self.apply(ConnectionAction::CommitParams(params), now)
     }
 
-    pub fn rename(&mut self, name: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn rename(&mut self, name: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Rename(name), now)
     }
 
     #[wasm_bindgen(js_name = setQueryResultCaching)]
-    pub fn set_query_result_caching(&mut self, caching: bool, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn set_query_result_caching(&mut self, caching: bool, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::SetQueryResultCaching(caching), now)
     }
 
     /// Stop the connection and drop its catalog and queries
-    pub fn delete(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn delete(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Delete, now)
     }
 
     /// Stop the connection and clear its catalog and queries
-    pub fn reset(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn reset(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Reset, now)
     }
 
     #[wasm_bindgen(js_name = switchConnectorType)]
-    pub fn switch_connector_type(&mut self, connector_type: u8, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let connector = connector(connector_type)?;
-        self.apply(ConnectionAction::SwitchConnectorType(connector), now)
+    pub fn switch_connector_type(&mut self, connector_type: ConnectorType, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        self.apply(ConnectionAction::SwitchConnectorType(connector_type.into()), now)
     }
 
     // The health check
 
     #[wasm_bindgen(js_name = healthCheckStarted)]
-    pub fn health_check_started(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn health_check_started(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::HealthCheckStarted, now)
     }
 
     #[wasm_bindgen(js_name = healthCheckCancelled)]
-    pub fn health_check_cancelled(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn health_check_cancelled(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::HealthCheckCancelled, now)
     }
 
     #[wasm_bindgen(js_name = healthCheckFailed)]
-    pub fn health_check_failed(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn health_check_failed(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::HealthCheckFailed(error), now)
     }
 
     #[wasm_bindgen(js_name = healthCheckSucceeded)]
-    pub fn health_check_succeeded(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn health_check_succeeded(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::HealthCheckSucceeded, now)
     }
 
     // The catalog updates
 
-    /// Executed statements touched relations, a JSON array of `{databaseName, schemaName, tableName}` with nulls
+    /// Executed statements touched relations, the names have nulls for the parts that a statement left out
     #[wasm_bindgen(js_name = relationsTouched)]
-    pub fn relations_touched(&mut self, names: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let names = table_names(names)?;
-        self.apply(ConnectionAction::RelationsTouched(names), now)
+    pub fn relations_touched(&mut self, names: Vec<Ts<ConnectionTableName>>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        self.apply(ConnectionAction::RelationsTouched(views(names)?), now)
     }
 
-    /// A catalog update started, `variant` 0 is a full refresh and 1 a lookup of relations
+    /// A catalog update started
     #[wasm_bindgen(js_name = updateCatalog)]
     pub fn update_catalog(
         &mut self,
         task_id: u32,
-        variant: u8,
+        variant: CatalogUpdateVariant,
         started_at: Option<f64>,
-        touched_relations: Option<String>,
+        touched_relations: Vec<Ts<ConnectionRelationName>>,
         now: f64,
-    ) -> Result<ConnectionOutcome, JsError> {
-        let variant = match variant {
-            0 => CatalogUpdateVariant::FullCatalogRefresh,
-            1 => CatalogUpdateVariant::RelationRefresh,
-            _ => return Err(invalid(format!("unknown catalog update {variant}"))),
-        };
-        let mut task = CatalogUpdateTask::new(task_id, variant, now);
+    ) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let mut task = CatalogUpdateTask::new(task_id, variant.into(), now);
         task.started_at = started_at;
-        task.touched_relations = touched_relations.as_deref().map(relations).transpose()?.unwrap_or_default();
+        task.touched_relations = views(touched_relations)?;
         self.apply(ConnectionAction::UpdateCatalog(task), now)
     }
 
     #[wasm_bindgen(js_name = catalogUpdateRegisterQuery)]
-    pub fn catalog_update_register_query(&mut self, task_id: u32, query_id: u32, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn catalog_update_register_query(&mut self, task_id: u32, query_id: u32, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id }, now)
     }
 
-    /// A catalog update finished with a status: 1 succeeded, 2 failed, 3 cancelled, 4 partially succeeded
+    /// A catalog update finished with a final status, an update that didn't succeed with an error
     #[wasm_bindgen(js_name = catalogUpdateFinished)]
-    pub fn catalog_update_finished(&mut self, task_id: u32, status: u8, error: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.finish_task(task_id, status, error, now)
+    pub fn catalog_update_finished(
+        &mut self,
+        task_id: u32,
+        status: CatalogUpdateTaskStatus,
+        error: Option<Ts<ConnectionError>>,
+        now: f64,
+    ) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = || -> Result<DetailedError, JsError> { error.map(self::error).unwrap_or_else(|| Ok(DetailedError::default())) };
+        let action = match status {
+            CatalogUpdateTaskStatus::SUCCEEDED => ConnectionAction::CatalogUpdateSucceeded { task_id },
+            CatalogUpdateTaskStatus::FAILED => ConnectionAction::CatalogUpdateFailed { task_id, error: error()? },
+            CatalogUpdateTaskStatus::CANCELLED => ConnectionAction::CatalogUpdateCancelled { task_id, error: error()? },
+            CatalogUpdateTaskStatus::PARTIALLY_SUCCEEDED => ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, error: error()? },
+            CatalogUpdateTaskStatus::STARTED => return Err(js_error(Error::invalid_argument("a catalog update can't finish as started"))),
+        };
+        self.apply(action, now)
     }
 
-    /// Restore the state of the catalog updates from the files of the catalog
+    /// Restore the state of the catalog updates from the files of the catalog, none keeps a field. The connection
+    /// changes its revision.
     #[wasm_bindgen(js_name = restoreCatalogUpdates)]
-    pub fn restore_catalog_updates(&mut self, described: Option<bool>, touched_relations: Option<String>) -> Result<(), JsError> {
-        let touched = touched_relations.as_deref().map(relations).transpose()?;
+    pub fn restore_catalog_updates(&mut self, described: Option<bool>, touched_relations: Option<Vec<Ts<ConnectionRelationName>>>) -> Result<(), JsError> {
+        let touched = touched_relations.map(views).transpose()?;
         self.state.borrow_mut().restore_catalog_updates(described, touched);
         Ok(())
     }
@@ -485,25 +266,25 @@ impl Connection {
     // The setup of Hyper
 
     #[wasm_bindgen(js_name = hyperChannelSetupStarted)]
-    pub fn hyper_channel_setup_started(&mut self, params: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn hyper_channel_setup_started(&mut self, params: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let params = connector_params(params)?;
         self.apply(ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params }), now)
     }
 
     #[wasm_bindgen(js_name = hyperChannelSetupCancelled)]
-    pub fn hyper_channel_setup_cancelled(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn hyper_channel_setup_cancelled(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(error)), now)
     }
 
     #[wasm_bindgen(js_name = hyperChannelSetupFailed)]
-    pub fn hyper_channel_setup_failed(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn hyper_channel_setup_failed(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error)), now)
     }
 
     #[wasm_bindgen(js_name = hyperChannelReady)]
-    pub fn hyper_channel_ready(&mut self, channel: u32, params: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn hyper_channel_ready(&mut self, channel: u32, params: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let params = connector_params(params)?;
         self.apply(ConnectionAction::Hyper(HyperAction::ChannelReady { channel, params }), now)
     }
@@ -511,137 +292,137 @@ impl Connection {
     // The setup of Trino
 
     #[wasm_bindgen(js_name = trinoOAuthStarted)]
-    pub fn trino_oauth_started(&mut self, params: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_oauth_started(&mut self, params: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let params = connector_params(params)?;
         self.apply(ConnectionAction::Trino(TrinoAction::OAuthStarted { params }), now)
     }
 
     #[wasm_bindgen(js_name = trinoOAuthCancelled)]
-    pub fn trino_oauth_cancelled(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn trino_oauth_cancelled(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Trino(TrinoAction::OAuthCancelled(error)), now)
     }
 
     #[wasm_bindgen(js_name = trinoOAuthFailed)]
-    pub fn trino_oauth_failed(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn trino_oauth_failed(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Trino(TrinoAction::OAuthFailed(error)), now)
     }
 
     #[wasm_bindgen(js_name = trinoGeneratingPkceChallenge)]
-    pub fn trino_generating_pkce_challenge(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_generating_pkce_challenge(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::GeneratingPkceChallenge), now)
     }
 
     #[wasm_bindgen(js_name = trinoGeneratedPkceChallenge)]
-    pub fn trino_generated_pkce_challenge(&mut self, value: String, verifier: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_generated_pkce_challenge(&mut self, value: String, verifier: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::GeneratedPkceChallenge(OAuthPkceChallenge { value, verifier })), now)
     }
 
     #[wasm_bindgen(js_name = trinoOAuthBrowserOpened)]
-    pub fn trino_oauth_browser_opened(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_oauth_browser_opened(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::OAuthBrowserOpened), now)
     }
 
     #[wasm_bindgen(js_name = trinoReceivedOAuthCode)]
-    pub fn trino_received_oauth_code(&mut self, token: String, created_at: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_received_oauth_code(&mut self, token: String, created_at: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::ReceivedOAuthCode(TemporaryToken { token, created_at })), now)
     }
 
     #[wasm_bindgen(js_name = trinoRequestingAccessToken)]
-    pub fn trino_requesting_access_token(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_requesting_access_token(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::RequestingAccessToken), now)
     }
 
     /// The access token arrived, opaque JSON
     #[wasm_bindgen(js_name = trinoReceivedAccessToken)]
-    pub fn trino_received_access_token(&mut self, token: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_received_access_token(&mut self, token: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::ReceivedAccessToken(token)), now)
     }
 
     #[wasm_bindgen(js_name = trinoChannelSetupStarted)]
-    pub fn trino_channel_setup_started(&mut self, params: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_channel_setup_started(&mut self, params: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let params = connector_params(params)?;
         self.apply(ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params }), now)
     }
 
     #[wasm_bindgen(js_name = trinoChannelSetupCancelled)]
-    pub fn trino_channel_setup_cancelled(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn trino_channel_setup_cancelled(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error)), now)
     }
 
     #[wasm_bindgen(js_name = trinoChannelSetupFailed)]
-    pub fn trino_channel_setup_failed(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn trino_channel_setup_failed(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(error)), now)
     }
 
     #[wasm_bindgen(js_name = trinoChannelReady)]
-    pub fn trino_channel_ready(&mut self, channel: u32, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn trino_channel_ready(&mut self, channel: u32, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Trino(TrinoAction::ChannelReady(channel)), now)
     }
 
     // The setup of Salesforce and Database.com
 
     #[wasm_bindgen(js_name = salesforceSetupStarted)]
-    pub fn salesforce_setup_started(&mut self, params: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_setup_started(&mut self, params: Ts<JsonParams>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let params = connector_params(params)?;
         self.apply(ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params }), now)
     }
 
     #[wasm_bindgen(js_name = salesforceSetupCancelled)]
-    pub fn salesforce_setup_cancelled(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn salesforce_setup_cancelled(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Salesforce(SalesforceAction::SetupCancelled(error)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceSetupFailed)]
-    pub fn salesforce_setup_failed(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn salesforce_setup_failed(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Salesforce(SalesforceAction::SetupFailed(error)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceGeneratingPkceChallenge)]
-    pub fn salesforce_generating_pkce_challenge(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_generating_pkce_challenge(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::GeneratingPkceChallenge), now)
     }
 
     #[wasm_bindgen(js_name = salesforceGeneratedPkceChallenge)]
-    pub fn salesforce_generated_pkce_challenge(&mut self, value: String, verifier: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_generated_pkce_challenge(&mut self, value: String, verifier: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let pkce = OAuthPkceChallenge { value, verifier };
         self.apply(ConnectionAction::Salesforce(SalesforceAction::GeneratedPkceChallenge(pkce)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceOAuthNativeLinkOpened)]
-    pub fn salesforce_oauth_native_link_opened(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_oauth_native_link_opened(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::OAuthNativeLinkOpened), now)
     }
 
     #[wasm_bindgen(js_name = salesforceOAuthWebWindowOpened)]
-    pub fn salesforce_oauth_web_window_opened(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_oauth_web_window_opened(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::OAuthWebWindowOpened), now)
     }
 
     #[wasm_bindgen(js_name = salesforceOAuthWebWindowClosed)]
-    pub fn salesforce_oauth_web_window_closed(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_oauth_web_window_closed(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::OAuthWebWindowClosed), now)
     }
 
     #[wasm_bindgen(js_name = salesforceReceivedCoreAuthCode)]
-    pub fn salesforce_received_core_auth_code(&mut self, token: String, created_at: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_received_core_auth_code(&mut self, token: String, created_at: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         let code = TemporaryToken { token, created_at };
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreAuthCode(code)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceRequestingCoreAuthToken)]
-    pub fn salesforce_requesting_core_auth_token(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_requesting_core_auth_token(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::RequestingCoreAuthToken), now)
     }
 
     /// The core access token arrived, opaque JSON
     #[wasm_bindgen(js_name = salesforceReceivedCoreAuthToken)]
-    pub fn salesforce_received_core_auth_token(&mut self, token: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_received_core_auth_token(&mut self, token: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreAuthToken(token)), now)
     }
 
@@ -651,112 +432,41 @@ impl Connection {
         preferred_username: Option<String>,
         email: Option<String>,
         now: f64,
-    ) -> Result<ConnectionOutcome, JsError> {
+    ) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreUserInfo { preferred_username, email }), now)
     }
 
     #[wasm_bindgen(js_name = salesforceRequestingDataCloudAccessToken)]
-    pub fn salesforce_requesting_data_cloud_access_token(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_requesting_data_cloud_access_token(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::RequestingDataCloudAccessToken), now)
     }
 
     /// The Data Cloud access token arrived, opaque JSON
     #[wasm_bindgen(js_name = salesforceReceivedDataCloudAccessToken)]
-    pub fn salesforce_received_data_cloud_access_token(&mut self, token: String, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_received_data_cloud_access_token(&mut self, token: String, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ReceivedDataCloudAccessToken(token)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceChannelSetupStarted)]
-    pub fn salesforce_channel_setup_started(&mut self, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_channel_setup_started(&mut self, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ChannelSetupStarted), now)
     }
 
     #[wasm_bindgen(js_name = salesforceChannelSetupCancelled)]
-    pub fn salesforce_channel_setup_cancelled(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn salesforce_channel_setup_cancelled(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ChannelSetupCancelled(error)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceChannelSetupFailed)]
-    pub fn salesforce_channel_setup_failed(&mut self, error: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        let error = detailed_error(error)?;
+    pub fn salesforce_channel_setup_failed(&mut self, error: Ts<ConnectionError>, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
+        let error = self::error(error)?;
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ChannelSetupFailed(error)), now)
     }
 
     #[wasm_bindgen(js_name = salesforceChannelReady)]
-    pub fn salesforce_channel_ready(&mut self, channel: u32, now: f64) -> Result<ConnectionOutcome, JsError> {
+    pub fn salesforce_channel_ready(&mut self, channel: u32, now: f64) -> Result<Ts<ConnectionOutcome>, JsError> {
         self.apply(ConnectionAction::Salesforce(SalesforceAction::ChannelReady(channel)), now)
-    }
-
-    // The queries
-
-    /// Start tracking a requested query, the metadata is JSON
-    #[wasm_bindgen(js_name = executeQuery)]
-    pub fn execute_query(&mut self, query_id: f64, trace_id: f64, text: String, metadata: &str, requested_at: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::execute_query(query_id, trace_id, text, metadata, requested_at)?)
-    }
-
-    #[wasm_bindgen(js_name = querySending)]
-    pub fn query_sending(&mut self, query_id: f64, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(QueryExecutionAction::QuerySending { query_id: query_id as u64, now: now as i64 })
-    }
-
-    #[wasm_bindgen(js_name = queryRunning)]
-    pub fn query_running(&mut self, query_id: f64, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(QueryExecutionAction::QueryRunning { query_id: query_id as u64, now: now as i64 })
-    }
-
-    /// The backend reported progress, the plain fields of the progress as JSON. The structured progress stays with
-    /// the host.
-    #[wasm_bindgen(js_name = queryProgressUpdated)]
-    pub fn query_progress_updated(&mut self, query_id: f64, progress: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::query_progress_updated(query_id, progress, now)?)
-    }
-
-    #[wasm_bindgen(js_name = queryReceivedBatch)]
-    pub fn query_received_batch(&mut self, query_id: f64, metrics: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::query_received_batch(query_id, metrics, now)?)
-    }
-
-    /// All batches arrived, the host keeps the table under its id
-    #[wasm_bindgen(js_name = queryReceivedAllBatches)]
-    pub fn query_received_all_batches(&mut self, query_id: f64, table_id: f64, rows: f64, metrics: &str, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::query_received_all_batches(query_id, table_id, rows, metrics, now)?)
-    }
-
-    #[wasm_bindgen(js_name = queryProcessingResults)]
-    pub fn query_processing_results(&mut self, query_id: f64, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(QueryExecutionAction::QueryProcessingResults { query_id: query_id as u64, now: now as i64 })
-    }
-
-    #[wasm_bindgen(js_name = queryProcessedResults)]
-    pub fn query_processed_results(&mut self, query_id: f64, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(QueryExecutionAction::QueryProcessedResults { query_id: query_id as u64, now: now as i64 })
-    }
-
-    #[wasm_bindgen(js_name = querySucceeded)]
-    pub fn query_succeeded(&mut self, query_id: f64, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(QueryExecutionAction::QuerySucceeded { query_id: query_id as u64, now: now as i64 })
-    }
-
-    #[wasm_bindgen(js_name = queryFailed)]
-    pub fn query_failed(&mut self, query_id: f64, message: String, details: Option<String>, metrics: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::query_failed(query_id, message, details, metrics, now)?)
-    }
-
-    #[wasm_bindgen(js_name = queryCancelled)]
-    pub fn query_cancelled(&mut self, query_id: f64, message: String, details: Option<String>, metrics: Option<String>, now: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::query_cancelled(query_id, message, details, metrics, now)?)
-    }
-
-    #[wasm_bindgen(js_name = queryCacheRecorded)]
-    pub fn query_cache_recorded(&mut self, query_id: f64, cache_key: String, served_from_cache: bool, cached_at: Option<f64>) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(query_history::query_cache_recorded(query_id, cache_key, served_from_cache, cached_at))
-    }
-
-    #[wasm_bindgen(js_name = queryCacheDeleted)]
-    pub fn query_cache_deleted(&mut self, query_id: f64) -> Result<ConnectionOutcome, JsError> {
-        self.apply_query(QueryExecutionAction::QueryCacheDeleted { query_id: query_id as u64 })
     }
 
     // Reading the state
@@ -789,45 +499,10 @@ impl Connection {
         self.state.borrow_mut().replace_function_script_text(text).map_err(js_error)
     }
 
-    /// The plain fields of the connection as JSON
-    pub fn snapshot(&self) -> String {
-        let state = self.state.borrow();
-        let updates = state.catalog_updates();
-        json!({
-            "revision": state.revision(),
-            "active": state.active(),
-            "status": state.status() as u8,
-            "health": state.health() as u8,
-            "connectorType": connector_index(state.connector_type()),
-            "name": state.name(),
-            "cacheQueryResults": state.cache_query_results(),
-            "details": details_json(state.details()),
-            "params": params_json(Some(state.params())),
-            "paramsDraft": params_json(state.params_draft()),
-            "setupAttemptParams": params_json(state.setup_attempt_params()),
-            "setupAttemptDraft": params_json(state.setup_attempt_draft()),
-            "catalogUpdates": {
-                "tasksRunning": updates.tasks_running.values().map(task_json).collect::<Vec<_>>(),
-                "tasksFinished": updates.tasks_finished.values().map(task_json).collect::<Vec<_>>(),
-                "described": updates.described,
-                "currentFullRefresh": updates.current_full_refresh,
-                "touchedRelations": updates.touched_relations.iter().map(relation_json).collect::<Vec<_>>(),
-                "touchedFailures": updates.touched_failures,
-            },
-            "relationEntryId": state.relation_entry_id(),
-            "functionScriptEntryId": state.function_script().map(|script| script.catalog_entry_id()),
-        })
-        .to_string()
-    }
-
-    /// The queries as JSON: the active and the finished ones in order with their revisions, the counter of started and
-    /// finished queries and the metrics of the connection
-    pub fn queries(&self) -> String {
-        query_history::queries_json(&self.queries.borrow())
-    }
-
-    /// The plain fields of a query as JSON, none for an unknown query
-    pub fn query(&self, query_id: f64) -> Option<String> {
-        self.queries.borrow().query(query_id as u64).map(|query| query_history::query_json(query).to_string())
+    /// The plain fields of the connection, the queries are read on their own
+    pub fn snapshot(&self) -> Result<Ts<ConnectionView>, JsError> {
+        to_js(&ConnectionView::from(&*self.state.borrow()))
     }
 }
+
+query_actions!(Connection);

@@ -10,7 +10,7 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
-const METRICS: dashql.DashQLStreamMetrics = {
+const METRICS: dashql.QueryStreamMetrics = {
     totalDataBytesReceived: 0,
     totalBatchesReceived: 1,
     totalRowsReceived: 3,
@@ -21,8 +21,8 @@ const METRICS: dashql.DashQLStreamMetrics = {
     durationUntilFirstBatchMs: 2,
 };
 
-const USER_QUERY: dashql.DashQLQueryMetadata = {
-    queryType: 0,
+const USER_QUERY: dashql.QueryMetadataView = {
+    queryType: dashql.QueryType.USER_PROVIDED,
     title: null,
     description: null,
     issuer: null,
@@ -31,7 +31,7 @@ const USER_QUERY: dashql.DashQLQueryMetadata = {
 };
 
 function hyper(): dashql.DashQLConnection {
-    return dql!.createConnection('main', dashql.DashQLConnectorType.HYPER, {
+    return dql!.createConnection('main', dashql.ConnectorType.HYPER, {
         setupParams: { protocol: 'WASM', endpoint: '' },
     });
 }
@@ -114,16 +114,32 @@ describe('DashQL connections', () => {
         connection.replaceFunctionScriptText('create function f() returns int;');
         expect(connection.functionScriptText()).toBe('create function f() returns int;');
         const relation = { databaseName: 'hyper', schemaName: 'public', tableName: 't' };
-        connection.updateCatalog(1, 1, 5, [relation]);
+        connection.updateCatalog(1, dashql.CatalogUpdateVariant.RELATION_REFRESH, 5, [relation]);
         expect(connection.snapshot().catalogUpdates.tasksRunning).toMatchObject([{ taskId: 1, variant: 1, status: 0, startedAt: 5 }]);
-        connection.catalogUpdateFinished(1, 2, { message: 'down' });
+        connection.catalogUpdateFinished(1, dashql.CatalogUpdateTaskStatus.FAILED, { message: 'down' });
         expect(connection.snapshot().catalogUpdates).toMatchObject({
             tasksRunning: [],
             tasksFinished: [{ taskId: 1, status: 2, error: { message: 'down' } }],
             touchedRelations: [relation],
             touchedFailures: 1,
         });
+        const revision = connection.revision();
         connection.restoreCatalogUpdates(true, []);
+        expect(connection.revision()).toBeGreaterThan(revision);
         expect(connection.snapshot().catalogUpdates).toMatchObject({ described: true, touchedRelations: [] });
+    });
+
+    it('cross their views as plain objects and refuse invalid ones', () => {
+        const connection = hyper();
+        connection.healthCheckFailed({ message: 'down', data: { code: '42' } }, 1000);
+        const snapshot = connection.snapshot();
+        expect(Object.getPrototypeOf(snapshot.params)).toBe(Object.prototype);
+        expect(snapshot.details.healthCheckError).toEqual({ message: 'down', data: { code: '42' } });
+        expect(snapshot.details.connector).toEqual({ kind: 'hyper' });
+        expect(snapshot.connectorType).toBe(dashql.ConnectorType.HYPER);
+        // A view of the wrong shape throws, the connection stays usable
+        expect(() => connection.healthCheckFailed({ data: {} } as unknown as dashql.ConnectionError)).toThrow();
+        expect(() => connection.setDraft(42 as unknown as dashql.JsonParams)).toThrow();
+        expect(connection.snapshot().revision).toBe(snapshot.revision);
     });
 });

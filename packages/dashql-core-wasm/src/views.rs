@@ -22,3 +22,52 @@ export type FlatBuffer<T> = Uint8Array & { readonly __flatbufferRoot?: T };
 #[derive(Clone, Debug, Serialize)]
 #[serde(transparent)]
 pub struct FlatBufferBytes(#[serde(with = "serde_bytes")] pub Vec<u8>);
+
+/// A view as a JS object
+pub(crate) fn to_js<T: tsify::Tsify + Serialize>(view: &T) -> Result<tsify::Ts<T>, JsError> {
+    Ok(tsify::Ts::from_rust(view)?)
+}
+
+/// A view that the host handed over
+pub(crate) fn from_js<T: tsify::Tsify + serde::de::DeserializeOwned>(value: &tsify::Ts<T>) -> Result<T, JsError>
+where
+    T::JsType: Clone,
+{
+    Ok(value.to_rust()?)
+}
+
+/// A numeric enum of the app with the conversions from and to the enum of the runtime. It is a C-style enum of the
+/// module (`#[wasm_bindgen]`, a TypeScript `enum` of the declarations) with the names and numbers of the app, and
+/// crosses in a view as its number (`serde_repr`); a view names it with `#[tsify(type = "...")]`. The doc is a plain
+/// string: wasm-bindgen would print the raw string of a doc comment that passes through the macro.
+macro_rules! app_enum {
+    ($doc:literal $name:ident: $runtime:path { $($variant:ident = $number:literal => $rt:ident),* $(,)? }) => {
+        #[doc = $doc]
+        #[wasm_bindgen]
+        #[allow(non_camel_case_types)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, serde_repr::Serialize_repr, serde_repr::Deserialize_repr)]
+        #[repr(u8)]
+        pub enum $name {
+            $($variant = $number),*
+        }
+
+        impl From<$runtime> for $name {
+            fn from(value: $runtime) -> Self {
+                type R = $runtime;
+                match value {
+                    $(R::$rt => Self::$variant),*
+                }
+            }
+        }
+
+        impl From<$name> for $runtime {
+            fn from(value: $name) -> Self {
+                type R = $runtime;
+                match value {
+                    $($name::$variant => R::$rt),*
+                }
+            }
+        }
+    };
+}
+pub(crate) use app_enum;
