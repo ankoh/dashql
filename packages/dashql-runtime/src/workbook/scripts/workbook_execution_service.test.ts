@@ -1,13 +1,15 @@
 // The runs of workbooks of the runtime (WorkbookExecutionService) on a runtime of the tests: starting and stopping, the
 // connections a run needs, previews and changes of inputs. The tests of the provider of the app on it stay in the app.
 import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionHealth, restoreCatalogUpdates, type ConnectionState } from '../../connections/connection_state.js';
+import type { ConnectionParams } from '../../connections/connection_params.js';
+import { createTestConnection } from '../../testing/connection_fixtures.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
 import type { EmbeddedComputeDatabase } from '../../platform/database/embedded_database.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../query/query_execution_state.js';
-import { createTestRuntime, type TestRuntime } from '../../testing/test_runtime.js';
+import { createTestRuntime, testCore, type TestRuntime } from '../../testing/test_runtime.js';
 import { isWorkbookExecutionRunning, type WorkbookExecutionState } from './workbook_execution.js';
 import { workbookExecutionIsBusy, type WorkbookExecutionOptions } from './workbook_execution_service.js';
 import { REGISTER_QUERY, type WorkbookScripts } from './workbook_scripts.js';
@@ -21,6 +23,9 @@ function deferred() {
     const promise = new Promise<void>(yes => { resolve = yes; });
     return { promise, resolve };
 }
+
+let dql: core.DashQL;
+beforeAll(async () => { dql = await testCore(); });
 
 function fixture(workbookId: string, deferStream = false) {
     const acquisition = deferred();
@@ -67,17 +72,16 @@ function fixture(workbookId: string, deferStream = false) {
         scripts: { 1: { scriptKey: 1, fileName: '1_commands.sql', scriptSession, latestQueryId: null,
             connection: { connectionId: `${workbookId}-database` } } },
     } as unknown as WorkbookScripts;
-    const database = {
-        connectionId: `${workbookId}-database`, active: false,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
-        // The catalog loader of the runtime follows the connections that come online: their params and catalog updates
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: true, touchedRelations: [], touchedFailures: 0 },
-        details: { type: HYPER_CONNECTOR, value: { proto: {}, channel: { executeQuery } } },
-        queriesActive: new Map(), queriesActiveOrdered: [],
-        queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
-    } as unknown as ConnectionState;
+    // A connection on the Rust connection of the core, online with a channel. The catalog loader of the runtime follows
+    // the connections that come online: their params and catalog updates.
+    const database: ConnectionState = createTestConnection(dql, {
+        connectionId: `${workbookId}-database`,
+        // Without a protocol the connection runs one statement at a time
+        params: { hyper: { endpoint: 'http://hyper' } } as ConnectionParams,
+        channel: { executeQuery },
+    });
+    restoreCatalogUpdates(database, true, null);
+    expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
     const modify = vi.fn<ModifyWorkbookScripts>(action => {
         if (action.type === REGISTER_QUERY) workbook.scripts[action.value[0]].latestQueryId = action.value[1];
     });

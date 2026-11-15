@@ -6,6 +6,7 @@ import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLWorkbook } from './workbook.js';
+import { DashQLConnection, type DashQLConnectionOptions, type DashQLConnectorType } from './connection.js';
 import { DashQLComputations } from './computations.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
@@ -30,6 +31,7 @@ export type DashQLBindings = Pick<
     | 'installPanicHook'
     | 'Shell'
     | 'Workbook'
+    | 'Connection'
     | 'Computations'
 >;
 
@@ -396,6 +398,13 @@ export class DashQL {
     /// workbook are the classes of the instance also where a bundle holds two copies of this package.
     public createWorkbook(id: string, name: string | null, offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS): DashQLWorkbook {
         return DashQLWorkbook.create(this, id, name, offsetUnit);
+    }
+
+    /// Create a connection with the history of its queries in the Rust runtime. Created through the instance, the
+    /// catalog handle of the connection is the class of the instance also where a bundle holds two copies of this
+    /// package.
+    public createConnection(connectionId: string, connector: DashQLConnectorType, options: DashQLConnectionOptions = {}, now = Date.now()): DashQLConnection {
+        return DashQLConnection.create(this, connectionId, connector, options, now);
     }
 
     /// Create the computations of result tables in the Rust runtime, through the instance like a workbook

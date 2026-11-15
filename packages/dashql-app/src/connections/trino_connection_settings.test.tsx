@@ -3,7 +3,9 @@ import type * as arrow from 'apache-arrow';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
 import { useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, RESET_CONNECTION, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -24,20 +26,18 @@ const CONNECTION_ID = 'trino-settings-test';
 
 type Registry = ReturnType<typeof useConnectionRegistry>;
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// A connection on the Rust connection of the core, an online one has a channel
 function trinoDatabase(params: connection.TrinoConnectionParams, health = ConnectionHealth.NOT_STARTED): ConnectionState {
     const connectionParams: ConnectionParams = { trino: params };
-    return {
-        connectionId: CONNECTION_ID,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-        params: connectionParams,
-        active: false,
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: health,
-        details: getConnectionStateDetailsFromParams(connectionParams),
-        catalog: { clear: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map() },
-        queriesActive: new Map(),
-    } as unknown as ConnectionState;
+    const channel = health === ConnectionHealth.ONLINE ? { close: vi.fn() } : undefined;
+    const state = createTestConnection(dql, { connectionId: CONNECTION_ID, params: connectionParams, channel });
+    expect(state.connectionHealth).toBe(health);
+    expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
+    return state;
 }
 
 const RESTORED: connection.TrinoConnectionParams = {

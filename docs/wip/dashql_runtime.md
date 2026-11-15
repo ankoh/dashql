@@ -51,8 +51,8 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 ### The reducers take their dependencies as arguments
 
 - `reduceWorkbookScripts(state, action, storage, logger)` (`workbook/scripts/workbook_scripts.ts`, 29 actions)
-- `reduceConnectionState(prev, action, logger)` (`connections/connection_state.ts`) and the connector reducers
-  (`salesforce/`, `trino/`, `hyper/`)
+- `reduceConnectionState(prev, action, logger)` (`connections/connection_state.ts`), an adapter over the Rust connection
+  (`connections/connection_native.ts`, see [rust_runtime.md](rust_runtime.md))
 - `query/query_execution_state.ts`, `compute/computation_state.ts`
 
 ### Imports that pulled UI code into the domain

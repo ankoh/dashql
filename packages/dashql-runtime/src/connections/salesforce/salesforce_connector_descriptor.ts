@@ -1,7 +1,7 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
 import { SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, HYPER_CLOUD_DEFAULT_DATABASE_NAME } from './salesforce_catalog_update.js';
-import { createSalesforceConnectionStateDetails, reduceSalesforceConnectionState } from './salesforce_connection_state.js';
+import { createSalesforceConnectionStateDetails } from './salesforce_connection_state.js';
 import { queryParam, requireChannel } from '../query_channel.js';
 import { SALESFORCE_CLIENT_FUNCTIONS } from './salesforce_client_functions.js';
 
@@ -12,7 +12,6 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     detailsType: SALESFORCE_DATA_CLOUD_CONNECTOR,
     defaultParams: () => ({ instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' }),
     createDetails: createSalesforceConnectionStateDetails,
-    reduce: reduceSalesforceConnectionState,
     withoutDraftRows: params => params,
     // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
     sanitizeForSharing: (params, withLoginHint) => ({ ...params, appConsumerSecret: "", ...(withLoginHint ? {} : { login: "" }) }),

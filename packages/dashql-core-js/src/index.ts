@@ -1,6 +1,7 @@
 export * as buffers from './buffers.js';
 export * from './api.js';
 export * from './workbook.js';
+export * from './connection.js';
 export * from './computations.js';
 export * from './dataflow.js';
 export * from './batch.js';

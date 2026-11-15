@@ -27,7 +27,9 @@ import {
 } from './storage_writer.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
 import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
-import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
+import { ConnectionHealth, ConnectionStatus, createConnectionState, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
+import type { ConnectionStateDetailsVariant } from '../connections/connection_state_details.js';
+import { testCore } from '../testing/test_runtime.js';
 import { CONNECTOR_INFOS } from '../connections/connector_info.js';
 import { workbookConnectionFromState } from '../connections/connection_registry_state.js';
 import { testConnections, testWorkbook, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '../testing/workbook_test_backend.js';
@@ -172,12 +174,13 @@ describe('V2 storage writer flat mutations', () => {
         const writer = new StorageWriter(logger, backend);
         const params = { trino: { endpoint: 'committed', catalogName: '', auth: { authType: 'AUTH_BASIC' as const } } };
         const paramsDraft = { trino: { ...params.trino, endpoint: 'unfinished' } };
-        let state = {
-            connectionId: TEST_CONNECTION_ID, params,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            connectionHealth: ConnectionHealth.NOT_STARTED, connectionStatus: ConnectionStatus.NOT_STARTED,
-            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: params.trino, setupTimings: {} } } },
-        } as ConnectionState;
+        const details = { type: TRINO_CONNECTOR, value: { proto: { setupParams: params.trino, setupTimings: {} } } } as ConnectionStateDetailsVariant;
+        let state: ConnectionState = {
+            ...createConnectionState(await testCore(), CONNECTOR_INFOS[ConnectorType.TRINO], details, { params }),
+            connectionId: TEST_CONNECTION_ID,
+        };
+        expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
+        expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
         for (const discard of [false, true]) {
             state = reduceConnectionState(state, discard
                 ? { type: DISCARD_CONNECTION_DRAFT, value: null }

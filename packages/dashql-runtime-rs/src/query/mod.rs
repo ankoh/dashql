@@ -14,6 +14,8 @@ use std::collections::HashMap;
 
 use dashql_core::error::{Error, Result};
 
+use crate::workbook::next_revision;
+
 use progress::{EngineProgressPayload, QueryProfileProgress};
 
 /// The id of a query, unique among the queries of the app
@@ -538,23 +540,43 @@ impl QueryExecutionHistory {
                     query.cache_key = Some(cache_key);
                     query.served_from_cache = served_from_cache;
                     query.cached_at = cached_at.or(query.cached_at);
-                    query.revision += 1;
+                    query.revision = next_revision();
                     outcome.changed = true;
                 }
             }
             QueryExecutionAction::QueryCacheDeleted { query_id } => {
                 if let Some(query) = self.query_mut(query_id) {
                     query.cache_deleted = true;
-                    query.revision += 1;
+                    query.revision = next_revision();
                     outcome.changed = true;
                 }
             }
             action => self.apply_to_active(action, &mut outcome),
         }
         if outcome.changed {
-            self.revision += 1;
+            self.revision = next_revision();
         }
         Ok(outcome)
+    }
+
+    /// Drop every query and the metrics, e.g. of a connection that is reset or deleted. Returns the ids of the queries
+    /// that were active, the host stops them at the backend, and releases the result tables.
+    pub fn clear(&mut self) -> (Vec<QueryId>, QueryExecutionOutcome) {
+        let active = std::mem::take(&mut self.queries_active_ordered);
+        let mut outcome = QueryExecutionOutcome { changed: true, effects: Vec::new() };
+        let finished = std::mem::take(&mut self.queries_finished_ordered);
+        let mut queries_active = std::mem::take(&mut self.queries_active);
+        let mut queries_finished = std::mem::take(&mut self.queries_finished);
+        for query_id in active.iter().chain(finished.iter()) {
+            let query = queries_active.remove(query_id).or_else(|| queries_finished.remove(query_id));
+            if let Some(table) = query.and_then(|query| query.result_table) {
+                outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id: *query_id, table });
+            }
+        }
+        self.metrics = ConnectionMetrics::default();
+        self.snapshot_queries_active_finished += 1;
+        self.revision = next_revision();
+        (active, outcome)
     }
 
     /// The active or finished query with an id, for a change
@@ -585,7 +607,7 @@ impl QueryExecutionHistory {
         let Some(query) = self.queries_active.get_mut(&query_id) else {
             return;
         };
-        query.revision += 1;
+        query.revision = next_revision();
         outcome.changed = true;
         match action {
             QueryExecutionAction::QuerySending { now, .. } => {
@@ -715,7 +737,7 @@ impl QueryExecutionHistory {
                     keep_own = false;
                 } else {
                     other.result_table = None;
-                    other.revision += 1;
+                    other.revision = next_revision();
                     outcome.effects.push(QueryExecutionEffect::ReleaseResultTable { query_id: *other_id, table });
                 }
             }

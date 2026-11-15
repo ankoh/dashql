@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
@@ -27,7 +27,8 @@ import { QueryResultCacheProvider } from '../storage/query_result_cache_provider
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
 import { useConnectionRegistry } from './connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs } from '@ankoh/dashql-runtime/connections/query_execution_args';
@@ -120,21 +121,23 @@ function Capture(props: { database: ConnectionState; capture: (api: Api) => void
     return null;
 }
 
-function createDatabase(executeQuery: unknown, setupParams: object | null = { protocol: 'V3_GRPC', endpoint: 'http://hyper' }): ConnectionState {
-    return {
-        connectionId: CONNECTION_ID, active: false,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams }, channel: { executeQuery, close: vi.fn() } } },
-        instance: { touchedRelations: (query: string) => query.startsWith('create table') ? [new core.buffers.analyzer.QualifiedTableNameT(0, null, null, 't')] : [] },
-        catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-        catalogRelationEntryId: 1,
-        catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false, touchedRelations: [], touchedFailures: 0 },
-        queriesActive: new Map(), queriesActiveOrdered: [],
-        queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
-    } as unknown as ConnectionState;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+/// The core of the connections of the tests
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// A Hyper connection on the Rust connection of the core, online with a channel that runs the queries. Other setup
+/// params than those of the connection are only read by the tests.
+function createDatabase(executeQuery: unknown, setupParams?: object | null): ConnectionState {
+    const state = createTestConnection(dql, {
+        connectionId: CONNECTION_ID,
+        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
+        channel: { executeQuery, close: vi.fn() },
+    });
+    expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
+    if (setupParams === undefined) return state;
+    const proto = { ...state.details.value.proto, setupParams: setupParams ?? undefined };
+    return { ...state, details: { ...state.details, value: { ...state.details.value, proto } } } as ConnectionState;
 }
 
 function createCache(overrides: Partial<QueryResultCache> = {}): QueryResultCache {

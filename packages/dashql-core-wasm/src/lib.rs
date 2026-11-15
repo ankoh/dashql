@@ -66,6 +66,7 @@ macro_rules! finish {
 
 // After the macros, the module uses them
 mod workbook;
+mod connection;
 mod computations;
 
 /// A formatting config from the numeric arguments of the JS API

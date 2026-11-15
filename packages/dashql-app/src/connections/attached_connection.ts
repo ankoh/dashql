@@ -14,6 +14,6 @@ export function useConnectionAttach(): (dql: dashql.DashQL, connector: Connector
     const allocate = useConnectionAllocator();
     return React.useCallback((dql: dashql.DashQL, connector: ConnectorType) => {
         const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
-        return allocate({ ...createConnectionStateFromParams(dql, params), active: true });
+        return allocate(createConnectionStateFromParams(dql, params, { active: true }));
     }, [allocate]);
 }

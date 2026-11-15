@@ -4,7 +4,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { ConnectionState, createConnectionState } from './connection_state.js';
+import { ConnectionState, createConnectionState, type ConnectionStateOptions } from './connection_state.js';
 import type { ConnectionParams } from './connection_params.js';
 const LOG_CTX = "connection";
 
@@ -72,6 +72,13 @@ export function decodeConnectionFromProto(conn: connection.Connection, workbookI
     }
 }
 
-export function restoreConnectionState(instance: dashql.DashQL, connectionId: string, info: ConnectorInfo, details: ConnectionStateDetailsVariant, paramsDraft?: ConnectionParams): ConnectionState {
-    return { ...createConnectionState(instance, info, details, { active: true, paramsDraft }), connectionId };
+export function restoreConnectionState(
+    instance: dashql.DashQL,
+    connectionId: string,
+    info: ConnectorInfo,
+    details: ConnectionStateDetailsVariant,
+    paramsDraft?: ConnectionParams,
+    options: Pick<ConnectionStateOptions, 'name' | 'cacheQueryResults'> = {},
+): ConnectionState {
+    return { ...createConnectionState(instance, info, details, { ...options, active: true, paramsDraft }), connectionId };
 }

@@ -612,3 +612,22 @@ fn profile_execution_state_takes_the_rows_of_an_edge_from_the_slot_of_the_child_
     // Not reported is unknown, not 0
     assert_eq!(state.edge_rows(NO_INDEX, 1), None);
 }
+
+// Clearing the history of a stopped connection
+
+#[test]
+fn clearing_returns_the_active_queries_and_releases_the_result_tables() {
+    let mut history = QueryExecutionHistory::new();
+    succeed(&mut history, 1, metadata(QueryType::UserProvided, None));
+    start(&mut history, 2, metadata(QueryType::UserProvided, None));
+    let snapshot = history.snapshot_queries_active_finished();
+    let revision = history.revision();
+    let (active, outcome) = history.clear();
+    assert_eq!(active, vec![2]);
+    assert_eq!(outcome.effects, vec![release(1)]);
+    assert!(history.query(1).is_none() && history.query(2).is_none());
+    assert!(history.active_ids().is_empty() && history.finished_ids().is_empty());
+    assert_eq!(history.metrics().successful_queries.total_queries, 0);
+    assert!(history.snapshot_queries_active_finished() > snapshot);
+    assert!(history.revision() > revision);
+}

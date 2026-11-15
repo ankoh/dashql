@@ -18,6 +18,7 @@ import type { StorageWriter } from '@ankoh/dashql-runtime/storage/storage_writer
 import { createWorkbookScripts, scriptConnectionOf, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { createEmptyMetadata } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import * as core from '@ankoh/dashql-core';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { useWorkbookScriptsRegistry } from './scripts/workbook_scripts_registry.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { TestRuntime } from '../tests/test_runtime.js';
@@ -33,20 +34,9 @@ const WORKBOOK_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
 /// A Trino connection without a channel
 function connection(connectionId: string, endpoint: string): ConnectionState {
-    return {
-        connectionId, active: true,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-        connectionHealth: ConnectionHealth.NOT_STARTED, metrics: createConnectionMetrics(),
-        params: { trino: { endpoint } },
-        details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: { endpoint } } } },
-        instance: dql,
-        catalog: dql.createCatalog(),
-        catalogRelationEntryId: 1,
-        catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false },
-        queriesActive: new Map(), queriesActiveOrdered: [],
-        queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
-    } as unknown as ConnectionState;
+    const state = createTestConnection(dql, { connectionId, params: { trino: { endpoint } } as any, active: true });
+    expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
+    return state;
 }
 
 /// A workbook whose next script runs on a connection

@@ -1,10 +1,12 @@
 # The runtime in Rust
 
-Status: the workbook scripts of the app run on Rust. `packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the
-scripts of a workbook, linked into the core module, and `reduceWorkbookScripts` of the TypeScript runtime is an adapter
-over it (`workbook/scripts/workbook_native.ts`). The computations run on Rust the same way
-(`compute/computation_native.ts`). The connection state and the query execution state are ported as modules of the
-crate with their tests, the app doesn't use them yet. The name of the package is provisional.
+Status: the workbook scripts, the connections and the computations of the app run on Rust.
+`packages/dashql-runtime-rs` (crate `dashql_runtime`) holds the scripts of a workbook, the state of a connection with
+the history of its queries and the computations, linked into the core module. `reduceWorkbookScripts` of the TypeScript
+runtime is an adapter over the workbook (`workbook/scripts/workbook_native.ts`), `reduceConnectionState` one over the
+connection (`connections/connection_native.ts`), `reduceComputationState` one over the computations
+(`compute/computation_native.ts`). The catalog loader, the connectors and the tasks of the computations are ported
+without I/O and not used yet. The name of the package is provisional.
 
 ## Why
 
@@ -38,7 +40,19 @@ buffers in between. The boundary moves to what the UI reads.
   the same, its session handle while it keeps its session. Plain fields cross as JSON, editor updates, staged diffs and
   visualizations as packed FlatBuffers.
 - **Actions are method calls.** The class `Workbook` of the module (`packages/dashql-core-wasm/src/workbook.rs`) takes
-  typed arguments, `DashQLWorkbook` of `@ankoh/dashql-core` wraps it.
+  typed arguments, `DashQLWorkbook` of `@ankoh/dashql-core` wraps it. The class `Connection`
+  (`packages/dashql-core-wasm/src/connection.rs`) holds the state of a connection and the history of its queries,
+  `DashQLConnection` wraps it. Params, errors and metrics cross as JSON.
+- **A connection owns its catalog.** The connection holds its catalog with the entry ids of all catalogs of the module.
+  `DashQLConnection.catalog` is one `Catalog` handle per connection that shares it, the app hands it to the scripts of
+  workbooks, so the scripts publish into the catalog of the connection. The script with the functions of the
+  connection stays in Rust, the catalog loader replaces its text through the connection.
+- **Channels, tables and cancellations stay in JavaScript.** `NativeConnection` keeps the channels and the result
+  tables by id, the abort controllers and the errors of catalog updates and queries, and the structured progress of
+  a query. The effects map to what the reducer in TypeScript did: cancel the setup, invalidate the catalog batches,
+  abort catalog updates and the queries of a stopped connection, close or release a channel, release a result table.
+  A reset or a delete stops the queries: the binding drops the history (`QueryExecutionHistory::clear`) and names the
+  active queries in the effect.
 - **No panics.** A panic traps the whole module, a thrown error of a reducer in TypeScript only drops the action.
   Actions return `Result`, a failed action leaves the workbook unchanged, and the crate avoids indexing and unwraps
   on input.
@@ -56,9 +70,9 @@ buffers in between. The boundary moves to what the UI reads.
 4. **The other state.** The connection state (`src/connections/`, with the Hyper, Trino and Salesforce connectors and
    the catalog updates), the query execution state (`src/query/`, with the progress model and the profile state) and
    the computation state (`src/compute/`, with the cross filters) are ported with their tests. Arrow tables and data
-   frames stay in JavaScript as opaque ids, a state releases one through an effect once nothing in it holds it. Their
-   bindings and switches follow, like the ones of the workbook. The computations are switched, see
-   [The computations](#the-computations).
+   frames stay in JavaScript as opaque ids, a state releases one through an effect once nothing in it holds it. The
+   connections with their query histories and the computations are switched: the bindings, the adapters and the tests
+   of the runtime and the app run on Rust, see [The computations](#the-computations).
 5. **The editor and the services.** The editor sends its events to the workbook, the planner runs in the workbook,
    then the services move with async calls of the host, see [The whole runtime in Wasm](#the-whole-runtime-in-wasm).
 
@@ -237,6 +251,9 @@ about that.
 ## Open
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
+- The query history of the shell (`query/shell_query_execution.ts`) still runs on `reduceQueryAction` in TypeScript.
+- The progress model of a query runs in the query executor in TypeScript, the Rust history gets the plain fields of a
+  progress update, the adapter keeps the structured progress. The planned statement of a query stays in TypeScript.
 - A profile in the browser: the numbers above are Node, with two other builds on the machine.
 
 ## Kept on purpose
@@ -249,5 +266,9 @@ about that.
   an action until a registry of workbooks moves too.
 - The states of the app share the Rust workbook: only the latest state of a workbook can be reduced, like the registry
   does. An older state still reads its scripts as they were, but an action on it acts on the latest workbook.
+- The states of a connection share the Rust connection like the ones of a workbook. A spread over a state is lost with
+  the next action, the options of `createConnectionState` set the name, the caching and whether it is active.
+- The script with the functions of a deleted connection is gone with the connection, the catalog of a deleted
+  connection is cleared and other holders see it empty.
 - The link to a published workbook stays whole in TypeScript (the workbook file holds more than its ids), the Rust
   workbook knows its ids and whether it is a preview.

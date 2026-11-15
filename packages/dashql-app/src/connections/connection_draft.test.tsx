@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import {
     ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, HEALTH_CHECK_FAILED,
     HEALTH_CHECK_CANCELLED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION, SET_CONNECTION_DRAFT,
@@ -31,15 +33,17 @@ function globalDraft(backend: WorkbookTestBackend): ConnectionParams | undefined
     return backend.connections?.find(entry => entry.id === TEST_CONNECTION_ID)?.paramsDraft;
 }
 
-function database(type: ConnectorType): ConnectionState {
-    const connectorInfo = CONNECTOR_INFOS[type];
-    const params = createDefaultConnectionParamsForConnector(connectorInfo);
-    return {
-        connectionId: TEST_CONNECTION_ID, connectorInfo, params, active: false,
-        connectionStatus: ConnectionStatus.NOT_STARTED, connectionHealth: ConnectionHealth.NOT_STARTED,
-        details: getConnectionStateDetailsFromParams(params),
-        catalog: { clear: vi.fn() }, catalogUpdates: { tasksRunning: new Map() }, queriesActive: new Map(),
-    } as unknown as ConnectionState;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// A new connection of a connector on the Rust connection of the core
+function database(type: ConnectorType, active = false): ConnectionState {
+    const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[type]);
+    const state = createTestConnection(dql, { connectionId: TEST_CONNECTION_ID, params, active });
+    expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
+    expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
+    return state;
 }
 
 /// A workbook that uses the connection without a script, the registry of the connections reads which workbooks use it
@@ -183,7 +187,7 @@ describe('durable connection drafts', () => {
             await act(async () => {
                 setWorkbooks(withWorkbookOnConnection);
                 setRegistry(reg => {
-                    reg.connections.set(TEST_CONNECTION_ID, { ...database(ConnectorType.TRINO), active });
+                    reg.connections.set(TEST_CONNECTION_ID, database(ConnectorType.TRINO, active));
                     return { ...reg };
                 });
             });

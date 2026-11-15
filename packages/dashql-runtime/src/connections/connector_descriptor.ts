@@ -2,7 +2,6 @@ import type { CatalogNameDefaults } from '@ankoh/dashql-core';
 
 import type { ConnectionParams, HyperConnectionParams, SalesforceConnectionParams, TrinoConnectionParams } from './connection_params.js';
 import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import type { ConnectionAction, ConnectionState } from './connection_state.js';
 import type { HyperConnectionDetails } from './hyper/hyper_connection_state.js';
 import type { SalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
 import type { TrinoConnectionStateDetails } from './trino/trino_connection_state.js';
@@ -66,8 +65,6 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     defaultParams(): ConnectorParamsMap[K];
     /// Create the details of the connection state
     createDetails(params: ConnectorParamsMap[K]): ConnectorDetailsMap[K];
-    /// Apply an action of the connector to the connection state, null if the action is not one of its own
-    reduce(state: ConnectionState, action: ConnectionAction): ConnectionState | null;
     /// Remove the raw form rows, they belong only to the local draft
     withoutDraftRows(params: ConnectorParamsMap[K]): ConnectorParamsMap[K];
     /// Strip the secrets before the params are shared, the login hint only if `withLoginHint` is false

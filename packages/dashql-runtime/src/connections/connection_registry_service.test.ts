@@ -2,11 +2,14 @@
 // connections (ConnectionPersistenceService): routing, what is persisted, the catalogs of refreshes and lookups, shared
 // connections
 import * as dashql from '@ankoh/dashql-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { generateRelationsFile, packCatalogTable } from './catalog/catalog_sql_generator.js';
-import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog/catalog_update_state.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
+import { publishCatalogBatchSync } from './catalog/catalog_batch.js';
+import { generateRelationsFile, packCatalogTable, packRelationName, type RelationName } from './catalog/catalog_sql_generator.js';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant, type CatalogUpdateTaskState } from './catalog/catalog_update_state.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from './connector_info.js';
+import { connectionStateDetailsOf, connectorOfParams, connectorParams } from './connector_descriptor.js';
+import type { ConnectionParams } from './connection_params.js';
 import { ConnectionPersistenceService, type ConnectionSaveResult } from './connection_persistence_service.js';
 import { ConnectionRegistryService } from './connection_registry_service.js';
 import {
@@ -21,7 +24,10 @@ import {
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
     ConnectionHealth,
+    createConnectionState,
     DELETE_CONNECTION,
+    reduceConnectionState,
+    restoreCatalogUpdates,
     SET_CONNECTION_DRAFT,
     UPDATE_CATALOG,
     type ConnectionState,
@@ -34,6 +40,34 @@ import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook
 
 /// Run a step of a test and wait for it
 const step = async (run: () => unknown) => { await run(); };
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: dashql.DashQL;
+beforeAll(async () => { dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+afterEach(() => dql.resetUnsafe());
+
+/// An active connection on the Rust connection of the core with a catalog as the files of a connection hold it
+function catalogConnection(connectionId: string, params: ConnectionParams, catalog: {
+    described?: boolean;
+    relations?: string;
+    functions?: string;
+    gone?: RelationName[];
+    running?: CatalogUpdateTaskState[];
+} = {}): ConnectionState {
+    const connector = connectorOfParams(params);
+    const details = connectionStateDetailsOf(connector, connectorParams(connector, params));
+    let state: ConnectionState = { ...createConnectionState(dql, connector.info, details, { active: true, params }), connectionId };
+    if (catalog.relations != null) publishCatalogBatchSync(dql, state.catalog, [{ entryId: state.catalogRelationEntryId, text: catalog.relations }]);
+    if (catalog.functions != null) state.catalogFunctionScript.replaceText(catalog.functions);
+    if (catalog.gone != null) {
+        state.catalog.replaceTables(state.catalogRelationEntryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, { relations: catalog.gone.map(packRelationName), tables: [] });
+    }
+    if (catalog.described != null) restoreCatalogUpdates(state, catalog.described, null);
+    for (const task of catalog.running ?? []) {
+        state = reduceConnectionState(state, { type: UPDATE_CATALOG, value: [task.taskId, task] }, new TestLogger());
+    }
+    return state;
+}
 
 /// The registry of connections with the storage writer and the saving of connections, as the app wires them
 function createRegistry(backend: WorkbookTestBackend, references: ConnectionReferences) {
@@ -146,24 +180,16 @@ describe('catalog refresh persistence', () => {
             connections: [{ connectionId: TEST_CONNECTION_ID, params: { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } } as any }],
         }));
         const descriptor = new dashql.buffers.catalog.CatalogDescriptorT([packCatalogTable({
-            databaseName: 'lakehouse', schemaName: 'public', tableName: 'Account__dlm', columns: [{ name: 'Id__c', ordinalPosition: 1, dataType: 'VARCHAR' }],
+            databaseName: 'lakehouse', schemaName: 'public', tableName: 'Account__dlm', columns: [{ name: 'Id__c', ordinalPosition: 1, dataType: 'varchar' }],
         })], []);
         const schemaSQL = generateRelationsFile(descriptor);
         const functionsSQL = 'CREATE FUNCTION test() AS 1;';
-        const script = (sql: string) => ({ toString: () => sql });
-        const connection = {
-            connectionId: TEST_CONNECTION_ID,
-            active: true,
-            params: { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } },
-            connectorInfo: { connectorType: ConnectorType.SALESFORCE_DATA_CLOUD },
-            details: { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: { instanceUrl: 'https://example.my.salesforce.com' } } } },
-            catalog: { readDescriptor: () => descriptor, absentRelations: () => [new dashql.buffers.analyzer.QualifiedTableNameT(0, 'lakehouse', 'public', 'Gone__dlm')] },
-            catalogRelationEntryId: 1,
-            catalogFunctionScript: script(functionsSQL),
-            catalogUpdates: {
-                tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: true, touchedRelations: [],
-            },
-        } as unknown as ConnectionState;
+        const connection = catalogConnection(TEST_CONNECTION_ID, { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } } as any, {
+            described: true,
+            relations: schemaSQL,
+            functions: functionsSQL,
+            gone: [{ databaseName: 'lakehouse', schemaName: 'public', tableName: 'Gone__dlm' }],
+        });
         const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
             await step(async () => setRegistry(reg => {
@@ -206,16 +232,12 @@ describe('catalog refresh persistence', () => {
             status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
             queries: [], error: null, startedAt: new Date(), finishedAt: null,
         };
-        const connection = {
-            connectionId: TEST_CONNECTION_ID, active: true,
-            params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } },
-            connectorInfo: { connectorType: ConnectorType.HYPER },
-            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: {} } } },
-            catalog: { readDescriptor: () => new dashql.buffers.catalog.CatalogDescriptorT([], []), absentRelations: () => [] },
-            catalogRelationEntryId: 1,
-            catalogFunctionScript: { toString: () => 'unchanged' },
-            catalogUpdates: { tasksRunning: new Map([[4, task]]), tasksFinished: new Map(), currentFullRefresh: null, described, touchedRelations: [], touchedFailures: 0 },
-        } as unknown as ConnectionState;
+        const connection = catalogConnection(TEST_CONNECTION_ID, { hyper: { protocol: 'V3_HTTP', endpoint: 'http://hyper.example' } } as any, {
+            described,
+            relations: '',
+            functions: 'unchanged',
+            running: [task],
+        });
         const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
             step(() => setRegistry(reg => {
@@ -259,18 +281,12 @@ describe('catalog refresh persistence', () => {
             taskId: 3, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
             status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
             queries: [], error: null, startedAt: new Date(), finishedAt: null,        };
-        const embedded = {
-            connectionId: TEST_CONNECTION_ID, active: true,
-            params: { hyper: { protocol: 'WASM' } },
-            connectorInfo: { connectorType: ConnectorType.HYPER },
-            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } },
-            catalogRelationEntryId: 1,
-            catalogFunctionScript: { toString: () => functionsSQL },
-            catalogUpdates: {
-                tasksRunning: new Map([[3, task]]), tasksFinished: new Map(), currentFullRefresh: 3,
-                described: false,
-            },
-        } as unknown as ConnectionState;
+        const embedded = catalogConnection(TEST_CONNECTION_ID, { hyper: { protocol: 'WASM' } } as any, {
+            described: false,
+            functions: functionsSQL,
+            running: [task],
+        });
+        expect(embedded.catalogUpdates.currentFullRefresh).toBe(3);
         const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID] }));
         try {
             step(() => setRegistry(reg => {
@@ -290,22 +306,13 @@ describe('catalog refresh persistence', () => {
         const backend = new WorkbookTestBackend();
         backend.workbooks.set(TEST_WORKBOOK_ID, testWorkbook());
         const attachedId = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
-        const functionScript = { toString: () => 'CREATE FUNCTION attached() AS 1;' };
+        const functions = 'CREATE FUNCTION attached() AS 1;';
         const task = {
             taskId: 2, taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
             status: CatalogUpdateTaskStatus.STARTED, cancellation: new AbortController(),
             queries: [], error: null, startedAt: new Date(), finishedAt: null,        };
-        const attached = {
-            connectionId: attachedId, active: true,
-            params: { salesforce: {} },
-            connectorInfo: { connectorType: ConnectorType.SALESFORCE_DATA_CLOUD },
-            details: { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: {} } } },
-            catalog: { readDescriptor: () => null, absentRelations: () => [] }, catalogRelationEntryId: 1, catalogFunctionScript: functionScript,
-            catalogUpdates: {
-                tasksRunning: new Map([[2, task]]), tasksFinished: new Map(), currentFullRefresh: 2,
-                described: true, touchedRelations: [],
-            },
-        } as unknown as ConnectionState;
+        // A catalog without relations, like one that a reset cleared meanwhile
+        const attached = catalogConnection(attachedId, { salesforce: {} } as any, { described: true, functions, running: [task] });
         const { setRegistry, dispatch, writer, service, dispose } = createRegistry(backend, fixedConnectionReferences({ [TEST_WORKBOOK_ID]: [TEST_CONNECTION_ID, attachedId] }));
         try {
             step(() => setRegistry(reg => {
@@ -319,7 +326,7 @@ describe('catalog refresh persistence', () => {
             expect([...backend.connectionFiles.keys()].every(key => key.startsWith(`${attachedId}/`))).toBe(true);
             // A catalog that a reset cleared meanwhile doesn't replace what is on disk
             expect(backend.connectionFiles.has(`${attachedId}/dashql-catalog-relations.sql`)).toBe(false);
-            expect(backend.connectionFiles.get(`${attachedId}/dashql-catalog-functions.sql`)).toBe(functionScript.toString());
+            expect(backend.connectionFiles.get(`${attachedId}/dashql-catalog-functions.sql`)).toBe(functions);
         } finally {
             dispose();
         }
@@ -339,19 +346,13 @@ describe('shared connection persistence', () => {
         });
     }
 
-    async function setupRegistry(workbookIds: string[], overrides: Partial<ConnectionState> = {}) {
+    async function setupRegistry(workbookIds: string[], params: ConnectionParams = trino('https://old')) {
         const backend = new WorkbookTestBackend();
         for (const workbookId of [TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]) {
             backend.workbooks.set(workbookId, testWorkbook({ workbookId, connections: [{ connectionId: TEST_CONNECTION_ID, params: trino('https://old') }] }));
         }
-        const connection = {
-            connectionId: TEST_CONNECTION_ID,
-            active: true,
-            params: trino('https://old'),
-            connectionHealth: ConnectionHealth.NOT_STARTED,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            ...overrides,
-        } as unknown as ConnectionState;
+        const connection = catalogConnection(TEST_CONNECTION_ID, params);
+        expect(connection.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
         const created = createRegistry(backend, fixedConnectionReferences(Object.fromEntries(workbookIds.map(workbookId => [workbookId, [TEST_CONNECTION_ID]]))));
         const harness = {
             get registry() { return created.service.store.current; },
@@ -431,11 +432,7 @@ describe('shared connection persistence', () => {
     });
 
     it('refuses to delete the embedded Hyper that no workbook uses', async () => {
-        const { harness, unmount } = await setupRegistry([], {
-            params: { hyper: { protocol: 'WASM' } } as any,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } as any,
-        });
+        const { harness, unmount } = await setupRegistry([], { hyper: { protocol: 'WASM' } } as any);
         try {
             await dispatchAndSettle(harness, { type: DELETE_CONNECTION, value: null });
             expect(harness.registry.connections.has(TEST_CONNECTION_ID)).toBe(true);

@@ -893,3 +893,36 @@ fn health_and_its_label() {
     assert!(!ConnectionHealth::Failed.is_open());
     assert_eq!(ConnectionHealth::NotStarted.to_string(), "Not Started");
 }
+
+#[test]
+fn restoring_the_catalog_updates_and_the_function_script_text() {
+    let mut connection = hyper();
+    let revision = connection.revision();
+    let relation = RelationName::new("hyper", "public", "t");
+    connection.restore_catalog_updates(Some(true), Some(vec![relation.clone()]));
+    assert!(connection.catalog_updates().described);
+    assert_eq!(connection.catalog_updates().touched_relations, vec![relation]);
+    assert!(connection.revision() > revision);
+    connection.replace_function_script_text("CREATE FUNCTION f() RETURNS int;").unwrap();
+    assert_eq!(connection.function_script().unwrap().to_text(), "CREATE FUNCTION f() RETURNS int;");
+    apply(&mut connection, ConnectionAction::Delete);
+    assert!(connection.replace_function_script_text("").is_err());
+}
+
+#[test]
+fn connections_take_the_catalog_of_the_caller() {
+    let entry_ids = dashql_core::catalog::EntryIdSource::new();
+    let other = dashql_core::catalog::Catalog::with_entry_ids(entry_ids.clone());
+    let taken = other.allocate_entry_id();
+    let params = ConnectionParams::default_for(ConnectorType::Hyper);
+    let connection = ConnectionState::with_catalog(
+        "test",
+        ConnectionDetails::new(&params),
+        ConnectionStateOptions::default(),
+        NOW,
+        dashql_core::catalog::Catalog::with_entry_ids(entry_ids),
+    );
+    // The entry ids of the connection come from the shared source
+    assert_ne!(connection.relation_entry_id(), taken);
+    assert_ne!(function_entry_id(&connection), taken);
+}

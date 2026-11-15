@@ -19,10 +19,12 @@ import {
 } from './connection_state.js';
 import { TestLogger } from '../testing/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from './connector_info.js';
-import { createConnectionStateDetails } from './connection_state_details.js';
+import { createConnectionStateDetails, type ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { HYPER_CHANNEL_SETUP_STARTED } from './hyper/hyper_connection_state.js';
+import type { HyperConnectionParams } from '@ankoh/dashql-jsonschema/connection.js';
 import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog/catalog_batch.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogOutOfDate, MAX_TOUCHED_ATTEMPTS } from './catalog/catalog_update_state.js';
-import { createQueryExecutionState, QueryType } from '../query/query_execution_state.js';
+import { createQueryExecutionState, EXECUTE_QUERY, QueryType } from '../query/query_execution_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -49,12 +51,16 @@ function publishCatalog(database: ConnectionState, relations: string, functions:
 
 describe('attached database descriptor catalogs', () => {
     it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('promptly aborts pending publishers before clearing running tasks on %s', async type => {
-        const database = state();
+        let database = state();
+        publishCatalog(database, 'CREATE TABLE stored(id int);');
         const controllers = [new AbortController(), new AbortController()];
         const aborts = controllers.map(controller => vi.spyOn(controller, 'abort'));
-        const cleanup = vi.spyOn(database.catalog, type === RESET_CONNECTION ? 'clear' : 'destroy');
+        // The Rust connection clears the catalog of a reset itself, the handle of a deleted connection goes after the
+        // effects
+        const cleanup = type === DELETE_CONNECTION ? vi.spyOn(database.catalog, 'destroy') : null;
+        const shared = database.native.connection.ptr.assertNotNull().catalog();
         for (const [taskId, cancellation] of controllers.entries()) {
-            database.catalogUpdates.tasksRunning.set(taskId, {
+            database = reduceConnectionState(database, { type: UPDATE_CATALOG, value: [taskId, {
                 taskId,
                 taskVariant: CatalogUpdateVariant.FULL_CATALOG_REFRESH,
                 status: CatalogUpdateTaskStatus.STARTED,
@@ -63,7 +69,7 @@ describe('attached database descriptor catalogs', () => {
                 error: null,
                 startedAt: new Date(),
                 finishedAt: null,
-            });
+            }] }, new TestLogger());
         }
         const publication = publishCatalogBatch(dql, database.catalog, [{
             entryId: database.catalogRelationEntryId,
@@ -75,9 +81,13 @@ describe('attached database descriptor catalogs', () => {
         const outcome = publication.then(() => 'published', error => error.name);
         const next = reduceConnectionState(database, { type, value: null }, {} as any);
         expect(controllers.every(controller => controller.signal.aborted)).toBe(true);
-        for (const abort of aborts) {
-            expect(abort.mock.invocationCallOrder[0]).toBeLessThan(cleanup.mock.invocationCallOrder[0]);
+        if (cleanup != null) {
+            for (const abort of aborts) {
+                expect(abort.mock.invocationCallOrder[0]).toBeLessThan(cleanup.mock.invocationCallOrder[0]);
+            }
         }
+        expect(shared.containsEntryId(database.catalogRelationEntryId)).toBe(false);
+        shared.free();
         expect(next.catalogUpdates.tasksRunning.size).toBe(0);
         expect(next.catalogUpdates.currentFullRefresh).toBeNull();
         expect(await Promise.race([outcome, (async () => {
@@ -87,11 +97,10 @@ describe('attached database descriptor catalogs', () => {
     });
 
     it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('cancels the running queries on %s', type => {
-        const database = state();
         const cancellation = new AbortController();
         const query = createQueryExecutionState(1, 1, 'SELECT 1', { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true }, cancellation);
-        database.queriesActive.set(1, query);
-        database.queriesActiveOrdered.push(1);
+        const database = reduceConnectionState(state(), { type: EXECUTE_QUERY, value: [1, query] }, new TestLogger());
+        expect(database.queriesActive.get(1)!.cancellation).toBe(cancellation);
         const next = reduceConnectionState(database, { type, value: null }, {} as any);
         expect(cancellation.signal.aborted).toBe(true);
         expect(cancellation.signal.reason.name).toBe('AbortError');
@@ -99,17 +108,20 @@ describe('attached database descriptor catalogs', () => {
         expect(next.queriesActiveOrdered).toEqual([]);
     });
 
-    it('drops both descriptors before destroying the function script', () => {
+    // The Rust connection drops the descriptors, `packages/dashql-runtime-rs/tests/connections_test.rs` tests the order
+    it('drops both descriptors and the catalog handle on delete', () => {
         const database = state();
         publishCatalog(database, 'CREATE TABLE stored(id int);', 'CREATE FUNCTION stored_fn() RETURNS bigint;');
-        const drops = vi.spyOn(database.catalog, 'dropDescriptor');
-        const destroyFunctions = vi.spyOn(database.catalogFunctionScript, 'destroy');
+        expect(database.catalogFunctionScript.toString()).toBe('CREATE FUNCTION stored_fn() RETURNS bigint;');
+        // Another holder of the catalog, like the scripts of a workbook
+        const shared = database.native.connection.ptr.assertNotNull().catalog();
+        expect(shared.containsEntryId(database.catalogRelationEntryId)).toBe(true);
+        expect(shared.containsEntryId(database.catalogFunctionScript.catalog_entry_id)).toBe(true);
         reduceConnectionState(database, { type: DELETE_CONNECTION, value: null }, {} as any);
-        expect(drops.mock.calls).toEqual([
-            [database.catalogRelationEntryId],
-            [database.catalogFunctionScript.catalog_entry_id],
-        ]);
-        expect(destroyFunctions).toHaveBeenCalledTimes(1);
+        expect(shared.containsEntryId(database.catalogRelationEntryId)).toBe(false);
+        expect(shared.containsEntryId(database.catalogFunctionScript.catalog_entry_id)).toBe(false);
+        expect(database.catalog.ptr.isNull()).toBe(true);
+        shared.free();
     });
 });
 
@@ -154,9 +166,9 @@ describe('what executed statements touched', () => {
     });
 
     it('have no database without a default, the statement can not have touched anything', () => {
-        const database = state();
-        const details = { ...database, details: { type: TRINO_CONNECTOR, value: { proto: {} } } } as unknown as ConnectionState;
-        const next = touch(details, [name(null, 'a')]);
+        const details = { type: TRINO_CONNECTOR, value: { proto: {} } } as unknown as ConnectionStateDetailsVariant;
+        const database = { ...createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.TRINO], details), connectionId: 'test' };
+        const next = touch(database, [name(null, 'a')]);
         expect(next.catalogUpdates.touchedRelations).toEqual([]);
     });
 
@@ -228,7 +240,9 @@ describe('connector type switches', () => {
     });
 
     it('keep the connector of a started connection', () => {
-        const started = { ...state(), connectionStatus: ConnectionStatus.CHANNEL_READY };
+        const params = { protocol: 'WASM', endpoint: '' } as HyperConnectionParams;
+        const started = reduceConnectionState(state(), { type: HYPER_CHANNEL_SETUP_STARTED, value: params }, new TestLogger());
+        expect(started.connectionStatus).toBe(ConnectionStatus.CHANNEL_SETUP_STARTED);
         expect(reduceConnectionState(started, { type: SWITCH_CONNECTOR_TYPE, value: ConnectorType.TRINO }, new TestLogger())).toBe(started);
     });
 });

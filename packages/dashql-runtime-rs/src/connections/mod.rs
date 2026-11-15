@@ -7,7 +7,8 @@
 //! updates of a connection that is reset. The host applies them before anything else runs, a pending publication into
 //! the catalog then fails before it publishes into the cleared catalog.
 //!
-//! The query executions of a connection, its metrics and the query actions are ported separately.
+//! The query executions of a connection, its metrics and the query actions are the history of `crate::query`, the
+//! binding of the core module holds both and drops the history on `ConnectionEffect::StopQueries`.
 //!
 //! Ported from `reduceConnectionState` of `packages/dashql-runtime/src/connections/connection_state.ts`.
 
@@ -46,6 +47,7 @@ pub use salesforce::SalesforceAction;
 pub use trino::TrinoAction;
 
 pub use crate::workbook::CatalogHandle;
+use crate::workbook::next_revision;
 
 /// How far the setup of a connection got
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -281,7 +283,18 @@ fn iso_timestamp(ms: Timestamp) -> String {
 impl ConnectionState {
     /// A connection with an empty catalog
     pub fn new(connection_id: &str, details: ConnectionDetails, options: ConnectionStateOptions, now: Timestamp) -> Self {
-        let catalog = Catalog::new();
+        Self::with_catalog(connection_id, details, options, now, Catalog::new())
+    }
+
+    /// A connection with an empty catalog of the caller, e.g. one that shares the entry ids of the other catalogs of
+    /// the module
+    pub fn with_catalog(
+        connection_id: &str,
+        details: ConnectionDetails,
+        options: ConnectionStateOptions,
+        now: Timestamp,
+        catalog: Catalog,
+    ) -> Self {
         let relation_entry_id = catalog.allocate_entry_id();
         let mut function_script = Script::new(&catalog);
         function_script.replace_text(&function_script_header("-", now));
@@ -491,9 +504,29 @@ impl ConnectionState {
             | ConnectionAction::Salesforce(_)) => self.apply_setup(action, now, &mut outcome)?,
         }
         if outcome.changed {
-            self.revision += 1;
+            self.revision = next_revision();
         }
         Ok(outcome)
+    }
+
+    /// Restore the state of the catalog updates that the files of a restored catalog hold: whether the catalog
+    /// describes the connection and the relations that no update answered yet
+    pub fn restore_catalog_updates(&mut self, described: Option<bool>, touched_relations: Option<Vec<RelationName>>) {
+        if let Some(described) = described {
+            self.catalog_updates.described = described;
+        }
+        if let Some(touched_relations) = touched_relations {
+            self.catalog_updates.touched_relations = touched_relations;
+        }
+        self.revision = next_revision();
+    }
+
+    /// Replace the text of the script with the functions of the connection, the catalog loader publishes its
+    /// descriptor. A deleted connection has no script.
+    pub fn replace_function_script_text(&mut self, text: &str) -> Result<()> {
+        let script = self.function_script.as_mut().ok_or_else(|| Error::invalid_argument("the connection was deleted"))?;
+        script.replace_text(text);
+        Ok(())
     }
 
     /// Apply a step of the setup: a health check or an action of the connector. A setup that brings the connection

@@ -1102,8 +1102,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const createConnection = React.useCallback((connector: ConnectorType) => {
         setCreateConnectionOpen(false);
         const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
-        const initialDatabase = dependencies.createConnectionStateFromParams(props.workbookScripts.instance, params);
-        const database = allocateConnection({ ...initialDatabase, active: true });
+        const initialDatabase = dependencies.createConnectionStateFromParams(props.workbookScripts.instance, params, { active: true });
+        const database = allocateConnection(initialDatabase);
         void modifyCurrentWorkbook({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(database) });
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
         setConnectionOverlayDatabaseId(database.connectionId);

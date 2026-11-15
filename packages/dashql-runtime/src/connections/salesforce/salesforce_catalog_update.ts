@@ -7,7 +7,7 @@ import { SalesforceConnectionStateDetails } from './salesforce_connection_state.
 import { catalogTablesOfSchema, packCatalogDescriptor, type ColumnMetadata } from '../catalog/catalog_sql_generator.js';
 import { LoggerLike } from '../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions } from '../catalog/prefetched_hyper_functions.js';
-import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog/catalog_batch.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions, type CatalogSourceScript } from '../catalog/catalog_batch.js';
 import type { AttachedDatabase } from '../hyper/hyperdb_grpc_client.js';
 
 export const SALESFORCE_CATALOG_DATABASE = 'lakehouse';
@@ -73,7 +73,7 @@ export async function updateSalesforceCatalog(
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
     relationEntryId: number,
-    catalogFunctionScript: dashql.DashQLScript,
+    catalogFunctionScript: CatalogSourceScript,
     api: SalesforceApiClientInterface,
     abortController: AbortController,
     options: CatalogBatchOptions = {},

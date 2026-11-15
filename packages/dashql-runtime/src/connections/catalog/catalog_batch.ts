@@ -1,14 +1,21 @@
 import * as flatbuffers from 'flatbuffers';
 import * as buffers from '@ankoh/dashql-core/buffers';
-import type { DashQL, DashQLCatalog, DashQLScript } from '@ankoh/dashql-core';
+import type { DashQL, DashQLCatalog } from '@ankoh/dashql-core';
 import type { BatchRequest, BatchResult } from '@ankoh/dashql-core';
 import { createBatchWorker, type DashQLBatchWorker } from '@ankoh/dashql-core/browser-worker';
 
 export type BatchProcessor = (request: BatchRequest) => Promise<BatchResult>;
 
+/// A script that keeps the text of a descriptor, e.g. the script with the functions of a connection
+export interface CatalogSourceScript {
+    readonly catalog_entry_id: number;
+    toString(): string;
+    replaceText(text: string): void;
+}
+
 /// SQL of the connection catalog, published as a descriptor in the connection layer. A script keeps the text, an entry
 /// id only gets the descriptor.
-export type CatalogBatchEntry = ({ script: DashQLScript; entryId?: undefined } | { entryId: number; script?: undefined }) & {
+export type CatalogBatchEntry = ({ script: CatalogSourceScript; entryId?: undefined } | { entryId: number; script?: undefined }) & {
     text: string;
     requireFunctions?: boolean;
 };

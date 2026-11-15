@@ -44,6 +44,14 @@ describe('V2 app state loader', () => {
             vi.spyOn(script, 'replaceText');
             return script;
         });
+        // The connections own their catalogs and the scripts with their functions
+        const createConnection = core.createConnection.bind(core);
+        vi.spyOn(core, 'createConnection').mockImplementation((...args: Parameters<DashQL['createConnection']>) => {
+            const connection = createConnection(...args);
+            vi.spyOn(connection.catalog, 'replaceDescriptor');
+            vi.spyOn(connection, 'replaceFunctionScriptText');
+            return connection;
+        });
         const builder = new flatbuffers.Builder();
         builder.finish(new buffers.catalog.CatalogDescriptorT().pack(builder));
         const descriptor = builder.asUint8Array();
@@ -196,7 +204,7 @@ describe('V2 app state loader', () => {
 
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
-        expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledWith(functionsSQL);
+        expect(connection.native.connection.replaceFunctionScriptText).toHaveBeenCalledWith(functionsSQL);
         expect(processor).toHaveBeenCalledWith({ scripts: [
             { id: connection.catalogRelationEntryId.toString(), text: schemaSQL, outputs: ['catalogDescriptor'] },
             { id: connection.catalogFunctionScript.catalog_entry_id.toString(), text: functionsSQL, outputs: ['catalogDescriptor'] },
@@ -214,7 +222,9 @@ describe('V2 app state loader', () => {
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).not.toHaveBeenCalled();
-        expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledTimes(1);
+        // The Rust connection writes the header of the script, the restore leaves the text alone
+        expect(connection.native.connection.replaceFunctionScriptText).not.toHaveBeenCalled();
+        expect(connection.catalogFunctionScript.toString()).toContain('DashQL Connection Functions');
         expect(connection.catalogUpdates.described).toBe(false);
         expect(result.workbookScripts.has(TEST_WORKBOOK_ID)).toBe(true);
     });
@@ -224,16 +234,17 @@ describe('V2 app state loader', () => {
         connectionFiles.set(functionsFile, 'CREATE FUNCTION restored_fn() RETURNS int;');
         const replaceDescriptor = vi.fn<dashql.DashQLCatalog['replaceDescriptor']>(() => { throw new Error('publication failed'); });
         if (source === 'functions') replaceDescriptor.mockImplementationOnce(() => {});
-        const createCatalog = vi.mocked(core.createCatalog).getMockImplementation()!;
-        vi.mocked(core.createCatalog).mockImplementation(() => {
-            const catalog = createCatalog();
-            vi.mocked(catalog.replaceDescriptor).mockImplementation(replaceDescriptor);
-            return catalog;
+        const createConnection = vi.mocked(core.createConnection).getMockImplementation()!;
+        vi.mocked(core.createConnection).mockImplementation((...args) => {
+            const connection = createConnection(...args);
+            vi.mocked(connection.catalog.replaceDescriptor).mockImplementation(replaceDescriptor);
+            return connection;
         });
         const result = await restoreAppState(core, backend, new TestLogger(), () => {}, processor);
         const connection = result.connectionStates.get(TEST_CONNECTION_ID)!;
         expect(connection.catalog.replaceDescriptor).toHaveBeenCalledTimes(source === 'relations' ? 1 : 2);
-        expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledTimes(source === 'relations' ? 1 : 3);
+        // The header of the script comes from the Rust connection: the functions are written and rolled back
+        expect(connection.native.connection.replaceFunctionScriptText).toHaveBeenCalledTimes(source === 'relations' ? 0 : 2);
         expect(connection.catalogFunctionScript.toString()).not.toContain('CREATE FUNCTION restored_fn');
         expect(connection.catalogUpdates.described).toBe(false);
     });
@@ -245,6 +256,7 @@ describe('V2 app state loader', () => {
         expect(result.connectionStates.size).toBe(0);
         expect(result.workbookScripts.size).toBe(0);
         expect(core.createCatalog).not.toHaveBeenCalled();
+        expect(core.createConnection).not.toHaveBeenCalled();
         expect(backend.loadScripts).not.toHaveBeenCalled();
         expect(backend.saveWorkbookManifest).not.toHaveBeenCalled();
     });
@@ -268,7 +280,7 @@ describe('V2 app state loader', () => {
         const second = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
         vi.mocked(backend.listWorkbooks).mockResolvedValue([{ path: TEST_WORKBOOK_ID }, { path: second }]);
         vi.mocked(backend.loadWorkbook).mockImplementation(async id => ({ ...testWorkbook(), workbookId: id }));
-        vi.mocked(core.createCatalog).mockImplementationOnce(() => { throw new Error('no catalog'); });
+        vi.mocked(core.createConnection).mockImplementationOnce(() => { throw new Error('no catalog'); });
         const logger = new TestLogger();
         const result = await restoreAppState(core, backend, logger, () => {});
         expect(result.invalidWorkbooks.get(TEST_WORKBOOK_ID)).toMatchObject({ workbookId: TEST_WORKBOOK_ID, error: 'workbook_not_restored' });

@@ -1,24 +1,31 @@
 import type * as auth from '@ankoh/dashql-jsonschema/auth.js';
-import { expect, vi } from 'vitest';
+import type * as core from '@ankoh/dashql-core';
+import { vi } from 'vitest';
 
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../../connections/connection_state.js';
+import { createConnectionState, reduceConnectionState, type ConnectionAction, type ConnectionState } from '../../connections/connection_state.js';
+import type { ConnectionStateDetailsVariant } from '../../connections/connection_state_details.js';
+import { CONNECTOR_INFOS, ConnectorType, DBCOM_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connections/connector_info.js';
 import type { DetailedError } from '../../utils/error.js';
+import { TestLogger } from '../test_logger.js';
 
-/// A connection state with only the fields that the reducers of the connectors read: statuses and details
-export function connectorState(type: symbol, details: unknown): ConnectionState {
-    return {
-        connectionId: 'test',
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: ConnectionHealth.NOT_STARTED,
-        details: { type, value: details },
-    } as unknown as ConnectionState;
+const CONNECTOR_TYPES = new Map<symbol, ConnectorType>([
+    [HYPER_CONNECTOR, ConnectorType.HYPER],
+    [SALESFORCE_DATA_CLOUD_CONNECTOR, ConnectorType.SALESFORCE_DATA_CLOUD],
+    [TRINO_CONNECTOR, ConnectorType.TRINO],
+    [DBCOM_CONNECTOR, ConnectorType.DBCOM],
+]);
+
+/// The state of a new connection of a connector with the setup params of its details, on the Rust connection of the
+/// core
+export function connectorState(dql: core.DashQL, type: symbol, details: unknown): ConnectionState {
+    const connectorType = CONNECTOR_TYPES.get(type)!;
+    const variant = { type, value: details } as ConnectionStateDetailsVariant;
+    return { ...createConnectionState(dql, CONNECTOR_INFOS[connectorType], variant), connectionId: 'test' };
 }
 
-/// Apply a connector action that the reducer has to handle
-export function reduceConnector<A>(reduce: (state: ConnectionState, action: A) => ConnectionState | null, state: ConnectionState, action: A): ConnectionState {
-    const next = reduce(state, action);
-    expect(next).not.toBeNull();
-    return next!;
+/// Apply a connector action
+export function reduceConnector<A>(state: ConnectionState, action: A): ConnectionState {
+    return reduceConnectionState(state, action as unknown as ConnectionAction, new TestLogger());
 }
 
 /// A channel that only records that it was closed

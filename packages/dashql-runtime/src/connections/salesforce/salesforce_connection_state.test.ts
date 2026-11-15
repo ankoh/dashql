@@ -1,5 +1,6 @@
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
 import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DBCOM_CONNECTOR } from '../connector_info.js';
@@ -17,7 +18,6 @@ import {
     RECEIVED_CORE_AUTH_TOKEN,
     RECEIVED_CORE_USER_INFO,
     RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
-    reduceSalesforceConnectionState,
     REQUESTING_CORE_AUTH_TOKEN,
     REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
     SETUP_CANCELLED,
@@ -39,13 +39,19 @@ const PARAMS: connection.SalesforceConnectionParams = {
 const CORE_TOKEN = { accessToken: 'core', createdAt: '2026-01-01T00:00:00.000Z' } as connection.SalesforceCoreAccessToken;
 const DATA_CLOUD_TOKEN = { createdAt: '2026-01-01T00:00:00.000Z' } as connection.SalesforceDataCloudAccessToken;
 
-const initial = (type: symbol = SALESFORCE_DATA_CLOUD_CONNECTOR) => connectorState(type, createSalesforceConnectionStateDetails(PARAMS));
-const reduce = (state: ConnectionState, action: SalesforceConnectionStateAction) => reduceConnector(reduceSalesforceConnectionState, state, action);
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: dashql.DashQL;
+beforeAll(async () => { dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+afterEach(() => dql.resetUnsafe());
+
+const initial = (type: symbol = SALESFORCE_DATA_CLOUD_CONNECTOR) => connectorState(dql, type, createSalesforceConnectionStateDetails(PARAMS));
+const reduce = (state: ConnectionState, action: SalesforceConnectionStateAction) => reduceConnector(state, action);
 const proto = (state: ConnectionState) => getSalesforceConnectionDetails(state)!.proto;
 const userInfo = (info: Partial<connection.SalesforceCoreUserInfo>) =>
     ({ type: RECEIVED_CORE_USER_INFO, value: info as connection.SalesforceCoreUserInfo }) as const;
 
-describe('reduceSalesforceConnectionState', () => {
+// The Rust connection of the runtime applies the actions, `packages/dashql-runtime-rs/src/connections/salesforce.rs`
+describe('the setup of Salesforce connections', () => {
     it.each([
         [SETUP_STARTED, PARAMS, ConnectionStatus.AUTH_STARTED, ConnectionHealth.CONNECTING, 'authStartedAt'],
         [SETUP_CANCELLED, TEST_ERROR, ConnectionStatus.AUTH_CANCELLED, ConnectionHealth.CANCELLED, 'authCancelledAt'],
@@ -114,9 +120,10 @@ describe('reduceSalesforceConnectionState', () => {
         expect(proto(reset).setupError).toBeUndefined();
     });
 
-    it('returns null for unknown actions and other connectors', () => {
-        expect(reduceSalesforceConnectionState(initial(), { type: Symbol('OTHER'), value: null } as unknown as SalesforceConnectionStateAction)).toBeNull();
-        expect(getSalesforceConnectionDetails(connectorState(HYPER_CONNECTOR, {}))).toBeNull();
+    it('refuses unknown actions and the actions of other connectors', () => {
+        expect(() => reduce(initial(), { type: Symbol('OTHER'), value: null } as unknown as SalesforceConnectionStateAction)).toThrow();
+        expect(() => reduce(connectorState(dql, HYPER_CONNECTOR, {}), { type: OAUTH_WEB_WINDOW_OPENED, value: null })).toThrow();
+        expect(getSalesforceConnectionDetails(connectorState(dql, HYPER_CONNECTOR, {}))).toBeNull();
         expect(getSalesforceConnectionDetails(null)).toBeNull();
     });
 });

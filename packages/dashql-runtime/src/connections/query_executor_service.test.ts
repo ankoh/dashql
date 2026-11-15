@@ -2,7 +2,7 @@
 // failures, cancelling, profiles and the query result cache. The tests of the hooks of the app stay in the app.
 import * as arrow from 'apache-arrow';
 import * as core from '@ankoh/dashql-core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import { LoggableException, type Logger, type TracedLogger } from '../platform/logger/logger.js';
@@ -16,12 +16,18 @@ import {
     type QueryExecutionState,
 } from '../query/query_execution_state.js';
 import { vectorFromArray } from '../testing/arrow_fixtures.js';
-import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
+import { createTestRuntime, testCore, type TestRuntime } from '../testing/test_runtime.js';
 import { TestLogger } from '../testing/test_logger.js';
 import { WebHttpClient } from '../platform/http/web_http_client.js';
 import type { AsyncConsumer } from '../utils/async_consumer.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from './connection_state.js';
+import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import { ConnectionHealth, createConnectionState, HEALTH_CHECK_SUCCEEDED, reduceConnectionState, type ConnectionAction, type ConnectionState } from './connection_state.js';
+import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
+import { HYPER_CHANNEL_READY } from './hyper/hyper_connection_state.js';
+import type { HyperDatabaseChannel } from './hyper/hyperdb_grpc_client.js';
+import { SF_CHANNEL_READY } from './salesforce/salesforce_connection_state.js';
+import type { SalesforceDatabaseChannel } from './salesforce/salesforce_api_client.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 import { computeQueryCacheKeyForConnection, logQueryFailure, type QueryExecutorService } from './query_executor_service.js';
 
@@ -90,21 +96,27 @@ interface Api {
     logger: Logger;
 }
 
-function createDatabase(executeQuery: unknown, setupParams: object | null = { protocol: 'V3_GRPC', endpoint: 'http://hyper' }): ConnectionState {
-    return {
-        connectionId: CONNECTION_ID, active: false,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams }, channel: { executeQuery, close: vi.fn() } } },
-        instance: { touchedRelations: (query: string) => query.startsWith('create table') ? [new core.buffers.analyzer.QualifiedTableNameT(0, null, null, 't')] : [] },
-        catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-        catalogRelationEntryId: 1,
-        catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false, touchedRelations: [], touchedFailures: 0 },
-        queriesActive: new Map(), queriesActiveOrdered: [],
-        queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
-    } as unknown as ConnectionState;
+/// The core of the connections of the tests
+let dql: core.DashQL;
+beforeAll(async () => { dql = await testCore(); });
+
+const reduce = (state: ConnectionState, action: ConnectionAction) => reduceConnectionState(state, action, new TestLogger());
+
+/// A Hyper connection on the Rust connection of the core, online with a channel that runs the queries
+function createDatabase(executeQuery: unknown, setupParams?: object | null, online = true): ConnectionState {
+    const params = { protocol: 'V3_GRPC', endpoint: 'http://hyper' } as connection.HyperConnectionParams;
+    const details = { type: HYPER_CONNECTOR, value: { proto: { setupParams: params } } } as unknown as ConnectionStateDetailsVariant;
+    let state: ConnectionState = { ...createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER], details, { params: { hyper: params } }), connectionId: CONNECTION_ID };
+    if (online) {
+        const channel = { executeQuery, close: vi.fn() } as unknown as HyperDatabaseChannel;
+        state = reduce(state, { type: HYPER_CHANNEL_READY, value: [channel, params] });
+        state = reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
+        expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
+    }
+    if (setupParams === undefined) return state;
+    // A connection that was set up without params, the test reads them only
+    const proto = { ...state.details.value.proto, setupParams: setupParams ?? undefined };
+    return { ...state, details: { ...state.details, value: { ...state.details.value, proto } } } as ConnectionState;
 }
 
 function createCache(overrides: Partial<QueryResultCache> = {}): QueryResultCache {
@@ -197,22 +209,16 @@ describe('QueryExecutorService', () => {
         const description = (name: string, options: Record<string, unknown> = {}) => ({ namespace: 'cdp', function: name, effect: 'read' as const, explain: false, options });
         /// A Salesforce connection, the backend of its channel must stay out of a call
         const salesforce = (executeQuery: unknown): ConnectionState => {
-            const database = createDatabase(executeQuery);
-            return {
-                ...database,
-                connectorInfo: CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD],
-                details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
-                    value: {
-                        proto: { setupParams: {} },
-                        channel: {
-                            executeQuery, close: vi.fn(),
-                            coreToken: { accessToken: 'core-token', instanceUrl: 'https://org.my.salesforce.com' },
-                            dataCloudToken: { instanceUrl: 'https://tenant.c360a.salesforce.com/', jwt: { raw: 'tenant-jwt' } },
-                        },
-                    },
-                },
-            } as unknown as ConnectionState;
+            const details = { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: { proto: { setupParams: {} } } } as unknown as ConnectionStateDetailsVariant;
+            const info = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+            let state: ConnectionState = { ...createConnectionState(dql, info, details), connectionId: CONNECTION_ID };
+            const channel = {
+                executeQuery, close: vi.fn(),
+                coreToken: { accessToken: 'core-token', instanceUrl: 'https://org.my.salesforce.com' },
+                dataCloudToken: { instanceUrl: 'https://tenant.c360a.salesforce.com/', jwt: { raw: 'tenant-jwt' } },
+            } as unknown as SalesforceDatabaseChannel;
+            state = reduce(state, { type: SF_CHANNEL_READY, value: channel });
+            return reduce(state, { type: HEALTH_CHECK_SUCCEEDED, value: null });
         };
         afterEach(() => { vi.restoreAllMocks(); });
 
@@ -609,11 +615,9 @@ describe('QueryExecutorService', () => {
 
         it('serves a hit of a connection that is not connected and has no channel', async () => {
             const cache = createCache({ lookup: vi.fn(async () => CACHE_HIT) });
-            const database = createDatabase(null);
-            const offline = {
-                ...database, connectionHealth: ConnectionHealth.NOT_STARTED,
-                details: { ...database.details, value: { ...database.details.value, channel: null } },
-            } as unknown as ConnectionState;
+            const offline = createDatabase(null, undefined, false);
+            expect(offline.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
+            expect(offline.details.value.channel).toBeNull();
             await createExecutor(null, { cache, compute, database: offline });
             const { table } = await run(cacheableArgs({ cacheOnly: true }));
             expect(table!.numRows).toBe(1);

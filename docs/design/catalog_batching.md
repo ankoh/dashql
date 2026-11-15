@@ -86,7 +86,7 @@ only `catalogDescriptor` outputs.
 
 - `beginCatalogBatch(catalog)` allocates a generation per catalog before metadata is fetched;
   `invalidateCatalogBatch` supersedes it. Stopping a connection invalidates the generation and aborts its
-  running catalog tasks (`connection_state.ts`).
+  running catalog tasks (the effects of the Rust connection, `connection_native.ts`).
 - Immediately before commit, `publishCatalogBatch` checks the generation, the abort signal, an optional
   `isCurrent()` connection check, and the core lifetime. It then prechecks every result: count, matching ids,
   failures, error diagnostics, descriptor presence, and `requireFunctions` (a non-empty function catalog).

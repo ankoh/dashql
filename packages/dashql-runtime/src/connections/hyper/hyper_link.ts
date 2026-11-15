@@ -118,7 +118,7 @@ export function bindHyperLink(
         return { connection: recent, params: { hyper: { ...recent.params.hyper, endpoint: target.endpoint } } };
     }
     return {
-        connection: allocate({ ...createConnectionStateFromParams(dql, createHyperLinkConnectionParams(target.endpoint)), active: true }),
+        connection: allocate(createConnectionStateFromParams(dql, createHyperLinkConnectionParams(target.endpoint), { active: true })),
         params: null,
     };
 }

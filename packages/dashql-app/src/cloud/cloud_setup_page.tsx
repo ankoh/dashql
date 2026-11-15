@@ -230,8 +230,8 @@ function ChooseCloudConnection(props: { onChoose: (connectionId: string, configu
     // There is one local cloud, a connection of the embedded Hyper to the database of the local cloud
     const hasLocalCloud = capable.some(connection => isLocalCloud(connection.params));
     const addLocalCloud = async () => {
-        const state = createConnectionStateFromParams(await setupCore('cloud_setup'), createLocalCloudParams());
-        const connection = allocate({ ...state, name: LOCAL_CLOUD_NAME, active: true });
+        const state = createConnectionStateFromParams(await setupCore('cloud_setup'), createLocalCloudParams(), { name: LOCAL_CLOUD_NAME, active: true });
+        const connection = allocate(state);
         use(connection.connectionId, false);
     };
     return (

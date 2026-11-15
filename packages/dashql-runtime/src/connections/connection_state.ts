@@ -1,18 +1,53 @@
 import * as core from '@ankoh/dashql-core';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { HyperConnectorAction } from './hyper/hyper_connection_state.js';
-import type { SalesforceConnectionStateAction } from './salesforce/salesforce_connection_state.js';
-import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog/catalog_update_state.js';
-import { CatalogSource } from './catalog/catalog_sql_generator.js';
-import { generateFunctionScriptHeader } from './catalog/catalog_function_sql_generator.js';
-import { VariantKind } from '../utils/variant.js';
 import {
-    CONNECTOR_INFOS,
-    ConnectorInfo,
-    getConnectorInfoForParams,
-    ConnectorType,
-} from './connector_info.js';
+    HYPER_CHANNEL_READY,
+    HYPER_CHANNEL_SETUP_CANCELLED,
+    HYPER_CHANNEL_SETUP_FAILED,
+    HYPER_CHANNEL_SETUP_STARTED,
+    type HyperConnectorAction,
+} from './hyper/hyper_connection_state.js';
+import {
+    GENERATED_PKCE_CHALLENGE as SF_GENERATED_PKCE_CHALLENGE,
+    GENERATING_PKCE_CHALLENGE as SF_GENERATING_PKCE_CHALLENGE,
+    OAUTH_NATIVE_LINK_OPENED,
+    OAUTH_WEB_WINDOW_CLOSED,
+    OAUTH_WEB_WINDOW_OPENED,
+    RECEIVED_CORE_AUTH_CODE,
+    RECEIVED_CORE_AUTH_TOKEN,
+    RECEIVED_CORE_USER_INFO,
+    RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
+    REQUESTING_CORE_AUTH_TOKEN,
+    REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
+    SETUP_CANCELLED,
+    SETUP_FAILED,
+    SETUP_STARTED,
+    SF_CHANNEL_READY,
+    SF_CHANNEL_SETUP_CANCELLED,
+    SF_CHANNEL_SETUP_FAILED,
+    SF_CHANNEL_SETUP_STARTED,
+    type SalesforceConnectionStateAction,
+} from './salesforce/salesforce_connection_state.js';
+import {
+    GENERATED_PKCE_CHALLENGE as TRINO_GENERATED_PKCE_CHALLENGE,
+    GENERATING_PKCE_CHALLENGE as TRINO_GENERATING_PKCE_CHALLENGE,
+    OAUTH_BROWSER_OPENED,
+    OAUTH_CANCELLED,
+    OAUTH_FAILED,
+    OAUTH_STARTED,
+    RECEIVED_ACCESS_TOKEN,
+    RECEIVED_OAUTH_CODE,
+    REQUESTING_ACCESS_TOKEN,
+    TRINO_CHANNEL_READY,
+    TRINO_CHANNEL_SETUP_CANCELLED,
+    TRINO_CHANNEL_SETUP_FAILED,
+    TRINO_CHANNEL_SETUP_STARTED,
+    type TrinoConnectorAction,
+} from './trino/trino_connection_state.js';
+import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from './catalog/catalog_update_state.js';
+import { VariantKind } from '../utils/variant.js';
+import { ConnectorInfo, getConnectorInfoForParams, ConnectorType } from './connector_info.js';
 import {
     createQueryExecutionMetrics,
     EXECUTE_QUERY,
@@ -31,23 +66,14 @@ import {
     QUERY_CACHE_DELETED,
     QueryExecutionState,
 } from '../query/query_execution_state.js';
-import { reduceQueryAction } from '../query/query_execution_state.js';
-import type { TrinoConnectorAction } from './trino/trino_connection_state.js';
-import { ConnectionStateDetailsVariant, createConnectionStateDetails, isSalesforceDetails } from './connection_state_details.js';
-import { Logger, stringifyError } from '../platform/logger/logger.js';
+import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
+import type { Logger } from '../platform/logger/logger.js';
 import { invalidateCatalogBatch } from './catalog/catalog_batch.js';
-import { mergeRelationNames } from './catalog/catalog_update_state.js';
-import { readRelationName, type RelationName } from './catalog/catalog_sql_generator.js';
-import { connectionParamsEqual, connectionParamsWithoutDraftRows, getConnectionParamsFromStateDetails, type ConnectionParams } from './connection_params.js';
-import { HYPER_CHANNEL_SETUP_STARTED } from './hyper/hyper_connection_state.js';
-import { OAUTH_STARTED, TRINO_CHANNEL_SETUP_STARTED } from './trino/trino_connection_state.js';
-import { SETUP_STARTED } from './salesforce/salesforce_connection_state.js';
+import type { RelationName } from './catalog/catalog_sql_generator.js';
+import type { ConnectionParams } from './connection_params.js';
 import { cancelConnectionSetup } from './connection_setup_cancellation.js';
-import { dateToTimestamp } from './proto_helper.js';
 import type { DetailedError } from '../utils/error.js';
-import { catalogNameDefaults, connectionParamsOf, connectorOfDetails, connectorParams } from './connector_descriptor.js';
-
-const LOG_CTX = 'connection_state';
+import { NativeConnection, type ConnectionChannel, type ConnectionFunctionScript } from './connection_native.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -65,6 +91,7 @@ export interface CatalogUpdates {
     touchedFailures: number;
 }
 
+/// The state of a connection, a projection of the Rust connection of the runtime (`connection_native.ts`)
 export interface ConnectionState {
     /// Runtime identity of the connection.
     connectionId: string;
@@ -72,6 +99,8 @@ export interface ConnectionState {
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
     instance: core.DashQL;
+    /// The Rust connection that the actions apply to, shared by all states of the connection
+    native: NativeConnection;
     /// Whether the database belongs to a committed workbook or has connected at least once.
     /// Draft manifest writes are independent of activation; catalog writes require activation.
     active: boolean;
@@ -100,14 +129,14 @@ export interface ConnectionState {
     /// The connection statistics
     metrics: connection.ConnectionMetrics;
 
-    /// The catalog
+    /// The catalog, shared with the Rust connection and the scripts that analyze with it
     catalog: core.DashQLCatalog;
     /// The  catalog updates
     catalogUpdates: CatalogUpdates;
     /// The catalog entry of the descriptor with the relations of the connection
     catalogRelationEntryId: number;
     /// The catalog function script (consolidated SQL for all function declarations)
-    catalogFunctionScript: core.DashQLScript;
+    catalogFunctionScript: ConnectionFunctionScript;
 
     /// The queries that are currently running
     queriesActive: Map<number, QueryExecutionState>;
@@ -247,281 +276,257 @@ export function connectionCachesQueryResults(state: Pick<ConnectionState, 'cache
     return state.cacheQueryResults ?? state.connectorInfo.features.queryResultCaching;
 }
 
-export function reduceConnectionState(state: ConnectionState, action: ConnectionAction, logger: Logger): ConnectionState {
+/// Apply an action to a connection. The Rust connection of the state applies it, the effects run here: aborting
+/// catalog updates and queries, closing channels, invalidating catalog batches. Returns the state if nothing changed.
+/// Only the latest state of a connection can be reduced, an older state shares the Rust connection.
+export function reduceConnectionState(state: ConnectionState, action: ConnectionAction, _logger: Logger): ConnectionState {
+    const native = state.native;
+    if (native == null) {
+        throw new Error(`the connection ${state.connectionId} has no Rust connection for the action ${String(action.type)}`);
+    }
+    const connection = native.connection;
+    const now = Date.now();
+    let reason = 'changed';
+    let outcome: core.DashQLConnectionOutcome;
     switch (action.type) {
-        case SET_CONNECTION_DRAFT: {
+        case SET_CONNECTION_DRAFT:
+            // Params of another connector are ignored
             if (getConnectorInfoForParams(action.value)?.connectorType !== state.connectorInfo.connectorType) return state;
-            const paramsDraft = structuredClone(action.value);
-            if (connectionParamsEqual(state.paramsDraft, paramsDraft)) return state;
-            return { ...state, paramsDraft };
-        }
-        // COMMIT_CONNECTION_PARAMS makes saved params the params of the connection.
-        // The draft is cleared unless it changed while saving.
-        case COMMIT_CONNECTION_PARAMS: {
-            const params = connectionParamsWithoutDraftRows(structuredClone(action.value));
-            const draftSaved = state.paramsDraft == null
-                || connectionParamsEqual(connectionParamsWithoutDraftRows(state.paramsDraft), params);
-            if (connectionParamsEqual(state.params, params) && (state.paramsDraft == null || !draftSaved)) return state;
-            return { ...state, params, paramsDraft: draftSaved ? undefined : state.paramsDraft };
-        }
-        // A blank name clears the name
-        case RENAME_CONNECTION: {
-            const name = action.value.trim() || undefined;
-            if (name === state.name) return state;
-            return { ...state, name };
-        }
-        // The connection keeps the choice, also when it matches the default of the connector
-        case SET_CONNECTION_QUERY_RESULT_CACHING: {
-            if (state.cacheQueryResults === action.value) return state;
-            return { ...state, cacheQueryResults: action.value };
-        }
-        case DISCARD_CONNECTION_DRAFT: {
-            if (state.connectionHealth === ConnectionHealth.CONNECTING) return state;
-            const details = {
-                ...state.details,
-                value: {
-                    ...state.details.value,
-                    proto: {
-                        ...state.details.value.proto,
-                        setupError: undefined,
-                        channelError: undefined,
-                        schemaResolutionError: undefined,
-                        healthCheckError: undefined,
-                    },
-                },
-            } as unknown as ConnectionStateDetailsVariant;
-            return { ...state, paramsDraft: undefined, details };
-        }
-        case RELATIONS_TOUCHED:
-            return recordTouchedRelations(state, action.value);
+            outcome = connection.setDraft(action.value as Record<string, unknown>, now);
+            break;
+        case DISCARD_CONNECTION_DRAFT:
+            outcome = connection.discardDraft(now);
+            break;
+        case COMMIT_CONNECTION_PARAMS:
+            outcome = connection.commitParams(action.value as Record<string, unknown>, now);
+            break;
+        case RENAME_CONNECTION:
+            outcome = connection.rename(action.value, now);
+            break;
+        case SET_CONNECTION_QUERY_RESULT_CACHING:
+            outcome = connection.setQueryResultCaching(action.value, now);
+            break;
+        case RESET_CONNECTION:
+            reason = 'reset';
+            outcome = connection.reset(now);
+            break;
+        case DELETE_CONNECTION:
+            reason = 'deleted';
+            outcome = connection.delete(now);
+            break;
+        case SWITCH_CONNECTOR_TYPE:
+            outcome = connection.switchConnectorType(action.value as number, now);
+            break;
 
-        case UPDATE_CATALOG:
-        case CATALOG_UPDATE_REGISTER_QUERY:
-        case CATALOG_UPDATE_CANCELLED:
-        case CATALOG_UPDATE_SUCCEEDED:
-        case CATALOG_UPDATE_PARTIALLY_SUCCEEDED:
-        case CATALOG_UPDATE_FAILED:
-            return reduceCatalogAction(state, action);
-
-        case EXECUTE_QUERY:
-        case QUERY_RUNNING:
-        case QUERY_SENDING:
-        case QUERY_PROGRESS_UPDATED:
-        case QUERY_RECEIVED_BATCH:
-        case QUERY_RECEIVED_ALL_BATCHES:
-        case QUERY_PROCESSING_RESULTS:
-        case QUERY_PROCESSED_RESULTS:
-        case QUERY_SUCCEEDED:
-        case QUERY_CANCELLED:
-        case QUERY_FAILED:
-        case QUERY_CACHE_RECORDED:
-        case QUERY_CACHE_DELETED:
-            return reduceQueryAction(state, action);
-
-        // RESET_CONNECTION stops the connection and clears its catalog
-        case RESET_CONNECTION: {
-            // Pending catalog publishers are aborted before the catalog is cleared
-            const newState = stopConnection(state, action, 'reset');
-            state.catalog.clear();
-            return newState;
-        }
-
-        // SWITCH_CONNECTOR_TYPE changes the connection's type in-place.
-        // Only allowed when the connection hasn't been configured yet.
-        case SWITCH_CONNECTOR_TYPE: {
-            if (state.connectionStatus !== ConnectionStatus.NOT_STARTED || state.active || state.paramsDraft != null) {
-                return state;
-            }
-            const newType = action.value;
-            if (state.connectorInfo.connectorType === newType) {
-                return state;
-            }
-            const newInfo = CONNECTOR_INFOS[newType as number];
-            const newDetails = createConnectionStateDetails(newType);
-            return {
-                ...state,
-                connectorInfo: newInfo,
-                details: newDetails,
-                params: getConnectionParamsFromStateDetails(newDetails)!,
-                paramsDraft: undefined,
-                setupAttemptParams: undefined,
-                setupAttemptDraft: undefined,
-            };
-        }
-
-
-        /// DELETE_CONNECTION stops the connection and destroys its catalog.
-        /// The registry refuses to delete connections that workbooks reference.
-        case DELETE_CONNECTION: {
-            const newState = stopConnection(state, action, 'deleted');
-
-            // Text-only source scripts do not own their published descriptors.
-            try {
-                state.catalog.dropDescriptor(state.catalogRelationEntryId);
-            } catch (e) {
-                // Descriptor may have already been dropped - ignore error
-            }
-            try {
-                state.catalog.dropDescriptor(state.catalogFunctionScript.catalog_entry_id);
-            } catch (e) {
-                // Descriptor may have already been dropped - ignore error
-            }
-            state.catalogFunctionScript.destroy();
-
-            // Delete the conneciton catalog
-            state.catalog.destroy();
-
-            return newState;
-        }
-
-        default: {
-            // Capture setup input before connector reducers replace runtime setupParams.
-            let setupAttemptParams = state.setupAttemptParams;
-            let setupAttemptDraft = state.setupAttemptDraft;
-            switch (action.type) {
-                case HYPER_CHANNEL_SETUP_STARTED:
-                    setupAttemptParams = structuredClone({ hyper: action.value });
-                    setupAttemptDraft = state.paramsDraft;
-                    break;
-                case OAUTH_STARTED:
-                case TRINO_CHANNEL_SETUP_STARTED:
-                    setupAttemptParams = structuredClone({ trino: action.value });
-                    setupAttemptDraft = state.setupAttemptParams == null ? state.paramsDraft : state.setupAttemptDraft;
-                    break;
-                case SETUP_STARTED:
-                    setupAttemptParams = structuredClone(connectionParamsOf(connectorOfDetails(state.details), action.value));
-                    setupAttemptDraft = state.paramsDraft;
-                    break;
-            }
-            let newState = reduceHealthCheck(state, action) ?? reduceConnectorDetails(state, action);
-            if (newState == null) {
-                throw new Error(`failed to apply state action: ${String(action.type)}`);
-            }
-            newState = { ...newState, setupAttemptParams, setupAttemptDraft };
-            if (newState.connectionHealth === ConnectionHealth.ONLINE
-                && state.connectionHealth !== ConnectionHealth.ONLINE && setupAttemptParams != null) {
-                newState = {
-                    ...newState,
-                    params: connectionParamsWithoutDraftRows(setupAttemptParams),
-                    paramsDraft: connectionParamsEqual(state.paramsDraft, setupAttemptDraft)
-                        && (setupAttemptDraft == null || connectionParamsEqual(connectionParamsWithoutDraftRows(setupAttemptDraft), connectionParamsWithoutDraftRows(setupAttemptParams)))
-                        ? undefined : state.paramsDraft,
-                    setupAttemptParams: undefined,
-                    setupAttemptDraft: undefined,
-                };
-                const connector = connectorOfDetails(newState.details);
-                if (isSalesforceDetails(newState.details) && connector.paramsKey in setupAttemptParams) {
-                    const salesforceParams = connectorParams(connector, setupAttemptParams) as connection.SalesforceConnectionParams;
-                    newState.params = connectionParamsOf(connector, {
-                        ...salesforceParams,
-                        login: newState.details.value.proto.setupParams?.login ?? salesforceParams.login,
-                    });
-                }
-            } else if (newState.connectionHealth === ConnectionHealth.FAILED || newState.connectionHealth === ConnectionHealth.CANCELLED) {
-                newState.setupAttemptParams = undefined;
-                newState.setupAttemptDraft = undefined;
-            }
-
-            // Embedded connectors become online as soon as their local channel is ready, without a
-            // health-check action. Activate every database on its first transition to online.
-            if (newState.connectionHealth === ConnectionHealth.ONLINE && !newState.active) {
-                newState = { ...newState, active: true };
-            }
-
-            return newState;
-        }
-    }
-}
-
-/// Apply a health check action, null for other actions
-function reduceHealthCheck(state: ConnectionState, action: ConnectionAction): ConnectionState | null {
-    const now = dateToTimestamp(new Date());
-    switch (action.type) {
         case HEALTH_CHECK_STARTED:
-            return withConnectorProto({ ...state, connectionStatus: ConnectionStatus.HEALTH_CHECK_STARTED, connectionHealth: ConnectionHealth.CONNECTING },
-                proto => ({ ...proto, setupTimings: { ...proto.setupTimings, healthCheckStartedAt: now } }));
-        case HEALTH_CHECK_FAILED:
-            return withConnectorProto({ ...state, connectionStatus: ConnectionStatus.HEALTH_CHECK_FAILED, connectionHealth: ConnectionHealth.FAILED },
-                proto => ({ ...proto, setupTimings: { ...proto.setupTimings, healthCheckFailedAt: now }, healthCheckError: action.value }));
+            outcome = connection.healthCheckStarted(now);
+            break;
         case HEALTH_CHECK_CANCELLED:
-            return withConnectorProto({ ...state, connectionStatus: ConnectionStatus.HEALTH_CHECK_CANCELLED, connectionHealth: ConnectionHealth.CANCELLED },
-                proto => ({ ...proto, setupTimings: { ...proto.setupTimings, healthCheckCancelledAt: now } }));
+            outcome = connection.healthCheckCancelled(now);
+            break;
+        case HEALTH_CHECK_FAILED:
+            outcome = connection.healthCheckFailed(action.value, now);
+            break;
         case HEALTH_CHECK_SUCCEEDED:
-            return withConnectorProto({ ...state, connectionStatus: ConnectionStatus.HEALTH_CHECK_SUCCEEDED, connectionHealth: ConnectionHealth.ONLINE },
-                proto => ({ ...proto, setupTimings: { ...proto.setupTimings, healthCheckSucceededAt: now } }));
+            outcome = connection.healthCheckSucceeded(now);
+            break;
+
+        case RELATIONS_TOUCHED:
+            outcome = connection.relationsTouched(action.value.map(name => ({
+                databaseName: (name.databaseName as string | null) ?? null,
+                schemaName: (name.schemaName as string | null) ?? null,
+                tableName: (name.tableName as string | null) ?? null,
+            })), now);
+            break;
+        case UPDATE_CATALOG: {
+            const [taskId, task] = action.value;
+            native.registerTask(taskId, task.cancellation);
+            outcome = connection.updateCatalog(taskId, task.taskVariant, task.startedAt?.getTime() ?? null, task.touchedRelations ?? [], now);
+            break;
+        }
+        case CATALOG_UPDATE_REGISTER_QUERY:
+            outcome = connection.catalogUpdateRegisterQuery(action.value[0], action.value[1], now);
+            break;
+        case CATALOG_UPDATE_SUCCEEDED:
+            outcome = connection.catalogUpdateFinished(action.value[0], CatalogUpdateTaskStatus.SUCCEEDED, null, now);
+            break;
+        case CATALOG_UPDATE_FAILED:
+        case CATALOG_UPDATE_CANCELLED:
+        case CATALOG_UPDATE_PARTIALLY_SUCCEEDED: {
+            const status = action.type === CATALOG_UPDATE_FAILED ? CatalogUpdateTaskStatus.FAILED
+                : action.type === CATALOG_UPDATE_CANCELLED ? CatalogUpdateTaskStatus.CANCELLED
+                    : CatalogUpdateTaskStatus.PARTIALLY_SUCCEEDED;
+            const [taskId, error] = action.value;
+            outcome = connection.catalogUpdateFinished(taskId, status, { message: error?.message ?? '' }, now);
+            if (outcome.changed) native.setTaskError(taskId, error);
+            break;
+        }
+
+        case EXECUTE_QUERY: {
+            const [queryId, query] = action.value;
+            native.registerQuery(query);
+            outcome = connection.executeQuery(queryId, query.traceId, query.queryText, query.queryMetadata, query.metrics.queryRequestedAt?.getTime() ?? now);
+            break;
+        }
+        case QUERY_SENDING:
+            outcome = connection.querySending(action.value[0], now);
+            break;
+        case QUERY_RUNNING:
+            outcome = connection.queryRunning(action.value[0], now);
+            break;
+        case QUERY_PROGRESS_UPDATED: {
+            const [queryId, progress] = action.value;
+            outcome = connection.queryProgressUpdated(queryId, progress, now);
+            if (outcome.changed) native.setQueryProgress(queryId, progress);
+            break;
+        }
+        case QUERY_RECEIVED_BATCH:
+            outcome = connection.queryReceivedBatch(action.value[0], action.value[1], now);
+            break;
+        case QUERY_RECEIVED_ALL_BATCHES: {
+            const [queryId, table, metrics] = action.value;
+            const tableId = native.registerTable(table);
+            outcome = connection.queryReceivedAllBatches(queryId, tableId, table.numRows, metrics, now);
+            // The result of a query that isn't active is dropped right away
+            if (!outcome.changed) native.releaseTable(tableId);
+            break;
+        }
+        case QUERY_PROCESSING_RESULTS:
+            outcome = connection.queryProcessingResults(action.value[0], now);
+            break;
+        case QUERY_PROCESSED_RESULTS:
+            outcome = connection.queryProcessedResults(action.value[0], now);
+            break;
+        case QUERY_SUCCEEDED:
+            outcome = connection.querySucceeded(action.value[0], now);
+            break;
+        case QUERY_FAILED:
+        case QUERY_CANCELLED: {
+            const [queryId, error, metrics] = action.value;
+            const details = error.keyValues == null || Object.keys(error.keyValues).length === 0 ? null : JSON.stringify(error.keyValues);
+            outcome = action.type === QUERY_FAILED
+                ? connection.queryFailed(queryId, error.message, details, metrics, now)
+                : connection.queryCancelled(queryId, error.message, details, metrics, now);
+            if (outcome.changed) native.setQueryError(queryId, error);
+            break;
+        }
+        case QUERY_CACHE_RECORDED: {
+            const [queryId, cacheKey, servedFromCache, cachedAt] = action.value;
+            outcome = connection.queryCacheRecorded(queryId, cacheKey, servedFromCache, cachedAt);
+            break;
+        }
+        case QUERY_CACHE_DELETED:
+            outcome = connection.queryCacheDeleted(action.value[0]);
+            break;
+
         default:
-            return null;
+            outcome = reduceSetupStep(native, action, now);
+            break;
     }
-}
-
-/// The setup timings and errors that the details of every connector keep
-type ConnectorProto = Pick<ConnectionStateDetailsVariant['value']['proto'], 'setupTimings' | 'healthCheckError'>;
-
-/// Update the setup timings and errors of the connector details
-function withConnectorProto(state: ConnectionState, patch: (proto: ConnectorProto) => ConnectorProto): ConnectionState {
-    const details = state.details.value;
-    return {
-        ...state,
-        details: { ...state.details, value: { ...details, proto: { ...details.proto, ...patch(details.proto) } } } as ConnectionStateDetailsVariant,
-    };
-}
-
-/// Let the reducer of the connector apply an action to the connection details
-function reduceConnectorDetails(state: ConnectionState, action: ConnectionAction): ConnectionState | null {
-    return connectorOfDetails(state.details).reduce(state, action);
-}
-
-/// Stop a connection that is reset or deleted.
-/// Cancels the setup and the running catalog updates and drops the query executions.
-function stopConnection(state: ConnectionState, action: ConnectionAction, reason: 'reset' | 'deleted'): ConnectionState {
-    cancelConnectionSetup(state.connectionId);
-    invalidateCatalogBatch(state.catalog);
-    for (const task of state.catalogUpdates.tasksRunning.values()) {
-        task.cancellation.abort(new DOMException(`Connection was ${reason}`, 'AbortError'));
+    native.applyEffects(state, outcome.effects, reason, { cancelSetup: cancelConnectionSetup, invalidateCatalogBatch });
+    if (!outcome.changed && outcome.effects.length === 0) return state;
+    const next = native.project(state.connectionId);
+    if (action.type === DELETE_CONNECTION) {
+        // Other holders of the catalog see it empty, it drops with the last of them
+        native.destroy();
     }
-    // The queries run on the channel of the stopped connection, the executor stops them at the backend
-    for (const query of state.queriesActive.values()) {
-        query.cancellation.abort(new DOMException(`Connection was ${reason}`, 'AbortError'));
-    }
-    const cleaned: ConnectionState = {
-        ...state,
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: ConnectionHealth.NOT_STARTED,
-        setupAttemptParams: undefined,
-        setupAttemptDraft: undefined,
-        metrics: createConnectionMetrics(),
-        catalogUpdates: {
-            tasksRunning: new Map(),
-            tasksFinished: new Map(),
-            currentFullRefresh: null,
-            described: false,
-            touchedRelations: [],
-            touchedFailures: 0,
-        },
-        queriesActive: new Map(),
-        queriesActiveOrdered: [],
-        queriesFinished: new Map(),
-        queriesFinishedOrdered: [],
-        snapshotQueriesActiveFinished: state.snapshotQueriesActiveFinished + 1,
-    };
-    // Cleaning up the details is best-effort, the connector may ignore the action
-    return reduceConnectorDetails(cleaned, action) ?? cleaned;
+    return next;
 }
 
-/// Record the relations that an executed statement touched, the catalog loader asks the connection about them. The
-/// defaults of the connection name the database, a statement without a schema leaves that to the connection.
-function recordTouchedRelations(state: ConnectionState, touched: core.buffers.analyzer.QualifiedTableNameT[]): ConnectionState {
-    const defaults = catalogNameDefaults(state.details);
-    // A name without a database needs one, without a default the statement can't have touched anything
-    const relations = touched.map(name => readRelationName(name, defaults.databaseName)).filter(relation => relation.databaseName !== '');
-    return {
-        ...state,
-        catalogUpdates: {
-            ...state.catalogUpdates,
-            touchedRelations: mergeRelationNames(state.catalogUpdates.touchedRelations, relations),
-            touchedFailures: 0,
-        },
+/// Apply a step of the setup of a connector. A channel of an action that fails is forgotten.
+function reduceSetupStep(native: NativeConnection, action: ConnectionAction, now: number): core.DashQLConnectionOutcome {
+    const connection = native.connection;
+    const withChannel = (channel: ConnectionChannel, apply: (id: number) => core.DashQLConnectionOutcome) => {
+        const known = native.hasChannel(channel);
+        const id = native.registerChannel(channel);
+        try {
+            return apply(id);
+        } catch (error) {
+            if (!known) native.dropChannel(id);
+            throw error;
+        }
     };
+    const params = (value: object) => value as Record<string, unknown>;
+    switch (action.type) {
+        // Hyper
+        case HYPER_CHANNEL_SETUP_STARTED:
+            return connection.hyperChannelSetupStarted(params(action.value), now);
+        case HYPER_CHANNEL_SETUP_CANCELLED:
+            return connection.hyperChannelSetupCancelled(action.value, now);
+        case HYPER_CHANNEL_SETUP_FAILED:
+            return connection.hyperChannelSetupFailed(action.value, now);
+        case HYPER_CHANNEL_READY: {
+            const [channel, setupParams] = action.value;
+            return withChannel(channel, id => connection.hyperChannelReady(id, params(setupParams), now));
+        }
+
+        // Trino
+        case OAUTH_STARTED:
+            return connection.trinoOAuthStarted(params(action.value), now);
+        case OAUTH_CANCELLED:
+            return connection.trinoOAuthCancelled(action.value, now);
+        case OAUTH_FAILED:
+            return connection.trinoOAuthFailed(action.value, now);
+        case TRINO_GENERATING_PKCE_CHALLENGE:
+            return connection.trinoGeneratingPkceChallenge(now);
+        case TRINO_GENERATED_PKCE_CHALLENGE:
+            return connection.trinoGeneratedPkceChallenge(action.value.value, action.value.verifier, now);
+        case OAUTH_BROWSER_OPENED:
+            return connection.trinoOAuthBrowserOpened(now);
+        case RECEIVED_OAUTH_CODE:
+            return connection.trinoReceivedOAuthCode(action.value.token, action.value.createdAt, now);
+        case REQUESTING_ACCESS_TOKEN:
+            return connection.trinoRequestingAccessToken(now);
+        case RECEIVED_ACCESS_TOKEN:
+            return connection.trinoReceivedAccessToken(action.value, now);
+        case TRINO_CHANNEL_SETUP_STARTED:
+            return connection.trinoChannelSetupStarted(params(action.value), now);
+        case TRINO_CHANNEL_SETUP_CANCELLED:
+            return connection.trinoChannelSetupCancelled(action.value, now);
+        case TRINO_CHANNEL_SETUP_FAILED:
+            return connection.trinoChannelSetupFailed(action.value, now);
+        case TRINO_CHANNEL_READY:
+            return withChannel(action.value, id => connection.trinoChannelReady(id, now));
+
+        // Salesforce and Database.com
+        case SETUP_STARTED:
+            return connection.salesforceSetupStarted(params(action.value), now);
+        case SETUP_CANCELLED:
+            return connection.salesforceSetupCancelled(action.value, now);
+        case SETUP_FAILED:
+            return connection.salesforceSetupFailed(action.value, now);
+        case SF_GENERATING_PKCE_CHALLENGE:
+            return connection.salesforceGeneratingPkceChallenge(now);
+        case SF_GENERATED_PKCE_CHALLENGE:
+            return connection.salesforceGeneratedPkceChallenge(action.value.value, action.value.verifier, now);
+        case OAUTH_NATIVE_LINK_OPENED:
+            return connection.salesforceOAuthNativeLinkOpened(now);
+        case OAUTH_WEB_WINDOW_OPENED:
+            return connection.salesforceOAuthWebWindowOpened(now);
+        case OAUTH_WEB_WINDOW_CLOSED:
+            return connection.salesforceOAuthWebWindowClosed(now);
+        case RECEIVED_CORE_AUTH_CODE:
+            return connection.salesforceReceivedCoreAuthCode(action.value.token, action.value.createdAt, now);
+        case REQUESTING_CORE_AUTH_TOKEN:
+            return connection.salesforceRequestingCoreAuthToken(now);
+        case RECEIVED_CORE_AUTH_TOKEN:
+            return connection.salesforceReceivedCoreAuthToken(action.value, now);
+        case RECEIVED_CORE_USER_INFO:
+            return connection.salesforceReceivedCoreUserInfo(action.value.preferredUsername ?? null, action.value.email ?? null, now);
+        case REQUESTING_DATA_CLOUD_ACCESS_TOKEN:
+            return connection.salesforceRequestingDataCloudAccessToken(now);
+        case RECEIVED_DATA_CLOUD_ACCESS_TOKEN:
+            return connection.salesforceReceivedDataCloudAccessToken(action.value, now);
+        case SF_CHANNEL_SETUP_STARTED:
+            return connection.salesforceChannelSetupStarted(now);
+        case SF_CHANNEL_SETUP_CANCELLED:
+            return connection.salesforceChannelSetupCancelled(action.value, now);
+        case SF_CHANNEL_SETUP_FAILED:
+            return connection.salesforceChannelSetupFailed(action.value, now);
+        case SF_CHANNEL_READY:
+            return withChannel(action.value, id => connection.salesforceChannelReady(id, now));
+    }
+    throw new Error(`failed to apply state action: ${String((action as ConnectionAction).type)}`);
 }
 
 export function createConnectionMetrics(): connection.ConnectionMetrics {
@@ -536,48 +541,38 @@ export interface ConnectionStateOptions {
     params?: ConnectionParams;
     /// The draft of the params
     paramsDraft?: ConnectionParams;
+    /// The name the user gave the connection
+    name?: string;
+    /// Does the connection cache query results? The default of the connector without.
+    cacheQueryResults?: boolean;
 }
 
-/// Create the state of a connection with an empty catalog
+/// Create the state of a connection with an empty catalog. The details name the connector and its setup params.
 export function createConnectionState(dql: core.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant, options: ConnectionStateOptions = {}): ConnectionStateWithoutId {
-    let catalog: core.DashQLCatalog | null = null;
-    let catalogRelationEntryId = 0;
-    let catalogFunctionScript: core.DashQLScript | null = null;
+    const connection = dql.createConnection('', info.connectorType as number, {
+        setupParams: (details.value.proto?.setupParams ?? null) as unknown as Record<string, unknown> | null,
+        active: options.active ?? false,
+        params: (options.params ?? null) as Record<string, unknown> | null,
+        paramsDraft: (options.paramsDraft ?? null) as Record<string, unknown> | null,
+    });
     try {
-        catalog = dql.createCatalog();
-        catalogRelationEntryId = catalog.allocateEntryId();
-        catalogFunctionScript = dql.createScript(catalog);
-        catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
+        if (options.name != null) connection.rename(options.name);
+        if (options.cacheQueryResults != null) connection.setQueryResultCaching(options.cacheQueryResults);
+        return new NativeConnection(dql, connection).project('');
     } catch (error) {
-        catalogFunctionScript?.destroy();
-        catalog?.destroy();
+        connection.destroy();
         throw error;
     }
-    return {
-        instance: dql,
-        active: options.active ?? false,
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: ConnectionHealth.NOT_STARTED,
-        connectorInfo: info,
-        metrics: createConnectionMetrics(),
-        details,
-        params: options.params == null ? getConnectionParamsFromStateDetails(details)! : structuredClone(options.params),
-        paramsDraft: options.paramsDraft == null ? undefined : structuredClone(options.paramsDraft),
-        catalog,
-        catalogUpdates: {
-            tasksRunning: new Map(),
-            tasksFinished: new Map(),
-            currentFullRefresh: null,
-            described: false,
-            touchedRelations: [],
-            touchedFailures: 0,
-        },
-        catalogRelationEntryId,
-        catalogFunctionScript,
-        snapshotQueriesActiveFinished: 1,
-        queriesActive: new Map(),
-        queriesActiveOrdered: [],
-        queriesFinished: new Map(),
-        queriesFinishedOrdered: [],
-    };
+}
+
+/// Restore the state of the catalog updates from the files of the catalog, null keeps a field. The state shows it
+/// right away.
+export function restoreCatalogUpdates(state: ConnectionState, described: boolean | null, touchedRelations: RelationName[] | null): void {
+    state.native.restoreCatalogUpdates(state, described, touchedRelations);
+}
+
+/// Destroy a connection that was never registered: the Rust connection and its catalog handle
+export function destroyConnectionState(state: ConnectionState): void {
+    invalidateCatalogBatch(state.catalog);
+    state.native.destroy();
 }

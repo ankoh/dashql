@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 
 import { CONNECTOR_INFOS, ConnectorType, ConnectorInfo } from './connector_info.js';
-import { ConnectionStateWithoutId, createConnectionState } from './connection_state.js';
+import { ConnectionStateWithoutId, createConnectionState, type ConnectionStateOptions } from './connection_state.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { CONNECTOR_DESCRIPTORS, connectionParamsOf, connectionStateDetailsOf, connectorOfDetails, connectorOfParams, connectorParams } from './connector_descriptor.js';
 
@@ -99,13 +99,17 @@ export function createConnectionParamsSignature(params: ConnectionParams): unkno
     return connector.cacheSignature(connectorParams(connector, params));
 }
 
-export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams): ConnectionStateWithoutId {
-    return createConnectionState(dql, connectorOfParams(params).info, getConnectionStateDetailsFromParams(params), { params });
+/// The options of a connection that is created with params: whether it is active and its name. The Rust connection
+/// holds them, a spread over the state would be lost with the next action.
+export type ConnectionStateFromParamsOptions = Pick<ConnectionStateOptions, 'active' | 'name'>;
+
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams, options: ConnectionStateFromParamsOptions = {}): ConnectionStateWithoutId {
+    return createConnectionState(dql, connectorOfParams(params).info, getConnectionStateDetailsFromParams(params), { ...options, params });
 }
 
-export function createDefaultHyperWasmConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+export function createDefaultHyperWasmConnectionState(dql: dashql.DashQL, options: ConnectionStateFromParamsOptions = {}): ConnectionStateWithoutId {
     const connector = CONNECTOR_INFOS[ConnectorType.HYPER];
-    return createConnectionStateFromParams(dql, createDefaultConnectionParamsForConnector(connector));
+    return createConnectionStateFromParams(dql, createDefaultConnectionParamsForConnector(connector), options);
 }
 
 export function createDefaultConnectionParamsForConnector(info: ConnectorInfo): ConnectionParams {

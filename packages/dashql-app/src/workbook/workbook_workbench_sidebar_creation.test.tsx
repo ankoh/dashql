@@ -280,7 +280,9 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
                 .find(item => item.textContent === CONNECTOR_INFOS[ConnectorType.TRINO].names.displayShort)!
                 .click();
         });
-        expect(state.allocateConnection).toHaveBeenCalledWith(expect.objectContaining({ active: true }));
+        // The Rust connection of the state is created active, a spread over the state would be lost with its next action
+        expect(state.createConnectionStateFromParams).toHaveBeenCalledWith(expect.anything(), expect.anything(), { active: true });
+        expect(state.allocateConnection).toHaveBeenCalledWith(state.createConnectionStateFromParams.mock.results[0].value);
         expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({
             type: SET_PENDING_CONNECTION,
             value: expect.objectContaining({ connectionId: trino.connectionId }),

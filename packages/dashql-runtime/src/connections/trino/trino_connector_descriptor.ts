@@ -1,6 +1,6 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '../connector_info.js';
-import { createTrinoConnectionStateDetails, reduceTrinoConnectorState } from './trino_connection_state.js';
+import { createTrinoConnectionStateDetails } from './trino_connection_state.js';
 import { queryParam, requireChannel } from '../query_channel.js';
 import { trinoSessionDefaults } from './trino_catalogs.js';
 
@@ -11,7 +11,6 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
     detailsType: TRINO_CONNECTOR,
     defaultParams: () => ({ endpoint: '', catalogs: [], auth: { authType: 'AUTH_BASIC' } }),
     createDetails: createTrinoConnectionStateDetails,
-    reduce: reduceTrinoConnectorState,
     withoutDraftRows: ({ draftRows: _rows, ...params }) => params,
     sanitizeForSharing(params, withLoginHint) {
         // Keep endpoint, catalogs and the basic-auth username; drop the basic-auth secret /

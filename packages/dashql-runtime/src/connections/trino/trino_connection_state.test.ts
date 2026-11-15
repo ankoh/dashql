@@ -1,5 +1,6 @@
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectionHealth, ConnectionStatus, DELETE_CONNECTION, RESET_CONNECTION, type ConnectionState } from '../connection_state.js';
 import { HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
@@ -16,7 +17,6 @@ import {
     OAUTH_STARTED,
     RECEIVED_ACCESS_TOKEN,
     RECEIVED_OAUTH_CODE,
-    reduceTrinoConnectorState,
     REQUESTING_ACCESS_TOKEN,
     TRINO_CHANNEL_READY,
     TRINO_CHANNEL_SETUP_CANCELLED,
@@ -32,11 +32,17 @@ const PARAMS: connection.TrinoConnectionParams = {
 };
 const ACCESS_TOKEN = { accessToken: 'token' } as unknown as connection.TrinoAccessToken;
 
-const initial = () => connectorState(TRINO_CONNECTOR, createTrinoConnectionStateDetails(PARAMS));
-const reduce = (state: ConnectionState, action: TrinoConnectorAction) => reduceConnector(reduceTrinoConnectorState, state, action);
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: dashql.DashQL;
+beforeAll(async () => { dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+afterEach(() => dql.resetUnsafe());
+
+const initial = () => connectorState(dql, TRINO_CONNECTOR, createTrinoConnectionStateDetails(PARAMS));
+const reduce = (state: ConnectionState, action: TrinoConnectorAction) => reduceConnector(state, action);
 const proto = (state: ConnectionState) => getTrinoConnectionDetails(state)!.proto;
 
-describe('reduceTrinoConnectorState', () => {
+// The Rust connection of the runtime applies the actions, `packages/dashql-runtime-rs/src/connections/trino.rs`
+describe('the setup of Trino connections', () => {
     it.each([
         [OAUTH_STARTED, PARAMS, ConnectionStatus.AUTH_STARTED, ConnectionHealth.CONNECTING, 'oauthStartedAt'],
         [OAUTH_CANCELLED, TEST_ERROR, ConnectionStatus.AUTH_CANCELLED, ConnectionHealth.CANCELLED, 'oauthCancelledAt'],
@@ -82,9 +88,10 @@ describe('reduceTrinoConnectorState', () => {
         expect(proto(reset)).toEqual({ ...proto(initial()), setupTimings: {} });
     });
 
-    it('returns null for unknown actions and other connectors', () => {
-        expect(reduceTrinoConnectorState(initial(), { type: Symbol('OTHER'), value: null } as unknown as TrinoConnectorAction)).toBeNull();
-        expect(getTrinoConnectionDetails(connectorState(HYPER_CONNECTOR, {}))).toBeNull();
+    it('refuses unknown actions and the actions of other connectors', () => {
+        expect(() => reduce(initial(), { type: Symbol('OTHER'), value: null } as unknown as TrinoConnectorAction)).toThrow();
+        expect(() => reduce(connectorState(dql, HYPER_CONNECTOR, {}), { type: OAUTH_BROWSER_OPENED, value: null })).toThrow();
+        expect(getTrinoConnectionDetails(connectorState(dql, HYPER_CONNECTOR, {}))).toBeNull();
         expect(getTrinoConnectionDetails(null)).toBeNull();
     });
 });

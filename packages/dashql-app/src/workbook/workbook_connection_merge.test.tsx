@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
@@ -22,6 +24,10 @@ import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
 /// A Hyper connection whose queries run until they are cancelled
 function connection(connectionId: string) {
     const stream: QueryExecutionResponseStream = {
@@ -33,19 +39,12 @@ function connection(connectionId: string) {
             abort?.throwIfAborted();
         }),
     };
-    const database = {
-        connectionId, active: false,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
-        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
-        details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_GRPC' } }, channel: { executeQuery: async () => stream, close: vi.fn() } } },
-        catalog: { dropDescriptor: vi.fn(), destroy: vi.fn() },
-        catalogRelationEntryId: 1,
-        catalogFunctionScript: { catalog_entry_id: 2, destroy: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map(), tasksFinished: new Map(), currentFullRefresh: null, described: false },
-        queriesActive: new Map(), queriesActiveOrdered: [],
-        queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
-    } as unknown as ConnectionState;
+    const database: ConnectionState = createTestConnection(dql, {
+        connectionId,
+        params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
+        channel: { executeQuery: async () => stream, close: vi.fn() },
+    });
+    expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
     return { database, stream };
 }
 

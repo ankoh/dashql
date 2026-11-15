@@ -2,11 +2,11 @@ import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQL } from '@ankoh/dashql-core';
 import type { Logger } from '../platform/logger/logger.js';
 import { stringifyError } from '../platform/logger/logger.js';
-import type { ConnectionState } from './connection_state.js';
+import { destroyConnectionState, restoreCatalogUpdates, type ConnectionState } from './connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from './connection_import.js';
 import { connectionCatalogIsDurable } from './connection_params.js';
 import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
-import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog/catalog_batch.js';
+import { beginCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog/catalog_batch.js';
 import type { WorkbookConnection, WorkbookRegistryBackend } from '../storage/storage_backend.js';
 import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE } from '../storage/storage_backend.js';
 import { packRelationName, parseCatalogStateFile, readRelationName } from './catalog/catalog_sql_generator.js';
@@ -26,21 +26,15 @@ export type StoredConnection = Pick<WorkbookConnection, 'params' | 'paramsDraft'
 /// The connection is neither registered nor written, see `destroyUnregisteredConnection`.
 export function connectionStateFromStorage(core: DashQL, connectionId: string, stored: StoredConnection): ConnectionState {
     const [connectorInfo, details] = decodeConnectionFromProto(stored.params as any, connectionId);
-    const state = restoreConnectionState(core, connectionId, connectorInfo, details, stored.paramsDraft);
-    return {
-        ...state,
-        ...(stored.name == null ? {} : { name: stored.name }),
-        ...(stored.cacheQueryResults == null ? {} : { cacheQueryResults: stored.cacheQueryResults }),
-    };
+    return restoreConnectionState(core, connectionId, connectorInfo, details, stored.paramsDraft, {
+        name: stored.name,
+        cacheQueryResults: stored.cacheQueryResults,
+    });
 }
 
 /// Destroy a connection that was created but never registered
 export function destroyUnregisteredConnection(connection: ConnectionState): void {
-    invalidateCatalogBatch(connection.catalog);
-    connection.catalog.dropDescriptor(connection.catalogRelationEntryId);
-    connection.catalog.dropDescriptor(connection.catalogFunctionScript.catalog_entry_id);
-    connection.catalogFunctionScript.destroy();
-    connection.catalog.destroy();
+    destroyConnectionState(connection);
 }
 
 /// What restoring a catalog needs
@@ -105,7 +99,7 @@ export async function restoreConnectionCatalog(
             await publishCatalogBatch(ctx.core, catalog, catalogScripts, { processor: ctx.processor }, validate);
             // Only restored relations make a catalog that is kept
             if (durable && relations && relations.trim().length > 0) {
-                connection.catalogUpdates.described = true;
+                restoreCatalogUpdates(connection, true, null);
             }
         }
         const { pending, gone } = parseCatalogStateFile(state);
@@ -115,7 +109,7 @@ export async function restoreConnectionCatalog(
         // Nothing that runs on Salesforce changes its relations, and it has no lookup for them
         if (durable && connection.details.type !== SALESFORCE_DATA_CLOUD_CONNECTOR) {
             const changed = changes?.trim() ? ctx.core.touchedRelations(changes).map(name => readRelationName(name)) : [];
-            connection.catalogUpdates.touchedRelations = mergeRelationNames(pending, changed);
+            restoreCatalogUpdates(connection, null, mergeRelationNames(pending, changed));
         }
         // The relations of the old file move to the new one before the old one is cleared
         if (changes) {

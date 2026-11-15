@@ -1,7 +1,7 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connector_info.js';
 import { DEFAULT_DATABASE_NAME } from '../catalog/catalog_sql_generator.js';
-import { createHyperConnectionStateDetails, reduceHyperConnectorState } from './hyper_connection_state.js';
+import { createHyperConnectionStateDetails } from './hyper_connection_state.js';
 import { queryParam, requireChannel } from '../query_channel.js';
 
 /// The default schema of Hyper
@@ -14,7 +14,6 @@ export const HYPER_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'hyper'> = {
     detailsType: HYPER_CONNECTOR,
     defaultParams: () => ({ protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } }),
     createDetails: createHyperConnectionStateDetails,
-    reduce: reduceHyperConnectorState,
     withoutDraftRows: ({ draftRows: _rows, ...params }) => params,
     sanitizeForSharing(params) {
         // Arbitrary headers and query parameters may carry credentials under any name.

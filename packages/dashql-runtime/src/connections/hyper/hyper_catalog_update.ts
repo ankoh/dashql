@@ -11,7 +11,7 @@ import { QueryType } from '../../query/query_execution_state.js';
 import type { LoggerLike } from '../../platform/logger/logger.js';
 import type { AttachedDatabase } from './hyperdb_grpc_client.js';
 import { qualifyPrefetchedHyperFunctions } from '../catalog/prefetched_hyper_functions.js';
-import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog/catalog_batch.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions, type CatalogSourceScript } from '../catalog/catalog_batch.js';
 import { generateFunctionScriptHeaderForSource } from '../catalog/catalog_function_sql_generator.js';
 import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog/catalog_query_pg_proc.js';
 import { quoteIdentifier } from '../../utils/sql_quote.js';
@@ -185,7 +185,7 @@ export async function updateHyperCatalog(
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
     relationEntryId: number,
-    catalogFunctionScript: dashql.DashQLScript,
+    catalogFunctionScript: CatalogSourceScript,
     resolveLiveFunctionCatalog: boolean,
     abortSignal: AbortSignal,
     options: CatalogBatchOptions = {},

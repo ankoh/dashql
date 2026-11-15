@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
@@ -10,7 +10,8 @@ import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/dat
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, restoreCatalogUpdates, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -29,6 +30,10 @@ function deferred() {
     const promise = new Promise<void>(yes => { resolve = yes; });
     return { promise, resolve };
 }
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 function fixture(workbookId: string, deferStream = false) {
     const acquisition = deferred();
@@ -75,16 +80,14 @@ function fixture(workbookId: string, deferStream = false) {
         scripts: { 1: { scriptKey: 1, fileName: '1_commands.sql', scriptSession, latestQueryId: null,
             connection: { connectionId: `${workbookId}-database` } } },
     } as unknown as WorkbookScripts;
-    const database = {
-        connectionId: `${workbookId}-database`, active: false,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionHealth: ConnectionHealth.ONLINE, metrics: createConnectionMetrics(),
-        params: { hyper: {} },
-        catalogUpdates: { described: true },
-        details: { type: HYPER_CONNECTOR, value: { proto: {}, channel: { executeQuery } } },
-        queriesActive: new Map(), queriesActiveOrdered: [],
-        queriesFinished: new Map(), queriesFinishedOrdered: [], snapshotQueriesActiveFinished: 0,
-    } as unknown as ConnectionState;
+    // A connection on the Rust connection of the core, online with a channel and a catalog that describes it
+    const database: ConnectionState = createTestConnection(dql, {
+        connectionId: `${workbookId}-database`,
+        params: { hyper: {} } as any,
+        channel: { executeQuery },
+    });
+    restoreCatalogUpdates(database, true, null);
+    expect(database.connectionHealth).toBe(ConnectionHealth.ONLINE);
     const modify = vi.fn<ModifyWorkbookScripts>(action => {
         if (action.type === REGISTER_QUERY) workbook.scripts[action.value[0]].latestQueryId = action.value[1];
     });

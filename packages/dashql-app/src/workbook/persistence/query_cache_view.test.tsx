@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql-core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryCacheView } from './query_cache_view.js';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
-import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import {
+    createQueryExecutionState, EXECUTE_QUERY, QUERY_CACHE_RECORDED, QUERY_SUCCEEDED, QueryType,
+} from '@ankoh/dashql-runtime/query/query_execution_state';
+import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -21,26 +24,24 @@ const CONNECTION_ID = 'query-cache-view-test';
 type Registry = ReturnType<typeof useConnectionRegistry>;
 
 /// A connection with finished queries that advertise the results of cache keys
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// A connection on the Rust connection of the core with finished queries that advertise the results of cache keys
 function connectionWithQueries(cacheKeys: string[]): ConnectionState {
-    const queriesFinished = new Map<number, QueryExecutionState>(cacheKeys.map((cacheKey, i) => [
-        i + 1,
-        { queryId: i + 1, cacheKey, cacheDeleted: false } as unknown as QueryExecutionState,
-    ]));
-    return {
-        connectionId: CONNECTION_ID,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        params: {},
-        details: { type: HYPER_CONNECTOR, value: {} },
-        active: false,
-        connectionStatus: ConnectionStatus.NOT_STARTED,
-        connectionHealth: ConnectionHealth.NOT_STARTED,
-        catalog: { clear: vi.fn() },
-        catalogUpdates: { tasksRunning: new Map() },
-        queriesActive: new Map(),
-        queriesActiveOrdered: [],
-        queriesFinished,
-        queriesFinishedOrdered: [...queriesFinished.keys()],
-    } as unknown as ConnectionState;
+    let state = createTestConnection(dql, { connectionId: CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any });
+    expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
+    expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
+    const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
+    cacheKeys.forEach((cacheKey, i) => {
+        const queryId = i + 1;
+        state = reduceTestConnection(state, { type: EXECUTE_QUERY, value: [queryId, createQueryExecutionState(queryId, 0, 'select 1', metadata, new AbortController())] });
+        state = reduceTestConnection(state, { type: QUERY_SUCCEEDED, value: [queryId] });
+        state = reduceTestConnection(state, { type: QUERY_CACHE_RECORDED, value: [queryId, cacheKey, false, null] });
+    });
+    expect([...state.queriesFinished.values()].map(query => [query.cacheKey, query.cacheDeleted])).toEqual(cacheKeys.map(key => [key, false]));
+    return state;
 }
 
 describe('QueryCacheView', () => {
