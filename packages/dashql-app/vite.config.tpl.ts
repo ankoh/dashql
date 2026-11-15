@@ -287,6 +287,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     app: path.resolve(rootDir, "index.html"),
                     shell: path.resolve(rootDir, "shell.html"),
                     demos: path.resolve(rootDir, "demos.html"),
+                    embed: path.resolve(rootDir, "embed.html"),
                     oauth_redirect: path.resolve(rootDir, "oauth.html"),
                     ...(isElectronBuild
                         ? { hyperdb_capability: path.resolve(rootDir, "hyperdb-capability.html") }
@@ -336,6 +337,8 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /^@ankoh\/dashql-core$/, replacement: path.join(CORE_PATH, 'index.js') },
                 { find: /^@ankoh\/dashql-core\/buffers$/, replacement: path.join(CORE_PATH, 'buffers.js') },
                 { find: /^@ankoh\/dashql-core\/browser-worker$/, replacement: path.join(CORE_PATH, 'browser_worker.js') },
+                // The script of the core batch worker, for pages that start it from a blob: URL (the embed)
+                { find: /^@ankoh\/dashql-core\/batch-worker(\?.*)?$/, replacement: path.join(CORE_PATH, 'batch_worker.js') + '$1' },
                 { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
                 { find: /^@ankoh\/dashql-runtime\/(.+)$/, replacement: path.join(RUNTIME_PATH, 'src/$1.ts') },

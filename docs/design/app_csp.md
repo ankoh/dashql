@@ -28,6 +28,7 @@ that it loads as `<script>` or `import`, so the header only takes effect when th
 | `index.html` | `'wasm-unsafe-eval' 'self'` + Cloudflare Insights | yes |
 | `shell.html` | `'wasm-unsafe-eval' 'self'` + Cloudflare Insights | yes |
 | `demos.html` | `'wasm-unsafe-eval' 'self'` + Cloudflare Insights | yes |
+| `embed.html` | `'wasm-unsafe-eval' 'self'`, `frame-ancestors` in `_headers` | yes |
 | `oauth.html` | `'self'` + Cloudflare Insights | no |
 | `tests.html` | `'wasm-unsafe-eval' 'self'` | yes |
 | `tests-frame.html` | `'wasm-unsafe-eval' 'self'` | yes |

@@ -76,8 +76,8 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/app_csp.md`
     - `docs/design/document_isolation_policy.md` (COOP, COEP and Document-Isolation-Policy: the engine in a page that
       another site frames, Slack and MCP Apps embeds)
-    - `docs/wip/embeds.md` (planned: `/embed` for data files and workbooks, `/shell-embed` for Hyper scripts, as
-      Slack Work Objects; URL contract, fallback, headers)
+    - `docs/wip/embeds.md` (`/embed`, one entry for data files, workbooks and Hyper scripts, as Slack Work Objects;
+      built: a probe that runs one query in the core and Hyper workers; URL contract, fallback, headers)
 
 - Web app theme (colors only from the theme tokens, light-dark(), the color scheme toggle, dark chrome)
     - `docs/design/app_theme.md`

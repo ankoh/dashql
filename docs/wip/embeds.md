@@ -1,27 +1,49 @@
 # Embeds
 
-Status: planned, nothing is built. This document fixes the shape of two pages that other applications frame: the
-DashQL embed for data files and workbooks, and the Hyper embed, a shell scoped to Hyper. The first host is the
-side panel of a Slack Work Object, the same pages fit notebooks, docs, MCP Apps and extensions later.
+Status: a probe is built, the views are planned. This document fixes the shape of the page that other applications
+frame, the embed, with two modes: DashQL for data files and workbooks, and Hyper, a shell scoped to Hyper. The first
+host is the side panel of a Slack Work Object, the same page fits notebooks, docs, MCP Apps and extensions later.
 Why a framed page can run the embedded Hyper at all: [document_isolation_policy.md](../design/document_isolation_policy.md).
 
-## Two embeds
+## The probe
 
-| | DashQL embed | Hyper embed |
+`embed.html` (`src/embed/embed.ts`, no React) is a probe for testing Document-Isolation-Policy in the Slack clients.
+It lists what the frame got (origin, whether it is framed, `crossOriginIsolated`, `SharedArrayBuffer`, OPFS), then
+parses `select count(*), sum(v) from generate_series(1, 5000000)` with the core in its batch worker and runs it in
+the embedded Hyper in its worker, and shows each step as ok or failed with its time. The page test `embed` of
+`browser_page_tests.mjs` checks it at the top level.
+
+Both workers start from `blob:` URLs and keep nothing in OPFS, so the probe works without an origin (case 2 below):
+
+- Hyper: `HyperDB.create({ worker: 'blob', storage: 'memory', … })` of `hyperdb-wasm` (since 0.0.27368). The package
+  fetches its worker and engine scripts with CORS, joins them into one classic `blob:` worker that also starts the
+  pthreads, and keeps `/mnt/fs` in memory.
+- Core: `@ankoh/dashql-core/batch-worker?worker&url` gives the URL of the bundled batch worker, a classic `blob:`
+  worker `import()`s it and queues the messages that arrive before. In an opaque origin a module worker from a
+  `blob:` URL does not start at all, even an empty one, and `importScripts` can't load an ES module.
+
+Measured 2026-11-15 with Chrome for Testing (Playwright 1.65, headless): the bundle on `127.0.0.1` with the headers of
+`_headers`, framed by a host page on `localhost` without isolation headers. Both steps pass at the top level, in an
+iframe, in `sandbox="allow-scripts allow-same-origin"` and in `sandbox="allow-scripts"` (origin `null`, OPFS denied):
+the core in about 0.16 s, Hyper with its startup in about 0.8 s.
+
+## Two modes, one entry
+
+| | DashQL mode | Hyper mode |
 |---|---|---|
-| Entry | `embed.html`, served as `/embed` | `shell-embed.html`, served as `/shell-embed` |
-| Links use | `https://dashql.app/embed?…` | `https://hyperdb.sh/shell-embed#…` |
+| Entry | `embed.html`, served as `/embed` | the same |
+| Links use | `https://dashql.app/embed?…` | `https://hyperdb.sh/embed#…` |
 | For | anyone who wants to look at data: a schema, rows, a chart | people who write SQL: a script, its results, the plan |
 | Modes | data file, workbook | script |
 | Built from | `packages/dashql-runtime`, `views/query_result`, `views/visualization` (Vega-Lite) | the shell (`src/shell`, `src/shell_app`): terminal, file mounts, `#script=` sharing, plan and format dialogs |
 
-Both domains serve the same Pages deployment, so both paths exist on both. The domain only tells people which product
-a link belongs to. Separate paths on one domain would work as well.
+Both domains serve the same Pages deployment, so `/embed` exists on both. The domain only tells people which product
+a link belongs to, the parameters pick the mode: `#script=` is the Hyper mode, anything else the DashQL mode.
 
-The two overlap on files on purpose: the DashQL embed shows a file, the Hyper embed queries it. A link to a data file
-opens the DashQL embed; a script that reads a file opens the Hyper embed.
+The two overlap on files on purpose: the DashQL mode shows a file, the Hyper mode queries it. A link to a data file
+opens the DashQL mode; a script that reads a file opens the Hyper mode.
 
-## Why separate entries
+## Why a separate entry
 
 Framing `index.html` boots the whole app in a storage partition of the host: it migrates an empty storage, shows an
 empty workbook list, and offers logins whose popups the host's sandbox blocks. None of the user's workbooks or
@@ -29,29 +51,29 @@ connections are there. An embed entry instead
 
 - boots only the core, the embedded Hyper and the views it shows, no OAuth, workbook storage, feed or cloud setup,
 - takes all of its input from its URL and keeps nothing it needs across reloads,
-- carries its own `frame-ancestors`, so the embeds are framable by the hosts we choose while `index.html` can be
-  limited to `frame-ancestors 'self'` (today no page restricts framing),
-- stays small: one more line in `rolldownOptions.input` of `vite.config.tpl.ts`, next to `shell` and `demos`.
+- carries its own `frame-ancestors`, so the embed is framable by the hosts we choose while `index.html` can be
+  limited to `frame-ancestors 'self'` (today no other page restricts framing),
+- stays small: one line in `rolldownOptions.input` of `vite.config.tpl.ts`, next to `shell` and `demos`.
 
 ## URL contract
 
 Every input is in the URL, and every input is untrusted.
 
-DashQL embed:
+DashQL mode:
 
 | Mode | Parameters |
 |------|------------|
 | data file | `file=<https URL>`, optional `format=parquet\|csv\|arrow\|hyper` (else from the extension and the bytes), optional `sql=<base64url>`, the query whose result the view shows instead of the first rows |
 | workbook | `zip=<base64url>` as in the links of the app (`workbook_tables.md`), or `workbook=<URL>` of a hosted workbook folder; optional `script=<position>` |
 
-Hyper embed, in the fragment so that scripts never reach a server log, like the shell's sharing:
+Hyper mode, in the fragment so that scripts never reach a server log, like the shell's sharing:
 
 | Parameter | Meaning |
 |-----------|---------|
 | `script=<payload>` | the script, in the format of `shell_share.ts` |
 | `file=<https URL>` | a file mounted before the script runs, repeatable, mounted under its file name |
 
-The embeds fetch files with CORS from the browser of the viewer: the file never passes through a server of ours, and
+The embed fetches files with CORS from the browser of the viewer: the file never passes through a server of ours, and
 its host must send `Access-Control-Allow-Origin`. Pre-signed URLs work. A file the host doesn't serve with CORS can't
 be opened. Proxying it through a server of ours is the documented alternative, not a default.
 
@@ -78,9 +100,8 @@ The embed checks what it got before it loads anything (`getHyperDBWebSupportErro
    [document_isolation_policy.md](../design/document_isolation_policy.md).
 2. **Isolated, opaque origin** (a sandbox without `allow-same-origin`, Slack's default): no storage at all, no OPFS,
    IndexedDB or `localStorage`, and no worker from a URL. The engine runs from one `blob:` worker with an in-memory
-   root; attachments mount as `File`s. Measured with a patched `hyperdb-wasm` (`document_isolation_policy.md`), the
-   package needs the two options listed there. The embed itself then needs storage in memory and its own workers
-   (the core batch worker) from `blob:` URLs as well. Until then: as 3.
+   root (`worker: 'blob'`, `storage: 'memory'` of `hyperdb-wasm`); attachments mount as `File`s. The core batch
+   worker starts from a `blob:` URL as well, see the probe. What the embed still needs: its own state in memory.
 3. **Not isolated** (Firefox, Safari, an Electron below Chromium 137): no engine. The workbook mode still shows cached
    results, everything else shows what the link carries and says that the view needs Chrome or Edge.
 
@@ -92,27 +113,27 @@ in Firefox too. A button in the embed can't be relied on: the sandbox of the Sla
 The engine download (`hyperdb-wasm.wasm.br`, about 12 MB) is cached by the browser per top-level site, so the first
 side panel in a host downloads it once.
 
-What the embeds don't do: log in to connections. A workbook whose scripts need Trino, a Hyper server or Data Cloud
+What the embed doesn't do: log in to connections. A workbook whose scripts need Trino, a Hyper server or Data Cloud
 shows its cached results, and running it is left to the full app.
 
 ## Headers
 
-The embeds get the global headers (COOP, COEP, DIP) and a rule of their own in `_headers` for `/embed`,
-`/embed.html`, `/shell-embed` and `/shell-embed.html`: a `Content-Security-Policy` with `frame-ancestors` that lists
-the hosts (for Slack: `https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com`).
+The embed gets the global headers (COOP, COEP, DIP) and a rule of its own in `_headers` for `/embed` and
+`/embed.html` (built): a `Content-Security-Policy` with `frame-ancestors` that lists `'self'` and the hosts (for
+Slack: `https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com`).
 `frame-ancestors` has no effect in a `<meta>` policy, it has to be the header. The policy of the page itself stays in
 its `<meta>` tag like the other entries (`app_csp.md`), with `connect-src https:` for the files.
 
 ## Slack
 
-One Slack app serves both embeds. Its settings list `dashql.app` and `hyperdb.sh` as unfurl domains and in the embed
+One Slack app serves both modes. Its settings list `dashql.app` and `hyperdb.sh` as unfurl domains and in the embed
 allow list, with `allow-same-origin` on.
 
 | Object | `entity_type` | `external_ref.type` | `full_size_preview.preview_url` |
 |--------|---------------|---------------------|---------------------------------|
 | data file | `slack#/entities/file` | `data_file` | `https://dashql.app/embed?file=…` |
 | workbook | `slack#/entities/content_item` | `workbook` | `https://dashql.app/embed?zip=…` |
-| Hyper script | `slack#/entities/item` | `hyper_script` | `https://hyperdb.sh/shell-embed#script=…` |
+| Hyper script | `slack#/entities/item` | `hyper_script` | `https://hyperdb.sh/embed#script=…` |
 
 Slack sends `link_shared` only for links on the app's own domains. A link to a Parquet file on S3 or Hugging Face
 reaches the app only as a `dashql.app/embed?file=` link, so the app offers the ways to make one: a slash command
@@ -132,9 +153,9 @@ The side panel is narrow, its width isn't documented. The views are one column:
 
 ## Order
 
-1. The DashQL embed with the data file mode. It is useful alone, needs no credentials, and tests DIP in the real
+1. The DashQL mode for data files. It is useful alone, needs no credentials, and tests DIP in the real
    Slack clients (desktop, browser, Android).
-2. The Hyper embed with `script=` and `file=`.
+2. The Hyper mode with `script=` and `file=`.
 3. The workbook mode with cached results, which runs in every client.
 4. Running self-contained workbooks in the embed.
 5. Published workbooks of a cloud as Work Objects, with Slack's list of conversations as the discussion of a version.

@@ -14,6 +14,16 @@
 /static/js/*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: http: https: ws: wss:
 
+# The embed is framed by the hosts listed here, see docs/wip/embeds.md. frame-ancestors has no effect in a <meta>
+# policy, so it is a header. Pages serves embed.html as /embed.
+/embed
+  Content-Security-Policy: frame-ancestors 'self' https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com
+  Cache-Control: public, max-age=0, must-revalidate
+
+/embed.html
+  Content-Security-Policy: frame-ancestors 'self' https://*.slack.com https://*.slack-gov.com https://*.slack-mcps.com https://slack-mcps-host.com
+  Cache-Control: public, max-age=0, must-revalidate
+
 # Vite fingerprints files in these output directories. Their URLs change with their contents, so
 # browsers can retain successful responses across deployments. Keep mutable static/config.json
 # outside these rules.

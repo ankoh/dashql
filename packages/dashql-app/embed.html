@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'wasm-unsafe-eval' 'self'; style-src 'unsafe-inline' 'self'; connect-src 'self' blob: data: https:; worker-src blob: 'self'" />
+        <title>DashQL Embed</title>
+    </head>
+    <body>
+        <main id="root"></main>
+        <script type="module" src="/src/embed/embed.ts"></script>
+    </body>
+</html>

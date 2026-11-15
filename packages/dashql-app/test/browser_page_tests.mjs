@@ -1,4 +1,4 @@
-// Tests of the real pages of the bundle: index.html, shell.html, demos.html and oauth.html.
+// Tests of the real pages of the bundle: index.html, shell.html, demos.html, embed.html and oauth.html.
 //
 // Their entry points call createRoot when they are imported, so a test in the test frame can't load them, and tests in
 // the frame replace parts of the composition with fakes. These tests boot the pages like a browser does, with the
@@ -564,6 +564,17 @@ async function testDemos(page, navigate) {
     await page.getByRole('button', { name: 'Logo' }).click();
 }
 
+/// The embed starts the core and Hyper in their workers and runs its query in both
+async function testEmbed(page, navigate) {
+    await navigate('/embed.html');
+    await page.waitForFunction(() => globalThis.__DASHQL_EMBED__?.done === true);
+    const probe = await page.evaluate(() => globalThis.__DASHQL_EMBED__);
+    if (probe.environment.crossOriginIsolated !== 'true') throw new Error('The embed is not isolated');
+    const failed = probe.steps.filter(step => !step.ok);
+    if (failed.length > 0) throw new Error(`The embed failed: ${JSON.stringify(failed)}`);
+    if (!probe.steps.some(step => step.detail.includes('n=5000000'))) throw new Error(`Hyper returned ${JSON.stringify(probe.steps)}`);
+}
+
 /// The redirect page of OAuth without a provider response
 async function testOAuth(page, navigate) {
     await navigate('/oauth.html');
@@ -586,6 +597,7 @@ const PAGE_TESTS = [
     { name: 'app_narrow', options: NARROW, test: testAppNarrow },
     { name: 'shell', options: DESKTOP, test: testShell },
     { name: 'demos', options: DESKTOP, test: testDemos },
+    { name: 'embed', options: NARROW, test: testEmbed },
     { name: 'oauth', options: DESKTOP, test: testOAuth },
 ];
 

@@ -108,26 +108,20 @@ A Work Objects embed loads an HTTPS URL of the app in an iframe of the flexpane.
 - **With `allow-same-origin`** the embed is the third row of the table: the engine runs as it is, with an OPFS
   partitioned under Slack. This is the path. The page does not need cookies: data arrives through the URL, a
   pre-signed snapshot, or a fetch with an `Authorization` header.
-- **With the default sandbox** the engine needs changes in `hyperdb-wasm`, all inside the package:
-  - Start the engine worker from a `blob:` URL instead of a URL. The worker and the engine read their settings from
-    the search parameters of `self.location.href` today; a `blob:` URL has none, so they have to take them from a
-    global set by the bootstrap or from the first message.
-  - Start the pthreads from that same blob. Emscripten starts them from `_scriptName`, the URL the engine was loaded
-    from, so the engine source has to be part of the blob instead of an `importScripts` of a URL.
-  - Run without OPFS: an in-memory file system for `/mnt/fs` and the logs, nothing survives a reload.
-  - Load cross-origin. From an opaque origin every request to the app is cross-origin: fetches need
-    `Access-Control-Allow-Origin` (sent), `importScripts` and other no-cors loads need
-    `Cross-Origin-Resource-Policy: cross-origin` under `isolate-and-require-corp`, or the page uses
-    `isolate-and-credentialless`.
+- **With the default sandbox** the engine runs from `hyperdb-wasm` 0.0.27368 on, with
+  `HyperDB.create({ worker: 'blob', storage: 'memory' })`:
+  - The client fetches the worker and engine scripts with CORS and joins them into one classic `blob:` worker, with
+    its settings in a global (`self.HYPERDB_WASM_CONFIGURATION`) instead of the search parameters of a worker URL.
+    The pthreads start from that same blob, so no worker loads from a URL.
+  - `/mnt/fs` and the logs stay in memory, nothing survives a reload. `COPY … TO` is not available, Hyper copies only
+    into registered targets, which are OPFS directories.
+  - From an opaque origin every request to the app is cross-origin: fetches need `Access-Control-Allow-Origin`
+    (sent). The scripts are fetched, not loaded with `importScripts`, so they need no `Cross-Origin-Resource-Policy`.
 
-  Measured with a patched copy of `hyperdb-wasm` 0.0.27367 in the sandbox without `allow-same-origin` (Chrome 158,
-  both values of DIP): the worker script of the package as one `blob:` with `self.HYPERDB_WASM_ENGINE_URL` set in
-  front of it, the query that the client appends to the worker URL dropped, and the `FS.mount(runtime.OPFS, …)` of
-  `/mnt/fs` removed, so `/mnt/fs` stays in the default in-memory file system. The engine starts in about 0.4 s, the
-  pthreads start from that blob (`blob:null/…`), the query over 5M rows and a temporary table of 1M rows run, and a
-  `File` mounted at `/mnt/external/att.csv` reads with `external()`. What the package would have to offer instead of
-  the patch: a worker that takes its settings from a global or its first message, and a root in memory instead of
-  OPFS. Not available there: `COPY … TO`, Hyper copies only into registered targets, which are OPFS directories.
+  Measured in the embed probe (`embed.html`, see [embeds.md](../wip/embeds.md)), together with the core batch
+  worker, which starts from a `blob:` URL as well. Before the package offered it, a patched copy of 0.0.27367 showed
+  the same: the engine started in about 0.4 s, the query over 5M rows and a temporary table of 1M rows ran, and a
+  `File` mounted at `/mnt/external/att.csv` read with `external()`.
 - Not measured in Slack itself: the Electron version of the desktop client, the mobile clients, and whether the
   flexpane sets an `allow` attribute that withholds anything.
 

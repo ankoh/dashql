@@ -181,6 +181,7 @@ copy_to_bin(
         "src/**/*.js",
         "src/**/*.sql",
         "demos.html",
+        "embed.html",
         "hyperdb-capability.html",
         "index.html",
         "oauth.html",
