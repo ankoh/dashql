@@ -52,6 +52,7 @@ function createRegistry(backend: WorkbookTestBackend, references: ConnectionRefe
         setRegistry: (update: (registry: ConnectionRegistry) => ConnectionRegistry) => service.store.update(update),
         dispatch: service.dispatch as DynamicConnectionDispatch,
         save: (): Promise<ConnectionSaveResult | null> => persistence.save(TEST_CONNECTION_ID),
+        persistence,
         dispose: () => service.dispose(),
     };
 }
@@ -357,6 +358,7 @@ describe('shared connection persistence', () => {
             dispatch: created.dispatch,
             writer: created.writer,
             save: created.save,
+            persistence: created.persistence,
         };
         await step(async () => created.setRegistry(reg => {
             reg.connections.set(TEST_CONNECTION_ID, connection);
@@ -410,6 +412,19 @@ describe('shared connection persistence', () => {
                 [MISSING_WORKBOOK_ID, 'failed'],
             ]);
             expect(backend.workbooks.has(MISSING_WORKBOOK_ID)).toBe(false);
+        } finally {
+            unmount();
+        }
+    });
+
+    it('stops saving when a retry finds the connection gone', async () => {
+        const { harness, unmount } = await setupRegistry([TEST_WORKBOOK_ID, MISSING_WORKBOOK_ID]);
+        try {
+            await dispatchAndSettle(harness, { type: SET_CONNECTION_DRAFT, value: trino('https://new') });
+            await step(async () => { await harness.save(); });
+            harness.registry.connections.delete(TEST_CONNECTION_ID);
+            expect(await harness.persistence.retry(TEST_CONNECTION_ID, [MISSING_WORKBOOK_ID])).toBeNull();
+            expect(harness.persistence.states.current.get(TEST_CONNECTION_ID)?.saving).toBe(false);
         } finally {
             unmount();
         }

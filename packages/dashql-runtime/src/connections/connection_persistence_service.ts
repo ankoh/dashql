@@ -134,9 +134,9 @@ export class ConnectionPersistenceService {
     retry = async (connectionId: string, workbookIds: string[]): Promise<ConnectionSaveResult | null> => {
         const last = this.states.current.get(connectionId)?.result;
         if (last == null || last.manifest.status !== 'written') return null;
-        this.setState(connectionId, { saving: true, result: last });
         const connection = this.deps.readConnections().connections.get(connectionId);
         if (connection == null) return null;
+        this.setState(connectionId, { saving: true, result: last });
         const retried = await this.writeWorkbookCopies(workbookCopy(connection, last.params), workbookIds);
         const byWorkbook = new Map(retried.map(r => [r.workbookId, r]));
         const result: ConnectionSaveResult = {
