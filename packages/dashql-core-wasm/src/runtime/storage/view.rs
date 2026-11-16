@@ -297,7 +297,7 @@ pub enum StorageWriteOutcome {
     Cancelled,
     Deferred,
     Failed {
-        #[serde(serialize_with = "crate::views::preserve")]
+        #[serde(serialize_with = "serde_wasm_bindgen::preserve::serialize")]
         #[tsify(type = "unknown")]
         error: JsValue,
         #[serde(skip_serializing_if = "Option::is_none")]

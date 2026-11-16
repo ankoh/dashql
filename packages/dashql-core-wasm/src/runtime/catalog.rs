@@ -130,6 +130,10 @@ impl CatalogLoaderHost for LoaderHost {
             connections.announce_catalog(connection_id);
         }
     }
+
+    fn connection_changed(&self, connection_id: &str) {
+        self.platform.changed(super::changes::Slice::Connection(connection_id), true);
+    }
 }
 
 impl Connections {

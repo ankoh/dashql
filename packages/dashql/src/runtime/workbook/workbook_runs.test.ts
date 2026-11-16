@@ -28,7 +28,10 @@ function deferred() {
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
 /// A query as the runtime holds it now
-const queryView = (runtime: Runtime, queryId: number) => runtime.module.views('query', [queryId])[0] ?? null;
+const queryView = (runtime: Runtime, queryId: number) => {
+    const view = runtime.module.views('query', [queryId])[0] ?? null;
+    return view === 'busy' ? null : view;
+};
 
 /// A published workbook that a workbook is a preview of
 const PREVIEW = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true };

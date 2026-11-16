@@ -29,24 +29,25 @@ describe('HandleTable', () => {
         expect(handles.size).toBe(1);
     });
 
-    it('runs the effects on handles in order and returns the others', () => {
+    it('aborts and closes at once and returns the handles to release in order', () => {
         const handles = new HandleTable();
         const channel = { close: vi.fn() };
         const cancellation = new AbortController();
         const channelHandle = handles.register(channel);
         const cancellationHandle = handles.register(cancellation);
-        const rest = handles.apply([
-            { type: 'cancelSetup' as const },
-            { type: 'abort' as const, handle: cancellationHandle, reason: 'Connection was reset' },
-            { type: 'close' as const, handle: channelHandle },
-            { type: 'release' as const, handle: cancellationHandle },
+        const releases = handles.apply([
+            { type: 'abort', handle: cancellationHandle, reason: 'Connection was reset' },
+            { type: 'close', handle: channelHandle },
+            { type: 'release', handle: cancellationHandle },
         ]);
-        expect(rest).toEqual([{ type: 'cancelSetup' }]);
+        expect(releases).toEqual([channelHandle, cancellationHandle]);
         expect(channel.close).toHaveBeenCalledTimes(1);
         expect(cancellation.signal.aborted).toBe(true);
         expect((cancellation.signal.reason as DOMException).name).toBe('AbortError');
         expect((cancellation.signal.reason as DOMException).message).toBe('Connection was reset');
-        expect(handles.size).toBe(0);
+        // A closed object keeps its handle until the release
+        expect(handles.get(channelHandle)).toBe(channel);
+        expect(handles.size).toBe(2);
     });
 });
 

@@ -74,6 +74,8 @@ pub trait CatalogLoaderHost: HttpHost {
     /// The catalog of a connection changed outside of an update, e.g. it registered client functions. The scripts that
     /// use the connection are analyzed again.
     fn catalog_changed(&self, connection_id: &str);
+    /// The loader changed the state of a connection outside of an action, the text of its function script
+    fn connection_changed(&self, connection_id: &str);
 }
 
 /// A connection that the loader follows: its state and the history of its queries, shared with the host
@@ -602,8 +604,9 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                 Ok(mut state) => state.replace_function_script_text(text).map_err(|error| error.message),
                 Err(_) => Err("the connection is in use".to_string()),
             };
-            if let Err(error) = replaced {
-                self.log(LogLevel::Warn, "Failed to keep the function script", &[("connectionId", connection_id), ("error", &error)]);
+            match replaced {
+                Ok(()) => self.host.connection_changed(connection_id),
+                Err(error) => self.log(LogLevel::Warn, "Failed to keep the function script", &[("connectionId", connection_id), ("error", &error)]),
             }
         }
         for warning in &outcome.warnings {

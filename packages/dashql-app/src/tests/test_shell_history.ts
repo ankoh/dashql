@@ -26,7 +26,8 @@ export function testShellHistory(dql: core.DashQL, limit: number = SHELL_QUERY_H
         queries: () => {
             runtime.flush();
             return (runtime.store.get('history', history)?.queries ?? [])
-                .map(queryId => (runtime.module.views('query', [queryId])[0] ?? null) as QueryExecutionState | null)
+                .map(queryId => runtime.module.views('query', [queryId])[0] ?? null)
+                .map(query => (query === 'busy' ? null : query) as QueryExecutionState | null)
                 .filter((query): query is QueryExecutionState => query != null);
         },
     };

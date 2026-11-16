@@ -314,10 +314,11 @@ export class Runtime {
     }
 
     /// A connection as the runtime holds it now, not as the store saw it at the last flush, e.g. for a service that
-    /// reads it right after an action
+    /// reads it right after an action. A connection that a task holds reads as the store saw it.
     connection(connectionId: string): ConnectionState | null {
         if (this.freed) return null;
-        return (this.module.views('connection', [connectionId])[0] ?? null) as ConnectionState | null;
+        const view = this.module.views('connection', [connectionId])[0] ?? null;
+        return (view === 'busy' ? this.store.get('connection', connectionId) : view) as ConnectionState | null;
     }
 
     /// The catalog of a connection, shared with the connection and the scripts that analyze with it. One handle per

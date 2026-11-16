@@ -352,7 +352,10 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         };
 
         // A query as the runtime holds it now
-        const queryOf = (queryId: number) => runtime.module.views('query', [queryId])[0] ?? null;
+        const queryOf = (queryId: number) => {
+            const view = runtime.module.views('query', [queryId])[0] ?? null;
+            return view === 'busy' ? null : view;
+        };
         // The progress of the running queries of the scripts, read from the views of the store a while after a query
         // changed and sent when it changed
         const lastProgress = new Map<string, string>();

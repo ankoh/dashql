@@ -29,6 +29,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::host::{message_of, JsPlatform};
+use crate::runtime::changes::Read;
 use crate::runtime::migrations::migrate_workbook_folder;
 use crate::runtime::workbooks::view::WorkbookDataFile;
 use crate::views::{to_js, JsonValue};
@@ -91,15 +92,21 @@ impl StorageState {
         self.revision.get()
     }
 
-    /// The view of the storage
-    pub fn view(&self) -> StorageView {
-        let status = self.status.borrow();
-        StorageView {
+    /// The view of the storage, busy while a task holds it
+    pub fn view(&self) -> Read<StorageView> {
+        let (Ok(status), Ok(questions)) = (self.status.try_borrow(), self.questions.try_borrow()) else { return Read::Busy };
+        Read::Value(StorageView {
             held_workbooks: status.externally_changed().map(str::to_string).collect(),
             holds: status.holds.iter().map(StorageHoldView::from).collect(),
             failed_writes: status.failed.iter().map(FailedStorageWriteView::from).collect(),
-            external_changes: self.questions.borrow().clone(),
-        }
+            external_changes: questions.clone(),
+        })
+    }
+
+    /// Tests of the seam: call a function while the storage view is borrowed. None if it is held.
+    pub fn hold<R>(&self, f: impl FnOnce() -> R) -> Option<R> {
+        let _held = self.status.try_borrow_mut().ok()?;
+        Some(f())
     }
 
     /// Ask about a workbook that changed outside the app, a question about it replaces the one before

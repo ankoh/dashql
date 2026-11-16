@@ -393,6 +393,27 @@ pub enum QueryExecutionAction {
     QueryCacheDeleted { query_id: QueryId },
 }
 
+impl QueryExecutionAction {
+    /// The query of the action
+    pub fn query_id(&self) -> QueryId {
+        match self {
+            QueryExecutionAction::ExecuteQuery { state } => state.query_id,
+            QueryExecutionAction::QuerySending { query_id, .. }
+            | QueryExecutionAction::QueryRunning { query_id, .. }
+            | QueryExecutionAction::QueryProgressUpdated { query_id, .. }
+            | QueryExecutionAction::QueryReceivedBatch { query_id, .. }
+            | QueryExecutionAction::QueryReceivedAllBatches { query_id, .. }
+            | QueryExecutionAction::QueryProcessingResults { query_id, .. }
+            | QueryExecutionAction::QueryProcessedResults { query_id, .. }
+            | QueryExecutionAction::QuerySucceeded { query_id, .. }
+            | QueryExecutionAction::QueryFailed { query_id, .. }
+            | QueryExecutionAction::QueryCancelled { query_id, .. }
+            | QueryExecutionAction::QueryCacheRecorded { query_id, .. }
+            | QueryExecutionAction::QueryCacheDeleted { query_id } => *query_id,
+        }
+    }
+}
+
 /// What the host must do after an action
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum QueryExecutionEffect {

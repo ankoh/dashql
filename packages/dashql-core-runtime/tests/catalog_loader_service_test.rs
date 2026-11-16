@@ -335,6 +335,10 @@ impl CatalogLoaderHost for FakeHost {
     fn catalog_changed(&self, connection_id: &str) {
         self.event(format!("changed {connection_id}"));
     }
+
+    fn connection_changed(&self, connection_id: &str) {
+        self.event(format!("connection {connection_id}"));
+    }
 }
 
 // The fixtures
@@ -452,6 +456,8 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     assert!(relations_text(&host).contains("orders"));
     // The bundled functions of Hyper came with the refresh
     assert!(host.connection("database").state.borrow().function_script().unwrap().to_text().contains("CREATE FUNCTION"));
+    // The host hears that the loader changed the connection
+    assert!(host.events().contains(&"connection database".to_string()), "{:?}", host.events());
     host.observe();
     assert_eq!(host.query_count(), 2);
 }

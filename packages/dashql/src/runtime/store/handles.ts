@@ -7,8 +7,8 @@
 /// then on the runtime owns the handle, also when it refuses the action: the state keeps the handle where it keeps the
 /// object and lets go of it with an effect, a refused action releases it. The adapter never releases a handle that it
 /// handed over. The effects on handles are three: the runtime aborts and closes at once through `abort` and `close`,
-/// releases wait for the store, which runs the effects that are left with `apply`, and gets back the effects of the
-/// state that are no effects on handles.
+/// a closed object keeps its handle until the release. Releases wait for the store, which runs the effects that are
+/// left with `apply` and forgets the handles once no view of the store names them.
 
 /// An effect of a state on a handle
 export type HandleEffect =
@@ -24,10 +24,6 @@ export interface Abortable {
 /// An object that a close reaches, e.g. a channel
 export interface Closable {
     close?(): unknown;
-}
-
-function isHandleEffect(effect: { type: string }): effect is HandleEffect {
-    return effect.type === 'release' || effect.type === 'close' || effect.type === 'abort';
 }
 
 /// The handle table of a runtime. A handle is never given out twice, releasing an unknown handle does nothing.
@@ -63,10 +59,9 @@ export class HandleTable {
         this.objects.delete(handle);
     }
 
-    /// Close the object of a handle and forget it
+    /// Close the object of a handle, the handle stays until its release
     close(handle: number): void {
         const object = this.objects.get(handle) as Closable | null | undefined;
-        this.objects.delete(handle);
         object?.close?.();
     }
 
@@ -77,32 +72,20 @@ export class HandleTable {
         object?.abort?.(new DOMException(reason, 'AbortError'));
     }
 
-    /// Run the effects on handles in order, returns the other effects in order. An object that throws on its close or
-    /// abort is forgotten as the effect says, the effects after it still run.
-    apply<E extends { type: string }>(effects: readonly E[]): Exclude<E, HandleEffect>[] {
-        const rest: Exclude<E, HandleEffect>[] = [];
+    /// Run the aborts and the closes in order, returns the handles to release in order: the released and the closed
+    /// ones. An object that throws on its close or abort is released as the effect says, the effects after it still run.
+    apply(effects: readonly HandleEffect[]): number[] {
+        const releases: number[] = [];
         for (const effect of effects) {
-            if (!isHandleEffect(effect)) {
-                rest.push(effect as Exclude<E, HandleEffect>);
-                continue;
-            }
+            if (effect.type !== 'abort') releases.push(effect.handle);
             try {
-                switch (effect.type) {
-                    case 'release':
-                        this.release(effect.handle);
-                        break;
-                    case 'close':
-                        this.close(effect.handle);
-                        break;
-                    case 'abort':
-                        this.abort(effect.handle, effect.reason);
-                        break;
-                }
+                if (effect.type === 'close') this.close(effect.handle);
+                if (effect.type === 'abort') this.abort(effect.handle, effect.reason);
             } catch (e) {
                 console.warn(`the ${effect.type} of the handle ${effect.handle} failed`, e);
             }
         }
-        return rest;
+        return releases;
     }
 
     /// The number of objects in the table

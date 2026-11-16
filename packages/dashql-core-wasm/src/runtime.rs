@@ -41,7 +41,7 @@ use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connections::registry::{QueryOwner, RegistryOutcome};
+use dashql_core_runtime::connections::registry::{ConnectionRegistry, QueryOwner, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryResultTable};
@@ -120,9 +120,11 @@ export interface QueryTicket {
     queryId: number;
     done: Promise<QueryRunOutcome>;
 }
+/** The read of a slice that a task of the runtime holds: it moves with the next changes, the host keeps its view */
+export type BusyView = 'busy';
 export interface Runtime {
-    /** The views of the slices of a kind, null for a slice that is gone. One crossing per kind and flush. */
-    views<K extends ViewKind>(kind: K, ids: ViewId<K>[], known?: KnownKeys<K>): (ViewOf<K> | null)[];
+    /** The views of the slices of a kind, null for a slice that is gone, `'busy'` for one that a task holds. One crossing per kind and flush. */
+    views<K extends ViewKind>(kind: K, ids: ViewId<K>[], known?: KnownKeys<K>): (ViewOf<K> | BusyView | null)[];
 }
 "#;
 
@@ -542,17 +544,28 @@ impl Runtime {
         }
     }
 
-    /// The views of slices of a kind, null for a slice that is gone or busy. The ids of the busy ones go to `busy`.
+    /// The views of slices of a kind, see `Read` for how they cross. The ids of the busy ones go to `busy`.
     fn read_views(&self, kind: &str, ids: JsValue, known: JsValue, busy: &mut Vec<JsValue>) -> Result<JsValue, JsError> {
-        /// A read as the view of a slice, a busy slice is noted
-        fn view<T>(read: Read<T>, id: JsValue, busy: &mut Vec<JsValue>) -> Option<T> {
+        /// Note the id of a busy slice
+        fn noted<T>(read: Read<T>, id: JsValue, busy: &mut Vec<JsValue>) -> Read<T> {
+            if matches!(read, Read::Busy) {
+                busy.push(id);
+            }
+            read
+        }
+        /// Every slice of a kind is busy
+        fn all_busy(ids: Vec<JsValue>, busy: &mut Vec<JsValue>) -> Result<JsValue, JsError> {
+            let reads: Vec<Read<()>> = ids.iter().map(|_| Read::Busy).collect();
+            busy.extend(ids);
+            views_to_js(&reads)
+        }
+        /// The read of the one slice of a kind, e.g. a list: gone for any other id
+        fn root<'a, T>(read: &'a Read<T>, id: &str, busy: &mut Vec<JsValue>) -> Read<&'a T> {
             match read {
-                Read::Value(view) => Some(view),
-                Read::Gone => None,
-                Read::Busy => {
-                    busy.push(id);
-                    None
-                }
+                _ if id != ROOT => Read::Gone,
+                Read::Value(view) => Read::Value(view),
+                Read::Gone => Read::Gone,
+                Read::Busy => noted(Read::Busy, JsValue::from_str(id), busy),
             }
         }
         let text = |id: &str| JsValue::from_str(id);
@@ -560,28 +573,30 @@ impl Runtime {
         match kind {
             COMPUTATION => {
                 let ids = Self::number_ids(&ids, "id of a computation")?;
-                let views: Vec<Option<ComputationView>> =
-                    self.computations.read(|state| ids.iter().map(|id| state.computation(*id).map(ComputationView::from)).collect());
-                value_to_js(&views).map_err(|e| JsError::new(&e.to_string()))
+                let reads: Option<Vec<Read<ComputationView>>> = self.computations.try_read(|state| {
+                    ids.iter().map(|id| state.computation(*id).map_or(Read::Gone, |computation| Read::Value(ComputationView::from(computation)))).collect()
+                });
+                match reads {
+                    Some(reads) => value_to_js(&reads).map_err(|e| JsError::new(&e.to_string())),
+                    None => all_busy(ids.into_iter().map(number).collect(), busy),
+                }
             }
             CONNECTION_LIST => {
                 let ids = Self::text_ids(&ids, "connection list")?;
-                let list = match self.connections.registry.try_borrow() {
-                    Ok(registry) => Read::Value(ConnectionListView::of(&registry.list())),
-                    Err(_) => Read::Busy,
+                let list = match self.connections.registry.try_borrow().ok().and_then(|registry| registry.list()) {
+                    Some(list) => Read::Value(ConnectionListView::of(&list)),
+                    None => Read::Busy,
                 };
-                let list = view(list, text(ROOT), busy);
-                let views: Vec<Option<ConnectionListView>> = ids.iter().map(|id| list.clone().filter(|_| id == ROOT)).collect();
-                views_to_js(&views)
+                let reads: Vec<Read<&ConnectionListView>> = ids.iter().map(|id| root(&list, id, busy)).collect();
+                views_to_js(&reads)
             }
             CONNECTION => {
                 let ids = Self::text_ids(&ids, "connection")?;
                 let Ok(registry) = self.connections.registry.try_borrow() else {
-                    busy.extend(ids.iter().map(|id| text(id)));
-                    return views_to_js(&vec![Option::<ConnectionView>::None; ids.len()]);
+                    return all_busy(ids.iter().map(|id| text(id)).collect(), busy);
                 };
-                let views: Vec<Option<ConnectionView>> = ids.iter().map(|id| view(self.connections.view(&registry, id), text(id), busy)).collect();
-                views_to_js(&views)
+                let reads: Vec<Read<ConnectionView>> = ids.iter().map(|id| noted(self.connections.view(&registry, id), text(id), busy)).collect();
+                views_to_js(&reads)
             }
             QUERY => {
                 let ids = Self::number_ids(&ids, "id of a query")?;
@@ -591,63 +606,52 @@ impl Runtime {
                     serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the queries: {e}")))?
                 };
                 let Ok(registry) = self.connections.registry.try_borrow() else {
-                    busy.extend(ids.iter().map(|id| number(*id)));
-                    return views_to_js(&vec![Option::<QueryView>::None; ids.len()]);
+                    return all_busy(ids.iter().map(|id| number(*id)).collect(), busy);
                 };
-                let views: Vec<Option<QueryView>> = ids
+                let reads: Vec<Read<QueryView>> = ids
                     .iter()
                     .enumerate()
                     .map(|(i, id)| {
-                        let read = match registry.query_history(*id) {
-                            None => Read::Gone,
-                            Some((owner, history)) => match history.try_borrow() {
-                                Err(_) => Read::Busy,
-                                Ok(history) => match history.query(*id) {
-                                    None => Read::Gone,
-                                    Some(query) => {
-                                        let connection_id = match &owner {
-                                            QueryOwner::Connection(id) => Some(id.as_str()),
-                                            QueryOwner::History(_) => None,
-                                        };
-                                        let known = known.get(i).copied().flatten().unwrap_or_default();
-                                        Read::Value(QueryView::of(query, connection_id, known))
-                                    }
-                                },
-                            },
-                        };
-                        view(read, number(*id), busy)
+                        let read = read_query(&registry, *id, |owner, query| {
+                            let connection_id = match owner {
+                                QueryOwner::Connection(id) => Some(id.as_str()),
+                                QueryOwner::History(_) => None,
+                            };
+                            let known = known.get(i).copied().flatten().unwrap_or_default();
+                            QueryView::of(query, connection_id, known)
+                        });
+                        noted(read, number(*id), busy)
                     })
                     .collect();
-                views_to_js(&views)
+                views_to_js(&reads)
             }
             HISTORY => {
                 let ids = Self::text_ids(&ids, "history")?;
                 let Ok(registry) = self.connections.registry.try_borrow() else {
-                    busy.extend(ids.iter().map(|id| text(id)));
-                    return views_to_js(&vec![Option::<QueryHistoryView>::None; ids.len()]);
+                    return all_busy(ids.iter().map(|id| text(id)).collect(), busy);
                 };
-                let views: Vec<Option<QueryHistoryView>> = ids
+                let reads: Vec<Read<QueryHistoryView>> = ids
                     .iter()
                     .map(|name| {
                         let read = match registry.history(&QueryOwner::History(name.clone())) {
                             None => Read::Gone,
                             Some(history) => history.try_borrow().map_or(Read::Busy, |history| Read::Value(QueryHistoryView::from(&*history))),
                         };
-                        view(read, text(name), busy)
+                        noted(read, text(name), busy)
                     })
                     .collect();
-                views_to_js(&views)
+                views_to_js(&reads)
             }
             WORKBOOK_LIST => {
                 let ids = Self::text_ids(&ids, "workbook list")?;
-                let list = view(self.workbooks.list_view(), text(ROOT), busy);
-                let views: Vec<Option<WorkbookListView>> = ids.iter().map(|id| list.clone().filter(|_| id == ROOT)).collect();
-                views_to_js(&views)
+                let list = self.workbooks.list_view();
+                let reads: Vec<Read<&WorkbookListView>> = ids.iter().map(|id| root(&list, id, busy)).collect();
+                views_to_js(&reads)
             }
             WORKBOOK => {
                 let ids = Self::text_ids(&ids, "workbook")?;
-                let views: Vec<Option<WorkbookView>> = ids.iter().map(|id| view(self.workbooks.view(id), text(id), busy)).collect();
-                views_to_js(&views)
+                let reads: Vec<Read<WorkbookView>> = ids.iter().map(|id| noted(self.workbooks.view(id), text(id), busy)).collect();
+                views_to_js(&reads)
             }
             SCRIPT => {
                 let ids = Self::number_ids(&ids, "key of a script")?;
@@ -656,16 +660,15 @@ impl Runtime {
                 } else {
                     serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the scripts: {e}")))?
                 };
-                let views: Vec<Option<WorkbookScriptView>> = ids
+                let reads: Vec<Read<WorkbookScriptView>> = ids
                     .iter()
                     .enumerate()
                     .map(|(i, key)| {
-                        let script_key = u32::try_from(*key).ok()?;
+                        let Ok(script_key) = u32::try_from(*key) else { return Read::Gone };
                         let read = match self.workbooks.of_script(script_key) {
-                            // A script of a busy workbook is found once the workbook is free
-                            None if self.workbooks.busy() => Read::Busy,
-                            None => Read::Gone,
-                            Some((workbook_id, workbook)) => match workbook.try_borrow() {
+                            Read::Gone => Read::Gone,
+                            Read::Busy => Read::Busy,
+                            Read::Value((workbook_id, workbook)) => match workbook.try_borrow() {
                                 Err(_) => Read::Busy,
                                 Ok(workbook) => match workbook.script(script_key) {
                                     None => Read::Gone,
@@ -676,41 +679,44 @@ impl Runtime {
                                 },
                             },
                         };
-                        view(read, number(*key), busy)
+                        noted(read, number(*key), busy)
                     })
                     .collect();
-                views_to_js(&views)
+                views_to_js(&reads)
             }
             WORKBOOK_DERIVED => {
                 let ids = Self::text_ids(&ids, "workbook")?;
-                let views: Vec<Option<WorkbookDerivedView>> = ids
+                let reads: Vec<Read<WorkbookDerivedView>> = ids
                     .iter()
-                    .map(|id| {
-                        let parts = view(self.derived_parts(id), text(id), busy)?;
-                        let [references, dataflow, inputs] = &parts.buffers;
-                        Some(WorkbookDerivedView {
-                            workbook_id: id.clone(),
-                            script_keys: parts.script_keys.clone(),
-                            script_files: parts.script_files.clone(),
-                            attachments: parts.attachments.clone(),
-                            references: FlatBufferBytes(references.clone()),
-                            dataflow: FlatBufferBytes(dataflow.clone()),
-                            inputs: FlatBufferBytes(inputs.clone()),
-                        })
+                    .map(|id| match noted(self.derived_parts(id), text(id), busy) {
+                        Read::Value(parts) => {
+                            let [references, dataflow, inputs] = &parts.buffers;
+                            Read::Value(WorkbookDerivedView {
+                                workbook_id: id.clone(),
+                                script_keys: parts.script_keys.clone(),
+                                script_files: parts.script_files.clone(),
+                                attachments: parts.attachments.clone(),
+                                references: FlatBufferBytes(references.clone()),
+                                dataflow: FlatBufferBytes(dataflow.clone()),
+                                inputs: FlatBufferBytes(inputs.clone()),
+                            })
+                        }
+                        Read::Gone => Read::Gone,
+                        Read::Busy => Read::Busy,
                     })
                     .collect();
-                views_to_js(&views)
+                views_to_js(&reads)
             }
             RUN => {
                 let ids = Self::text_ids(&ids, "workbook")?;
-                let views: Vec<Option<WorkbookRunView>> = ids.iter().map(|id| self.runs.view(id)).collect();
-                views_to_js(&views)
+                let reads: Vec<Read<WorkbookRunView>> = ids.iter().map(|id| noted(self.runs.view(id), text(id), busy)).collect();
+                views_to_js(&reads)
             }
             STORAGE => {
                 let ids = Self::text_ids(&ids, "storage")?;
                 let view = self.storage.view();
-                let views: Vec<Option<StorageView>> = ids.iter().map(|id| (id == ROOT).then(|| view.clone())).collect();
-                views_to_js(&views)
+                let reads: Vec<Read<&StorageView>> = ids.iter().map(|id| root(&view, id, busy)).collect();
+                views_to_js(&reads)
             }
             _ => Err(JsError::new(&format!("the runtime has no views of the kind {kind}"))),
         }
@@ -806,7 +812,7 @@ impl Runtime {
                 let QueryOwner::History(name) = &owner else { return Ok(DispatchOutcome::failed("a connection has its own history")) };
                 let outcome = connections.registry.borrow_mut().drop_history(name);
                 connections.platform.mark(Slice::History(name));
-                connections.settle(&owner, &outcome, true);
+                connections.settle(&owner, &outcome, true, None);
                 return Ok(DispatchOutcome::changed(true));
             }
             RuntimeAction::TrackQuery { trace_id, text, metadata, handle } => {
@@ -894,11 +900,8 @@ impl Runtime {
                     Err(error) => DispatchOutcome::failed(error_text(error)),
                 }
             }
-            RuntimeAction::DeleteWorkbook { workbook_id } => {
-                // The run of a workbook that is gone stops
-                self.runs.stop(&workbook_id);
-                DispatchOutcome::changed(self.workbooks.delete(&workbook_id))
-            }
+            // The run of a workbook that is gone stops and its slice goes, see `Runs::forget`
+            RuntimeAction::DeleteWorkbook { workbook_id } => DispatchOutcome::changed(self.workbooks.delete(&workbook_id)),
             _ => DispatchOutcome::failed("the action doesn't apply to the runtime"),
         }
     }
@@ -1076,10 +1079,18 @@ impl Runtime {
     }
 
     /// The slices that changed and the effects on handles since the last call: the slices that the services marked,
-    /// see `changes.rs`. A slice that is busy is never reported as gone, it follows with the next changes.
+    /// see `changes.rs`. A slice that is busy is never reported as gone, it follows with the next changes. Changes that
+    /// fail to cross come again with the next call.
     #[wasm_bindgen(js_name = takeChanges)]
     pub fn take_changes(&self) -> Result<Ts<ChangeSet>, JsError> {
-        to_js(&self.take())
+        let changes = self.take();
+        match to_js(&changes) {
+            Ok(changes) => Ok(changes),
+            Err(error) => {
+                self.keep_unsent(changes);
+                Err(error)
+            }
+        }
     }
 
     /// The host failed to project slices of a kind, e.g. a projection threw: they move with the next changes, also if
@@ -1089,7 +1100,7 @@ impl Runtime {
         self.resync_slices(kind, &ids)
     }
 
-    /// The views of slices, see the declaration of `views` in `RuntimeViews`. A slice that is busy reads as null and
+    /// The views of slices, see the declaration of `views` in `RuntimeViews`. A slice that is busy reads as `'busy'` and
     /// moves with the next changes, the host keeps its previous view.
     #[wasm_bindgen(skip_typescript)]
     pub fn views(&self, kind: &str, ids: JsValue, known: JsValue) -> Result<JsValue, JsError> {
@@ -1428,27 +1439,63 @@ impl Runtime {
     /// The session of a script, shared with its workbook. Every call returns a new handle. None for an unknown script.
     #[wasm_bindgen(js_name = scriptSession)]
     pub fn script_session(&self, script_key: u32) -> Option<ScriptSession> {
-        let (_, workbook) = self.workbooks.of_script(script_key)?;
+        let (_, workbook) = self.workbooks.of_script(script_key).value()?;
         let workbook = workbook.try_borrow().ok()?;
         let script = workbook.script(script_key)?;
         Some(ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone(), read_only: true })
     }
 
-    /// Tests of the seam: call a function while a workbook is borrowed, as a task of the runtime would hold it. The
-    /// function may take the changes and read the views of the busy workbook.
-    #[wasm_bindgen(js_name = testHoldWorkbook)]
-    pub fn test_hold_workbook(&self, workbook_id: &str, f: &Function) -> Result<JsValue, JsError> {
-        let workbook = self.workbooks.get(workbook_id).ok_or_else(|| JsError::new("no workbook registered with the id"))?;
-        let held = workbook.try_borrow_mut().map_err(|_| JsError::new("the workbook is busy"))?;
-        let result = f.call0(&JsValue::NULL);
-        drop(held);
-        result.map_err(|error| JsError::new(&crate::host::message_of(&error)))
+    /// Tests of the seam: call a function while a part of the state is borrowed, as a task of the runtime would hold it.
+    /// The function may take the changes and read the views. The parts: `workbook:<id>`, `connection:<id>` (its state),
+    /// `queries:<connection id>` (its history), `history:<name>`, `registry`, `workbooks`, `scriptIndex`,
+    /// `computations`, `runs`, `storage`.
+    #[wasm_bindgen(js_name = testHold)]
+    pub fn test_hold(&self, part: &str, f: &Function) -> Result<JsValue, JsError> {
+        let call = || f.call0(&JsValue::NULL).map_err(|error| JsError::new(&crate::host::message_of(&error)));
+        let busy = || JsError::new("the part is busy");
+        let (name, id) = part.split_once(':').unwrap_or((part, ""));
+        match name {
+            "workbook" => {
+                let workbook = self.workbooks.get(id).ok_or_else(|| JsError::new("no workbook registered with the id"))?;
+                let _held = workbook.try_borrow_mut().map_err(|_| busy())?;
+                call()
+            }
+            "connection" => {
+                let state = self.connections.registry.try_borrow().map_err(|_| busy())?.get(id).map(|connection| connection.state.clone());
+                let state = state.ok_or_else(|| JsError::new("no connection registered with the id"))?;
+                let _held = state.try_borrow_mut().map_err(|_| busy())?;
+                call()
+            }
+            "queries" | "history" => {
+                let owner = if name == "queries" { QueryOwner::Connection(id.to_string()) } else { QueryOwner::History(id.to_string()) };
+                let history = self.connections.registry.try_borrow().map_err(|_| busy())?.history(&owner);
+                let history = history.ok_or_else(|| JsError::new("no history of the owner"))?;
+                let _held = history.try_borrow_mut().map_err(|_| busy())?;
+                call()
+            }
+            "registry" => {
+                let _held = self.connections.registry.try_borrow_mut().map_err(|_| busy())?;
+                call()
+            }
+            "workbooks" => {
+                let _held = self.workbooks.entries.try_borrow_mut().map_err(|_| busy())?;
+                call()
+            }
+            "scriptIndex" => {
+                let _held = self.workbooks.script_index.try_borrow_mut().map_err(|_| busy())?;
+                call()
+            }
+            "computations" => self.computations.hold(call).ok_or_else(busy)?,
+            "runs" => self.runs.hold(call).ok_or_else(busy)?,
+            "storage" => self.storage.hold(call).ok_or_else(busy)?,
+            _ => Err(JsError::new(&format!("no part {part} to hold"))),
+        }
     }
 
     /// Is the analysis of a script outdated, also by a change that the workbook missed?
     #[wasm_bindgen(js_name = isAnalysisOutdated)]
     pub fn is_analysis_outdated(&self, script_key: u32) -> bool {
-        let Some((_, workbook)) = self.workbooks.of_script(script_key) else { return false };
+        let Some((_, workbook)) = self.workbooks.of_script(script_key).value() else { return false };
         workbook.try_borrow().ok().and_then(|workbook| workbook.script(script_key).map(|script| script.is_analysis_outdated())).unwrap_or(false)
     }
 
@@ -1918,6 +1965,27 @@ fn adopt_restored(connections: &Rc<Connections>, workbooks: &Rc<Workbooks>, stat
         workbook_ids,
         invalid_workbooks: state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect(),
         progress: RestoreProgressView::from(&state.progress),
+    }
+}
+
+/// Read a query of the histories of a registry: gone if no history holds it, busy if none does but one is borrowed
+fn read_query<T>(registry: &ConnectionRegistry, query_id: QueryId, read: impl FnOnce(&QueryOwner, &QueryExecutionState) -> T) -> Read<T> {
+    let connections = registry.connections().map(|(id, connection)| (QueryOwner::Connection(id.to_string()), connection.queries.clone()));
+    let histories = registry.histories().map(|(name, history)| (QueryOwner::History(name.to_string()), history.clone()));
+    let mut busy = false;
+    for (owner, history) in connections.chain(histories) {
+        let Ok(history) = history.try_borrow() else {
+            busy = true;
+            continue;
+        };
+        if let Some(query) = history.query(query_id) {
+            return Read::Value(read(&owner, query));
+        }
+    }
+    if busy {
+        Read::Busy
+    } else {
+        Read::Gone
     }
 }
 

@@ -85,6 +85,7 @@ export type {
     SliceId,
     RuntimeViews,
     ViewKind,
+    BusyView,
     ViewId,
     ViewOf,
     KnownKeys,

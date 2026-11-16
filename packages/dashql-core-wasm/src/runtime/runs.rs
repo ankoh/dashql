@@ -41,7 +41,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-use super::changes::Slice;
+use super::changes::{Read, Slice};
 use super::connections::Connections;
 use super::queries::{LocalFuture, Statement};
 use super::workbooks::Workbooks;
@@ -65,6 +65,8 @@ const PENDING_INPUTS_MS: f64 = 5_000.0;
 /// The run that holds a workbook
 struct HeldRun {
     kind: WorkbookRunKind,
+    /// The number of the run, a run changes the entry only while it holds it
+    number: u64,
     /// Stops the run
     handle: Rc<RunHandle<RuntimeRunHost>>,
     /// The connections that the run of the workbook takes, no other run of a workbook starts on them
@@ -162,6 +164,13 @@ impl Runs {
                 runs.check_cached_results();
             }
         }));
+        // A workbook that is deleted or replaced takes its run with it
+        let weak = Rc::downgrade(&runs);
+        *runs.workbooks.removed_listener.borrow_mut() = Some(Rc::new(move |workbook_id: &str| {
+            if let Some(runs) = weak.upgrade() {
+                runs.forget(workbook_id);
+            }
+        }));
         runs
     }
 
@@ -185,6 +194,27 @@ impl Runs {
         };
         self.platform.changed(Slice::Runs, true);
         result
+    }
+
+    /// Change the entry of a workbook while a run of a number holds it, none otherwise: the run of a workbook that was
+    /// deleted or replaced changes nothing
+    fn update_held<R>(&self, workbook_id: &str, number: u64, change: impl FnOnce(&mut RunEntry) -> R) -> Option<R> {
+        let holds = self.read(workbook_id, |entry| entry.and_then(|entry| entry.held.as_ref()).is_some_and(|held| held.number == number));
+        holds.then(|| self.update(workbook_id, change))
+    }
+
+    /// Forget the run of a workbook that was deleted or replaced: a run that holds it stops, the slice goes
+    pub fn forget(&self, workbook_id: &str) {
+        let removed = {
+            let mut entries = self.entries.borrow_mut();
+            let position = entries.iter().position(|entry| entry.workbook_id == workbook_id);
+            position.map(|position| entries.remove(position))
+        };
+        let Some(removed) = removed else { return };
+        if let Some(held) = removed.held {
+            held.handle.cancel();
+        }
+        self.platform.changed(Slice::Runs, true);
     }
 
     /// Read the entry of a workbook
@@ -336,6 +366,7 @@ impl Runs {
             &[("workbookId", workbook_id), ("inputs", &inputs_text), ("online", &online.join(", ")), ("offline", &offline.join(", ")), ("cache", &cache)],
         );
         let host = self.host(&scope, workbook_id, can_run, listener);
+        let number = host.number;
         let run_options = RunOptions {
             run: PlanRun::Workbook,
             targets: options.targets,
@@ -347,7 +378,7 @@ impl Runs {
         let (handle, run) = start_run(Rc::new(host), scope.workbook.clone(), run_options);
         let connections = scope.connections.clone();
         self.update(workbook_id, |entry| {
-            entry.held = Some(HeldRun { kind: WorkbookRunKind::Workbook, handle: Rc::new(handle), connections, online });
+            entry.held = Some(HeldRun { kind: WorkbookRunKind::Workbook, number, handle: Rc::new(handle), connections, online });
         });
         let runs = self.clone();
         let workbook_id = workbook_id.to_string();
@@ -356,7 +387,7 @@ impl Runs {
             if let Some(failure) = result.failure.as_ref().filter(|failure| failure.kind != RunFailureKind::Cancelled) {
                 runs.log(LogLevel::Info, "The run of a workbook failed", &[("workbookId", &workbook_id), ("error", &failure.message)]);
             }
-            runs.release(&workbook_id);
+            runs.release(&workbook_id, number);
             RunOutcome::of(&result)
         })
     }
@@ -401,6 +432,7 @@ impl Runs {
             }
         }
         let host = self.host(&scope, workbook_id, None, None);
+        let number = host.number;
         let run_options = RunOptions {
             run: PlanRun::Script(file),
             targets: Some(vec![index]),
@@ -411,7 +443,7 @@ impl Runs {
         };
         let (handle, run) = start_run(Rc::new(host), scope.workbook.clone(), run_options);
         self.update(workbook_id, |entry| {
-            entry.held = Some(HeldRun { kind: WorkbookRunKind::Script, handle: Rc::new(handle), connections: Vec::new(), online: Vec::new() });
+            entry.held = Some(HeldRun { kind: WorkbookRunKind::Script, number, handle: Rc::new(handle), connections: Vec::new(), online: Vec::new() });
         });
         let runs = self.clone();
         let workbook_id = workbook_id.to_string();
@@ -424,7 +456,7 @@ impl Runs {
                 }
                 runs.log(LogLevel::Warn, "Workbook script run failed", &[("workbookId", &workbook_id), ("scriptKey", &key), ("error", &failure.message)]);
             }
-            runs.release(&workbook_id);
+            runs.release(&workbook_id, number);
             RunOutcome::of(&result)
         })
     }
@@ -456,8 +488,8 @@ impl Runs {
     }
 
     /// A run ended: it releases the workbook, a change of inputs that waits may start
-    fn release(self: &Rc<Self>, workbook_id: &str) {
-        self.update(workbook_id, |entry| entry.held = None);
+    fn release(self: &Rc<Self>, workbook_id: &str, number: u64) {
+        self.update_held(workbook_id, number, |entry| entry.held = None);
         self.start_pending();
         // The run wrote the files of its keys
         self.forget_cached_results(workbook_id);
@@ -557,41 +589,55 @@ impl Runs {
     /// Stop every run, e.g. when the runtime is destroyed. The changes of inputs that wait are dropped.
     pub fn stop_all(&self) {
         self.destroyed.set(true);
-        let handles: Vec<Rc<RunHandle<RuntimeRunHost>>> = {
+        let (handles, dropped) = {
             let mut entries = self.entries.borrow_mut();
-            for entry in entries.iter_mut() {
+            let mut dropped = false;
+            for entry in entries.iter_mut().filter(|entry| entry.pending.is_some()) {
                 entry.pending = None;
+                entry.revision = next_revision();
+                dropped = true;
             }
-            entries.iter().filter_map(|entry| entry.held.as_ref().map(|held| held.handle.clone())).collect()
+            let handles: Vec<Rc<RunHandle<RuntimeRunHost>>> = entries.iter().filter_map(|entry| entry.held.as_ref().map(|held| held.handle.clone())).collect();
+            (handles, dropped)
         };
+        if dropped {
+            self.platform.changed(Slice::Runs, true);
+        }
         for handle in handles {
             handle.cancel();
         }
     }
 
-    /// The state of the run of a workbook changed
-    fn set_state(&self, workbook_id: &str, state: WorkbookRunState) {
+    /// The state of the run of a workbook changed, a run that no longer holds the workbook changes nothing
+    fn set_state(&self, workbook_id: &str, number: u64, state: WorkbookRunState) {
         let changed = self.read(workbook_id, |entry| entry.and_then(|entry| entry.state.as_ref()) != Some(&state));
         if changed {
-            self.update(workbook_id, |entry| entry.state = Some(state));
+            self.update_held(workbook_id, number, |entry| entry.state = Some(state));
         }
     }
 
-    /// The revisions of the slices of the runs by workbook
-    pub fn revisions(&self) -> Vec<(String, u64)> {
-        self.entries.borrow().iter().map(|entry| (entry.workbook_id.clone(), entry.revision)).collect()
+    /// The revisions of the slices of the runs by workbook, none while a task holds them
+    pub fn revisions(&self) -> Option<Vec<(String, u64)>> {
+        let entries = self.entries.try_borrow().ok()?;
+        Some(entries.iter().map(|entry| (entry.workbook_id.clone(), entry.revision)).collect())
     }
 
     /// The view of the runs of a workbook
-    pub fn view(&self, workbook_id: &str) -> Option<WorkbookRunView> {
-        self.read(workbook_id, |entry| {
-            entry.map(|entry| WorkbookRunView {
-                workbook_id: entry.workbook_id.clone(),
-                held: entry.held.as_ref().map(|held| held.kind),
-                state: entry.state.clone(),
-                pending_inputs: entry.pending.as_ref().map(|pending| pending.inputs.clone()).unwrap_or_default(),
-            })
+    pub fn view(&self, workbook_id: &str) -> Read<WorkbookRunView> {
+        let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
+        let Some(entry) = entries.iter().find(|entry| entry.workbook_id == workbook_id) else { return Read::Gone };
+        Read::Value(WorkbookRunView {
+            workbook_id: entry.workbook_id.clone(),
+            held: entry.held.as_ref().map(|held| held.kind),
+            state: entry.state.clone(),
+            pending_inputs: entry.pending.as_ref().map(|pending| pending.inputs.clone()).unwrap_or_default(),
         })
+    }
+
+    /// Tests of the seam: call a function while the runs are borrowed. None if they are held.
+    pub fn hold<R>(&self, f: impl FnOnce() -> R) -> Option<R> {
+        let _held = self.entries.try_borrow_mut().ok()?;
+        Some(f())
     }
 
     /// Read the columns of the Parquet attachments without columns once per file and stamp, with the compute database.
@@ -910,7 +956,7 @@ impl RunHost for RuntimeRunHost {
 
     fn state(&self, state: &RunState) {
         if let Some(runs) = self.runs.upgrade() {
-            runs.set_state(&self.workbook_id, WorkbookRunState::from(state));
+            runs.set_state(&self.workbook_id, self.number, WorkbookRunState::from(state));
         }
     }
 

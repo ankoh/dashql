@@ -258,7 +258,7 @@ export interface RuntimeHandles {
     get(handle: number): unknown;
     /** Keep the object of a handle under a new handle as well, e.g. a result table that a computation takes too */
     duplicate(handle: number): number;
-    /** Close the object of a handle and forget it, the runtime closes at once with it and leaves the close to the store without it */
+    /** Close the object of a handle, the handle stays until its release. The runtime closes at once with it and releases the handle with the changes, without it the store closes and releases. */
     close?(handle: number): void;
     /** Abort the object of a handle with a reason, the runtime aborts at once with it and leaves the abort to the store without it */
     abort?(handle: number, reason: string): void;
@@ -630,7 +630,8 @@ impl JsPlatform {
 
     /// Queue effects on handles in order and tell the host. An abort or a close is applied at once, in a task of its
     /// own that runs before the host takes the changes or at the end of the task: a query or a channel stops without
-    /// waiting for the next frame. A release waits for the changes, a view of the last flush may still name its handle.
+    /// waiting for the next frame. A release waits for the changes, a view of the last flush may still name its handle;
+    /// so does the release of a closed handle.
     fn push(&self, effects: impl IntoIterator<Item = HandleEffect>) {
         let (pushed, schedule) = {
             let mut pending = self.inner.pending.borrow_mut();
@@ -652,8 +653,8 @@ impl JsPlatform {
         }
     }
 
-    /// Apply the aborts and the closes that wait, the releases stay for the host. Without the members on the handle
-    /// table of the platform they stay for the host as well.
+    /// Apply the aborts and the closes that wait, the releases stay for the host and a closed handle leaves its release
+    /// for the host. Without the members on the handle table of the platform the effects stay for the host as well.
     fn apply_immediate(&self) {
         let immediate: Vec<HandleEffect> = {
             let mut pending = self.inner.pending.borrow_mut();
@@ -669,18 +670,30 @@ impl JsPlatform {
                 (Some(handles), HandleEffect::Abort { handle, reason }) => {
                     call(handles, "abort", &[JsValue::from_f64(f64::from(*handle)), JsValue::from_str(reason)]).is_ok()
                 }
-                (Some(handles), HandleEffect::Close { handle }) => call(handles, "close", &[JsValue::from_f64(f64::from(*handle))]).is_ok(),
+                (Some(handles), HandleEffect::Close { handle }) => {
+                    let closed = call(handles, "close", &[JsValue::from_f64(f64::from(*handle))]).is_ok();
+                    if closed {
+                        left.push(HandleEffect::Release { handle: *handle });
+                    }
+                    closed
+                }
                 _ => false,
             };
             if !applied {
                 left.push(effect);
             }
         }
-        if !left.is_empty() {
-            let mut pending = self.inner.pending.borrow_mut();
-            left.append(&mut pending.effects);
-            pending.effects = left;
+        self.requeue_effects(left);
+    }
+
+    /// Queue effects on handles again before the ones that wait, e.g. the releases that wait while a slice is busy
+    pub fn requeue_effects(&self, mut effects: Vec<HandleEffect>) {
+        if effects.is_empty() {
+            return;
         }
+        let mut pending = self.inner.pending.borrow_mut();
+        effects.append(&mut pending.effects);
+        pending.effects = effects;
     }
 
     /// Queue the effects of the computations on handles

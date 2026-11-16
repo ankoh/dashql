@@ -79,7 +79,8 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
             if (statistics != null) held.set(entry.key, statistics);
         });
         if (view.statistics.some(entry => entry.statistics == null && !held.has(entry.key))) {
-            view = this.runtime.views('script', [key], [this.keysOf(key, false)])[0] ?? view;
+            const again = this.runtime.views('script', [key], [this.keysOf(key, false)])[0] ?? null;
+            if (again != null && again !== 'busy') view = again;
         }
 
         // The payloads keep their objects while their keys don't move, the update of an editor event is held as it is

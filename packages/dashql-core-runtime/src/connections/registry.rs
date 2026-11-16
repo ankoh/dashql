@@ -144,32 +144,39 @@ impl ConnectionRegistry {
         self.references.iter().find(|(id, _)| id == connection_id).map(|(_, workbooks)| workbooks.as_slice()).unwrap_or_default()
     }
 
-    /// Set the workbooks that use the connections, returns whether they changed
-    pub fn set_references(&mut self, references: Vec<(String, Vec<String>)>) -> bool {
+    /// Set the workbooks that use the connections, returns the connections whose workbooks changed
+    pub fn set_references(&mut self, references: Vec<(String, Vec<String>)>) -> Vec<String> {
         let mut references: Vec<(String, Vec<String>)> = references.into_iter().filter(|(_, workbooks)| !workbooks.is_empty()).collect();
         references.sort_by(|left, right| left.0.cmp(&right.0));
         if references == self.references {
-            return false;
+            return Vec::new();
+        }
+        let of = |references: &[(String, Vec<String>)], id: &str| references.iter().find(|(held, _)| held == id).map(|(_, workbooks)| workbooks.clone());
+        let mut changed: Vec<String> = Vec::new();
+        for (id, _) in references.iter().chain(self.references.iter()) {
+            if !changed.contains(id) && of(&references, id) != of(&self.references, id) {
+                changed.push(id.clone());
+            }
         }
         self.references = references;
-        true
+        changed
     }
 
-    /// The connections of the list, in the order of registration
-    pub fn list(&self) -> Vec<ListedConnection> {
+    /// The connections of the list, in the order of registration. None while the state of a connection is borrowed.
+    pub fn list(&self) -> Option<Vec<ListedConnection>> {
         let mut listed: Vec<ListedConnection> = self
             .connections()
             .map(|(id, connection)| {
-                let state = connection.state.borrow();
-                ListedConnection {
+                let state = connection.state.try_borrow().ok()?;
+                Some(ListedConnection {
                     connection_id: id.to_string(),
                     connector_type: state.connector_type(),
                     active: state.active(),
                     listed: !self.workbooks_of(id).is_empty() || state.active(),
                     ordinal: None,
-                }
+                })
             })
-            .collect();
+            .collect::<Option<_>>()?;
         for connector in CONNECTOR_TYPES {
             let of_connector: Vec<usize> =
                 listed.iter().enumerate().filter(|(_, c)| c.listed && c.connector_type == connector).map(|(i, _)| i).collect();
@@ -182,7 +189,7 @@ impl ConnectionRegistry {
                 }
             }
         }
-        listed
+        Some(listed)
     }
 
     /// Apply an action to a connection. A connection that stops its queries clears its history, a deleted connection
@@ -206,6 +213,8 @@ impl ConnectionRegistry {
             _ => {}
         }
         let deleted = matches!(action, ConnectionAction::Delete);
+        // The history is taken before the state changes: an action that stops the queries fails as a whole
+        let mut queries = connection.queries.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?;
         let applied = connection
             .state
             .try_borrow_mut()
@@ -224,7 +233,6 @@ impl ConnectionRegistry {
                 ConnectionEffect::Close { handle } => outcome.effects.push(RegistryEffect::Close { handle }),
                 ConnectionEffect::Release { handle } => outcome.effects.push(RegistryEffect::Release { handle }),
                 ConnectionEffect::StopQueries { reason } => {
-                    let mut queries = connection.queries.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?;
                     outcome.stopped.extend_from_slice(queries.active_ids());
                     let cleared = queries.clear(reason);
                     outcome.effects.extend(cleared.effects.iter().map(RegistryEffect::from));
@@ -232,6 +240,7 @@ impl ConnectionRegistry {
                 }
             }
         }
+        drop(queries);
         if deleted {
             self.connections.retain(|(id, _)| id != connection_id);
             self.references.retain(|(id, _)| id != connection_id);
@@ -332,11 +341,11 @@ mod tests {
         assert!(registry.insert(connection("a", ConnectorType::Trino, false)).is_err());
         assert_eq!(registry.ids(), ["a", "b", "c"]);
         // c is listed once a workbook uses it, then both Trino connections are numbered
-        let list = registry.list();
+        let list = registry.list().unwrap();
         assert_eq!(list.iter().map(|c| (c.listed, c.ordinal)).collect::<Vec<_>>(), [(true, None), (false, None), (false, None)]);
-        assert!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]));
-        assert!(!registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]));
-        let list = registry.list();
+        assert_eq!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]), ["c"]);
+        assert!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]).is_empty());
+        let list = registry.list().unwrap();
         assert_eq!(list.iter().map(|c| c.ordinal).collect::<Vec<_>>(), [Some(1), None, Some(2)]);
     }
 
@@ -393,5 +402,19 @@ mod tests {
         assert!(registry.apply_query(&QueryOwner::History("other".into()), QueryExecutionAction::QueryCacheDeleted { query_id: 1 }).is_err());
         registry.drop_history("shell");
         assert!(registry.history(&owner).is_none());
+    }
+
+    #[test]
+    fn an_action_on_a_connection_whose_queries_are_in_use_changes_nothing() {
+        let mut registry = ConnectionRegistry::new();
+        registry.insert(trino("a")).unwrap();
+        let connection = registry.get("a").unwrap().clone();
+        let (revision, epoch) = (connection.state.borrow().revision(), connection.state.borrow().setup_epoch());
+        let held = connection.queries.borrow_mut();
+        assert!(registry.apply("a", ConnectionAction::Reset, 1.0).is_err());
+        drop(held);
+        assert_eq!((connection.state.borrow().revision(), connection.state.borrow().setup_epoch()), (revision, epoch));
+        assert!(registry.apply("a", ConnectionAction::Reset, 1.0).is_ok());
+        assert!(connection.state.borrow().setup_epoch() > epoch);
     }
 }

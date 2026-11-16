@@ -185,22 +185,29 @@ A parent lists the ids of its children, not their revisions: a keystroke changes
    everything else is.
 2. The store flushes at the end of the task when urgent, before the next frame otherwise (`RuntimeStore.changed` over
    the `UpdateScheduler`). `flush()` flushes at once, e.g. for the command line tool and the tests.
-3. `takeChanges()` returns the marked slices that moved, `{ kind, id, revision }` with a null revision for a slice that
-   is gone, and the effects on handles. A connection, a history, a workbook and the lists move when the hash of their
-   serialized view changed, a script, a query, a computation, a run and the storage when the revisions of their
-   objects did, the derived view of a workbook when the hash of its buffers did (`runtime/changes.rs` of the bindings).
-   No key is written by hand and nothing is rescanned.
-4. The store applies the effects to the handle table, then reads the views of each changed kind with one `views(kind,
-   ids, known)` call, in the fixed order of `VIEW_KIND_ORDER` (`store/runtime_store.ts`): a workbook before its scripts
-   and its derived view.
+3. `takeChanges()` returns the marked slices, `{ kind, id, revision }` with a null revision for a slice that is gone,
+   and the effects on handles (`runtime/changes.rs` of the bindings). A marked slice moves: a script, a query, a
+   computation, a run and the storage with the revision of their object, which tells the objects of a mark that
+   changed from the others; a connection, a history, a workbook and the lists with a new revision. The derived view of
+   a workbook moves when the hash of its buffers changed. Nothing else is compared and nothing is rescanned, so every
+   change of state marks its slice; the property test of `runtime_changes.test.ts` checks that every view an action
+   changed is named. The queries are marked one by one: the progress of a query moves only that query, its connection
+   or history moves when a query starts or finishes.
+4. The store aborts and closes at once, then reads the views of each changed kind with one `views(kind, ids, known)`
+   call, in the order of the changes. The order of the kinds is the one of `Changes` in `changes.rs`; no projection
+   reads another slice.
 5. A slice keeps its object while its revision doesn't move. A fresh view is shared with the previous one (`share` of
    `store/projection.ts`), so unchanged parts keep their identity, or built by the projection of its kind.
-6. The store notifies the subscribers of the changed slices, then those of whole kinds.
+6. The store forgets the released handles, then notifies the subscribers of the changed slices, then those of their
+   kinds.
 
-A slice that a task holds borrowed is busy: it reads as null, is never reported as gone, and the runtime reports it
-again with the next changes; the store keeps the previous view. A projection that throws, or a kind whose views can't be
-read, keeps the previous views, and the store asks for the slices again (`resync(kind, ids)`), at most three times in a
-row.
+A view reads as null only for a slice that is gone. A slice that a task holds borrowed is busy: the take leaves it
+marked, its view reads as `'busy'` (`BusyView`), and the runtime reports it again with the next changes; the store keeps
+the previous view. Every read of the take and of `views` borrows with `try_borrow`, so a platform that calls back into
+the runtime while a task holds its state gets busy slices, never a panic. A projection that throws, or a kind whose views
+can't be read, keeps the previous views, and the store asks for the slices again (`resync(kind, ids)`), at most three
+times in a row; then it drops the slice until it changes. Changes that fail to cross to the host come again with the
+next `takeChanges`.
 
 Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush. The typed
 commands of the facade flush the store once they settled (`settled` of `runtime.ts`).
@@ -276,8 +283,10 @@ files of imports and exports. A handle is never given out twice.
 
 The runtime lets go of a handle with an effect: `release` (forget), `close` (close the object, e.g. a channel, and
 forget it) or `abort` (abort the object, it stays until a release). Aborts and closes apply at once, the runtime calls
-the handle table in a task of its own; releases wait for the flush, since a view of the last flush may still name the
-handle. Every effect tells the host. `HandleTable.apply` runs every effect even if one throws.
+the handle table in a task of its own; a closed object keeps its handle until the flush. No view of the store names a
+handle that is gone: the store forgets the released and closed handles after it read the views of the flush, and keeps
+them while a slice holds an older view, busy or asked for again; the runtime keeps the releases while a slice was busy
+when the store took the changes. Every effect tells the host. `HandleTable.apply` runs every effect even if one throws.
 
 ### Results stay in JavaScript
 

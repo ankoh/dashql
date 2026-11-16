@@ -206,14 +206,14 @@ describe('The changes of the runtime', () => {
         // A task holds the workbook while the host takes the changes and reads the views
         let held: dashql.ChangeSet | null = null;
         let views: unknown[] = [];
-        runtime.testHoldWorkbook('w', () => {
+        runtime.testHold('workbook:w', () => {
             held = runtime.takeChanges();
             views = [viewOf(runtime, 'workbook', 'w'), viewOf(runtime, 'script', key, [NONE]), viewOf(runtime, 'workbookDerived', 'w')];
         });
-        // Nothing of the workbook is reported, least of all as gone, and its views read as null
+        // Nothing of the workbook is reported, least of all as gone, and its views read as busy
         const ofWorkbook = (changes: dashql.ChangeSet) => changes.changes.filter(change => ['workbook', 'script', 'workbookDerived'].includes(change.kind));
         expect(ofWorkbook(held!)).toEqual([]);
-        expect(views).toEqual([null, null, null]);
+        expect(views).toEqual(['busy', 'busy', 'busy']);
 
         // Once the workbook is free its slices follow
         const next = ofWorkbook(runtime.takeChanges()).map(change => `${change.kind}:${change.id}${change.revision == null ? ' gone' : ''}`);
@@ -244,6 +244,134 @@ describe('The changes of the runtime', () => {
         const revision = (changes: dashql.SliceChange[], kind: string) => changes.find(change => change.kind === kind)?.revision;
         expect(revision(first, 'script')).toBeDefined();
         expect(runtime.takeChanges().changes).toEqual([]);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('read every kind while a task holds a part of the state, the busy slices follow', () => {
+        const platform = testPlatform();
+        const runtime = dql!.createRuntime(platform.platform);
+        runtime.runCatalogLoader(false);
+        runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: dashql.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
+        const tracked = runtime.dispatch({ connection: 'main' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY } });
+        const queryId = tracked.id as number;
+        // A change of inputs waits for the compute database in the run slice of the workbook
+        void runtime.runWorkbook('w', { inputs: ['limit'] }, null);
+        runtime.takeChanges();
+        const [key] = (viewOf(runtime, 'workbook', 'w') as dashql.WorkbookView).scriptKeys;
+
+        const all = () => ({
+            computation: runtime.views('computation', [1]),
+            connectionList: runtime.views('connectionList', ['root']),
+            connection: runtime.views('connection', ['main']),
+            query: runtime.views('query', [queryId]),
+            workbookList: runtime.views('workbookList', ['root']),
+            workbook: runtime.views('workbook', ['w']),
+            script: runtime.views('script', [key], [NONE]),
+            workbookDerived: runtime.views('workbookDerived', ['w']),
+            run: runtime.views('run', ['w']),
+            storage: runtime.views('storage', ['root']),
+        });
+        type Kind = keyof ReturnType<typeof all>;
+        const parts: [string, Kind[]][] = [
+            ['connection:main', ['connectionList', 'connection']],
+            ['queries:main', ['connection', 'query']],
+            ['registry', ['connectionList', 'connection', 'query']],
+            ['workbooks', ['workbookList', 'workbook', 'script', 'workbookDerived']],
+            ['scriptIndex', []],
+            ['computations', ['computation']],
+            ['runs', ['run']],
+            ['storage', ['storage']],
+        ];
+        for (const [part, busy] of parts) {
+            // Every kind is marked, the take reads what it can while the part is held
+            runtime.dispatch({ connection: 'main' }, { kind: 'rename', value: { name: part } });
+            runtime.dispatch({ connection: 'main' }, { kind: 'querySending', value: { queryId } });
+            runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: key, text: `select '${part}'` } });
+            runtime.resync('computation', [1]);
+            runtime.resync('run', ['w']);
+            runtime.resync('storage', ['root']);
+            let taken: dashql.ChangeSet | null = null;
+            let views: ReturnType<typeof all> | null = null;
+            runtime.testHold(part, () => {
+                taken = runtime.takeChanges();
+                views = all();
+            });
+            const busyKinds = Object.entries(views!).filter(([, read]) => read.includes('busy')).map(([kind]) => kind);
+            expect({ part, busy: busyKinds }).toEqual({ part, busy });
+            expect(taken!.changes.filter(change => change.revision == null)).toEqual([]);
+            // Once the part is free the busy slices follow and read again
+            const next = runtime.takeChanges().changes.map(change => change.kind);
+            for (const kind of busy.filter(kind => kind !== 'computation')) expect({ part, kind, moved: next.includes(kind) }).toEqual({ part, kind, moved: true });
+            expect(Object.values(all()).flat().includes('busy')).toBe(false);
+        }
+        expect(viewOf(runtime, 'run', 'w')).toMatchObject({ pendingInputs: ['limit'] });
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('drop the run slice of a workbook that is deleted, also when a workbook of the same id comes back', () => {
+        const platform = testPlatform();
+        const runtime = dql!.createRuntime(platform.platform);
+        runtime.runCatalogLoader(false);
+        runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: dashql.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
+        void runtime.runWorkbook('w', { inputs: ['limit'] }, null);
+        expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toContain('run:w');
+        expect(viewOf(runtime, 'run', 'w')).toMatchObject({ pendingInputs: ['limit'] });
+
+        runtime.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId: 'w' } });
+        const gone = runtime.takeChanges().changes.filter(change => change.kind === 'run');
+        expect(gone).toEqual([{ kind: 'run', id: 'w', revision: null }]);
+        expect(viewOf(runtime, 'run', 'w')).toBeNull();
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.takeChanges();
+        expect(viewOf(runtime, 'run', 'w')).toBeNull();
+
+        // The inputs that wait are dropped when the runtime stops, and the slice says so
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
+        void runtime.runWorkbook('w', { inputs: ['limit'] }, null);
+        runtime.takeChanges();
+        runtime.destroy();
+        expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toContain('run:w');
+        expect(viewOf(runtime, 'run', 'w')).toMatchObject({ pendingInputs: [] });
+        runtime.free();
+    });
+
+    it('move only the query that changed, and keep the releases while a slice is busy', () => {
+        const platform = testPlatform();
+        const runtime = dql!.createRuntime(platform.platform);
+        runtime.runCatalogLoader(false);
+        runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: dashql.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 10 } });
+        const record = platform.platform.handles.register('record');
+        const tracked = runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: record } });
+        const queryId = tracked.id as number;
+        expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toEqual(
+            expect.arrayContaining(['history:shell', `query:${queryId}`]));
+
+        // A change of a running query moves the query, not its history
+        runtime.dispatch({ history: 'shell' }, { kind: 'querySending', value: { queryId } });
+        expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toEqual([`query:${queryId}`]);
+
+        // The history goes with its query while a task holds the workbook: the release of the record waits for the
+        // workbook, since a view of the last flush may still name it
+        runtime.dispatch({ workbook: 'w' }, { kind: 'renameWorkbook', value: { name: 'Busy' } });
+        runtime.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
+        let held: dashql.ChangeSet | null = null;
+        runtime.testHold('workbook:w', () => {
+            held = runtime.takeChanges();
+        });
+        const releases = (changes: dashql.ChangeSet) => changes.effects.filter(effect => effect.type === 'release').map(effect => effect.handle);
+        expect(held!.changes.map(change => `${change.kind}:${change.id}`)).toEqual(expect.arrayContaining(['history:shell', `query:${queryId}`]));
+        expect(releases(held!)).toEqual([]);
+        const next = runtime.takeChanges();
+        expect(next.changes.map(change => `${change.kind}:${change.id}`)).toContain('workbook:w');
+        expect(releases(next)).toEqual([record]);
         runtime.destroy();
         runtime.free();
     });

@@ -149,17 +149,18 @@ impl Connections {
 
     /// Hand the effects of the registry to the host and to the services: the effects on handles, the cancelled setups
     /// and catalog updates, the queries that stop and the computations of the results that a later result of their
-    /// owner superseded. The change marks the slices of the owner, the connection or the history. A change that is
-    /// urgent lets the catalog loader follow the registry, e.g. a query that started or finished.
-    pub fn settle(self: &Rc<Self>, owner: &QueryOwner, outcome: &RegistryOutcome, urgent: bool) {
+    /// owner superseded. The change marks the query of the action, or the queries of the history; their owner moves
+    /// with the lists of the history. A change that is urgent lets the catalog loader follow the registry, e.g. a query
+    /// that started or finished.
+    pub fn settle(self: &Rc<Self>, owner: &QueryOwner, outcome: &RegistryOutcome, urgent: bool, query: Option<QueryId>) {
         let connection_id = match owner {
             QueryOwner::Connection(id) => Some(id.as_str()),
             QueryOwner::History(_) => None,
         };
         if outcome.changed || !outcome.effects.is_empty() {
-            self.platform.mark(match owner {
-                QueryOwner::Connection(id) => Slice::Connection(id),
-                QueryOwner::History(name) => Slice::History(name),
+            self.platform.mark(match query {
+                Some(query_id) => Slice::Query(owner, query_id),
+                None => Slice::Queries(owner),
             });
         }
         let follow_up = self.platform.push_registry_effects(&outcome.effects);
@@ -261,7 +262,13 @@ impl Connections {
     pub fn view(&self, registry: &ConnectionRegistry, connection_id: &str) -> Read<ConnectionView> {
         let Some(connection) = registry.get(connection_id) else { return Read::Gone };
         let (Ok(state), Ok(queries)) = (connection.state.try_borrow(), connection.queries.try_borrow()) else { return Read::Busy };
-        let (Ok(_), Ok(_)) = (self.saves.try_borrow(), self.setups.try_borrow()) else { return Read::Busy };
+        let free = self.saves.try_borrow().is_ok()
+            && self.setups.try_borrow().is_ok()
+            && self.catalog_versions.try_borrow().is_ok()
+            && self.catalog_ids.try_borrow_mut().is_ok();
+        if !free {
+            return Read::Busy;
+        }
         let mut view = ConnectionView::of(&state, &queries, registry.workbooks_of(connection_id), self.save_view(connection_id));
         view.catalog_version = self.catalog_version(connection_id);
         view.setup_running = self.setup_running(connection_id);
@@ -305,7 +312,10 @@ impl Connections {
                 self.platform.mark(Slice::Workbook(workbook_id));
             }
         }
-        self.settle(&QueryOwner::Connection(connection_id.to_string()), &outcome, true);
+        if outcome.changed || !outcome.effects.is_empty() {
+            self.platform.mark(Slice::Connection(connection_id));
+        }
+        self.settle(&QueryOwner::Connection(connection_id.to_string()), &outcome, true, None);
         if outcome.deleted {
             self.saves.borrow_mut().retain(|(id, _)| id != connection_id);
             self.catalog_versions.borrow_mut().retain(|(id, _)| id != connection_id);
@@ -340,8 +350,9 @@ impl Connections {
 
     /// Apply an action to a query of a history
     pub fn apply_query(self: &Rc<Self>, owner: &QueryOwner, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
+        let query_id = action.query_id();
         let outcome = self.registry.borrow_mut().apply_query(owner, action)?;
-        self.settle(owner, &outcome, urgent);
+        self.settle(owner, &outcome, urgent, Some(query_id));
         Ok(outcome)
     }
 

@@ -9,18 +9,12 @@ import type { UpdateScheduler } from './update_scheduler.js';
 /// What the store reads: the runtime of the module
 export interface RuntimeViewSource {
     takeChanges(): core.ChangeSet;
-    views<K extends core.ViewKind>(kind: K, ids: core.ViewId<K>[], known?: core.KnownKeys<K>): (core.ViewOf<K> | null)[];
+    views<K extends core.ViewKind>(kind: K, ids: core.ViewId<K>[], known?: core.KnownKeys<K>): (core.ViewOf<K> | core.BusyView | null)[];
     /// The store failed to project slices, they move with the next changes
     resync(kind: core.ViewKind, ids: core.ViewId<core.ViewKind>[]): void;
 }
 
-/// The order in which the store projects the kinds of a flush: a kind after the kinds it reads, e.g. the scripts and
-/// the derived views of a workbook after the workbook
-export const VIEW_KIND_ORDER: readonly core.ViewKind[] = [
-    'computation', 'connectionList', 'connection', 'history', 'query', 'workbookList', 'workbook', 'script', 'workbookDerived', 'storage', 'run',
-];
-
-/// How often a slice whose projection fails is asked for again before the store gives up on it until it changes
+/// How often a slice whose projection fails is asked for again before the store drops it until it changes
 const RESYNC_ATTEMPTS = 3;
 
 /// What the store keeps of a slice of a kind: the view as it is, shared with the previous one, or what a projection
@@ -51,14 +45,18 @@ type Projections = { [K in core.ViewKind]?: ViewProjection<K, StoreView<K>> };
 /// The views of the runtime as the app reads them (docs/design/dashql_runtime.md).
 ///
 /// The runtime tells the store that its state changed (`changed`). The store flushes at the end of the task when the
-/// change is urgent, before the next frame otherwise: it takes the changed slices and the effects on handles, applies
-/// the effects to the handle table, reads the views of each changed kind with one call in a fixed order of the kinds
-/// (`VIEW_KIND_ORDER`), shares each view with the previous one of its slice and notifies the subscribers of the changed
-/// slices only. A slice keeps its view while its revision doesn't move. Reads never cross into the module.
+/// change is urgent, before the next frame otherwise: it takes the changed slices and the effects on handles, aborts
+/// and closes at once, reads the views of each changed kind with one call in the order of the changes, shares each
+/// view with the previous one of its slice and notifies the subscribers of the changed slices only. A slice keeps its
+/// view while its revision doesn't move. Reads never cross into the module.
 ///
 /// A flush is all or nothing per slice: a kind whose views can't be read and a slice whose projection throws keep
 /// their previous views, and the runtime is asked for them again (`resync`), at most `RESYNC_ATTEMPTS` times in a
-/// row. A slice that reads as null while the runtime names it busy keeps its view, the runtime reports it again.
+/// row; then the store drops the slice until it changes. A slice that reads as busy keeps its view, the runtime
+/// reports it again. A view that reads as null is gone.
+///
+/// No view of the store names a released handle: the releases, and the handles of closed objects, are forgotten after
+/// the views of the flush, and wait while a slice keeps an older view, busy or asked for again.
 export class RuntimeStore {
     private source: RuntimeViewSource | null = null;
     /// The projections of the kinds
@@ -76,6 +74,8 @@ export class RuntimeStore {
     private disposed = false;
     /// The failed projections of slices in a row
     private readonly failures = new Map<string, number>();
+    /// The handles to forget once no view of the store names them
+    private releases: number[] = [];
 
     constructor(
         private readonly handles: HandleTable,
@@ -114,10 +114,12 @@ export class RuntimeStore {
         const source = this.source;
         if (source == null || this.disposed) return;
         const changes = source.takeChanges();
-        this.handles.apply(changes.effects);
-        if (changes.changes.length === 0) return;
+        // Aborts and closes apply at once, the handles are forgotten once no view names them
+        this.releases.push(...this.handles.apply(changes.effects));
+        // Does a slice keep an older view after the flush?
+        let behind = false;
 
-        // The changes by kind, projected in the order of the kinds
+        // The changes by kind, in the order of the changes
         const byKind = new Map<core.ViewKind, core.SliceChange[]>();
         for (const change of changes.changes) {
             let list = byKind.get(change.kind);
@@ -127,10 +129,14 @@ export class RuntimeStore {
             }
             list.push(change);
         }
-        const kinds = [...VIEW_KIND_ORDER.filter(kind => byKind.has(kind)), ...[...byKind.keys()].filter(kind => !VIEW_KIND_ORDER.includes(kind))];
         const notify: string[] = [];
-        for (const kind of kinds) {
-            const list = byKind.get(kind)!;
+        const notifyKinds = new Set<core.ViewKind>();
+        const changed = (kind: core.ViewKind, id: unknown) => {
+            notify.push(sliceKey(kind, id));
+            notifyKinds.add(kind);
+            this.maps.delete(kind);
+        };
+        for (const [kind, list] of byKind) {
             let cache = this.caches.get(kind);
             if (cache == null) {
                 cache = new RevisionCache();
@@ -140,65 +146,85 @@ export class RuntimeStore {
             const projection = this.projections[kind] as ViewProjection<typeof kind, unknown> | undefined;
             const ids = present.map(change => change.id) as core.ViewId<typeof kind>[];
             const failed: core.ViewId<typeof kind>[] = [];
-            let views: (core.ViewOf<typeof kind> | null)[] = [];
+            let views: (core.ViewOf<typeof kind> | core.BusyView | null)[] = [];
             try {
                 const known = projection?.known?.(ids, ids.map(id => cache.peek(id) ?? null));
                 views = present.length === 0 ? [] : source.views(kind, ids, known);
             } catch (e) {
                 // The slices of the kind keep their views
-                this.failed(source, kind, ids, e);
-                views = [];
+                this.logger?.(`the views of ${kind} failed: ${String(e)}`);
+                failed.push(...ids);
                 present.length = 0;
             }
             present.forEach((change, i) => {
                 const view = views[i] ?? null;
-                // A slice that is busy reads as null, the runtime reports it again
-                if (view == null) return;
+                if (view === 'busy') {
+                    // The runtime reports the slice again
+                    behind = true;
+                    return;
+                }
+                if (view == null) {
+                    this.drop(kind, change.id);
+                    changed(kind, change.id);
+                    return;
+                }
                 try {
                     cache.get(change.id, change.revision!, prev => projection == null ? share(prev, view) : projection.project(change.id, prev, view));
                     this.failures.delete(sliceKey(kind, change.id));
+                    changed(kind, change.id);
                 } catch (e) {
                     failed.push(change.id);
                     this.logger?.(`the projection of the slice ${sliceKey(kind, change.id)} failed: ${String(e)}`);
                 }
             });
-            if (failed.length > 0) this.failed(source, kind, failed, null);
-            for (const change of list) {
-                if (change.revision == null) {
-                    this.failures.delete(sliceKey(kind, change.id));
-                    this.release(kind, change.id);
+            if (failed.length > 0) {
+                const again = this.failed(source, kind, failed);
+                behind ||= again.length > 0;
+                for (const id of failed.filter(id => !again.includes(id))) {
+                    this.drop(kind, id);
+                    changed(kind, id);
                 }
-                notify.push(sliceKey(kind, change.id));
             }
-            this.maps.delete(kind);
+            for (const change of list) {
+                if (change.revision != null) continue;
+                this.drop(kind, change.id);
+                changed(kind, change.id);
+            }
+        }
+        if (!behind) {
+            const releases = this.releases;
+            this.releases = [];
+            for (const handle of releases) this.handles.release(handle);
         }
         for (const key of notify) {
             for (const listener of [...(this.listeners.get(key) ?? [])]) listener();
         }
-        for (const kind of kinds) {
+        for (const kind of notifyKinds) {
             for (const listener of [...(this.kindListeners.get(kind) ?? [])]) listener();
         }
     };
 
-    /// Slices that the store failed to project keep their views, the runtime is asked for them again a few times
-    private failed(source: RuntimeViewSource, kind: core.ViewKind, ids: core.ViewId<core.ViewKind>[], error: unknown): void {
-        if (error != null) this.logger?.(`the views of ${kind} failed: ${String(error)}`);
+    /// Slices that the store failed to project keep their views, the runtime is asked for them again a few times.
+    /// Returns the slices that were asked for again.
+    private failed(source: RuntimeViewSource, kind: core.ViewKind, ids: core.ViewId<core.ViewKind>[]): core.ViewId<core.ViewKind>[] {
         const again = ids.filter(id => {
             const key = sliceKey(kind, id);
             const attempts = (this.failures.get(key) ?? 0) + 1;
             this.failures.set(key, attempts);
             return attempts <= RESYNC_ATTEMPTS;
         });
-        if (again.length === 0) return;
+        if (again.length === 0) return again;
         try {
             source.resync(kind, again);
         } catch (e) {
             this.logger?.(`the runtime can't report ${kind} again: ${String(e)}`);
         }
+        return again;
     }
 
-    /// Forget a slice that is gone
-    private release(kind: core.ViewKind, id: core.ViewId<core.ViewKind>): void {
+    /// Forget the view of a slice, one that is gone or that the store failed to project too often
+    private drop(kind: core.ViewKind, id: core.ViewId<core.ViewKind>): void {
+        this.failures.delete(sliceKey(kind, id));
         const cache = this.caches.get(kind);
         const prev = cache?.peek(id);
         if (prev === undefined) return;

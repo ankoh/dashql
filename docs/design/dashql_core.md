@@ -214,6 +214,8 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
   and waits in the `run` slice, it is dropped after 5 s.
 - The run borrows the workbook only between its awaits; a script, an order or a session that changed during a statement
   fails the run at the next one.
+- A workbook that is deleted or replaced (a restore or an import under the same id) takes its `run` slice with it: the
+  run that holds it stops, the inputs that wait are dropped, and a run changes the slice only while it holds it.
 - A listener may prepare connections (`prepareConnection`), which is how `dashql run` sets up its connections.
 
 See [workbook_graph_execution.md](workbook_graph_execution.md).

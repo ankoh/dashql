@@ -171,6 +171,17 @@ impl<H: ComputeHost> ComputeService<H> {
         read(&self.shared.inner.borrow().state)
     }
 
+    /// Read the state, none while a task holds it
+    pub fn try_read<R>(&self, read: impl FnOnce(&ComputationState) -> R) -> Option<R> {
+        self.shared.inner.try_borrow().ok().map(|inner| read(&inner.state))
+    }
+
+    /// Tests of a host: call a function while the state is borrowed, as a task would hold it. None if it is held.
+    pub fn hold<R>(&self, f: impl FnOnce() -> R) -> Option<R> {
+        let _held = self.shared.inner.try_borrow_mut().ok()?;
+        Some(f())
+    }
+
     /// A new id of a data frame. The ids of the host share the counter with the ones of the tasks and with the other
     /// services of the thread.
     pub fn allocate_id(&self) -> u64 {

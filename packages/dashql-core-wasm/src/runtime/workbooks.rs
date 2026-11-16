@@ -44,13 +44,13 @@ const LOG_TARGET: &str = "workbook_scripts";
 
 impl ScriptAnalyses for Workbooks {
     fn outdated(&self, key: u32) -> bool {
-        let Some((_, workbook)) = self.of_script(key) else { return false };
+        let Some((_, workbook)) = self.of_script(key).value() else { return false };
         let Ok(workbook) = workbook.try_borrow() else { return false };
         workbook.script(key).is_some_and(|script| script.analysis_outdated())
     }
 
     fn analyze(&self, key: u32) {
-        let Some((workbook_id, _)) = self.of_script(key) else { return };
+        let Some((workbook_id, _)) = self.of_script(key).value() else { return };
         if let Err(error) = self.apply(&workbook_id, WorkbookAction::AnalyzeOutdatedScript { key }) {
             self.log(LogLevel::Warn, "Failed to analyze an outdated script", &[("workbookId", &workbook_id), ("error", error.what())]);
         }
@@ -111,6 +111,8 @@ pub(crate) struct Workbooks {
     pub invalid_revision: Cell<u64>,
     /// Hears that a workbook changed, the runs look up the cached results of its scripts again
     pub changed_listener: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Hears that a workbook was deleted or replaced, the runs forget its run
+    pub removed_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
     /// The scripts that the editors show, their outdated analyses run on their own
     pub visible: VisibleScripts<JsPlatform>,
 }
@@ -127,6 +129,7 @@ impl Workbooks {
             invalid: RefCell::new(Vec::new()),
             invalid_revision: Cell::new(0),
             changed_listener: RefCell::new(None),
+            removed_listener: RefCell::new(None),
         });
         let scripts: std::rc::Weak<dyn ScriptAnalyses> = Rc::downgrade(&(workbooks.clone() as Rc<dyn ScriptAnalyses>));
         workbooks.visible.set_scripts(scripts);
@@ -154,27 +157,35 @@ impl Workbooks {
         self.entries.borrow().iter().find(|entry| entry.id == workbook_id).map(|entry| entry.workbook.clone())
     }
 
-    /// The workbook that holds a script, by the index of the scripts. A busy workbook holds none.
-    pub fn of_script(&self, key: u32) -> Option<(String, Rc<RefCell<Workbook>>)> {
-        let entries = self.entries.try_borrow().ok()?;
+    /// A workbook by id, busy while the workbooks are borrowed
+    pub fn try_get(&self, workbook_id: &str) -> Read<Rc<RefCell<Workbook>>> {
+        let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
+        entries.iter().find(|entry| entry.id == workbook_id).map_or(Read::Gone, |entry| Read::Value(entry.workbook.clone()))
+    }
+
+    /// The workbook that holds a script, by the index of the scripts. Busy if no free workbook holds it but one is
+    /// borrowed.
+    pub fn of_script(&self, key: u32) -> Read<(String, Rc<RefCell<Workbook>>)> {
+        let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
         let holds = |entry: &WorkbookEntry| entry.workbook.try_borrow().is_ok_and(|workbook| workbook.script(key).is_some());
-        let indexed = self.script_index.borrow().get(&key).cloned();
+        let indexed = self.script_index.try_borrow().ok().and_then(|index| index.get(&key).cloned());
         if let Some(entry) = indexed.and_then(|id| entries.iter().find(|entry| entry.id == id)).filter(|entry| holds(entry)) {
-            return Some((entry.id.clone(), entry.workbook.clone()));
+            return Read::Value((entry.id.clone(), entry.workbook.clone()));
         }
-        let entry = entries.iter().find(|entry| holds(entry))?;
-        self.script_index.borrow_mut().insert(key, entry.id.clone());
-        Some((entry.id.clone(), entry.workbook.clone()))
+        let Some(entry) = entries.iter().find(|entry| holds(entry)) else {
+            // A script of a busy workbook is found once the workbook is free
+            let busy = entries.iter().any(|entry| entry.workbook.try_borrow().is_err());
+            return if busy { Read::Busy } else { Read::Gone };
+        };
+        if let Ok(mut index) = self.script_index.try_borrow_mut() {
+            index.insert(key, entry.id.clone());
+        }
+        Read::Value((entry.id.clone(), entry.workbook.clone()))
     }
 
-    /// Is a workbook borrowed, so that a lookup of a script may miss it?
-    pub fn busy(&self) -> bool {
-        self.entries.try_borrow().map_or(true, |entries| entries.iter().any(|entry| entry.workbook.try_borrow().is_err()))
-    }
-
-    /// Index the scripts of a workbook by their keys
+    /// Index the scripts of a workbook by their keys. The index is a cache, a busy one stays as it is.
     pub fn index_scripts(&self, workbook_id: &str, workbook: &Workbook) {
-        let mut index = self.script_index.borrow_mut();
+        let Ok(mut index) = self.script_index.try_borrow_mut() else { return };
         for script in workbook.scripts() {
             if index.get(&script.key()).is_none_or(|held| held != workbook_id) {
                 index.insert(script.key(), workbook_id.to_string());
@@ -220,8 +231,12 @@ impl Workbooks {
                 }
             }
         }
-        if self.connections.registry.borrow_mut().set_references(references) {
-            self.platform.changed(Slice::Connections, true);
+        let changed = self.connections.registry.borrow_mut().set_references(references);
+        for connection_id in &changed {
+            self.platform.mark(Slice::Connection(connection_id));
+        }
+        if !changed.is_empty() {
+            self.platform.signal(true);
         }
     }
 
@@ -403,8 +418,19 @@ impl Workbooks {
             }
         };
         // The scripts of a replaced workbook leave the catalogs of their connections
-        drop(replaced);
+        let replaced = replaced.map(drop).is_some();
         self.platform.changed(Slice::Workbook(&id), true);
+        if replaced {
+            self.removed(&id);
+        }
+    }
+
+    /// A workbook was deleted or replaced: the services that keep state of it forget it, e.g. its run
+    fn removed(&self, workbook_id: &str) {
+        let listener = self.removed_listener.borrow().clone();
+        if let Some(listener) = listener {
+            listener(workbook_id);
+        }
     }
 
     /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
@@ -417,9 +443,12 @@ impl Workbooks {
         let deleted = removed.is_some();
         drop(removed);
         if deleted {
-            self.script_index.borrow_mut().retain(|_, held| held != workbook_id);
+            if let Ok(mut index) = self.script_index.try_borrow_mut() {
+                index.retain(|_, held| held != workbook_id);
+            }
             self.sync_references();
             self.platform.changed(Slice::Workbook(workbook_id), true);
+            self.removed(workbook_id);
         }
         deleted
     }
@@ -456,7 +485,12 @@ impl Workbooks {
         {
             let mut entries = self.entries.borrow_mut();
             let entry = entries.iter_mut().find(|entry| entry.id == workbook_id);
-            let Some(entry) = entry else { return Err(Error::invalid_argument(format!("no workbook registered with id {workbook_id}"))) };
+            let Some(entry) = entry else {
+                // The link of the workbook changed
+                drop(entries);
+                self.platform.changed(Slice::Workbook(workbook_id), true);
+                return Err(Error::invalid_argument(format!("no workbook registered with id {workbook_id}")));
+            };
             if let Value::Object(metadata) = &mut entry.metadata {
                 match link {
                     Some(link) => metadata.insert("cloud".into(), link),
@@ -488,12 +522,13 @@ impl Workbooks {
     pub fn replace_from_storage(&self, workbook_id: &str, scripts: Vec<StoredScriptRef>) -> Result<bool> {
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let stored = self.stored_scripts(scripts)?;
-        let changed = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.replace_from_storage(stored)?;
-        if changed {
+        let replaced = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.replace_from_storage(stored);
+        // A failure is reported once the workbook is whole again, it may have changed the workbook
+        if replaced.as_ref().map_or(true, |changed| *changed) {
             self.sync_references();
             self.platform.changed(Slice::Workbook(workbook_id), true);
         }
-        Ok(changed)
+        replaced
     }
 
     /// A new catalog of a connection: the scripts on it analyze again
