@@ -21,16 +21,16 @@ describe('the logins of the agent in the tab', () => {
             c3: { trino: { auth: { authType: 'AUTH_OAUTH' } } },
             c4: { salesforce: { instanceUrl: 'https://org.my.salesforce.com' } },
         });
-        expect(credentialsAnswer(LOGIN, tab, new Set())).toEqual({ basic: { username: 'ann', secret: 'pw' } });
+        expect(credentialsAnswer(LOGIN, tab, () => true)).toEqual({ basic: { username: 'ann', secret: 'pw' } });
         // A Trino without auth answers with an empty user
-        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c2' }, tab, new Set())).toEqual({ basic: { username: '', secret: '' } });
+        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c2' }, tab, () => true)).toEqual({ basic: { username: '', secret: '' } });
         // Nothing for a connection that the agent may not use, that the tab doesn't have or that has no password
-        expect(credentialsAnswer(LOGIN, tab, new Set(['c1']))).toBeNull();
-        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c9' }, tab, new Set())).toBeNull();
-        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c3' }, tab, new Set())).toBeNull();
-        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c4' }, tab, new Set())).toBeNull();
+        expect(credentialsAnswer(LOGIN, tab, id => id !== 'c1')).toBeNull();
+        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c9' }, tab, () => true)).toBeNull();
+        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c3' }, tab, () => true)).toBeNull();
+        expect(credentialsAnswer({ ...LOGIN, connectionId: 'c4' }, tab, () => true)).toBeNull();
         // The user opens the other logins
-        expect(credentialsAnswer({ ...LOGIN, kind: 'redirect' }, tab, new Set())).toBeNull();
+        expect(credentialsAnswer({ ...LOGIN, kind: 'redirect' }, tab, () => true)).toBeNull();
     });
 
     it('tells the session how the redirect page hands a Salesforce login back to the tab', () => {

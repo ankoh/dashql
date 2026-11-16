@@ -5,16 +5,24 @@ import type { SessionConnections } from '@ankoh/dashql/platform/session/workbook
 import { connectionLabelParts, connectionLabelText } from '../connections/connection_label.js';
 import { listedConnections } from '../connections/connection_tree.js';
 
-/// The connections that the agent of a session may use: the connections that the menus list, without the ones that the
-/// user unticked. A new connection is allowed until the user unticks it.
+/// What the user ticked in the menu of the agent: true for a ticked connection, false for an unticked one
+export type AgentConnectionChoices = ReadonlyMap<string, boolean>;
+
+/// May the agent use a connection? What the user ticked, else every connection but a cloud: a cloud keeps the
+/// published workbooks, the agent gets it only once the user ticks it. A new connection is allowed until it is unticked.
+export function isAgentConnectionAllowed(connectionId: string, choices: AgentConnectionChoices, cloudConnectionIds: readonly string[]): boolean {
+    return choices.get(connectionId) ?? !cloudConnectionIds.includes(connectionId);
+}
+
+/// The connections that the agent of a session may use among the connections that the menus list
 export function agentConnections(
     connections: ReadonlyMap<string, ConnectionState>,
     list: Pick<core.ConnectionListView, 'connections'> | null,
-    excluded: ReadonlySet<string>,
+    isAllowed: (connectionId: string) => boolean,
 ): { listed: number; allowed: SessionConnections } {
     const listed = listedConnections(connections, list, []);
     const allowed = listed
-        .filter(connection => !excluded.has(connection.connectionId))
+        .filter(connection => isAllowed(connection.connectionId))
         .map(connection => ({ connectionId: connection.connectionId, name: connectionLabelText(connectionLabelParts(connection)) }));
     return { listed: listed.length, allowed: { connections: allowed } };
 }

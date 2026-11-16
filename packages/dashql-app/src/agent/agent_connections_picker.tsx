@@ -13,7 +13,7 @@ interface Props {
     /// The workbook whose connections come first
     workbookId: string;
     /// The connections of the agent and how to change them
-    connect: Pick<AgentConnect, 'excludedConnections' | 'toggleConnection'>;
+    connect: Pick<AgentConnect, 'isConnectionAllowed' | 'toggleConnection'>;
 }
 
 /// The connections that the agent of the session may use, `2 / 4 connections`: the menu of the connections with a
@@ -23,8 +23,8 @@ export const AgentConnectionsPicker: React.FC<Props> = (props) => {
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const connections = useConnections();
     const list = useConnectionList();
-    const { excludedConnections, toggleConnection } = props.connect;
-    const { listed, allowed } = React.useMemo(() => agentConnections(connections, list, excludedConnections), [connections, list, excludedConnections]);
+    const { isConnectionAllowed, toggleConnection } = props.connect;
+    const { listed, allowed } = React.useMemo(() => agentConnections(connections, list, isConnectionAllowed), [connections, list, isConnectionAllowed]);
     const label = `${allowed.connections.length} / ${listed} connections`;
     return (
         <AnchoredOverlay
@@ -56,7 +56,7 @@ export const AgentConnectionsPicker: React.FC<Props> = (props) => {
                 label="the agent"
                 connectionId={null}
                 onPick={toggleConnection}
-                checked={connectionId => !excludedConnections.has(connectionId)}
+                checked={isConnectionAllowed}
             />
         </AnchoredOverlay>
     );

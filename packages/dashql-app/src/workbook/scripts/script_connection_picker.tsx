@@ -14,6 +14,7 @@ import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { listedConnections } from '../../connections/connection_tree.js';
+import { useCloudConnectionIds } from '../../connections/cloud_connection.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
@@ -163,24 +164,28 @@ interface MenuProps {
     checked?: (connectionId: string) => boolean;
 }
 
-/// The connections a script or a shell can run on, the connections of the workbook first.
-/// Subscribes to the connections only while it is open.
+/// The connections a script or a shell can run on: the connections of the workbook first, then the other ones and the
+/// clouds that the workbook doesn't use. Subscribes to the connections only while it is open.
 export function ConnectionMenu(props: MenuProps) {
     const connections = useConnections();
     const list = useConnectionList();
     // Renders again when the workbook uses other connections
     const connectionIds = useWorkbook(props.workbookId)?.connectionIds;
-    const { workbookConnections, otherConnections, ordinals } = React.useMemo(() => {
+    const cloudConnectionIds = useCloudConnectionIds();
+    const { workbookConnections, otherConnections, cloudConnections, ordinals } = React.useMemo(() => {
         // The connections of the workbook, none while one of them is unknown
         const resolved = (connectionIds ?? []).map(connectionId => connections.get(connectionId));
         const workbookConnections = resolved.some(connection => connection == null) ? [] : resolved as ConnectionState[];
         const listed = listedConnections(connections, list, workbookConnections);
+        const rest = listed.slice(workbookConnections.length);
+        const isCloud = (connection: ConnectionState) => cloudConnectionIds.includes(connection.connectionId);
         return {
             workbookConnections,
-            otherConnections: listed.slice(workbookConnections.length),
+            otherConnections: rest.filter(connection => !isCloud(connection)),
+            cloudConnections: rest.filter(isCloud),
             ordinals: connectionOrdinals(list),
         };
-    }, [connections, list, connectionIds, props.workbookId]);
+    }, [connections, list, connectionIds, cloudConnectionIds, props.workbookId]);
     const renderItem = (connection: ConnectionState) => (
         <ActionList.ListItem
             key={connection.connectionId}
@@ -218,6 +223,12 @@ export function ConnectionMenu(props: MenuProps) {
                     <>
                         <ActionList.GroupHeading>Other connections</ActionList.GroupHeading>
                         {otherConnections.map(renderItem)}
+                    </>
+                )}</>
+                <>{cloudConnections.length > 0 && (
+                    <>
+                        <ActionList.GroupHeading>Cloud connections</ActionList.GroupHeading>
+                        {cloudConnections.map(renderItem)}
                     </>
                 )}</>
             </ActionList.List>

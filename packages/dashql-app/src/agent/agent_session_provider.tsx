@@ -18,7 +18,8 @@ import { useLogger } from '../platform/logger_provider.js';
 import { agentSessionOf, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
-import { agentConnections } from './agent_connections.js';
+import { agentConnections, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
+import { useCloudConnectionIds } from '../connections/cloud_connection.js';
 import { agentSessionOAuth, credentialsAnswer } from './agent_session_logins.js';
 import { useAppConfig } from '../config/app_config.js';
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
@@ -82,23 +83,23 @@ function writeTabCopies(target: AgentSessionTarget, workbooks: Set<string>): voi
     }
 }
 
-/// The connections that the user unticked for the agent of the session of a target before a reload
-function readTabExcluded(target: AgentSessionTarget | null): ReadonlySet<string> {
-    if (target == null) return new Set();
+/// The connections that the user ticked or unticked for the agent of the session of a target before a reload
+function readTabChoices(target: AgentSessionTarget | null): AgentConnectionChoices {
+    if (target == null) return new Map();
     try {
         const stored = JSON.parse(tabStorage()?.getItem(TAB_AGENT_CONNECTIONS_KEY) ?? 'null');
-        if (stored?.endpoint !== target.endpoint || stored?.token !== target.token || !Array.isArray(stored.excluded)) return new Set();
-        return new Set(stored.excluded.filter((id: unknown) => typeof id === 'string'));
+        if (stored?.endpoint !== target.endpoint || stored?.token !== target.token || typeof stored.choices !== 'object' || stored.choices == null) return new Map();
+        return new Map(Object.entries(stored.choices).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
     } catch {
-        return new Set();
+        return new Map();
     }
 }
 
-function writeTabExcluded(target: AgentSessionTarget, excluded: ReadonlySet<string>): void {
+function writeTabChoices(target: AgentSessionTarget, choices: AgentConnectionChoices): void {
     try {
-        tabStorage()?.setItem(TAB_AGENT_CONNECTIONS_KEY, JSON.stringify({ ...target, excluded: [...excluded] }));
+        tabStorage()?.setItem(TAB_AGENT_CONNECTIONS_KEY, JSON.stringify({ ...target, choices: Object.fromEntries(choices) }));
     } catch {
-        // Without storage, a reload allows every connection again
+        // Without storage, a reload forgets what the user ticked
     }
 }
 
@@ -139,8 +140,8 @@ export interface AgentConnect {
     /// The side that is too old when the server of the target answers with a protocol that the page doesn't speak:
     /// the server, then the command runs an older dashql-cli, or the page. Null while the two speak or before an answer.
     outdated: AgentSessionOutdated | null;
-    /// The connections that the user unticked for the agent, every other connection is allowed
-    excludedConnections: ReadonlySet<string>;
+    /// May the agent use a connection? Every connection but a cloud until the user ticks or unticks it
+    isConnectionAllowed: (connectionId: string) => boolean;
     /// Allow or forbid a connection for the agent
     toggleConnection: (connectionId: string) => void;
     /// Open a login that a run of the agent waits for, in the click of the user: the authorization page in a popup.
@@ -222,17 +223,24 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         copied.current = { target: null, workbooks: new Set(), copies: null };
     }, []);
     // The connections of the agent, per target. The session gets them once its server answers and after every change.
-    const [agentSelection, setAgentSelection] = React.useState(() => ({ target, excluded: readTabExcluded(target) }));
-    const excluded = agentSelection.target === target ? agentSelection.excluded : readTabExcluded(target);
-    const excludedRef = React.useRef(excluded);
-    excludedRef.current = excluded;
+    const cloudConnectionIds = useCloudConnectionIds();
+    const cloudConnectionIdsRef = React.useRef(cloudConnectionIds);
+    cloudConnectionIdsRef.current = cloudConnectionIds;
+    const [agentSelection, setAgentSelection] = React.useState(() => ({ target, choices: readTabChoices(target) }));
+    const choices = agentSelection.target === target ? agentSelection.choices : readTabChoices(target);
+    const isConnectionAllowed = React.useCallback(
+        (connectionId: string) => isAgentConnectionAllowed(connectionId, choices, cloudConnectionIds),
+        [choices, cloudConnectionIds],
+    );
+    const isConnectionAllowedRef = React.useRef(isConnectionAllowed);
+    isConnectionAllowedRef.current = isConnectionAllowed;
     const toggleConnection = React.useCallback((connectionId: string) => {
         if (target == null) return;
         setAgentSelection(prev => {
-            const next = new Set(prev.target === target ? prev.excluded : readTabExcluded(target));
-            if (!next.delete(connectionId)) next.add(connectionId);
-            writeTabExcluded(target, next);
-            return { target, excluded: next };
+            const next = new Map(prev.target === target ? prev.choices : readTabChoices(target));
+            next.set(connectionId, !isAgentConnectionAllowed(connectionId, next, cloudConnectionIdsRef.current));
+            writeTabChoices(target, next);
+            return { target, choices: next };
         });
     }, [target]);
     const sentConnections = React.useRef<{ target: AgentSessionTarget | null; text: string | null }>({ target: null, text: null });
@@ -240,7 +248,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         const followed = store.current;
         if (runtime == null || target == null || followed == null || !followed.connected || followed.state.ended) return;
         const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
-        const { allowed } = agentConnections(connections, runtime.store.get('connectionList', 'root'), excludedRef.current);
+        const { allowed } = agentConnections(connections, runtime.store.get('connectionList', 'root'), isConnectionAllowedRef.current);
         // How this tab logs in to Salesforce goes with them, the process of dashql connect logs in through the tab
         const oauth = agentSessionOAuth(oauthRedirect, oauthFlow);
         const text = JSON.stringify({ allowed, oauth });
@@ -272,7 +280,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
         for (const login of logins) {
             if (login.kind !== 'credentials' || answered.has(login.connectionId)) continue;
-            const answer = credentialsAnswer(login, connections, excludedRef.current);
+            const answer = credentialsAnswer(login, connections, isConnectionAllowedRef.current);
             if (answer == null) continue;
             answered.add(login.connectionId);
             answerAgentSessionLogin(target, login.connectionId, answer).catch(error => {
@@ -309,7 +317,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             });
     }, [target, oauthFlow, logger]);
     React.useEffect(() => () => redirect.current?.controller.abort(), [target]);
-    React.useEffect(() => sendConnections(), [excluded, sendConnections]);
+    React.useEffect(() => sendConnections(), [isConnectionAllowed, sendConnections]);
     React.useEffect(() => {
         if (runtime == null) return;
         const connections = runtime.store.subscribeKind('connection', sendConnections);
@@ -395,10 +403,10 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         target,
         renewTarget: () => follow(newAgentConnectTarget()),
         outdated,
-        excludedConnections: excluded,
+        isConnectionAllowed,
         toggleConnection,
         openLogin,
-    }), [connect, target, updateConnect, follow, excluded, toggleConnection, openLogin, outdated]);
+    }), [connect, target, updateConnect, follow, isConnectionAllowed, toggleConnection, openLogin, outdated]);
     return (
         <FOLLOWED_CTX.Provider value={store}>
             <SHOWN_CTX.Provider value={shownValue}>

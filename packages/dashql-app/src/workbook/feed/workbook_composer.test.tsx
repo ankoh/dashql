@@ -351,7 +351,7 @@ describe('Workbook composer', () => {
             const [target, setTarget] = React.useState(TARGET);
             const connect: AgentConnect = {
                 mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED), outdated: outdated ?? null,
-                excludedConnections: new Set(), toggleConnection: () => { }, openLogin: login => openLogin(login),
+                isConnectionAllowed: () => true, toggleConnection: () => { }, openLogin: login => openLogin(login),
             };
             return (
                 <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} connect={connect}

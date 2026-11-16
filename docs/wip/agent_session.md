@@ -249,8 +249,10 @@ the agent set up appears in the tab.
 
 **The connections of the agent** (built). The connection picker of the prompt becomes, in AI, a menu
 `2 / 4 connections` (`agent/agent_connections_picker.tsx`): the list of connections of the connection picker with a
-checkbox as the trailing visual of each. Every connection is allowed until the user unticks it, also a new one; the
-tab keeps the unticked ones per target in the storage of the tab. Once the server answers and after every change, the
+checkbox as the trailing visual of each, the clouds in a group of their own after the other connections. Every
+connection but a cloud is allowed until the user unticks it, also a new one; a cloud keeps the published workbooks and
+is allowed only once the user ticks it. The tab keeps what the user ticked and unticked per target in the storage of
+the tab. Once the server answers and after every change, the
 page sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them next to
 the journal, `.dashql/sessions/<port>/connections.json`. `dashql run` with `DASHQL_SESSION` reads that file and treats
 a connection that is not in it like one that can't be set up: its scripts are not run, with the reason. A result that

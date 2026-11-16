@@ -18,9 +18,9 @@ export function agentSessionOAuth(redirect: string | null | undefined, flow: OAu
 export function credentialsAnswer(
     login: AgentSessionLogin,
     connections: ReadonlyMap<string, ConnectionState>,
-    excluded: ReadonlySet<string>,
+    isAllowed: (connectionId: string) => boolean,
 ): AgentSessionLoginAnswer | null {
-    if (login.kind !== 'credentials' || excluded.has(login.connectionId)) return null;
+    if (login.kind !== 'credentials' || !isAllowed(login.connectionId)) return null;
     const params = connections.get(login.connectionId)?.params;
     if (params == null || !('trino' in params)) return null;
     const auth = params.trino.auth;
