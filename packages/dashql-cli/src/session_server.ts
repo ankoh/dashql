@@ -20,7 +20,13 @@ import {
     workbookCopyPath,
     type JournalFile,
 } from '@ankoh/dashql/platform/session/workbook_journal';
+import { trinoOAuthOf, type ConnectAuth, type LoginConnection } from './connect_auth.js';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
+
+/// How long a request for a login waits before it answers that the login still waits
+export const LOGIN_POLL_MS = 20_000;
+/// The headers of a request of a run that the relay doesn't forward: the connection, its own token and its address
+const RELAY_DROPPED_HEADERS = new Set(['host', 'authorization', 'x-dashql-url', 'connection', 'content-length', 'origin', 'transfer-encoding', 'keep-alive']);
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
 export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
@@ -42,6 +48,8 @@ export interface SessionServerOptions {
     origins?: string[];
     /// Called when the harness ended the session
     onEnd?: () => void;
+    /// The logins of the connections of the session, the runs of the agent reach them through the relay
+    auth?: ConnectAuth | null;
 }
 
 /// A running server of a session
@@ -72,7 +80,8 @@ function decodePart(part: string): string | null {
 /// The token in the path of the routes of files, null for other routes
 function pathToken(url: URL): string | null {
     const parts = url.pathname.split('/');
-    return parts[1] === 'v1' && (parts[2] === 'workbooks' || parts[2] === 'results' || parts[2] === 'connections') ? decodePart(parts[3] ?? '') : null;
+    const routes = ['workbooks', 'results', 'connections', 'auth', 'relay'];
+    return parts[1] === 'v1' && routes.includes(parts[2] ?? '') ? decodePart(parts[3] ?? '') : null;
 }
 
 /// A workbook folder of the journal, only inside the folder of the session: the server hands out no other files
@@ -258,6 +267,83 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         request.headers.authorization === `Bearer ${token}` || url.searchParams.get('token') === token
         || pathToken(url) === token;
 
+    // The tab shows the logins that runs wait for
+    const unsubscribeLogins = options.auth?.onLogins(logins => {
+        state = { ...state, logins, version: state.version + 1 };
+        broadcast();
+    }) ?? (() => { });
+
+    /// The body of a request
+    const readBody = (request: http.IncomingMessage) => new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        request.on('data', chunk => chunks.push(chunk as Buffer));
+        request.on('end', () => resolve(Buffer.concat(chunks)));
+        request.on('error', reject);
+    });
+    const sendJson = (response: http.ServerResponse, status: number, value: unknown) =>
+        response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(value));
+
+    /// POST /v1/auth/<token>/<connection id> with the connection: a valid token of the connection, the user logs in
+    /// through the tab if the process has none. Answers the account that the cached results are keyed by.
+    const login = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
+        const auth = options.auth;
+        if (auth == null) return sendJson(response, 404, { error: 'the session has no logins' });
+        let connection: LoginConnection;
+        try {
+            const body = JSON.parse((await readBody(request)).toString('utf8')) as { name?: unknown; endpoint?: unknown; params?: unknown };
+            const oauth = trinoOAuthOf(body.params);
+            if (oauth == null || typeof body.endpoint !== 'string') throw new Error('no Trino connection with OAuth');
+            connection = { connectionId, name: typeof body.name === 'string' ? body.name : connectionId, endpoint: new URL(body.endpoint).origin, oauth };
+        } catch (error) {
+            return sendJson(response, 400, { error: String(error) });
+        }
+        // A login waits for the user, the run asks again after a while: no request outlives the timeouts of fetch
+        const token = auth.token(connection);
+        token.catch(() => { });
+        const waited = await Promise.race([
+            token.then(value => ({ value }), (error: unknown) => ({ error })),
+            new Promise<null>(resolve => setTimeout(() => resolve(null), LOGIN_POLL_MS).unref()),
+        ]);
+        if (waited == null) return sendJson(response, 202, { waiting: true });
+        if ('error' in waited) return sendJson(response, 502, { error: waited.error instanceof Error ? waited.error.message : String(waited.error) });
+        sendJson(response, 200, { principal: waited.value.principal });
+    };
+
+    /// /v1/relay/<token>/<connection id> with the URL in X-DashQL-Url: a request of a run to the endpoint of a connection
+    /// that it logged in to, with the token of the connection. The token stays in this process.
+    const relay = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
+        const connection = options.auth?.connection(connectionId) ?? null;
+        const target = request.headers['x-dashql-url'];
+        let url: URL;
+        try {
+            url = new URL(typeof target === 'string' ? target : '');
+        } catch {
+            return sendJson(response, 400, { error: 'the relay needs the URL of the request' });
+        }
+        if (connection == null || url.origin !== connection.endpoint) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
+        let token;
+        try {
+            token = await options.auth!.token(connection);
+        } catch (error) {
+            return sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
+        }
+        const headers = new Headers();
+        for (const [name, value] of Object.entries(request.headers)) {
+            if (value == null || RELAY_DROPPED_HEADERS.has(name)) continue;
+            headers.set(name, Array.isArray(value) ? value.join(', ') : value);
+        }
+        headers.set('Authorization', `${token.tokenType} ${token.accessToken}`);
+        const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : new Uint8Array(await readBody(request));
+        try {
+            const forwarded = await fetch(url, { method: request.method, headers, body });
+            const bytes = Buffer.from(await forwarded.arrayBuffer());
+            const contentType = forwarded.headers.get('content-type');
+            response.writeHead(forwarded.status, contentType == null ? {} : { 'Content-Type': contentType }).end(bytes);
+        } catch (error) {
+            sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
+        }
+    };
+
     const handle = (request: http.IncomingMessage, response: http.ServerResponse) => {
         const url = new URL(request.url ?? '/', 'http://127.0.0.1');
         if (!cors(request, response)) {
@@ -297,6 +383,18 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 response.writeHead(204).end();
                 if (state.ended) options.onEnd?.();
             });
+            return;
+        }
+        if (request.method === 'POST' && url.pathname.startsWith('/v1/auth/')) {
+            const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
+            if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
+            void login(request, response, connectionId);
+            return;
+        }
+        if (url.pathname.startsWith('/v1/relay/')) {
+            const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
+            if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
+            void relay(request, response, connectionId);
             return;
         }
         if (request.method === 'PUT' && url.pathname.split('/').length === 4 && url.pathname.startsWith('/v1/connections/')) {
@@ -447,6 +545,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             clearInterval(journalTimer);
             // The commands of a later run find no session and append nothing
             removeJournal();
+            unsubscribeLogins();
+            options.auth?.close();
             for (const stream of streams) stream.end();
             server.close(() => resolve());
         }),

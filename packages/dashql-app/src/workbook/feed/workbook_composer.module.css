@@ -107,6 +107,23 @@
     font-size: var(--font_size_small);
 }
 
+/* A login that a run of the agent waits for */
+.composer_connect_login {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 2px;
+    font-size: var(--font_size_small);
+}
+
+.composer_connect_login_text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Over the font of the text input */
 .composer_connect .composer_connect_command {
     font-family: var(--font_family_mono);

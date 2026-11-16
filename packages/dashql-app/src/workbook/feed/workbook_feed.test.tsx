@@ -606,7 +606,7 @@ describe('Workbook feed composer', () => {
 
     /// The session of Claude Code in the terminal with its questions
     function agentSession(turns: AgentTurn[] = []): AgentSession {
-        return { harness: 'claude', folder: '/agent', connected: true, turns, onDismiss: vi.fn(), onShowScript: vi.fn() };
+        return { harness: 'claude', folder: '/agent', connected: true, turns, logins: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
     }
     /// A question that the agent works on
     const question = (questionId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({

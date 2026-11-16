@@ -1,6 +1,6 @@
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
-import type { AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
+import type { AgentSessionLogin, AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
 
 /// A script that the agent wrote
 export interface AgentScript {
@@ -40,6 +40,8 @@ export interface AgentSession {
     connected: boolean;
     /// The questions of the session, oldest first
     turns: AgentTurn[];
+    /// The logins that runs of the agent wait for, the user opens them with a click
+    logins: AgentSessionLogin[];
     /// Dismiss the final message or the error of a question
     onDismiss: (questionId: number) => void;
     /// Scroll to a script that the agent wrote
@@ -114,6 +116,7 @@ export function agentSessionOf(
         folder: state.folder,
         connected: followed.connected && !state.ended,
         turns,
+        logins: followed.connected && !state.ended ? state.logins ?? [] : [],
         onDismiss,
         onShowScript,
     };

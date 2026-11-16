@@ -37,6 +37,15 @@ export interface AgentSessionTurn {
     files: string[];
 }
 
+/// A login that a run of the agent waits for: the tab shows it, the user opens the URL with a click
+export interface AgentSessionLogin {
+    connectionId: string;
+    /// The label of the connection
+    name: string;
+    /// The authorization URL of the identity provider
+    url: string;
+}
+
 /// The state of a session that the server keeps and the page follows
 export interface AgentSessionState {
     harness: string;
@@ -49,6 +58,8 @@ export interface AgentSessionState {
     workbooks: SessionWorkbook[];
     /// The latest other log records of the dashql commands of the session, oldest first
     log: LogRecord[];
+    /// The logins that runs of the agent wait for, absent in the state of an older server
+    logins?: AgentSessionLogin[];
     /// Counts the events and the lines of the journal, a page tells a new state by it
     version: number;
 }
@@ -59,7 +70,7 @@ export const MAX_AGENT_SESSION_TURNS = 50;
 export const MAX_AGENT_SESSION_LOG = 100;
 
 export function createAgentSessionState(harness: string, folder: string): AgentSessionState {
-    return { harness, folder, ended: false, turns: [], workbooks: [], log: [], version: 0 };
+    return { harness, folder, ended: false, turns: [], workbooks: [], log: [], logins: [], version: 0 };
 }
 
 /// A turn of a question
@@ -104,6 +115,7 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
         turns: turns.slice(-MAX_AGENT_SESSION_TURNS),
         workbooks: state.workbooks,
         log: state.log,
+        logins: state.logins,
         version: state.version + 1,
     };
 }

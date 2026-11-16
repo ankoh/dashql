@@ -6,7 +6,8 @@ import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platfo
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';
-import { SESSION_NAME_ENV } from './session_journal.js';
+import { ConnectAuth } from './connect_auth.js';
+import { SESSION_NAME_ENV, SESSION_SERVER_FILE } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
@@ -94,6 +95,16 @@ export function writeDashqlCommand(folder: string, session: string, dashql: stri
     }
 }
 
+/// Write the address of the server into the folder of the session, readable by the user only
+export function writeSessionServerFile(folder: string, session: string, target: SessionTarget): void {
+    try {
+        const file = path.join(folder, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), SESSION_SERVER_FILE);
+        writeFileSync(file, `${JSON.stringify(target)}\n`, { mode: 0o600 });
+    } catch {
+        // The commands find the server in the environment
+    }
+}
+
 /// The command of a hook of a harness
 function hookCommand(dashql: string[], event: string, harness: string): string {
     return [...dashql, 'session', 'hook', event, '--harness', harness, '--connected'].map(shellWord).join(' ');
@@ -145,7 +156,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     let server: Awaited<ReturnType<typeof startSessionServer>>;
     try {
         // The port names the session, no other session on this machine has it while it runs
-        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret, session: String(port) });
+        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret, session: String(port), auth: new ConnectAuth() });
     } catch (error) {
         const code = (error as { code?: string }).code;
         cli.stderr(code === 'EADDRINUSE'
@@ -164,6 +175,9 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     };
     // The agent runs `dashql` like the hooks do
     const bin = env.posix ? writeDashqlCommand(folder, String(server.port), env.dashql) : null;
+    // The commands of the agent find the server in the folder of the session too: a harness may keep variables with a
+    // token in their name from its commands
+    writeSessionServerFile(folder, String(server.port), target);
     if (bin != null) harnessEnv.PATH = env.searchPath.length > 0 ? `${bin}${path.delimiter}${env.searchPath}` : bin;
     let code: number;
     try {

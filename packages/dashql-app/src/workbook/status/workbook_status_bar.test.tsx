@@ -17,6 +17,7 @@ function agentSession(turns: AgentTurn[] = [], connected = true): AgentSession {
         folder: '/agent',
         connected,
         turns,
+        logins: [],
         onDismiss: vi.fn(),
         onShowScript: vi.fn(),
     };

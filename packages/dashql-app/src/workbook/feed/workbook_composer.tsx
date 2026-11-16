@@ -4,7 +4,7 @@ import * as styles from './workbook_composer.module.css';
 
 import type { EditorView } from '@codemirror/view';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { TextInput } from '../../ui/foundations/text_input.js';
 import { CopyToClipboardAction, TextInputAction } from '../../ui/foundations/text_input_action.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
@@ -329,6 +329,20 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                                 ? `${harnessLabel(session.harness)} works on this workbook in the terminal`
                                 : 'Run the command in the folder of your project, the session shows here'}
                         </div>
+                        {/* A run of the agent waits for a login, the identity provider redirects to the terminal */}
+                        {(session?.logins ?? []).map(login => (
+                            <div key={login.connectionId} className={styles.composer_connect_login} data-testid="composer-connect-login" data-connection={login.connectionId}>
+                                <span className={styles.composer_connect_login_text}>The agent waits for a login to {login.name}</span>
+                                <Button
+                                    variant={ButtonVariant.Primary}
+                                    size={ButtonSize.Small}
+                                    onClick={() => window.open(login.url, '_blank', 'popup')}
+                                    data-testid="composer-connect-login-open"
+                                >
+                                    Log in
+                                </Button>
+                            </div>
+                        ))}
                         {/* The command is only copied, the buttons stay usable */}
                         <TextInput
                             className={styles.composer_connect_command}

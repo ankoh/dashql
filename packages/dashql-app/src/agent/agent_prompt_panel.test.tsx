@@ -14,6 +14,7 @@ function agentSession(overrides: Partial<AgentSession> = {}): AgentSession {
         folder: '/agent',
         connected: true,
         turns: [],
+        logins: [],
         onDismiss: vi.fn(),
         onShowScript: vi.fn(),
         ...overrides,

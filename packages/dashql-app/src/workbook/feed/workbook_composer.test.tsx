@@ -410,7 +410,7 @@ describe('Workbook composer', () => {
         });
 
         it('tells the harness of a connected session and keeps the SQL prompt open with it', async () => {
-            const session = { harness: 'codex', folder: '/w', connected: true, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
+            const session = { harness: 'codex', folder: '/w', connected: true, turns: [], logins: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
             const editor = await renderConnected(ComposerMode.Ai, session);
             expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Codex works on this workbook in the terminal');
             act(() => mode('sql').click());
@@ -418,6 +418,22 @@ describe('Workbook composer', () => {
             act(() => type(editor, 'select 2'));
             act(() => press(editor, 'Enter'));
             expect(onSend).toHaveBeenCalledWith('select 2');
+        });
+
+        it('opens the login that a run of the agent waits for with a click', async () => {
+            const url = 'https://idp.example/authorize?client_id=dashql&state=s1';
+            const logins = [{ connectionId: 'c1', name: 'Trino prod', url }];
+            const session = { harness: 'claude', folder: '/w', connected: true, turns: [], logins, onDismiss: vi.fn(), onShowScript: vi.fn() };
+            const open = vi.spyOn(window, 'open').mockReturnValue(null);
+            try {
+                await renderConnected(ComposerMode.Ai, session);
+                const login = container.querySelector('[data-testid="composer-connect-login"]')!;
+                expect(login.textContent).toContain('The agent waits for a login to Trino prod');
+                act(() => login.querySelector<HTMLButtonElement>('[data-testid="composer-connect-login-open"]')!.click());
+                expect(open).toHaveBeenCalledWith(url, '_blank', 'popup');
+            } finally {
+                open.mockRestore();
+            }
         });
 
         it('shows the connections of the agent in place of the connection picker in AI', async () => {

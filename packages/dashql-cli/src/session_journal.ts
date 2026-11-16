@@ -23,6 +23,9 @@ export interface SessionJournal {
     write(record: LogRecord): void;
 }
 
+/// The file with the address of the server in the folder of a session of `dashql connect`
+export const SESSION_SERVER_FILE = 'server.json';
+
 /// The variable that names the session of `dashql connect` for the commands of its harness. It holds no secret: Codex
 /// passes it to the commands of its agent.
 export const SESSION_NAME_ENV = 'DASHQL_SESSION';
@@ -66,6 +69,20 @@ export function readSessionConnections(workspace: string, session: string | null
     const file = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), SESSION_CONNECTIONS_FILE);
     try {
         return parseSessionConnections(readFileSync(file, 'utf8'));
+    } catch {
+        return null;
+    }
+}
+
+/// The server of a session of `dashql connect`: from DASHQL_SESSION_ENDPOINT and DASHQL_SESSION_TOKEN, else from the
+/// folder of the session. Null outside such a session.
+export function readSessionServer(workspace: string, session: string | null, env: { endpoint?: string; token?: string } = {}): { endpoint: string; token: string } | null {
+    if (env.endpoint && env.token) return { endpoint: env.endpoint, token: env.token };
+    if (session == null || !isSessionName(session)) return null;
+    try {
+        const file = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), SESSION_SERVER_FILE);
+        const value = JSON.parse(readFileSync(file, 'utf8')) as { endpoint?: unknown; token?: unknown };
+        return typeof value.endpoint === 'string' && typeof value.token === 'string' ? { endpoint: value.endpoint, token: value.token } : null;
     } catch {
         return null;
     }

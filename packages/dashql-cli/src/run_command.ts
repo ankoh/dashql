@@ -26,7 +26,8 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { JournalRunReporter } from './run_journal.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
-import { openSessionJournal, readSessionConnections, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import { openSessionJournal, readSessionConnections, readSessionServer, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import { RelayedConnections } from './run_relay.js';
 
 const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
@@ -49,7 +50,8 @@ dashql session serve creates in the folder of its session, or ~/.dashql. The wor
 works in, the invoking directory unless --workspace names it. In a session, run appends its log to the journal there.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
-user and the password of the workbook.
+user and the password of the workbook. In a session of dashql connect also Trino with OAuth: the process of dashql
+connect logs in, the user clicks Log in in the tab of DashQL, and the run reaches Trino through it.
 
 --verbose prints the log of the runtime to stderr.`;
 
@@ -68,6 +70,9 @@ export interface RunEnvironment {
     trinoPassword?: string;
     /// The session of `dashql connect` that the command runs in (DASHQL_SESSION), its journal gets the log
     session?: string | null;
+    /// The server of that session (DASHQL_SESSION_ENDPOINT, DASHQL_SESSION_TOKEN), else the folder of the session names it
+    sessionEndpoint?: string;
+    sessionToken?: string;
 }
 
 export function processRunEnvironment(): RunEnvironment {
@@ -76,6 +81,8 @@ export function processRunEnvironment(): RunEnvironment {
         trinoUser: process.env.DASHQL_TRINO_USER || undefined,
         trinoPassword: process.env.DASHQL_TRINO_PASSWORD || undefined,
         session: process.env[SESSION_NAME_ENV] || null,
+        sessionEndpoint: process.env.DASHQL_SESSION_ENDPOINT || undefined,
+        sessionToken: process.env.DASHQL_SESSION_TOKEN || undefined,
     };
 }
 
@@ -179,7 +186,14 @@ function connectionLabel(conn: ConnectionState): string {
 
 /// Set up a connection and check that it answers, an error message if it can't be set up: Trino with basic auth and the
 /// embedded Hyper, also a local cloud on it. The runtime sets it up, the embedded Hyper of the run is its channel.
-async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvironment, hyper: NodeComputeDatabase | null, signal: AbortSignal): Promise<string | null> {
+async function setupConnection(
+    rt: Runtime,
+    conn: ConnectionState,
+    env: RunEnvironment,
+    hyper: NodeComputeDatabase | null,
+    relayed: RelayedConnections | null,
+    signal: AbortSignal,
+): Promise<string | null> {
     const params = conn.params;
     let options: { channelParams?: connection.TrinoConnectionParams } = {};
     if ('hyper' in params && (params.hyper.protocol ?? 'WASM') === 'WASM') {
@@ -189,7 +203,14 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
     } else {
         const auth = params.trino.auth;
         if (auth?.authType === 'AUTH_OAUTH') {
-            return 'the connection signs in with OAuth, dashql run supports basic auth only';
+            // The process of dashql connect logs in, the user in the tab, and the requests go through its relay
+            if (relayed == null) return 'the connection signs in with OAuth, dashql run reaches it in a session of dashql connect only';
+            try {
+                await relayed.login(conn.connectionId, connectionLabel(conn), params.trino.endpoint ?? '', params, signal);
+            } catch (error) {
+                return `the login failed: ${describeError(error)}`;
+            }
+            return await finishSetup(rt, conn, {}, signal);
         }
         // A connection saves the params it was set up with once it is online, and saved params are written into the
         // workbook. The connection keeps the params of the workbook, the credentials of the environment stay in the channel.
@@ -205,6 +226,11 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
         };
         options = { channelParams };
     }
+    return await finishSetup(rt, conn, options, signal);
+}
+
+/// Let the runtime set up a connection, an error message if it can't be set up
+async function finishSetup(rt: Runtime, conn: ConnectionState, options: { channelParams?: connection.TrinoConnectionParams }, signal: AbortSignal): Promise<string | null> {
     const cancel = () => rt.cancelSetup(conn.connectionId);
     signal.addEventListener('abort', cancel, { once: true });
     try {
@@ -279,8 +305,13 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
     const embedded = hyper?.database ?? null;
+    // In a session of dashql connect, the connections with OAuth go through the process of dashql connect
+    const server = readSessionServer(workspace, env.session ?? null, { endpoint: env.sessionEndpoint, token: env.sessionToken });
+    const relayed = server == null ? null : new RelayedConnections(server);
+    const platform = await createNodePlatform({ logger, storage, core: await cli.setupCore(), oauthFlow: relayed?.oauthFlow() });
     const runtime = createRuntime({
-        ...await createNodePlatform({ logger, storage, core: await cli.setupCore() }),
+        ...platform,
+        http: relayed?.http() ?? platform.http,
         computeDatabase: embedded == null ? null : async () => embedded,
         resultCache: hyper?.resultCache ?? null,
         // A run doesn't describe the connections, it only runs the scripts
@@ -350,7 +381,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             const allowed = readSessionConnections(workspace, env.session ?? null);
             const failure = allowed != null && !allowed.connections.some(other => other.connectionId === connectionId)
                 ? 'the tab of DashQL does not let the agent use this connection, the user can allow it in the prompt'
-                : await setupConnection(runtime, conn, env, hyper, stop.signal);
+                : await setupConnection(runtime, conn, env, hyper, relayed, stop.signal);
             if (failure != null) {
                 emit({ type: 'connection_failed', connection: label, error: stop.signal.aborted ? 'interrupted' : failure });
                 throw new Error(failure);

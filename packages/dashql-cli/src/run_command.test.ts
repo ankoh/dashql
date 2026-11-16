@@ -4,7 +4,9 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { ConnectAuth } from './connect_auth.js';
 import { runRun, type RunEnvironment } from './run_command.js';
+import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
 
 const WORKBOOK_ID = '6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f';
@@ -14,6 +16,10 @@ const CONNECTION_ID = '0d9e8f7a-6b5c-4d3e-8f21-0a1b2c3d4e5f';
 class FakeTrino {
     /// The password of `ann`
     password = 'pw';
+    /// The access token of an OAuth login that the server takes as well, none by default
+    bearer: string | null = null;
+    /// The authorization headers of the requests
+    readonly authorizations: Array<string | undefined> = [];
     readonly statements: string[] = [];
     readonly users: Array<string | undefined> = [];
     private server: Server | null = null;
@@ -39,7 +45,10 @@ class FakeTrino {
     }
 
     private async answer(request: IncomingMessage): Promise<[number, object | null]> {
-        if (request.headers.authorization !== `Basic ${btoa(`ann:${this.password}`)}`) return [401, null];
+        this.authorizations.push(request.headers.authorization);
+        const basic = request.headers.authorization === `Basic ${btoa(`ann:${this.password}`)}`;
+        const bearer = this.bearer != null && request.headers.authorization === `Bearer ${this.bearer}`;
+        if (!basic && !bearer) return [401, null];
         const url = new URL(request.url!, this.endpoint);
         if (request.method === 'POST' && url.pathname === '/v1/statement') {
             let text = '';
@@ -99,6 +108,19 @@ function trinoWorkbook(endpoint: string, scripts: Array<[string, string]>, usern
         ['dashql-workbook.json', JSON.stringify(workbook, null, 2)],
         ...scripts.map(([name, text]): [string, string] => [`scripts/${name}`, text]),
     ]);
+}
+
+/// A workbook folder with scripts on one Trino connection that logs in with OAuth
+function oauthTrinoWorkbook(endpoint: string, scripts: Array<[string, string]>): string {
+    const dir = trinoWorkbook(endpoint, scripts);
+    const file = path.join(dir, 'dashql-workbook.json');
+    const workbook = JSON.parse(readFileSync(file, 'utf8'));
+    workbook.connections[0].params.trino.auth = {
+        authType: 'AUTH_OAUTH',
+        oauth: { authorizationUrl: 'https://idp.example/authorize', tokenUrl: 'https://idp.example/token', clientId: 'dashql', scopes: ['openid'] },
+    };
+    writeFileSync(file, JSON.stringify(workbook, null, 2));
+    return dir;
 }
 
 const HYPER_ID = '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d';
@@ -322,6 +344,55 @@ describe('dashql run', () => {
         expect(trino.statements).toEqual([]);
         // Another session, or none, lets the agent use every connection
         expect((await run(dir, ['.'], { ...PASSWORD, session: '51004' })).code).toBe(0);
+    });
+
+    it('reaches a Trino connection with OAuth through the relay of dashql connect, the token stays there', async () => {
+        const dir = oauthTrinoWorkbook(trino.endpoint, [ORDERS]);
+        // Outside a session of dashql connect, the connection is not reached
+        const outside = await run(dir, ['.'], {});
+        expect(outside.stdout).toContain('the connection signs in with OAuth, dashql run reaches it in a session of dashql connect only');
+
+        // The identity provider of the process of dashql connect, the test sends the redirect
+        let callback: ((params: URLSearchParams) => void) | null = null;
+        const tokenRequests: string[] = [];
+        const auth = new ConnectAuth({
+            now: () => Date.now(),
+            fetch: (async (_url: string, init: RequestInit) => {
+                tokenRequests.push(String(init.body));
+                const idToken = `e30.${Buffer.from(JSON.stringify({ sub: 'ann@corp' })).toString('base64url')}.sig`;
+                return new Response(JSON.stringify({ access_token: 'real-token', token_type: 'Bearer', expires_in: 3600, id_token: idToken }));
+            }) as typeof fetch,
+            listen: async () => ({ callback: new Promise<URLSearchParams>(resolve => { callback = resolve; }) }),
+        });
+        const server = await startSessionServer({ harness: 'claude', folder: dir, session: '51006', auth });
+        trino.bearer = 'real-token';
+        trino.authorizations.length = 0;
+        try {
+            // The commands of the agent find the server in the folder of the session
+            writeFileSync(path.join(dir, '.dashql', 'sessions', '51006', 'server.json'), JSON.stringify({ endpoint: `http://127.0.0.1:${server.port}`, token: server.token }));
+            const running = run(dir, ['.'], { session: '51006' });
+            // The run waits for the login in the tab
+            await vi.waitFor(() => expect(server.state().logins).toHaveLength(1), { timeout: 20_000 });
+            const login = server.state().logins![0];
+            expect(login).toMatchObject({ connectionId: CONNECTION_ID, name: `trino ${trino.endpoint}` });
+            callback!(new URLSearchParams({ code: 'code1', state: new URL(login.url).searchParams.get('state')! }));
+            const output = await running;
+            expect(output.stderr).toBe('');
+            expect(output.code).toBe(0);
+            expect(output.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows /m);
+            expect(server.state().logins).toEqual([]);
+            // Trino got the real token, the run only the stand-in
+            expect(trino.authorizations.length).toBeGreaterThan(0);
+            expect(new Set(trino.authorizations)).toEqual(new Set(['Bearer real-token']));
+            expect(tokenRequests).toHaveLength(1);
+            // The relay reaches the endpoints of logged in connections only
+            const relay = `http://127.0.0.1:${server.port}/v1/relay/${server.token}/${CONNECTION_ID}`;
+            expect((await fetch(relay, { headers: { 'X-DashQL-Url': 'https://elsewhere.example/v1/info' } })).status).toBe(403);
+            expect((await fetch(`http://127.0.0.1:${server.port}/v1/relay/wrong/${CONNECTION_ID}`, { headers: { 'X-DashQL-Url': `${trino.endpoint}/v1/info` } })).status).toBe(401);
+        } finally {
+            trino.bearer = null;
+            await server.close();
+        }
     });
 
     it('reports the progress of a running script to the journal', async () => {
