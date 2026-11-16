@@ -982,6 +982,21 @@ impl Runtime {
         }))
     }
 
+    /// The first rows of an analyzed result, at most `limit`, in the order of the result and without the columns of
+    /// its computation, as an Arrow IPC stream, e.g. for the table of a terminal. The rows are read from the data
+    /// frame of the computation, the result itself doesn't enter the module. Rejects for a table that has no
+    /// computation or whose analysis isn't done.
+    #[wasm_bindgen(js_name = previewResult, unchecked_return_type = "Promise<Uint8Array>")]
+    pub fn preview_result(&self, table_id: f64, limit: f64) -> Result<Promise, JsError> {
+        let table_id = integer(table_id, "table id")? as TableId;
+        let limit = integer(limit, "limit")?;
+        let preview = self.computations.preview(table_id, limit);
+        Ok(future_to_promise(async move {
+            let ipc = preview.await.map_err(task_error)?;
+            Ok(js_sys::Uint8Array::from(ipc.as_slice()).into())
+        }))
+    }
+
     /// Run a query on a connection. The query is in the history of the connection from the start; it runs once the
     /// runtime described it: the target on the channel of the connection, the key of its result in the query result
     /// cache and what the options of the arguments ask for. The caller hears the events of the query (`events`).

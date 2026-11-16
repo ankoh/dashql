@@ -1,5 +1,6 @@
 //! The shell session.
 
+use super::arrow_renderer::ArrowRenderer;
 use super::prompt_buffer::{find_from, PromptBuffer};
 use super::unicode::{display_width, is_valid, next_grapheme};
 use super::vt100::{self, append_sequence, Command};
@@ -1388,7 +1389,7 @@ impl ShellSession {
         };
         let effect = self.pending_effects.remove(index);
         match (effect.effect_type, status) {
-            (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => ShellOperation::ok(data.to_vec()),
+            (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => self.render_query_result(data),
             (EffectType::ExecuteCommand, EffectCompletionStatus::Success) => {
                 let Some((&flags, output)) = data.split_first() else {
                     return ShellOperation::new(ShellStatus::InternalError, "invalid shell command result");
@@ -1398,6 +1399,36 @@ impl ShellSession {
             }
             (_, EffectCompletionStatus::Error) => ShellOperation::ok(normalize_error(data)),
             (_, EffectCompletionStatus::Cancelled) => ShellOperation::ok("Cancelled"),
+        }
+    }
+
+    /// The output of a query: its status line, or a preview of its result with a status line below the table. See
+    /// `QueryResultTag` for the layout of the data.
+    fn render_query_result(&self, data: &[u8]) -> ShellOperation {
+        let Some((&tag, rest)) = data.split_first() else {
+            return ShellOperation::new(ShellStatus::InternalError, "invalid query result");
+        };
+        match tag {
+            t if t == QueryResultTag::Status as u8 => ShellOperation::ok(rest.to_vec()),
+            t if t == QueryResultTag::Preview as u8 => {
+                let Some((length, rest)) = rest.split_first_chunk::<4>() else {
+                    return ShellOperation::new(ShellStatus::InternalError, "invalid query result preview");
+                };
+                let Some((status, rows)) = rest.split_at_checked(u32::from_le_bytes(*length) as usize) else {
+                    return ShellOperation::new(ShellStatus::InternalError, "invalid query result preview");
+                };
+                match ArrowRenderer::new(self.terminal_columns).render_ipc(rows) {
+                    Ok(mut output) => {
+                        if !status.is_empty() {
+                            push(&mut output, vt100::NEW_LINE);
+                            output.extend_from_slice(status);
+                        }
+                        ShellOperation::ok(output)
+                    }
+                    Err(message) => ShellOperation::new(ShellStatus::InternalError, message),
+                }
+            }
+            _ => ShellOperation::new(ShellStatus::InternalError, "invalid query result"),
         }
     }
 

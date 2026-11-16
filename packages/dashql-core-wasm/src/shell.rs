@@ -409,8 +409,8 @@ impl Shell {
         operation(self.inner.start_query(query.as_bytes(), &self.catalog.borrow()))
     }
 
-    /// Finish an effect with a `DashQLShellEffectCompletionStatus` and its data (Arrow IPC for queries, a flag
-    /// byte and the output for dot commands, the message for errors)
+    /// Finish an effect with a `DashQLShellEffectCompletionStatus` and its data (for queries a `QueryResultTag` and a
+    /// status line or a preview of the result, a flag byte and the output for dot commands, the message for errors)
     #[wasm_bindgen(js_name = completeEffect)]
     pub fn complete_effect(&mut self, effect_id: u64, completion_status: u32, data: &[u8]) -> ShellOperation {
         match EffectCompletionStatus::from_u32(completion_status) {

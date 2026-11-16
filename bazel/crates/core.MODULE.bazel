@@ -21,7 +21,8 @@ crate_core.spec(package = "libc", version = "=0.2.191")
 crate_core.spec(package = "tokio", features = ["io-util", "macros", "net", "process", "rt", "signal", "sync", "time"], version = "=1.54.1")
 crate_core.spec(package = "tokio-tungstenite", default_features = False, features = ["handshake"], version = "=0.30.0")
 
-# Arrow in the runtime (//packages/dashql-core-runtime): results, the catalog loader, the connectors, the computations
+# Arrow in the runtime (//packages/dashql-core-runtime): results, the catalog loader, the connectors, the computations;
+# and in the shell (//packages/dashql-core-shell): the previews of results in the terminal
 crate_core.spec(package = "arrow-array", default_features = False, version = "=60.1.0")
 crate_core.spec(package = "arrow-buffer", default_features = False, version = "=60.1.0")
 crate_core.spec(package = "arrow-cast", default_features = False, version = "=60.1.0")

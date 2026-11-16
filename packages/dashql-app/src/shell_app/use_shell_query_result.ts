@@ -16,9 +16,10 @@ export function useShellQueryResult(releaseResult: (queryId: number) => void) {
         if (lastQueryId == null) return;
         return () => releaseResult(lastQueryId);
     }, [lastQueryId, releaseResult]);
-    const showResultQuery = React.useCallback((queryId: number) => {
+    /// A new result, the overlay opens unless the terminal shows it
+    const showResultQuery = React.useCallback((queryId: number, inTerminal = false) => {
         setLastQueryId(queryId);
-        setOpen(true);
+        setOpen(!inTerminal);
     }, []);
     const closeResultQuery = React.useCallback(() => setOpen(false), []);
     const reopenResultQuery = React.useCallback(() => {

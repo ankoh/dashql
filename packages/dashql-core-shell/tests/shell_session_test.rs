@@ -408,7 +408,7 @@ fn failed_and_cancelled_effects_render_messages() {
 fn query_results_are_the_text_of_the_host() {
     let mut shell = new_shell(80);
     let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"Query completed (1 row)\r\n");
+    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"\x00Query completed (1 row)\r\n");
     assert_eq!(result.status, ShellStatus::Ok);
     assert_eq!(result.data, b"Query completed (1 row)\r\n");
 }

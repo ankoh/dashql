@@ -77,9 +77,10 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const resultQuery = useQuery(resultQueryId);
     const resultQueryRef = React.useRef(resultQuery);
     resultQueryRef.current = resultQuery;
-    const showResult = React.useCallback((queryId: number) => {
+    // The overlay opens unless the terminal shows the result
+    const showResult = React.useCallback((queryId: number, inTerminal: boolean) => {
         setResultQueryId(queryId);
-        setResultOpen(true);
+        setResultOpen(!inTerminal);
     }, []);
     // Closing the overlay keeps the result so that it can open again, the computation of a result is released once
     // another result replaces it
@@ -136,6 +137,11 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             async queryId => { await runtimeRef.current?.cancel(queryId); },
             releaseResult,
             query => resolveClientFunctionCall(catalog, query),
+            async (queryId, limit) => {
+                const current = runtimeRef.current;
+                if (current == null) throw new Error('the preview of a result needs a RuntimeProvider');
+                return await current.previewResult(queryId, limit);
+            },
         );
         const lastCommand = createShellLastCommand(() => {
             if (resultQueryRef.current == null) return false;

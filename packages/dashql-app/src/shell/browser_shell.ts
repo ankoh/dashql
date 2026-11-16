@@ -52,7 +52,8 @@ export interface BrowserShellOptions {
     greeter?: readonly string[];
     prompt?: string;
     onExit?: () => void;
-    onQueryResult?: (queryId: number) => void;
+    /// A query has a result with columns, `inTerminal` if the terminal shows it as a table
+    onQueryResult?: (queryId: number, inTerminal: boolean) => void;
     inputAriaLabel?: string;
     /// May the terminal take the focus once it opened? A page that went to the background meanwhile must not.
     mayFocus?: () => boolean;
@@ -287,7 +288,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         const executingShell = shell;
         const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
         const progress = new TerminalQueryProgress(executingShell, data => terminal.write(data), reducedMotion);
-        const queryResult: { queryId: number | null } = { queryId: null };
+        const queryResult: { value: { queryId: number; inTerminal: boolean } | null } = { value: null };
         activeQuery = abort;
         activeProgress = progress;
         try {
@@ -296,16 +297,17 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
                 message => {
                     if (!disposed && shell === executingShell && activeQuery === abort) progress.update(message);
                 },
-                queryId => {
+                (queryId, _rowCount, inTerminal) => {
                     if (!disposed && shell === executingShell && activeQuery === abort) {
-                        queryResult.queryId = queryId;
+                        queryResult.value = { queryId, inTerminal };
                     }
                 },
             );
             if (!disposed && shell === executingShell) {
                 progress.stop();
                 terminal.write(executingShell.finishTerminalQuery(output).data);
-                if (queryResult.queryId != null) options.onQueryResult?.(queryResult.queryId);
+                const result = queryResult.value;
+                if (result != null) options.onQueryResult?.(result.queryId, result.inTerminal);
             }
         } catch (error) {
             if (!disposed && shell === executingShell) {

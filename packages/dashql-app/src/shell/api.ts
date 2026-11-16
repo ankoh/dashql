@@ -31,7 +31,16 @@ export interface DashQLShellEnvironment {
         onResult?: (queryId: number, rowCount: number) => void,
         onTiming?: (label: string, elapsedMs: number) => void,
     ): Promise<void>;
+    /// The first rows of a result that `executeQuery` reported, at most `limit`, as an Arrow IPC stream. A shell whose
+    /// environment has none shows every result in the overlay.
+    previewResult?(queryId: number, limit: number): Promise<Uint8Array>;
 }
+
+/// Where a shell shows the results of its queries: in the result overlay of the page, or as a table in the terminal
+export type DashQLShellOutput = 'overlay' | 'table';
+
+/// Reports a result with columns, `inTerminal` if the terminal shows it as a table and the overlay stays closed
+export type DashQLShellResultCallback = (queryId: number, rowCount: number, inTerminal: boolean) => void;
 
 export interface DashQLShellCommandContext {
     readonly signal?: AbortSignal;
@@ -69,6 +78,7 @@ interface DashQLShellEffectResult {
 
 interface DashQLShellSettings {
     timer: boolean;
+    output: DashQLShellOutput;
 }
 
 export interface DashQLShellOptions {
@@ -156,10 +166,26 @@ export interface DashQLShellCompletionList {
 const SHELL_COMPLETION_TYPE = Symbol('SHELL_COMPLETION_TYPE');
 /// The status line of a statement without columns
 const NO_RESULTS_MESSAGE = 'No results';
+/// The rows of a result that the terminal shows as a table at most
+export const SHELL_PREVIEW_ROW_LIMIT = 100;
 
-/// The status line of a result, the terminal shows no results themselves
+/// What the data of a query effect holds, its first byte
+enum DashQLShellQueryResultTag {
+    /// A status line
+    STATUS = 0,
+    /// The length of a status line as u32 LE, the status line, then the first rows of the result as Arrow IPC
+    PREVIEW = 1,
+}
+
+/// The status line of a result
 export function formatQueryCompletion(rowCount: number): string {
     return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})`;
+}
+
+/// The status line below the table of the first rows of a result, `hint` says how to see all of them
+export function formatPreviewCompletion(rowCount: number, limit: number, hint: string | null): string {
+    if (rowCount <= limit) return formatQueryCompletion(rowCount);
+    return `Query completed (${rowCount} rows, the first ${limit} shown${hint == null ? '' : `, ${hint}`})`;
 }
 
 export class DashQLShellError extends Error {
@@ -207,8 +233,8 @@ export class DashQLShell {
     }
 
     static async create(options: DashQLShellOptions): Promise<DashQLShell> {
-        const settings: DashQLShellSettings = { timer: false };
-        const commands = createShellCommands(options.commands ?? [], settings);
+        const settings: DashQLShellSettings = { timer: false, output: 'overlay' };
+        const commands = createShellCommands(options.commands ?? [], settings, options.environment.previewResult != null);
         const core = options.core;
         const catalog = options.catalog ?? core.createCatalog();
         const shell = new DashQLShell(
@@ -357,7 +383,7 @@ export class DashQLShell {
     async submitPrompt(
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
-        onResult?: (queryId: number, rowCount: number) => void,
+        onResult?: DashQLShellResultCallback,
     ): Promise<string> {
         this.assertAlive();
         return await this.executeOperation(() => this.readOperation(this.alive().submitPrompt()), signal, onProgress, onResult);
@@ -367,7 +393,7 @@ export class DashQLShell {
         query: string,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
-        onResult?: (queryId: number, rowCount: number) => void,
+        onResult?: DashQLShellResultCallback,
     ): Promise<string> {
         return await this.executeOperation(() => this.readOperation(this.alive().startQuery(query)), signal, onProgress, onResult);
     }
@@ -376,7 +402,7 @@ export class DashQLShell {
         start: () => DashQLShellOperation,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
-        onResult?: (queryId: number, rowCount: number) => void,
+        onResult?: DashQLShellResultCallback,
     ): Promise<string> {
         this.assertAlive();
         if (this.activeExecution != null) {
@@ -486,7 +512,7 @@ export class DashQLShell {
         effect: DashQLShellEffect,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
-        onResult?: (queryId: number, rowCount: number) => void,
+        onResult?: DashQLShellResultCallback,
         onTiming?: (label: string, elapsedMs: number) => void,
     ): Promise<DashQLShellEffectResult> {
         if (
@@ -521,18 +547,15 @@ export class DashQLShell {
             Promise.resolve()
                 .then(async () => {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
-                        let status = NO_RESULTS_MESSAGE;
+                        let result: { queryId: number; rowCount: number } | null = null;
                         await this.environment.executeQuery(
                             effectInput,
                             signal,
                             onProgress,
-                            (queryId, rowCount) => {
-                                status = formatQueryCompletion(rowCount);
-                                onResult?.(queryId, rowCount);
-                            },
+                            (queryId, rowCount) => { result = { queryId, rowCount }; },
                             onTiming,
                         );
-                        return this.textEncoder.encode(withTrailingNewline(status));
+                        return await this.encodeQueryResult(result, signal, onResult);
                     }
                     const command = await this.executeCommand(effectInput, signal, onProgress);
                     const output = this.textEncoder.encode(withTrailingNewline(command.output));
@@ -554,6 +577,49 @@ export class DashQLShell {
                     },
                 );
         });
+    }
+
+    /// The data of a query effect: a status line, or with the output `table` the first rows of the result and a
+    /// status line. A result whose rows can't be read shows in the overlay, its status line says why.
+    protected async encodeQueryResult(
+        result: { queryId: number; rowCount: number } | null,
+        signal?: AbortSignal,
+        onResult?: DashQLShellResultCallback,
+    ): Promise<Uint8Array> {
+        if (result == null) return this.encodeQueryStatus(NO_RESULTS_MESSAGE);
+        const { queryId, rowCount } = result;
+        let status = formatQueryCompletion(rowCount);
+        if (this.settings.output === 'table' && this.environment.previewResult != null) {
+            try {
+                const rows = await this.environment.previewResult(queryId, SHELL_PREVIEW_ROW_LIMIT);
+                onResult?.(queryId, rowCount, true);
+                const hint = this.commands.has('last') ? '.last shows all' : null;
+                return this.encodeQueryPreview(formatPreviewCompletion(rowCount, SHELL_PREVIEW_ROW_LIMIT, hint), rows);
+            } catch (error) {
+                signal?.throwIfAborted();
+                status = `${status}, no table in the terminal: ${stringifyError(error)}`;
+            }
+        }
+        onResult?.(queryId, rowCount, false);
+        return this.encodeQueryStatus(status);
+    }
+
+    protected encodeQueryStatus(status: string): Uint8Array {
+        const text = this.textEncoder.encode(withTrailingNewline(status));
+        const encoded = new Uint8Array(text.byteLength + 1);
+        encoded[0] = DashQLShellQueryResultTag.STATUS;
+        encoded.set(text, 1);
+        return encoded;
+    }
+
+    protected encodeQueryPreview(status: string, rows: Uint8Array): Uint8Array {
+        const text = this.textEncoder.encode(status);
+        const encoded = new Uint8Array(5 + text.byteLength + rows.byteLength);
+        encoded[0] = DashQLShellQueryResultTag.PREVIEW;
+        new DataView(encoded.buffer).setUint32(1, text.byteLength, true);
+        encoded.set(text, 5);
+        encoded.set(rows, 5 + text.byteLength);
+        return encoded;
     }
 
     protected async executeCommand(
@@ -623,6 +689,7 @@ export class DashQLShell {
 function createShellCommands(
     extensions: readonly DashQLShellCommand[],
     settings: DashQLShellSettings,
+    previewsResults: boolean,
 ): Map<string, DashQLShellCommand> {
     const commands = new Map<string, DashQLShellCommand>();
     const register = (command: DashQLShellCommand) => {
@@ -643,6 +710,21 @@ function createShellCommands(
             return `Timer: ${settings.timer ? 'on' : 'off'}`;
         },
     ]);
+    if (previewsResults) {
+        register([
+            'output',
+            'Show query results in the overlay or as a table in the terminal',
+            args => {
+                if (args.length > 1 || (args.length === 1 && !['overlay', 'table'].includes(args[0]))) {
+                    throw new Error('usage: .output [overlay|table]');
+                }
+                if (args.length === 1) settings.output = args[0] as DashQLShellOutput;
+                return settings.output === 'table'
+                    ? `Query output: table (the first ${SHELL_PREVIEW_ROW_LIMIT} rows in the terminal)`
+                    : 'Query output: overlay';
+            },
+        ]);
+    }
     register([
         'help',
         'List available dot commands',

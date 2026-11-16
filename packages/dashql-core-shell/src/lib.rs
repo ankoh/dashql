@@ -10,11 +10,13 @@
 //! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error,
 //! and outputs are terminal bytes.
 
+pub mod arrow_renderer;
 pub mod prompt_buffer;
 mod session;
 pub mod unicode;
 pub mod vt100;
 
+pub use arrow_renderer::ArrowRenderer;
 pub use prompt_buffer::PromptBuffer;
 pub use session::ShellSession;
 
@@ -36,6 +38,17 @@ pub enum ShellStatus {
 pub enum EffectType {
     ExecuteQuery = 1,
     ExecuteCommand = 2,
+}
+
+/// What the data of a query effect that succeeded holds, its first byte
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum QueryResultTag {
+    /// A status line, e.g. `Query completed (3 rows)`, the result itself shows outside the terminal
+    Status = 0,
+    /// A preview of the result: the length of a status line as u32 LE, the status line, then the first rows as an
+    /// Arrow IPC stream or file. The terminal shows the rows as a table and the status line below it.
+    Preview = 1,
 }
 
 /// How the host finished an effect

@@ -60,6 +60,15 @@ pub fn read_data_frame_sql(
     frame.to_sql()
 }
 
+/// The read of the first rows of a result from its data frame: the fields of the result in the order of its rows, the
+/// row numbers that the import appended order them, the columns that the computation added stay out
+pub fn preview_data_frame_sql(data_frame: DataFrameId, fields: &[String], row_number_field: &str, limit: u64) -> String {
+    SqlFrame::from(data_frame_table_name(data_frame))
+        .order_by(vec![ascending(row_number_field)], Some(limit))
+        .project(fields.to_vec())
+        .to_sql()
+}
+
 /// An ascending key of an ordering with nulls last
 pub(crate) fn ascending(field: &str) -> OrderByConstraint {
     OrderByConstraint { field: field.to_string(), ascending: None, nulls_first: None }

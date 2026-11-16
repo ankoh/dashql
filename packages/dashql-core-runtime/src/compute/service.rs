@@ -50,7 +50,7 @@ use super::tasks::system_columns::plan_system_columns;
 use super::tasks::table_aggregation::plan_table_aggregation;
 use super::tasks::table_filtering::plan_table_filtering;
 use super::tasks::table_ordering::plan_table_ordering;
-use super::tasks::{data_frame_table_name, TableStats, TaskQuery};
+use super::tasks::{data_frame_table_name, preview_data_frame_sql, TableStats, TaskQuery};
 use super::types::{
     same_ordering, ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnSummary, ColumnSummaryAnalysis,
     ComputationTask, DataFrameId, DataSearchTable, DataSearchTask, FilterTable, FilteredColumnAggregate,
@@ -61,6 +61,8 @@ use super::{ComputationAction, ComputationEffect, ComputationOutcome, Computatio
 
 /// The title of the import of a result
 const IMPORT_TITLE: &str = "Table import";
+/// The title of the read of the first rows of a result
+const PREVIEW_TITLE: &str = "Result preview";
 
 /// What a task computed, the values of the action that it applied
 #[derive(Clone, Debug, PartialEq)]
@@ -930,6 +932,35 @@ impl<H: ComputeHost> ComputeService<H> {
     /// Derive the tasks of a computation again, e.g. after its analysis
     pub fn refresh(&self, table_id: TableId) {
         refresh(&self.shared, table_id);
+    }
+
+    /// The first rows of a result, e.g. for a terminal: at most `limit` rows in the order of the result, its fields
+    /// without the columns of the computation, as an Arrow IPC stream. They are read from the data frame of the
+    /// computation, so the preview is as small as its limit and the result itself stays with the host. Fails for a
+    /// table whose analysis didn't compute the system columns yet, or once its computation is gone.
+    pub fn preview(&self, table_id: TableId, limit: u64) -> impl Future<Output = Result<Vec<u8>>> + 'static {
+        let shared = self.shared.clone();
+        async move {
+            let no_computation = || Error::invalid_argument(format!("the table {table_id} has no computation"));
+            let sql = {
+                let inner = shared.inner.borrow();
+                let computation = inner.state.computation(table_id).ok_or_else(no_computation)?;
+                let (Some(data_frame), Some(row_numbers)) = (computation.data_frame, computation.row_number_column_name.as_deref())
+                else {
+                    return Err(Error::invalid_argument(format!("the result of the table {table_id} is not analyzed yet")));
+                };
+                preview_data_frame_sql(data_frame, &computation.data_table_fields, row_numbers, limit)
+            };
+            let info = computation_info(&shared, table_id).ok_or_else(no_computation)?;
+            in_run(&shared, table_id, &info, PREVIEW_TITLE, RunOf::default(), |context| {
+                let shared = shared.clone();
+                async move {
+                    let failed = |e: HostError| Error::invalid_argument(format!("reading the preview failed: {e}"));
+                    shared.host.query(&sql, &context).await.map_err(failed)
+                }
+            })
+            .await
+        }
     }
 }
 

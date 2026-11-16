@@ -17,7 +17,7 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_core` | `packages/dashql-core` | The language: scripts, analyzer, catalog, cursor, completion, formatter, script diff, signatures, packing into FlatBuffers | parser, buffers |
 | `dashql_core_script` | `packages/dashql-core-script` | Scripts on the core: editor sessions (`script_session.rs`), the compilation of scripts, batch processing of catalog SQL, the relations that statements touch, the renderer specs of `VISUALIZE` statements | core, parser, buffers |
 | `dashql_core_profile` | `packages/dashql-core-profile` | The query profile: Hyper plans and Trino stages parsed into operators, edges, fragments and pipelines, their layout, and the progress of a running query as events | buffers |
-| `dashql_core_shell` | `packages/dashql-core-shell` | The shell: prompt, VT100 renderer, the effect protocol of queries and dot commands (`SHELL.md`) | core, parser, buffers |
+| `dashql_core_shell` | `packages/dashql-core-shell` | The shell: prompt, VT100 renderer, the tables of the first rows of results, the effect protocol of queries and dot commands (`SHELL.md`) | core, parser, buffers, `arrow-rs` |
 | `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O | core, script, profile, parser, buffers, `arrow-rs` |
 | `dashql_core_wasm` | `packages/dashql-core-wasm` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
@@ -246,7 +246,9 @@ state answers runs nothing. The SELECTs of the tasks are listed in the query his
 or in the history that the analysis names (`compute_tracking.rs`). A reset of the connection or a cancel of such a query
 cancels the run of its task in Rust (`ComputeService::cancel_run`), which aborts its calls; the query ends cancelled
 and the task fails. The tables
-stay with the host by handle; formatting of values stays with the host. See
+stay with the host by handle; formatting of values stays with the host. The one read of rows besides the small tables
+that tasks parse is the preview of a result (`ComputeService::preview`, `previewResult` of the facade): its first rows
+from the data frame of the computation, bounded by a limit, for the tables of the shell. See
 [vegalite_crossfilter.md](vegalite_crossfilter.md).
 
 ### The catalog loader

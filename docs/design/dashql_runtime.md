@@ -295,6 +295,7 @@ than the module returns: the flush of the store after the command, handles for t
 | Facade (`Runtime` of `runtime.ts`) | What |
 |---|---|
 | `analyzeTable` | Analyze a result as a computation |
+| `previewResult` | The first rows of an analyzed result as Arrow IPC, read from its data frame, e.g. for the table of the shell |
 | `execute`, `cancel`, `watchProfile` | Run a query on a connection, cancel it, show its profile; `queryCommands` of the options stand in for them |
 | `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave` | Connections and their saves |
 | `setupConnection`, `cancelSetup`, `authenticateSalesforce`, `refreshCatalog` | Setups, the login of the shell and refreshes of catalogs |

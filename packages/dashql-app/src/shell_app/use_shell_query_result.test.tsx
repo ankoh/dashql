@@ -112,6 +112,15 @@ describe('useShellQueryResult', () => {
             expect(release.mock.calls).toEqual([[ids[0]]]);
         });
 
+        it('keeps the overlay closed for a result in the terminal until it opens again', () => {
+            act(() => result.showResultQuery(ids[0], true));
+            expect(result.resultQuery).toBeNull();
+            let reopened = false;
+            act(() => { reopened = result.reopenResultQuery(); });
+            expect(reopened).toBe(true);
+            expect(result.resultQuery?.queryId).toBe(ids[0]);
+        });
+
         it('releases a dropped result and does not open it again', () => {
             act(() => result.showResultQuery(ids[0]));
             act(() => result.dropResultQuery());

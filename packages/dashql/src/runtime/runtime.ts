@@ -319,6 +319,13 @@ export class Runtime {
         await this.settled(analysis);
     }
 
+    /// The first rows of an analyzed result, at most `limit`, in the order of the result and without the columns of
+    /// its computation, as an Arrow IPC stream, e.g. for the table of a terminal. The rows come from the data frame of
+    /// the computation, the result itself doesn't pass through the module. Fails for a result without a computation.
+    async previewResult(tableId: number, limit: number): Promise<Uint8Array> {
+        return await this.live().previewResult(tableId, limit);
+    }
+
     /// An Arrow table of the handle table, undefined for none
     table(handle: number | null | undefined): arrow.Table | undefined {
         const table = this.handles.get(handle);

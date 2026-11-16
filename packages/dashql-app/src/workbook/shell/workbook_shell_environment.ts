@@ -39,8 +39,10 @@ export function createWorkbookShellEnvironment(
     cancelQuery: CancelQuery,
     releaseResult: (queryId: number) => void = () => { },
     resolveCall: (query: string) => ClientFunctionCallDescription | null = () => null,
+    previewResult?: (queryId: number, limit: number) => Promise<Uint8Array>,
 ): DashQLShellEnvironment {
     return {
+        previewResult,
         async executeQuery(query, signal, onProgress, onResult, onTiming) {
             const reportTiming = (label: string, elapsedMs: number) => reportShellTiming(onTiming, label, elapsedMs);
             const clientFunctionCall = resolveCall(query) ?? undefined;

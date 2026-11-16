@@ -1,5 +1,8 @@
-import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
+import * as arrow from 'apache-arrow';
+
+import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus, type DashQLShellCommand, type DashQLShellEnvironment } from './api.js';
 import * as dashql from '@ankoh/dashql';
+import { vectorFromArray } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 import { createEmbeddedDatabaseShellEnvironment } from '../shell_app/embedded_database_shell_environment.js';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
@@ -181,7 +184,7 @@ describe('DashQL shell Wasm', () => {
         shell.setPrompt('SELECT 42;');
 
         await expect(shell.submitPrompt(undefined, undefined, result)).resolves.toBe('Query completed (1 row)\r\n');
-        expect(result).toHaveBeenCalledWith(42, 1);
+        expect(result).toHaveBeenCalledWith(42, 1, false);
     });
 
     it('strips only the trailing shell terminator before execution', async () => {
@@ -808,5 +811,96 @@ describe('DashQL shell catalog', () => {
         shell.destroy();
         script.destroy();
         catalog.destroy();
+    });
+});
+
+describe('DashQL shell output', () => {
+    /// The first rows of a result as the runtime reads them from its data frame
+    const previewRows = arrow.tableToIPC(new arrow.Table({
+        name: vectorFromArray(['alpha', '界'], new arrow.Utf8()),
+        value: vectorFromArray([1, 20], new arrow.Int32()),
+    }), 'stream');
+
+    async function createShell(environment: DashQLShellEnvironment, commands: readonly DashQLShellCommand[] = []): Promise<DashQLShell> {
+        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        return await DashQLShell.create({ core, environment, commands, terminalColumns: 80 });
+    }
+
+    /// An environment whose queries report a result of `rowCount` rows as query 7
+    function environmentWithResult(rowCount: number, previewResult?: DashQLShellEnvironment['previewResult']): DashQLShellEnvironment {
+        return {
+            executeQuery: async (_query, _signal, _onProgress, onResult) => { onResult?.(7, rowCount); },
+            previewResult,
+        };
+    }
+
+    it('shows results in the overlay by default', async () => {
+        const preview = vi.fn(async () => previewRows);
+        const shell = await createShell(environmentWithResult(2, preview));
+        const onResult = vi.fn();
+        await expect(shell.executeQuery('SELECT 1', undefined, undefined, onResult)).resolves.toBe('Query completed (2 rows)\r\n');
+        expect(onResult).toHaveBeenCalledWith(7, 2, false);
+        expect(preview).not.toHaveBeenCalled();
+        shell.destroy();
+    });
+
+    it('shows the first rows of a result as a table in the terminal on request', async () => {
+        const preview = vi.fn(async () => previewRows);
+        const shell = await createShell(environmentWithResult(2, preview));
+        shell.setPrompt('.output table');
+        await expect(shell.submitPrompt()).resolves.toBe('Query output: table (the first 100 rows in the terminal)\r\n');
+        const onResult = vi.fn();
+        const output = await shell.executeQuery('SELECT 1', undefined, undefined, onResult);
+        expect(preview).toHaveBeenCalledWith(7, 100);
+        expect(onResult).toHaveBeenCalledWith(7, 2, true);
+        expect(output).toBe(
+            '╭───────┬───────╮\n' +
+            '│ name  │ value │\n' +
+            '╞═══════╪═══════╡\n' +
+            '│ alpha │     1 │\n' +
+            '│ 界    │    20 │\n' +
+            '╰───────┴───────╯' + VT100.NEW_LINE +
+            'Query completed (2 rows)',
+        );
+        shell.setPrompt('.output overlay');
+        await expect(shell.submitPrompt()).resolves.toBe('Query output: overlay\r\n');
+        await expect(shell.executeQuery('SELECT 1')).resolves.toBe('Query completed (2 rows)\r\n');
+        expect(preview).toHaveBeenCalledTimes(1);
+        shell.destroy();
+    });
+
+    it('says how many rows of a long result the table shows', async () => {
+        const last: DashQLShellCommand = ['last', 'Show the last query result again', () => undefined];
+        const shell = await createShell(environmentWithResult(250, async () => previewRows), [last]);
+        shell.setPrompt('.output table');
+        await shell.submitPrompt();
+        const output = await shell.executeQuery('SELECT 1');
+        expect(output.endsWith(VT100.NEW_LINE + 'Query completed (250 rows, the first 100 shown, .last shows all)')).toBe(true);
+        shell.destroy();
+    });
+
+    it('opens the overlay if the terminal cannot show the rows', async () => {
+        const shell = await createShell(environmentWithResult(2, async () => { throw new Error('no data frame'); }));
+        shell.setPrompt('.output table');
+        await shell.submitPrompt();
+        const onResult = vi.fn();
+        await expect(shell.executeQuery('SELECT 1', undefined, undefined, onResult))
+            .resolves.toBe('Query completed (2 rows), no table in the terminal: no data frame\r\n');
+        expect(onResult).toHaveBeenCalledWith(7, 2, false);
+        shell.destroy();
+    });
+
+    it('offers the output only to an environment with previews', async () => {
+        const without = await createShell(environmentWithResult(2));
+        without.setPrompt('.help');
+        expect(await without.submitPrompt()).not.toContain('.output');
+        without.destroy();
+
+        const shell = await createShell(environmentWithResult(2, async () => previewRows));
+        shell.setPrompt('.help');
+        expect(await shell.submitPrompt()).toContain('.output');
+        shell.setPrompt('.output wide');
+        await expect(shell.submitPrompt()).resolves.toBe('usage: .output [overlay|table]\r\n');
+        shell.destroy();
     });
 });

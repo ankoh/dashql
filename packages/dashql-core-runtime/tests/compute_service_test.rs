@@ -754,3 +754,28 @@ fn requests_of_an_unknown_computation_change_nothing() {
     setup.executor.run_until_stalled();
     assert!(setup.database.borrow().calls.is_empty());
 }
+
+#[test]
+fn previews_the_first_rows_of_a_result_from_its_data_frame() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let data_frame = setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
+    let output = setup.run(setup.service.preview(1, 2));
+    let ipc = output.borrow_mut().take().expect("the preview finished").unwrap();
+    assert!(ResultTable::from_ipc_stream(&ipc).is_ok());
+    // The fields of the result in the order of its rows, without the system columns
+    let queries = setup.database.borrow().queries.clone();
+    assert_eq!(
+        queries.last(),
+        Some(&format!("SELECT \"score\", \"name\" FROM \"__df_{data_frame}\"\nORDER BY \"_rownum\" ASC NULLS LAST\nLIMIT 2"))
+    );
+}
+
+#[test]
+fn a_preview_needs_an_analyzed_result() {
+    let setup = setup(analysis_answer);
+    let output = setup.run(setup.service.preview(7, 10));
+    let error = output.borrow_mut().take().expect("the preview finished").unwrap_err();
+    assert!(error.to_string().contains("the table 7 has no computation"), "{error}");
+    assert!(setup.database.borrow().queries.is_empty());
+}

@@ -274,6 +274,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                             logger.warn('Failed to update the catalog of the shell', { error: stringifyError(error) }, LOG_CTX);
                         }
                     },
+                    previewResult: (queryId, limit) => runtime.previewResult(queryId, limit),
                 }),
                 autoQualifyNonDefaultDatabaseTables: true,
                 commands,

@@ -6,6 +6,9 @@ interface EmbeddedDatabaseShellEnvironmentOptions {
     /// Called after a statement ran or failed, before its result shows and the prompt returns, e.g. to wait for the
     /// catalog of the connection
     afterStatement?: (query: string) => Promise<void>;
+    /// The first rows of a result as an Arrow IPC stream, for the table of the terminal, see
+    /// `DashQLShellEnvironment.previewResult`
+    previewResult?: (queryId: number, limit: number) => Promise<Uint8Array>;
 }
 
 /// The environment of a shell whose statements run with the query executor of a runtime on a connection, e.g. the
@@ -17,6 +20,7 @@ export function createEmbeddedDatabaseShellEnvironment(
     options: EmbeddedDatabaseShellEnvironmentOptions = {},
 ): DashQLShellEnvironment {
     return {
+        previewResult: options.previewResult,
         executeQuery: async (query, signal, onProgress, onResult, onTiming) => {
             signal?.throwIfAborted();
             onProgress?.('Executing query');
