@@ -263,11 +263,10 @@ describe('HyperConnectorSettings', () => {
             expect(draft().attachedDatabases).toEqual([]);
         });
 
-        it('does not connect without a Hyper client', async () => {
+        it('connects without a Hyper client, the runtime speaks the HTTP API itself', async () => {
             await render(hyperDatabase(HTTP));
             await click(testId('connection-setup'));
-            await settle();
-            expect(setup).not.toHaveBeenCalled();
+            await vi.waitFor(() => expect(setup).toHaveBeenCalledOnce());
         });
 
         it('connects with the edited params', async () => {

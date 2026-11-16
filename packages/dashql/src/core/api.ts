@@ -478,6 +478,34 @@ export class DashQL {
         return this.bindings.Runtime.connectionParamsShareEqual(left as Record<string, unknown>, right as Record<string, unknown>);
     }
 
+    /// The params of a new connection of a connector, e.g. `{ trino: { ... } }`
+    public defaultConnectionParams<P extends object = Record<string, unknown>>(connector: glue.ConnectorType): P {
+        return this.bindings.Runtime.defaultConnectionParams(connector) as P;
+    }
+
+    /// Connection params without the raw form rows, they belong only to the local draft. Throws on params of an unknown
+    /// connector.
+    public connectionParamsWithoutDraftRows<P extends object>(params: P): P {
+        return this.bindings.Runtime.connectionParamsWithoutDraftRows(params as Record<string, unknown>) as P;
+    }
+
+    /// The login hint of connection params (the account username or login), null if there is none. Throws on params of
+    /// an unknown connector.
+    public connectionParamsLoginHint(params: object): string | null {
+        return this.bindings.Runtime.connectionParamsLoginHint(params as Record<string, unknown>) ?? null;
+    }
+
+    /// The database that the catalog of a Salesforce connection names its relations with, also the alias of the Hyper
+    /// Cloud database of a Database.com connection
+    public salesforceCatalogDatabase(): string {
+        return this.bindings.Runtime.salesforceCatalogDatabase();
+    }
+
+    /// The Hyper Cloud database of a Database.com connection that names none
+    public hyperCloudDefaultDatabaseName(): string {
+        return this.bindings.Runtime.hyperCloudDefaultDatabaseName();
+    }
+
     /// The workbook tables of the storage format with their columns, e.g. the schema of a cloud
     public workbookTables(): glue.WorkbookTableSchema[] {
         return this.bindings.Runtime.workbookTables();

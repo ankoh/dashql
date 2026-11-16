@@ -2,7 +2,7 @@
 //!
 //! Ported from `packages/dashql/src/runtime/connections/hyper/hyper_connection_state.ts`.
 
-use super::details::{replace_channel, ChannelId, ConnectionDetails, ConnectorDetails, DetailedError, SetupTimings, Timestamp};
+use super::details::{replace_channel, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError, SetupTimings, Timestamp};
 use super::params::{string_field, JsonObject};
 use super::{ConnectionEffect, ConnectionHealth, ConnectionState, ConnectionStatus};
 
@@ -15,8 +15,9 @@ pub enum HyperAction {
     ChannelSetupCancelled(DetailedError),
     /// The channel setup failed
     ChannelSetupFailed(DetailedError),
-    /// The channel is ready. The embedded Hyper (`WASM`) is online with it, a server waits for the health check.
-    ChannelReady { channel: ChannelId, params: JsonObject },
+    /// The channel is ready: one of the host, or the HTTP API of a Hyper that the connection speaks itself. The
+    /// embedded Hyper (`WASM`) is online with it, a server waits for the health check.
+    ChannelReady { channel: ConnectionChannel, params: JsonObject },
 }
 
 /// Apply an action of the setup to a Hyper connection
@@ -26,7 +27,7 @@ pub(super) fn reduce(state: &mut ConnectionState, action: HyperAction, now: Time
         HyperAction::ChannelSetupStarted { params } => {
             state.status = ConnectionStatus::ChannelSetupStarted;
             state.health = ConnectionHealth::Connecting;
-            // A new setup starts with fresh details
+            // A new setup starts with fresh details, the channel of the last setup is closed
             replace_channel(&mut details.channel, None, effects);
             *details = ConnectionDetails {
                 setup_timings: SetupTimings { channel_setup_started_at: Some(now), ..Default::default() },

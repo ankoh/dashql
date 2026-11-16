@@ -373,7 +373,7 @@ fn http() -> Value {
 fn go_online(host: &FakeHost, params: Value) {
     let params = object(params);
     host.apply("database", ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
-    host.apply("database", ConnectionAction::Hyper(HyperAction::ChannelReady { channel: 1, params }));
+    host.apply("database", ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }));
     host.apply("database", ConnectionAction::HealthCheckSucceeded);
 }
 
@@ -412,6 +412,8 @@ fn relations_text(host: &FakeHost) -> String {
 fn a_forced_refresh_of_a_busy_connection_waits_for_it() {
     let host = setup(ConnectorType::Hyper, http());
     host.observe();
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     let connection = host.connection("database");
     {
         // An action borrows the connection while the loader schedules
@@ -429,6 +431,8 @@ fn a_forced_refresh_of_a_busy_connection_waits_for_it() {
 #[test]
 fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     let host = setup(ConnectorType::Hyper, http());
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.observe();
     host.service().enqueue("database", false);
     host.run();
@@ -466,6 +470,8 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
 fn an_update_that_failed_is_tried_once_more_without_another_request() {
     let host = setup(ConnectorType::Hyper, http());
     host.observe();
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.service().enqueue("database", true);
     host.run();
     host.service().enqueue("database", false);
@@ -486,6 +492,8 @@ fn an_update_that_failed_is_tried_once_more_without_another_request() {
 fn a_request_after_a_refresh_that_described_the_connection_is_consumed() {
     let host = setup(ConnectorType::Hyper, http());
     host.observe();
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.service().enqueue("database", true);
     host.run();
     host.service().enqueue("database", false);
@@ -504,6 +512,8 @@ fn a_request_after_a_refresh_that_described_the_connection_is_consumed() {
 fn a_database_com_connection_reads_the_hyper_cloud_database_it_attaches() {
     let host = setup(ConnectorType::Dbcom, json!({ "databaseName": "sales" }));
     host.observe();
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.service().enqueue("database", true);
     host.run();
     let texts = host.query_texts();
@@ -591,6 +601,8 @@ fn the_relations_are_asked_about_once_the_connection_has_room_for_another_query(
 #[test]
 fn the_relations_wait_for_a_running_refresh_that_may_have_read_them_too_early() {
     let host = setup(ConnectorType::Hyper, http());
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.observe();
     host.service().enqueue("database", false);
     host.run();
@@ -657,6 +669,8 @@ fn a_forced_refresh_runs_ahead_of_a_lookup_that_keeps_coming_back() {
 #[test]
 fn a_reset_cancels_the_update_and_nothing_is_published() {
     let host = setup(ConnectorType::Hyper, http());
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.observe();
     host.service().enqueue("database", true);
     host.run();
@@ -676,6 +690,8 @@ impl FakeHost {
 #[test]
 fn a_running_update_logs_that_it_still_runs() {
     let host = setup(ConnectorType::Hyper, http());
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.observe();
     host.service().enqueue("database", true);
     host.run();
@@ -687,11 +703,24 @@ fn a_running_update_logs_that_it_still_runs() {
 
 // Salesforce
 
+
+/// The channel of a Salesforce login with its tokens, as the setup hands it to the connection
+fn salesforce_channel() -> dashql_core_runtime::salesforce::SharedSalesforceChannel {
+    use dashql_core_runtime::salesforce::{
+        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens, SharedSalesforceChannel,
+    };
+    let core = SalesforceCoreAccessToken {
+        access_token: "core-token".into(),
+        instance_url: Some("https://example.my.salesforce.com".into()),
+        ..Default::default()
+    };
+    let data_cloud = SalesforceDataCloudAccessToken { instance_url: "https://tenant.c360a.salesforce.com/".into(), ..Default::default() };
+    let params = SalesforceConnectionParams::default();
+    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud }).unwrap()
+}
+
 fn salesforce(host: &FakeHost) {
-    host.apply("database", ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreAuthToken(
-        r#"{"accessToken":"core-token","instanceUrl":"https://example.my.salesforce.com"}"#.to_string(),
-    )));
-    host.apply("database", ConnectionAction::Salesforce(SalesforceAction::ReceivedDataCloudAccessToken("{\"jwt\":{}}".to_string())));
+    host.apply("database", ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())));
 }
 
 fn metadata(name: &str) -> Value {
@@ -709,6 +738,8 @@ fn salesforce_fetches_its_metadata_from_the_instance() {
         state.responses.push_back(HttpResponse::new(200, json!({ "metadata": [] }).to_string()));
     }
     host.observe();
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.service().enqueue("database", true);
     host.run();
     assert!(host.events().contains(&"finished 1 Succeeded".to_string()), "{:?}", host.events());
@@ -724,6 +755,8 @@ fn salesforce_fetches_its_metadata_from_the_instance() {
 #[test]
 fn salesforce_without_a_login_fails_its_update() {
     let host = setup(ConnectorType::SalesforceDataCloud, json!({}));
+    // A requested refresh runs once the connection is online
+    host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.observe();
     host.service().enqueue("database", true);
     host.run();

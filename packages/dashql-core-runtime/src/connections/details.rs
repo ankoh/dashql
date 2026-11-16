@@ -7,6 +7,7 @@
 //! `packages/dashql/src/runtime/connections/`.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
 use serde_json::Value;
 
@@ -15,6 +16,9 @@ use super::params::{
     HYPER_DEFAULT_SCHEMA, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 use super::ConnectionEffect;
+use crate::http::Headers;
+use crate::hyper::HyperHttpChannel;
+use crate::salesforce::SharedSalesforceChannel;
 use crate::trino::SharedTrinoChannel;
 
 /// Milliseconds since the Unix epoch. The host passes the time with an action, the reducer reads no clock.
@@ -75,7 +79,8 @@ pub struct SetupTimings {
     pub oauth_code_received_at: Option<Timestamp>,
 }
 
-/// The PKCE challenge of an OAuth flow
+/// The PKCE challenge of an OAuth flow. The setup that generated it keeps it, the connection only learns that it was
+/// generated.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct OAuthPkceChallenge {
     /// The challenge
@@ -93,15 +98,14 @@ pub struct TemporaryToken {
     pub created_at: String,
 }
 
-/// The OAuth flow of a Trino connection. A step that didn't happen yet is none.
+/// The OAuth flow of a Trino connection. The PKCE verifier and the code stay with the setup that exchanges them, the
+/// access token with the channel.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct TrinoOAuthState {
-    /// The PKCE challenge
-    pub oauth_pkce: Option<OAuthPkceChallenge>,
-    /// The code that the authorization server sent
-    pub auth_code: Option<TemporaryToken>,
-    /// The access token, opaque JSON
-    pub access_token: Option<String>,
+    /// Was the PKCE challenge generated?
+    pub pkce_generated: bool,
+    /// When the code of the authorization server arrived
+    pub auth_code_received_at: Option<String>,
 }
 
 /// The parameters of the OAuth flow of a Salesforce connection
@@ -117,19 +121,16 @@ pub struct SalesforceOAuthParams {
     pub expires_at: Timestamp,
 }
 
-/// The OAuth flow of a Salesforce connection. A step that didn't happen yet is none.
+/// The OAuth flow of a Salesforce connection. The PKCE verifier and the code stay with the setup that exchanges them,
+/// the tokens with the channel.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SalesforceOAuthState {
     /// The parameters of the flow
     pub oauth_params: Option<SalesforceOAuthParams>,
-    /// The PKCE challenge
-    pub oauth_pkce: Option<OAuthPkceChallenge>,
-    /// The code of the core login
-    pub core_auth_code: Option<TemporaryToken>,
-    /// The access token of the core, opaque JSON
-    pub core_access_token: Option<String>,
-    /// The access token of Data Cloud, opaque JSON
-    pub data_cloud_access_token: Option<String>,
+    /// Was the PKCE challenge generated?
+    pub pkce_generated: bool,
+    /// When the code of the core login arrived
+    pub core_auth_code_received_at: Option<String>,
 }
 
 /// The details of a Trino connection
@@ -139,8 +140,6 @@ pub struct TrinoDetails {
     pub schema_resolution_error: Option<DetailedError>,
     /// The OAuth flow
     pub oauth_state: Option<TrinoOAuthState>,
-    /// The channel that the queries of the connection share, with the auth and the access token, once it is ready
-    pub channel: Option<SharedTrinoChannel>,
 }
 
 /// The details of a Salesforce or Database.com connection
@@ -150,6 +149,63 @@ pub struct SalesforceDetails {
     pub setup_error: Option<DetailedError>,
     /// The OAuth flow
     pub oauth_state: Option<SalesforceOAuthState>,
+    /// The account of the login as the user info of Salesforce named it, none while the login didn't resolve it. The
+    /// login of the params may be a hint that the user typed.
+    pub principal: Option<String>,
+}
+
+/// The channel of a connection once it is ready. The connection owns it: a channel that the connection replaces or lets
+/// go of is closed.
+#[derive(Clone, PartialEq)]
+pub enum ConnectionChannel {
+    /// A channel of the host by its handle: the embedded Hyper, or Hyper over gRPC through the native proxy
+    Host(ChannelId),
+    /// A Trino server, with the auth and the access token
+    Trino(SharedTrinoChannel),
+    /// The HTTP API of a Hyper with the headers of every request, e.g. the token of a link
+    HyperHttp { channel: HyperHttpChannel, auth: Headers },
+    /// The Hyper of Data Cloud with the tokens of the Salesforce login
+    Salesforce(SharedSalesforceChannel),
+}
+
+impl ConnectionChannel {
+    /// The handle of a channel of the host, none for the channels that the connection speaks itself
+    pub fn host_handle(&self) -> Option<ChannelId> {
+        match self {
+            ConnectionChannel::Host(handle) => Some(*handle),
+            _ => None,
+        }
+    }
+
+    /// The Trino channel, none for other channels
+    pub fn trino(&self) -> Option<&SharedTrinoChannel> {
+        match self {
+            ConnectionChannel::Trino(channel) => Some(channel),
+            _ => None,
+        }
+    }
+
+    /// The Salesforce channel, none for other channels
+    pub fn salesforce(&self) -> Option<&SharedSalesforceChannel> {
+        match self {
+            ConnectionChannel::Salesforce(channel) => Some(channel),
+            _ => None,
+        }
+    }
+}
+
+/// Names the kind only, never the credentials
+impl fmt::Debug for ConnectionChannel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConnectionChannel::Host(handle) => f.debug_tuple("Host").field(handle).finish(),
+            ConnectionChannel::Trino(channel) => f.debug_tuple("Trino").field(channel).finish(),
+            ConnectionChannel::HyperHttp { channel, .. } => {
+                f.debug_struct("HyperHttp").field("endpoint", &channel.client().endpoint().to_string()).finish()
+            }
+            ConnectionChannel::Salesforce(channel) => f.debug_tuple("Salesforce").field(channel).finish(),
+        }
+    }
 }
 
 /// The details that only one connector keeps
@@ -182,7 +238,7 @@ pub struct ConnectionDetails {
     /// The error of the health check
     pub health_check_error: Option<DetailedError>,
     /// The channel, once it is ready
-    pub channel: Option<ChannelId>,
+    pub channel: Option<ConnectionChannel>,
     /// The details of the connector
     pub connector: ConnectorDetails,
 }
@@ -297,32 +353,35 @@ impl ConnectionDetails {
         cleared
     }
 
-    /// Reset the setup of a connection that is reset or deleted: close the channel, forget the timings, the errors
-    /// and a Trino OAuth flow. The setup params stay.
+    /// Reset the setup of a connection that is reset or deleted: close the channel, forget the timings, the errors,
+    /// the OAuth flows and the account of a login. The setup params stay.
     pub(crate) fn reset(&mut self, effects: &mut Vec<ConnectionEffect>) {
-        if let Some(handle) = self.channel.take() {
-            effects.push(ConnectionEffect::Close { handle });
-        }
+        replace_channel(&mut self.channel, None, effects);
         self.setup_timings = SetupTimings::default();
         self.channel_error = None;
         self.health_check_error = None;
         match &mut self.connector {
             ConnectorDetails::Hyper => {}
-            ConnectorDetails::Trino(trino) => {
-                trino.oauth_state = None;
-                trino.channel = None;
-            }
+            ConnectorDetails::Trino(trino) => trino.oauth_state = None,
             ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
-                salesforce.setup_error = None
+                salesforce.setup_error = None;
+                salesforce.oauth_state = None;
+                salesforce.principal = None;
             }
         }
     }
 }
 
-/// Replace the channel of a connection. A channel that the connection lets go of without closing it is released.
-pub(crate) fn replace_channel(slot: &mut Option<ChannelId>, channel: Option<ChannelId>, effects: &mut Vec<ConnectionEffect>) {
-    if let Some(previous) = slot.filter(|previous| Some(*previous) != channel) {
-        effects.push(ConnectionEffect::Release { handle: previous });
+/// Replace the channel of a connection. The connection owns its channels: a channel of the host that it replaces is
+/// closed, one that it speaks itself goes with it.
+pub(crate) fn replace_channel(
+    slot: &mut Option<ConnectionChannel>,
+    channel: Option<ConnectionChannel>,
+    effects: &mut Vec<ConnectionEffect>,
+) {
+    let previous = std::mem::replace(slot, channel);
+    let kept = slot.as_ref().and_then(ConnectionChannel::host_handle);
+    if let Some(handle) = previous.as_ref().and_then(ConnectionChannel::host_handle).filter(|handle| Some(*handle) != kept) {
+        effects.push(ConnectionEffect::Close { handle });
     }
-    *slot = channel;
 }

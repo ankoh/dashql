@@ -140,6 +140,23 @@ impl fmt::Display for HostError {
 /// A future of a task of the host
 pub type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 
+/// The output of a future, none if a duration in milliseconds passed first. The future is dropped then, e.g. a fetch
+/// is aborted.
+pub async fn timeout<H: Host + ?Sized, T>(host: &H, ms: f64, future: impl Future<Output = T>) -> Option<T> {
+    let mut future = std::pin::pin!(future);
+    let mut timer = std::pin::pin!(host.sleep(ms));
+    std::future::poll_fn(|cx| {
+        if let std::task::Poll::Ready(output) = future.as_mut().poll(cx) {
+            return std::task::Poll::Ready(Some(output));
+        }
+        if timer.as_mut().poll(cx).is_ready() {
+            return std::task::Poll::Ready(None);
+        }
+        std::task::Poll::Pending
+    })
+    .await
+}
+
 /// Futures that run at the same time, their outputs in their order once all of them completed
 pub struct JoinAll<T> {
     futures: Vec<Option<LocalFuture<T>>>,

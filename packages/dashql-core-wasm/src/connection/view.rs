@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core_runtime::connections::{
-    self as rt, CatalogUpdateTask, ConnectionDetails, ConnectionParams, ConnectionState, ConnectorDetails, DetailedError, JsonObject,
-    RelationName, SetupTimings, TemporaryToken,
+    self as rt, CatalogUpdateTask, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectionState, ConnectorDetails, DetailedError, JsonObject,
+    RelationName, SetupTimings,
 };
 use dashql_core_runtime::connections::registry::ListedConnection;
 use dashql_core_runtime::query::QueryExecutionHistory;
@@ -220,9 +220,23 @@ fn token_summary(token: &Option<String>) -> Option<ConnectionTokenSummary> {
     })
 }
 
-/// When a code of an OAuth flow arrived, the code stays in the runtime
-fn code_received_at(code: &Option<TemporaryToken>) -> Option<String> {
-    code.as_ref().map(|code| code.created_at.clone())
+/// The tokens of the channel of a connection as their JSON: the OAuth token of Trino, the core and the Data Cloud token
+/// of Salesforce. The channel is their one owner.
+fn channel_tokens(details: &ConnectionDetails) -> ConnectionSecrets {
+    match details.channel.as_ref() {
+        Some(ConnectionChannel::Trino(trino)) => {
+            ConnectionSecrets { access_token: trino.access_token().map(|token| token.to_json().to_string()), ..Default::default() }
+        }
+        Some(ConnectionChannel::Salesforce(salesforce)) => {
+            let tokens = salesforce.tokens();
+            ConnectionSecrets {
+                access_token: None,
+                core_access_token: serde_json::to_string(&tokens.core).ok(),
+                data_cloud_access_token: serde_json::to_string(&tokens.data_cloud).ok(),
+            }
+        }
+        _ => ConnectionSecrets::default(),
+    }
 }
 
 /// The parameters of the OAuth flow of a Salesforce connection
@@ -279,23 +293,9 @@ pub struct ConnectionSecrets {
 }
 
 impl ConnectionSecrets {
-    /// The tokens of the details of a connector
-    pub fn of(details: &ConnectorDetails) -> Self {
-        match details {
-            ConnectorDetails::Hyper => Self::default(),
-            ConnectorDetails::Trino(trino) => Self {
-                access_token: trino.oauth_state.as_ref().and_then(|state| state.access_token.clone()),
-                ..Self::default()
-            },
-            ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
-                let state = salesforce.oauth_state.as_ref();
-                Self {
-                    access_token: None,
-                    core_access_token: state.and_then(|state| state.core_access_token.clone()),
-                    data_cloud_access_token: state.and_then(|state| state.data_cloud_access_token.clone()),
-                }
-            }
-        }
+    /// The tokens of a connection, the ones that its channel holds
+    pub fn of(details: &ConnectionDetails) -> Self {
+        channel_tokens(details)
     }
 }
 
@@ -309,16 +309,17 @@ pub enum ConnectionConnectorDetails {
     Salesforce { setup_error: Option<ConnectionError>, oauth_state: Option<ConnectionSalesforceOAuthState> },
 }
 
-impl From<&ConnectorDetails> for ConnectionConnectorDetails {
-    fn from(details: &ConnectorDetails) -> Self {
-        match details {
+impl From<&ConnectionDetails> for ConnectionConnectorDetails {
+    fn from(connection: &ConnectionDetails) -> Self {
+        let tokens = channel_tokens(connection);
+        match &connection.connector {
             ConnectorDetails::Hyper => Self::Hyper,
             ConnectorDetails::Trino(trino) => Self::Trino {
                 schema_resolution_error: error(&trino.schema_resolution_error),
                 oauth_state: trino.oauth_state.as_ref().map(|state| ConnectionTrinoOAuthState {
-                    pkce_generated: state.oauth_pkce.is_some(),
-                    auth_code_received_at: code_received_at(&state.auth_code),
-                    access_token: token_summary(&state.access_token),
+                    pkce_generated: state.pkce_generated,
+                    auth_code_received_at: state.auth_code_received_at.clone(),
+                    access_token: token_summary(&tokens.access_token),
                 }),
             },
             ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => Self::Salesforce {
@@ -330,10 +331,10 @@ impl From<&ConnectorDetails> for ConnectionConnectorDetails {
                         requested_at: p.requested_at,
                         expires_at: p.expires_at,
                     }),
-                    pkce_generated: state.oauth_pkce.is_some(),
-                    core_auth_code_received_at: code_received_at(&state.core_auth_code),
-                    core_access_token: token_summary(&state.core_access_token),
-                    data_cloud_access_token: token_summary(&state.data_cloud_access_token),
+                    pkce_generated: state.pkce_generated,
+                    core_auth_code_received_at: state.core_auth_code_received_at.clone(),
+                    core_access_token: token_summary(&tokens.core_access_token),
+                    data_cloud_access_token: token_summary(&tokens.data_cloud_access_token),
                 }),
             },
         }
@@ -387,7 +388,8 @@ pub struct ConnectionDetailsView {
     pub setup_params: Option<JsonObject>,
     pub channel_error: Option<ConnectionError>,
     pub health_check_error: Option<ConnectionError>,
-    /// The channel, once it is ready
+    /// The handle of a channel of the host, once it is ready: the embedded Hyper or Hyper over gRPC. The channels that
+    /// the runtime speaks itself have none.
     pub channel: Option<u32>,
     pub connector: ConnectionConnectorDetails,
 }
@@ -399,8 +401,8 @@ impl From<&ConnectionDetails> for ConnectionDetailsView {
             setup_params: details.setup_params.clone(),
             channel_error: error(&details.channel_error),
             health_check_error: error(&details.health_check_error),
-            channel: details.channel,
-            connector: (&details.connector).into(),
+            channel: details.channel.as_ref().and_then(ConnectionChannel::host_handle),
+            connector: details.into(),
         }
     }
 }

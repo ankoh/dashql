@@ -39,9 +39,9 @@ pub use catalog_updates::{
     CatalogUpdates, RelationName, MAX_TOUCHED_ATTEMPTS,
 };
 pub use details::{
-    CatalogNameDefaults, ChannelId, ConnectionDetails, ConnectorDetails, DetailedError, OAuthPkceChallenge,
-    SalesforceDetails, SalesforceOAuthParams, SalesforceOAuthState, SetupTimings, TemporaryToken, Timestamp,
-    TrinoDetails, TrinoOAuthState,
+    CatalogNameDefaults, ChannelId, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError,
+    OAuthPkceChallenge, SalesforceDetails, SalesforceOAuthParams, SalesforceOAuthState, SetupTimings, TemporaryToken,
+    Timestamp, TrinoDetails, TrinoOAuthState,
 };
 pub use hyper::HyperAction;
 pub use params::{
@@ -137,9 +137,9 @@ pub enum ConnectionEffect {
     Abort { handle: Handle, reason: &'static str },
     /// Cancel a running catalog update of the catalog loader, it ends as cancelled with the reason
     CancelCatalogUpdate { task_id: u32, reason: &'static str },
-    /// Close a handle, a channel, and release it
+    /// Close a handle, a channel of the host that the connection owned, and release it
     Close { handle: Handle },
-    /// Release a handle, e.g. a channel that the connection no longer uses, without closing it
+    /// Release a handle without closing it, e.g. the one of a catalog update that ended
     Release { handle: Handle },
 }
 
@@ -197,17 +197,20 @@ pub enum ConnectionAction {
     Salesforce(SalesforceAction),
 
     /// A step of a setup attempt (`begin_setup`): a health check or an action of the connector. A step of an attempt
-    /// that a later setup, a reset or a delete replaced changes nothing, the channel of a ready step is released.
+    /// that a later setup, a reset or a delete replaced changes nothing, the channel of a ready step is closed.
     SetupStep { epoch: u64, step: Box<ConnectionAction> },
+
+    /// The refresh of a token of the channel failed: the connection that is online fails with the error, its channel
+    /// stays until the user sets it up again
+    TokenRefreshFailed(DetailedError),
 }
 
 impl ConnectionAction {
-    /// The channel that a ready step hands to the connection, none for other actions
+    /// The channel of the host that a ready step hands to the connection, none for other actions and for the channels
+    /// that the connection speaks itself
     pub fn ready_channel(&self) -> Option<ChannelId> {
         match self {
-            ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. })
-            | ConnectionAction::Trino(TrinoAction::ChannelReady { channel, .. })
-            | ConnectionAction::Salesforce(SalesforceAction::ChannelReady(channel)) => Some(*channel),
+            ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. }) => channel.host_handle(),
             ConnectionAction::SetupStep { step, .. } => step.ready_channel(),
             _ => None,
         }
@@ -512,9 +515,7 @@ impl ConnectionState {
                 let configured =
                     self.status != ConnectionStatus::NotStarted || self.active || self.params_draft.is_some();
                 if !configured && connector != self.connector_type() {
-                    if let Some(handle) = self.details.channel {
-                        outcome.effects.push(ConnectionEffect::Release { handle });
-                    }
+                    details::replace_channel(&mut self.details.channel, None, &mut outcome.effects);
                     self.details = ConnectionDetails::default_for(connector);
                     self.params = ConnectionParams::default_for(connector);
                     self.params_draft = None;
@@ -581,16 +582,19 @@ impl ConnectionState {
                 if epoch == self.setup_epoch && !matches!(*step, ConnectionAction::SetupStep { .. }) {
                     return self.apply(*step, now);
                 }
-                // A step of an attempt that was replaced, e.g. the failure of a setup that a newer one cancelled
+                // A step of an attempt that was replaced, e.g. the failure of a setup that a newer one cancelled. The
+                // channel of the host that it made ready belongs to no connection, it is closed.
                 if let Some(handle) = step.ready_channel() {
-                    outcome.effects.push(ConnectionEffect::Release { handle });
+                    outcome.effects.push(ConnectionEffect::Close { handle });
                 }
                 return Ok(outcome);
             }
-            ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { channel, token }) => {
-                // Only the channel that the connection uses updates its token
-                if let Some(trino) = self.details.trino_mut().filter(|trino| trino.channel.as_ref().is_some_and(|c| c.same(&channel))) {
-                    trino.oauth_state.get_or_insert_with(Default::default).access_token = Some(token);
+            ConnectionAction::TokenRefreshFailed(error) => {
+                // A refresh that ends after the connection went offline changes nothing
+                if self.health == ConnectionHealth::Online {
+                    self.status = ConnectionStatus::AuthFailed;
+                    self.health = ConnectionHealth::Failed;
+                    self.details.channel_error = Some(error);
                     outcome.changed = true;
                 }
             }

@@ -235,7 +235,7 @@ pub fn parse_core_user_info(obj: &Value) -> SalesforceCoreUserInfo {
 }
 
 /// A POST of a token request with a form body that accepts JSON. Its body and its response carry credentials.
-fn form_post(url: String, pairs: &[(&str, &str)]) -> HttpRequest {
+pub(crate) fn form_post(url: String, pairs: &[(&str, &str)]) -> HttpRequest {
     HttpRequest {
         method: HttpMethod::Post,
         url,

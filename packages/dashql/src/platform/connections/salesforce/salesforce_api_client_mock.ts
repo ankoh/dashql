@@ -1,14 +1,16 @@
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
+import * as arrow from 'apache-arrow';
+
 import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
 import type { OAuthFlow } from '../../oauth/oauth_flow.js';
 import type { OAuthRedirectData } from '../../oauth/oauth_types.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 
 // The mock of Salesforce that the config of the app chooses: the setup of the runtime runs as it does against an org,
-// the requests of the setup and of the catalog loader are answered from the config and the redirect page of the
-// OAuth flow answers at once. The channel connector of the app connects a mock of the Hyper channel.
+// the requests of the setup, of the catalog loader and of the queries on the Hyper of Data Cloud are answered from
+// the config and the redirect page of the OAuth flow answers at once.
 
 export interface SalesforceConnectorMockConfig {
     enabled: boolean;
@@ -59,6 +61,15 @@ export function answerSalesforceMock(mock: SalesforceConnectorMockConfig, input:
             instance_url: access.instanceUrl,
             token_type: access.tokenType ?? 'Bearer',
             issued_token_type: access.issuedTokenType,
+        });
+    }
+    if (url.pathname === '/api/v3/query') {
+        // Every query of the Hyper of Data Cloud returns one row, its status says that the result is complete
+        const table = arrow.tableFromArrays({ healthy: Int32Array.from([1]) });
+        const status = { queryId: 'mock', completionStatus: 'FINISHED', chunkCount: 1, rowCount: 1 };
+        return new Response(arrow.tableToIPC(table, 'stream') as Uint8Array<ArrayBuffer>, {
+            status: 200,
+            headers: { 'content-type': 'application/vnd.apache.arrow.stream', 'x-hyperdb-status': JSON.stringify(status) },
         });
     }
     if (url.pathname.endsWith('/ssot/metadata')) {

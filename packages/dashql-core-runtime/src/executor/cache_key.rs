@@ -7,16 +7,52 @@
 
 use serde_json::{Map, Value};
 
-use crate::connections::{ConnectorType, JsonObject};
+use crate::connections::{ConnectionChannel, ConnectionParams, ConnectionState, ConnectorType, JsonObject};
+use crate::hyper::link::{hyper_link_token_fingerprint, is_hyper_link_params};
 
 /// The params of a connection that identify the results of its queries, the params of the connector without the field
 /// around them
-pub fn connection_cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
+pub fn params_cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
     match connector {
         ConnectorType::Hyper => crate::hyper::descriptor::cache_signature(params),
         ConnectorType::Trino => crate::trino::descriptor::cache_signature(params),
         ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => crate::salesforce::cache_signature(connector, params),
     }
+}
+
+/// What the cached results of a connection depend on, none if its results get no reusable key: before the connection
+/// has the params of a setup, and while the login or the instance behind it is unknown. The results of a login are
+/// keyed by its account: a Trino login with OAuth by the account of its token, a Salesforce login by the account of
+/// its user info, never by a hint that the user typed. The results of the Hyper of a link are keyed by the fingerprint
+/// of the token of the link, another Hyper on the same port never serves them.
+pub fn connection_cache_signature(connection: &ConnectionState) -> Option<Value> {
+    let connector = connection.connector_type();
+    let details = connection.details();
+    let params = details.setup_params.as_ref()?;
+    let mut signature = params_cache_signature(connector, params);
+    match connector {
+        ConnectorType::Hyper => {
+            if is_hyper_link_params(&ConnectionParams::new(connector, params.clone())) {
+                let ConnectionChannel::HyperHttp { auth, .. } = details.channel.as_ref()? else { return None };
+                let token = auth.get("authorization")?;
+                signature.as_object_mut()?.insert("link".to_string(), Value::String(hyper_link_token_fingerprint(token)));
+            }
+        }
+        ConnectorType::Trino => {
+            let oauth = params.get("auth").and_then(|auth| auth.get("authType")).and_then(Value::as_str) == Some("AUTH_OAUTH");
+            if oauth {
+                let token = details.channel.as_ref().and_then(ConnectionChannel::trino).and_then(|trino| trino.access_token());
+                let principal = token.and_then(|token| token.principal)?;
+                let auth = signature.get_mut("auth").and_then(Value::as_object_mut)?;
+                auth.insert("principal".to_string(), Value::String(principal));
+            }
+        }
+        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
+            let principal = details.salesforce().and_then(|salesforce| salesforce.principal.clone())?;
+            signature.as_object_mut()?.insert("login".to_string(), Value::String(principal));
+        }
+    }
+    Some(signature)
 }
 
 /// A value with the keys of every object sorted, so that its JSON text doesn't depend on the order the fields were set
@@ -82,7 +118,7 @@ mod tests {
             "dashql-query-cache-v3\n123:{\"auth\":{\"authType\":\"AUTH_BASIC\"},\"case\":\"trino\",\"defaults\":{\"catalog\":\"hive\",\"schema\":\"sales\"},\"endpoint\":\"https://trino\"}6:v1:é😀"
         );
         let params = json!({ "instanceUrl": "https://org", "appConsumerKey": "k", "login": "u" });
-        let signature = connection_cache_signature(ConnectorType::SalesforceDataCloud, params.as_object().unwrap());
+        let signature = params_cache_signature(ConnectorType::SalesforceDataCloud, params.as_object().unwrap());
         assert_eq!(
             result_key_input(&signature, "x"),
             "dashql-query-cache-v3\n82:{\"appConsumerKey\":\"k\",\"case\":\"salesforce\",\"instanceUrl\":\"https://org\",\"login\":\"u\"}1:x"
@@ -93,11 +129,11 @@ mod tests {
     #[test]
     fn leaves_out_missing_salesforce_fields() {
         let params = json!({ "appConsumerKey": "k" });
-        let signature = connection_cache_signature(ConnectorType::Dbcom, params.as_object().unwrap());
+        let signature = params_cache_signature(ConnectorType::Dbcom, params.as_object().unwrap());
         assert_eq!(signature, json!({ "case": "dbcom", "appConsumerKey": "k", "databaseName": "default" }));
         // Another login of the same org keys its results apart
         let login = |login: &str| json!({ "appConsumerKey": "k", "login": login });
-        let signature = |params: Value| connection_cache_signature(ConnectorType::Dbcom, params.as_object().unwrap());
+        let signature = |params: Value| params_cache_signature(ConnectorType::Dbcom, params.as_object().unwrap());
         assert_ne!(result_key_input(&signature(login("a")), "x"), result_key_input(&signature(login("b")), "x"));
     }
 }

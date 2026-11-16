@@ -101,7 +101,7 @@ nothing is set later. `RuntimePlatform` of `runtime.ts`:
 | `storage` | no | The `StorageBackend` of the workbooks and connections. Without, the runtime keeps nothing |
 | `http` | no | The `HttpClient` of fetches, the executor and the setups send through it |
 | `oauthFlow` | no | The `OAuthFlow`: opens the authorization page and receives the redirect |
-| `channels` | no | A `ChannelConnector` that connects the channels of setups besides Trino (the embedded Hyper, Hyper over gRPC and HTTP, the Hyper of Salesforce), and the token of a Hyper link that the page holds |
+| `channels` | no | A `ChannelConnector` that connects the channels of the host that setups ask for (the embedded Hyper, Hyper over gRPC), and the token of a Hyper link that the page holds. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself |
 | `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the query result cache first needs the database and waits until the platform set it up |
 | `resultCache` | no | The `QueryResultCache` |
 | `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `storage/workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
@@ -123,7 +123,7 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed result, `begin`, `append`, `read`, `describe` | `store/runtime_tables.ts` |
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query, drop, cancel a run | `compute/compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
-| `channels` | `connect` a setup's channel, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `auth`, `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
+| `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
 | `resultCache` | Lookup, read, write, touch, retain, release, import, list, remove, capacity | `query/query_channels.ts` |
 | `mounts` | The files of runs in the compute database and the attachments | `workbook/scripts/run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |

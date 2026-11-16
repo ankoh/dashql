@@ -24,7 +24,6 @@ use dashql_core_runtime::connections::registry::RegistryEffect;
 use dashql_core_runtime::executor::HostTable;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost};
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
@@ -225,10 +224,8 @@ export interface ExportedTables {
     data: { tableName: string; file: number; size: number; crc32: number | null }[];
 }
 
-/** A channel that a setup asks the host to connect */
-export type RuntimeChannelRequest =
-    | { type: 'salesforce'; endpoint: string; requestMetadata: Record<string, string>; attachedDatabases: { path: string; alias: string }[]; tokens: { core: unknown; dataCloud: unknown } }
-    | { type: 'hyper'; kind: 'embedded' | 'grpc' | 'http'; params: any };
+/** A channel of the host that a setup asks the host to connect: the embedded Hyper, or Hyper over gRPC through the native proxy. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself. */
+export type RuntimeChannelRequest = { type: 'hyper'; kind: 'embedded' | 'grpc'; params: any };
 
 /** How the platform takes the user through the redirect page */
 export interface RuntimeOAuthFlowInfo {
@@ -237,7 +234,7 @@ export interface RuntimeOAuthFlowInfo {
     debugMode: boolean;
     flavor: string | null;
 }
-/** The OAuth flows of the platform. A flow belongs to a setup by the id of the setup, `abort` with the id of the flow stops it. */
+/** The OAuth flows of the platform. A flow belongs to a setup by the id of the setup, `abort` with the id of the flow stops it: the runtime aborts a flow that it stops waiting for, e.g. a cancelled setup, which closes the loopback server or the window of the flow. */
 export interface RuntimeOAuth {
     /** A PKCE challenge: a random verifier and the base64url of its SHA-256 digest */
     pkce(): Promise<{ value: string; verifier: string }>;
@@ -324,14 +321,12 @@ export interface RuntimeChannelQuery {
 }
 /** The channels of the host. The setups connect them, the queries of the host run on them by query: the host knows the channel of a query from the query it described. */
 export interface RuntimeChannels {
-    /** Connect a channel of a setup, returns its handle */
+    /** Connect a channel of a setup, returns its handle. A channel that the runtime stops waiting for is closed once it is connected. */
     connect(setupId: string, request: RuntimeChannelRequest): Promise<number>;
     /** The token of the link to a Hyper that the page holds, null without */
     hyperLinkToken(connectionId: string): string | null;
-    /** Describe where a query runs on the channel of its connection (null before its setup): a Hyper channel over HTTP that the runtime speaks itself or one of the host. The connection of Trino owns its channel and the tokens of Salesforce, the host never describes them. The host keeps the channel and the query until `forget`. */
+    /** Describe a query on a channel of the host (null before its setup) as `{ type: 'host' }`. The connections own the channels that the runtime speaks itself (Trino, Hyper over HTTP, the Hyper of Salesforce), the host never describes them. The host keeps the channel and the query until `forget`. */
     describe(queryId: number, channel: number | null, query: RuntimeChannelQuery): Promise<RuntimeChannelTarget>;
-    /** The auth headers of the Hyper channel over HTTP of a query as they are now, asked before every round of requests of its result. Null keeps the headers of the description. */
-    auth?(queryId: number): Promise<Record<string, string> | null>;
     /** The query ended */
     forget(queryId: number): void;
     /** Run a query on its channel, its batches go into the table that was opened for it. False if the channel returned no result. */
@@ -413,27 +408,13 @@ extern "C" {
     pub type JsRuntimePlatform;
 }
 
-/// Where a query of a channel of the host runs, as the platform describes it: a Hyper channel over HTTP that the
-/// module speaks itself, or the channel of the host
+/// Where a query of a channel of the host runs, as the platform describes it: the channel of the host. The connections
+/// own the channels that the module speaks itself (Trino, Hyper over HTTP, the Hyper of Salesforce), the platform never
+/// describes them.
 #[derive(Deserialize, Tsify)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum RuntimeChannelTarget {
     Host,
-    HyperHttp {
-        /// The params of the Hyper connection: the endpoint, the attached databases, the query parameters
-        params: JsonValue,
-        #[serde(default)]
-        #[tsify(optional, type = "unknown")]
-        client_context: Option<JsonValue>,
-        /// The auth headers of the channel
-        #[serde(default)]
-        #[tsify(optional, type = "Record<string, string> | null")]
-        auth: Option<std::collections::BTreeMap<String, String>>,
-        /// The chunks that a result fetches in parallel
-        #[serde(default)]
-        #[tsify(optional, type = "number | null")]
-        parallel_chunks: Option<u32>,
-    },
 }
 
 /// A cached result that the query result cache read into a table of the handle table
@@ -845,12 +826,17 @@ impl JsPlatform {
         id
     }
 
-    /// Connect a channel of a setup, the handle of the channel
+    /// Connect a channel of a setup, the handle of the channel. A future that is dropped before the connect settled
+    /// closes the channel once it is connected, so a channel that nobody waits for never stays open.
     pub fn connect_channel(&self, setup_id: &str, request: &JsValue) -> impl Future<Output = Result<Handle, HostError>> + 'static {
         let call = member(self.object(), "channels").and_then(|channels| call(&channels, "connect", &[JsValue::from_str(setup_id), request.clone()]));
+        let promise = call.map(|sent| Promise::resolve(&sent));
+        let close = CloseOnDrop { promise: promise.as_ref().ok().cloned(), platform: self.clone() };
         async move {
-            let value = settled(call).await?;
-            as_handle(&value).ok_or_else(|| HostError::new("the platform connected no channel"))
+            let mut close = close;
+            let settled = JsFuture::from(promise?).await;
+            close.disarm();
+            as_handle(&settled.map_err(host_error)?).ok_or_else(|| HostError::new("the platform connected no channel"))
         }
     }
 
@@ -928,17 +914,19 @@ impl JsPlatform {
             handler.forget();
             promise
         });
+        // Aborts the flow unless it settled: on a cancellation, and when the caller drops the future first, e.g. a
+        // setup that stops waiting on the same token
+        let abort = AbortOnDrop { target: sent.as_ref().is_ok().then(|| oauth.ok()).flatten(), id: flow };
         let token = cancellation.clone();
         async move {
+            let mut abort = abort;
             let promise = sent?;
             match token.run(JsFuture::from(promise)).await {
-                None => {
-                    if let Ok(oauth) = oauth {
-                        let _ = call(&oauth, "abort", &[JsValue::from_f64(flow)]);
-                    }
-                    Err(HostError::new(CANCELLED_MESSAGE))
+                None => Err(HostError::cancelled()),
+                Some(result) => {
+                    abort.disarm();
+                    result.map_err(host_error)
                 }
-                Some(result) => result.map_err(host_error),
             }
         }
     }
@@ -1035,31 +1023,6 @@ impl JsPlatform {
     pub fn channel_cancel(&self, query_id: f64) -> impl Future<Output = Result<(), HostError>> + 'static {
         let call = self.channels("cancel", &[JsValue::from_f64(query_id)]);
         async move { settled(call).await.map(|_| ()) }
-    }
-
-    /// The auth headers of the channel of a query over HTTP as they are now, none if the platform doesn't say
-    pub fn channel_auth(&self, query_id: f64) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
-        let asked = member(self.object(), "channels")
-            .ok()
-            .filter(|channels| field(channels, "auth").is_some_and(|auth| auth.is_function()))
-            .map(|channels| call(&channels, "auth", &[JsValue::from_f64(query_id)]));
-        async move {
-            let Some(asked) = asked else { return Ok(None) };
-            let value = settled(asked).await?;
-            if value.is_null() || value.is_undefined() {
-                return Ok(None);
-            }
-            let names = js_sys::Object::keys(&value.clone().unchecked_into::<Object>());
-            let headers = names
-                .iter()
-                .filter_map(|name| {
-                    let name = name.as_string()?;
-                    let header = field(&value, &name)?.as_string()?;
-                    Some((name, header))
-                })
-                .collect::<Vec<_>>();
-            Ok(Some(Headers::from_pairs(headers)))
-        }
     }
 
     /// Is the profile of a query on a channel shown?
@@ -1178,7 +1141,7 @@ impl JsPlatform {
             Some(http.clone().and_then(|http| call(&http, "fetch", &[JsValue::from_f64(id), request_value(&request)])))
         };
         // Aborts a fetch that was sent unless it settled, also when the future is dropped before it was polled
-        let abort = AbortOnDrop { http: sent.as_ref().is_some_and(|sent| sent.is_ok()).then(|| http.ok()).flatten(), id };
+        let abort = AbortOnDrop { target: sent.as_ref().is_some_and(|sent| sent.is_ok()).then(|| http.ok()).flatten(), id };
         async move {
             let mut abort = abort;
             let Some(sent) = sent else {
@@ -1201,23 +1164,53 @@ impl JsPlatform {
     }
 }
 
-/// Aborts a fetch of the platform when it is dropped, unless it was disarmed once the fetch settled
+/// Aborts work that the platform started when it is dropped, unless it was disarmed once the work settled: a fetch of
+/// `http` or a flow of `oauth`, by its id
 struct AbortOnDrop {
-    http: Option<JsValue>,
+    target: Option<JsValue>,
     id: f64,
 }
 
 impl AbortOnDrop {
     fn disarm(&mut self) {
-        self.http = None;
+        self.target = None;
     }
 }
 
 impl Drop for AbortOnDrop {
     fn drop(&mut self) {
-        if let Some(http) = self.http.take() {
-            let _ = call(&http, "abort", &[JsValue::from_f64(self.id)]);
+        if let Some(target) = self.target.take() {
+            let _ = call(&target, "abort", &[JsValue::from_f64(self.id)]);
         }
+    }
+}
+
+/// Closes the channel of a connect of the platform once it is connected, when the future of the connect is dropped
+/// before it settled. Disarmed once the connect settled.
+struct CloseOnDrop {
+    promise: Option<Promise>,
+    platform: JsPlatform,
+}
+
+impl CloseOnDrop {
+    fn disarm(&mut self) {
+        self.promise = None;
+    }
+}
+
+impl Drop for CloseOnDrop {
+    fn drop(&mut self) {
+        let Some(promise) = self.promise.take() else { return };
+        let platform = self.platform.clone();
+        let close = Closure::once(move |value: JsValue| {
+            if let Some(handle) = as_handle(&value) {
+                platform.push_close(handle);
+            }
+        });
+        let ignore = Closure::<dyn FnMut(JsValue)>::new(|_| {});
+        let _ = promise.then(&close).catch(&ignore);
+        close.forget();
+        ignore.forget();
     }
 }
 

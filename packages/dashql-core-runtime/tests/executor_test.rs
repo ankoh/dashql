@@ -15,7 +15,8 @@ use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use serde_json::{json, Value};
 
 use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
-use dashql_core_runtime::connections::{ConnectorType, TrinoSessionDefaults};
+use dashql_core_runtime::connections::{ConnectorType, DetailedError, TrinoSessionDefaults};
+use dashql_core_runtime::executor::connectors::TRINO_TOKEN_REFRESH_TIMEOUT_MS;
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
     CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
@@ -172,8 +173,8 @@ struct State {
     open_holds: bool,
     /// The answer of the next open of the channel, it waits for it whether the query is cancelled or not
     open_later: Option<Receiver<bool>>,
-    /// The access tokens that shared Trino channels refreshed
-    refreshed_tokens: Vec<String>,
+    /// How the refreshes of the tokens of channels ended, by query
+    refreshes: Vec<(QueryId, Result<(), DetailedError>)>,
     /// The auth headers of the Hyper channel as they are now, none keeps those of the query
     hyper_auth: Option<Headers>,
 }
@@ -535,8 +536,8 @@ impl ExecutorHost for FakeHost {
         std::future::ready(Ok(self.state.borrow().hyper_auth.clone()))
     }
 
-    fn trino_token_refreshed(&self, _channel: &SharedTrinoChannel, token: &TrinoAccessToken) {
-        self.state.borrow_mut().refreshed_tokens.push(token.access_token.clone());
+    fn token_refresh_ended(&self, run: &FakeRun, outcome: Result<(), DetailedError>) {
+        self.state.borrow_mut().refreshes.push((run.query_id(), outcome));
     }
 }
 
@@ -640,6 +641,7 @@ fn oauth_trino_channel(expires_at: i64) -> SharedTrinoChannel {
         refresh_token: Some("refresh-1".into()),
         expires_at: Some(expires_at),
         scope: None,
+        principal: None,
     });
     SharedTrinoChannel::new(channel)
 }
@@ -855,12 +857,48 @@ fn trino_refreshes_an_expiring_token_once_for_all_queries_of_the_channel() {
     let statements: Vec<_> = sent.iter().filter(|r| r.url.ends_with("/v1/statement")).collect();
     assert_eq!(statements.len(), 1);
     assert_eq!(statements[0].header("Authorization"), Some("Bearer token-2"));
-    assert_eq!(host.state.borrow().refreshed_tokens, ["token-2"]);
+    assert_eq!(host.state.borrow().refreshes, [(1, Ok(()))]);
+    assert_eq!(channel.access_token().unwrap().access_token, "token-2");
     assert_eq!(channel.access_token().unwrap().refresh_token.as_deref(), Some("refresh-of-token-2"));
     // A later query of the channel needs no refresh
     let third = run(&host, &executor, request(3, QueryTarget::Trino(channel.clone())));
     assert_eq!(resolved(&third), Some(true));
     assert_eq!(token_requests.get(), 1);
+}
+
+#[test]
+fn trino_fails_a_refresh_that_hangs_and_refreshes_again_later() {
+    let host = FakeHost::new();
+    let token_requests = Rc::new(Cell::new(0));
+    let counted = token_requests.clone();
+    host.serve(move |request| {
+        if request.url == TOKEN_URL {
+            counted.set(counted.get() + 1);
+            // The first refresh never answers, the second one does
+            return if counted.get() == 1 { Answer::Hold } else { Answer::Now(Ok(token_answer("token-2"))) };
+        }
+        if request.url.ends_with("/v1/statement") {
+            return json_response(json!({ "id": "q1", "columns": [{ "name": "n", "type": "integer" }], "data": [[1]], "stats": { "state": "FINISHED" } }));
+        }
+        Answer::Hold
+    });
+    let executor = QueryExecutor::new(host.clone());
+    let channel = oauth_trino_channel(30_000);
+    let first = start(&host, &executor, request(1, QueryTarget::Trino(channel.clone())));
+    host.advance(0);
+    assert!(first.borrow().is_none(), "the query waits for the refresh");
+    // The refresh times out: the query fails, the host hears of the failure and the channel refreshes no more
+    host.advance(TRINO_TOKEN_REFRESH_TIMEOUT_MS as u64);
+    assert_eq!(first.borrow().as_ref().map(resolved), Some(Some(false)), "the query failed without a result");
+    let refreshes = host.state.borrow().refreshes.clone();
+    let [(1, Err(error))] = refreshes.as_slice() else { panic!("{refreshes:?}") };
+    assert!(error.message.contains("timed out"), "{}", error.message);
+    // The next query starts a new refresh
+    let second = run(&host, &executor, request(2, QueryTarget::Trino(channel.clone())));
+    assert_eq!(resolved(&second), Some(true));
+    assert_eq!(token_requests.get(), 2);
+    assert_eq!(host.state.borrow().refreshes.last(), Some(&(2, Ok(()))));
+    assert_eq!(channel.access_token().unwrap().access_token, "token-2");
 }
 
 #[test]
@@ -1460,11 +1498,10 @@ fn a_cancel_during_the_read_of_the_cache_waits_for_the_table_of_the_run() {
 // Client functions
 
 fn salesforce_tokens() -> SalesforceTokens {
-    SalesforceTokens::from_json(
-        &json!({ "accessToken": "core-token", "instanceUrl": "https://org.my.salesforce.com" }).to_string(),
-        &json!({ "instanceUrl": "https://tenant.c360a.salesforce.com/", "jwt": { "raw": "tenant-jwt" } }).to_string(),
-    )
-    .unwrap()
+    SalesforceTokens {
+        core: serde_json::from_value(json!({ "accessToken": "core-token", "instanceUrl": "https://org.my.salesforce.com" })).unwrap(),
+        data_cloud: serde_json::from_value(json!({ "instanceUrl": "https://tenant.c360a.salesforce.com/", "jwt": { "raw": "tenant-jwt" } })).unwrap(),
+    }
 }
 
 fn segment_spec() -> Rc<ClientFunctionSpec> {

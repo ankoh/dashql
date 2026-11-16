@@ -1,8 +1,9 @@
 import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 
+import * as core from '../../core/index.js';
 import { CONNECTOR_INFOS, ConnectorType, ConnectorInfo } from './connector_info.js';
 import type { ConnectionState, NewConnection } from './connection_state.js';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf, connectorOf, connectorOfParams, connectorParams } from './connector_descriptor.js';
+import { connectionParamsOf, connectorOf, connectorOfParams, connectorParams } from './connector_descriptor.js';
 
 // Re-export connection param types from JSON Schema
 export type ConnectionParams = app_workbook.ConnectionParams;
@@ -10,10 +11,23 @@ export type HyperConnectionParams = app_workbook.HyperConnectionParams;
 export type SalesforceConnectionParams = app_workbook.SalesforceConnectionParams;
 export type TrinoConnectionParams = app_workbook.TrinoConnectionParams;
 
+// The defaults, the draft rows and the login hints of connection params come from the core module (`ConnectionParams`
+// of `dashql_core_runtime`). The helpers need the core of this copy of the package to be instantiated, as it is once a
+// runtime exists.
+
+/// The core that answers for the params, once it is instantiated
+let paramsCore: core.DashQL | null = null;
+
+/// The core of this copy of the package, throws before it is instantiated
+function instantiatedCore(): core.DashQL {
+    paramsCore ??= core.DashQL.instantiated();
+    if (paramsCore == null) throw new Error('The connection params need the core, which is not instantiated yet');
+    return paramsCore;
+}
+
 /// Raw form rows belong only to the local draft, never to committed/runtime parameters.
 export function connectionParamsWithoutDraftRows(params: ConnectionParams): ConnectionParams {
-    const connector = connectorOfParams(params);
-    return connectionParamsOf(connector, connector.withoutDraftRows(connectorParams(connector, params)));
+    return instantiatedCore().connectionParamsWithoutDraftRows(params);
 }
 
 /// Sort the keys of an object so that its encoding doesn't depend on their order
@@ -36,9 +50,7 @@ export function getConnectionSetupParams(connection: Pick<ConnectionState, 'conn
 /// Whether the connection params carry a login hint (the resolved account username / login) that
 /// could be shared. Used to decide if the "share login hint" toggle should be offered at all.
 export function connectionParamsHaveLoginHint(params: ConnectionParams | null): boolean {
-    if (!params) return false;
-    const connector = connectorOfParams(params);
-    return connector.loginHint(connectorParams(connector, params)) != null;
+    return params != null && instantiatedCore().connectionParamsLoginHint(params) != null;
 }
 
 /// The options of a connection that is created with params: whether it is active and its name
@@ -55,9 +67,20 @@ export function newDefaultHyperWasmConnection(options: NewConnectionOptions = {}
     return newConnectionFromParams(createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), options);
 }
 
+/// The params of a new connection of a connector
 export function createDefaultConnectionParamsForConnector(info: ConnectorInfo): ConnectionParams {
-    const connector = CONNECTOR_DESCRIPTORS[info.connectorType];
-    return connectionParamsOf(connector, connector.defaultParams());
+    return instantiatedCore().defaultConnectionParams<ConnectionParams>(info.connectorType);
+}
+
+/// The database that the catalog of a Salesforce connection names its relations with, also the alias of the Hyper
+/// Cloud database of a Database.com connection
+export function salesforceCatalogDatabase(): string {
+    return instantiatedCore().salesforceCatalogDatabase();
+}
+
+/// The Hyper Cloud database of a Database.com connection that names none
+export function hyperCloudDefaultDatabaseName(): string {
+    return instantiatedCore().hyperCloudDefaultDatabaseName();
 }
 
 /// The endpoint that a new connection to a Hyper server starts with

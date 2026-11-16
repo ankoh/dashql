@@ -41,13 +41,21 @@ For a terminal query with `@vis` tags, the signature excludes the tags, they are
 Result analysis and visualization projection are not part of the key. The executor always runs post-processing after either a cache hit or a backend result, allowing the same raw table to support the relevant analysis flow.
 
 The connection signature keys results per login: a result is the result of the user who ran the query, row-level
-security or the sharing rules of Salesforce may show another user other rows of the same tables. The signature of a
-Trino connection names the user of basic auth, the one of a Salesforce or Database.com connection the login that its
-setup confirmed (the user of the core login replaces the login hint). The credentials stay out, a new token of the same
-login reuses the cached results. The principal behind the OAuth token of a Trino connection is unknown to its params,
-its results are keyed by the identity provider and the client; a Hyper connection is keyed by its endpoint, its
-attached databases and its session settings, the headers of its metadata stay out. Files that an older version wrote
-under a signature without the login are misses, they age out of the cache.
+security or the sharing rules of Salesforce may show another user other rows of the same tables. The signature
+(`connection_cache_signature`) reads the connection, not only its params. A Trino connection with basic auth is keyed
+by its user; one with OAuth by the account of its token, the `sub` of the token response or of its OpenID Connect id
+token (the default scopes ask for `openid`). A Salesforce or Database.com connection is keyed by the account that the
+user info of its login named. A login hint that the user typed never keys a result: while the account is unknown,
+e.g. when the user info failed or before the connection is set up again after a reload, the results get no reusable
+key, they are neither read from the cache nor written. The credentials stay out, a new token of the same login reuses
+the cached results.
+
+A Hyper connection is keyed by its endpoint, its attached databases and its session settings, the headers of its
+metadata stay out. The Hyper of a link (`V3_HTTP_LINK`, e.g. `hyperd run --ui`) adds the fingerprint of the token of
+its link (FNV-1a of the token, the token stays out): every run of hyperd prints a new link, so another Hyper that
+listens on the same port later never serves the results of an earlier one. Without the token of the link in the tab
+the results of the link get no reusable key. Files that an older version wrote under another signature are misses,
+they age out of the cache.
 
 If the executor cannot recover connection parameters or derive a signature, it treats the query as non-cacheable and executes normally. Key derivation is also best-effort and must not expose an error to the query path.
 
@@ -194,7 +202,7 @@ gone then and only the log tells.
 A key covers the connection signature and the script, not the ids of the workbook or its connections, so a result of
 the archive is found by the same script on a connection with the same signature, also on a connection of the app that
 the import reused. The signatures of Salesforce, Database.com and Trino connections don't change when the params are
-shared. Those of Hyper servers do: the shared params leave out the TLS files and the query parameters, and Hyper
+shared, they need the account of a login on the connection that reads them. Those of Hyper servers do: the shared params leave out the TLS files and the query parameters, and Hyper
 connections cache no results unless the user asks for it, so their results don't travel.
 
 - An imported file is a new file, its cached-at time is the time of the import.

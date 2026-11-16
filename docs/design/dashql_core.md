@@ -120,25 +120,37 @@ marks are `runtime/changes.rs`.
   (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). Sharing params (`sanitizeConnectionParams`,
   `connectionParamsShareEqual`) is `workbook_format/sharing.rs`.
-- **Tokens stay in the runtime.** The view summarizes them (`ConnectionTokenSummary`: type, scope, instance, tenant,
-  issue and expiry); the PKCE verifier and the codes never cross; `revealConnectionSecrets` hands the raw values out on
-  request.
+- **Tokens stay in the runtime and have one owner, the channel of their connection.** The Trino channel holds the
+  OAuth token, the Salesforce channel (`salesforce::SharedSalesforceChannel`) the core and the Data Cloud token. The
+  setups keep the PKCE verifier and the codes, the connection learns only that they arrived; the steps of a setup carry
+  no secret. The view summarizes the tokens of the channel (`ConnectionTokenSummary`: type, scope, instance, tenant,
+  issue and expiry), `revealConnectionSecrets` hands the raw values out on request. A reset or a delete drops the
+  channel with its tokens and forgets the OAuth flow and the account of a login.
 - **Setups are commands** (`setupConnection`, `authenticateSalesforce`, `cancelSetup`; `connection_setup/`). A setup
   is an async function that drives the state machine of its connector (`TrinoSetup`, `SalesforceSetup`, the steps of a
   Hyper channel), applies every step to the connection at once, and awaits the platform for the OAuth flow, the token
-  requests and the channel. Its outcome resolves, a failure is in the view of the connection and the log.
+  requests and a channel of the host. Its outcome resolves, a failure is in the view of the connection and the log.
+  Params that don't read fail a setup before it cancels the one that runs. A login (`authenticateSalesforce`) has no
+  connection: its listener hears the names of its steps (`LoginStep`), the tokens are in its outcome.
 - **Setup attempts are fenced by epochs.** A setup begins an attempt (`ConnectionState::begin_setup`) and its steps
   carry the epoch (`ConnectionAction::SetupStep`). A later setup, a reset or a delete begins the next one; the steps of
-  a replaced attempt change nothing and the channel of such a ready step is released. A cancellation stops the wait for
-  a connect, a channel that connects after it is closed.
+  a replaced attempt change nothing and the channel of the host of such a ready step is closed. A cancellation stops
+  the wait for a connect, a channel that connects after it is closed. The platform aborts the work of a host call that
+  the runtime drops before it settled: a fetch, an OAuth flow (its loopback server or window), and a connect closes its
+  channel once it is there.
 - **OAuth.** `connection_setup::OAuthHost` adds the flows to `HttpHost`: the PKCE challenge and random ids come from the
   platform, `authorize_with_loopback` serves Trino, `authorize_with_redirect_page` Salesforce. See
   [oauth_salesforce.md](oauth_salesforce.md).
-- **Channels.** A Trino connection owns its channel in Rust (`trino::SharedTrinoChannel` in its details): the endpoint,
-  the auth, the defaults and the access token, with one shared refresh that runs to its end in a task of its own;
-  queries, catalog loads, probes and runs share it and the connection keeps the new token
-  (`TrinoAction::AccessTokenRefreshed`). Every other channel is an object of the host that the platform connects
-  (`channels.connect`) and keeps under a handle that the connection takes.
+- **Channels.** A connection owns its channel (`ConnectionChannel` of its details): replacing or dropping it closes a
+  channel of the host. The module speaks three of them itself: Trino (`trino::SharedTrinoChannel`: the endpoint, the
+  auth, the defaults and the access token), Hyper over HTTP and the Hyper of a link (the HTTP channel with the headers
+  of its requests, the token of a link only in memory), and the Hyper of Salesforce (`SharedSalesforceChannel`: the
+  HTTP API of the Data Cloud tenant with the tokens of the login, the queries take the headers of the current Data
+  Cloud JWT). Only the embedded Hyper and Hyper over gRPC are objects of the host that the platform connects
+  (`channels.connect`) and keeps under a handle. The tokens of Trino and Salesforce refresh once for every caller in a
+  task of their own that runs to its end or times out after 30 s (Trino with the refresh token of its OAuth token,
+  Salesforce with the refresh token of the core login and a new Data Cloud exchange); a failed refresh is logged and
+  fails the connection that is online (`ConnectionAction::TokenRefreshFailed`).
 - **Health checks** run the probe of the connector as a query of the connection (`check_health`), so it shows in the
   query viewer. The embedded Hyper is online with its channel and runs no probe.
 - **Opened workbooks.** `setUpOpenedWorkbook` sets up the connections of an opened workbook that need nothing of the
@@ -149,7 +161,8 @@ marks are `runtime/changes.rs`.
 - **Description in Rust.** `executeQuery` registers the query in the history of its connection and describes it
   (`queries.rs`): the target on the channel of the connection, the key of its result, whether the statement touches
   relations, and the options of the caller (`QueryOptions`: analyze, publish, throw on error, a client function call,
-  the read timeout, the cache). The platform describes only a channel of the host by its handle (`channels.describe`).
+  the read timeout, the cache). The platform describes only a channel of the host by its handle (`channels.describe`),
+  the targets of the channels that the module speaks come from the connection.
 - **The cache key** is the lowercase hex SHA-256 of the signature of the connection (`connection_cache_signature`) and
   the semantic signature of the script (`executor/cache_key.rs`); the digest comes from `crypto.sha256` of the platform.
   See [query_cache.md](query_cache.md).
@@ -209,7 +222,7 @@ runtime, schedules the updates of their catalogs and runs them as tasks: metadat
 parsed in the module (`CatalogBatch::process`), published into the catalog of the connection while the connection still
 runs the update. Salesforce metadata comes over fetch, client functions are registered on the catalogs of their
 connectors with specs that the platform loads (`extensions.loadSpec`). A busy connection keeps its requested refreshes
-and is looked at again after 10 ms. `refreshCatalog(id, force)` requests a refresh, `runCatalogLoader(false)` stops the
+and is looked at again after 10 ms, a connection that is not online keeps them until it comes online. `refreshCatalog(id, force)` requests a refresh, `runCatalogLoader(false)` stops the
 loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](catalog_batching.md).
 
 ### Runs of workbooks

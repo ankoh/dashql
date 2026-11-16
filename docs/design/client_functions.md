@@ -267,16 +267,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 ## Connector binding
 
-A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql/src/platform/connections/connector_descriptor.ts`):
-
-```ts
-interface ClientFunctionBinding {
-    /// Load the spec, only when a connection needs it
-    loadSpec(): Promise<ClientFunctionSpec>;
-}
-```
-
-The runtime of the core resolves the rest from the connection (`ClientFunctionBinding` of `clfn/connection.rs` in `dashql_core_runtime`): where a host that the spec names is and the credentials for it, and the values of the variables in the base paths of the spec, which need no login so `EXPLAIN` prints them. The Salesforce binding doesn't refresh a token yet: an expired Data 360 token fails the call with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
+A connector enables a spec through its `ClientFunctionBinding` (`clfn/connection.rs` in `dashql_core_runtime`): `of_connector` names the binding of a connector, `extension` the folder of its spec in `extensions/`, which the host loads (`loadClientFunctionSpec` of `packages/dashql/src/platform/connections/clfn/clfn_specs.ts`). The binding resolves the rest from the connection: where a host that the spec names is and the credentials for it, and the values of the variables in the base paths of the spec, which need no login so `EXPLAIN` prints them. The Salesforce binding doesn't refresh a token yet: an expired Data 360 token fails the call with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
 
 **A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. The catalog loader of the runtime (`catalog_loader/service.rs` with `ClientFunctionRegistrations` of `clfn/connection.rs`) asks the host to load the spec and registers it on the connection's catalog. It does so on every change of the registry, so a spec that failed to load is tried again, and it drops the spec if the connection switches to a connector without it. The shell of a connection runs on that catalog, so its prompt completes the same calls.
 

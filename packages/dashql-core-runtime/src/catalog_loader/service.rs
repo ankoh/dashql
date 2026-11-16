@@ -28,7 +28,9 @@ use super::{
     CatalogStep, CatalogUpdate, CatalogUpdateOutcome,
 };
 use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
-use crate::connections::{CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction, ConnectionState, RelationName};
+use crate::connections::{
+    CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction, ConnectionChannel, ConnectionState, RelationName,
+};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::http::{CancellationToken, HttpHost, HttpResponse};
@@ -643,13 +645,14 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         connection: &FollowedConnection,
         token: &CancellationToken,
     ) -> Result<Value, String> {
-        let tokens = {
+        let channel = {
             let state = connection.state.try_borrow().map_err(|_| "the connection is in use".to_string())?;
-            let oauth = state.details().salesforce().and_then(|salesforce| salesforce.oauth_state.as_ref());
-            let core = oauth.and_then(|oauth| oauth.core_access_token.clone()).unwrap_or_default();
-            let data_cloud = oauth.and_then(|oauth| oauth.data_cloud_access_token.clone()).unwrap_or_default();
-            SalesforceTokens::from_json(&core, &data_cloud).ok_or_else(|| "Salesforce core access token is missing".to_string())?
+            let channel = state.details().channel.as_ref().and_then(ConnectionChannel::salesforce).cloned();
+            channel.ok_or_else(|| "Salesforce core access token is missing".to_string())?
         };
+        // A Data Cloud token about to expire is refreshed first, the channel keeps the new tokens
+        channel.fresh(&self.host).await?;
+        let tokens = channel.tokens();
         let data_space = get_salesforce_data_space(&tokens.data_cloud);
         self.host.log(LogLevel::Info, "Resolving Salesforce catalog metadata", &[("dataSpace", &data_space), ("target", SALESFORCE_LOG_TARGET)]);
         let started_at = self.host.now();

@@ -487,7 +487,7 @@ fn sets_up_a_connection_step_by_step() {
     assert_eq!(output.step, SalesforceSetupStep::GeneratePkce);
 
     let output = setup.on_pkce(pkce(), "flow-1", NOW);
-    assert_eq!(output.actions, [SalesforceAction::GeneratedPkceChallenge(pkce())]);
+    assert_eq!(output.actions, [SalesforceAction::GeneratedPkceChallenge]);
     let SalesforceSetupStep::Authorize { url, flow_id } = &output.step else { panic!("{:?}", output.step) };
     assert!(url.starts_with("https://org.my.salesforce.com/services/oauth2/authorize?"));
     assert_eq!(flow_id, "flow-1");
@@ -496,13 +496,15 @@ fn sets_up_a_connection_step_by_step() {
     let state = salesforce_oauth_state(&params(), &flow(), "flow-1", NOW as i64);
     let callback = OAuthRedirectData { state: Some(state), code: Some("the-code".into()), ..Default::default() };
     let output = setup.on_callback(&callback, NOW + 1000.0);
-    assert!(matches!(&output.actions[..], [SalesforceAction::ReceivedCoreAuthCode(code), SalesforceAction::RequestingCoreAuthToken] if code.token == "the-code"));
+    assert!(matches!(&output.actions[..], [SalesforceAction::ReceivedCoreAuthCode { .. }, SalesforceAction::RequestingCoreAuthToken]));
+    // The code stays in the setup, the connection learns when it arrived
+    assert!(!format!("{:?}", output.actions).contains("the-code"));
     let request = fetched(&output);
     assert_eq!(request.url, "https://org.my.salesforce.com/services/oauth2/token");
     assert_eq!(form(request.body.as_deref().unwrap())["code_verifier"], "verifier");
 
     let output = setup.on_response(&ok(json!({ "access_token": "core", "instance_url": "https://org.my.salesforce.com" })), NOW);
-    assert!(matches!(&output.actions[..], [SalesforceAction::ReceivedCoreAuthToken(json)] if json.contains("\"accessToken\":\"core\"")));
+    assert_eq!(output.actions, [SalesforceAction::ReceivedCoreAuthToken]);
     assert!(fetched(&output).url.contains("/services/oauth2/userinfo"));
 
     let output = setup.on_response(&ok(json!({ "preferred_username": "user@org", "email": "user@example.com" })), NOW);
@@ -515,16 +517,18 @@ fn sets_up_a_connection_step_by_step() {
     );
     assert!(fetched(&output).url.ends_with("/services/a360/token"));
 
+    // The channel is ready with the tokens, the connection owns it
     let output = setup.on_response(&data_cloud_answer(), NOW);
-    assert!(matches!(&output.actions[..], [SalesforceAction::ReceivedDataCloudAccessToken(_), SalesforceAction::ChannelSetupStarted]));
-    let SalesforceSetupStep::ConnectChannel(channel) = &output.step else { panic!("{:?}", output.step) };
-    assert_eq!(channel.endpoint, "https://tenant.example.com/");
-    assert_eq!(channel.request_metadata[0], ("audience".to_string(), "tenant-1".to_string()));
-    assert!(channel.request_metadata[1].1.starts_with("Bearer "));
-    assert!(channel.attached_databases.is_empty());
-
-    let output = setup.on_channel_ready(7);
-    assert_eq!(output.actions, [SalesforceAction::ChannelReady(7)]);
+    let [SalesforceAction::ReceivedDataCloudAccessToken, SalesforceAction::ChannelSetupStarted, SalesforceAction::ChannelReady(channel)] =
+        &output.actions[..]
+    else {
+        panic!("{:?}", output.actions)
+    };
+    assert_eq!(channel.hyper().client().endpoint().origin(), "https://tenant.example.com");
+    let auth = channel.auth();
+    assert_eq!(auth.get("audience"), Some("tenant-1"));
+    assert!(auth.get("authorization").is_some_and(|value| value.starts_with("Bearer ")));
+    assert!(channel.hyper().context().attached_databases.is_empty());
     let SalesforceSetupStep::Done(result) = &output.step else { panic!("{:?}", output.step) };
     assert_eq!(result.tokens.core.access_token, "core");
     assert_eq!(result.user_info.as_ref().unwrap().preferred_username.as_deref(), Some("user@org"));
@@ -541,9 +545,11 @@ fn skips_the_user_info_if_it_fails() {
     assert_eq!(output.actions, [SalesforceAction::RequestingDataCloudAccessToken]);
     assert_eq!(output.log.len(), 1);
     let output = setup.on_response(&data_cloud_answer(), NOW);
-    let SalesforceSetupStep::ConnectChannel(channel) = &output.step else { panic!("{:?}", output.step) };
+    let Some(SalesforceAction::ChannelReady(channel)) = output.actions.last() else { panic!("{:?}", output.actions) };
     // Database.com queries the configured Hyper Cloud database
-    assert_eq!(channel.attached_databases, [AttachedDatabase { path: "hyper.cloud:default".into(), alias: "lakehouse".into() }]);
+    let databases = channel.hyper().context().attached_databases.clone();
+    assert_eq!(databases.len(), 1);
+    assert_eq!((databases[0].path.as_str(), databases[0].alias.as_deref()), ("hyper.cloud:default", Some("lakehouse")));
 }
 
 #[test]

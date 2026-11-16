@@ -1275,15 +1275,15 @@ impl Runtime {
     }
 
     /// Log in to Salesforce with the params of the connector, without a connection, e.g. the login of the shell. The
-    /// steps go to the listener as `{ connector, type, value }`, `cancelSetup` with the id stops the login. The outcome
-    /// of a success has the tokens and the user.
+    /// names of the steps go to the listener (`LoginStep`, e.g. `REQUESTING_CORE_AUTH_TOKEN`), never a code or a token;
+    /// `cancelSetup` with the id stops the login. The outcome of a success has the tokens and the user.
     #[wasm_bindgen(js_name = authenticateSalesforce, unchecked_return_type = "Promise<SetupOutcome>")]
     pub fn authenticate_salesforce(
         &self,
         setup_id: String,
         params: JsValue,
         options: Option<Ts<SetupOptions>>,
-        #[wasm_bindgen(unchecked_param_type = "((step: { connector: string; type: string; value: any }) => void) | null")] events: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "((step: string) => void) | null")] events: JsValue,
     ) -> Result<Promise, JsError> {
         let options = options.as_ref().map(from_js).transpose()?.unwrap_or_default();
         let serde_json::Value::Object(params) = JsonValue::of(&params).0 else {
@@ -1305,7 +1305,7 @@ impl Runtime {
     pub fn reveal_connection_secrets(&self, connection_id: &str) -> Result<JsValue, JsError> {
         let connection = self.connections.registry.try_borrow().map_err(|_| busy())?.get(connection_id).cloned();
         let Some(connection) = connection else { return Ok(JsValue::NULL) };
-        let secrets = ConnectionSecrets::of(&connection.state.try_borrow().map_err(|_| busy())?.details().connector);
+        let secrets = ConnectionSecrets::of(connection.state.try_borrow().map_err(|_| busy())?.details());
         Ok(to_js(&secrets)?.into())
     }
 
@@ -1615,6 +1615,59 @@ impl Runtime {
         #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] right: JsValue,
     ) -> bool {
         sharing::connection_params_share_equal(&JsonValue::of(&left).0, &JsonValue::of(&right).0)
+    }
+
+    /// The params of a new connection of a connector, e.g. `{"trino": {...}}`
+    #[wasm_bindgen(js_name = defaultConnectionParams, unchecked_return_type = "Record<string, unknown>")]
+    pub fn default_connection_params(connector: ConnectorType) -> Result<JsValue, JsError> {
+        let params = ConnectionParams::default_for(connector.into()).to_object();
+        JsonValue(serde_json::Value::Object(params)).to_js().map_err(|error| JsError::new(&error.to_string()))
+    }
+
+    /// Connection params without the raw form rows, they belong only to the local draft. Fails on params of an unknown
+    /// connector.
+    #[wasm_bindgen(js_name = connectionParamsWithoutDraftRows, unchecked_return_type = "Record<string, unknown>")]
+    pub fn connection_params_without_draft_rows(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] params: JsValue,
+    ) -> Result<JsValue, JsError> {
+        let serde_json::Value::Object(fields) = JsonValue::of(&params).0 else {
+            return Err(JsError::new("connection params must be an object"));
+        };
+        let params = ConnectionParams::from_object(fields).map_err(js_error)?.without_draft_rows();
+        JsonValue(serde_json::Value::Object(params.to_object())).to_js().map_err(|error| JsError::new(&error.to_string()))
+    }
+
+    /// The login hint of connection params (the account username or login), null if there is none. Fails on params of
+    /// an unknown connector.
+    #[wasm_bindgen(js_name = connectionParamsLoginHint)]
+    pub fn connection_params_login_hint(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] params: JsValue,
+    ) -> Result<Option<String>, JsError> {
+        use dashql_core_runtime::connections::ConnectorType as Connector;
+        let serde_json::Value::Object(fields) = JsonValue::of(&params).0 else {
+            return Err(JsError::new("connection params must be an object"));
+        };
+        let params = ConnectionParams::from_object(fields).map_err(js_error)?;
+        Ok(match params.connector {
+            Connector::Hyper => None,
+            Connector::Trino => dashql_core_runtime::trino::descriptor::login_hint(&params.params),
+            Connector::SalesforceDataCloud | Connector::Dbcom => {
+                dashql_core_runtime::salesforce::login_hint(&params.params).map(str::to_string)
+            }
+        })
+    }
+
+    /// The database that the catalog of a Salesforce connection names its relations with, also the alias of the Hyper
+    /// Cloud database of a Database.com connection
+    #[wasm_bindgen(js_name = salesforceCatalogDatabase)]
+    pub fn salesforce_catalog_database() -> String {
+        dashql_core_runtime::connections::SALESFORCE_CATALOG_DATABASE.to_string()
+    }
+
+    /// The Hyper Cloud database of a Database.com connection that names none
+    #[wasm_bindgen(js_name = hyperCloudDefaultDatabaseName)]
+    pub fn hyper_cloud_default_database_name() -> String {
+        dashql_core_runtime::connections::HYPER_CLOUD_DEFAULT_DATABASE_NAME.to_string()
     }
 
     /// Check the folders of workbooks that the platform keeps in folders of their own for changes outside the app, e.g.

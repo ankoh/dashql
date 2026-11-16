@@ -1,9 +1,5 @@
 import type { ConnectionParams, HyperConnectionParams, SalesforceConnectionParams, TrinoConnectionParams } from './connection_params.js';
-import { ConnectorType, type ConnectorInfo } from './connector_info.js';
-import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
-import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
-import { SALESFORCE_CONNECTOR_DESCRIPTOR, DBCOM_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
-import { TRINO_CONNECTOR_DESCRIPTOR } from './trino/trino_connector_descriptor.js';
+import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from './connector_info.js';
 
 /// The params of the connectors by the field of the connection params that holds them
 export interface ConnectorParamsMap {
@@ -19,39 +15,24 @@ export interface ConnectorParamsMap {
 /// The field of the connection params that holds the params of a connector, e.g. `{ hyper: ... }`
 export type ConnectorParamsKey = keyof ConnectorParamsMap;
 
-/// The client functions that a connector enables on its connections. The runtime of the core resolves their hosts and
-/// variables (`dashql_core_runtime::clfn`).
-export interface ClientFunctionBinding {
-    /// Load the spec, only when a connection needs it
-    loadSpec(): Promise<ClientFunctionSpec>;
-}
-
 /// What the connection layer knows about a connector.
 ///
-/// Every connector describes itself once, operations on connections look up the connector instead
-/// of switching on its type. The params and details of the connection state always hold the params
-/// of the connector under its key, generic operations convert between them through `paramsKey`.
+/// The params and details of the connection state always hold the params of the connector under its key, generic
+/// operations convert between them through `paramsKey`. The defaults, the draft rows and the login hint of the params
+/// are in the core module (`ConnectionParams` of `dashql_core_runtime`).
 export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorParamsKey> {
     /// The connector info
     info: ConnectorInfo;
     /// The field of the connection params that holds the params of the connector
     paramsKey: K;
-    /// The params of a new connection
-    defaultParams(): ConnectorParamsMap[K];
-    /// Remove the raw form rows, they belong only to the local draft
-    withoutDraftRows(params: ConnectorParamsMap[K]): ConnectorParamsMap[K];
-    /// The login hint (the account username or login) of the params, null if there is none
-    loginHint(params: ConnectorParamsMap[K]): string | null;
-    /// The client functions of the connections, undefined if they have none
-    clientFunctions?: ClientFunctionBinding;
 }
 
 /// The connectors by connector type
 export const CONNECTOR_DESCRIPTORS: Record<ConnectorType, ConnectorDescriptor> = {
-    [ConnectorType.HYPER]: HYPER_CONNECTOR_DESCRIPTOR,
-    [ConnectorType.SALESFORCE_DATA_CLOUD]: SALESFORCE_CONNECTOR_DESCRIPTOR,
-    [ConnectorType.TRINO]: TRINO_CONNECTOR_DESCRIPTOR,
-    [ConnectorType.DBCOM]: DBCOM_CONNECTOR_DESCRIPTOR,
+    [ConnectorType.HYPER]: { info: CONNECTOR_INFOS[ConnectorType.HYPER], paramsKey: 'hyper' },
+    [ConnectorType.SALESFORCE_DATA_CLOUD]: { info: CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD], paramsKey: 'salesforce' },
+    [ConnectorType.TRINO]: { info: CONNECTOR_INFOS[ConnectorType.TRINO], paramsKey: 'trino' },
+    [ConnectorType.DBCOM]: { info: CONNECTOR_INFOS[ConnectorType.DBCOM], paramsKey: 'dbcom' },
 };
 const DESCRIPTORS = Object.values(CONNECTOR_DESCRIPTORS);
 

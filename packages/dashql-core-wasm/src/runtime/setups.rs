@@ -6,15 +6,17 @@
 //! the platform, and the health check runs its probe as a query of the connection on the executor of the runtime. A
 //! connection whose channel is ready but that is not online yet runs the health check. A setup is known by an id, the
 //! id of its connection or of a login; a new setup of an id cancels the one that runs, a reset or a delete of the
-//! connection cancels it as well.
+//! connection cancels it as well. Params that don't read fail the setup before it cancels the one that runs. A login
+//! has no connection: its listener hears the names of its steps (`LoginStep`), never a code, a verifier or a token,
+//! and its outcome holds the tokens.
 
 use std::collections::BTreeMap;
 use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_action_json, setup_hyper, setup_salesforce, setup_trino, HyperChannelRequest, OAuthEvents,
-    OAuthHost, ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
+    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelRequest, LoginStep, OAuthEvents, OAuthHost,
+    ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
 };
 use dashql_core_runtime::connections::open_setup::OpenSetup;
 use dashql_core_runtime::connections::{
@@ -25,9 +27,8 @@ use dashql_core_runtime::executor::FailureKind;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryMetadata;
-use dashql_core_runtime::salesforce::setup::SalesforceChannelSetup;
 use dashql_core_runtime::salesforce::{OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData, SalesforceOAuthConfig, SalesforceTokens};
-use dashql_core_runtime::trino::{OAuthCallback, TrinoChannel};
+use dashql_core_runtime::trino::OAuthCallback;
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -125,7 +126,7 @@ pub(crate) struct RuntimeSetupHost {
     epoch: u64,
     /// The params that the connection keeps when the channel connects with others
     kept_params: Option<JsonObject>,
-    /// The listener of the steps of a login
+    /// The listener of the steps of a login, it hears their names
     events: Option<Function>,
 }
 
@@ -181,7 +182,7 @@ impl RuntimeSetupHost {
                 ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() })
             }
             ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. }) => {
-                ConnectionAction::Hyper(HyperAction::ChannelReady { channel: *channel, params: params.clone() })
+                ConnectionAction::Hyper(HyperAction::ChannelReady { channel: channel.clone(), params: params.clone() })
             }
             action => action.clone(),
         }
@@ -292,37 +293,16 @@ impl OAuthHost for RuntimeSetupHost {
 
 impl SetupHost for RuntimeSetupHost {
     fn dispatch(&self, action: &ConnectionAction) {
-        // A login reports its steps to its listener
+        // A login reports the names of its steps to its listener
         let Some(connection_id) = &self.connection_id else {
-            if let (Some(events), Some(step)) = (&self.events, setup_action_json(action)) {
-                let _ = events.call1(&JsValue::NULL, &js_json(step));
+            if let (Some(events), Some(step)) = (&self.events, LoginStep::of(action)) {
+                let _ = events.call1(&JsValue::NULL, &JsValue::from_str(step.name()));
             }
             return;
         };
         let Some(connections) = self.connections.upgrade() else { return };
         let step = ConnectionAction::SetupStep { epoch: self.epoch, step: Box::new(self.kept(action)) };
         connections.apply_setup_step(connection_id, step);
-    }
-
-    fn connect_trino_channel(&self, _channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
-        // The connection owns the channel, the handle table keeps a token of it that the connection releases
-        let handle = self.platform.register(&js_sys::Object::new().into());
-        async move { handle }
-    }
-
-    fn connect_salesforce_channel(
-        &self,
-        channel: &SalesforceChannelSetup,
-        _cancellation: &CancellationToken,
-    ) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
-        // The connect runs to its end, the setup closes a channel that is ready after a cancellation
-        self.connect(json!({
-            "type": "salesforce",
-            "endpoint": channel.endpoint,
-            "requestMetadata": channel.request_metadata.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect::<serde_json::Map<String, Value>>(),
-            "attachedDatabases": channel.attached_databases.iter().map(|db| json!({ "path": db.path, "alias": db.alias })).collect::<Vec<_>>(),
-            "tokens": tokens_json(&channel.tokens),
-        }))
     }
 
     fn connect_hyper_channel(
@@ -335,6 +315,12 @@ impl SetupHost for RuntimeSetupHost {
 
     fn hyper_link_token(&self) -> Option<String> {
         self.platform.hyper_link_token(self.connection_id.as_deref()?)
+    }
+
+    /// The queries of the connection, the ones of the user, as the Hyper log attributes them
+    fn client_context(&self) -> Option<Value> {
+        let connection_id = self.connection_id.as_deref()?;
+        Some(json!({ "dashql": { "connectionId": connection_id, "queryType": "user" } }))
     }
 
     fn close_channel(&self, id: ChannelId) {
@@ -352,7 +338,6 @@ impl SetupHost for RuntimeSetupHost {
 
     fn run_probe(
         &self,
-        _channel: ChannelId,
         query: &str,
         metadata: &QueryMetadata,
         cancellation: &CancellationToken,
@@ -389,12 +374,13 @@ fn connector_params(params: JsonParams, connector: ConnectorType) -> Result<Json
 }
 
 impl Connections {
-    /// Apply a step of a setup to its connection. The connection doesn't take the channel of a step that fails.
+    /// Apply a step of a setup to its connection. The connection doesn't take the channel of a step that fails, a
+    /// channel of the host that belongs to no connection is closed.
     pub(crate) fn apply_setup_step(self: &Rc<Self>, connection_id: &str, action: ConnectionAction) {
         let channel = action.ready_channel();
         if let Err(error) = self.apply(connection_id, action, None) {
             if let Some(channel) = channel {
-                self.platform.push_release(channel);
+                self.platform.push_close(channel);
             }
             self.log(LogLevel::Warn, error.what(), &[("connectionId", connection_id)]);
         }
@@ -476,36 +462,36 @@ impl Connections {
                 None => Ok((connector, params, None)),
             }
         })();
-        let (number, token) = self.start_setup(&connection_id);
+        // Params that don't read fail the setup before it touches the connection: the setup that runs goes on. The
+        // attempt of a setup begins right away, the steps of the setup that it cancelled change nothing from now on.
+        let started = prepared.map(|(connector, params, kept)| {
+            let (number, token) = self.start_setup(&connection_id);
+            let host = self.setup_host(&connection_id, Some(connection_id.clone()), kept, None);
+            (connector, params, number, token, host)
+        });
         let connections = self.clone();
-        // The attempt begins right away, the steps of the setup that this one cancelled change nothing from now on
-        let kept = prepared.as_ref().ok().and_then(|(_, _, kept)| kept.clone());
-        let host = connections.setup_host(&connection_id, Some(connection_id.clone()), kept, None);
         async move {
-            let (connector, params) = match prepared {
-                Ok((connector, params, _)) => (connector, params),
-                Err(message) => {
-                    connections.end_setup(&connection_id, number);
-                    return SetupOutcome::of(SetupFailure::failed(message));
-                }
+            let (connector, params, number, token, host) = match started {
+                Ok(started) => started,
+                Err(message) => return SetupOutcome::of(SetupFailure::failed(message)),
             };
             let force_relogin = options.force_relogin.unwrap_or(false);
             let config = SalesforceOAuthConfig { oauth_redirect: options.oauth_redirect.unwrap_or_default() };
-            let channel = match connector {
+            let ready = match connector {
                 ConnectorType::Hyper => setup_hyper(host.clone(), params, token.clone()).await,
                 ConnectorType::Trino => setup_trino(host.clone(), params, force_relogin, token.clone()).await,
                 ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
-                    setup_salesforce(host.clone(), connector, params, config, force_relogin, token.clone()).await.map(|result| result.channel)
+                    setup_salesforce(host.clone(), connector, params, config, force_relogin, token.clone()).await.map(|_| ())
                 }
             };
             // A channel that is ready but not online yet answers a probe first
-            let outcome = match channel {
-                Ok(channel) => {
+            let outcome = match ready {
+                Ok(()) => {
                     let online = connections.health_of(&connection_id) == Some(ConnectionHealth::Online);
                     if online {
                         Ok(())
                     } else {
-                        check_health(host, connector, channel, token.clone()).await
+                        check_health(host, connector, token.clone()).await
                     }
                 }
                 Err(failure) => Err(failure),

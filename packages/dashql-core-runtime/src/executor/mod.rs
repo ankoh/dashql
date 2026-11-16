@@ -42,14 +42,14 @@ use std::rc::Rc;
 use dashql_buffers::profile::ProfileLayoutConfig;
 
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionError, ClientFunctionSpec};
-use crate::connections::ConnectorType;
+use crate::connections::{ConnectorType, DetailedError};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{HostError, LogLevel};
 use crate::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
 use crate::hyper::{HyperError, HyperHttpChannel};
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use crate::salesforce::SalesforceTokens;
-use crate::trino::{NoTimeZones, SharedTrinoChannel, TimeZoneOffsets, TrinoAccessToken, TrinoError};
+use crate::trino::{NoTimeZones, SharedTrinoChannel, TimeZoneOffsets, TrinoError};
 pub use wait::QueryControls;
 
 /// The target of the log messages of the executor
@@ -358,8 +358,9 @@ pub trait ExecutorHost: HttpHost {
         std::future::ready(Ok(None))
     }
 
-    /// A shared Trino channel refreshed its OAuth access token, the connection that owns the channel keeps it
-    fn trino_token_refreshed(&self, _channel: &SharedTrinoChannel, _token: &TrinoAccessToken) {}
+    /// The refresh of a token of the channel of the connection of a query ended, e.g. of the OAuth access token of a
+    /// Trino channel. The channel keeps a new token, a failure fails the connection.
+    fn token_refresh_ended(&self, _run: &Self::Run, _outcome: Result<(), DetailedError>) {}
 
     /// The offsets of named time zones, e.g. for the timestamps of Trino with a named zone. Without, such a timestamp
     /// is null.

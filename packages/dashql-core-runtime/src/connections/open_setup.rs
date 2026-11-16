@@ -10,6 +10,7 @@ use std::collections::HashSet;
 
 use super::params::string_field;
 use super::{ConnectionHealth, ConnectionState, ConnectorType};
+use crate::hyper::link::hyper_link_token_fingerprint;
 
 /// What the opening of a workbook does with a connection of it
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,7 +23,8 @@ pub enum OpenSetup {
     ResetAndSetup,
 }
 
-/// The connections that the openings of workbooks considered
+/// The connections that the openings of workbooks considered. The key of a connection to the Hyper of a link names the
+/// fingerprint of its token, never the token.
 #[derive(Debug, Default)]
 pub struct OpenSetups {
     considered: HashSet<String>,
@@ -43,7 +45,8 @@ impl OpenSetups {
         let key = match (linked, link_token) {
             (true, None) => return OpenSetup::Skip,
             (true, Some(token)) => {
-                format!("{} {} {}", connection.connection_id(), string_field(&params.params, "endpoint").unwrap_or(""), token)
+                let endpoint = string_field(&params.params, "endpoint").unwrap_or("");
+                format!("{} {} {}", connection.connection_id(), endpoint, hyper_link_token_fingerprint(token))
             }
             (false, _) => connection.connection_id().to_string(),
         };

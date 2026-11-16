@@ -2,17 +2,20 @@
 //!
 //! A setup is an async function that drives the state machine of its connector: `trino::setup::TrinoSetup`,
 //! `salesforce::setup::SalesforceSetup`, and the steps of a Hyper channel in `hyper`. It applies every action of the
-//! connection through the host (`SetupHost::dispatch`), awaits the host for what it can't do itself and returns the id of
-//! the channel that the host keeps. The health check runs its probe query through the query executor of the host.
+//! connection through the host (`SetupHost::dispatch`), awaits the host for what it can't do itself and hands the
+//! channel to the connection with the ready step. The health check runs its probe query through the query executor of
+//! the host.
 //!
 //! - `oauth`: what an OAuth flow asks of the platform, the PKCE challenge, a random state and the authorization page with
 //!   its callback (`OAuthHost`).
 //! - `trino`, `salesforce`, `hyper`: the setups of the connectors.
 //! - `health_check`: the probe query of a new channel.
 //!
-//! The host is one setup: it applies the actions to one connection and keeps the channels of that setup. The channels
-//! of Hyper stay objects of the host: a Hyper channel over HTTP describes itself, the gRPC channel of the desktop app and
-//! the embedded Hyper run their queries in the host. A Trino channel is owned by its connection, the host keeps a handle.
+//! The host is one setup: it applies the actions to one connection. The connection owns its channel
+//! (`ConnectionChannel`): Trino, Hyper over HTTP and the Hyper of Salesforce are channels that the module speaks
+//! itself, only the gRPC channel of the desktop app and the embedded Hyper are objects of the host that it connects and
+//! keeps under a handle. A login of Salesforce has no connection, its listener hears the names of its steps
+//! (`salesforce::LoginStep`), the tokens are in its outcome.
 //!
 //! A cancelled setup ends at the next step: the token stops the host call that runs, the state machine reports the
 //! cancellation as an action of the connection. A failed host call keeps what the host failed with, the caller gets it
@@ -29,23 +32,19 @@ use std::collections::BTreeMap;
 use std::future::Future;
 use std::rc::Rc;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
-use crate::connections::{
-    ChannelId, ConnectionAction, DetailedError, HyperAction, JsonObject, SalesforceAction, TrinoAction,
-};
+use crate::connections::{ChannelId, ConnectionAction, DetailedError};
 use crate::executor::HostValue;
 use crate::host::signal::oneshot;
 use crate::host::HostError;
 use crate::http::CancellationToken;
 use crate::query::QueryMetadata;
-use crate::salesforce::setup::SalesforceChannelSetup;
-use crate::trino::TrinoChannel;
 
 pub use health_check::check_health;
 pub use hyper::{setup_hyper, HyperChannelKind, HyperChannelRequest};
 pub use oauth::{OAuthEvents, OAuthHost};
-pub use salesforce::{authenticate_salesforce, setup_salesforce, SalesforceAuthentication};
+pub use salesforce::{authenticate_salesforce, setup_salesforce, LoginStep, SalesforceAuthentication};
 pub use trino::setup_trino;
 
 /// The target of the log messages of the setups
@@ -108,16 +107,7 @@ pub enum ProbeResult {
 pub trait SetupHost: OAuthHost {
     /// Apply an action of the setup to its connection
     fn dispatch(&self, action: &ConnectionAction);
-    /// A handle for a Trino channel, returns its id. The connection owns the channel itself (`TrinoAction::ChannelReady`),
-    /// the host keeps only a handle that the connection releases with the channel.
-    fn connect_trino_channel(&self, channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static;
-    /// Connect the Hyper channel of a Salesforce connection over HTTP with its tokens, returns its id
-    fn connect_salesforce_channel(
-        &self,
-        channel: &SalesforceChannelSetup,
-        cancellation: &CancellationToken,
-    ) -> impl Future<Output = Result<ChannelId, HostError>> + 'static;
-    /// Connect a Hyper channel of the kind of the request, returns its id
+    /// Connect a Hyper channel of the host of the kind of the request, the embedded Hyper or gRPC, returns its handle
     fn connect_hyper_channel(
         &self,
         channel: &HyperChannelRequest,
@@ -125,6 +115,10 @@ pub trait SetupHost: OAuthHost {
     ) -> impl Future<Output = Result<ChannelId, HostError>> + 'static;
     /// The token of the link to a Hyper that the connection was opened with, none if the page doesn't hold it
     fn hyper_link_token(&self) -> Option<String>;
+    /// The client context that Hyper logs with the queries of the connection, none without one
+    fn client_context(&self) -> Option<Value> {
+        None
+    }
     /// Close a channel that the setup doesn't hand out, e.g. one that was ready after the setup was cancelled
     fn close_channel(&self, id: ChannelId);
     /// The details of what the host failed with, e.g. the key values of an error of Hyper, for the error of the
@@ -132,119 +126,14 @@ pub trait SetupHost: OAuthHost {
     fn error_details(&self, _error: &HostError) -> BTreeMap<String, String> {
         BTreeMap::new()
     }
-    /// Run the probe query of a health check on a channel through the query executor, as a query of the connection
+    /// Run the probe query of a health check on the channel of the connection through the query executor, as a query of
+    /// the connection
     fn run_probe(
         &self,
-        channel: ChannelId,
         query: &str,
         metadata: &QueryMetadata,
         cancellation: &CancellationToken,
     ) -> impl Future<Output = Result<ProbeResult, HostError>> + 'static;
-}
-
-/// A detailed error as JSON, as the connection state of the host keeps it
-fn error_json(error: &DetailedError) -> Value {
-    if error.data.is_empty() {
-        json!({ "message": error.message })
-    } else {
-        json!({ "message": error.message, "data": error.data })
-    }
-}
-
-/// Opaque token JSON as a value, a string that doesn't parse stays a string
-fn token_json(text: &str) -> Value {
-    serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.to_string()))
-}
-
-fn params_json(params: &JsonObject) -> Value {
-    Value::Object(params.clone())
-}
-
-/// An action of a setup as the host applies it: `{connector, type, value}`. The type is the name of the action of the
-/// connector, a channel is its id and a token its JSON. None for an action that no setup dispatches.
-pub fn setup_action_json(action: &ConnectionAction) -> Option<Value> {
-    let (connector, kind, value) = match action {
-        ConnectionAction::HealthCheckStarted => ("connection", "HEALTH_CHECK_STARTED", Value::Null),
-        ConnectionAction::HealthCheckCancelled => ("connection", "HEALTH_CHECK_CANCELLED", Value::Null),
-        ConnectionAction::HealthCheckSucceeded => ("connection", "HEALTH_CHECK_SUCCEEDED", Value::Null),
-        ConnectionAction::HealthCheckFailed(error) => ("connection", "HEALTH_CHECK_FAILED", error_json(error)),
-        // Not a step of a setup
-        ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { .. }) => return None,
-        ConnectionAction::Trino(action) => {
-            let (kind, value) = match action {
-                TrinoAction::OAuthStarted { params } => ("OAUTH_STARTED", params_json(params)),
-                TrinoAction::OAuthCancelled(error) => ("OAUTH_CANCELLED", error_json(error)),
-                TrinoAction::OAuthFailed(error) => ("OAUTH_FAILED", error_json(error)),
-                TrinoAction::GeneratingPkceChallenge => ("GENERATING_PKCE_CHALLENGE", Value::Null),
-                TrinoAction::GeneratedPkceChallenge(pkce) => {
-                    ("GENERATED_PKCE_CHALLENGE", json!({ "value": pkce.value, "verifier": pkce.verifier }))
-                }
-                TrinoAction::OAuthBrowserOpened => ("OAUTH_BROWSER_OPENED", Value::Null),
-                TrinoAction::ReceivedOAuthCode(code) => {
-                    ("RECEIVED_OAUTH_CODE", json!({ "token": code.token, "createdAt": code.created_at }))
-                }
-                TrinoAction::RequestingAccessToken => ("REQUESTING_ACCESS_TOKEN", Value::Null),
-                TrinoAction::ReceivedAccessToken(token) => ("RECEIVED_ACCESS_TOKEN", token_json(token)),
-                TrinoAction::ChannelSetupStarted { params } => ("TRINO_CHANNEL_SETUP_STARTED", params_json(params)),
-                TrinoAction::ChannelSetupCancelled(error) => ("TRINO_CHANNEL_SETUP_CANCELLED", error_json(error)),
-                TrinoAction::ChannelSetupFailed(error) => ("TRINO_CHANNEL_SETUP_FAILED", error_json(error)),
-                TrinoAction::ChannelReady { channel, .. } => ("TRINO_CHANNEL_READY", json!(channel)),
-                TrinoAction::AccessTokenRefreshed { .. } => return None,
-            };
-            ("trino", kind, value)
-        }
-        ConnectionAction::Salesforce(action) => {
-            let (kind, value) = match action {
-                SalesforceAction::SetupStarted { params } => ("SETUP_STARTED", params_json(params)),
-                SalesforceAction::SetupCancelled(error) => ("SETUP_CANCELLED", error_json(error)),
-                SalesforceAction::SetupFailed(error) => ("SETUP_FAILED", error_json(error)),
-                SalesforceAction::GeneratingPkceChallenge => ("GENERATING_PKCE_CHALLENGE", Value::Null),
-                SalesforceAction::GeneratedPkceChallenge(pkce) => {
-                    ("GENERATED_PKCE_CHALLENGE", json!({ "value": pkce.value, "verifier": pkce.verifier }))
-                }
-                SalesforceAction::OAuthNativeLinkOpened => ("OAUTH_NATIVE_LINK_OPENED", Value::Null),
-                SalesforceAction::OAuthWebWindowOpened => ("OAUTH_WEB_WINDOW_OPENED", Value::Null),
-                SalesforceAction::OAuthWebWindowClosed => ("OAUTH_WEB_WINDOW_CLOSED", Value::Null),
-                SalesforceAction::ReceivedCoreAuthCode(code) => {
-                    ("RECEIVED_CORE_AUTH_CODE", json!({ "token": code.token, "createdAt": code.created_at }))
-                }
-                SalesforceAction::RequestingCoreAuthToken => ("REQUESTING_CORE_AUTH_TOKEN", Value::Null),
-                SalesforceAction::ReceivedCoreAuthToken(token) => ("RECEIVED_CORE_AUTH_TOKEN", token_json(token)),
-                SalesforceAction::ReceivedCoreUserInfo { preferred_username, email } => {
-                    let mut info = JsonObject::new();
-                    if let Some(name) = preferred_username {
-                        info.insert("preferredUsername".to_string(), json!(name));
-                    }
-                    if let Some(email) = email {
-                        info.insert("email".to_string(), json!(email));
-                    }
-                    ("RECEIVED_CORE_USER_INFO", Value::Object(info))
-                }
-                SalesforceAction::RequestingDataCloudAccessToken => ("REQUESTING_DATA_CLOUD_ACCESS_TOKEN", Value::Null),
-                SalesforceAction::ReceivedDataCloudAccessToken(token) => {
-                    ("RECEIVED_DATA_CLOUD_ACCESS_TOKEN", token_json(token))
-                }
-                SalesforceAction::ChannelSetupStarted => ("SF_CHANNEL_SETUP_STARTED", Value::Null),
-                SalesforceAction::ChannelSetupCancelled(error) => ("SF_CHANNEL_SETUP_CANCELLED", error_json(error)),
-                SalesforceAction::ChannelSetupFailed(error) => ("SF_CHANNEL_SETUP_FAILED", error_json(error)),
-                SalesforceAction::ChannelReady(channel) => ("SF_CHANNEL_READY", json!(channel)),
-            };
-            ("salesforce", kind, value)
-        }
-        ConnectionAction::Hyper(action) => {
-            let (kind, value) = match action {
-                HyperAction::ChannelSetupStarted { params } => ("HYPER_CHANNEL_SETUP_STARTED", params_json(params)),
-                HyperAction::ChannelSetupCancelled(error) => ("HYPER_CHANNEL_SETUP_CANCELLED", error_json(error)),
-                HyperAction::ChannelSetupFailed(error) => ("HYPER_CHANNEL_SETUP_FAILED", error_json(error)),
-                HyperAction::ChannelReady { channel, params } => {
-                    ("HYPER_CHANNEL_READY", json!({ "channel": channel, "params": params }))
-                }
-            };
-            ("hyper", kind, value)
-        }
-        _ => return None,
-    };
-    Some(json!({ "connector": connector, "type": kind, "value": value }))
 }
 
 /// Connect a channel through the host, the token stops the wait: none if it was cancelled first. The connect runs on in

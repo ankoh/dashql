@@ -14,7 +14,7 @@ use super::batch::{publish_prepared, CatalogBatch, CatalogBatchEntry, PreparedDe
 use super::prefetched_hyper_functions::PREFETCHED_HYPER_FUNCTIONS_SQL;
 use super::tables::{catalog_tables_of_schema, pack_catalog_descriptor_of_tables, CatalogTable, ColumnMetadata, Groups};
 use super::{CatalogEntries, CatalogLoadError, ConnectorStep, Publication};
-use crate::connections::{ConnectionDetails, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA};
+use crate::connections::{ConnectionChannel, ConnectionDetails, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA};
 
 /// The relations of the Data Cloud metadata, `{"metadata": [{"name": ..., "fields": [{"name": ..., "type": ...}]}]}`, in
 /// `lakehouse.public`. A later entity of a name replaces an earlier one. Fails if the metadata names no column.
@@ -50,20 +50,14 @@ pub fn catalog_tables_from_salesforce_metadata(metadata: &Value) -> Result<Vec<C
     Ok(catalog_tables_of_schema(SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, tables))
 }
 
-/// Check that a Salesforce connection has the tokens to read the metadata with
+/// Check that a Salesforce connection has the tokens to read the metadata with, its channel holds them
 pub fn check_salesforce_tokens(details: &ConnectionDetails) -> Result<(), CatalogLoadError> {
-    let oauth = details.salesforce().and_then(|salesforce| salesforce.oauth_state.as_ref());
-    let core_token = oauth
-        .and_then(|oauth| oauth.core_access_token.as_deref())
-        .and_then(|token| serde_json::from_str::<Value>(token).ok());
-    let field = |name: &str| {
-        core_token.as_ref().and_then(|token| token.get(name)).and_then(Value::as_str).is_some_and(|value| !value.is_empty())
-    };
-    if !field("accessToken") || !field("instanceUrl") {
+    let Some(channel) = details.channel.as_ref().and_then(ConnectionChannel::salesforce) else {
         return Err(CatalogLoadError::failed("Salesforce core access token is missing"));
-    }
-    if oauth.and_then(|oauth| oauth.data_cloud_access_token.as_ref()).is_none() {
-        return Err(CatalogLoadError::failed("Salesforce data cloud access token is missing"));
+    };
+    let core = channel.tokens().core;
+    if core.access_token.is_empty() || core.instance_url.as_deref().is_none_or(str::is_empty) {
+        return Err(CatalogLoadError::failed("Salesforce core access token is missing"));
     }
     Ok(())
 }

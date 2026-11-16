@@ -31,9 +31,9 @@ function json(body: object, status = 200): HttpFetchResult {
 }
 
 /// An HTTP client that answers like Salesforce, it records the paths of the requests
-export function fakeSalesforceHttp(options: FakeSalesforceOptions = {}): HttpClient & { paths: string[] } {
+export function fakeSalesforceHttp(options: FakeSalesforceOptions = {}) {
     const paths: string[] = [];
-    const fetch = vi.fn(async (input: URL | Request | string): Promise<HttpFetchResult> => {
+    const fetch = vi.fn(async (input: URL | Request | string, _init?: RequestInit): Promise<HttpFetchResult> => {
         const url = new URL(input.toString());
         paths.push(url.pathname);
         switch (url.pathname) {
@@ -49,5 +49,5 @@ export function fakeSalesforceHttp(options: FakeSalesforceOptions = {}): HttpCli
                 return new Response('not found', { status: 404 });
         }
     });
-    return { fetch, paths };
+    return { fetch, paths } satisfies HttpClient & { paths: string[] };
 }

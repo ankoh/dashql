@@ -8,15 +8,14 @@ use std::rc::Rc;
 
 use super::{cancellable, ProbeResult, SetupFailure, SetupHost};
 use crate::connections::health_check::{health_check_metadata, health_check_outcome, health_check_query, HealthCheckResult};
-use crate::connections::{ChannelId, ConnectionAction, ConnectorType};
+use crate::connections::{ConnectionAction, ConnectorType};
 use crate::http::CancellationToken;
 
-/// Check the health of a channel of a connector. A failed probe fails the check with the error of the query, a probe
-/// without a table fails it as well, a cancellation cancels it.
+/// Check the health of the channel of a connection of a connector. A failed probe fails the check with the error of the
+/// query, a probe without a table fails it as well, a cancellation cancels it.
 pub async fn check_health<H: SetupHost>(
     host: Rc<H>,
     connector: ConnectorType,
-    channel: ChannelId,
     cancellation: CancellationToken,
 ) -> Result<(), SetupFailure> {
     host.dispatch(&ConnectionAction::HealthCheckStarted);
@@ -25,7 +24,7 @@ pub async fn check_health<H: SetupHost>(
     let probe = if cancellation.is_cancelled() {
         None
     } else {
-        let call = host.run_probe(channel, health_check_query(connector), &metadata, &cancellation);
+        let call = host.run_probe(health_check_query(connector), &metadata, &cancellation);
         cancellable(&cancellation, call).await
     };
     let (result, value) = match probe {

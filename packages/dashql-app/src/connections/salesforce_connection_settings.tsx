@@ -24,7 +24,7 @@ import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql/platfor
 import type { ConnectionDetailsView } from '@ankoh/dashql';
 import type { DetailedError } from '@ankoh/dashql/platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql/platform/connections/salesforce/salesforce_catalog_update';
+import { hyperCloudDefaultDatabaseName } from '@ankoh/dashql/platform/connections/connection_params';
 
 const LOG_CTX = "sf_connector";
 
@@ -248,7 +248,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                                 data-testid="hyper-cloud-database-name"
                                 caption="Hyper Cloud database that is queried"
                                 value={props.databaseName ?? ""}
-                                placeholder={HYPER_CLOUD_DEFAULT_DATABASE_NAME}
+                                placeholder={hyperCloudDefaultDatabaseName()}
                                 leadingVisual={() => <div>DB</div>}
                                 onChange={props.updateDatabaseName}
                                 readOnly={props.freezeInput}
@@ -341,7 +341,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
         login: params?.login ?? "",
-        databaseName: params?.databaseName ?? HYPER_CLOUD_DEFAULT_DATABASE_NAME,
+        databaseName: params?.databaseName ?? hyperCloudDefaultDatabaseName(),
     });
     const [pageState, setPageState] = useConnectionDraftForm(props.connectionId,
         params => buildPageState(params && paramsKey in params ? (params as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined),

@@ -163,7 +163,8 @@ impl CatalogLoader {
         self.last_finished_at.insert(connection_id.to_string(), now);
     }
 
-    /// The updates to start and to abort. A requested refresh of a busy connection stays queued for the next schedule.
+    /// The updates to start and to abort. A requested refresh of a busy connection stays queued for the next schedule,
+    /// one of a connection that is not online until it comes online.
     pub fn schedule(&mut self, connections: &[CatalogLoaderConnection], busy: &[String], now: Timestamp) -> CatalogSchedule {
         let mut schedule = CatalogSchedule::default();
 
@@ -179,6 +180,11 @@ impl CatalogLoader {
                 // The connection is gone otherwise
                 continue;
             };
+            // A refresh runs once the connection is online, the schedule after it came online starts it
+            if connection.health != ConnectionHealth::Online {
+                self.queue.push((id, force));
+                continue;
+            }
             let updates = connection.catalog_updates;
             // A running update is kept unless the request is forced, a forced one aborts it first
             if !updates.tasks_running.is_empty() {

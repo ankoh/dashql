@@ -5,14 +5,6 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 /// The fields of the Trino params that name catalogs
 type TrinoCatalogParams = Pick<connection.TrinoConnectionParams, 'defaultCatalog' | 'defaultSchema' | 'catalogs' | 'catalogName' | 'schemaNames'>;
 
-/// The catalog and schema of the names that statements leave out, sent as `X-Trino-Catalog` and `X-Trino-Schema`
-export interface TrinoSessionDefaults {
-    /// The default catalog, null if there is none
-    catalog: string | null;
-    /// The default schema, null if there is none. Trino takes a default schema only with a default catalog.
-    schema: string | null;
-}
-
 /// The params with the fields that replaced `catalogName` and `schemaNames`.
 /// The catalog name was the default catalog, the schema names were the schemas of it that the catalog loader reads.
 export function withTrinoCatalogFields<P extends TrinoCatalogParams>(params: P): Omit<P, 'catalogName' | 'schemaNames'> {

@@ -1498,7 +1498,7 @@ fn labels_of_connections() {
 fn the_catalog_refreshes_only_online_without_a_running_refresh() {
     let mut connection = ConnectionState::from_params("h", ConnectionParams::default_for(ConnectorType::Hyper), 0.0);
     assert!(!can_refresh_connection(&connection));
-    let ready = HyperAction::ChannelReady { channel: 1, params: object(json!({ "protocol": "WASM" })) };
+    let ready = HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: object(json!({ "protocol": "WASM" })) };
     connection.apply(ConnectionAction::Hyper(ready), 0.0).unwrap();
     assert!(can_refresh_connection(&connection));
     let refresh = CatalogUpdateTask::new(7, CatalogUpdateVariant::FullCatalogRefresh, 0.0);

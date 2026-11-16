@@ -327,7 +327,7 @@ describe('the runs of workbooks of the runtime', () => {
         const [embedded, remote] = fixtures;
         for (const f of fixtures) f.database.preview = true;
         // The second connection is a Hyper server, it is online but a preview doesn't run on it
-        remote.database.protocol = 'V3_HTTP';
+        remote.database.protocol = 'V3_GRPC';
         await openWorkbook();
         void current.start();
         await vi.waitFor(() => expect(embedded.stream.produce).toHaveBeenCalledTimes(1));

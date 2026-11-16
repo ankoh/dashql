@@ -2,7 +2,8 @@
 //!
 //! Basic auth opens the channel right away. OAuth asks the host for the PKCE challenge and the state, opens the login
 //! with the loopback redirect of the platform, requests the access token over fetch and opens the channel with it. The
-//! health check is a step of its own (`check_health`), the caller runs it once the channel is ready.
+//! connection owns the channel, the host keeps nothing of it. The health check is a step of its own (`check_health`),
+//! the caller runs it once the channel is ready.
 //!
 //! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_setup.ts`.
 
@@ -10,50 +11,47 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use super::{cancellable, connect_channel, OAuthHost, SetupFailure, SetupHost, LOG_TARGET};
-use crate::connections::{ChannelId, ConnectionAction, JsonObject, TrinoAction};
+use super::{cancellable, OAuthHost, SetupFailure, SetupHost, LOG_TARGET};
+use crate::connections::{ConnectionAction, DetailedError, JsonObject, TrinoAction};
 use crate::host::{HostError, LogLevel};
 use crate::http::{CancellationToken, FetchOutcome};
 use crate::salesforce::OAuthFlowEvent;
-use crate::trino::{SetupOutput, TrinoErrorKind, TrinoSetup, TrinoSetupOptions};
+use crate::trino::{SetupOutput, TrinoError, TrinoErrorKind, TrinoSetup, TrinoSetupOptions};
 
-/// The id of the channel of a Trino setup until the host kept it, the ready action names the id of the host
-const TRINO_SETUP_CHANNEL: ChannelId = 0;
-
-/// An action with the id that the host kept the channel under
-fn with_channel(action: ConnectionAction, channel: ChannelId) -> ConnectionAction {
-    match action {
-        ConnectionAction::Trino(TrinoAction::ChannelReady { trino, .. }) => ConnectionAction::Trino(TrinoAction::ChannelReady { channel, trino }),
-        action => action,
-    }
-}
-
-/// Set up a Trino connection with its params, returns the id of the channel that the host keeps
+/// Set up a Trino connection with its params, the connection takes the channel with the ready step
 pub async fn setup_trino<H: SetupHost>(
     host: Rc<H>,
     params: JsonObject,
     force_relogin: bool,
     cancellation: CancellationToken,
-) -> Result<ChannelId, SetupFailure> {
+) -> Result<(), SetupFailure> {
     let options = TrinoSetupOptions { force_relogin, health_check: false };
-    let (setup, outputs) = TrinoSetup::start(&params, TRINO_SETUP_CHANNEL, options);
+    let (setup, outputs) = TrinoSetup::start(&params, options);
     let setup = Rc::new(RefCell::new(setup));
     let mut queue: VecDeque<SetupOutput> = outputs.into();
-    // A setup that is cancelled before it starts reports its start and its cancellation
+    // A setup that is cancelled before it starts reports its start and its cancellation. A setup with basic auth has
+    // its channel at once, its channel setup is cancelled.
     if cancellation.is_cancelled() && matches!(queue.front(), Some(SetupOutput::Dispatch(_))) {
         queue.truncate(1);
-        queue.extend(setup.borrow_mut().abort());
+        let mut aborted = setup.borrow_mut().abort();
+        if aborted.is_empty() {
+            let cancelled = TrinoAction::ChannelSetupCancelled(DetailedError::new("The setup was aborted"));
+            aborted = vec![
+                SetupOutput::Dispatch(ConnectionAction::Trino(cancelled)),
+                SetupOutput::Failed(TrinoError::new(TrinoErrorKind::Aborted, "The setup was aborted")),
+            ];
+        }
+        queue.extend(aborted);
     }
     // What the host failed with, the caller gets it back
     let mut host_value = None;
-    let mut channel_id = TRINO_SETUP_CHANNEL;
     while let Some(output) = queue.pop_front() {
         let next = match output {
             SetupOutput::Dispatch(action) => {
-                host.dispatch(&with_channel(action, channel_id));
+                host.dispatch(&action);
                 continue;
             }
-            SetupOutput::Succeeded => return Ok(channel_id),
+            SetupOutput::Succeeded => return Ok(()),
             SetupOutput::Failed(error) => {
                 if error.kind == TrinoErrorKind::Aborted {
                     host.log(LogLevel::Info, "Cancelled setup", &[("target", LOG_TARGET)]);
@@ -111,21 +109,6 @@ pub async fn setup_trino<H: SetupHost>(
                 let now = host.now() as i64;
                 setup.borrow_mut().on_token_response(&outcome, now)
             }
-            // A cancellation stops the wait for the connect, a channel that is ready after it is closed
-            SetupOutput::OpenChannel { channel, .. } => match connect_channel(&host, host.connect_trino_channel(&channel), &cancellation).await {
-                None => setup.borrow_mut().abort(),
-                Some(Ok(id)) if cancellation.is_cancelled() => {
-                    host.close_channel(id);
-                    setup.borrow_mut().abort()
-                }
-                Some(Ok(id)) => {
-                    channel_id = id;
-                    setup.borrow_mut().on_channel_opened()
-                }
-                // A connect that fails after the cancellation counts as cancelled
-                Some(Err(_)) if cancellation.is_cancelled() => setup.borrow_mut().abort(),
-                Some(Err(error)) => fail(&setup, &error, &mut host_value),
-            },
             // The setup doesn't run the health check, the caller runs it on the channel
             SetupOutput::RunHealthCheck { .. } => setup.borrow_mut().fail("The setup doesn't run the health check"),
         };

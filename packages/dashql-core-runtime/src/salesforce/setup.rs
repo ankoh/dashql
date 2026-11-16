@@ -3,8 +3,10 @@
 //!
 //! Every step returns the actions for the connection state (`SalesforceAction`) and what the host does next. The host
 //! generates the PKCE challenge and the flow id (randomness and SHA-256 stay with the platform), opens the
-//! authorization page, sends the requests and connects the channel; it passes each outcome back. A failed step stops
-//! the setup with `SetupFailed`, a cancelled one with `SetupCancelled`.
+//! authorization page and sends the requests; it passes each outcome back. The channel is the HTTP API of the Hyper of
+//! Data Cloud, the setup builds it with the tokens and the connection owns it. The PKCE verifier and the code stay in
+//! the setup, the connection learns only that they arrived. A failed step stops the setup with `SetupFailed`, a
+//! cancelled one with `SetupCancelled`.
 //!
 //! We use the web server flow with PKCE and without a consumer secret, see the comment in
 //! `salesforce_connection_setup.ts`: never embed the secret of an External Client App.
@@ -13,7 +15,7 @@
 //! `packages/dashql/src/runtime`.
 
 use super::api::{
-    collect_salesforce_auth_info, core_access_token_request, core_user_info_request, data_cloud_access_token_request,
+    core_access_token_request, core_user_info_request, data_cloud_access_token_request,
     read_core_access_token_response, read_core_user_info_response, read_data_cloud_access_token_response, SalesforceError,
 };
 use super::auth::{
@@ -23,9 +25,9 @@ use super::auth::{
 use super::types::*;
 use crate::http::{HttpRequest, HttpResponse};
 use crate::clfn::time::iso_timestamp;
+use super::shared::SharedSalesforceChannel;
 use crate::connections::{
-    ChannelId, ConnectorType, DetailedError, JsonObject, OAuthPkceChallenge, SalesforceAction, TemporaryToken,
-    SALESFORCE_CATALOG_DATABASE,
+    ConnectorType, DetailedError, JsonObject, OAuthPkceChallenge, SalesforceAction, SALESFORCE_CATALOG_DATABASE,
 };
 
 /// A database that a Hyper channel attaches
@@ -33,19 +35,6 @@ use crate::connections::{
 pub struct AttachedDatabase {
     pub path: String,
     pub alias: String,
-}
-
-/// The Hyper channel of a connection: Salesforce connections speak to Hyper over HTTP (`V3_HTTP`)
-#[derive(Debug, Clone, PartialEq)]
-pub struct SalesforceChannelSetup {
-    /// The tenant of the Data Cloud token
-    pub endpoint: String,
-    /// The metadata of every request: the `audience` header and the bearer token
-    pub request_metadata: Vec<(String, String)>,
-    /// Database.com queries the configured Hyper Cloud database
-    pub attached_databases: Vec<AttachedDatabase>,
-    /// The tokens, the channel of the host keeps them for the queries and the metadata
-    pub tokens: SalesforceTokens,
 }
 
 /// The attached database of a Database.com connection
@@ -56,12 +45,11 @@ pub fn hyper_cloud_attached_database(params: &SalesforceConnectionParams) -> Att
     }
 }
 
-/// What the setup achieved
+/// What the setup achieved: the tokens of the login, which the channel of the connection holds as well
 #[derive(Debug, Clone, PartialEq)]
 pub struct SalesforceSetupResult {
     pub tokens: SalesforceTokens,
     pub user_info: Option<SalesforceCoreUserInfo>,
-    pub channel: ChannelId,
 }
 
 /// What the host does next
@@ -76,9 +64,7 @@ pub enum SalesforceSetupStep {
     AwaitCallback,
     /// Send the request, pass the response to `on_response` and a request that failed to `on_fetch_failed`
     Fetch(HttpRequest),
-    /// Connect the Hyper channel, pass its id to `on_channel_ready` and a failure to `on_channel_failed`
-    ConnectChannel(SalesforceChannelSetup),
-    /// The connection is set up
+    /// The connection is set up, the channel is ready
     Done(SalesforceSetupResult),
     /// The setup stopped, the actions say why
     Stopped,
@@ -113,7 +99,6 @@ enum Phase {
     CoreToken { request: HttpRequest },
     UserInfo { core: SalesforceCoreAccessToken },
     DataCloudToken { core: SalesforceCoreAccessToken, user_info: Option<SalesforceCoreUserInfo>, request: HttpRequest },
-    Channel { tokens: SalesforceTokens, user_info: Option<SalesforceCoreUserInfo> },
     Stopped,
 }
 
@@ -201,7 +186,7 @@ impl SalesforceSetup {
             Ok(url) => url,
             Err(error) => return self.fail(error),
         };
-        let actions = vec![SalesforceAction::GeneratedPkceChallenge(pkce.clone())];
+        let actions = vec![SalesforceAction::GeneratedPkceChallenge];
         // The log names the parameters of the request, the state, the challenge and the login hint are redacted
         let redacted = "<redacted>";
         let mut parameters = serde_json::Map::new();
@@ -277,7 +262,7 @@ impl SalesforceSetup {
         };
         let request = core_access_token_request(&self.config, &self.params, &code, &pkce.verifier);
         let actions = vec![
-            SalesforceAction::ReceivedCoreAuthCode(TemporaryToken { token: code, created_at: iso_timestamp(now as i64) }),
+            SalesforceAction::ReceivedCoreAuthCode { created_at: iso_timestamp(now as i64) },
             SalesforceAction::RequestingCoreAuthToken,
         ];
         self.phase = Phase::CoreToken { request: request.clone() };
@@ -302,10 +287,9 @@ impl SalesforceSetup {
         match std::mem::replace(&mut self.phase, Phase::Stopped) {
             Phase::CoreToken { request } => match read_core_access_token_response(&request, response, now) {
                 Ok(core) => {
-                    let json = serde_json::to_string(&core).unwrap_or_default();
                     let request = core_user_info_request(&core);
                     self.phase = Phase::UserInfo { core };
-                    Self::next(vec![SalesforceAction::ReceivedCoreAuthToken(json)], SalesforceSetupStep::Fetch(request))
+                    Self::next(vec![SalesforceAction::ReceivedCoreAuthToken], SalesforceSetupStep::Fetch(request))
                 }
                 Err(error) => self.fail(error),
             },
@@ -322,13 +306,19 @@ impl SalesforceSetup {
             Phase::DataCloudToken { core, user_info, request } => {
                 match read_data_cloud_access_token_response(&request, response, now) {
                     Ok(data_cloud) => {
-                        let json = serde_json::to_string(&data_cloud).unwrap_or_default();
                         let tokens = SalesforceTokens { core, data_cloud };
-                        let channel = self.channel_setup(&tokens);
-                        self.phase = Phase::Channel { tokens, user_info };
+                        // The connection owns the channel with the tokens from now on
+                        let channel = match SharedSalesforceChannel::new(self.connector, &self.params, tokens.clone()) {
+                            Ok(channel) => channel,
+                            Err(message) => return self.fail(SalesforceError::new(message)),
+                        };
                         Self::next(
-                            vec![SalesforceAction::ReceivedDataCloudAccessToken(json), SalesforceAction::ChannelSetupStarted],
-                            SalesforceSetupStep::ConnectChannel(channel),
+                            vec![
+                                SalesforceAction::ReceivedDataCloudAccessToken,
+                                SalesforceAction::ChannelSetupStarted,
+                                SalesforceAction::ChannelReady(channel),
+                            ],
+                            SalesforceSetupStep::Done(SalesforceSetupResult { tokens, user_info }),
                         )
                     }
                     Err(error) => self.fail(error),
@@ -358,45 +348,6 @@ impl SalesforceSetup {
             Phase::UserInfo { core } => self.skip_user_info(core, error),
             _ => self.fail(SalesforceError::new(error)),
         }
-    }
-
-    /// The channel of a connection with its tokens
-    fn channel_setup(&self, tokens: &SalesforceTokens) -> SalesforceChannelSetup {
-        let info = collect_salesforce_auth_info(&tokens.core, &tokens.data_cloud);
-        let audience = info.as_ref().and_then(|i| i.offcore_tenant_id.clone()).unwrap_or_default();
-        let jwt = info.as_ref().map_or("undefined".to_string(), |i| i.offcore_raw_jwt.clone());
-        let attached_databases =
-            if self.connector == ConnectorType::Dbcom { vec![hyper_cloud_attached_database(&self.params)] } else { Vec::new() };
-        SalesforceChannelSetup {
-            endpoint: tokens.data_cloud.instance_url.clone(),
-            request_metadata: vec![("audience".to_string(), audience), ("authorization".to_string(), format!("Bearer {jwt}"))],
-            attached_databases,
-            tokens: tokens.clone(),
-        }
-    }
-
-    /// The user of the core login once the tokens are there, none if it couldn't be read
-    pub fn user_info(&self) -> Option<&SalesforceCoreUserInfo> {
-        match &self.phase {
-            Phase::Channel { user_info, .. } | Phase::DataCloudToken { user_info, .. } => user_info.as_ref(),
-            _ => None,
-        }
-    }
-
-    /// The host connected the channel: the connection waits for the health check
-    pub fn on_channel_ready(&mut self, channel: ChannelId) -> SalesforceSetupOutput {
-        let Phase::Channel { tokens, user_info } = std::mem::replace(&mut self.phase, Phase::Stopped) else {
-            return self.unexpected("a channel");
-        };
-        Self::next(
-            vec![SalesforceAction::ChannelReady(channel)],
-            SalesforceSetupStep::Done(SalesforceSetupResult { tokens, user_info, channel }),
-        )
-    }
-
-    /// The host failed to connect the channel
-    pub fn on_channel_failed(&mut self, error: &str) -> SalesforceSetupOutput {
-        self.fail(SalesforceError::new(error))
     }
 
     /// A step of the host failed, e.g. the authorization page couldn't open

@@ -4,12 +4,15 @@ import { connectorOfParams } from '../../platform/connections/connector_descript
 import { ConnectorType } from '../../platform/connections/connector_info.js';
 import type { HttpClient, HttpFetchResult } from '../../platform/platform/http/http_client.js';
 import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
+import * as arrow from 'apache-arrow';
+
 import { tableFromArrays } from '../../platform/testing/arrow_fixtures.js';
 import type { ChannelConnector, Runtime } from '../runtime.js';
 
 // The connections of tests are set up by the runtime (`setupConnection`) like the connections of the app, over a
 // platform that answers like the backend: the channel connector hands back the channel of the test, the probe of the
-// health check ends as the test asks, on the channel of a Hyper and over HTTP for Trino.
+// health check ends as the test asks, on the channel of a Hyper of the host and over HTTP for Trino and for a Hyper over
+// HTTP, which the runtime speaks itself.
 
 /// The options of a connection of a test
 export interface TestConnectionOptions {
@@ -47,6 +50,8 @@ class TestSetups {
     readonly setups = new Map<string, TestSetup>();
     /// The Trino endpoints of the setups
     private readonly trino = new Map<string, TestSetup>();
+    /// The endpoints of the setups of a Hyper over HTTP
+    private readonly hyper = new Map<string, TestSetup>();
 
     constructor(runtime: Runtime) {
         const channels = runtime.platform.channels ?? null;
@@ -74,6 +79,9 @@ class TestSetups {
             for (const [endpoint, setup] of this.trino) {
                 if (setup.probing && url.startsWith(`${endpoint}/v1/statement`)) return await trinoProbe(setup, init?.method);
             }
+            for (const [endpoint, setup] of this.hyper) {
+                if (setup.probing && url.startsWith(`${endpoint}/api/v3/query`)) return await hyperProbe(setup);
+            }
             if (http == null) throw new Error('the test has no network');
             return await http.fetch(input, init);
         };
@@ -84,6 +92,10 @@ class TestSetups {
     prepare(connectionId: string, params: ConnectionParams, setup: TestSetup): void {
         this.setups.set(connectionId, setup);
         if ('trino' in params) this.trino.set(params.trino.endpoint.replace(/\/+$/, ''), setup);
+        const hyper = 'hyper' in params ? params.hyper : null;
+        if (hyper != null && (hyper.protocol === 'V3_HTTP' || hyper.protocol === 'V3_HTTP_LINK')) {
+            this.hyper.set((hyper.endpoint ?? '').replace(/\/+$/, ''), setup);
+        }
     }
 }
 
@@ -151,6 +163,24 @@ async function trinoProbe(setup: TestSetup, method?: string): Promise<HttpFetchR
             return await new Promise(() => { });
         default:
             return json({ id: 'probe', columns: [{ name: 'health', type: 'integer' }], data: [[1]], stats: { state: 'FINISHED' } });
+    }
+}
+
+/// The answer of the HTTP API of a Hyper to the probe of a setup: one row, an error, or none until the test ends
+async function hyperProbe(setup: TestSetup): Promise<HttpFetchResult> {
+    switch (setup.health) {
+        case ConnectionHealth.FAILED:
+            return new Response(JSON.stringify({ code: 2, message: setup.error }), { status: 500, headers: { 'content-type': 'application/json' } });
+        case ConnectionHealth.CONNECTING:
+            return await new Promise(() => { });
+        default: {
+            const table = tableFromArrays({ health: Int32Array.from([1]) });
+            const status = { queryId: 'probe', completionStatus: 'FINISHED', chunkCount: 1, rowCount: 1 };
+            return new Response(arrow.tableToIPC(table, 'stream') as Uint8Array<ArrayBuffer>, {
+                status: 200,
+                headers: { 'content-type': 'application/vnd.apache.arrow.stream', 'x-hyperdb-status': JSON.stringify(status) },
+            });
+        }
     }
 }
 

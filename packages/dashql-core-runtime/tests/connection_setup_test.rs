@@ -14,17 +14,19 @@ use std::task::{Context, Poll, Wake, Waker};
 use serde_json::{json, Value};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_action_json, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind,
-    HyperChannelRequest, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
+    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind, HyperChannelRequest,
+    LoginStep, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
 };
-use dashql_core_runtime::connections::{ChannelId, ConnectionAction, ConnectorType, DetailedError, JsonObject, OAuthPkceChallenge};
+use dashql_core_runtime::connections::{
+    ChannelId, ConnectionAction, ConnectionChannel, ConnectorType, DetailedError, HyperAction, JsonObject, OAuthPkceChallenge,
+    SalesforceAction, TrinoAction,
+};
 use dashql_core_runtime::host::signal::{oneshot, Receiver};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::{QueryMetadata, QueryType};
-use dashql_core_runtime::salesforce::setup::SalesforceChannelSetup;
 use dashql_core_runtime::salesforce::{OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData, OAuthState, SalesforceOAuthConfig};
-use dashql_core_runtime::trino::{OAuthCallback, TrinoChannel};
+use dashql_core_runtime::trino::OAuthCallback;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The executor: the fake host answers at once or after the token was cancelled, polling until done is enough
@@ -74,8 +76,12 @@ struct FakeHost {
     now: Cell<f64>,
     /// The actions, `connector:TYPE`
     actions: RefCell<Vec<String>>,
-    /// The values of the actions
-    values: RefCell<Vec<Value>>,
+    /// The actions as they were dispatched
+    dispatched: RefCell<Vec<ConnectionAction>>,
+    /// Is the host the one of a login? It hears the steps of the login then.
+    login: Cell<bool>,
+    /// The steps that the listener of a login heard
+    login_steps: RefCell<Vec<&'static str>>,
     logs: RefCell<Vec<(LogLevel, String)>>,
     sent: RefCell<Vec<HttpRequest>>,
     responses: RefCell<VecDeque<HttpResponse>>,
@@ -87,14 +93,12 @@ struct FakeHost {
     event: Cell<Option<OAuthFlowEvent>>,
     /// Cancel the token while a flow waits, like a user who closes the dialog
     cancel_in_flow: Cell<bool>,
-    trino_channels: RefCell<Vec<(ChannelId, TrinoChannel)>>,
-    salesforce_channels: RefCell<Vec<SalesforceChannelSetup>>,
     hyper_channels: RefCell<Vec<HyperChannelRequest>>,
     connect_error: RefCell<Option<String>>,
     closed: RefCell<Vec<ChannelId>>,
     link_token: RefCell<Option<String>>,
     probe: RefCell<Option<Result<ProbeResult, HostError>>>,
-    probes: RefCell<Vec<(ChannelId, String, QueryMetadata)>>,
+    probes: RefCell<Vec<(String, QueryMetadata)>>,
     /// A connect of a Hyper channel that hangs until the test sends the channel, the user cancels meanwhile
     connect_later: RefCell<Option<Receiver<ChannelId>>>,
     /// The platform has no random ids
@@ -106,10 +110,42 @@ impl FakeHost {
         self.actions.borrow().clone()
     }
 
-    /// The value of the first action of a type
-    fn value(&self, action: &str) -> Value {
+    /// The first action of a type
+    fn action(&self, action: &str) -> ConnectionAction {
         let index = self.actions.borrow().iter().position(|a| a == action).unwrap_or_else(|| panic!("no action {action}"));
-        self.values.borrow()[index].clone()
+        self.dispatched.borrow()[index].clone()
+    }
+
+    /// The params of the first action of a type that carries params
+    fn params(&self, action: &str) -> JsonObject {
+        match self.action(action) {
+            ConnectionAction::Trino(TrinoAction::OAuthStarted { params } | TrinoAction::ChannelSetupStarted { params })
+            | ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params } | HyperAction::ChannelReady { params, .. })
+            | ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params }) => params,
+            other => panic!("no params in {other:?}"),
+        }
+    }
+
+    /// The error of the first action of a type that fails
+    fn error(&self, action: &str) -> DetailedError {
+        match self.action(action) {
+            ConnectionAction::HealthCheckFailed(error)
+            | ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error))
+            | ConnectionAction::Trino(TrinoAction::OAuthFailed(error))
+            | ConnectionAction::Salesforce(SalesforceAction::SetupFailed(error)) => error,
+            other => panic!("no error in {other:?}"),
+        }
+    }
+
+    /// The channel of the ready step
+    fn ready_channel(&self) -> ConnectionChannel {
+        let ready = self.dispatched.borrow().iter().find_map(|action| match action {
+            ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. }) => Some(channel.clone()),
+            ConnectionAction::Trino(TrinoAction::ChannelReady(channel)) => Some(ConnectionChannel::Trino(channel.clone())),
+            ConnectionAction::Salesforce(SalesforceAction::ChannelReady(channel)) => Some(ConnectionChannel::Salesforce(channel.clone())),
+            _ => None,
+        });
+        ready.expect("a ready step")
     }
 
     fn flow<T: 'static>(&self, cancellation: &CancellationToken, events: OAuthEvents, answer: Result<T, HostError>) -> impl Future<Output = Result<T, HostError>> + 'static {
@@ -195,22 +231,55 @@ impl OAuthHost for FakeHost {
     }
 }
 
+/// The name of an action of a setup, `connector:TYPE`
+fn step_name(action: &ConnectionAction) -> String {
+    let (connector, name) = match action {
+        ConnectionAction::HealthCheckStarted => ("connection", "HEALTH_CHECK_STARTED"),
+        ConnectionAction::HealthCheckCancelled => ("connection", "HEALTH_CHECK_CANCELLED"),
+        ConnectionAction::HealthCheckSucceeded => ("connection", "HEALTH_CHECK_SUCCEEDED"),
+        ConnectionAction::HealthCheckFailed(_) => ("connection", "HEALTH_CHECK_FAILED"),
+        ConnectionAction::Trino(action) => ("trino", match action {
+            TrinoAction::OAuthStarted { .. } => "OAUTH_STARTED",
+            TrinoAction::OAuthCancelled(_) => "OAUTH_CANCELLED",
+            TrinoAction::OAuthFailed(_) => "OAUTH_FAILED",
+            TrinoAction::GeneratingPkceChallenge => "GENERATING_PKCE_CHALLENGE",
+            TrinoAction::GeneratedPkceChallenge => "GENERATED_PKCE_CHALLENGE",
+            TrinoAction::OAuthBrowserOpened => "OAUTH_BROWSER_OPENED",
+            TrinoAction::ReceivedOAuthCode { .. } => "RECEIVED_OAUTH_CODE",
+            TrinoAction::RequestingAccessToken => "REQUESTING_ACCESS_TOKEN",
+            TrinoAction::ReceivedAccessToken => "RECEIVED_ACCESS_TOKEN",
+            TrinoAction::ChannelSetupStarted { .. } => "TRINO_CHANNEL_SETUP_STARTED",
+            TrinoAction::ChannelSetupCancelled(_) => "TRINO_CHANNEL_SETUP_CANCELLED",
+            TrinoAction::ChannelSetupFailed(_) => "TRINO_CHANNEL_SETUP_FAILED",
+            TrinoAction::ChannelReady(_) => "TRINO_CHANNEL_READY",
+        }),
+        ConnectionAction::Salesforce(action) => ("salesforce", match action {
+            SalesforceAction::ChannelSetupStarted => "SF_CHANNEL_SETUP_STARTED",
+            SalesforceAction::ChannelSetupCancelled(_) => "SF_CHANNEL_SETUP_CANCELLED",
+            SalesforceAction::ChannelSetupFailed(_) => "SF_CHANNEL_SETUP_FAILED",
+            SalesforceAction::ChannelReady(_) => "SF_CHANNEL_READY",
+            _ => LoginStep::of(&ConnectionAction::Salesforce(action.clone())).expect("a step of the login").name(),
+        }),
+        ConnectionAction::Hyper(action) => ("hyper", match action {
+            HyperAction::ChannelSetupStarted { .. } => "HYPER_CHANNEL_SETUP_STARTED",
+            HyperAction::ChannelSetupCancelled(_) => "HYPER_CHANNEL_SETUP_CANCELLED",
+            HyperAction::ChannelSetupFailed(_) => "HYPER_CHANNEL_SETUP_FAILED",
+            HyperAction::ChannelReady { .. } => "HYPER_CHANNEL_READY",
+        }),
+        other => panic!("no action of a setup: {other:?}"),
+    };
+    format!("{connector}:{name}")
+}
+
 impl SetupHost for FakeHost {
     fn dispatch(&self, action: &ConnectionAction) {
-        let json = setup_action_json(action).expect("an action of a setup");
-        self.actions.borrow_mut().push(format!("{}:{}", json["connector"].as_str().unwrap(), json["type"].as_str().unwrap()));
-        self.values.borrow_mut().push(json["value"].clone());
-    }
-
-    fn connect_trino_channel(&self, channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
-        self.trino_channels.borrow_mut().push((1, channel.clone()));
-        std::future::ready(Ok(1))
-    }
-
-    fn connect_salesforce_channel(&self, channel: &SalesforceChannelSetup, _cancellation: &CancellationToken) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
-        self.salesforce_channels.borrow_mut().push(channel.clone());
-        let error = self.connect_error.borrow().clone();
-        std::future::ready(error.map_or(Ok(5), |error| Err(HostError::new(error))))
+        self.actions.borrow_mut().push(step_name(action));
+        self.dispatched.borrow_mut().push(action.clone());
+        if self.login.get() {
+            if let Some(step) = LoginStep::of(action) {
+                self.login_steps.borrow_mut().push(step.name());
+            }
+        }
     }
 
     fn connect_hyper_channel(&self, channel: &HyperChannelRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
@@ -239,8 +308,12 @@ impl SetupHost for FakeHost {
         self.closed.borrow_mut().push(id);
     }
 
-    fn run_probe(&self, channel: ChannelId, query: &str, metadata: &QueryMetadata, _cancellation: &CancellationToken) -> impl Future<Output = Result<ProbeResult, HostError>> + 'static {
-        self.probes.borrow_mut().push((channel, query.to_string(), metadata.clone()));
+    fn client_context(&self) -> Option<Value> {
+        Some(json!({ "dashql": { "connectionId": "test", "queryType": "user" } }))
+    }
+
+    fn run_probe(&self, query: &str, metadata: &QueryMetadata, _cancellation: &CancellationToken) -> impl Future<Output = Result<ProbeResult, HostError>> + 'static {
+        self.probes.borrow_mut().push((query.to_string(), metadata.clone()));
         let result = self.probe.borrow_mut().take().unwrap_or(Ok(ProbeResult::Finished { has_table: true }));
         std::future::ready(result)
     }
@@ -309,14 +382,13 @@ fn trino_oauth_params() -> JsonObject {
 #[test]
 fn trino_basic_auth_opens_the_channel_with_the_default_catalog_and_schema() {
     let host = Rc::new(FakeHost::default());
-    let channel = block_on(setup_trino(host.clone(), trino_basic_params(), false, CancellationToken::new())).unwrap();
+    block_on(setup_trino(host.clone(), trino_basic_params(), false, CancellationToken::new())).unwrap();
     assert_eq!(host.actions(), ["trino:TRINO_CHANNEL_SETUP_STARTED", "trino:TRINO_CHANNEL_READY"]);
-    assert_eq!(host.value("trino:TRINO_CHANNEL_READY"), json!(channel));
     // The params of the action are without the draft rows
-    assert!(host.value("trino:TRINO_CHANNEL_SETUP_STARTED").get("draftRows").is_none());
-    let channels = host.trino_channels.borrow();
-    let [(id, opened)] = channels.as_slice() else { panic!("{channels:?}") };
-    assert_eq!(*id, channel);
+    assert!(host.params("trino:TRINO_CHANNEL_SETUP_STARTED").get("draftRows").is_none());
+    // The connection owns the channel, the host connects nothing
+    let ConnectionChannel::Trino(opened) = host.ready_channel() else { panic!("a Trino channel") };
+    let opened = opened.channel();
     assert_eq!(opened.endpoint, TRINO_ENDPOINT);
     assert_eq!((opened.defaults.catalog.as_deref(), opened.defaults.schema.as_deref()), (Some("hive"), Some("sales")));
 }
@@ -329,7 +401,6 @@ fn trino_reports_a_setup_that_was_cancelled_before_it_started() {
     let result = block_on(setup_trino(host.clone(), trino_basic_params(), false, token));
     assert!(matches!(result, Err(SetupFailure { cancelled: true, .. })));
     assert_eq!(host.actions(), ["trino:TRINO_CHANNEL_SETUP_STARTED", "trino:TRINO_CHANNEL_SETUP_CANCELLED"]);
-    assert!(host.trino_channels.borrow().is_empty());
 
     let host = Rc::new(FakeHost::default());
     let token = CancellationToken::new();
@@ -357,7 +428,7 @@ fn trino_oauth_authorizes_through_the_loopback_server_and_requests_the_token() {
     host.responses.borrow_mut().push_back(json_response(json!({
         "access_token": "access-1", "refresh_token": "refresh-1", "token_type": "Bearer", "expires_in": 300,
     })));
-    let channel = block_on(setup_trino(host.clone(), trino_oauth_params(), true, CancellationToken::new())).unwrap();
+    block_on(setup_trino(host.clone(), trino_oauth_params(), true, CancellationToken::new())).unwrap();
     assert_eq!(
         host.actions(),
         [
@@ -381,10 +452,13 @@ fn trino_oauth_authorizes_through_the_loopback_server_and_requests_the_token() {
     assert_eq!(sent[0].url, "https://idp.example.com/token");
     let body = sent[0].body.clone().unwrap_or_default();
     assert!(body.contains("grant_type=authorization_code") && body.contains("code=auth-code") && body.contains("code_verifier=verifier"), "{body}");
-    assert_eq!(host.value("trino:RECEIVED_ACCESS_TOKEN")["accessToken"], "access-1");
-    let channels = host.trino_channels.borrow();
-    assert_eq!(channels[0].0, channel);
-    assert_eq!(channels[0].1.access_token.as_ref().map(|token| token.access_token.as_str()), Some("access-1"));
+    // The channel is the one owner of the token, the steps carry neither the verifier, the code nor the token
+    let ConnectionChannel::Trino(opened) = host.ready_channel() else { panic!("a Trino channel") };
+    assert_eq!(opened.access_token().map(|token| token.access_token), Some("access-1".to_string()));
+    let steps = format!("{:?}", host.dispatched.borrow().iter().filter(|action| !matches!(action, ConnectionAction::Trino(TrinoAction::ChannelReady(_)))).collect::<Vec<_>>());
+    for secret in ["verifier", "auth-code", "access-1", "refresh-1"] {
+        assert!(!steps.contains(secret), "{secret} in {steps}");
+    }
 }
 
 #[test]
@@ -422,19 +496,19 @@ fn trino_oauth_is_cancelled_while_it_waits_for_the_callback() {
 #[test]
 fn the_health_check_runs_the_probe_of_the_connector_through_the_executor() {
     let host = Rc::new(FakeHost::default());
-    block_on(check_health(host.clone(), ConnectorType::Trino, 3, CancellationToken::new())).unwrap();
+    block_on(check_health(host.clone(), ConnectorType::Trino, CancellationToken::new())).unwrap();
     assert_eq!(host.actions(), ["connection:HEALTH_CHECK_STARTED", "connection:HEALTH_CHECK_SUCCEEDED"]);
     let probes = host.probes.borrow();
-    let (channel, query, metadata) = &probes[0];
-    assert_eq!((*channel, query.as_str()), (3, "select 1"));
+    let (query, metadata) = &probes[0];
+    assert_eq!(query.as_str(), "select 1");
     assert_eq!(metadata.query_type, QueryType::HealthCheck);
     assert_eq!(metadata.title.as_deref(), Some("Health Check"));
     assert_eq!(metadata.issuer.as_deref(), Some("Connection Setup"));
     drop(probes);
 
     let host = Rc::new(FakeHost::default());
-    block_on(check_health(host.clone(), ConnectorType::Hyper, 1, CancellationToken::new())).unwrap();
-    assert_eq!(host.probes.borrow()[0].1, "select 1 as healthy");
+    block_on(check_health(host.clone(), ConnectorType::Hyper, CancellationToken::new())).unwrap();
+    assert_eq!(host.probes.borrow()[0].0, "select 1 as healthy");
 }
 
 #[test]
@@ -443,21 +517,21 @@ fn the_health_check_fails_with_the_error_of_the_probe() {
     let mut rejected = DetailedError::new("Unauthorized");
     rejected.data.insert("status".into(), "401".into());
     *host.probe.borrow_mut() = Some(Ok(ProbeResult::Failed(rejected.clone())));
-    let failure = block_on(check_health(host.clone(), ConnectorType::Trino, 1, CancellationToken::new())).unwrap_err();
+    let failure = block_on(check_health(host.clone(), ConnectorType::Trino, CancellationToken::new())).unwrap_err();
     assert_eq!((failure.message.as_str(), failure.data.get("status").map(String::as_str)), ("Unauthorized", Some("401")));
     assert_eq!(host.actions(), ["connection:HEALTH_CHECK_STARTED", "connection:HEALTH_CHECK_FAILED"]);
-    assert_eq!(host.value("connection:HEALTH_CHECK_FAILED"), json!({ "message": "Unauthorized", "data": { "status": "401" } }));
+    assert_eq!(host.error("connection:HEALTH_CHECK_FAILED"), rejected);
 
     // A probe without a table fails as well
     let host = Rc::new(FakeHost::default());
     *host.probe.borrow_mut() = Some(Ok(ProbeResult::Finished { has_table: false }));
-    assert_eq!(failure_message(block_on(check_health(host.clone(), ConnectorType::Trino, 1, CancellationToken::new()))), "health check failed");
+    assert_eq!(failure_message(block_on(check_health(host.clone(), ConnectorType::Trino, CancellationToken::new()))), "health check failed");
 
     // A cancelled check is cancelled whatever the probe did
     let host = Rc::new(FakeHost::default());
     let token = CancellationToken::new();
     token.cancel();
-    let result = block_on(check_health(host.clone(), ConnectorType::Trino, 1, token));
+    let result = block_on(check_health(host.clone(), ConnectorType::Trino, token));
     assert!(matches!(result, Err(SetupFailure { cancelled: true, .. })));
     assert_eq!(host.actions(), ["connection:HEALTH_CHECK_STARTED", "connection:HEALTH_CHECK_CANCELLED"]);
     assert!(host.probes.borrow().is_empty());
@@ -508,7 +582,7 @@ fn salesforce_responses(host: &FakeHost, user_info: bool) {
 }
 
 #[test]
-fn salesforce_logs_in_and_connects_the_hyper_channel_with_the_tokens() {
+fn salesforce_logs_in_and_hands_the_hyper_channel_with_the_tokens_to_the_connection() {
     let host = Rc::new(FakeHost::default());
     host.now.set(1_000.0);
     *host.redirect.borrow_mut() = Some(Box::new(redirect_callback));
@@ -523,7 +597,6 @@ fn salesforce_logs_in_and_connects_the_hyper_channel_with_the_tokens() {
         CancellationToken::new(),
     ))
     .unwrap();
-    assert_eq!(result.channel, 5);
     assert_eq!(result.user_info.as_ref().and_then(|info| info.preferred_username.as_deref()), Some("user@example.com"));
     assert_eq!(
         host.actions(),
@@ -542,24 +615,46 @@ fn salesforce_logs_in_and_connects_the_hyper_channel_with_the_tokens() {
             "salesforce:SF_CHANNEL_READY",
         ]
     );
-    assert_eq!(host.value("salesforce:RECEIVED_CORE_AUTH_TOKEN")["accessToken"], "core-token");
-    let channels = host.salesforce_channels.borrow();
-    let channel = &channels[0];
-    assert_eq!(channel.tokens.core.access_token, "core-token");
-    assert_eq!(channel.attached_databases.len(), 1, "Database.com attaches its Hyper Cloud database");
-    assert!(channel.request_metadata.iter().any(|(name, value)| name == "authorization" && value.starts_with("Bearer eyJ")));
+    // The channel is the one owner of the tokens, the host connects nothing
+    let ConnectionChannel::Salesforce(channel) = host.ready_channel() else { panic!("a Salesforce channel") };
+    assert_eq!(channel.tokens().core.access_token, "core-token");
+    let hyper = channel.hyper();
+    assert_eq!(hyper.context().attached_databases.len(), 1, "Database.com attaches its Hyper Cloud database");
+    assert_eq!(hyper.client().endpoint().origin(), "https://tenant.c360a.salesforce.com");
+    let auth = channel.auth();
+    assert!(auth.get("authorization").is_some_and(|value| value.starts_with("Bearer eyJ")));
+    assert_eq!(auth.get("audience"), Some("tenant"));
+    // The steps carry neither the verifier, the code nor a token
+    let steps = format!("{:?}", host.dispatched.borrow().iter().filter(|action| !matches!(action, ConnectionAction::Salesforce(SalesforceAction::ChannelReady(_)))).collect::<Vec<_>>());
+    for secret in ["verifier", "core-code", "core-token", "eyJ"] {
+        assert!(!steps.contains(secret), "{secret} in {steps}");
+    }
 }
 
 #[test]
 fn salesforce_authenticates_without_a_channel_and_skips_a_missing_user_info() {
     let host = Rc::new(FakeHost::default());
+    host.login.set(true);
     *host.redirect.borrow_mut() = Some(Box::new(redirect_callback));
     salesforce_responses(&host, false);
     let authentication = block_on(authenticate_salesforce(host.clone(), salesforce_params(), salesforce_config(), false, CancellationToken::new())).unwrap();
     assert_eq!(authentication.tokens.core.access_token, "core-token");
     assert!(authentication.user_info.is_none());
-    assert!(host.salesforce_channels.borrow().is_empty());
     assert!(!host.actions().contains(&"salesforce:RECEIVED_CORE_USER_INFO".to_string()));
+    // The listener of the login hears the names of the steps, the tokens are only in the outcome
+    assert_eq!(
+        *host.login_steps.borrow(),
+        [
+            "SETUP_STARTED",
+            "GENERATING_PKCE_CHALLENGE",
+            "GENERATED_PKCE_CHALLENGE",
+            "RECEIVED_CORE_AUTH_CODE",
+            "REQUESTING_CORE_AUTH_TOKEN",
+            "RECEIVED_CORE_AUTH_TOKEN",
+            "REQUESTING_DATA_CLOUD_ACCESS_TOKEN",
+            "RECEIVED_DATA_CLOUD_ACCESS_TOKEN",
+        ]
+    );
 }
 
 #[test]
@@ -577,13 +672,6 @@ fn salesforce_fails_and_cancels() {
     assert_eq!(failure_message(block_on(run)), "User denied access");
     assert_eq!(host.actions().last().map(String::as_str), Some("salesforce:SETUP_FAILED"));
 
-    // A channel that doesn't connect
-    let host = Rc::new(FakeHost::default());
-    *host.redirect.borrow_mut() = Some(Box::new(redirect_callback));
-    *host.connect_error.borrow_mut() = Some("HTTP client is not available".into());
-    salesforce_responses(&host, true);
-    let run = setup_salesforce(host.clone(), ConnectorType::SalesforceDataCloud, salesforce_params(), salesforce_config(), false, CancellationToken::new());
-    assert_eq!(failure_message(block_on(run)), "HTTP client is not available");
 
     // Cancelled while the redirect page waits
     let host = Rc::new(FakeHost::default());
@@ -615,17 +703,36 @@ fn hyper_params(protocol: &str) -> JsonObject {
 
 #[test]
 fn hyper_connects_the_channel_of_its_protocol() {
-    for (protocol, kind) in [("WASM", HyperChannelKind::Embedded), ("V3_GRPC", HyperChannelKind::Grpc), ("V3_HTTP", HyperChannelKind::Http)] {
+    for (protocol, kind) in [("WASM", HyperChannelKind::Embedded), ("V3_GRPC", HyperChannelKind::Grpc)] {
         let host = Rc::new(FakeHost::default());
-        let channel = block_on(setup_hyper(host.clone(), hyper_params(protocol), CancellationToken::new())).unwrap();
-        assert_eq!(channel, 9);
+        block_on(setup_hyper(host.clone(), hyper_params(protocol), CancellationToken::new())).unwrap();
         assert_eq!(host.actions(), ["hyper:HYPER_CHANNEL_SETUP_STARTED", "hyper:HYPER_CHANNEL_READY"]);
-        let ready = host.value("hyper:HYPER_CHANNEL_READY");
-        assert_eq!(ready["channel"], 9);
-        assert!(ready["params"].get("draftRows").is_none());
-        assert_eq!(ready["params"]["protocol"], protocol);
+        assert_eq!(host.ready_channel(), ConnectionChannel::Host(9));
+        let params = host.params("hyper:HYPER_CHANNEL_READY");
+        assert!(params.get("draftRows").is_none());
+        assert_eq!(params["protocol"], protocol);
         assert_eq!(host.hyper_channels.borrow()[0].kind, kind);
     }
+}
+
+#[test]
+fn hyper_over_http_is_a_channel_of_the_connection_with_the_metadata_as_headers() {
+    let host = Rc::new(FakeHost::default());
+    block_on(setup_hyper(host.clone(), hyper_params("V3_HTTP"), CancellationToken::new())).unwrap();
+    assert_eq!(host.actions(), ["hyper:HYPER_CHANNEL_SETUP_STARTED", "hyper:HYPER_CHANNEL_READY"]);
+    // The host connects nothing
+    assert!(host.hyper_channels.borrow().is_empty());
+    let ConnectionChannel::HyperHttp { channel, auth } = host.ready_channel() else { panic!("a Hyper channel over HTTP") };
+    assert_eq!(auth.get("ctx-tenant-id"), Some("tenant-123"));
+    let request = channel.execute_query("select 1", &auth);
+    assert_eq!(request.url, "https://hyper.example.com/api/v3/query");
+    assert_eq!(channel.context().client_context, Some(json!({ "dashql": { "connectionId": "test", "queryType": "user" } })));
+    // An endpoint that is no URL fails the setup
+    let host = Rc::new(FakeHost::default());
+    let mut params = hyper_params("V3_HTTP");
+    params.insert("endpoint".into(), json!(""));
+    block_on(setup_hyper(host.clone(), params, CancellationToken::new())).unwrap_err();
+    assert_eq!(host.actions(), ["hyper:HYPER_CHANNEL_SETUP_STARTED", "hyper:HYPER_CHANNEL_SETUP_FAILED"]);
 }
 
 #[test]
@@ -671,13 +778,14 @@ fn hyper_links_need_their_token_and_speak_http() {
     let host = Rc::new(FakeHost::default());
     *host.link_token.borrow_mut() = Some("link-token".into());
     block_on(setup_hyper(host.clone(), hyper_params("V3_HTTP_LINK"), CancellationToken::new())).unwrap();
-    let request = host.hyper_channels.borrow()[0].clone();
-    assert_eq!(request.kind, HyperChannelKind::Http);
-    assert_eq!(request.params["protocol"], "V3_HTTP");
-    assert_eq!(request.params["metadata"]["authorization"], "Bearer link-token");
-    assert_eq!(request.params["metadata"]["ctx-tenant-id"], "tenant-123");
+    assert!(host.hyper_channels.borrow().is_empty());
+    let ConnectionChannel::HyperHttp { auth, .. } = host.ready_channel() else { panic!("a Hyper channel over HTTP") };
+    assert_eq!(auth.get("authorization"), Some("Bearer link-token"));
+    assert_eq!(auth.get("ctx-tenant-id"), Some("tenant-123"));
     // The connection keeps the params of the link, without the token
-    assert_eq!(host.value("hyper:HYPER_CHANNEL_READY")["params"]["protocol"], "V3_HTTP_LINK");
+    let params = host.params("hyper:HYPER_CHANNEL_READY");
+    assert_eq!(params["protocol"], "V3_HTTP_LINK");
+    assert!(!format!("{params:?}").contains("link-token"));
 }
 
 #[test]
@@ -685,12 +793,85 @@ fn hyper_fails_and_closes_a_channel_that_was_ready_after_the_cancellation() {
     let host = Rc::new(FakeHost::default());
     *host.connect_error.borrow_mut() = Some("gRPC client is not available".into());
     assert_eq!(failure_message(block_on(setup_hyper(host.clone(), hyper_params("V3_GRPC"), CancellationToken::new()))), "gRPC client is not available");
-    assert_eq!(host.value("hyper:HYPER_CHANNEL_SETUP_FAILED"), json!({ "message": "gRPC client is not available" }));
+    assert_eq!(host.error("hyper:HYPER_CHANNEL_SETUP_FAILED"), DetailedError::new("gRPC client is not available"));
 
     let host = Rc::new(FakeHost::default());
     host.cancel_in_flow.set(true);
-    let result = block_on(setup_hyper(host.clone(), hyper_params("V3_HTTP"), CancellationToken::new()));
+    let result = block_on(setup_hyper(host.clone(), hyper_params("V3_GRPC"), CancellationToken::new()));
     assert!(matches!(result, Err(SetupFailure { cancelled: true, .. })));
     assert_eq!(host.actions(), ["hyper:HYPER_CHANNEL_SETUP_STARTED", "hyper:HYPER_CHANNEL_SETUP_CANCELLED"]);
     assert_eq!(*host.closed.borrow(), [9]);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The tokens of a Salesforce channel
+
+/// A Salesforce channel whose Data Cloud token expires at a time, with a refresh token
+fn expiring_salesforce_channel(expires_at: &str) -> dashql_core_runtime::salesforce::SharedSalesforceChannel {
+    use dashql_core_runtime::salesforce::{
+        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens, SharedSalesforceChannel,
+    };
+    let core = SalesforceCoreAccessToken {
+        access_token: "core-1".into(),
+        refresh_token: Some("refresh-1".into()),
+        instance_url: Some("https://example.my.salesforce.com".into()),
+        ..Default::default()
+    };
+    let data_cloud = SalesforceDataCloudAccessToken {
+        instance_url: "https://tenant.c360a.salesforce.com/".into(),
+        expires_at: expires_at.into(),
+        ..Default::default()
+    };
+    let params = SalesforceConnectionParams { app_consumer_key: "consumer-key".into(), ..Default::default() };
+    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud }).unwrap()
+}
+
+#[test]
+fn salesforce_refreshes_tokens_about_to_expire_with_the_refresh_token() {
+    let host = Rc::new(FakeHost::default());
+    // 2026-01-01T00:00:00Z, the token expires in 30 seconds
+    host.now.set(1_767_225_600_000.0);
+    let channel = expiring_salesforce_channel("2026-01-01T00:00:30.000Z");
+    {
+        let mut responses = host.responses.borrow_mut();
+        responses.push_back(json_response(json!({ "access_token": "core-2", "instance_url": "https://example.my.salesforce.com" })));
+        responses.push_back(json_response(json!({
+            "access_token": "eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjE4MDAwMDAwMDAsImF1ZGllbmNlVGVuYW50SWQiOiJ0ZW5hbnQifQ.c2ln",
+            "instance_url": "tenant.c360a.salesforce.com", "token_type": "Bearer", "expires_in": 7200,
+        })));
+    }
+    // Two callers share one refresh
+    let first = channel.fresh(&host);
+    let second = channel.fresh(&host);
+    assert_eq!(block_on(async { (first.await, second.await) }), (Ok(()), Ok(())));
+    let sent = host.sent.borrow();
+    assert_eq!(sent.len(), 2);
+    assert_eq!(sent[0].url, "https://example.my.salesforce.com/services/oauth2/token");
+    let body = sent[0].body.clone().unwrap_or_default();
+    assert!(body.contains("grant_type=refresh_token") && body.contains("refresh_token=refresh-1") && body.contains("client_id=consumer-key"), "{body}");
+    assert!(sent[1].url.ends_with("/services/a360/token"));
+    drop(sent);
+    // The channel keeps the new tokens and the refresh token of the login
+    let tokens = channel.tokens();
+    assert_eq!(tokens.core.access_token, "core-2");
+    assert_eq!(tokens.core.refresh_token.as_deref(), Some("refresh-1"));
+    assert!(channel.auth().get("authorization").is_some_and(|value| value.starts_with("Bearer eyJ")));
+    // A fresh token is not refreshed again
+    assert_eq!(block_on(channel.fresh(&host)), Ok(()));
+    assert_eq!(host.sent.borrow().len(), 2);
+}
+
+#[test]
+fn salesforce_keeps_the_tokens_of_a_failed_refresh() {
+    let host = Rc::new(FakeHost::default());
+    host.now.set(1_767_225_600_000.0);
+    let channel = expiring_salesforce_channel("2026-01-01T00:00:30.000Z");
+    host.responses.borrow_mut().push_back(HttpResponse::new(400, json!({ "error": "invalid_grant", "error_description": "expired" }).to_string()));
+    assert_eq!(block_on(channel.fresh(&host)), Err("expired".to_string()));
+    assert_eq!(channel.tokens().core.access_token, "core-1");
+    // A token far from its expiry needs no refresh
+    let host = Rc::new(FakeHost::default());
+    host.now.set(1_767_225_600_000.0);
+    assert_eq!(block_on(expiring_salesforce_channel("2026-01-01T02:00:00.000Z").fresh(&host)), Ok(()));
+    assert!(host.sent.borrow().is_empty());
 }

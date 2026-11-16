@@ -3,9 +3,10 @@
 //!
 //! The setup reports every step as an action on the connection (`ConnectionAction`) and asks the host for what it
 //! can't do itself: a PKCE challenge and a random state (the crypto of the platform), the login in the browser with
-//! the loopback redirect (`OAuthFlow`), the request of the access token, keeping the channel under its id and the
-//! health check, which runs through the query executor so that it shows up like any other query. The host passes the
-//! answers back with the time they arrived.
+//! the loopback redirect (`OAuthFlow`), the request of the access token and the health check, which runs through the
+//! query executor so that it shows up like any other query. The host passes the answers back with the time they
+//! arrived. The connection owns the channel that the setup makes ready, with the access token: the PKCE verifier and
+//! the code stay with the setup.
 //!
 //! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_setup.ts` and `performHealthCheck` of
 //! `health_check.ts`.
@@ -16,7 +17,7 @@ use crate::http::{FetchOutcome, HttpRequest};
 use super::protocol::{read_token_response, token_request, TrinoAuthType, TrinoChannel, TrinoOAuthParams};
 use super::shared::SharedTrinoChannel;
 use super::time::{iso_timestamp, Millis};
-use crate::connections::{ChannelId, ConnectionAction, DetailedError, JsonObject, OAuthPkceChallenge, TemporaryToken, TrinoAction};
+use crate::connections::{ConnectionAction, DetailedError, JsonObject, OAuthPkceChallenge, TrinoAction};
 
 /// The redirect of the OAuth flow if the connection doesn't configure one: the loopback server of the platform
 pub const DEFAULT_OAUTH_CALLBACK_URL: &str = "http://localhost:56512/Callback";
@@ -70,12 +71,9 @@ pub enum SetupOutput {
     Authorize { url: String, callback_url: String },
     /// Send the request of the access token and pass the outcome to `on_token_response`
     RequestToken(HttpRequest),
-    /// Keep the channel under its id and pass the outcome to `on_channel_opened`, or a failure to `fail`. The
-    /// connection refers to the channel once it is ready.
-    OpenChannel { id: ChannelId, channel: TrinoChannel },
-    /// Run the query of the health check on the channel through the query executor and pass the outcome to
-    /// `on_health_check`
-    RunHealthCheck { channel: ChannelId, query: &'static str },
+    /// Run the query of the health check on the channel of the connection through the query executor and pass the
+    /// outcome to `on_health_check`
+    RunHealthCheck { query: &'static str },
     /// The setup succeeded
     Succeeded,
     /// The setup failed or was aborted
@@ -91,8 +89,6 @@ enum Phase {
     Authorizing { pkce: OAuthPkceChallenge, state: String, callback_url: String },
     /// The access token is requested
     RequestingToken,
-    /// The host keeps the channel
-    OpeningChannel,
     /// The health check runs
     HealthCheck,
     /// The setup ended
@@ -106,8 +102,6 @@ pub struct TrinoSetup {
     params: JsonObject,
     /// The channel of the params
     channel: TrinoChannel,
-    /// The id that the host keeps the channel under
-    channel_id: ChannelId,
     /// The options
     options: TrinoSetupOptions,
     /// How far the setup got
@@ -115,14 +109,13 @@ pub struct TrinoSetup {
 }
 
 impl TrinoSetup {
-    /// Start the setup of a connection with the params of the connector. The host keeps the channel under an id that
-    /// it chose.
-    pub fn start(params: &JsonObject, channel_id: ChannelId, options: TrinoSetupOptions) -> (Self, Vec<SetupOutput>) {
+    /// Start the setup of a connection with the params of the connector
+    pub fn start(params: &JsonObject, options: TrinoSetupOptions) -> (Self, Vec<SetupOutput>) {
         let mut params = params.clone();
         params.remove("draftRows");
         let channel = TrinoChannel::from_params(&params);
         let oauth = channel.auth.auth_type == TrinoAuthType::OAuth;
-        let mut setup = Self { params, channel, channel_id, options, phase: Phase::Done };
+        let mut setup = Self { params, channel, options, phase: Phase::Done };
         let mut out = Vec::new();
         if !oauth {
             setup.open_channel(&mut out);
@@ -157,7 +150,7 @@ impl TrinoSetup {
         if self.phase != Phase::GeneratingPkce {
             return out;
         }
-        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::GeneratedPkceChallenge(pkce.clone()))));
+        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::GeneratedPkceChallenge)));
         let oauth = self.oauth();
         let callback_url =
             if oauth.callback_url.is_empty() { DEFAULT_OAUTH_CALLBACK_URL.to_string() } else { oauth.callback_url.clone() };
@@ -213,8 +206,8 @@ impl TrinoSetup {
             self.fail_oauth(oauth_error("No authorization code received".into()), &mut out);
             return out;
         };
-        let auth_code = TemporaryToken { token: code.clone(), created_at: iso_timestamp(now) };
-        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ReceivedOAuthCode(auth_code))));
+        let received = TrinoAction::ReceivedOAuthCode { created_at: iso_timestamp(now) };
+        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(received)));
         out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::RequestingAccessToken)));
         let oauth = self.oauth();
         out.push(SetupOutput::RequestToken(token_request(
@@ -241,9 +234,7 @@ impl TrinoSetup {
         match read_token_response(outcome, now) {
             Err(error) => self.fail_oauth(error, &mut out),
             Ok(token) => {
-                out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ReceivedAccessToken(
-                    token.to_json().to_string(),
-                ))));
+                out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ReceivedAccessToken)));
                 self.channel.access_token = Some(token);
                 self.open_channel(&mut out);
             }
@@ -276,28 +267,7 @@ impl TrinoSetup {
         out
     }
 
-    /// The host kept the channel: it is ready, the health check runs next if the setup runs it
-    pub fn on_channel_opened(&mut self) -> Vec<SetupOutput> {
-        let mut out = Vec::new();
-        if self.phase != Phase::OpeningChannel {
-            return out;
-        }
-        // The connection owns the channel from now on, its queries share it
-        let trino = SharedTrinoChannel::new(self.channel.clone());
-        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelReady { channel: self.channel_id, trino })));
-        if self.options.health_check {
-            out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckStarted));
-            out.push(SetupOutput::RunHealthCheck { channel: self.channel_id, query: HEALTH_CHECK_QUERY });
-            self.phase = Phase::HealthCheck;
-        } else {
-            self.phase = Phase::Done;
-            out.push(SetupOutput::Succeeded);
-        }
-        out
-    }
-
-    /// A step of the host failed, e.g. the login page couldn't open. A step of the flow fails the flow, the connect fails
-    /// the channel, also after a flow.
+    /// A step of the host failed, e.g. the login page couldn't open. A step of the flow fails the flow.
     pub fn fail(&mut self, message: &str) -> Vec<SetupOutput> {
         let mut out = Vec::new();
         match std::mem::replace(&mut self.phase, Phase::Done) {
@@ -307,24 +277,16 @@ impl TrinoSetup {
                 out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckFailed(error.clone())));
                 out.push(SetupOutput::Failed(TrinoError { kind: TrinoErrorKind::HealthCheck, message: error.message, data: error.data }));
             }
-            Phase::OpeningChannel => {
-                out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(DetailedError::new(message)))));
-                out.push(SetupOutput::Failed(TrinoError::new(TrinoErrorKind::Protocol, message)));
-            }
             _ => self.fail_oauth(TrinoError::new(TrinoErrorKind::OAuth, message), &mut out),
         }
         out
     }
 
-    /// Abort the setup, e.g. the user cancelled it. A step of the flow cancels the flow, the connect cancels the channel,
-    /// also after a flow.
+    /// Abort the setup, e.g. the user cancelled it. A step of the flow cancels the flow.
     pub fn abort(&mut self) -> Vec<SetupOutput> {
         let mut out = Vec::new();
         let action = match std::mem::replace(&mut self.phase, Phase::Done) {
             Phase::Done => return out,
-            Phase::OpeningChannel => {
-                ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(DetailedError::new("The setup was aborted")))
-            }
             Phase::GeneratingPkce | Phase::Authorizing { .. } | Phase::RequestingToken => {
                 ConnectionAction::Trino(TrinoAction::OAuthCancelled(DetailedError::new("OAuth flow was aborted")))
             }
@@ -335,11 +297,20 @@ impl TrinoSetup {
         out
     }
 
-    /// Set up the channel, the host keeps it
+    /// Set up the channel: the connection owns it from now on, its queries share it. The health check runs next if the
+    /// setup runs it.
     fn open_channel(&mut self, out: &mut Vec<SetupOutput>) {
         out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: self.params.clone() })));
-        out.push(SetupOutput::OpenChannel { id: self.channel_id, channel: self.channel.clone() });
-        self.phase = Phase::OpeningChannel;
+        let trino = SharedTrinoChannel::new(self.channel.clone());
+        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelReady(trino))));
+        if self.options.health_check {
+            out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckStarted));
+            out.push(SetupOutput::RunHealthCheck { query: HEALTH_CHECK_QUERY });
+            self.phase = Phase::HealthCheck;
+        } else {
+            self.phase = Phase::Done;
+            out.push(SetupOutput::Succeeded);
+        }
     }
 
     /// The OAuth flow failed, the connection keeps only the message

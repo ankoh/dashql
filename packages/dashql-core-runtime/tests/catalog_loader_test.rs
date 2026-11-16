@@ -1128,17 +1128,26 @@ fn a_database_com_connection_reads_the_hyper_cloud_database_it_attaches() {
 // ---------------------------------------------------------------------------------------------------------------------
 // Salesforce
 
-/// A Salesforce connection with the tokens of a login
+
+/// The channel of a Salesforce login with its tokens, as the setup hands it to the connection
+fn salesforce_channel() -> dashql_core_runtime::salesforce::SharedSalesforceChannel {
+    use dashql_core_runtime::salesforce::{
+        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens, SharedSalesforceChannel,
+    };
+    let core = SalesforceCoreAccessToken {
+        access_token: "core-token".into(),
+        instance_url: Some("https://example.my.salesforce.com".into()),
+        ..Default::default()
+    };
+    let data_cloud = SalesforceDataCloudAccessToken { instance_url: "https://tenant.c360a.salesforce.com/".into(), ..Default::default() };
+    let params = SalesforceConnectionParams::default();
+    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud }).unwrap()
+}
+
+/// A Salesforce connection with the channel of a login
 fn salesforce() -> Fixture {
     let mut salesforce = Fixture::new(ConnectorType::SalesforceDataCloud, json!({ "instanceUrl": "https://example.my.salesforce.com" }));
-    let tokens = |salesforce: &mut Fixture, core: &str| {
-        salesforce.connection.apply(ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreAuthToken(core.to_string())), NOW).unwrap();
-        salesforce
-            .connection
-            .apply(ConnectionAction::Salesforce(SalesforceAction::ReceivedDataCloudAccessToken("{\"jwt\":{}}".to_string())), NOW)
-            .unwrap();
-    };
-    tokens(&mut salesforce, r#"{"accessToken":"core-token","instanceUrl":"https://example.my.salesforce.com"}"#);
+    salesforce.connection.apply(ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())), NOW).unwrap();
     salesforce
 }
 
@@ -1420,6 +1429,8 @@ fn orders() -> Option<Vec<RelationName>> {
 fn a_forced_refresh_aborts_a_running_one_once_and_starts_after_it_settled() {
     let mut registry = Registry::durable();
     registry.schedule();
+    // A requested refresh runs once the connection is online
+    registry.online();
     registry.enqueue(false);
     assert_eq!(registry.started.len(), 1);
     let first = registry.running[0].task_id();
@@ -1476,6 +1487,8 @@ fn the_relations_of_statements_are_asked_about_once_the_connection_has_room() {
 fn the_relations_of_statements_wait_for_a_running_refresh() {
     let mut registry = Registry::durable();
     registry.schedule();
+    // A requested refresh runs once the connection is online
+    registry.online();
     registry.enqueue(false);
     assert_eq!(registry.started, [None]);
     registry.online();
@@ -1535,6 +1548,8 @@ fn the_relations_of_statements_stop_being_asked_about_when_the_attempts_are_used
 fn an_auto_request_runs_once_more_after_a_failure() {
     let mut registry = Registry::durable();
     registry.schedule();
+    // A requested refresh runs once the connection is online
+    registry.online();
     registry.enqueue(true);
     registry.enqueue(false);
     assert!(registry.aborted.is_empty());
@@ -1575,6 +1590,8 @@ fn a_forced_refresh_runs_ahead_of_a_lookup_that_keeps_coming_back() {
 fn a_queued_auto_request_is_consumed_by_a_successful_refresh() {
     let mut registry = Registry::durable();
     registry.schedule();
+    // A requested refresh runs once the connection is online
+    registry.online();
     registry.enqueue(true);
     registry.enqueue(false);
     registry.settle(true);
@@ -1647,4 +1664,17 @@ fn a_request_for_a_connection_that_is_gone_is_dropped() {
     let schedule = loader.schedule(&[], &[], NOW);
     assert!(schedule.commands.is_empty());
     assert!(!loader.is_queued("gone"));
+}
+
+#[test]
+fn a_requested_refresh_waits_until_the_connection_is_online() {
+    let mut registry = Registry::durable();
+    registry.describe();
+    registry.enqueue(true);
+    assert!(registry.started.is_empty(), "no refresh of a connection that is not online");
+    assert!(registry.loader.is_queued("database"));
+    registry.online();
+    registry.schedule();
+    assert_eq!(registry.started, [None]);
+    assert!(!registry.loader.is_queued("database"));
 }

@@ -22,7 +22,7 @@ pub mod local_cloud;
 pub mod result_reader;
 pub mod status;
 
-pub use channel::{HyperChannel, HyperChannelContext, HyperHttpChannel, HyperProtocol};
+pub use channel::{HyperChannelContext, HyperHttpChannel, HyperProtocol};
 pub use client::{
     read_cancel_response, read_query_response, read_rows_response, read_status_header, read_status_response,
     AttachedDatabase, ExecuteQueryRequest, GetQueryChunkParams, GetQueryRowsParams, GetQueryStatusParams,

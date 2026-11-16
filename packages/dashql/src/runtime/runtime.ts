@@ -77,8 +77,8 @@ export type ImportSource =
 /// The options of an export of a workbook, without its format
 export type ExportOptions = Omit<core.ExportOptions, 'format' | 'linkBase'>;
 
-/// Connects the channels of the setups that the runtime asks for besides Trino: the embedded Hyper, Hyper over gRPC and
-/// HTTP, the Hyper of Salesforce. Node connects the embedded Hyper.
+/// Connects the channels of the host that the setups ask for: the embedded Hyper and Hyper over gRPC. The runtime speaks
+/// Trino, Hyper over HTTP and the Hyper of Salesforce itself. Node connects the embedded Hyper.
 export interface ChannelConnector {
     /// Connect a channel of a setup of a connection, the object that the handle table keeps
     connect(connectionId: string, request: core.RuntimeChannelRequest): Promise<unknown>;
@@ -90,8 +90,9 @@ export interface ChannelConnector {
 export interface SalesforceLogin {
     /// The flow of this login, e.g. with a window that the click of the user opened. The flow of the runtime without.
     oauthFlow?: OAuthFlow | null;
-    /// Hears the steps of the login, `{ connector, type, value }` with the names of the actions of a setup
-    onStep?: (step: { connector: string; type: string; value: any }) => void;
+    /// Hears the names of the steps of the login, e.g. `REQUESTING_CORE_AUTH_TOKEN`. The tokens are in the outcome of the
+    /// login, never in a step.
+    onStep?: (step: string) => void;
 }
 
 /// The options of the analysis of a result
@@ -229,7 +230,7 @@ export class Runtime {
             channels: {
                 ...this.queries.channels,
                 connect: async (setupId, request) => {
-                    // A Trino connection owns its channel in the runtime, it never asks the platform
+                    // The runtime speaks the other channels itself, it never asks the platform for them
                     if (platform.channels == null) throw new Error(`The platform connects no ${request.type} channels`);
                     return this.handles.register(await platform.channels.connect(setupId, request));
                 },

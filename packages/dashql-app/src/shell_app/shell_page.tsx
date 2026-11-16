@@ -172,26 +172,26 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                             forceRelogin: appConfigRef.current?.settings?.forceReLogin ?? false,
                         }, {
                             oauthFlow: new AppOAuthFlow(appEvents, platformType, form.oauthPopup ?? null),
+                            // The steps are names, the tokens come with the outcome
                             onStep: step => {
-                                if (step.connector !== 'salesforce') return;
-                                const message = messages[step.type];
+                                const message = messages[step];
                                 if (message) {
                                     onProgress?.(message);
                                     loginDialog.update({ status: message });
-                                }
-                                if (step.type === 'RECEIVED_CORE_AUTH_TOKEN') {
-                                    loginDialog.update({ status: 'Received Core access token', coreAccessToken: step.value });
-                                } else if (step.type === 'RECEIVED_CORE_USER_INFO') {
-                                    loginDialog.update({ login: step.value?.preferredUsername ?? step.value?.email ?? '' });
-                                } else if (step.type === 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN') {
-                                    loginDialog.update({ status: 'Received Data Cloud access token', dataCloudAccessToken: step.value });
                                 }
                             },
                         });
                         if (outcome.status === 'cancelled') throw signal?.reason ?? new DOMException(outcome.message ?? 'The login was cancelled', 'AbortError');
                         if (outcome.authentication == null) throw new LoggableException(outcome.message ?? 'The login failed', outcome.data, LOG_CTX);
                         const { tokens, userInfo } = outcome.authentication;
-                        return { coreAccessToken: tokens.core, dataCloudAccessToken: tokens.dataCloud, coreUserInfo: userInfo ?? undefined };
+                        const coreUserInfo = (userInfo ?? undefined) as connectionTypes.SalesforceCoreUserInfo | undefined;
+                        loginDialog.update({
+                            status: 'Received Data Cloud access token',
+                            coreAccessToken: tokens.core,
+                            dataCloudAccessToken: tokens.dataCloud,
+                            login: coreUserInfo?.preferredUsername ?? coreUserInfo?.email ?? '',
+                        });
+                        return { coreAccessToken: tokens.core, dataCloudAccessToken: tokens.dataCloud, coreUserInfo };
                     } finally {
                         signal?.removeEventListener('abort', cancel);
                     }

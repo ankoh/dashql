@@ -12,7 +12,7 @@ import { useSalesforceMock } from '../connections/salesforce/salesforce_connecto
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
 import { HyperLogMetricsProvider, useCreateHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
-import { useHyperGrpcClient, useHyperHttpClient } from '../connections/hyper/hyperdb_grpc_client_provider.js';
+import { useHyperGrpcClient } from '../connections/hyper/hyperdb_grpc_client_provider.js';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
@@ -67,7 +67,6 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
     const latest = {
         salesforceMock: useSalesforceMock(),
         grpcClient: useHyperGrpcClient(),
-        httpClient: useHyperHttpClient(),
         setupEmbeddedDatabase: useEmbeddedDatabaseSetup(),
         archiveDatabase: useWorkbookArchiveDatabase(),
     };
@@ -77,10 +76,8 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
     const [runtime] = React.useState(() => {
         const clients = (): ChannelClients => ({
             grpcClient: ref.current.grpcClient,
-            httpClient: ref.current.httpClient,
             setupEmbeddedDatabase: ref.current.setupEmbeddedDatabase,
             logMetrics,
-            salesforceMock: ref.current.salesforceMock != null,
         });
         return createRuntime({
             logger,

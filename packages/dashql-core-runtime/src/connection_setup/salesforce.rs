@@ -2,8 +2,9 @@
 //!
 //! The host generates the PKCE challenge and the flow id, opens the authorization page through the redirect page of the
 //! app and hands back its callback. The setup exchanges the code for the core token, reads the user info, exchanges
-//! the core token for the Data Cloud token over fetch and asks the host to connect the Hyper channel with the tokens.
-//! `authenticate_salesforce` stops before the channel, e.g. for the login of the shell.
+//! the core token for the Data Cloud token over fetch and hands the channel with the tokens to the connection.
+//! `authenticate_salesforce` is a login without a connection, e.g. of the shell: its listener hears the names of the
+//! steps (`LoginStep`), the tokens are in its outcome.
 //!
 //! Ported from `packages/dashql/src/runtime/connections/salesforce/salesforce_connection_setup.ts` and
 //! `salesforce_authentication.ts`.
@@ -11,7 +12,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use super::{cancellable, connect_channel, SetupFailure, SetupHost, CANCELLED_MESSAGE};
+use super::{cancellable, SetupFailure, SetupHost, CANCELLED_MESSAGE};
 use crate::connections::{ConnectionAction, ConnectorType, JsonObject, SalesforceAction};
 use crate::executor::HostValue;
 use crate::host::LogLevel;
@@ -32,23 +33,74 @@ pub struct SalesforceAuthentication {
     pub user_info: Option<SalesforceCoreUserInfo>,
 }
 
-/// How far a run goes
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Goal {
-    /// The tokens
-    Authenticate,
-    /// The tokens and the channel
-    Connect,
+/// A step of a login as its listener hears it: the progress, never a code, a verifier or a token
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoginStep {
+    Started,
+    Cancelled,
+    Failed,
+    GeneratingPkceChallenge,
+    GeneratedPkceChallenge,
+    NativeLinkOpened,
+    WebWindowOpened,
+    WebWindowClosed,
+    ReceivedCoreAuthCode,
+    RequestingCoreAuthToken,
+    ReceivedCoreAuthToken,
+    ReceivedCoreUserInfo,
+    RequestingDataCloudAccessToken,
+    ReceivedDataCloudAccessToken,
 }
 
-/// What a run ended with
-enum End {
-    Authenticated(SalesforceAuthentication),
-    Connected(SalesforceSetupResult),
+impl LoginStep {
+    /// The step of a login of an action of the setup, none for the steps of the channel
+    pub fn of(action: &ConnectionAction) -> Option<Self> {
+        let ConnectionAction::Salesforce(action) = action else { return None };
+        Some(match action {
+            SalesforceAction::SetupStarted { .. } => LoginStep::Started,
+            SalesforceAction::SetupCancelled(_) => LoginStep::Cancelled,
+            SalesforceAction::SetupFailed(_) => LoginStep::Failed,
+            SalesforceAction::GeneratingPkceChallenge => LoginStep::GeneratingPkceChallenge,
+            SalesforceAction::GeneratedPkceChallenge => LoginStep::GeneratedPkceChallenge,
+            SalesforceAction::OAuthNativeLinkOpened => LoginStep::NativeLinkOpened,
+            SalesforceAction::OAuthWebWindowOpened => LoginStep::WebWindowOpened,
+            SalesforceAction::OAuthWebWindowClosed => LoginStep::WebWindowClosed,
+            SalesforceAction::ReceivedCoreAuthCode { .. } => LoginStep::ReceivedCoreAuthCode,
+            SalesforceAction::RequestingCoreAuthToken => LoginStep::RequestingCoreAuthToken,
+            SalesforceAction::ReceivedCoreAuthToken => LoginStep::ReceivedCoreAuthToken,
+            SalesforceAction::ReceivedCoreUserInfo { .. } => LoginStep::ReceivedCoreUserInfo,
+            SalesforceAction::RequestingDataCloudAccessToken => LoginStep::RequestingDataCloudAccessToken,
+            SalesforceAction::ReceivedDataCloudAccessToken => LoginStep::ReceivedDataCloudAccessToken,
+            SalesforceAction::ChannelSetupStarted
+            | SalesforceAction::ChannelSetupCancelled(_)
+            | SalesforceAction::ChannelSetupFailed(_)
+            | SalesforceAction::ChannelReady(_) => return None,
+        })
+    }
+
+    /// The name of the step, the name of the action of the setup
+    pub fn name(self) -> &'static str {
+        match self {
+            LoginStep::Started => "SETUP_STARTED",
+            LoginStep::Cancelled => "SETUP_CANCELLED",
+            LoginStep::Failed => "SETUP_FAILED",
+            LoginStep::GeneratingPkceChallenge => "GENERATING_PKCE_CHALLENGE",
+            LoginStep::GeneratedPkceChallenge => "GENERATED_PKCE_CHALLENGE",
+            LoginStep::NativeLinkOpened => "OAUTH_NATIVE_LINK_OPENED",
+            LoginStep::WebWindowOpened => "OAUTH_WEB_WINDOW_OPENED",
+            LoginStep::WebWindowClosed => "OAUTH_WEB_WINDOW_CLOSED",
+            LoginStep::ReceivedCoreAuthCode => "RECEIVED_CORE_AUTH_CODE",
+            LoginStep::RequestingCoreAuthToken => "REQUESTING_CORE_AUTH_TOKEN",
+            LoginStep::ReceivedCoreAuthToken => "RECEIVED_CORE_AUTH_TOKEN",
+            LoginStep::ReceivedCoreUserInfo => "RECEIVED_CORE_USER_INFO",
+            LoginStep::RequestingDataCloudAccessToken => "REQUESTING_DATA_CLOUD_ACCESS_TOKEN",
+            LoginStep::ReceivedDataCloudAccessToken => "RECEIVED_DATA_CLOUD_ACCESS_TOKEN",
+        }
+    }
 }
 
-/// Set up a Salesforce or Database.com connection with its params, returns the tokens, the user info and the id of the
-/// channel that the host keeps
+/// Set up a Salesforce or Database.com connection with its params, returns the tokens and the user info. The connection
+/// takes the channel with the ready step.
 pub async fn setup_salesforce<H: SetupHost>(
     host: Rc<H>,
     connector: ConnectorType,
@@ -57,13 +109,11 @@ pub async fn setup_salesforce<H: SetupHost>(
     force_relogin: bool,
     cancellation: CancellationToken,
 ) -> Result<SalesforceSetupResult, SetupFailure> {
-    match run(host, connector, params, config, force_relogin, cancellation, Goal::Connect).await? {
-        End::Connected(result) => Ok(result),
-        End::Authenticated(_) => Err(SetupFailure::failed("The Salesforce setup ended without a channel")),
-    }
+    run(host, connector, params, config, force_relogin, cancellation).await
 }
 
-/// Log in to Salesforce and get the tokens, without a channel. The steps go to the host as the actions of a setup.
+/// Log in to Salesforce and get the tokens, without a connection. The steps go to the host as the actions of a setup,
+/// its listener hears them as `LoginStep`s.
 pub async fn authenticate_salesforce<H: SetupHost>(
     host: Rc<H>,
     params: JsonObject,
@@ -72,10 +122,8 @@ pub async fn authenticate_salesforce<H: SetupHost>(
     cancellation: CancellationToken,
 ) -> Result<SalesforceAuthentication, SetupFailure> {
     let connector = ConnectorType::SalesforceDataCloud;
-    match run(host, connector, params, config, force_relogin, cancellation, Goal::Authenticate).await? {
-        End::Authenticated(authentication) => Ok(authentication),
-        End::Connected(result) => Ok(SalesforceAuthentication { tokens: result.tokens, user_info: result.user_info }),
-    }
+    let result = run(host, connector, params, config, force_relogin, cancellation).await?;
+    Ok(SalesforceAuthentication { tokens: result.tokens, user_info: result.user_info })
 }
 
 /// Apply the actions and the log of an output, the message of a failure if the setup failed
@@ -102,8 +150,7 @@ async fn run<H: SetupHost>(
     config: SalesforceOAuthConfig,
     force_relogin: bool,
     cancellation: CancellationToken,
-    goal: Goal,
-) -> Result<End, SetupFailure> {
+) -> Result<SalesforceSetupResult, SetupFailure> {
     let (setup, output) = SalesforceSetup::start(connector, &params, config, host.flow_info(), force_relogin);
     let setup = Rc::new(RefCell::new(setup));
     let mut output = output;
@@ -121,15 +168,11 @@ async fn run<H: SetupHost>(
         let failure = report(&*host, &output);
         let step = output.step.clone();
         output = match step {
-            SalesforceSetupStep::Done(result) => return Ok(End::Connected(result)),
+            SalesforceSetupStep::Done(result) => return Ok(result),
             SalesforceSetupStep::Stopped if cancelled => return Err(SetupFailure::cancelled()),
             SalesforceSetupStep::Stopped => {
                 let message = failure.unwrap_or_else(|| "The Salesforce setup stopped".to_string());
                 return Err(SetupFailure::failed(message).with_value(host_value));
-            }
-            SalesforceSetupStep::ConnectChannel(channel) if goal == Goal::Authenticate => {
-                let user_info = setup.borrow().user_info().cloned();
-                return Ok(End::Authenticated(SalesforceAuthentication { tokens: channel.tokens, user_info }));
             }
             // A step of the host, the setup stops at a cancellation first
             _ if cancellation.is_cancelled() => {
@@ -203,29 +246,6 @@ async fn run<H: SetupHost>(
                     }
                     Some(Ok(response)) => setup.borrow_mut().on_response(&response, now),
                     Some(Err(error)) => setup.borrow_mut().on_fetch_failed(error.message()),
-                }
-            }
-            SalesforceSetupStep::ConnectChannel(channel) => {
-                // A cancellation stops the wait for the connect, a channel that is ready after it is closed
-                match connect_channel(&host, host.connect_salesforce_channel(&channel, &cancellation), &cancellation).await {
-                    None => {
-                        cancelled = true;
-                        setup.borrow_mut().cancel(CANCELLED_MESSAGE)
-                    }
-                    Some(Ok(id)) if cancellation.is_cancelled() => {
-                        host.close_channel(id);
-                        cancelled = true;
-                        setup.borrow_mut().cancel(CANCELLED_MESSAGE)
-                    }
-                    Some(Err(_)) if cancellation.is_cancelled() => {
-                        cancelled = true;
-                        setup.borrow_mut().cancel(CANCELLED_MESSAGE)
-                    }
-                    Some(Ok(id)) => setup.borrow_mut().on_channel_ready(id),
-                    Some(Err(error)) => {
-                        host_value = error.value().cloned();
-                        setup.borrow_mut().on_channel_failed(error.message())
-                    }
                 }
             }
         };

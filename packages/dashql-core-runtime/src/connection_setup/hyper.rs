@@ -2,8 +2,9 @@
 //!
 //! The embedded Hyper (`WASM`) and the gRPC channel of the desktop app (`V3_GRPC`, through its native proxy) are
 //! channels of the host. A Hyper over HTTP (`V3_HTTP`) and the Hyper of a link (`V3_HTTP_LINK`, its HTTP API with the
-//! token of the link) are HTTP channels: the setup resolves their params, the host keeps the channel that describes
-//! itself to the query executor. The token of a link is never stored, the page that opened the link holds it.
+//! token of the link) are channels that the module speaks itself: the setup resolves their params and the connection
+//! keeps the channel with the headers of its requests. The token of a link is never stored, the page that opened the
+//! link holds it and the channel keeps it in memory.
 //!
 //! Ported from `packages/dashql-app/src/connections/hyper/hyper_connection_setup.tsx`.
 
@@ -12,10 +13,11 @@ use std::rc::Rc;
 use serde_json::Value;
 
 use super::{connect_channel, SetupFailure, SetupHost, LOG_TARGET};
-use crate::connections::{ChannelId, ConnectionAction, DetailedError, HyperAction, JsonObject};
+use crate::connections::{ConnectionAction, ConnectionChannel, DetailedError, HyperAction, JsonObject};
 use crate::host::LogLevel;
 use crate::http::CancellationToken;
 use crate::hyper::link::hyper_link_channel_params;
+use crate::hyper::{HyperChannelContext, HyperHttpChannel};
 
 /// The message of a link whose token the page doesn't hold
 pub const MISSING_LINK_TOKEN_MESSAGE: &str = "Open the link of this Hyper again, e.g. the one that `hyperd run --ui` prints";
@@ -63,8 +65,16 @@ pub fn hyper_channel_request(params: &JsonObject, link_token: Option<&str>) -> R
     }
 }
 
-/// Set up a Hyper connection with its params, returns the id of the channel that the host keeps
-pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancellation: CancellationToken) -> Result<ChannelId, SetupFailure> {
+/// The channel over the HTTP API of a request, with the metadata of the params as the headers of every request
+fn http_channel(request: &HyperChannelRequest, client_context: Option<Value>) -> Result<ConnectionChannel, String> {
+    let context = HyperChannelContext::from_params(&request.params, client_context);
+    let auth = context.metadata.clone();
+    let channel = HyperHttpChannel::connect(&request.params, context, None).map_err(|error| error.message())?;
+    Ok(ConnectionChannel::HyperHttp { channel, auth })
+}
+
+/// Set up a Hyper connection with its params, the connection takes the channel with the ready step
+pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancellation: CancellationToken) -> Result<(), SetupFailure> {
     let mut params = params;
     params.remove("draftRows");
     host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
@@ -87,6 +97,15 @@ pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancella
         Ok(request) => request,
         Err(message) => return fail(&host, SetupFailure::failed(message)),
     };
+    // The module speaks the HTTP API itself
+    if request.kind == HyperChannelKind::Http {
+        let channel = match http_channel(&request, host.client_context()) {
+            Ok(channel) => channel,
+            Err(message) => return fail(&host, SetupFailure::failed(message)),
+        };
+        host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelReady { channel, params }));
+        return Ok(());
+    }
     // A cancellation stops the wait for the connect, a channel that is ready after it is closed
     let channel = match connect_channel(&host, host.connect_hyper_channel(&request, &cancellation), &cancellation).await {
         None => return cancel(&host),
@@ -103,6 +122,6 @@ pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancella
         host.close_channel(channel);
         return cancel(&host);
     }
-    host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelReady { channel, params }));
-    Ok(channel)
+    host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(channel), params }));
+    Ok(())
 }

@@ -229,9 +229,9 @@ describe('The connections of the runtime', () => {
         expect(await setup).toEqual({ status: 'succeeded', message: null, data: {}, authentication: null });
         const trino = viewOf(runtime, 'connection', 'trino')!;
         expect(trino).toMatchObject({ connectionHealth: dashql.ConnectionHealth.ONLINE, setupRunning: false, params });
-        // The connection owns the Trino channel, the platform keeps only a handle and describes nothing
+        // The connection owns the Trino channel, the platform keeps nothing of it and describes nothing
         expect(platform.connected).toEqual([]);
-        expect(platform.objects.get(trino.details.channel!)).toEqual({});
+        expect(trino.details.channel).toBeNull();
         expect(platform.described).toEqual([]);
         expect(platform.requests[0].headers).toContainEqual(['X-Trino-Catalog', 'tpch']);
         expect(platform.forgotten).toEqual(trino.queriesFinishedOrdered);
@@ -286,6 +286,63 @@ describe('The connections of the runtime', () => {
         const after = viewOf(runtime, 'connection', 'main')!;
         expect(after.connectionHealth).toBe(dashql.ConnectionHealth.ONLINE);
         expect(after.details.channel).toBe(online.details.channel);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('aborts the OAuth flow of a setup that is cancelled', async () => {
+        const platform = new TestPlatform();
+        const flows: number[] = [];
+        const aborted: number[] = [];
+        platform.platform.oauth = {
+            ...platform.platform.oauth,
+            pkce: async () => ({ value: 'challenge', verifier: 'verifier' }),
+            // The loopback server waits for the redirect until the flow is aborted
+            authorizeWithLoopback: (_setupId, flow) => {
+                flows.push(flow);
+                return new Promise(() => { });
+            },
+            abort: flow => { aborted.push(flow); },
+        };
+        const runtime = createRuntime(platform);
+        const oauth = { authorizationUrl: 'https://idp.example.com/auth', tokenUrl: 'https://idp.example.com/token', clientId: 'dashql' };
+        const setup = runtime.setupConnection('trino', { params: { trino: { endpoint: TRINO, auth: { authType: 'AUTH_OAUTH', oauth } } } });
+        await vi.waitFor(() => expect(flows).toHaveLength(1));
+        runtime.cancelSetup('trino');
+        expect(await setup).toMatchObject({ status: 'cancelled' });
+        // The loopback server of the flow closes
+        expect(aborted).toEqual(flows);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('leaves the setup that runs alone when the params of another one do not read', async () => {
+        const platform = new TestPlatform();
+        platform.hold = true;
+        const runtime = createRuntime(platform);
+        const setup = runtime.setupConnection('trino', { params: TRINO_PARAMS });
+        await vi.waitFor(() => expect(platform.requests).toHaveLength(2));
+        // Params of another connector fail before they touch the connection
+        expect(await runtime.setupConnection('trino', { params: { hyper: { protocol: 'WASM' } } as unknown as dashql.JsonParams })).toMatchObject({ status: 'failed' });
+        expect(viewOf(runtime, 'connection', 'trino')).toMatchObject({ setupRunning: true, connectionHealth: dashql.ConnectionHealth.CONNECTING });
+        runtime.cancelSetup('trino');
+        expect(await setup).toMatchObject({ status: 'cancelled' });
+        expect(viewOf(runtime, 'connection', 'trino')!.connectionHealth).toBe(dashql.ConnectionHealth.CANCELLED);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('closes the channel of the host that a new setup replaces', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        expect(await runtime.setupConnection('main')).toMatchObject({ status: 'succeeded' });
+        const first = viewOf(runtime, 'connection', 'main')!.details.channel;
+        expect(first).toEqual(expect.any(Number));
+        runtime.takeChanges();
+        // A shell that mounts again sets the embedded Hyper up again: the session of the first setup closes
+        expect(await runtime.setupConnection('main')).toMatchObject({ status: 'succeeded' });
+        expect(runtime.takeChanges().effects).toContainEqual({ type: 'close', handle: first });
+        expect(viewOf(runtime, 'connection', 'main')!.details.channel).not.toBe(first);
         runtime.destroy();
         runtime.free();
     });

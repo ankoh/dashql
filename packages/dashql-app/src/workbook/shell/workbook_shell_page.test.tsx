@@ -13,7 +13,7 @@ import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
-import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql/platform/connections/salesforce/salesforce_client_functions';
+import { loadClientFunctionSpec } from '@ankoh/dashql/platform/connections/clfn/clfn_specs';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/platform/database/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
@@ -515,7 +515,7 @@ describe('WorkbookShellPage', () => {
     describe('with client functions', () => {
         /// A connection whose catalog has the Data 360 client functions
         async function openWithSpec() {
-            const connection = createConnection(MAIN, { clientFunctions: JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()) });
+            const connection = createConnection(MAIN, { clientFunctions: JSON.stringify(await loadClientFunctionSpec('d360-api')) });
             await open([connection]);
         }
         const lastArgs = () => execute.mock.calls[execute.mock.calls.length - 1][1] as { query: string; clientFunctionCall?: unknown };
@@ -588,7 +588,7 @@ describe('WorkbookShellPage', () => {
 
         it('fails a call next to another statement', async () => {
             const catalog = core.createCatalog();
-            catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));
+            catalog.registerClientFunctions(JSON.stringify(await loadClientFunctionSpec('d360-api')));
             expect(() => resolveClientFunctionCall(catalog, 'select 1; call cdp.segment_list ();')).toThrow('statement of its own');
         });
     });
@@ -630,7 +630,7 @@ describe('WorkbookShellPage', () => {
         it('completes client functions that are registered after the shell opened', async () => {
             const connection = createConnection(MAIN);
             await open([connection]);
-            const spec = JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec());
+            const spec = JSON.stringify(await loadClientFunctionSpec('d360-api'));
             connection.write(catalog => catalog.registerClientFunctions(spec));
             type('call cdp.access_policy_g');
             press('Tab');

@@ -7,7 +7,7 @@ import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metri
 
 /// The clients of a test, none by default
 function clients(overrides: Partial<ChannelClients>): ChannelClients {
-    return { grpcClient: null, httpClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforceMock: false, ...overrides };
+    return { grpcClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, ...overrides };
 }
 
 // The runtime sets up the connections and asks the app to connect their channels
@@ -55,12 +55,12 @@ describe('Hyper channels of the setups', () => {
         };
         const logMetrics = { watch: vi.fn() };
         const params = {
-            protocol: 'V3_HTTP',
+            protocol: 'V3_GRPC',
             endpoint: 'https://hyper.example.com',
             tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
         } as connection.HyperConnectionParams;
 
-        await connectChannel(clients({ httpClient: client, logMetrics: logMetrics as unknown as HyperLogMetrics }), 'connection-1', { type: 'hyper', kind: 'http', params });
+        await connectChannel(clients({ grpcClient: client, logMetrics: logMetrics as unknown as HyperLogMetrics }), 'connection-1', { type: 'hyper', kind: 'grpc', params });
 
         expect(contexts.map(context => context.getClientContext?.())).toEqual([connectionClientContext('connection-1')]);
         expect(logMetrics.watch).toHaveBeenCalledTimes(1);
@@ -73,7 +73,7 @@ describe('Hyper channels of the setups', () => {
     });
 
     it('fails without a client of the protocol', async () => {
-        const params = { protocol: 'V3_HTTP', endpoint: 'https://hyper.example.com' } as connection.HyperConnectionParams;
-        await expect(connectChannel(clients({}), 'connection-1', { type: 'hyper', kind: 'http', params })).rejects.toThrow('HTTP client is not available');
+        const params = { protocol: 'V3_GRPC', endpoint: 'https://hyper.example.com' } as connection.HyperConnectionParams;
+        await expect(connectChannel(clients({}), 'connection-1', { type: 'hyper', kind: 'grpc', params })).rejects.toThrow('gRPC client is not available');
     });
 });

@@ -15,7 +15,7 @@ import {
     VALIDATION_UNKNOWN,
 } from '../ui/foundations/text_field.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useHyperGrpcClient, useHyperHttpClient } from './hyper/hyperdb_grpc_client_provider.js';
+import { useHyperGrpcClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
 import { Dispatch } from '@ankoh/dashql/platform/utils/variant';
 import { useConnectionDraftForm } from './connection_draft.js';
@@ -97,7 +97,6 @@ interface Props {
 export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const grpcClient = useHyperGrpcClient();
-    const httpClient = useHyperHttpClient();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
@@ -171,8 +170,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         }
         setClientIdentityValidation({ type: VALIDATION_UNKNOWN, value: null });
 
-        // Is there a Hyper client?
-        if (protocol !== 'WASM' && !grpcClient && !httpClient) {
+        // Is there a Hyper client? The runtime speaks the HTTP API itself.
+        if (isGrpc && !grpcClient) {
             logger.error("Hyper connector is unavailable", {}, LOG_CTX);
             return;
         }

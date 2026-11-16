@@ -4,13 +4,13 @@
 //! A query of a connection is in the history of the connection from the start: `executeQuery` hands out its id from
 //! the registry, registers it and runs it once the runtime described it (`Connections::describe`): the target on the
 //! channel of its connection, the key of its result in the query result cache (`result_key`, the SHA-256 digest
-//! through `crypto` of the platform) and what the executor does around it. The platform only describes the channel
-//! (`channels.describe`): a channel that the module speaks, or one of the host that it keeps for the query until the
-//! run of the query is dropped (`channels.forget`). The executor reports every event into the history right away, the
-//! start and the end of a query as urgent changes, the rest with the next frame. What stays with the host goes through
-//! the platform: fetch, the channels of the host, the query result cache, the result tables by handle. The analysis of
-//! a result runs on the computations of the runtime, the history decides which result of an owner is the latest and
-//! the computations of the others go.
+//! through `crypto` of the platform) and what the executor does around it. The connection owns its channel: the module
+//! speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself, the platform describes only a channel of the host
+//! (`channels.describe`), which it keeps for the query until the run of the query is dropped (`channels.forget`). The
+//! executor reports every event into the history right away, the start and the end of a query as urgent changes, the
+//! rest with the next frame. What stays with the host goes through the platform: fetch, the channels of the host, the
+//! query result cache, the result tables by handle. The analysis of a result runs on the computations of the runtime,
+//! the history decides which result of an owner is the latest and the computations of the others go.
 //!
 //! Every query is one `QueryRun`, the run of the executor (`ExecutorRun`): the executor hands it to every call of its
 //! host, so the host never looks a query up by its id. Its token is the one cancellation of the query, see there.
@@ -35,7 +35,7 @@ use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionCallDescription};
 use dashql_core_runtime::connections::registry::QueryOwner;
-use dashql_core_runtime::connections::{ConnectionAction, ConnectorType, TrinoAction};
+use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::{
     CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
@@ -45,9 +45,8 @@ use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
-use dashql_core_runtime::hyper::{HyperChannelContext, HyperHttpChannel};
-use dashql_core_runtime::trino::{SharedTrinoChannel, TimeZoneOffsets, TrinoAccessToken};
-use dashql_core_runtime::salesforce::SalesforceTokens;
+use dashql_core_runtime::trino::TimeZoneOffsets;
+use dashql_core_runtime::salesforce::SharedSalesforceChannel;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable};
 use js_sys::{Function, Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
@@ -205,21 +204,6 @@ impl From<&QueryFailure> for QueryRunFailure {
 pub enum QueryCallerEvent {
     Timing { label: String, elapsed_ms: f64 },
     ResultsReady,
-}
-
-/// The target of the executor on the channel that the platform described
-fn query_target(described: RuntimeChannelTarget) -> Result<QueryTarget, String> {
-    match described {
-        RuntimeChannelTarget::Host => Ok(QueryTarget::Host),
-        RuntimeChannelTarget::HyperHttp { params, client_context, auth, parallel_chunks } => {
-            let params = params.0.as_object().cloned().unwrap_or_default();
-            let client_context = client_context.map(|context| context.0).filter(|context| !context.is_null());
-            let context = HyperChannelContext::from_params(&params, client_context);
-            let channel = HyperHttpChannel::connect(&params, context, parallel_chunks.map(|n| n as usize)).map_err(|e| e.message())?;
-            let auth = Headers::from_pairs(auth.unwrap_or_default());
-            Ok(QueryTarget::HyperHttp { channel, auth })
-        }
-    }
 }
 
 /// A query that the runtime describes before the executor runs it: its connection, the text and the metadata of the
@@ -776,12 +760,14 @@ impl ExecutorHost for QueryHost {
     }
 
     fn channel_auth(&self, run: &QueryRun) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
-        self.platform.channel_auth(run.query_id as f64)
+        // The headers of the Hyper of Salesforce follow the tokens of the channel, e.g. after a refresh
+        let auth = self.connections().ok().and_then(|connections| connections.salesforce_channel_of(&run.connection_id)).map(|channel| channel.auth());
+        std::future::ready(Ok(auth))
     }
 
-    fn trino_token_refreshed(&self, channel: &SharedTrinoChannel, token: &TrinoAccessToken) {
+    fn token_refresh_ended(&self, run: &QueryRun, outcome: Result<(), DetailedError>) {
         if let Some(connections) = self.connections.upgrade() {
-            connections.trino_token_refreshed(channel, token);
+            connections.token_refresh_ended(&run.connection_id, outcome);
         }
     }
 
@@ -791,22 +777,24 @@ impl ExecutorHost for QueryHost {
 }
 
 impl Connections {
-    /// The Trino channel of a connection refreshed its access token: the connection that owns the channel keeps it
-    fn trino_token_refreshed(self: &Rc<Self>, channel: &SharedTrinoChannel, token: &TrinoAccessToken) {
-        let owns = |state: &dashql_core_runtime::connections::ConnectionState| {
-            state.details().trino().and_then(|trino| trino.channel.as_ref()).is_some_and(|owned| owned.same(channel))
-        };
-        let owner = self
-            .registry
-            .borrow()
-            .connections()
-            .find(|(_, connection)| connection.state.try_borrow().is_ok_and(|state| owns(&state)))
-            .map(|(connection_id, _)| connection_id.to_string());
-        let Some(connection_id) = owner else { return };
-        let action = ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { channel: channel.clone(), token: token.to_json().to_string() });
-        if let Err(error) = self.apply(&connection_id, action, None) {
-            self.platform.log_on(LogLevel::Warn, "Failed to keep a refreshed access token", &[("connectionId", &connection_id), ("error", error.what())], LOG_TARGET);
+    /// The refresh of a token of the channel of a connection ended. The channel keeps a new token, the view of the
+    /// connection summarizes it; a failed refresh fails the connection that is online.
+    pub(crate) fn token_refresh_ended(self: &Rc<Self>, connection_id: &str, outcome: Result<(), DetailedError>) {
+        match outcome {
+            Ok(()) => self.platform.changed(super::changes::Slice::Connection(connection_id), false),
+            Err(error) => {
+                if let Err(failure) = self.apply(connection_id, ConnectionAction::TokenRefreshFailed(error), None) {
+                    self.platform.log_on(LogLevel::Warn, "Failed to fail a connection after a token refresh", &[("connectionId", connection_id), ("error", failure.what())], LOG_TARGET);
+                }
+            }
         }
+    }
+
+    /// The Salesforce channel of a connection, none for other channels
+    fn salesforce_channel_of(&self, connection_id: &str) -> Option<SharedSalesforceChannel> {
+        let registry = self.registry.borrow();
+        let state = registry.get(connection_id)?.state.try_borrow().ok()?;
+        state.details().channel.as_ref().and_then(ConnectionChannel::salesforce).cloned()
     }
 }
 
@@ -870,8 +858,7 @@ impl Connections {
             let registry = self.registry.borrow();
             registry.get(connection_id).and_then(|connection| {
                 let state = connection.state.try_borrow().ok()?;
-                let params = state.details().setup_params.as_ref()?;
-                Some(result_key_input(&connection_cache_signature(state.connector_type(), params), signature))
+                Some(result_key_input(&connection_cache_signature(&state)?, signature))
             })
         } else {
             None
@@ -885,25 +872,32 @@ impl Connections {
 
     /// Describe where a query runs and what the executor does around it: the target on the channel of its connection,
     /// the key of its result in the query result cache, whether it touches relations and the details of its log
-    /// messages. The platform describes the channel: one that the module speaks (Hyper over HTTP) or one of the host,
-    /// which then keeps the channel for the query until the query is forgotten.
+    /// messages. The connection owns its channel: the module speaks Trino, Hyper over HTTP and the Hyper of Salesforce
+    /// itself, the platform describes only a channel of the host, which it then keeps for the query until the query is
+    /// forgotten.
     async fn describe(self: &Rc<Self>, query_id: QueryId, description: &QueryDescription) -> Result<QueryRequest, QueryFailure> {
         let connection_id = description.connection_id.as_str();
-        // The connection owns the channel of Trino and the tokens of Salesforce
         let connection = {
             let registry = self.registry.borrow();
             registry.get(connection_id).and_then(|connection| {
                 let state = connection.state.try_borrow().ok()?;
-                let details = state.details();
-                let trino = details.trino().and_then(|trino| trino.channel.clone());
-                let tokens = SalesforceTokens::of_connection(details.salesforce().and_then(|salesforce| salesforce.oauth_state.as_ref()));
-                Some((state.connector_type(), details.channel, trino, tokens))
+                Some((state.connector_type(), state.details().channel.clone()))
             })
         };
-        let Some((connector, channel, trino, tokens)) = connection else {
+        let Some((connector, channel)) = connection else {
             return Err(QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}")));
         };
-        let tokens = tokens.map_err(|message| QueryFailure::new(FailureKind::Error, message))?;
+        // A Data Cloud token about to expire is refreshed before the query uses the tokens, the channel keeps the new
+        // ones. A failed refresh fails the connection.
+        let salesforce = channel.as_ref().and_then(ConnectionChannel::salesforce).cloned();
+        if let Some(salesforce) = &salesforce {
+            if let Err(message) = salesforce.fresh(&Rc::new(self.platform.clone())).await {
+                self.platform.log_on(LogLevel::Warn, "Failed to refresh the Salesforce tokens", &[("connectionId", connection_id), ("error", &message)], LOG_TARGET);
+                self.token_refresh_ended(connection_id, Err(DetailedError::new(message.clone())));
+                return Err(QueryFailure::new(FailureKind::Error, message));
+            }
+        }
+        let tokens = salesforce.as_ref().map(SharedSalesforceChannel::tokens);
         let options = &description.options;
         // The executor reads and writes the files of the cache with the compute database, through the mounts
         let cache = match &options.cache {
@@ -920,7 +914,7 @@ impl Connections {
             connector: connector.display_name(),
             client_function: options.client_function_call.is_some(),
         };
-        let target = match (&options.client_function_call, trino) {
+        let target = match (&options.client_function_call, channel) {
             // The call runs with the spec that the catalog of the connection registered (`load_spec`) and sends its
             // requests with the tokens of the connection
             (Some(call), _) => {
@@ -928,17 +922,24 @@ impl Connections {
                     .map_err(|error| QueryFailure::new(FailureKind::Error, error.message))?;
                 QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec: None, description, tokens })
             }
-            // The queries of a Trino connection share its channel. One without a channel is a channel of the host
-            // without one: a query from the cache needs none, any other fails when it opens the channel.
-            (None, Some(trino)) => QueryTarget::Trino(trino),
-            (None, None) => {
+            // The queries of a connection share its channel
+            (None, Some(ConnectionChannel::Trino(trino))) => QueryTarget::Trino(trino),
+            (None, Some(ConnectionChannel::HyperHttp { channel, auth })) => QueryTarget::HyperHttp { channel, auth },
+            (None, Some(ConnectionChannel::Salesforce(salesforce))) => {
+                QueryTarget::HyperHttp { channel: salesforce.hyper(), auth: salesforce.auth() }
+            }
+            // A channel of the host, or none: a query from the cache needs none, any other fails when it opens the
+            // channel
+            (None, channel) => {
+                let handle = channel.as_ref().and_then(ConnectionChannel::host_handle);
                 let query = serde_wasm_bindgen::to_value(&query).map_err(|error| QueryFailure::new(FailureKind::Error, error.to_string()))?;
-                let described = self.platform.channel_describe(query_id as f64, channel, &query).await.map_err(|error| {
+                let described = self.platform.channel_describe(query_id as f64, handle, &query).await.map_err(|error| {
                     let mut failure = QueryFailure::from_host(&error);
                     failure.target = LOG_TARGET.to_string();
                     failure
                 })?;
-                query_target(described).map_err(|message| QueryFailure::new(FailureKind::Error, message))?
+                let RuntimeChannelTarget::Host = described;
+                QueryTarget::Host
             }
         };
         // Where a statement of a plan of workbook scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`

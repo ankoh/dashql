@@ -1,5 +1,4 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as core from '@ankoh/dashql';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -19,13 +18,8 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-type SalesforceAuthenticationProgress =
-    | { stage: 'GENERATING_PKCE_CHALLENGE' | 'OAUTH_NATIVE_LINK_OPENED' | 'OAUTH_WEB_WINDOW_OPENED' | 'OAUTH_WEB_WINDOW_CLOSED' | 'REQUESTING_CORE_AUTH_TOKEN' | 'REQUESTING_DATA_CLOUD_ACCESS_TOKEN' }
-    | { stage: 'GENERATED_PKCE_CHALLENGE'; pkceChallenge: auth.OAuthPKCEChallenge }
-    | { stage: 'RECEIVED_CORE_AUTH_CODE'; code: string }
-    | { stage: 'RECEIVED_CORE_AUTH_TOKEN'; coreAccessToken: connection.SalesforceCoreAccessToken }
-    | { stage: 'RECEIVED_CORE_USER_INFO'; coreUserInfo: connection.SalesforceCoreUserInfo }
-    | { stage: 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN'; dataCloudAccessToken: connection.SalesforceDataCloudAccessToken };
+/// A step of a login, its name: the listener hears no code and no token
+type SalesforceAuthenticationProgress = { stage: string };
 
 interface LoginOptions {
     logger: Logger;
@@ -47,23 +41,9 @@ async function authenticateSalesforce(options: LoginOptions) {
     try {
         const outcome = await runtime.authenticateSalesforce('login', options.params, { oauthRedirect: options.authConfig.oauthRedirect, forceRelogin: options.forceReLogin }, {
             onStep: step => {
-                if (step.connector !== 'salesforce') return;
-                const stage = step.type as SalesforceAuthenticationProgress['stage'];
-                switch (stage) {
-                    case 'GENERATED_PKCE_CHALLENGE': options.onProgress?.({ stage, pkceChallenge: step.value }); break;
-                    case 'RECEIVED_CORE_AUTH_CODE': options.onProgress?.({ stage, code: step.value.token }); break;
-                    case 'RECEIVED_CORE_AUTH_TOKEN': options.onProgress?.({ stage, coreAccessToken: step.value }); break;
-                    case 'RECEIVED_CORE_USER_INFO': options.onProgress?.({ stage, coreUserInfo: step.value }); break;
-                    case 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN': options.onProgress?.({ stage, dataCloudAccessToken: step.value }); break;
-                    case 'GENERATING_PKCE_CHALLENGE':
-                    case 'OAUTH_NATIVE_LINK_OPENED':
-                    case 'OAUTH_WEB_WINDOW_OPENED':
-                    case 'OAUTH_WEB_WINDOW_CLOSED':
-                    case 'REQUESTING_CORE_AUTH_TOKEN':
-                    case 'REQUESTING_DATA_CLOUD_ACCESS_TOKEN':
-                        options.onProgress?.({ stage });
-                        break;
-                }
+                // The steps are names, the start and the end of the login are in its outcome
+                expect(typeof step).toBe('string');
+                if (!step.startsWith('SETUP_')) options.onProgress?.({ stage: step });
             },
         });
         if (options.abortSignal.aborted) throw options.abortSignal.reason;

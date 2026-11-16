@@ -6,9 +6,10 @@
 use serde_json::Value;
 
 use super::details::{
-    replace_channel, ChannelId, ConnectionDetails, ConnectorDetails, DetailedError, OAuthPkceChallenge,
-    SalesforceOAuthParams, TemporaryToken, Timestamp,
+    replace_channel, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError, SalesforceOAuthParams,
+    Timestamp,
 };
+use crate::salesforce::SharedSalesforceChannel;
 use super::params::{string_field, JsonObject};
 use super::{ConnectionEffect, ConnectionHealth, ConnectionState, ConnectionStatus};
 
@@ -26,34 +27,35 @@ pub enum SalesforceAction {
     SetupFailed(DetailedError),
     /// The PKCE challenge is being generated
     GeneratingPkceChallenge,
-    /// The PKCE challenge was generated
-    GeneratedPkceChallenge(OAuthPkceChallenge),
+    /// The PKCE challenge was generated, the setup keeps it
+    GeneratedPkceChallenge,
     /// The native app opened the login link
     OAuthNativeLinkOpened,
     /// The web app opened the login window
     OAuthWebWindowOpened,
     /// The login window was closed
     OAuthWebWindowClosed,
-    /// The code of the core login arrived
-    ReceivedCoreAuthCode(TemporaryToken),
+    /// The code of the core login arrived at a time, the setup exchanges it
+    ReceivedCoreAuthCode { created_at: String },
     /// The core access token was requested
     RequestingCoreAuthToken,
-    /// The core access token arrived, opaque JSON
-    ReceivedCoreAuthToken(String),
+    /// The core access token arrived, the setup keeps it until the channel takes it
+    ReceivedCoreAuthToken,
     /// The user info of the core login arrived, the username or the email becomes the login of the setup params
     ReceivedCoreUserInfo { preferred_username: Option<String>, email: Option<String> },
     /// The Data Cloud access token was requested
     RequestingDataCloudAccessToken,
-    /// The Data Cloud access token arrived, opaque JSON
-    ReceivedDataCloudAccessToken(String),
+    /// The Data Cloud access token arrived, the setup keeps it until the channel takes it
+    ReceivedDataCloudAccessToken,
     /// The channel setup started
     ChannelSetupStarted,
     /// The channel setup was cancelled
     ChannelSetupCancelled(DetailedError),
     /// The channel setup failed
     ChannelSetupFailed(DetailedError),
-    /// The channel is ready, the connection waits for the health check
-    ChannelReady(ChannelId),
+    /// The channel is ready with the tokens of the login, the connection waits for the health check. The connection owns
+    /// the channel with the tokens from now on.
+    ChannelReady(SharedSalesforceChannel),
 }
 
 impl SalesforceAction {
@@ -65,14 +67,14 @@ impl SalesforceAction {
             SalesforceAction::SetupCancelled(_) => (ConnectionStatus::AuthCancelled, Cancelled),
             SalesforceAction::SetupFailed(_) => (ConnectionStatus::AuthFailed, Failed),
             SalesforceAction::GeneratingPkceChallenge => (ConnectionStatus::PkceGenerationStarted, Connecting),
-            SalesforceAction::GeneratedPkceChallenge(_) => (ConnectionStatus::PkceGenerated, Connecting),
+            SalesforceAction::GeneratedPkceChallenge => (ConnectionStatus::PkceGenerated, Connecting),
             SalesforceAction::OAuthNativeLinkOpened => (ConnectionStatus::WaitingForOAuthCodeViaLink, Connecting),
             SalesforceAction::OAuthWebWindowOpened => (ConnectionStatus::WaitingForOAuthCodeViaWindow, Connecting),
-            SalesforceAction::ReceivedCoreAuthCode(_) => (ConnectionStatus::OAuthCodeReceived, Connecting),
+            SalesforceAction::ReceivedCoreAuthCode { .. } => (ConnectionStatus::OAuthCodeReceived, Connecting),
             SalesforceAction::RequestingCoreAuthToken => (ConnectionStatus::AccessTokenRequested, Connecting),
-            SalesforceAction::ReceivedCoreAuthToken(_) => (ConnectionStatus::CoreAccessTokenReceived, Connecting),
+            SalesforceAction::ReceivedCoreAuthToken => (ConnectionStatus::CoreAccessTokenReceived, Connecting),
             SalesforceAction::RequestingDataCloudAccessToken => (ConnectionStatus::DataCloudTokenRequested, Connecting),
-            SalesforceAction::ReceivedDataCloudAccessToken(_) => (ConnectionStatus::DataCloudTokenReceived, Connecting),
+            SalesforceAction::ReceivedDataCloudAccessToken => (ConnectionStatus::DataCloudTokenReceived, Connecting),
             SalesforceAction::ChannelSetupStarted => (ConnectionStatus::ChannelSetupStarted, Connecting),
             SalesforceAction::ChannelSetupCancelled(_) => (ConnectionStatus::ChannelSetupCancelled, Cancelled),
             SalesforceAction::ChannelSetupFailed(_) => (ConnectionStatus::ChannelSetupFailed, Failed),
@@ -110,6 +112,7 @@ pub(super) fn reduce(
             };
             *setup_params = Some(params);
             salesforce.setup_error = None;
+            salesforce.principal = None;
             *channel_error = None;
             *health_check_error = None;
             salesforce.oauth_state.get_or_insert_with(Default::default).oauth_params = Some(oauth_params);
@@ -129,37 +132,31 @@ pub(super) fn reduce(
             timings.pkce_gen_started_at = Some(now);
             replace_channel(channel, None, effects);
         }
-        SalesforceAction::GeneratedPkceChallenge(pkce) => {
+        SalesforceAction::GeneratedPkceChallenge => {
             timings.pkce_gen_finished_at = Some(now);
-            salesforce.oauth_state.get_or_insert_with(Default::default).oauth_pkce = Some(pkce);
+            salesforce.oauth_state.get_or_insert_with(Default::default).pkce_generated = true;
         }
         SalesforceAction::OAuthNativeLinkOpened => timings.opened_native_auth_link_at = Some(now),
         SalesforceAction::OAuthWebWindowOpened => timings.opened_web_auth_window_at = Some(now),
         SalesforceAction::OAuthWebWindowClosed => timings.closed_web_auth_window_at = Some(now),
-        SalesforceAction::ReceivedCoreAuthCode(code) => {
+        SalesforceAction::ReceivedCoreAuthCode { created_at } => {
             timings.oauth_code_received_at = Some(now);
-            salesforce.oauth_state.get_or_insert_with(Default::default).core_auth_code = Some(code);
+            salesforce.oauth_state.get_or_insert_with(Default::default).core_auth_code_received_at = Some(created_at);
         }
         SalesforceAction::RequestingCoreAuthToken => timings.core_access_token_requested_at = Some(now),
-        SalesforceAction::ReceivedCoreAuthToken(token) => {
-            timings.core_access_token_received_at = Some(now);
-            salesforce.oauth_state.get_or_insert_with(Default::default).core_access_token = Some(token);
-        }
+        SalesforceAction::ReceivedCoreAuthToken => timings.core_access_token_received_at = Some(now),
         SalesforceAction::ReceivedCoreUserInfo { preferred_username, email } => {
-            // The account becomes the login hint of the next connects and of shared links and files
+            // The account becomes the login hint of the next connects and of shared links and files, and the principal
+            // of the cached results of the connection
+            let account = preferred_username.or(email).filter(|account| !account.is_empty());
+            salesforce.principal = account.clone();
             if let Some(params) = setup_params {
-                let login = preferred_username
-                    .or(email)
-                    .or_else(|| string_field(params, "login").map(str::to_string))
-                    .unwrap_or_default();
+                let login = account.or_else(|| string_field(params, "login").map(str::to_string)).unwrap_or_default();
                 params.insert("login".to_string(), Value::String(login));
             }
         }
         SalesforceAction::RequestingDataCloudAccessToken => timings.data_cloud_access_token_requested_at = Some(now),
-        SalesforceAction::ReceivedDataCloudAccessToken(token) => {
-            timings.data_cloud_access_token_received_at = Some(now);
-            salesforce.oauth_state.get_or_insert_with(Default::default).data_cloud_access_token = Some(token);
-        }
+        SalesforceAction::ReceivedDataCloudAccessToken => timings.data_cloud_access_token_received_at = Some(now),
         SalesforceAction::ChannelSetupStarted => {
             timings.channel_setup_started_at = Some(now);
             replace_channel(channel, None, effects);
@@ -176,7 +173,7 @@ pub(super) fn reduce(
         }
         SalesforceAction::ChannelReady(ready) => {
             timings.channel_ready_at = Some(now);
-            replace_channel(channel, Some(ready), effects);
+            replace_channel(channel, Some(ConnectionChannel::Salesforce(ready)), effects);
         }
     }
 }

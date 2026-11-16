@@ -23,7 +23,8 @@ use super::{
 use crate::clfn::{
     start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart, ConnectionCredentials,
 };
-use crate::host::{HostError, LogLevel};
+use crate::connections::DetailedError;
+use crate::host::{timeout, HostError, LogLevel};
 use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpResponse};
 use crate::hyper::{HyperHttpChannel, ResultEvent};
 use crate::query::progress::QueryProgressModel;
@@ -257,10 +258,13 @@ fn fetch_outcome(result: Result<HttpResponse, HostError>) -> FetchOutcome {
     }
 }
 
+/// How long a refresh of the access token of a Trino channel may take, a refresh that takes longer fails
+pub const TRINO_TOKEN_REFRESH_TIMEOUT_MS: f64 = 30.0 * 1000.0;
+
 /// Make sure that the access token of a shared Trino channel is fresh before a request. A token about to expire is
 /// refreshed once for every query of the channel: the first query starts the refresh in a task of its own that runs to
-/// its end, so a cancelled query never drops a refresh that others wait for, and the connection keeps the new token.
-/// None if the query was cancelled while it waited.
+/// its end or times out, so a cancelled query never drops a refresh that others wait for. The channel keeps the new
+/// token, a failed refresh is logged and the host hears how it ended. None if the query was cancelled while it waited.
 async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel) -> Option<Result<(), TrinoError>> {
     let host = context.host.clone();
     let refreshed = match channel.check_token(host.now() as i64) {
@@ -269,11 +273,19 @@ async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel:
         TokenCheck::Started { request, refreshed } => {
             let channel = channel.clone();
             let task_host = host.clone();
+            let run = context.run.clone();
             host.spawn(Box::pin(async move {
-                let response = task_host.fetch(request, &CancellationToken::new()).await;
-                if let Ok(token) = channel.finish_token_refresh(&fetch_outcome(response), task_host.now() as i64) {
-                    task_host.trino_token_refreshed(&channel, &token);
+                let fetched = timeout(&*task_host, TRINO_TOKEN_REFRESH_TIMEOUT_MS, task_host.fetch(request, &CancellationToken::new())).await;
+                let outcome = match fetched {
+                    Some(response) => fetch_outcome(response),
+                    None => FetchOutcome::NetworkError("The refresh of the access token timed out".to_string()),
+                };
+                let finished = channel.finish_token_refresh(&outcome, task_host.now() as i64).map(|_| ());
+                if let Err(error) = &finished {
+                    task_host.log(LogLevel::Warn, "Failed to refresh the access token", &[("error", error.message.as_str()), ("target", LOG_TARGET)]);
                 }
+                let outcome = finished.map_err(|error| DetailedError { message: error.message, data: error.data });
+                task_host.token_refresh_ended(&run, outcome);
             }));
             refreshed
         }

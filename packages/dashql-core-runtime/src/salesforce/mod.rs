@@ -9,6 +9,7 @@ pub mod api;
 pub mod auth;
 pub mod client_functions;
 pub mod setup;
+pub mod shared;
 pub mod types;
 
 use serde_json::{json, Value};
@@ -19,6 +20,7 @@ pub use api::{SalesforceError, SalesforceMetadataLoad};
 pub use auth::{OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData, OAuthState};
 pub use client_functions::{resolve_salesforce_client_function_host, salesforce_client_function_variables};
 pub use setup::{SalesforceSetup, SalesforceSetupOutput, SalesforceSetupStep};
+pub use shared::SharedSalesforceChannel;
 pub use types::*;
 
 /// The login hint of the params, none if empty

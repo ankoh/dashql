@@ -75,11 +75,10 @@ export interface QueryChannelsDependencies {
 
 /// The half of the queries of the runtime that touches the objects of the platform (docs/design/dashql_runtime.md). The
 /// runtime describes a query itself: the target on the channel of its connection, the key of its result and what the
-/// executor does around it; a Trino connection owns its channel and a Salesforce connection its tokens. This class
-/// describes the channel object (a Hyper channel over HTTP that the runtime speaks with the auth headers of the channel,
-/// else a channel of the host), runs the queries of the channels of the host (the gRPC channel of Hyper, the embedded
-/// Hyper, the channels of tests), keeps the query result cache over the compute database, and gives a caller in
-/// TypeScript the result table and the error of a failed query.
+/// executor does around it; the connections own the channels that the runtime speaks (Trino, Hyper over HTTP, the
+/// Hyper of Salesforce) with their tokens. This class keeps the channel of the host of a query, runs the queries of the
+/// channels of the host (the gRPC channel of Hyper, the embedded Hyper, the channels of tests), keeps the query result
+/// cache over the compute database, and gives a caller in TypeScript the result table and the error of a failed query.
 export class QueryChannels {
     private readonly records = new Map<number, QueryRecord>();
     /// The files of the cache that the runs keep, by id
@@ -104,32 +103,14 @@ export class QueryChannels {
     }
 
     /// The channels of the platform by query
-    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'auth' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
+    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
         describe: async (queryId, handle, query) => {
+            // The runtime describes only the channels of the host, the platform keeps the channel for the query
             const record = newRecord();
             this.records.set(queryId, record);
-            const channel: unknown = this.deps.handles.get(handle) ?? null;
             record.query = query;
-            record.channel = channel;
-            // A Hyper channel over the HTTP API, also the one of a Salesforce connection
-            const hyper = channel as HyperDatabaseChannel | null;
-            const described = await hyper?.describeHttp?.() ?? null;
-            if (described != null) {
-                return {
-                    type: 'hyperHttp',
-                    params: described.params,
-                    clientContext: described.clientContext,
-                    auth: described.auth,
-                    parallelChunks: described.parallelChunks,
-                };
-            }
+            record.channel = this.deps.handles.get(handle) ?? null;
             return { type: 'host' };
-        },
-        auth: async queryId => {
-            // The auth headers of the channel as they are now, e.g. after a refresh of a token
-            const hyper = this.records.get(queryId)?.channel as HyperDatabaseChannel | null | undefined;
-            const described = await hyper?.describeHttp?.() ?? null;
-            return described?.auth ?? null;
         },
         forget: queryId => {
             this.records.delete(queryId);

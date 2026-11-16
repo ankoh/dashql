@@ -16,7 +16,7 @@ use super::client::{AttachedDatabase, ExecuteQueryRequest, HyperHttpClient, Hype
 use super::error::HyperError;
 use crate::http::{Headers, HttpRequest, HttpResponse};
 use super::result_reader::{HyperResultReader, DEFAULT_PARALLEL_CHUNKS};
-use crate::connections::{ChannelId, JsonObject};
+use crate::connections::JsonObject;
 use crate::query::Timestamp;
 
 /// The protocol of a Hyper connection
@@ -113,16 +113,6 @@ impl HyperChannelContext {
             .unwrap_or_default();
         Self { attached_databases, query_parameters, client_context, metadata }
     }
-}
-
-/// The channel of a Hyper connection
-#[derive(Debug, Clone, PartialEq)]
-pub enum HyperChannel {
-    /// The HTTP API, the module builds the requests and reads the result
-    Http(HyperHttpChannel),
-    /// A channel of the host, the gRPC proxy of the desktop app or the embedded Hyper. The host runs the queries and
-    /// hands the Arrow IPC of the results to the module.
-    Host(ChannelId),
 }
 
 /// The channel of a Hyper connection over the HTTP API

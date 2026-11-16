@@ -2,8 +2,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { SalesforceDatabaseChannel } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
-import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
@@ -14,7 +12,6 @@ import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_clien
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
-import { connectChannel } from '../hyper/hyper_connection_setup.js';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow, type SalesforceConnectorMockConfig } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 
@@ -23,33 +20,23 @@ let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 afterEach(() => vi.unstubAllGlobals());
 
-/// A runtime whose setups send their requests with the HTTP client and connect the Hyper of Salesforce with the client
-function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFlow: AppOAuthFlow) {
+/// A runtime whose setups send their requests with the HTTP client. The runtime speaks the Hyper of Salesforce itself,
+/// the platform connects no channel.
+function runtimeOf(http: HttpClient, oauthFlow: AppOAuthFlow) {
     const runtime = createRuntime({
         logger: new TestLogger(),
         scheduler: TASK_UPDATE_SCHEDULER,
         core: dql,
         http,
         oauthFlow,
-        channels: {
-            connect: (connectionId, request) => connectChannel({
-                grpcClient: null, httpClient: client, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforceMock: false,
-            }, connectionId, request),
-        },
+        channels: { connect: () => Promise.reject(new Error('the runtime speaks the Hyper of Salesforce itself')) },
     });
     runtime.module.runCatalogLoader(false);
     return runtime;
 }
 
 for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCOM] as const) for (const exchangeFails of [false, true]) for (const databaseName of [undefined, 'sales']) describe(`the setup of ${ConnectorType[connector]} with exchange failure=${exchangeFails} and dbcom=${databaseName}`, () => {
-    it('configures the Salesforce database over http', async () => {
-        let context: HyperDatabaseConnectionContext | undefined;
-        const client: HyperDatabaseClient = {
-            connect: vi.fn(async (_params, connectionContext) => {
-                context = connectionContext;
-                return { executeQuery: vi.fn(async () => { throw new Error('no queries in this test'); }), close: vi.fn() } as any;
-            }),
-        };
+    it('queries the Hyper of Data Cloud over http with the tokens of the login', async () => {
         const popup = { closed: false, focus: vi.fn(), close: vi.fn() };
         const open = vi.fn((_url: string | URL) => popup);
         vi.stubGlobal('open', open);
@@ -71,37 +58,34 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
                 return callback;
             }),
         };
-        const runtime = runtimeOf(http, client, new AppOAuthFlow(events as any, PlatformType.WEB));
+        const runtime = runtimeOf(http, new AppOAuthFlow(events as any, PlatformType.WEB));
         const connectionParams = connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params);
         runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParams }, 'salesforce');
         const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://example.com/callback' });
 
         if (exchangeFails) {
             expect(outcome).toMatchObject({ status: 'failed', message: expect.stringContaining('exchange failed') });
-            expect(client.connect).not.toHaveBeenCalled();
+            expect(http.paths).not.toContain('/api/v3/query');
             expect(http.paths).toContain('/services/a360/token');
             runtime.destroy();
             return;
         }
-        expect(client.connect).toHaveBeenCalledWith(expect.objectContaining({
-            protocol: 'V3_HTTP',
-            endpoint: 'https://hyper.example.com/',
-        }), context);
-        expect(context?.getAttachedDatabases()).toEqual(connector === ConnectorType.DBCOM
+        // The probe of the health check is a query of the HTTP API of the tenant with the tokens of the login, the
+        // fake answers it with 404
+        const call = http.fetch.mock.calls.find(([input]) => new URL(input.toString()).pathname === '/api/v3/query')!;
+        expect(String(call[0])).toBe('https://hyper.example.com/api/v3/query');
+        const headers = new Headers(call[1]!.headers);
+        expect(headers.get('audience')).toBe('tenant-id');
+        expect(headers.get('authorization')).toBe(`Bearer ${DATA_CLOUD_JWT}`);
+        const body = JSON.parse(String(call[1]!.body));
+        expect(body.databases ?? []).toEqual(connector === ConnectorType.DBCOM
             ? [{ path: `hyper.cloud:${databaseName ?? 'default'}`, alias: 'lakehouse' }]
             : []);
-        expect(await context?.getRequestMetadata()).toEqual({
-            audience: 'tenant-id',
-            authorization: `Bearer ${DATA_CLOUD_JWT}`,
-        });
+        expect(outcome).toMatchObject({ status: 'failed' });
         const state = runtime.connection('salesforce')!;
-        const channel = runtime.channel<SalesforceDatabaseChannel>(state)!;
-        expect(channel.coreToken.accessToken).toBe('core-token');
-        expect(channel.dataCloudToken.jwt.raw).toBe(DATA_CLOUD_JWT);
-        expect(channel.dataCloudToken.instanceUrl).toBe('https://hyper.example.com/');
-        // The probe of the health check runs on the channel, it fails in this test
-        expect(outcome).toMatchObject({ status: 'failed', message: 'no queries in this test' });
         expect(state.connectionHealth).toBe(ConnectionHealth.FAILED);
+        // The connection holds no channel of the platform
+        expect(state.details.channel).toBeNull();
         runtime.destroy();
     });
 });
@@ -109,7 +93,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
 describe('the setup of Salesforce', () => {
     const params = { instanceUrl: 'https://example.my.salesforce.com', appConsumerKey: 'key' } as connection.SalesforceConnectionParams;
     const create = (connector: ConnectorType) => {
-        const runtime = runtimeOf({ fetch: () => Promise.reject(new Error('no network')) }, null, new AppOAuthFlow({} as never, PlatformType.WEB));
+        const runtime = runtimeOf({ fetch: () => Promise.reject(new Error('no network')) }, new AppOAuthFlow({} as never, PlatformType.WEB));
         runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params) }, 'salesforce');
         return runtime;
     };
@@ -157,11 +141,6 @@ describe('the mock of Salesforce of the config', () => {
             core: dql,
             http: mockSalesforceHttp(() => MOCK, offline),
             oauthFlow: mockSalesforceOAuthFlow(() => MOCK, flow),
-            channels: {
-                connect: (connectionId, request) => connectChannel({
-                    grpcClient: null, httpClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforceMock: true,
-                }, connectionId, request),
-            },
         });
         runtime.module.runCatalogLoader(false);
         const params = { instanceUrl: 'https://mock.my.salesforce.com', appConsumerKey: 'key', appConsumerSecret: '', login: '' } as connection.SalesforceConnectionParams;
@@ -169,13 +148,12 @@ describe('the mock of Salesforce of the config', () => {
         runtime.createConnection({ connectorType: ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: params, params: connectionParamsOf(connector, params) }, 'salesforce');
         const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://dashql.app/oauth.html' });
 
-        // The probe of the health check runs on the mock of the Hyper channel
+        // The probe of the health check is a query of the Hyper of Data Cloud that the mock answers
         expect(outcome).toMatchObject({ status: 'succeeded' });
         expect(offline.fetch).not.toHaveBeenCalled();
         expect(flow.authorizeWithRedirectPage).not.toHaveBeenCalled();
         const state = runtime.connection('salesforce')!;
         expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
-        expect(runtime.channel<SalesforceDatabaseChannel>(state)!.coreToken.accessToken).toBe('mock-core-token');
 
         // The view summarizes the tokens, the runtime hands them out on request
         const oauthState = state.details.connector.kind === 'salesforce' ? state.details.connector.oauthState : null;
@@ -193,6 +171,12 @@ describe('the mock of Salesforce of the config', () => {
         runtime.module.runCatalogLoader(true);
         await vi.waitFor(() => expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished).toHaveLength(1));
         expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished[0].error).toBeNull();
+
+        // A reset forgets the tokens and the OAuth flow, the view and the secrets show none
+        runtime.dispatch({ connection: 'salesforce' }, { kind: 'resetConnection' });
+        const reset = runtime.connection('salesforce')!;
+        expect(reset.details.connector.kind === 'salesforce' ? reset.details.connector.oauthState : 'other').toBeNull();
+        expect(runtime.module.revealConnectionSecrets('salesforce')).toMatchObject({ coreAccessToken: null, dataCloudAccessToken: null });
         runtime.destroy();
     });
 });

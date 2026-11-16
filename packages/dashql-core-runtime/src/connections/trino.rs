@@ -3,8 +3,8 @@
 //! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_state.ts`.
 
 use super::details::{
-    replace_channel, ChannelId, ConnectionDetails, ConnectorDetails, DetailedError, OAuthPkceChallenge, SetupTimings,
-    TemporaryToken, Timestamp, TrinoOAuthState,
+    replace_channel, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError, SetupTimings, Timestamp,
+    TrinoOAuthState,
 };
 use super::params::JsonObject;
 use super::{ConnectionEffect, ConnectionHealth, ConnectionState, ConnectionStatus};
@@ -21,28 +21,25 @@ pub enum TrinoAction {
     OAuthFailed(DetailedError),
     /// The PKCE challenge is being generated
     GeneratingPkceChallenge,
-    /// The PKCE challenge was generated
-    GeneratedPkceChallenge(OAuthPkceChallenge),
+    /// The PKCE challenge was generated, the setup keeps it
+    GeneratedPkceChallenge,
     /// The browser opened the login
     OAuthBrowserOpened,
-    /// The code of the login arrived
-    ReceivedOAuthCode(TemporaryToken),
+    /// The code of the login arrived at a time, the setup exchanges it
+    ReceivedOAuthCode { created_at: String },
     /// The access token was requested
     RequestingAccessToken,
-    /// The access token arrived, opaque JSON
-    ReceivedAccessToken(String),
+    /// The access token arrived, the channel gets it
+    ReceivedAccessToken,
     /// The channel setup started with the params of the connector
     ChannelSetupStarted { params: JsonObject },
     /// The channel setup was cancelled. The error is not kept.
     ChannelSetupCancelled(DetailedError),
     /// The channel setup failed
     ChannelSetupFailed(DetailedError),
-    /// The channel is ready, the connection waits for the health check. The connection owns the channel of Trino
-    /// from now on, the host keeps only a handle for it.
-    ChannelReady { channel: ChannelId, trino: SharedTrinoChannel },
-    /// The channel refreshed its access token, opaque JSON. A refresh of a channel that the connection no longer uses
-    /// changes nothing.
-    AccessTokenRefreshed { channel: SharedTrinoChannel, token: String },
+    /// The channel is ready, the connection waits for the health check. The connection owns the channel with its
+    /// access token from now on.
+    ChannelReady(SharedTrinoChannel),
 }
 
 impl TrinoAction {
@@ -54,25 +51,17 @@ impl TrinoAction {
             TrinoAction::OAuthCancelled(_) => (ConnectionStatus::AuthCancelled, Cancelled),
             TrinoAction::OAuthFailed(_) => (ConnectionStatus::AuthFailed, Failed),
             TrinoAction::GeneratingPkceChallenge => (ConnectionStatus::PkceGenerationStarted, Connecting),
-            TrinoAction::GeneratedPkceChallenge(_) => (ConnectionStatus::PkceGenerated, Connecting),
+            TrinoAction::GeneratedPkceChallenge => (ConnectionStatus::PkceGenerated, Connecting),
             TrinoAction::OAuthBrowserOpened => (ConnectionStatus::WaitingForOAuthCodeViaLink, Connecting),
-            TrinoAction::ReceivedOAuthCode(_) => (ConnectionStatus::OAuthCodeReceived, Connecting),
+            TrinoAction::ReceivedOAuthCode { .. } => (ConnectionStatus::OAuthCodeReceived, Connecting),
             TrinoAction::RequestingAccessToken => (ConnectionStatus::AccessTokenRequested, Connecting),
-            TrinoAction::ReceivedAccessToken(_) => (ConnectionStatus::AccessTokenReceived, Connecting),
+            TrinoAction::ReceivedAccessToken => (ConnectionStatus::AccessTokenReceived, Connecting),
             TrinoAction::ChannelSetupStarted { .. } => (ConnectionStatus::ChannelSetupStarted, Connecting),
             TrinoAction::ChannelSetupCancelled(_) => (ConnectionStatus::ChannelSetupCancelled, Cancelled),
             TrinoAction::ChannelSetupFailed(_) => (ConnectionStatus::ChannelSetupFailed, Failed),
-            TrinoAction::ChannelReady { .. } => (ConnectionStatus::ChannelReady, Connecting),
-            // Not a step of the setup, the connection applies it without `reduce`
-            TrinoAction::AccessTokenRefreshed { .. } => (ConnectionStatus::ChannelReady, Connecting),
+            TrinoAction::ChannelReady(_) => (ConnectionStatus::ChannelReady, Connecting),
         }
     }
-}
-
-/// The connection lets go of its channel, the queries no longer share it
-fn release(channel: &mut Option<ChannelId>, shared: &mut Option<SharedTrinoChannel>, effects: &mut Vec<ConnectionEffect>) {
-    replace_channel(channel, None, effects);
-    *shared = None;
 }
 
 /// Apply an action of the setup to a Trino connection. The caller checked that the connection is one of Trino.
@@ -82,9 +71,6 @@ pub(super) fn reduce(state: &mut ConnectionState, action: TrinoAction, now: Time
     let ConnectorDetails::Trino(trino) = connector else {
         return;
     };
-    if matches!(action, TrinoAction::AccessTokenRefreshed { .. }) {
-        return;
-    }
     (state.status, state.health) = action.status();
     match action {
         TrinoAction::OAuthStarted { params } => {
@@ -94,54 +80,49 @@ pub(super) fn reduce(state: &mut ConnectionState, action: TrinoAction, now: Time
             *channel_error = None;
             *health_check_error = None;
             trino.oauth_state = Some(TrinoOAuthState::default());
-            release(channel, &mut trino.channel, effects);
+            replace_channel(channel, None, effects);
         }
         TrinoAction::OAuthCancelled(_) => {
             timings.oauth_cancelled_at = Some(now);
-            release(channel, &mut trino.channel, effects);
+            replace_channel(channel, None, effects);
         }
         TrinoAction::OAuthFailed(error) => {
             timings.oauth_failed_at = Some(now);
             *channel_error = Some(error);
-            release(channel, &mut trino.channel, effects);
+            replace_channel(channel, None, effects);
         }
         TrinoAction::GeneratingPkceChallenge => timings.pkce_gen_started_at = Some(now),
-        TrinoAction::GeneratedPkceChallenge(pkce) => {
+        TrinoAction::GeneratedPkceChallenge => {
             timings.pkce_gen_finished_at = Some(now);
-            trino.oauth_state.get_or_insert_with(Default::default).oauth_pkce = Some(pkce);
+            trino.oauth_state.get_or_insert_with(Default::default).pkce_generated = true;
         }
         TrinoAction::OAuthBrowserOpened => timings.oauth_browser_opened_at = Some(now),
-        TrinoAction::ReceivedOAuthCode(code) => {
+        TrinoAction::ReceivedOAuthCode { created_at } => {
             timings.oauth_code_received_at = Some(now);
-            trino.oauth_state.get_or_insert_with(Default::default).auth_code = Some(code);
+            trino.oauth_state.get_or_insert_with(Default::default).auth_code_received_at = Some(created_at);
         }
         TrinoAction::RequestingAccessToken => timings.access_token_requested_at = Some(now),
-        TrinoAction::ReceivedAccessToken(token) => {
-            timings.access_token_received_at = Some(now);
-            trino.oauth_state.get_or_insert_with(Default::default).access_token = Some(token);
-        }
+        TrinoAction::ReceivedAccessToken => timings.access_token_received_at = Some(now),
         TrinoAction::ChannelSetupStarted { params } => {
             timings.channel_setup_started_at = Some(now);
             *setup_params = Some(params);
             *channel_error = None;
             *health_check_error = None;
             trino.schema_resolution_error = None;
-            release(channel, &mut trino.channel, effects);
+            replace_channel(channel, None, effects);
         }
         TrinoAction::ChannelSetupCancelled(_) => {
             timings.channel_setup_cancelled_at = Some(now);
-            release(channel, &mut trino.channel, effects);
+            replace_channel(channel, None, effects);
         }
         TrinoAction::ChannelSetupFailed(error) => {
             timings.channel_setup_failed_at = Some(now);
             *channel_error = Some(error);
-            release(channel, &mut trino.channel, effects);
+            replace_channel(channel, None, effects);
         }
-        TrinoAction::ChannelReady { channel: ready, trino: shared } => {
+        TrinoAction::ChannelReady(shared) => {
             timings.channel_ready_at = Some(now);
-            replace_channel(channel, Some(ready), effects);
-            trino.channel = Some(shared);
+            replace_channel(channel, Some(ConnectionChannel::Trino(shared)), effects);
         }
-        TrinoAction::AccessTokenRefreshed { .. } => {}
     }
 }
