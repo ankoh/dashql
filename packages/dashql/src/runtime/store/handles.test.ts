@@ -2,6 +2,7 @@ import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HandleTable } from './handles.js';
+import { appendRowNumbers, createRuntimeTables } from './runtime_tables.js';
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
 import type { HyperDB } from '../../platform/platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
@@ -46,6 +47,48 @@ describe('HandleTable', () => {
         expect((cancellation.signal.reason as DOMException).name).toBe('AbortError');
         expect((cancellation.signal.reason as DOMException).message).toBe('Connection was reset');
         expect(handles.size).toBe(0);
+    });
+});
+
+describe('The tables of the platform', () => {
+    it('drops a table that streams or builds when its handle is released before it finished', () => {
+        const handles = new HandleTable();
+        const tables = createRuntimeTables(handles);
+        const ipc = arrow.tableToIPC(arrow.tableFromArrays({ n: Int32Array.from([1, 2]) }), 'stream');
+        // A partial result of a cancelled query: the runtime releases the table with its run
+        const streamed = tables.open();
+        tables.push(streamed, ipc.subarray(0, 16));
+        expect(tables.stream(streamed)).not.toBeNull();
+        const built = tables.begin(ipc);
+        expect(handles.size).toBe(2);
+        handles.release(streamed);
+        handles.release(built);
+        expect(handles.size).toBe(0);
+        expect(tables.stream(streamed)).toBeNull();
+        expect(() => tables.append(built, ipc)).toThrow();
+    });
+
+    it('describes a finished table by its rows and its schema, the rows stay with the host', () => {
+        const handles = new HandleTable();
+        const tables = createRuntimeTables(handles);
+        const table = tables.open();
+        tables.push(table, arrow.tableToIPC(arrow.tableFromArrays({ n: Int32Array.from([1, 2, 3]) }), 'stream'));
+        expect(tables.finish(table).rows).toBe(3);
+        const described = tables.describe(table);
+        expect(described.rows).toBe(3);
+        const schema = arrow.tableFromIPC(described.schema);
+        expect(schema.numRows).toBe(0);
+        expect(schema.schema.fields.map(field => field.name)).toEqual(['n']);
+    });
+
+    it('numbers the rows of a table across its batches', () => {
+        const batches = [arrow.tableFromArrays({ s: Int32Array.from([7, 8]) }), arrow.tableFromArrays({ s: Int32Array.from([9]) })].flatMap(table => table.batches);
+        const numbered = appendRowNumbers(new arrow.Table(batches), '_rownum');
+        expect(numbered.batches.length).toBe(2);
+        expect(numbered.schema.fields.map(field => field.name)).toEqual(['s', '_rownum']);
+        expect(numbered.schema.fields[1].nullable).toBe(false);
+        expect(Array.from(numbered.getChild('_rownum')!.toArray() as BigInt64Array)).toEqual([1n, 2n, 3n]);
+        expect(Array.from(numbered.getChild('s')!.toArray() as Int32Array)).toEqual([7, 8, 9]);
     });
 });
 

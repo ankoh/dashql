@@ -296,11 +296,6 @@ impl CatalogLoaderHost for FakeHost {
         self.apply(connection_id, ConnectionAction::UpdateCatalog(task.clone()));
     }
 
-    fn abort_update(&self, _connection_id: &str, task_id: u32, reason: &str) {
-        self.event(format!("abort {task_id}"));
-        self.service().cancel(task_id, reason);
-    }
-
     fn update_finished(&self, connection_id: &str, task_id: u32, outcome: &CatalogUpdateOutcome) {
         self.event(format!("finished {task_id} {:?}", outcome.status));
         self.apply(connection_id, outcome.connection_action(task_id));
@@ -417,6 +412,24 @@ fn relations_text(host: &FakeHost) -> String {
 // The queue of refreshes
 
 #[test]
+fn a_forced_refresh_of_a_busy_connection_waits_for_it() {
+    let host = setup(ConnectorType::Hyper, http());
+    host.observe();
+    let connection = host.connection("database");
+    {
+        // An action borrows the connection while the loader schedules
+        let _busy = connection.state.borrow_mut();
+        host.service().enqueue("database", true);
+        host.run();
+        assert_eq!(host.query_count(), 0);
+    }
+    // The loader looks again shortly and starts the refresh
+    host.advance(10);
+    assert_eq!(host.query_count(), 1);
+    assert_eq!(host.events(), ["started 1 full"]);
+}
+
+#[test]
 fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     let host = setup(ConnectorType::Hyper, http());
     host.observe();
@@ -431,7 +444,8 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     host.run();
     assert!(host.query_cancelled(0));
     let events = host.events();
-    assert_eq!(events.iter().filter(|event| event.starts_with("abort")).count(), 1, "{events:?}");
+    // The update is aborted once and ends once
+    assert_eq!(events.iter().filter(|event| event.starts_with("finished 1 ")).count(), 1, "{events:?}");
     assert!(events.contains(&"finished 1 Cancelled".to_string()), "{events:?}");
     assert_eq!(host.query_count(), 2);
     assert!(!host.query_cancelled(1));
@@ -670,32 +684,6 @@ fn a_running_update_logs_that_it_still_runs() {
     assert!(host.logged("Catalog update in progress"));
     host.answer(0, Ok(pg_rows("orders")));
     assert!(host.logged("Finished catalog update"));
-}
-
-#[test]
-fn an_update_outside_of_the_schedule_runs_to_its_end() {
-    let host = setup(ConnectorType::Hyper, http());
-    host.observe();
-    let (task_id, done) = host.service().update("database", Some(vec![orders()]));
-    let result = Rc::new(RefCell::new(None));
-    let out = result.clone();
-    host.spawn(Box::pin(async move {
-        *out.borrow_mut() = Some(done.await);
-    }));
-    host.run();
-    assert_eq!(host.query_count(), 1);
-    host.answer(0, Ok(pg_rows("orders")));
-    assert_eq!(*result.borrow(), Some(Ok(())));
-    assert!(host.events().contains(&format!("finished {task_id} Succeeded")));
-
-    let (_, missing) = host.service().update("missing", None);
-    let result = Rc::new(RefCell::new(None));
-    let out = result.clone();
-    host.spawn(Box::pin(async move {
-        *out.borrow_mut() = Some(missing.await.is_err());
-    }));
-    host.run();
-    assert_eq!(*result.borrow(), Some(true));
 }
 
 // Salesforce

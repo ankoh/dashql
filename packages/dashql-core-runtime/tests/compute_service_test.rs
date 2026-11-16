@@ -11,7 +11,7 @@ use std::task::{Context, Wake, Waker};
 use arrow_array::types::Int32Type;
 use arrow_array::{ArrayRef, Float64Array, Int64Array, ListArray, RecordBatch, StringArray};
 use dashql_core::error::Result;
-use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, RunId};
+use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService, TaskOutput};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
@@ -86,6 +86,10 @@ struct Database {
     gates: BTreeMap<&'static str, Receiver<()>>,
     /// The handles that the host keeps: the tables that the tasks handed over and the ones of the analyses
     handles: BTreeSet<u32>,
+    /// The tables of the handles that the host keeps as tables: the results and the tables that the tasks read
+    objects: BTreeMap<u32, ResultTable>,
+    /// The tables that the tasks read and parsed in the module, by the SQL of the read
+    parsed: Vec<String>,
     /// The next handle
     next_handle: u32,
 }
@@ -99,11 +103,19 @@ impl Database {
         handle
     }
 
+    /// Keep a table under a new handle
+    fn keep(&mut self, table: ResultTable) -> u32 {
+        let handle = self.handle();
+        self.objects.insert(handle, table);
+        handle
+    }
+
     /// Release the handles of effects, like the host
     fn release(&mut self, effects: &[ComputationEffect]) {
         for effect in effects {
             if let ComputationEffect::Release { handle } = effect {
                 self.handles.remove(handle);
+                self.objects.remove(handle);
             }
         }
     }
@@ -142,9 +154,11 @@ fn read_table(sql: &str) -> Option<String> {
 }
 
 impl ComputeHost for FakeHost {
-    async fn import_table(&self, _data_frame: u64, table_name: &str, ipc: Vec<u8>, _context: &ComputeContext) -> std::result::Result<(), HostError> {
-        let table = ResultTable::from_ipc_stream(&ipc).map_err(|e| HostError::new(e.to_string()))?;
+    async fn import_table(&self, _data_frame: u64, table_name: &str, table: u32, row_number_field: &str, _context: &ComputeContext) -> std::result::Result<(), HostError> {
         let mut database = self.database.borrow_mut();
+        let table = database.objects.get(&table).ok_or_else(|| HostError::new(format!("no table {table}")))?;
+        // The host numbers the rows of its table
+        let table = table.append_row_numbers(row_number_field).map_err(|e| HostError::new(e.to_string()))?;
         database.calls.push(format!("import {table_name}"));
         database.tables.insert(table_name.to_string(), table);
         Ok(())
@@ -173,9 +187,19 @@ impl ComputeHost for FakeHost {
             return count.to_ipc_stream().map_err(|e| HostError::new(e.to_string()));
         }
         let name = read_table(sql).ok_or_else(|| HostError::new(format!("no table in {sql}")))?;
-        let database = self.database.borrow();
+        let mut database = self.database.borrow_mut();
+        database.parsed.push(sql.to_string());
         let table = database.tables.get(&name).ok_or_else(|| HostError::new(format!("no table {name}")))?;
         table.to_ipc_stream().map_err(|e| HostError::new(e.to_string()))
+    }
+
+    async fn query_table(&self, sql: &str, _context: &ComputeContext) -> std::result::Result<KeptTable, HostError> {
+        self.database.borrow_mut().queries.push(sql.to_string());
+        let name = read_table(sql).ok_or_else(|| HostError::new(format!("no table in {sql}")))?;
+        let mut database = self.database.borrow_mut();
+        let table = database.tables.get(&name).cloned().ok_or_else(|| HostError::new(format!("no table {name}")))?;
+        let shape = shape(&table);
+        Ok(KeptTable { handle: database.keep(table), shape })
     }
 
     async fn drop_table(&self, _data_frame: u64, table_name: &str) -> std::result::Result<(), HostError> {
@@ -191,7 +215,9 @@ impl ComputeHost for FakeHost {
     }
 
     fn release(&self, handle: u32) {
-        self.database.borrow_mut().handles.remove(&handle);
+        let mut database = self.database.borrow_mut();
+        database.handles.remove(&handle);
+        database.objects.remove(&handle);
     }
 
     fn cancel(&self, run: RunId) {
@@ -209,6 +235,11 @@ impl ComputeHost for FakeHost {
 
 fn a<T: arrow_array::Array + 'static>(array: T) -> ArrayRef {
     Arc::new(array)
+}
+
+/// What the runtime knows of a table of the host
+fn shape(table: &ResultTable) -> TableShape {
+    TableShape { rows: table.num_rows() as u64, schema: table.schema().clone() }
 }
 
 fn table(columns: Vec<(&str, ArrayRef)>) -> ResultTable {
@@ -285,10 +316,10 @@ impl Setup {
         output
     }
 
-    /// The handles of the result and the lifetime of an analysis
+    /// The handles of the result of the tests and the lifetime of an analysis
     fn analysis_handles(&self) -> AnalysisHandles {
         let mut database = self.database.borrow_mut();
-        AnalysisHandles { table: database.handle(), lifetime: database.handle() }
+        AnalysisHandles { table: database.keep(result()), lifetime: database.handle() }
     }
 
     /// Apply an action of the host and release the handles of its effects
@@ -300,7 +331,7 @@ impl Setup {
 
     fn analyze(&self) -> Result<()> {
         let handles = self.analysis_handles();
-        let analysis = self.service.analyze_table(1, result(), handles, Some("connection".into()), None, AnalyzeTableOptions::default());
+        let analysis = self.service.analyze_table(1, shape(&result()), handles, Some("connection".into()), None, AnalyzeTableOptions::default());
         let output = self.run(analysis);
         let output = output.borrow_mut().take();
         output.expect("the analysis finished")
@@ -345,6 +376,10 @@ fn analyzes_a_result() {
             format!("create __df_{} (Column aggregation)", base + 8),
         ]
     );
+    // The module parses the statistics and the summaries only: the result and the system columns stay with the host
+    let parsed: Vec<Option<String>> = setup.database.borrow().parsed.iter().map(|sql| read_table(sql)).collect();
+    let small = [base + 2, base + 6, base + 8].map(|id| Some(format!("__df_{id}")));
+    assert_eq!(parsed, small);
     setup.service.read(|state| {
         let computation = state.computation(1).expect("a computation");
         assert_eq!(computation.connection_id.as_deref(), Some("connection"));
@@ -383,7 +418,7 @@ fn a_result_without_columns_has_nothing_to_analyze() {
     let setup = setup(analysis_answer);
     let empty = ResultTable::try_new(Arc::new(arrow_schema::Schema::empty()), Vec::new()).unwrap();
     let handles = setup.analysis_handles();
-    let output = setup.run(setup.service.analyze_table(1, empty, handles, None, None, AnalyzeTableOptions::default()));
+    let output = setup.run(setup.service.analyze_table(1, shape(&empty), handles, None, None, AnalyzeTableOptions::default()));
     assert!(matches!(output.borrow().as_ref(), Some(Ok(()))));
     assert!(setup.service.read(|state| state.computation(1).is_none()));
     assert!(setup.database.borrow().calls.is_empty());
@@ -513,7 +548,7 @@ fn a_new_data_search_cancels_the_running_one() {
     assert_eq!(table.request_id, 2);
     setup.service.read(|state| {
         let computation = state.computation(1).unwrap();
-        assert_eq!(computation.data_search.matching_rows.as_ref().map(|rows| rows.len()), Some(1));
+        assert_eq!(computation.data_search.matching_rows, Some(1));
     });
     setup.executor.run_until_stalled();
     assert_eq!(setup.data_frame_tables(), setup.state_data_frame_tables());
@@ -525,7 +560,7 @@ fn deleting_a_computation_cancels_its_runs_and_drops_its_data_frames() {
     let (_release, gate): (Sender<()>, Receiver<()>) = oneshot();
     setup.database.borrow_mut().gates.insert("System column computation", gate);
     let handles = setup.analysis_handles();
-    let analysis = setup.run(setup.service.analyze_table(1, result(), handles, None, None, AnalyzeTableOptions::default()));
+    let analysis = setup.run(setup.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default()));
     assert!(analysis.borrow().is_none());
 
     setup.apply(ComputationAction::DeleteComputation { table_id: 1 });
@@ -617,7 +652,7 @@ fn searches_run_once_the_data_frame_is_there() {
     let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
     setup.database.borrow_mut().gates.insert("System column computation", gate);
     let handles = setup.analysis_handles();
-    let analysis = setup.run(setup.service.analyze_table(1, result(), handles, None, None, AnalyzeTableOptions::default()));
+    let analysis = setup.run(setup.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default()));
 
     // The searches wait for the data frame with the system columns
     setup.service.set_search_pattern(1, SearchKind::Data, "a".into()).unwrap();
@@ -630,7 +665,7 @@ fn searches_run_once_the_data_frame_is_there() {
     assert_eq!(created(&setup, "Data search"), 1);
     setup.service.read(|state| {
         let computation = state.computation(1).unwrap();
-        assert_eq!(computation.data_search.matching_rows.as_ref().map(|rows| rows.len()), Some(1));
+        assert_eq!(computation.data_search.matching_rows, Some(1));
         assert!(!computation.data_search.pending);
         assert_eq!(computation.column_search.matching_column_groups, Some(vec![2]));
         assert!(computation.filtered_column_aggregate_outdated(1));

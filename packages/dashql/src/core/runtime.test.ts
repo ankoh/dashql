@@ -37,6 +37,7 @@ function platform() {
             append: () => { throw new Error('no tables'); },
             finish: () => { throw new Error('no tables'); },
             read: () => { throw new Error('no tables'); },
+            describe: () => { throw new Error('no tables'); },
             open: () => { throw new Error('no tables'); },
             push: () => { throw new Error('no tables'); },
         },

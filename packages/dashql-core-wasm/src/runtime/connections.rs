@@ -10,7 +10,8 @@
 //! runtime tell the registry which workbooks use a connection.
 
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+use std::collections::HashMap;
+use std::rc::{Rc, Weak};
 
 use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core::error::{Error, Result};
@@ -82,13 +83,10 @@ pub(crate) struct Connections {
     pub computations: ComputeService<JsPlatform>,
     /// The writer of the storage of the runtime
     pub writer: RefCell<Option<StorageWriter>>,
-    /// The saves of the connections by id. The connections, the queries that run and the owners of results are few,
-    /// they are lists.
+    /// The saves of the connections by id. The connections are few, it is a list.
     pub saves: RefCell<Vec<(String, SaveState)>>,
-    /// The queries that the executor runs, by id
-    pub runs: RefCell<Vec<(QueryId, QueryRun)>>,
-    /// The query of the latest analyzed result of every result owner, e.g. a script of a workbook
-    pub result_owners: RefCell<Vec<(String, QueryId)>>,
+    /// The queries that the runtime runs by id, held by the commands that run them and by their follow-ups
+    pub runs: RefCell<HashMap<QueryId, Weak<QueryRun>>>,
     /// The executor, its host holds the connections weakly
     pub executor: RefCell<Option<QueryExecutor<QueryHost>>>,
     /// The specs of the client functions by extension, loaded with the first call
@@ -117,8 +115,7 @@ impl Connections {
             computations,
             writer: RefCell::new(None),
             saves: RefCell::new(Vec::new()),
-            runs: RefCell::new(Vec::new()),
-            result_owners: RefCell::new(Vec::new()),
+            runs: RefCell::new(HashMap::new()),
             executor: RefCell::new(None),
             specs: RefCell::new(Vec::new()),
             setups: RefCell::new(Vec::new()),
@@ -149,23 +146,18 @@ impl Connections {
     }
 
     /// Hand the effects of the registry to the host and to the services: the effects on handles, the cancelled setups
-    /// and catalog updates and the queries that the executor stops. A change that is urgent lets the catalog loader
-    /// follow the registry, e.g. a query that started or finished.
+    /// and catalog updates, the queries that stop and the computations of the results that a later result of their
+    /// owner superseded. A change that is urgent lets the catalog loader follow the registry, e.g. a query that started
+    /// or finished.
     pub fn settle(self: &Rc<Self>, connection_id: Option<&str>, outcome: &RegistryOutcome, urgent: bool) {
         let follow_up = self.platform.push_registry_effects(&outcome.effects);
-        if !outcome.stopped.is_empty() {
-            {
-                let mut runs = self.runs.borrow_mut();
-                for (_, run) in runs.iter_mut().filter(|(id, _)| outcome.stopped.contains(id)) {
-                    run.cancelled = true;
-                }
-            }
-            if let Some(executor) = self.executor() {
-                for query_id in &outcome.stopped {
-                    // The cancel happens in the call, the query ends on its own
-                    drop(executor.cancel(*query_id));
-                }
-            }
+        for query_id in &outcome.stopped {
+            // The cancel happens in the call, the query ends on its own
+            self.cancel_now(*query_id);
+        }
+        // The history decides which result of an owner is the latest, the others keep no computation
+        for query_id in &outcome.superseded {
+            self.delete_computation_of(*query_id);
         }
         if let (true, Some(connection_id)) = (follow_up.cancel_setup, connection_id) {
             self.cancel_setup(connection_id);
@@ -313,20 +305,6 @@ impl Connections {
     pub fn delete_computation(&self, table_id: TableId) {
         let deleted = self.computations.delete_computation(table_id);
         self.settle_computations(deleted);
-    }
-
-    /// Register the analyzed result of a result owner, returns the computation of the owner that is no longer needed.
-    /// A result that is analyzed after a later result of the same owner, e.g. of an overlapping rerun, is stale.
-    pub fn retain_result(&self, owner: &str, query_id: QueryId) -> Option<QueryId> {
-        let mut owners = self.result_owners.borrow_mut();
-        match owners.iter_mut().find(|(held, _)| held == owner) {
-            Some((_, latest)) if *latest > query_id => Some(query_id),
-            Some((_, latest)) => Some(std::mem::replace(latest, query_id)),
-            None => {
-                owners.push((owner.to_string(), query_id));
-                None
-            }
-        }
     }
 
     /// Mark a save of a connection and tell the host

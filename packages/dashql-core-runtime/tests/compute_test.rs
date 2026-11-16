@@ -7,7 +7,7 @@
 //! tests that holds a data frame without a reference is built with actions here, so the data frame of the table counts
 //! once more.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 
 use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
@@ -256,7 +256,7 @@ fn accepts_the_latest_materialized_data_search_without_changing_the_filter_versi
     apply(&mut state, ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Data, pattern: "10".into() });
     let before = version(&state);
 
-    let matching_rows = BTreeMap::from([(2, vec![1]), (3, vec![1])]);
+    let matching_rows = 2;
     let outcome = apply(
         &mut state,
         ComputationAction::DataSearchSucceeded {
@@ -264,7 +264,7 @@ fn accepts_the_latest_materialized_data_search_without_changing_the_filter_versi
             data_frame: 1,
             request_id: 1,
             search: search_table(2, before, 1),
-            matching_rows: matching_rows.clone(),
+            matching_rows,
             now: NOW,
         },
     );
@@ -293,7 +293,7 @@ fn drops_the_data_search_of_the_latest_request_when_it_fails() {
             data_frame: 1,
             request_id: 1,
             search,
-            matching_rows: BTreeMap::from([(2, vec![1])]),
+            matching_rows: 1,
             now: NOW,
         },
     );
@@ -1003,7 +1003,7 @@ fn ending_the_data_search_drops_its_rows_and_aborts_it() {
             data_frame: 1,
             request_id: 1,
             search: search_table(2, current, 1),
-            matching_rows: BTreeMap::from([(2, vec![1])]),
+            matching_rows: 1,
             now: NOW,
         },
     );

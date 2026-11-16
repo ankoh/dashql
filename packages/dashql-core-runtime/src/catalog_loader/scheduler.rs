@@ -73,6 +73,8 @@ pub struct CatalogSchedule {
     pub commands: Vec<CatalogLoaderCommand>,
     /// When to schedule again, for the next attempt to ask about relations
     pub wake_at: Option<Timestamp>,
+    /// Was a requested refresh of a busy connection skipped? It stays queued, the host schedules again.
+    pub retry: bool,
 }
 
 /// The scheduler of the catalog updates of the connections
@@ -128,8 +130,9 @@ impl CatalogLoader {
     }
 
     /// Follow the connections: a connection that comes online is described if nothing describes it yet, and always if
-    /// its database doesn't outlive the app
-    pub fn observe(&mut self, connections: &[CatalogLoaderConnection]) {
+    /// its database doesn't outlive the app. A busy connection, one whose state is borrowed by an action, isn't seen and
+    /// keeps what the loader knows of it.
+    pub fn observe(&mut self, connections: &[CatalogLoaderConnection], busy: &[String]) {
         for connection in connections {
             let id = connection.connection_id;
             if connection.health != ConnectionHealth::Online {
@@ -142,7 +145,7 @@ impl CatalogLoader {
                 }
             }
         }
-        self.online.retain(|id| connections.iter().any(|connection| connection.connection_id == id));
+        self.online.retain(|id| connections.iter().any(|connection| connection.connection_id == id) || busy.contains(id));
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. A request that is
@@ -160,15 +163,20 @@ impl CatalogLoader {
         self.last_finished_at.insert(connection_id.to_string(), now);
     }
 
-    /// The updates to start and to abort
-    pub fn schedule(&mut self, connections: &[CatalogLoaderConnection], now: Timestamp) -> CatalogSchedule {
+    /// The updates to start and to abort. A requested refresh of a busy connection stays queued for the next schedule.
+    pub fn schedule(&mut self, connections: &[CatalogLoaderConnection], busy: &[String], now: Timestamp) -> CatalogSchedule {
         let mut schedule = CatalogSchedule::default();
 
         // The requested refreshes go first, a lookup follows them
         let queue = std::mem::take(&mut self.queue);
         for (id, force) in queue {
             let Some(connection) = connections.iter().find(|connection| connection.connection_id == id) else {
-                // The connection is gone
+                if busy.contains(&id) {
+                    // The connection is busy, the request waits for the next schedule
+                    self.queue.push((id, force));
+                    schedule.retry = true;
+                }
+                // The connection is gone otherwise
                 continue;
             };
             let updates = connection.catalog_updates;
@@ -235,8 +243,10 @@ impl CatalogLoader {
             });
         }
 
-        // The aborted updates that still run
-        self.aborted.retain(|task_id| connections.iter().any(|connection| connection.catalog_updates.tasks_running.contains_key(task_id)));
+        // The aborted updates that still run, a busy connection may run one
+        if busy.is_empty() {
+            self.aborted.retain(|task_id| connections.iter().any(|connection| connection.catalog_updates.tasks_running.contains_key(task_id)));
+        }
         schedule
     }
 }

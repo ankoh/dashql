@@ -51,7 +51,15 @@ describe('The computations of the runtime', () => {
             score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
         });
+        // The module learns the rows and the schema of the result, its data never crosses
+        const tables = (runtime as unknown as { tables: core.RuntimeTables }).tables;
+        const read = vi.spyOn(tables, 'read');
+        const describe = vi.spyOn(tables, 'describe');
         await runtime.analyzeTable(1, table, { connectionId: 'main' });
+        expect(read).not.toHaveBeenCalled();
+        expect(describe).toHaveBeenCalled();
+        read.mockRestore();
+        describe.mockRestore();
         return runtime;
     }
 

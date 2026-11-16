@@ -76,6 +76,12 @@ impl ResultTable {
         Self::try_new(schema, batches)
     }
 
+    /// Read only the schema of an Arrow IPC stream, e.g. of a table of the host that describes itself without its rows
+    pub fn schema_of_ipc_stream(bytes: &[u8]) -> Result<SchemaRef> {
+        let reader = arrow_ipc::reader::StreamReader::try_new(bytes, None).map_err(arrow_error("an IPC stream"))?;
+        Ok(reader.schema())
+    }
+
     /// Write the table as an Arrow IPC stream
     pub fn to_ipc_stream(&self) -> Result<Vec<u8>> {
         let mut writer = arrow_ipc::writer::StreamWriter::try_new(Vec::new(), &self.schema)

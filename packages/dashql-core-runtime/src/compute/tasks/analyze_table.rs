@@ -1,7 +1,7 @@
 //! The analysis of a result for the grid, in steps:
 //!
 //! 1. The column groups of the result, and the result with row numbers imported as the first data frame
-//!    (`start_table_analysis`). The computation starts with the column groups, the data frame moves its data version.
+//!    (`start_table_analysis`). The host numbers the rows of its table, the analysis reads only the schema. The computation starts with the column groups, the data frame moves its data version.
 //! 2. The statistics of the table (`table_aggregation_task`): counts, minimum, maximum and distinct counts.
 //! 3. The system columns (`system_columns_task`): the row numbers, the bins and the value ids.
 //! 4. The summary of every ordinal and string column (`column_aggregation_tasks`), e.g. a histogram.
@@ -18,10 +18,9 @@
 
 use std::collections::HashSet;
 
-use dashql_core::error::Result;
+use arrow_schema::Schema;
 
 use super::columns::{build_column_groups, create_unique_column_name};
-use super::result_table::ResultTable;
 use super::{data_frame_table_name, TableImport};
 use crate::compute::types::{
     ArrowTable, ColumnAggregationTask, ColumnGroup, ComputationVersion, DataFrameId, SystemColumnsTask,
@@ -53,32 +52,29 @@ pub struct TableAnalysisStart {
     pub column_groups: Vec<ColumnGroup>,
     /// The field with the row numbers, from 1
     pub row_number_field_name: String,
-    /// The result with the row numbers, to import as the first data frame
+    /// The import of the result with the row numbers as the first data frame
     pub import: TableImport,
 }
 
-/// The result with its positions as an appended column of row numbers from 1, and the name of the column. The row
-/// numbers are appended before the import since Hyper numbers the rows of `row_number() OVER ()` in no particular
-/// order.
-pub fn append_row_numbers(table: &ResultTable) -> Result<(ResultTable, String)> {
-    let mut names: HashSet<String> = table.schema().fields().iter().map(|field| field.name().clone()).collect();
-    let name = create_unique_column_name(ROW_NUMBER_FIELD_PREFIX, &mut names);
-    Ok((table.append_row_numbers(&name)?, name))
+/// The name of the row numbers that the import appends to a result, unique among its fields. The row numbers are
+/// appended before the import since Hyper numbers the rows of `row_number() OVER ()` in no particular order.
+pub fn row_number_field_name(schema: &Schema) -> String {
+    let mut names: HashSet<String> = schema.fields().iter().map(|field| field.name().clone()).collect();
+    create_unique_column_name(ROW_NUMBER_FIELD_PREFIX, &mut names)
 }
 
 /// Start the analysis of a result with the data frame of its import, none for a result without columns
-pub fn start_table_analysis(table: &ResultTable, input: DataFrameId) -> Result<Option<TableAnalysisStart>> {
-    if table.schema().fields().is_empty() {
-        return Ok(None);
+pub fn start_table_analysis(schema: &Schema, input: DataFrameId) -> Option<TableAnalysisStart> {
+    if schema.fields().is_empty() {
+        return None;
     }
-    let column_groups = build_column_groups(table.schema());
-    let (numbered, row_number_field_name) = append_row_numbers(table)?;
-    Ok(Some(TableAnalysisStart {
-        fields: table.schema().fields().iter().map(|field| field.name().clone()).collect(),
-        column_groups,
+    let row_number_field_name = row_number_field_name(schema);
+    Some(TableAnalysisStart {
+        fields: schema.fields().iter().map(|field| field.name().clone()).collect(),
+        column_groups: build_column_groups(schema),
         row_number_field_name,
-        import: TableImport { data_frame: input, table_name: data_frame_table_name(input), table: numbered },
-    }))
+        import: TableImport { data_frame: input, table_name: data_frame_table_name(input) },
+    })
 }
 
 /// The statistics of a table, of its first data frame

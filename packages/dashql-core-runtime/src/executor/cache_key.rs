@@ -69,7 +69,8 @@ mod tests {
 
     #[test]
     fn writes_the_input_of_the_typescript_runtime() {
-        // The texts of `computeQueryResultCacheKey` of the TypeScript runtime for the same values
+        // The texts of `computeQueryResultCacheKey` of the TypeScript runtime for the same values. The login of a
+        // Salesforce connection and the user of a Trino connection joined the signatures later.
         let trino = json!({
             "endpoint": "https://trino",
             "case": "trino",
@@ -84,7 +85,7 @@ mod tests {
         let signature = connection_cache_signature(ConnectorType::SalesforceDataCloud, params.as_object().unwrap());
         assert_eq!(
             result_key_input(&signature, "x"),
-            "dashql-query-cache-v3\n70:{\"appConsumerKey\":\"k\",\"case\":\"salesforce\",\"instanceUrl\":\"https://org\"}1:x"
+            "dashql-query-cache-v3\n82:{\"appConsumerKey\":\"k\",\"case\":\"salesforce\",\"instanceUrl\":\"https://org\",\"login\":\"u\"}1:x"
         );
         assert_eq!(result_key_of_digest(&[0x0a, 0xff, 0x00]), "0aff00");
     }
@@ -94,5 +95,9 @@ mod tests {
         let params = json!({ "appConsumerKey": "k" });
         let signature = connection_cache_signature(ConnectorType::Dbcom, params.as_object().unwrap());
         assert_eq!(signature, json!({ "case": "dbcom", "appConsumerKey": "k", "databaseName": "default" }));
+        // Another login of the same org keys its results apart
+        let login = |login: &str| json!({ "appConsumerKey": "k", "login": login });
+        let signature = |params: Value| connection_cache_signature(ConnectorType::Dbcom, params.as_object().unwrap());
+        assert_ne!(result_key_input(&signature(login("a")), "x"), result_key_input(&signature(login("b")), "x"));
     }
 }

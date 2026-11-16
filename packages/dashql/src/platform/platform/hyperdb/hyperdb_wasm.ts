@@ -622,6 +622,7 @@ class HyperDBSession {
             const source = `SELECT * FROM external(${quoteLiteral(path)}, format => 'arrowstream', columns => descriptor(${insert.columns}))`;
             await this.drain(this.startQuery(
                 options.create ?? true ? `CREATE TABLE ${target} AS ${source}` : `INSERT INTO ${target} ${source}`,
+                options.abort,
             ));
         } finally {
             this.active = false;

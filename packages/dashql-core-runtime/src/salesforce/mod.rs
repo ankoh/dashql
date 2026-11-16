@@ -37,8 +37,9 @@ pub fn login_hint(params: &JsonObject) -> Option<&str> {
     params.get("login").and_then(Value::as_str).filter(|l| !l.is_empty())
 }
 
-/// What a cached query result of a connection depends on. The login stays out, another user of the same org reuses
-/// the cached results. Missing fields are left out like `JSON.stringify` leaves out `undefined`.
+/// What a cached query result of a connection depends on. The results of a user are the user's, sharing rules may show
+/// another user of the same org other rows: the login is part of the signature, the setup sets it to the user that
+/// logged in. Missing fields are left out like `JSON.stringify` leaves out `undefined`.
 pub fn cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
     let mut signature = JsonObject::new();
     signature.insert("case".into(), json!(if connector == ConnectorType::Dbcom { "dbcom" } else { "salesforce" }));
@@ -46,6 +47,9 @@ pub fn cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
         if let Some(value) = params.get(key) {
             signature.insert(key.into(), value.clone());
         }
+    }
+    if let Some(login) = login_hint(params) {
+        signature.insert("login".into(), json!(login));
     }
     if connector == ConnectorType::Dbcom {
         signature.insert("databaseName".into(), json!(SalesforceConnectionParams::from_object(params).hyper_cloud_database()));

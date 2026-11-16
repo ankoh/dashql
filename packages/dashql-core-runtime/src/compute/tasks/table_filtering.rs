@@ -2,9 +2,6 @@
 //!
 //! Ported from `packages/dashql/src/runtime/compute/tasks/table_filtering.ts`.
 
-use dashql_core::error::Result;
-
-use super::result_table::ResultTable;
 use super::sql::SqlFrame;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
 use crate::compute::types::{ComputationVersion, DataFrameId, TableFilteringTask};
@@ -20,13 +17,11 @@ pub struct TableFilteringPlan {
     pub version: ComputationVersion,
 }
 
-/// The rows that pass the filters
+/// The rows that pass the filters, the host keeps their row numbers in the order of the table that the query read
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterResult {
     /// The row numbers that the table holds
     pub input_row_number_column_name: String,
-    /// The row numbers of the rows that pass, in the order of the table
-    pub table: ResultTable,
     /// The data frame of the row numbers
     pub data_frame: DataFrameId,
     /// The version that the filter was computed for, the state moved to it when the task was scheduled
@@ -53,13 +48,12 @@ pub fn plan_table_filtering(task: &TableFilteringTask, output: DataFrameId) -> O
 }
 
 impl TableFilteringPlan {
-    /// Read the rows that pass
-    pub fn finish(self, result: ResultTable) -> Result<FilterResult> {
-        Ok(FilterResult {
+    /// The rows that pass
+    pub fn finish(self) -> FilterResult {
+        FilterResult {
             input_row_number_column_name: self.row_number_column_name,
-            table: result,
             data_frame: self.query.data_frame,
             version: self.version,
-        })
+        }
     }
 }

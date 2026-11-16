@@ -82,9 +82,6 @@ impl CatalogLoaderHost for LoaderHost {
         self.apply(connection_id, ConnectionAction::UpdateCatalog(task.clone()), None);
     }
 
-    /// The loader cancelled the update already, its queries stop with its token
-    fn abort_update(&self, _connection_id: &str, _task_id: u32, _reason: &str) {}
-
     fn update_finished(&self, connection_id: &str, task_id: u32, outcome: &CatalogUpdateOutcome) {
         let changed = matches!(outcome.status, CatalogUpdateTaskStatus::Succeeded).then_some(outcome.catalog_changed);
         self.apply(connection_id, outcome.connection_action(task_id), changed);

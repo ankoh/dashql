@@ -4,6 +4,8 @@ export interface EmbeddedTableInsertOptions {
     schema?: string;
     name: string;
     create?: boolean;
+    /// Stops the insert, e.g. the import of a result whose computation was cancelled
+    abort?: AbortSignal;
 }
 
 /// The record batches of a running query

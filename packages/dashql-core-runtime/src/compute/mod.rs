@@ -394,15 +394,15 @@ pub enum ComputationAction {
     /// A search of the columns of a data frame matched column groups. It is dropped unless the data frame and the
     /// request are current.
     ColumnSearchSucceeded { table_id: TableId, data_frame: DataFrameId, request_id: u64, matching_column_groups: Vec<u32> },
-    /// A search of the data of a data frame matched rows: the table of the matches and the matching columns by row
-    /// number from 1, as the host reads them from the table. It is dropped unless the data frame, the request and the
-    /// data version are current.
+    /// A search of the data of a data frame matched rows: the table of the matches, whose matching columns the host
+    /// reads, and the number of matched rows. It is dropped unless the data frame, the request and the data version
+    /// are current.
     DataSearchSucceeded {
         table_id: TableId,
         data_frame: DataFrameId,
         request_id: u64,
         search: DataSearchTable,
-        matching_rows: BTreeMap<u64, Vec<u32>>,
+        matching_rows: u64,
         now: Timestamp,
     },
     /// A search of the data of a data frame failed, it drops the rows of the data search. It is dropped unless the

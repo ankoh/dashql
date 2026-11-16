@@ -4,8 +4,6 @@
 //! Ported from `packages/dashql/src/platform/compute/sql/query_result_search_sql.ts` and
 //! `packages/dashql/src/runtime/compute/tasks/data_search.ts`.
 
-use std::collections::BTreeMap;
-
 use dashql_core::error::Result;
 
 use super::result_table::ResultTable;
@@ -97,28 +95,6 @@ pub fn parse_column_search_matches(result: &ResultTable) -> Result<Vec<u32>> {
     Ok(result.int64_values(column)?.into_iter().flatten().filter_map(|group| u32::try_from(group).ok()).collect())
 }
 
-/// The matching columns by row number of a search of the data: the fields `row_idx` and `column_indices`, or the first
-/// two fields
-pub fn parse_data_search_matches(result: &ResultTable) -> Result<BTreeMap<u64, Vec<u32>>> {
-    let fields = result.schema().fields().len();
-    let rows = result.column_index(DATA_SEARCH_ROW_FIELD).or((fields > 0).then_some(0));
-    let matches = result.column_index(DATA_SEARCH_COLUMNS_FIELD).or((fields > 1).then_some(1));
-    let (Some(rows), Some(matches)) = (rows, matches) else {
-        return Ok(BTreeMap::new());
-    };
-    let rows = result.int64_values(rows)?;
-    let matches = result.int64_list_values(matches)?;
-    let mut matching_rows = BTreeMap::new();
-    for (row, columns) in rows.into_iter().zip(matches) {
-        let Some(row) = row.and_then(|row| u64::try_from(row).ok()) else {
-            continue;
-        };
-        let columns = columns.unwrap_or_default().into_iter().filter_map(|c| u32::try_from(c).ok()).collect();
-        matching_rows.insert(row, columns);
-    }
-    Ok(matching_rows)
-}
-
 /// The query of a data search
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataSearchPlan {
@@ -132,21 +108,18 @@ pub struct DataSearchPlan {
     pub request_id: u64,
 }
 
-/// The rows that a data search matched
+/// The rows that a data search matched. The host keeps the table of the matched rows that the query read, ordered by
+/// row number with their matching columns, and parses the matching columns of a row itself.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataSearchResult {
     /// The row numbers that the table holds
     pub input_row_number_column_name: String,
-    /// The matched rows ordered by row number, with their matching columns
-    pub table: ResultTable,
     /// The data frame of the matched rows
     pub data_frame: DataFrameId,
     /// The version of the data that was searched
     pub version: ComputationVersion,
     /// The search request
     pub request_id: u64,
-    /// The matching columns by row number from 1
-    pub matching_rows: BTreeMap<u64, Vec<u32>>,
 }
 
 /// Plan a data search into a new data frame
@@ -167,16 +140,13 @@ pub fn plan_data_search(task: &DataSearchTask, output: DataFrameId) -> DataSearc
 }
 
 impl DataSearchPlan {
-    /// Read the matched rows
-    pub fn finish(self, result: ResultTable) -> Result<DataSearchResult> {
-        let matching_rows = parse_data_search_matches(&result).map_err(|e| self.query.failed(e))?;
-        Ok(DataSearchResult {
+    /// The matched rows
+    pub fn finish(self) -> DataSearchResult {
+        DataSearchResult {
             input_row_number_column_name: self.row_number_column_name,
-            table: result,
             data_frame: self.query.data_frame,
             version: self.version,
             request_id: self.request_id,
-            matching_rows,
-        })
+        }
     }
 }

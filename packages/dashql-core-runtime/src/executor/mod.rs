@@ -23,8 +23,11 @@
 //! files of the embedded Hyper), the analysis of the results on the compute database and the relations that a
 //! statement touches. The task decides when they happen.
 //!
-//! Cancelling a query cancels its token: the requests of the query stop, the query is cancelled at the backend (a
-//! Trino or Hyper query by its request, a channel of the host by the host) and the task ends as cancelled.
+//! The caller owns the run of a query: it creates the cancellation token and hands it over with the request, and what
+//! it keeps of the run (`QueryRequest::keep_alive`) lives as long as the task or a follow-up of it runs, e.g. the write
+//! of the result into the cache after the query ended. Cancelling a query cancels its token: the requests of the query
+//! stop, the query is cancelled at the backend (a Trino or Hyper query by its request, a channel of the host by the
+//! host) and the task ends as cancelled.
 //!
 //! Ported from `QueryExecutorService` of `packages/dashql/src/runtime/connections/query_executor_service.ts`.
 
@@ -123,6 +126,9 @@ pub struct QueryRequest {
     pub failure: Option<QueryFailure>,
     /// The details of the log messages of the query, e.g. the workbook
     pub log_details: Vec<(String, String)>,
+    /// What the host keeps of the query, held until the task and its follow-ups ended: the write of the result into
+    /// the cache and the touch of a cached entry run after the query and report into its history
+    pub keep_alive: Option<HostValue>,
 }
 
 /// What kind of failure ended a query
@@ -315,8 +321,9 @@ pub trait ExecutorHost: HttpHost {
     /// Write the result of a query into the cache
     fn cache_write(&self, query_id: QueryId, key: &str) -> impl Future<Output = Result<(), HostError>> + 'static;
 
-    /// Analyze the result of a query on the compute database
-    fn analyze_result(&self, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static;
+    /// Analyze the result of a query on the compute database. A cancellation of the token stops the analysis, the host
+    /// keeps no analysis of a cancelled query and fails with the cancellation.
+    fn analyze_result(&self, query_id: QueryId, cancellation: &CancellationToken) -> impl Future<Output = Result<(), HostError>> + 'static;
 
     /// Send a request whose response carries a part of a result. The body of a successful response may stay with the
     /// host (`HttpResponse::host_body`), the module passes it on unread.
@@ -345,6 +352,8 @@ pub trait ExecutorHost: HttpHost {
 struct Running {
     token: CancellationToken,
     controls: Controls,
+    /// Was the query cancelled through the executor? The cancel of a channel of the host is sent once.
+    cancel_sent: bool,
     /// The callers that wait for the end of the query
     waiters: Vec<Sender<()>>,
 }
@@ -360,45 +369,63 @@ struct ExecutorState {
     progress_layout: Option<ProfileLayoutConfig>,
 }
 
+/// Change the state of the executor when a guard drops. A guard that drops while the state is borrowed, e.g. a task
+/// that is dropped within a call of the executor, changes it in a task of the host once the borrow ended.
+fn update_later<H: ExecutorHost>(
+    host: &Rc<H>,
+    state: &Rc<RefCell<ExecutorState>>,
+    update: impl FnOnce(&mut ExecutorState) -> Vec<Sender<()>> + 'static,
+) {
+    let waiters = match state.try_borrow_mut() {
+        Ok(mut borrowed) => update(&mut borrowed),
+        Err(_) => {
+            let state = state.clone();
+            host.spawn(Box::pin(async move {
+                let waiters = update(&mut state.borrow_mut());
+                for waiter in waiters {
+                    waiter.send(());
+                }
+            }));
+            return;
+        }
+    };
+    for waiter in waiters {
+        waiter.send(());
+    }
+}
+
 /// Removes a query from the running ones when its task ends
-struct RunningGuard {
+struct RunningGuard<H: ExecutorHost> {
+    host: Rc<H>,
     state: Rc<RefCell<ExecutorState>>,
     query_id: QueryId,
 }
 
-impl Drop for RunningGuard {
+impl<H: ExecutorHost> Drop for RunningGuard<H> {
     fn drop(&mut self) {
-        let waiters = match self.state.try_borrow_mut() {
-            Ok(mut state) => state.running.remove(&self.query_id).map(|running| running.waiters).unwrap_or_default(),
-            Err(_) => Vec::new(),
-        };
-        for waiter in waiters {
-            waiter.send(());
-        }
+        let query_id = self.query_id;
+        update_later(&self.host, &self.state, move |state| {
+            state.running.remove(&query_id).map(|running| running.waiters).unwrap_or_default()
+        });
     }
 }
 
 /// Counts a write into the cache while it runs
-struct CacheWriteGuard {
+struct CacheWriteGuard<H: ExecutorHost> {
+    host: Rc<H>,
     state: Rc<RefCell<ExecutorState>>,
 }
 
-impl Drop for CacheWriteGuard {
+impl<H: ExecutorHost> Drop for CacheWriteGuard<H> {
     fn drop(&mut self) {
-        let waiters = match self.state.try_borrow_mut() {
-            Ok(mut state) => {
-                state.cache_writes = state.cache_writes.saturating_sub(1);
-                if state.cache_writes == 0 {
-                    std::mem::take(&mut state.cache_waiters)
-                } else {
-                    Vec::new()
-                }
+        update_later(&self.host, &self.state, |state| {
+            state.cache_writes = state.cache_writes.saturating_sub(1);
+            if state.cache_writes == 0 {
+                std::mem::take(&mut state.cache_waiters)
+            } else {
+                Vec::new()
             }
-            Err(_) => Vec::new(),
-        };
-        for waiter in waiters {
-            waiter.send(());
-        }
+        });
     }
 }
 
@@ -424,16 +451,14 @@ impl<H: ExecutorHost> QueryExecutor<H> {
         &self.host
     }
 
-    /// Run a query. It counts as running right away, the returned future runs it. The future settles once the query
-    /// ended, a write of its result into the cache may still run.
-    pub fn execute(&self, request: QueryRequest) -> impl Future<Output = QueryOutcome> + 'static {
-        let token = CancellationToken::new();
+    /// Run a query with the token of its caller, a token that was cancelled before ends it as cancelled. It counts as
+    /// running right away, the returned future runs it. The future settles once the query ended, a write of its result
+    /// into the cache may still run.
+    pub fn execute(&self, request: QueryRequest, token: CancellationToken) -> impl Future<Output = QueryOutcome> + 'static {
         let controls = Controls::default();
-        self.state
-            .borrow_mut()
-            .running
-            .insert(request.query_id, Running { token: token.clone(), controls: controls.clone(), waiters: Vec::new() });
-        let guard = RunningGuard { state: self.state.clone(), query_id: request.query_id };
+        let running = Running { token: token.clone(), controls: controls.clone(), cancel_sent: false, waiters: Vec::new() };
+        self.state.borrow_mut().running.insert(request.query_id, running);
+        let guard = RunningGuard { host: self.host.clone(), state: self.state.clone(), query_id: request.query_id };
         let task = QueryTask { host: self.host.clone(), state: self.state.clone(), token, controls, request };
         async move {
             let outcome = task.run().await;
@@ -459,7 +484,8 @@ impl<H: ExecutorHost> QueryExecutor<H> {
         let cancelled = {
             let mut state = self.state.borrow_mut();
             state.running.get_mut(&query_id).map(|running| {
-                let first = !running.token.is_cancelled();
+                let first = !running.cancel_sent;
+                running.cancel_sent = true;
                 running.token.cancel();
                 let (sender, receiver) = oneshot();
                 running.waiters.push(sender);
@@ -706,11 +732,14 @@ impl<H: ExecutorHost> QueryTask<H> {
         if self.token.is_cancelled() {
             return Err(QueryFailure::cancelled());
         }
-        // The access counts for the eviction, a failure only makes the entry look colder
+        // The access counts for the eviction, a failure only makes the entry look colder. The touch holds the run, its
+        // warning goes into the log of the query.
         let touch = self.host.cache_touch(query_id, &entry);
         let host = self.host.clone();
         let log_details = vec![("query".to_string(), query_id.to_string())];
+        let keep_alive = self.request.keep_alive.clone();
         self.host.spawn(Box::pin(async move {
+            let _keep_alive = keep_alive;
             if let Err(error) = touch.await {
                 let mut details = log_details;
                 details.push(("error".to_string(), error.message().to_string()));
@@ -740,21 +769,23 @@ impl<H: ExecutorHost> QueryTask<H> {
         Ok(Some(ResultSummary { has_table: true, served_from_cache: true }))
     }
 
-    /// Analyze the result on the compute database
+    /// Analyze the result on the compute database. An analysis that ended stands, a cancel after it changes nothing.
     async fn analyze(&self) -> Result<(), QueryFailure> {
         self.report(QueryEvent::ProcessingResults);
         let started_at = self.host.now();
-        let analyzed = self.host.analyze_result(self.request.query_id).await;
+        let analyzed = self.host.analyze_result(self.request.query_id, &self.token).await;
         self.report(QueryEvent::Timing { label: "Postprocess", elapsed_ms: self.host.now() - started_at });
-        if self.token.is_cancelled() {
-            return Err(QueryFailure::cancelled());
+        match analyzed {
+            Ok(()) => {}
+            Err(_) if self.token.is_cancelled() => return Err(QueryFailure::cancelled()),
+            Err(error) => return Err(QueryFailure::from_host(&error).with_kind(FailureKind::Processing)),
         }
-        analyzed.map_err(|error| QueryFailure::from_host(&error).with_kind(FailureKind::Processing))?;
         self.report(QueryEvent::ProcessedResults);
         Ok(())
     }
 
-    /// Write the result into the cache after the query, the query doesn't wait for it. A failure only logs.
+    /// Write the result into the cache after the query, the query doesn't wait for it. A failure only logs. The write
+    /// holds the run, so the key and the warning reach the history of the query after the query ended.
     fn store_in_cache(&self) {
         let Some(cache) = self.request.cache.as_ref() else { return };
         let query_id = self.request.query_id;
@@ -762,8 +793,10 @@ impl<H: ExecutorHost> QueryTask<H> {
         let write = self.host.cache_write(query_id, &key);
         let host = self.host.clone();
         self.state.borrow_mut().cache_writes += 1;
-        let guard = CacheWriteGuard { state: self.state.clone() };
+        let guard = CacheWriteGuard { host: self.host.clone(), state: self.state.clone() };
+        let keep_alive = self.request.keep_alive.clone();
         self.host.spawn(Box::pin(async move {
+            let _keep_alive = keep_alive;
             match write.await {
                 Ok(()) => host.report(query_id, QueryEvent::CacheRecorded { key, served_from_cache: false, cached_at: None }),
                 Err(error) => host.report(

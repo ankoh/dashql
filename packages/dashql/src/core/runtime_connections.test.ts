@@ -82,6 +82,7 @@ class TestPlatform {
                 return { rows: 2, bytes: 0, columns: 1, batches: 1 };
             },
             read: () => { throw new Error('no tables'); },
+            describe: () => { throw new Error('no tables'); },
         },
         compute: null,
         http: {
@@ -394,6 +395,30 @@ describe('The queries of the runtime', () => {
         describe(TRINO_TARGET);
         expect(await pending.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
         expect(platform.requests).toHaveLength(0);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('cancels a call of a client function while its spec loads, the call never starts', async () => {
+        const platform = new TestPlatform();
+        let loads = 0;
+        let load: (spec: string) => void = () => { };
+        platform.platform.extensions = { loadSpec: () => { ++loads; return new Promise(resolve => { load = resolve; }); } };
+        platform.describe = async () => ({ type: 'host', tokens: null });
+        const runtime = createRuntime(platform);
+        runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'sf', connectorType: dashql.ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: {} } });
+        const call = { namespace: 'cdp', function: 'query', effect: 'read' };
+        const ticket = runtime.executeQuery('sf', { text: 'call cdp.query()', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true, clientFunctionCall: call } }, undefined, null);
+        // The registration of the client functions of the connection loads the spec as well
+        await vi.waitFor(() => expect(loads).toBe(2));
+        // The cancel resolves once the query ended, it doesn't wait for the spec
+        await runtime.cancelQuery(ticket.queryId);
+        expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
+        expect(await ticket.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
+        load('{"functions":[]}');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(platform.requests).toHaveLength(0);
+        expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
         runtime.destroy();
         runtime.free();
     });

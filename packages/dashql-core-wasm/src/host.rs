@@ -17,7 +17,8 @@ use std::cell::{Cell, RefCell};
 use std::future::Future;
 use std::rc::Rc;
 
-use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, RunId};
+use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
+use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::ComputationEffect;
 use dashql_core_runtime::connections::registry::RegistryEffect;
 use dashql_core_runtime::executor::HostTable;
@@ -279,8 +280,10 @@ export interface RuntimeTables {
     push(table: number, part: Uint8Array): void;
     /** Finish a table, it is a table of the handle table from then on */
     finish(table: number): { rows: number; bytes: number; columns: number; batches: number };
-    /** A table of the handle table as an Arrow IPC stream */
+    /** A table of the handle table as an Arrow IPC stream, for the small tables that the runtime parses, e.g. the results of the metadata queries of the catalog loader */
     read(table: number): Uint8Array;
+    /** The rows of a table of the handle table and its schema as an Arrow IPC stream without batches, the rows stay with the host */
+    describe(table: number): { rows: number; schema: Uint8Array };
 }
 
 /** A request of the runtime for the HTTP client of the host */
@@ -384,14 +387,16 @@ export interface RuntimeMounts {
     attachmentColumns(workbookId: string, fileName: string): Promise<string[]>;
 }
 
-/** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Tables cross as Arrow IPC streams. */
+/** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Result data never enters the module: a result is imported as the Arrow table of its handle, the tables that the tasks read stay Arrow tables, the runtime reads only the small ones that it parses as Arrow IPC streams. */
 export interface ComputePlatform {
-    /** Create the table of a data frame from an Arrow IPC stream */
-    importTable(dataFrame: number, tableName: string, ipc: Uint8Array, context: ComputeCallContext): Promise<void>;
+    /** Create the table of a data frame from an Arrow table of the handle table, with its rows numbered from 1 in an appended column of 64-bit integers that can't be null */
+    importTable(dataFrame: number, tableName: string, table: unknown, rowNumberField: string, context: ComputeCallContext): Promise<void>;
     /** Create the table of a data frame from a SELECT, the host tracks the SELECT as a query of the task */
     createTable(dataFrame: number, tableName: string, sql: string, context: ComputeCallContext): Promise<void>;
-    /** Run a query, resolves to its result as an Arrow IPC stream */
+    /** Run a query whose small result the runtime parses, resolves to its result as an Arrow IPC stream */
     query(sql: string, context: ComputeCallContext): Promise<Uint8Array>;
+    /** Run a query, resolves to its result as an Arrow table that the runtime keeps in the handle table */
+    queryTable(sql: string, context: ComputeCallContext): Promise<unknown>;
     /** Drop the table of a data frame */
     dropTable(dataFrame: number, tableName: string): Promise<void>;
     /** Abort the calls of a run */
@@ -670,6 +675,17 @@ impl JsPlatform {
         }
         // The bytes may come from another realm, they are copied by value
         Ok(Uint8Array::new(&ipc).to_vec())
+    }
+
+    /// The rows and the schema of a table of the handle table, the rows stay with the host
+    pub fn describe_table(&self, table: Handle) -> Result<TableShape, HostError> {
+        let tables = member(self.object(), "tables")?;
+        let described = call(&tables, "describe", &[JsValue::from_f64(table as f64)])?;
+        let schema = field(&described, "schema").filter(JsValue::is_object).ok_or_else(|| HostError::new("the table has no schema"))?;
+        // The bytes may come from another realm, they are copied by value. A schema is small.
+        let schema = Uint8Array::new(&schema).to_vec();
+        let schema = ResultTable::schema_of_ipc_stream(&schema).map_err(|e| HostError::new(format!("the schema of a table: {}", e.message)))?;
+        Ok(TableShape { rows: count_of(&described, "rows"), schema })
     }
 
     /// Open a table that streams in parts
@@ -1091,10 +1107,14 @@ impl HttpHost for JsPlatform {
 }
 
 impl ComputeHost for JsPlatform {
-    async fn import_table(&self, data_frame: u64, table_name: &str, ipc: Vec<u8>, context: &ComputeContext) -> Result<(), HostError> {
+    async fn import_table(&self, data_frame: u64, table_name: &str, table: Handle, row_number_field: &str, context: &ComputeContext) -> Result<(), HostError> {
         let compute = self.compute()?;
-        let bytes = Uint8Array::from(ipc.as_slice());
-        let args = [JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), bytes.into(), context_js(context)?];
+        // The table goes to the compute database as the object of its handle, its rows never enter the module
+        let table = self.handle(table);
+        if table.is_undefined() {
+            return Err(HostError::new("the result to import is gone"));
+        }
+        let args = [JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), table, JsValue::from_str(row_number_field), context_js(context)?];
         settled(call(&compute, "importTable", &args)).await?;
         Ok(())
     }
@@ -1114,6 +1134,20 @@ impl ComputeHost for JsPlatform {
         }
         // The bytes may come from another realm, they are copied by value
         Ok(Uint8Array::new(&value).to_vec())
+    }
+
+    async fn query_table(&self, sql: &str, context: &ComputeContext) -> Result<KeptTable, HostError> {
+        let compute = self.compute()?;
+        let table = settled(call(&compute, "queryTable", &[JsValue::from_str(sql), context_js(context)?])).await?;
+        // The table joins the handle table without an await, a cancelled run leaves nothing behind
+        let handle = self.register(&table)?;
+        match self.describe_table(handle) {
+            Ok(shape) => Ok(KeptTable { handle, shape }),
+            Err(error) => {
+                self.release_handle(handle);
+                Err(error)
+            }
+        }
     }
 
     async fn drop_table(&self, data_frame: u64, table_name: &str) -> Result<(), HostError> {

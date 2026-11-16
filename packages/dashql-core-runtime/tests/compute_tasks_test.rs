@@ -6,12 +6,10 @@
 //! the TypeScript runtime runs the tasks on Hyper (the analysis, the filter, the ordering and the search); here they
 //! pin the SQL that orders the rows.
 
-use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use arrow_array::types::Int32Type;
 use arrow_array::{
-    Array, ArrayRef, BooleanArray, Float64Array, Int32Array, Int64Array, ListArray, RecordBatch, StringArray,
+    Array, ArrayRef, BooleanArray, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
     UInt64Array,
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
@@ -26,7 +24,7 @@ use dashql_core_runtime::compute::tasks::column_aggregation::{
 use dashql_core_runtime::compute::tasks::columns::{build_column_groups, small_integer_domain_size, BIN_COUNT};
 use dashql_core_runtime::compute::tasks::data_search::{
     build_column_search_sql, build_data_search_sql, collect_searchable_result_columns, parse_column_search_matches,
-    parse_data_search_matches, plan_data_search,
+    plan_data_search,
 };
 use dashql_core_runtime::compute::tasks::result_computations::ResultComputations;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
@@ -425,19 +423,6 @@ fn search_data_of_every_column() {
 }
 
 #[test]
-fn search_parses_list_values_into_matching_columns() {
-    let lists = ListArray::from_iter_primitive::<Int32Type, _, _>(vec![
-        Some(vec![Some(0), Some(2)]),
-        Some(vec![Some(1)]),
-    ]);
-    let result = table(vec![("row_idx", a(Int32Array::from(vec![1, 3]))), ("column_indices", a(lists))]);
-    assert_eq!(
-        parse_data_search_matches(&result).expect("matches"),
-        BTreeMap::from([(1, vec![0, 2]), (3, vec![1])])
-    );
-}
-
-#[test]
 fn search_parses_matching_column_groups() {
     let result = table(vec![
         ("column_idx", a(Int32Array::from(vec![0, 3]))),
@@ -464,10 +449,9 @@ fn data_search_reads_the_matching_rows_ordered_by_row() {
     assert!(plan.query.create_sql().starts_with("CREATE TABLE \"__df_11\" AS WITH search AS ("));
     assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"row_idx\" ASC NULLS LAST");
 
-    let rows = table(vec![("row_idx", a(Int32Array::from(vec![3, 5])))]);
-    let result = plan.finish(rows.clone()).expect("a search");
+    // The host keeps the rows that the search matched
+    let result = plan.finish();
     assert_eq!(result.input_row_number_column_name, "rownum");
-    assert_eq!(result.table, rows);
     assert_eq!(result.data_frame, 11);
     assert_eq!(result.version, ComputationVersion::new(1, 2));
     assert_eq!(result.request_id, 7);
@@ -488,13 +472,6 @@ fn data_search_wraps_failures() {
         11,
     );
     assert!(plan.query.failed("read failed").to_string().starts_with("Failed to search table data"));
-    // A table of matches whose columns hold no lists
-    let broken = table(vec![
-        ("row_idx", a(Int32Array::from(vec![1]))),
-        ("column_indices", a(Int32Array::from(vec![1]))),
-    ]);
-    let error = plan.finish(broken).expect_err("no lists");
-    assert!(error.to_string().starts_with("Failed to search table data"));
 }
 
 // ------------------------------------------------------------
@@ -502,8 +479,7 @@ fn data_search_wraps_failures() {
 
 #[test]
 fn analysis_ignores_results_without_columns() {
-    let empty = ResultTable::try_new(Arc::new(Schema::empty()), vec![]).expect("a table");
-    assert_eq!(start_table_analysis(&empty, 1).expect("a start"), None);
+    assert_eq!(start_table_analysis(&Schema::empty(), 1), None);
 }
 
 #[test]
@@ -527,18 +503,19 @@ fn analysis_classifies_the_columns() {
 }
 
 #[test]
-fn analysis_numbers_the_rows_across_batches() {
+fn analysis_names_the_row_numbers_apart_from_the_fields() {
     let schema = Arc::new(Schema::new(vec![Field::new("_rownum", DataType::Utf8, true)]));
     let batch = |values: Vec<&str>| {
         RecordBatch::try_new(schema.clone(), vec![a(StringArray::from(values)) as ArrayRef]).expect("a batch")
     };
     let input = ResultTable::try_new(schema.clone(), vec![batch(vec!["a", "b"]), batch(vec!["c"])]).expect("a table");
-    let start = start_table_analysis(&input, 3).expect("a start").expect("columns");
+    let start = start_table_analysis(input.schema(), 3).expect("columns");
     // The row numbers don't take the name of a field
     assert_eq!(start.row_number_field_name, "__rownum");
     assert_eq!(start.fields, vec!["_rownum".to_string()]);
     assert_eq!(start.import.table_name, "__df_3");
-    let numbered = &start.import.table;
+    // The host numbers the rows across the batches, like a table of the runtime
+    let numbered = &input.append_row_numbers(&start.row_number_field_name).expect("numbers");
     let column = numbered.column_index("__rownum").expect("row numbers");
     assert_eq!(numbered.int64_values(column).expect("ints"), vec![Some(1), Some(2), Some(3)]);
     assert_eq!(numbered.batches().len(), 2);
@@ -656,8 +633,7 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
     );
     let ColumnGroup::Ordinal(total) = &plan.column_groups[2] else { panic!("an ordinal column") };
     assert_eq!(total.bin_field_name.as_deref(), Some("_2_bin"));
-    let result = plan.finish(table(vec![("_rownum", a(Int64Array::from(vec![1, 2, 3])))])).expect("columns");
-    assert_eq!(result.data_frame, 12);
+    assert_eq!(plan.finish().data_frame, 12);
 }
 
 #[test]
@@ -678,9 +654,8 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
         "WITH\n  __filtered AS (\n    SELECT * FROM \"__df_10\" WHERE \"value\" >= 50\n  )\nSELECT \"_rownum\" FROM __filtered"
     );
     assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"_rownum\" ASC NULLS LAST");
-    let filter = plan.finish(table(vec![("_rownum", a(Int64Array::from(vec![2, 4])))])).expect("a filter");
+    let filter = plan.finish();
     assert_eq!(filter.version, ComputationVersion::new(0, 1));
-    assert_eq!(filter.table.num_rows(), 2);
     assert!(filter.data_frame == 11);
 }
 
@@ -716,7 +691,7 @@ fn table_ordering_orders_equal_rows_by_their_row_number() {
         plan.query.read_sql,
         "SELECT \"_rownum\" FROM \"__df_11\"\nORDER BY \"group\" DESC NULLS LAST, \"_rownum\" ASC NULLS LAST, \"_rownum\" ASC NULLS LAST"
     );
-    let ordering = plan.finish(table(vec![("_rownum", a(Int64Array::from(vec![3, 1])))])).expect("an ordering");
+    let ordering = plan.finish();
     assert_eq!(ordering.data_search_request_id, Some(4));
     assert_eq!(ordering.ordering_constraints.len(), 2);
 }

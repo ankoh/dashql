@@ -577,6 +577,6 @@ fn shares_params_without_the_secret() {
     assert_eq!((shared["appConsumerSecret"].as_str(), shared["login"].as_str()), (Some(""), Some("")));
     assert_eq!(sanitize_params_for_sharing(object, true)["login"], "u");
     assert_eq!(login_hint(object), Some("u"));
-    assert_eq!(cache_signature(ConnectorType::SalesforceDataCloud, object), json!({ "case": "salesforce", "instanceUrl": "https://org", "appConsumerKey": "k" }));
+    assert_eq!(cache_signature(ConnectorType::SalesforceDataCloud, object), json!({ "case": "salesforce", "instanceUrl": "https://org", "appConsumerKey": "k", "login": "u" }));
     assert_eq!(cache_signature(ConnectorType::Dbcom, object)["databaseName"], "default");
 }

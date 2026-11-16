@@ -7,8 +7,11 @@
 //! a sequence of tasks: the import of the result with row numbers, the statistics, the system columns, then the summary
 //! of every ordinal and string column.
 //!
-//! The tables that a run reads stay with the host: the run reads what it needs, e.g. the statistics or the bins of a
-//! summary, and hands the table over to the host (`ComputeHost::register_table`), the state names it by its handle.
+//! The tables stay with the host, result data never enters the module: the host imports a result by its handle and
+//! keeps the rows that a filter, an ordering, a search or the system columns read under a new handle
+//! (`ComputeHost::query_table`). A run reads only the small tables that it parses, the statistics, the bins and the
+//! frequent values of a summary and the count of a selection, and hands them over (`ComputeHost::register_table`). The
+//! state names a table by its handle.
 //!
 //! Every run can be cancelled: aborting the lifetime of a computation cancels its runs, `AbortDataSearch` the run of
 //! the search, `cancel_task` the run of a task. A cancelled run drops its future, tells the host to abort its calls and
@@ -34,7 +37,7 @@ use dashql_core::error::{Error, Result};
 use crate::host::signal::{cancellable, CancelHandle};
 use crate::host::{HostError, LogLevel};
 
-use super::host::{ComputeContext, ComputeHost, RunId};
+use super::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use super::tasks::analyze_table::{
     column_aggregation_tasks, start_table_analysis, system_columns_task, table_aggregation_task, AnalyzeTableOptions,
 };
@@ -192,14 +195,14 @@ impl<H: ComputeHost> ComputeService<H> {
     }
 
     /// Analyze a result: start its computation, import it with row numbers, compute the statistics, the system
-    /// columns and the summaries of its columns. The result is a table of the host, the handles of the table and of
-    /// the lifetime of the computation go to the state; a result without columns has nothing to analyze and releases
-    /// them. The analysis stops without an error once the computation is gone, e.g. replaced by the computation of a
-    /// later result.
+    /// columns and the summaries of its columns. The result is a table of the host that the analysis knows by its
+    /// rows and its schema, the handles of the table and of the lifetime of the computation go to the state; a result
+    /// without columns has nothing to analyze and releases them. The analysis stops without an error once the
+    /// computation is gone, e.g. replaced by the computation of a later result.
     pub fn analyze_table(
         &self,
         table_id: TableId,
-        table: ResultTable,
+        table: TableShape,
         handles: AnalysisHandles,
         connection_id: Option<String>,
         client_context: Option<String>,
@@ -234,7 +237,7 @@ pub struct AnalysisHandles {
     pub lifetime: LifetimeId,
 }
 
-/// A table that a run read: the rows for the finish of its plan and the Arrow IPC stream for the host
+/// A small table that a run read to parse it: the rows for the finish of its plan and the Arrow IPC stream for the host
 struct ReadTable {
     table: ResultTable,
     ipc: Vec<u8>,
@@ -360,7 +363,15 @@ where
     result.unwrap_or_else(|| Err(cancelled_error(title)))
 }
 
-/// Create the table of a query and read it back
+/// Create the table of a query and keep the rows of its read with the host, the state names them by their handle
+async fn run_query_kept<H: ComputeHost>(shared: &Shared<H>, query: &TaskQuery, context: &ComputeContext) -> Result<ArrowTable> {
+    let host = &shared.host;
+    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(|e| query.failed(e))?;
+    let KeptTable { handle, shape } = host.query_table(&query.read_sql, context).await.map_err(|e| query.failed(e))?;
+    Ok(ArrowTable::new(handle, shape.rows, shape.schema))
+}
+
+/// Create the table of a query and read it back to parse it, for the small tables of the statistics and the summaries
 async fn run_query<H: ComputeHost>(
     shared: &Shared<H>,
     query: &TaskQuery,
@@ -422,11 +433,11 @@ async fn execute<H: ComputeHost>(
                 };
                 return Ok((action, TaskOutput::Filtering(None)));
             };
-            let read = run_query(shared, &plan.query, context).await?;
-            let filter = plan.finish(read.table.clone())?;
+            let table = run_query_kept(shared, &plan.query, context).await?;
+            let filter = plan.finish();
             let filter = FilterTable {
                 input_row_number_column_name: filter.input_row_number_column_name,
-                table: adopt(shared, &read.ipc, read.shape())?,
+                table,
                 data_frame: filter.data_frame,
                 version: filter.version,
             };
@@ -440,12 +451,12 @@ async fn execute<H: ComputeHost>(
         }
         ComputationTask::TableOrdering(task) => {
             let plan = plan_table_ordering(task, output);
-            let read = run_query(shared, &plan.query, context).await?;
-            let ordering = plan.finish(read.table.clone())?;
+            let table = run_query_kept(shared, &plan.query, context).await?;
+            let ordering = plan.finish();
             let ordering = OrderingTable {
                 input_row_number_column_name: ordering.input_row_number_column_name,
                 ordering_constraints: ordering.ordering_constraints,
-                table: adopt(shared, &read.ipc, read.shape())?,
+                table,
                 data_frame: ordering.data_frame,
                 version: ordering.version,
                 data_search_request_id: ordering.data_search_request_id,
@@ -474,9 +485,8 @@ async fn execute<H: ComputeHost>(
         }
         ComputationTask::SystemColumns(task) => {
             let plan = plan_system_columns(task, &task.input_table.schema, output)?;
-            let read = run_query(shared, &plan.query, context).await?;
-            let columns = plan.finish(read.table.clone())?;
-            let table = adopt(shared, &read.ipc, read.shape())?;
+            let table = run_query_kept(shared, &plan.query, context).await?;
+            let columns = plan.finish();
             let action = ComputationAction::SystemColumnsSucceeded {
                 table_id,
                 data_table: table.clone(),
@@ -519,11 +529,12 @@ async fn execute<H: ComputeHost>(
         }
         ComputationTask::DataSearch(task) => {
             let plan = plan_data_search(task, output);
-            let read = run_query(shared, &plan.query, context).await?;
-            let search = plan.finish(read.table.clone())?;
+            let table = run_query_kept(shared, &plan.query, context).await?;
+            let matching_rows = table.rows();
+            let search = plan.finish();
             let table = DataSearchTable {
                 input_row_number_column_name: search.input_row_number_column_name,
-                table: adopt(shared, &read.ipc, read.shape())?,
+                table,
                 data_frame: search.data_frame,
                 version: search.version,
                 request_id: search.request_id,
@@ -533,7 +544,7 @@ async fn execute<H: ComputeHost>(
                 data_frame: task.input_data_frame,
                 request_id: task.request_id,
                 search: table.clone(),
-                matching_rows: search.matching_rows,
+                matching_rows,
                 now: now(shared),
             };
             Ok((action, TaskOutput::DataSearch(table)))
@@ -626,7 +637,7 @@ async fn schedule_and_run<H: ComputeHost>(shared: &Rc<Shared<H>>, task: Computat
 async fn analyze<H: ComputeHost>(
     shared: &Rc<Shared<H>>,
     table_id: TableId,
-    table: ResultTable,
+    table: TableShape,
     handles: AnalysisHandles,
     connection_id: Option<String>,
     client_context: Option<String>,
@@ -638,18 +649,11 @@ async fn analyze<H: ComputeHost>(
         shared.host.release(handles.lifetime);
     };
     let input = shared.inner.borrow_mut().allocate();
-    let start = match start_table_analysis(&table, input) {
-        Ok(Some(start)) => start,
-        Ok(None) => {
-            release();
-            return Ok(());
-        }
-        Err(error) => {
-            release();
-            return Err(error);
-        }
+    let Some(start) = start_table_analysis(&table.schema, input) else {
+        release();
+        return Ok(());
     };
-    let data_table = ArrowTable::new(handles.table, table.num_rows() as u64, table.schema().clone());
+    let data_table = ArrowTable::new(handles.table, table.rows, table.schema.clone());
     let lifetime = handles.lifetime;
     let started = ComputationAction::ComputationFromQueryResult {
         table_id,
@@ -668,15 +672,15 @@ async fn analyze<H: ComputeHost>(
         return Ok(());
     };
 
-    // Import the result with the row numbers as the first data frame
+    // Import the result with the row numbers as the first data frame, the host numbers the rows of its table
     let import = start.import;
-    let ipc = import.table.to_ipc_stream()?;
+    let row_number_field = start.row_number_field_name.clone();
     let imported = in_run(shared, table_id, &info, IMPORT_TITLE, RunOf::default(), |context| {
         let shared = shared.clone();
         let name = import.table_name.clone();
         async move {
             let failed = |e: HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
-            shared.host.import_table(input, &name, ipc, &context).await.map_err(failed)
+            shared.host.import_table(input, &name, handles.table, &row_number_field, &context).await.map_err(failed)
         }
     })
     .await;
@@ -755,8 +759,9 @@ impl<H: ComputeHost> ComputeService<H> {
             let inner = self.shared.inner.borrow();
             inner.state.computation(table_id).and_then(|computation| ordering_task(computation, Some(&constraints)))
         };
+        // The caller hands the effects of the outcome to the host
         match task {
-            Some(task) => start_task(&self.shared, task),
+            Some(task) => start_task(&self.shared, task, false),
             None => Ok(ComputationOutcome::default()),
         }
     }
@@ -874,7 +879,7 @@ impl<H: ComputeHost> ComputeService<H> {
         };
         let task = request.task;
         let sql = match request.count {
-            SelectionCount::Rows(rows) => return start_task(shared, task.with_selection(rows)).map(|_| ()),
+            SelectionCount::Rows(rows) => return start_task(shared, task.with_selection(rows), true).map(|_| ()),
             SelectionCount::Query { sql } => sql,
         };
         let Some(info) = computation_info(shared, table_id) else {
@@ -897,7 +902,7 @@ impl<H: ComputeHost> ComputeService<H> {
             .await;
             shared.inner.borrow_mut().counting.remove(&(table_id, column_id));
             let error = match counted {
-                Ok(rows) => start_task(&shared, task.with_selection(rows)).err(),
+                Ok(rows) => start_task(&shared, task.with_selection(rows), true).err(),
                 Err(error) => Some(error),
             };
             if let Some(error) = error {
@@ -1115,10 +1120,11 @@ fn column_search(computation: &TableComputation, runs: &BTreeMap<RunId, Run>) ->
     })
 }
 
-/// Schedule a task and run it in a task of the host, then derive the tasks of its computation again
-fn start_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task: ComputationTask) -> Result<ComputationOutcome> {
+/// Schedule a task and run it in a task of the host, then derive the tasks of its computation again. The schedule
+/// tells the host with `notify`, else the caller hands the effects of the outcome to the host: one of them does.
+fn start_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task: ComputationTask, notify: bool) -> Result<ComputationOutcome> {
     let table_id = task.table_id();
-    let outcome = apply(shared, ComputationAction::ScheduleTask { task, now: now(shared) }, true)?;
+    let outcome = apply(shared, ComputationAction::ScheduleTask { task, now: now(shared) }, notify)?;
     if let Some(task_id) = outcome.task_id {
         let task_shared = shared.clone();
         shared.host.spawn(Box::pin(async move {
@@ -1144,7 +1150,7 @@ fn refresh<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId) {
         shared.host.log(LogLevel::Warn, "Failed to schedule a task", &[("error", &error)]);
     };
     for task in [filtering, data_search].into_iter().flatten() {
-        if let Err(error) = start_task(shared, task) {
+        if let Err(error) = start_task(shared, task, true) {
             failed(error);
         }
     }
@@ -1164,7 +1170,7 @@ fn refresh<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId) {
         inner.state.computation(table_id).and_then(|computation| ordering_task(computation, None))
     };
     if let Some(task) = ordering {
-        if let Err(error) = start_task(shared, task) {
+        if let Err(error) = start_task(shared, task, true) {
             failed(error);
         }
     }

@@ -413,8 +413,8 @@ pub struct ResultSearchState {
     pub applied_request_id: u64,
     /// The matching column groups of a search of the columns
     pub matching_column_groups: Option<Vec<u32>>,
-    /// The matching columns by row number from 1, of a search of the data
-    pub matching_rows: Option<std::collections::BTreeMap<u64, Vec<u32>>>,
+    /// The number of matched rows of a search of the data, the host reads their matching columns from the table
+    pub matching_rows: Option<u64>,
     /// Is a search running?
     pub pending: bool,
     /// The error of the latest search

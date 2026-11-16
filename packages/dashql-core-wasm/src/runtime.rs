@@ -38,7 +38,6 @@ use std::rc::Rc;
 use dashql_core::error::Error;
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
-use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connection_setup::setup_action_from_json;
@@ -1363,17 +1362,22 @@ impl Runtime {
 
     /// Analyze a result as the computation of a table: its import into the compute database, the statistics, the
     /// system columns, the summaries of the columns and the ordering of the options. The result is a table of the
-    /// handle table, the computation takes its handle; an analysis that starts no computation releases it. Resolves
-    /// once the analysis is done, rejects with the error of a failed task.
+    /// handle table, the computation takes its handle; an analysis that starts no computation releases it, so does a
+    /// call that fails. The module reads only the rows and the schema of the result. Resolves once the analysis is
+    /// done, rejects with the error of a failed task.
     #[wasm_bindgen(js_name = analyzeTable, unchecked_return_type = "Promise<void>")]
     pub fn analyze_table(&self, table_id: f64, table: f64, options: Ts<AnalyzeTableOptions>) -> Result<Promise, JsError> {
         let options = from_js(&options)?;
         let table_id = integer(table_id, "table id")? as TableId;
         let table = integer(table, "table handle")?;
         let table = u32::try_from(table).map_err(|_| JsError::new("the table handle is no integer"))?;
-        let ipc = self.platform.read_table(table).map_err(|e| JsError::new(&e.to_string()))?;
-        let result = ResultTable::from_ipc_stream(&ipc).map_err(|e| JsError::new(&e.message))?;
-        let lifetime = self.platform.register(&lifetime_token()).map_err(|e| JsError::new(&e.to_string()))?;
+        // The handle is the computation's from here on, a call that fails releases it
+        let fail = |error: dashql_core_runtime::host::HostError| {
+            self.platform.release_handle(table);
+            JsError::new(&error.to_string())
+        };
+        let result = self.platform.describe_table(table).map_err(fail)?;
+        let lifetime = self.platform.register(&lifetime_token()).map_err(fail)?;
         let handles = AnalysisHandles { table, lifetime };
         let analyze_options = RuntimeAnalyzeOptions { column_aggregates: options.column_aggregates.unwrap_or(true) };
         let analysis =
@@ -2024,7 +2028,7 @@ impl Runtime {
         for setup_id in setups {
             self.connections.cancel_setup(&setup_id);
         }
-        let running: Vec<QueryId> = self.connections.runs.borrow().iter().map(|(id, _)| *id).collect();
+        let running: Vec<QueryId> = self.connections.run_ids();
         for query_id in running {
             drop(self.connections.cancel(query_id));
         }

@@ -454,6 +454,41 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.core.store.get('run', f.workbookId)?.held).toBeNull();
     });
 
+    it('keeps the computation of the earlier result of a script when the analysis of the next one is cancelled', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']]);
+        expect((await f.run('foo.sql')).outcome.failure).toBeNull();
+        const first = f.script('foo.sql').latestQueryId!;
+        expect(f.core.store.get('computation', first) ?? null).not.toBeNull();
+        // The import of the next result waits until the run is stopped
+        let importing: () => void = () => { };
+        const imported = new Promise<void>(resolve => { importing = resolve; });
+        let release: () => void = () => { };
+        const released = new Promise<void>(resolve => { release = resolve; });
+        const connect = database!.connect.bind(database!);
+        vi.spyOn(database!, 'connect').mockImplementation(async (...args: Parameters<HyperDB['connect']>) => {
+            const conn = await connect(...args);
+            const insert = conn.insertArrowTable.bind(conn);
+            conn.insertArrowTable = async (table, options) => {
+                importing();
+                await released;
+                return await insert(table, options);
+            };
+            return conn;
+        });
+        const second = f.run('foo.sql');
+        await imported;
+        f.core.module?.stopRun(f.workbookId);
+        release();
+        await second;
+        f.core.flush();
+        const latest = f.script('foo.sql').latestQueryId!;
+        expect(latest).not.toBe(first);
+        expect(queryView(f.core, latest)?.status).toBe(QueryExecutionStatus.CANCELLED);
+        expect(f.core.store.get('computation', latest) ?? null).toBeNull();
+        expect(f.core.store.get('computation', first) ?? null).not.toBeNull();
+        expect(queryView(f.core, first)?.resultTable).not.toBeNull();
+    });
+
     it('refuses a run of a script while a run holds the workbook', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']]);
         const first = f.run('foo.sql');
@@ -499,6 +534,9 @@ describe('the runs of scripts of the runtime', () => {
         const [key] = await f.core.resultKeys(f.workbookId);
         expect(key).not.toBeNull();
         expect(await f.cache!.has(key!)).toBe(true);
+        // The write after the query records the key on the fresh result
+        f.core.flush();
+        expect(queryView(f.core, f.script('foo.sql').latestQueryId!)).toMatchObject({ cacheKey: key, servedFromCache: false });
         // The second run reads the cached result instead of the connection
         await f.run('foo.sql');
         expect(f.executeQuery).toHaveBeenCalledOnce();

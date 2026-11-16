@@ -1352,7 +1352,7 @@ fn shares_params_without_secrets() {
 }
 
 #[test]
-fn signs_cached_results_without_credentials() {
+fn signs_cached_results_per_user_without_credentials() {
     let params = object(json!({
         "endpoint": ENDPOINT,
         "auth": { "authType": "AUTH_BASIC", "basic": { "username": "user", "secret": "secret" } },
@@ -1361,7 +1361,7 @@ fn signs_cached_results_without_credentials() {
     }));
     assert_eq!(
         cache_signature(&params).to_string(),
-        r#"{"case":"trino","endpoint":"https://trino.example.com","auth":{"authType":"AUTH_BASIC"},"defaults":{"catalog":"hive","schema":null}}"#
+        r#"{"case":"trino","endpoint":"https://trino.example.com","auth":{"authType":"AUTH_BASIC","user":"user"},"defaults":{"catalog":"hive","schema":null}}"#
     );
     assert_eq!(
         cache_signature(&oauth_params()).to_string(),

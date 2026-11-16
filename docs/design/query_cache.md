@@ -40,6 +40,15 @@ For a terminal query with `@vis` tags, the signature excludes the tags, they are
 
 Result analysis and visualization projection are not part of the key. The executor always runs post-processing after either a cache hit or a backend result, allowing the same raw table to support the relevant analysis flow.
 
+The connection signature keys results per login: a result is the result of the user who ran the query, row-level
+security or the sharing rules of Salesforce may show another user other rows of the same tables. The signature of a
+Trino connection names the user of basic auth, the one of a Salesforce or Database.com connection the login that its
+setup confirmed (the user of the core login replaces the login hint). The credentials stay out, a new token of the same
+login reuses the cached results. The principal behind the OAuth token of a Trino connection is unknown to its params,
+its results are keyed by the identity provider and the client; a Hyper connection is keyed by its endpoint, its
+attached databases and its session settings, the headers of its metadata stay out. Files that an older version wrote
+under a signature without the login are misses, they age out of the cache.
+
 If the executor cannot recover connection parameters or derive a signature, it treats the query as non-cacheable and executes normally. Key derivation is also best-effort and must not expose an error to the query path.
 
 ## Storage Layout

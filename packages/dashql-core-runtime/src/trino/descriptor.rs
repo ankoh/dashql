@@ -42,8 +42,10 @@ pub fn login_hint(params: &JsonObject) -> Option<String> {
         .map(str::to_string)
 }
 
-/// The params that identify the results of a query in the query result cache. The credentials and the user stay
-/// out, a new token or another login reuses the cached results. The defaults resolve the names that statements leave
+/// The params that identify the results of a query in the query result cache. The results of a user are the user's,
+/// row-level security may show another user other rows: the user of basic auth is part of the signature, a new token
+/// of the same login reuses the cached results. The principal behind an OAuth token is unknown to the params, those
+/// results are keyed by the identity provider and the client. The defaults resolve the names that statements leave
 /// out, the catalogs only decide what the catalog loader reads. Missing fields are left out like `JSON.stringify`
 /// leaves out `undefined`.
 pub fn cache_signature(params: &JsonObject) -> Value {
@@ -61,6 +63,9 @@ pub fn cache_signature(params: &JsonObject) -> Value {
         if let Some(value) = field(pointer) {
             auth_signature.insert(key.into(), value);
         }
+    }
+    if let Some(user) = login_hint(params) {
+        auth_signature.insert("user".into(), Value::String(user));
     }
     let defaults = trino_session_defaults(params);
     let mut signature = JsonObject::new();

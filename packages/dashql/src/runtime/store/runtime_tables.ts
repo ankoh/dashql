@@ -8,62 +8,83 @@ import { QueryResultStream } from '../query/query_result_stream.js';
 /// is an object of the handle table. A table begins with an Arrow IPC stream, its schema and maybe batches, takes the
 /// batches of more streams and is a table of the handle table once it finished. The result of a query streams into a
 /// table that was opened: the parts of one Arrow IPC stream as they arrive, or the record batches of a channel of the
-/// host (`stream`). The runtime reads a table back as an Arrow IPC stream, e.g. the result of a query that it analyzes.
+/// host (`stream`). The runtime reads the small tables that it parses back as Arrow IPC streams, of the others it
+/// learns the rows and the schema (`describe`).
+///
+/// A table that didn't finish is the object of its handle as well, a builder or a stream that `finish` replaces with
+/// the table: a release of the handle, e.g. of the result of a cancelled query, drops what it holds.
 export interface PlatformTables extends core.RuntimeTables {
     /// The stream of a table that was opened and didn't finish, a channel of the host pushes its batches into it
     stream(table: number): QueryResultStream | null;
 }
 
+/// A table that began and didn't finish: its schema and its batches
+class TableBuilder {
+    constructor(public readonly schema: arrow.Schema, public readonly batches: arrow.RecordBatch[], public bytes: number) { }
+}
+
+/// A table that streams and didn't finish
+class TableStream {
+    public readonly stream = new QueryResultStream();
+    public bytes = 0;
+}
+
+/// The schema of a table as an Arrow IPC stream without batches
+function schemaIPC(schema: arrow.Schema): Uint8Array {
+    // The schema may come from another copy of apache-arrow, the empty table is one of this copy
+    return arrow.tableToIPC(new arrow.Table(new arrow.Schema(schema.fields, schema.metadata)), 'stream');
+}
+
 export function createRuntimeTables(handles: HandleTable): PlatformTables {
-    /// The tables that began and didn't finish, their schema and their batches
-    const building = new Map<number, { schema: arrow.Schema; batches: arrow.RecordBatch[]; bytes: number }>();
-    /// The tables that stream and didn't finish
-    const streams = new Map<number, { stream: QueryResultStream; bytes: number }>();
     const read = (ipc: Uint8Array) => arrow.tableFromIPC(new Uint8Array(ipc));
+    const builderOf = (handle: number) => {
+        const builder = handles.get<unknown>(handle);
+        if (!(builder instanceof TableBuilder)) throw new Error(`the table ${handle} did not begin`);
+        return builder;
+    };
+    const streamOf = (handle: number) => {
+        const stream = handles.get<unknown>(handle);
+        return stream instanceof TableStream ? stream : null;
+    };
+    const tableOf = (handle: number) => {
+        const table = handles.get<arrow.Table>(handle);
+        if (table == null || !isArrowTable(table)) throw new Error(`the handle ${handle} is no table`);
+        return table;
+    };
     return {
         begin: ipc => {
             const table = read(ipc);
-            const handle = handles.register(null);
-            building.set(handle, { schema: table.schema, batches: [...table.batches], bytes: ipc.byteLength });
-            return handle;
+            return handles.register(new TableBuilder(table.schema, [...table.batches], ipc.byteLength));
         },
         append: (handle, ipc) => {
-            const table = building.get(handle);
-            if (table == null) throw new Error(`the table ${handle} did not begin`);
-            table.batches.push(...read(ipc).batches);
-            table.bytes += ipc.byteLength;
+            const builder = builderOf(handle);
+            builder.batches.push(...read(ipc).batches);
+            builder.bytes += ipc.byteLength;
         },
-        open: () => {
-            const handle = handles.register(null);
-            streams.set(handle, { stream: new QueryResultStream(), bytes: 0 });
-            return handle;
-        },
+        open: () => handles.register(new TableStream()),
         push: (handle, part) => {
-            const stream = streams.get(handle);
+            const stream = streamOf(handle);
             if (stream == null) throw new Error(`the table ${handle} was not opened`);
             stream.stream.pushBytes(part);
             stream.bytes += part.byteLength;
         },
-        stream: handle => streams.get(handle)?.stream ?? null,
+        stream: handle => streamOf(handle)?.stream ?? null,
         finish: handle => {
-            const stream = streams.get(handle);
+            const stream = streamOf(handle);
             if (stream != null) {
-                streams.delete(handle);
                 const finished = stream.stream.finish();
                 handles.set(handle, finished);
                 return { rows: finished.numRows, bytes: stream.bytes, columns: finished.numCols, batches: finished.batches.length };
             }
-            const table = building.get(handle);
-            if (table == null) throw new Error(`the table ${handle} did not begin`);
-            building.delete(handle);
-            const finished = new arrow.Table(table.schema, table.batches);
+            const builder = builderOf(handle);
+            const finished = new arrow.Table(builder.schema, builder.batches);
             handles.set(handle, finished);
-            return { rows: finished.numRows, bytes: table.bytes, columns: finished.numCols, batches: finished.batches.length };
+            return { rows: finished.numRows, bytes: builder.bytes, columns: finished.numCols, batches: finished.batches.length };
         },
-        read: handle => {
-            const table = handles.get<arrow.Table>(handle);
-            if (table == null || !isArrowTable(table)) throw new Error(`the handle ${handle} is no table`);
-            return arrow.tableToIPC(table, 'stream');
+        read: handle => arrow.tableToIPC(tableOf(handle), 'stream'),
+        describe: handle => {
+            const table = tableOf(handle);
+            return { rows: table.numRows, schema: schemaIPC(table.schema) };
         },
     };
 }
@@ -71,4 +92,22 @@ export function createRuntimeTables(handles: HandleTable): PlatformTables {
 /// Is a value an Arrow table? A bundle may hold two copies of apache-arrow.
 export function isArrowTable(table: unknown): table is arrow.Table {
     return table != null && typeof table === 'object' && Array.isArray((table as arrow.Table).batches) && (table as arrow.Table).schema != null;
+}
+
+/// A table with its rows numbered from 1 in an appended column of 64-bit integers that can't be null, e.g. a result
+/// that the compute database imports. The batches keep their columns, the row numbers are a new column of each.
+export function appendRowNumbers(table: arrow.Table, name: string): arrow.Table {
+    const fields = [...table.schema.fields, new arrow.Field(name, new arrow.Int64(), false)];
+    const schema = new arrow.Schema(fields, table.schema.metadata);
+    let next = 1n;
+    const batches = table.batches.map(batch => {
+        const rows = batch.numRows;
+        const numbers = new BigInt64Array(rows);
+        for (let i = 0; i < rows; ++i) numbers[i] = next++;
+        const rowNumbers = arrow.makeData({ type: new arrow.Int64(), length: rows, nullCount: 0, data: numbers });
+        const children = [...batch.data.children, rowNumbers] as arrow.Data[];
+        const data = arrow.makeData({ type: new arrow.Struct(fields), length: rows, nullCount: 0, children });
+        return new arrow.RecordBatch(schema, data);
+    });
+    return new arrow.Table(schema, batches);
 }

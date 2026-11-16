@@ -200,8 +200,8 @@ requests of its components (`dispatch({ computation: id }, action)`) and starts 
 the views (`store/runtime_store.ts`) and attaches the runtime of the module once the core is there.
 
 - **An analysis runs in Rust.** `analyzeTable(tableId, table, options)` takes the result by its handle in the handle
-  table, reads it as Arrow IPC once (`tables.read` of the platform), registers a token of the lifetime of the
-  computation and analyzes it: the import, the statistics, the system columns, the summaries of the columns and, with
+  table, reads only its rows and its schema (`tables.describe` of the platform), registers a token of the lifetime of
+  the computation and analyzes it (a call that fails releases the handle): the import, the statistics, the system columns, the summaries of the columns and, with
   the option, an ordering like the one of the result that it replaces. The promise settles with the analysis, after
   the store took its changes.
 - **The app asks, the service derives.** The actions of the computations are the requests of the components: an
@@ -210,16 +210,21 @@ the views (`store/runtime_store.ts`) and attaches the runtime of the module once
   (`requestFilteredColumnAggregation`) and `deleteComputation`. The service builds the tasks from the state and runs
   them, see [The tasks of the computations](#the-tasks-of-the-computations). The scheduler of the app, the task
   variants with their promises, the queue of the filters and the search effects of the app went.
-- **The compute platform.** `compute` of the platform (`compute/compute_platform.ts`) imports Arrow IPC with
-  `insertArrowTable`, creates tables with `createTableAs`, reads them back as Arrow IPC, drops them and aborts the calls
-  of a cancelled run. The SELECT of a task runs through the query execution of the app (`setQueryExecution`), e.g. into
+- **The compute platform.** `compute` of the platform (`compute/compute_platform.ts`) imports the Arrow table of a
+  handle with its rows numbered in an appended column (`importTable`, `appendRowNumbers` of `store/runtime_tables.ts`,
+  `insertArrowTable` with the abort signal of the run), creates tables with `createTableAs`, reads the small tables
+  that the runtime parses back as Arrow IPC (`query`) and the others as Arrow tables that the runtime keeps by handle
+  (`queryTable`), drops them and aborts the calls of a cancelled run. The SELECT of a task runs through the query execution of the app (`setQueryExecution`), e.g. into
   the query history of the connection of the computation. The platform reads the compute database when it is called,
   it arrives after the settings.
 - **Arrow tables stay with the host.** Arrow data never lives in the core module: every table of the computations,
   the result of an analysis and the derived tables (filter, ordering, search, statistics, summaries, system columns),
   is an object of the handle table, and the state names it by its handle with what it read of it, the rows, the schema
-  and for the statistics the values of their row. A task reads the rows that its plan needs from the IPC of the
-  compute database, then hands the table over (`tables.begin` and `tables.finish`). The effects that release and abort
+  and for the statistics the values of their row. The module reads only the small tables that it parses (the
+  statistics, the bins and the frequent values of the summaries, the count of a selection, the matching column
+  groups) as Arrow IPC and hands them over (`tables.begin` and `tables.finish`); the result, the system columns, the
+  filter, the ordering and the data search stay Arrow tables of the host that the module knows by their rows and
+  schema (`queryTable`, `tables.describe`). The app parses the matching columns of a data search itself. The effects that release and abort
   handles go into the change set, the store applies them when it takes the changes, with the views that no longer name
   them. The app resolves a table with `useTable(handle)`; it formats the summaries for the plots (`resolveSummaries` of
   `compute/computation_types.ts`) and parses the matching rows of a data search from its table
@@ -390,8 +395,9 @@ returns the values of the action of the state. The analysis of a result is a seq
 the import of the result with row numbers from 1, the statistics, the system columns, then the summary of every
 ordinal and string column.
 
-- **The compute host.** `ComputeHost` sits on top of `host::Host`: import a table from Arrow IPC, create the table of a
-  data frame from a SELECT, run a query and return Arrow IPC, drop a table, cancel the calls of a run, and learn that a
+- **The compute host.** `ComputeHost` sits on top of `host::Host`: import a table of the host by its handle with the
+  row numbers that the host appends, create the table of a data frame from a SELECT, run a query and return Arrow IPC
+  (a small table that the task parses) or keep its result under a handle with its rows and schema, drop a table, cancel the calls of a run, and learn that a
   task changed the state. Every call carries the computation, the title of its task, the connection and the client
   context of the computation and the run.
 - **A run of a task.** The service reads the task from the state, reports it running, allocates the data frame of its
@@ -461,7 +467,8 @@ tool stops the loader (`runCatalogLoader(false)`).
   it follows (`ClientFunctionRegistrations`), the platform loads the specs (`extensions.loadSpec`).
 - **The tests.** `tests/catalog_loader_test.rs` drives the updates without I/O, `tests/catalog_loader_service_test.rs`
   runs the loader on a fake host: the queue, forced refreshes, the relations of statements with their retries, the
-  embedded database, Salesforce and client functions. `runtime_connections.test.ts` of `packages/dashql/src/core` describes a
+  embedded database, Salesforce and client functions. A connection that an action borrows while the loader schedules
+  keeps its requested refreshes, the loader looks again after 10 ms. `runtime_connections.test.ts` of `packages/dashql/src/core` describes a
   Trino connection that comes online, `catalog_updates.integration.test.ts` runs lookups on the embedded Hyper.
 - **Changed on purpose.** The requested refreshes are considered before the lookups, so a request that a refresh
   answered and the lookup behind it settle in one pass. The retry wakes at the earliest attempt. Skipped functions and
@@ -693,8 +700,18 @@ query, the abort signal of the caller, the log of a trace).
   connection: it serves a result from the query result cache or sends the query, reports the progress and the batches,
   touches the relations of the statement, analyzes the result and writes it into the cache after the query. The task
   reports `QueryEvent`s, the host applies them to the history of the connection right away: the relations of a
-  statement come from the core (`touched_relations`), the analysis runs on the computations of the runtime and a result
-  replaces the computation of the earlier result of its owner.
+  statement come from the core (`touched_relations`) and the analysis runs on the computations of the runtime. The
+  history decides which result of an owner is the latest once a query succeeded: it releases the tables of the results
+  that it supersedes (`QueryExecutionOutcome::superseded`) and the runtime deletes their computations.
+- **One object per query.** `QueryRun` of `runtime/queries.rs` lives from the registration of a query in its history
+  to the end of its last follow-up: the command that runs the query holds it, so do the write of the result into the
+  cache and the touch of a cached entry after the query (`QueryRequest::keep_alive`), the runtime knows the runs weakly
+  by id. Its token is the one cancellation of the query: `Runtime.cancelQuery`, a reset of the connection and a caller
+  that stops waiting cancel it while the runtime describes the query, loads the spec of its client functions, the
+  executor runs it or its result is analyzed (a cancelled analysis deletes the new computation, the earlier result of
+  the owner keeps its own); `cancelQuery` resolves once the query ended. The run owns its result table, the history and
+  the analysis take handles of their own; once the last holder lets go, the run releases its tables, so the key of a
+  fresh result and a failed write reach the history after the query ended.
   Cancelling cancels the token: the requests stop, the query is cancelled at the backend and the task ends as
   cancelled.
 - **The connectors.** Trino runs on `TrinoQuery` with the requests and timers of the host and keeps a refreshed access
@@ -902,9 +919,8 @@ p50). The change set crosses the `run` slices as well, a keystroke changes none 
 
 - The actions of the success of a task and the scheduler tasks that the host would run remain in the state of the
   crate for its tests; the host can't reach them.
-- A result crosses from the query executor to the computations as Arrow IPC that `apache-arrow` writes
-  (`tables.read` of the platform), and the compute platform imports it through `insertArrowTable`, which writes it
-  again. The parts of the stream could go to the compute database as they arrive instead.
+- The compute platform imports a result through `insertArrowTable`, which writes the Arrow table as IPC for the
+  external scan of Hyper. The parts of the stream could go to the compute database as they arrive instead.
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
 - The migration of the storage of the app runs on a runtime of its own before the storage of the app is set up, the

@@ -3,10 +3,7 @@
 //!
 //! Ported from `packages/dashql/src/runtime/compute/tasks/table_ordering.ts`.
 
-use dashql_core::error::Result;
-
 use super::data_search::DATA_SEARCH_ROW_FIELD;
-use super::result_table::ResultTable;
 use super::sql::SqlFrame;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
 use crate::compute::types::{ComputationVersion, DataFrameId, OrderByConstraint, TableOrderingTask};
@@ -26,15 +23,13 @@ pub struct TableOrderingPlan {
     pub data_search_request_id: Option<u64>,
 }
 
-/// The rows in order
+/// The rows in order, the host keeps the row numbers in display order that the query read
 #[derive(Clone, Debug, PartialEq)]
 pub struct OrderingResult {
     /// The row numbers that the table holds
     pub input_row_number_column_name: String,
     /// The ordering
     pub ordering_constraints: Vec<OrderByConstraint>,
-    /// The row numbers in display order
-    pub table: ResultTable,
     /// The data frame with the row numbers and the fields of the ordering
     pub data_frame: DataFrameId,
     /// The version that the ordering was computed for
@@ -79,15 +74,14 @@ pub fn plan_table_ordering(task: &TableOrderingTask, output: DataFrameId) -> Tab
 }
 
 impl TableOrderingPlan {
-    /// Read the rows in order
-    pub fn finish(self, result: ResultTable) -> Result<OrderingResult> {
-        Ok(OrderingResult {
+    /// The rows in order
+    pub fn finish(self) -> OrderingResult {
+        OrderingResult {
             input_row_number_column_name: self.row_number_column_name,
             ordering_constraints: self.ordering_constraints,
-            table: result,
             data_frame: self.query.data_frame,
             version: self.version,
             data_search_request_id: self.data_search_request_id,
-        })
+        }
     }
 }

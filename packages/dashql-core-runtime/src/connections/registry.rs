@@ -62,13 +62,20 @@ pub struct RegistryOutcome {
     pub effects: Vec<RegistryEffect>,
     /// The queries that were active when the history was cleared, the executor stops them
     pub stopped: Vec<QueryId>,
+    /// The queries whose results a later result of their owner superseded, the host drops their computations
+    pub superseded: Vec<QueryId>,
     /// Was the connection deleted?
     pub deleted: bool,
 }
 
 impl RegistryOutcome {
     fn of_queries(outcome: QueryExecutionOutcome) -> Self {
-        RegistryOutcome { changed: outcome.changed, effects: outcome.effects.iter().map(Into::into).collect(), ..Default::default() }
+        RegistryOutcome {
+            changed: outcome.changed,
+            effects: outcome.effects.iter().map(Into::into).collect(),
+            superseded: outcome.superseded,
+            ..Default::default()
+        }
     }
 }
 

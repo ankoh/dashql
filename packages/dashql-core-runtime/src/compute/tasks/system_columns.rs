@@ -9,7 +9,6 @@ use arrow_schema::Schema;
 use dashql_core::error::{Error, Result};
 
 use super::columns::{create_unique_column_name, field_type, is_integer_type, to_numeric_of};
-use super::result_table::ResultTable;
 use super::sql::{Binning, SqlFrame};
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
 use crate::compute::types::{ColumnGroup, DataFrameId, RowNumberColumnGroup, SystemColumnsTask};
@@ -23,13 +22,11 @@ pub struct SystemColumnsPlan {
     pub column_groups: Vec<ColumnGroup>,
 }
 
-/// The table with the system columns
+/// The table with the system columns, in the order of the row numbers. The host keeps the table that the query read.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SystemColumnsResult {
     /// The data frame with the system columns
     pub data_frame: DataFrameId,
-    /// The table with the system columns, in the order of the row numbers
-    pub table: ResultTable,
     /// The column groups that use the system columns
     pub column_groups: Vec<ColumnGroup>,
 }
@@ -100,8 +97,8 @@ pub fn plan_system_columns(
 }
 
 impl SystemColumnsPlan {
-    /// Read the table with the system columns
-    pub fn finish(self, result: ResultTable) -> Result<SystemColumnsResult> {
-        Ok(SystemColumnsResult { data_frame: self.query.data_frame, table: result, column_groups: self.column_groups })
+    /// The table with the system columns, the host keeps its rows
+    pub fn finish(self) -> SystemColumnsResult {
+        SystemColumnsResult { data_frame: self.query.data_frame, column_groups: self.column_groups }
     }
 }

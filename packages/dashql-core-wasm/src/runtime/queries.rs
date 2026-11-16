@@ -6,32 +6,35 @@
 //! channel of its connection, the key of its result in the query result cache (`result_key`, the SHA-256 digest
 //! through `crypto` of the platform) and what the executor does around it. The platform only describes the channel
 //! (`channels.describe`): a channel that the module speaks, or one of the host that it keeps for the query until the
-//! query is forgotten (`channels.forget`). The executor reports every event into the history right away. What stays with the host goes through the platform:
-//! fetch, the channels of the host, the query result cache, the result tables by handle. The analysis of a result runs
-//! on the computations of the runtime, a result replaces the computation of the earlier result of its owner.
+//! run of the query is dropped (`channels.forget`). The executor reports every event into the history right away. What
+//! stays with the host goes through the platform: fetch, the channels of the host, the query result cache, the result
+//! tables by handle. The analysis of a result runs on the computations of the runtime, the history decides which result
+//! of an owner is the latest and the computations of the others go.
+//!
+//! Every query is one `QueryRun` with the one cancellation token of the query, see there.
 //!
 //! The result of a query never lives in the module: its parts go into a table of the platform as they arrive
 //! (`tables.open` and `tables.push`), the channels of the host push their batches into it, the platform builds the
-//! table at the end (`tables.finish`). The history takes the table by its handle, the analysis takes a handle of its
-//! own.
+//! table at the end (`tables.finish`). The run owns the table, the history and the analysis take handles of their own,
+//! the analysis reads only its rows and its schema (`tables.describe`).
 //!
 //! The runtime runs queries of its own as well (`run_internal`): the metadata queries of the catalog loader and the
 //! probes of the health checks, and the statements of the runs of workbooks (`run_statement`). They are queries of
 //! their connection like the others and are described in the same way. The specs of the client functions come from the platform (`extensions`) when a call
 //! runs.
 
+use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
 
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
-use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::connections::registry::QueryOwner;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectorType};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
-use dashql_core_runtime::executor::json::{failure_json, target_from_json, SpecCache};
+use dashql_core_runtime::executor::json::{failure_json, target_from_json};
 use dashql_core_runtime::executor::{
     CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, HostTable, QueryEvent, QueryFailure, QueryId, QueryOutcome, QueryRequest,
     QueryTarget,
@@ -39,6 +42,7 @@ use dashql_core_runtime::executor::{
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
 use dashql_core_runtime::http::{Body, CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::salesforce::SalesforceTokens;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable};
@@ -146,32 +150,117 @@ struct ChannelQuery<'a> {
     client_function: bool,
 }
 
-/// What the runtime keeps of a query that the executor runs
+/// A query that the runtime runs, one object from its registration in the history to the end of its last follow-up.
+/// The command that runs the query holds it, so do the follow-ups of the executor after the end of the query (the write
+/// of its result into the cache, the touch of a cached entry), the runs of the connections know it weakly. Its token is
+/// the one cancellation of the query: a cancel, a reset of its connection and a caller that stops waiting cancel it,
+/// before the executor runs the query or while it does. The run owns its result table, the history and the analysis
+/// take handles of their own; once the last holder lets go, the run releases its tables and the platform forgets the
+/// channel of the query.
 pub(crate) struct QueryRun {
+    pub query_id: QueryId,
     pub connection_id: String,
     pub text: String,
-    /// The table that the parts of the result stream into
-    pub table: Option<Handle>,
-    /// The result table once it is finished, the run owns it until the history takes it
-    pub result: Option<Handle>,
-    /// Did the history take the result table?
-    pub in_history: bool,
-    /// The events of the caller: the timings, the result before its analysis, a refreshed token of Trino
-    pub events: Option<Function>,
-    /// The owner of the result, its computation replaces the one of the earlier result of the owner
-    pub result_owner: Option<String>,
     /// The details of the log messages of the query: the trace, the span and the workbook
     pub log_details: Vec<(String, String)>,
     /// Was the query failed by the caller before it ran?
     pub preset_failure: bool,
-    /// Was the query cancelled before the executor ran it?
-    pub cancelled: bool,
-    /// Does the executor run it?
-    pub started: bool,
-    /// The views that show the profile of the query before it started
-    pub profile_viewers: i32,
+    /// Cancels the query
+    pub token: CancellationToken,
+    /// What the caller hears
+    caller: QueryCaller,
+    /// The tables and the steps of the query
+    state: RefCell<RunState>,
+    platform: JsPlatform,
+}
+
+/// What the caller of a query hears, apart from what the platform keeps: the timings and the result before its
+/// analysis, and the end of the query for those who wait for it. The refreshed token of a Trino channel still reaches
+/// the platform through the events of the caller.
+#[derive(Default)]
+struct QueryCaller {
+    /// The events of the caller: the timings, the result before its analysis, a refreshed token of Trino
+    events: Option<Function>,
     /// Hears that the result arrived, before its analysis: a statement of a run of a workbook
-    pub ready: Option<Sender<()>>,
+    ready: RefCell<Option<Sender<()>>>,
+    /// Hear that the query ended, e.g. a cancel
+    ended: RefCell<Vec<Sender<()>>>,
+}
+
+/// The tables and the steps of a query
+#[derive(Default)]
+struct RunState {
+    /// The table that the parts of the result stream into
+    table: Option<Handle>,
+    /// The result table once it is finished, the run owns it
+    result: Option<Handle>,
+    /// Did the history take a handle of the result table?
+    in_history: bool,
+    /// Does the executor run it?
+    started: bool,
+    /// Did the query end?
+    ended: bool,
+    /// The views that show the profile of the query before it started
+    profile_viewers: i32,
+}
+
+impl QueryRun {
+    fn new(query_id: QueryId, connection_id: &str, text: &str, log_details: Vec<(String, String)>, preset_failure: bool, platform: &JsPlatform) -> Self {
+        QueryRun {
+            query_id,
+            connection_id: connection_id.to_string(),
+            text: text.to_string(),
+            log_details,
+            preset_failure,
+            token: CancellationToken::new(),
+            caller: QueryCaller::default(),
+            state: RefCell::new(RunState::default()),
+            platform: platform.clone(),
+        }
+    }
+
+    /// The result table that the run owns, none before the result arrived
+    fn result(&self) -> Option<Handle> {
+        self.state.borrow().result
+    }
+
+    /// The query ended, those who wait for it hear it
+    fn end(&self) {
+        self.state.borrow_mut().ended = true;
+        let waiters = std::mem::take(&mut *self.caller.ended.borrow_mut());
+        for waiter in waiters {
+            waiter.send(());
+        }
+    }
+
+    /// A future that completes once the query ended
+    fn ended(&self) -> impl Future<Output = ()> + 'static {
+        let receiver = (!self.state.borrow().ended).then(|| {
+            let (sender, receiver) = oneshot();
+            self.caller.ended.borrow_mut().push(sender);
+            receiver
+        });
+        async move {
+            if let Some(receiver) = receiver {
+                receiver.await;
+            }
+        }
+    }
+}
+
+impl Drop for QueryRun {
+    fn drop(&mut self) {
+        // The platform lets go of the channel of the query
+        self.platform.forget_channel_query(self.query_id as f64);
+        let state = self.state.get_mut();
+        let tables: Vec<Handle> = state.table.take().into_iter().chain(state.result.take()).collect();
+        if !tables.is_empty() {
+            for table in tables {
+                self.platform.push_release(table);
+            }
+            self.platform.signal(false);
+        }
+    }
 }
 
 /// The host of the executor: the platform and the connections of the runtime, weakly
@@ -239,48 +328,77 @@ fn event(kind: &str, fields: &[(&str, JsValue)]) -> JsValue {
 }
 
 impl Connections {
-    /// The run of a query, cloned out of the borrow
-    fn run_of<R>(&self, query_id: QueryId, read: impl FnOnce(&mut QueryRun) -> R) -> Option<R> {
-        self.runs.borrow_mut().iter_mut().find(|(id, _)| *id == query_id).map(|(_, run)| read(run))
+    /// The run of a query that is still held
+    pub(crate) fn run_of(&self, query_id: QueryId) -> Option<Rc<QueryRun>> {
+        self.runs.borrow().get(&query_id).and_then(Weak::upgrade)
+    }
+
+    /// The ids of the queries whose runs are held
+    pub(crate) fn run_ids(&self) -> Vec<QueryId> {
+        self.runs.borrow().iter().filter(|(_, run)| run.strong_count() > 0).map(|(id, _)| *id).collect()
+    }
+
+    /// Know a new run, the runs that nobody holds any more leave
+    fn adopt_run(&self, run: QueryRun) -> Rc<QueryRun> {
+        let run = Rc::new(run);
+        let mut runs = self.runs.borrow_mut();
+        runs.retain(|_, held| held.strong_count() > 0);
+        runs.insert(run.query_id, Rc::downgrade(&run));
+        run
+    }
+
+    /// Release a table that no run keeps, with the next changes
+    fn release_table(&self, table: Handle) {
+        self.platform.push_release(table);
+        self.platform.signal(false);
     }
 
     /// The table that the result of a query streams into, opened with the first part
     fn table_of(&self, query_id: QueryId) -> Result<Handle, HostError> {
-        if let Some(Some(table)) = self.run_of(query_id, |run| run.table) {
+        let Some(run) = self.run_of(query_id) else {
+            return Err(HostError::new(format!("unknown query {query_id}")));
+        };
+        let table = run.state.borrow().table;
+        if let Some(table) = table {
             return Ok(table);
         }
         let table = self.platform.open_table()?;
-        let kept = self.run_of(query_id, |run| run.table.get_or_insert(table).to_owned());
-        match kept {
-            Some(kept) => Ok(kept),
-            None => {
-                self.platform.push_release(table);
-                Err(HostError::new(format!("unknown query {query_id}")))
-            }
-        }
+        run.state.borrow_mut().table = Some(table);
+        Ok(table)
     }
 
     /// Log a message of a query with its trace
-    fn log_query(&self, query_id: QueryId, level: LogLevel, message: &str, details: &[(String, String)], target: &str) {
-        let mut all: Vec<(String, String)> = self.run_of(query_id, |run| run.log_details.clone()).unwrap_or_default();
+    fn log_query(&self, run: Option<&QueryRun>, level: LogLevel, message: &str, details: &[(String, String)], target: &str) {
+        let mut all: Vec<(String, String)> = run.map(|run| run.log_details.clone()).unwrap_or_default();
         all.extend(details.iter().cloned());
         let pairs: Vec<(&str, &str)> = all.iter().map(|(key, value)| (key.as_str(), value.as_str())).collect();
         self.platform.log_on(level, message, &pairs, target);
     }
 
     /// Tell the caller of a query about an event, an observer that throws changes nothing
-    fn notify(&self, query_id: QueryId, event: JsValue) {
-        if let Some(Some(events)) = self.run_of(query_id, |run| run.events.clone()) {
+    fn notify(run: &QueryRun, event: JsValue) {
+        if let Some(events) = &run.caller.events {
             let _ = events.call1(&JsValue::NULL, &event);
         }
     }
 
-    /// Apply an event of the executor to the history of its query
+    /// Delete the computation of a result if it has one
+    pub(crate) fn delete_computation_of(&self, query_id: QueryId) {
+        if self.computations.read(|state| state.computation(query_id).is_some()) {
+            self.delete_computation(query_id);
+        }
+    }
+
+    /// Apply an event of the executor to the history of its query. The follow-ups of a query hold its run, so every
+    /// event finds it; a log message of a run that is gone still goes to the log.
     pub(crate) fn report(self: &Rc<Self>, query_id: QueryId, event_: QueryEvent) {
-        let Some((connection_id, preset_failure)) = self.run_of(query_id, |run| (run.connection_id.clone(), run.preset_failure)) else {
+        let Some(run) = self.run_of(query_id) else {
+            if let QueryEvent::Log { level, message, details, target } = event_ {
+                self.log_query(None, level, &message, &details, &target);
+            }
             return;
         };
-        let owner = QueryOwner::Connection(connection_id.clone());
+        let owner = QueryOwner::Connection(run.connection_id.clone());
         let now = self.now() as i64;
         let action = match event_ {
             QueryEvent::Sending => QueryExecutionAction::QuerySending { query_id, now },
@@ -296,7 +414,7 @@ impl Connections {
                 };
                 let pushed = self.table_of(query_id).and_then(|table| self.platform.push_table(table, &part));
                 if let Err(error) = pushed {
-                    self.log_query(query_id, LogLevel::Warn, "Failed to keep a part of a result", &[("error".into(), error.message().into())], LOG_TARGET);
+                    self.log_query(Some(&run), LogLevel::Warn, "Failed to keep a part of a result", &[("error".into(), error.message().into())], LOG_TARGET);
                 }
                 return;
             }
@@ -305,12 +423,22 @@ impl Connections {
                 return;
             }
             QueryEvent::ReceivedAllBatches { rows, metrics } => {
-                let table = self.run_of(query_id, |run| {
-                    let table = run.result.filter(|_| !run.in_history);
-                    run.in_history |= table.is_some();
-                    table
-                });
-                let Some(Some(table)) = table else { return };
+                // The history takes a handle of its own, the run keeps the result until it ends
+                let result = {
+                    let mut state = run.state.borrow_mut();
+                    let result = state.result.filter(|_| !state.in_history);
+                    state.in_history |= result.is_some();
+                    result
+                };
+                let Some(result) = result else { return };
+                let table = match self.platform.duplicate(result) {
+                    Ok(table) => table,
+                    Err(error) => {
+                        let details = [("error".into(), error.message().to_string())];
+                        self.log_query(Some(&run), LogLevel::Warn, "Failed to keep the result of a query", &details, LOG_TARGET);
+                        return;
+                    }
+                };
                 QueryExecutionAction::QueryReceivedAllBatches { query_id, table: QueryResultTable { id: table, rows }, metrics, now }
             }
             QueryEvent::ProcessingResults => QueryExecutionAction::QueryProcessingResults { query_id, now },
@@ -319,111 +447,120 @@ impl Connections {
             QueryEvent::Failed { failure, metrics } => {
                 // The preset failure and a failed analysis are logged already. The failed run shows the error inline, the
                 // log keeps it as a warning.
-                if !preset_failure && failure.kind != FailureKind::Processing {
+                if !run.preset_failure && failure.kind != FailureKind::Processing {
                     let mut details = failure.details.clone();
                     details.push(("queryId".into(), query_id.to_string()));
-                    self.log_query(query_id, LogLevel::Warn, &failure.message, &details, &failure.target);
+                    self.log_query(Some(&run), LogLevel::Warn, &failure.message, &details, &failure.target);
                 }
                 QueryExecutionAction::QueryFailed { query_id, error: query_error(&failure), metrics, now }
             }
             QueryEvent::Cancelled { failure, metrics } => {
                 // A query that was cancelled while its result was analyzed keeps no computation
-                if self.computations.read(|state| state.computation(query_id).is_some()) {
-                    self.delete_computation(query_id);
-                }
+                self.delete_computation_of(query_id);
                 QueryExecutionAction::QueryCancelled { query_id, error: query_error(&failure), metrics, now }
             }
             QueryEvent::CacheRecorded { key, served_from_cache, cached_at } => {
                 QueryExecutionAction::QueryCacheRecorded { query_id, cache_key: key, served_from_cache, cached_at: cached_at.map(|at| at as i64) }
             }
             QueryEvent::TouchRelations => {
-                let Some(text) = self.run_of(query_id, |run| run.text.clone()) else { return };
-                let touched = dashql_core_script::touched_relations::touched_relations(&text).relations.unwrap_or_default();
+                let touched = dashql_core_script::touched_relations::touched_relations(&run.text).relations.unwrap_or_default();
                 if !touched.is_empty() {
                     // Following the catalog must not change the outcome of the statement
-                    if let Err(error) = self.apply(&connection_id, ConnectionAction::RelationsTouched(touched), None) {
+                    if let Err(error) = self.apply(&run.connection_id, ConnectionAction::RelationsTouched(touched), None) {
                         let details = [("query".into(), query_id.to_string()), ("error".into(), error.what().to_string())];
-                        self.log_query(query_id, LogLevel::Warn, "Failed to read the relations of a statement", &details, LOG_TARGET);
+                        self.log_query(Some(&run), LogLevel::Warn, "Failed to read the relations of a statement", &details, LOG_TARGET);
                     }
                 }
                 return;
             }
             QueryEvent::Timing { label, elapsed_ms } => {
-                self.notify(query_id, event("timing", &[("label", JsValue::from_str(label)), ("elapsedMs", JsValue::from_f64(elapsed_ms))]));
+                Self::notify(&run, event("timing", &[("label", JsValue::from_str(label)), ("elapsedMs", JsValue::from_f64(elapsed_ms))]));
                 return;
             }
             QueryEvent::ResultsReady => {
-                if let Some(Some(ready)) = self.run_of(query_id, |run| run.ready.take()) {
+                let ready = run.caller.ready.borrow_mut().take();
+                if let Some(ready) = ready {
                     ready.send(());
                 }
-                self.notify(query_id, event("resultsReady", &[]));
+                Self::notify(&run, event("resultsReady", &[]));
                 return;
             }
             QueryEvent::Log { level, message, details, target } => {
-                self.log_query(query_id, level, &message, &details, &target);
+                self.log_query(Some(&run), level, &message, &details, &target);
                 return;
             }
             QueryEvent::TrinoTokenRefreshed(token) => {
                 let token = JsonValue(token.to_json()).to_js().unwrap_or(JsValue::NULL);
-                self.notify(query_id, event("trinoTokenRefreshed", &[("token", token)]));
+                Self::notify(&run, event("trinoTokenRefreshed", &[("token", token)]));
                 return;
             }
         };
         if let Err(error) = self.apply_query(&owner, action, true) {
-            self.log_query(query_id, LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
+            self.log_query(Some(&run), LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
         }
     }
 
-    /// Analyze the result of a query on the computations: the result replaces the computation of the earlier result of
-    /// its owner once it is analyzed
-    fn analyze(self: &Rc<Self>, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static {
+    /// Analyze the result of a query on the computations. The history decides which result of an owner is the latest
+    /// once the query succeeded, the computations of the results that it supersedes go then. A cancel stops the
+    /// analysis: the new computation goes and the earlier result of the owner keeps its computation.
+    fn analyze(self: &Rc<Self>, query_id: QueryId, cancellation: &CancellationToken) -> impl Future<Output = Result<(), HostError>> + 'static {
         let connections = self.clone();
+        let token = cancellation.clone();
         async move {
-            let Some((Some(table), connection_id, owner)) =
-                connections.run_of(query_id, |run| (run.result, run.connection_id.clone(), run.result_owner.clone()))
-            else {
+            let Some(run) = connections.run_of(query_id) else {
+                return Ok(());
+            };
+            let Some(table) = run.result() else {
                 return Ok(());
             };
             // The analysis computes on the compute database, a query without one has nothing to analyze
             if !connections.platform.has_compute() {
                 return Ok(());
             }
-            let ipc = connections.platform.read_table(table)?;
-            let result = ResultTable::from_ipc_stream(&ipc).map_err(|e| HostError::new(e.message))?;
-            if result.schema().fields().is_empty() {
+            if token.is_cancelled() {
+                return Err(HostError::new(CANCELLED_MESSAGE));
+            }
+            // The module reads the rows and the schema of the result, its data stays with the host
+            let shape = connections.platform.describe_table(table)?;
+            if shape.schema.fields().is_empty() {
                 return Ok(());
             }
-            let handles = AnalysisHandles { table: connections.platform.duplicate(table)?, lifetime: connections.platform.register(&lifetime_token())? };
-            let analysis = connections.computations.analyze_table(query_id, result, handles, Some(connection_id), None, RuntimeAnalyzeOptions::default());
-            if let Err(error) = analysis.await {
-                // The previous result of the owner stays
-                connections.delete_computation(query_id);
-                return Err(HostError::new(error.what().to_string()));
+            let table = connections.platform.duplicate(table)?;
+            let lifetime = match connections.platform.register(&lifetime_token()) {
+                Ok(lifetime) => lifetime,
+                Err(error) => {
+                    connections.release_table(table);
+                    return Err(error);
+                }
+            };
+            let handles = AnalysisHandles { table, lifetime };
+            let connection_id = Some(run.connection_id.clone());
+            let analysis = connections.computations.analyze_table(query_id, shape, handles, connection_id, None, RuntimeAnalyzeOptions::default());
+            // A cancel deletes the computation, which cancels the runs of the analysis
+            let analyzed = CancellationToken::new();
+            {
+                let connections = connections.clone();
+                let analyzed = analyzed.clone();
+                let token = token.clone();
+                connections.platform.clone().spawn(Box::pin(async move {
+                    if analyzed.run(token.cancelled()).await.is_some() {
+                        connections.delete_computation_of(query_id);
+                    }
+                }));
             }
-            if let Some(unused) = owner.and_then(|owner| connections.retain_result(&owner, query_id)) {
-                connections.delete_computation(unused);
+            let outcome = analysis.await;
+            analyzed.cancel();
+            if token.is_cancelled() {
+                connections.delete_computation_of(query_id);
+                return Err(HostError::new(CANCELLED_MESSAGE));
+            }
+            if let Err(error) = outcome {
+                // The previous result of the owner stays
+                connections.delete_computation_of(query_id);
+                return Err(HostError::new(error.what().to_string()));
             }
             Ok(())
         }
-    }
-
-    /// Forget a query that ended, the tables that nothing took are released
-    fn forget(&self, query_id: QueryId) {
-        let run = {
-            let mut runs = self.runs.borrow_mut();
-            let index = runs.iter().position(|(id, _)| *id == query_id);
-            index.map(|index| runs.swap_remove(index).1)
-        };
-        // The platform lets go of the channel of the query
-        self.platform.forget_channel_query(query_id as f64);
-        let Some(run) = run else { return };
-        if let Some(table) = run.table {
-            self.platform.push_release(table);
-        }
-        if let Some(result) = run.result.filter(|_| !run.in_history) {
-            self.platform.push_release(result);
-        }
-        self.platform.signal(false);
     }
 }
 
@@ -476,10 +613,16 @@ impl ExecutorHost for QueryHost {
         async move {
             let value = read.await?;
             let table = field(&value, "table").and_then(|table| table.as_f64()).ok_or_else(|| HostError::new("the cache returned no table"))? as Handle;
-            let kept = connections.upgrade().and_then(|connections| connections.run_of(query_id, |run| run.result = Some(table)));
-            if kept.is_none() {
+            // The run owns the table, a run that is gone releases it
+            let Some(run) = connections.upgrade().and_then(|connections| connections.run_of(query_id)) else {
                 platform.push_release(table);
+                platform.signal(false);
                 return Err(HostError::new(format!("unknown query {query_id}")));
+            };
+            let previous = run.state.borrow_mut().result.replace(table);
+            if let Some(previous) = previous {
+                platform.push_release(previous);
+                platform.signal(false);
             }
             Ok(host_table(&value))
         }
@@ -490,7 +633,8 @@ impl ExecutorHost for QueryHost {
     }
 
     fn cache_write(&self, query_id: QueryId, key: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let table = self.connections.upgrade().and_then(|connections| connections.run_of(query_id, |run| run.result)).flatten();
+        // The write holds the run, its table is there
+        let table = self.connections.upgrade().and_then(|connections| connections.run_of(query_id)).and_then(|run| run.result());
         // The platform takes the table when it is called
         let write = table.map(|table| self.platform.cache_write(key, table));
         // The cache keeps its limits after every file of a key
@@ -507,8 +651,8 @@ impl ExecutorHost for QueryHost {
         }
     }
 
-    fn analyze_result(&self, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let analysis = self.connections().map(|connections| connections.analyze(query_id));
+    fn analyze_result(&self, query_id: QueryId, cancellation: &CancellationToken) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let analysis = self.connections().map(|connections| connections.analyze(query_id, cancellation));
         async move { analysis?.await }
     }
 
@@ -521,14 +665,14 @@ impl ExecutorHost for QueryHost {
             let connections = self.connections()?;
             let table = connections.table_of(query_id)?;
             let finished = self.platform.finish_table(table);
-            connections.run_of(query_id, |run| {
-                run.table = None;
-                // A table that didn't finish is released with the run
-                match &finished {
-                    Ok(_) => run.result = Some(table),
-                    Err(_) => run.table = Some(table),
+            // A table that didn't finish stays the table of the run, which releases it
+            if finished.is_ok() {
+                if let Some(run) = connections.run_of(query_id) {
+                    let mut state = run.state.borrow_mut();
+                    state.table = None;
+                    state.result = Some(table);
                 }
-            });
+            }
             finished
         })();
         async move { finished }
@@ -595,7 +739,6 @@ impl Connections {
         if let Some(workbook_id) = &args.metadata.workbook_id {
             log_details.push(("workbookId".to_string(), workbook_id.clone()));
         }
-        let result_owner = args.metadata.result_owner.clone();
         let metadata: QueryMetadata = args.metadata.into();
         let state = QueryExecutionState::new(query_id, args.trace_id as u64, args.text.clone(), metadata.clone(), now as i64);
         // The query is in the history of the connection from the start
@@ -606,24 +749,9 @@ impl Connections {
             return (query_id, Promise::resolve(&failed));
         }
         let preset_failure = !failure.is_undefined() && !failure.is_null();
-        self.runs.borrow_mut().push((
-            query_id,
-            QueryRun {
-                connection_id: connection_id.to_string(),
-                text: args.text.clone(),
-                table: None,
-                result: None,
-                in_history: false,
-                events,
-                result_owner,
-                log_details,
-                preset_failure,
-                cancelled: false,
-                started: false,
-                profile_viewers: 0,
-                ready: None,
-            },
-        ));
+        let mut run = QueryRun::new(query_id, connection_id, &args.text, log_details, preset_failure, &self.platform);
+        run.caller.events = events;
+        let run = self.adopt_run(run);
         let description = QueryDescription {
             connection_id: connection_id.to_string(),
             text: args.text,
@@ -633,16 +761,12 @@ impl Connections {
         };
         let connections = self.clone();
         let done = wasm_bindgen_futures::future_to_promise(async move {
-            let outcome = connections.run(query_id, owner, description, failure).await;
+            let outcome = connections.run(&run, owner, description, failure).await;
+            // The caller gets the object of the result table while the run still owns it
             let table = match &outcome {
-                QueryOutcome::Resolved { has_result: true } => connections
-                    .run_of(query_id, |run| run.result)
-                    .flatten()
-                    .map(|table| connections.platform.handle(table))
-                    .unwrap_or(JsValue::NULL),
+                QueryOutcome::Resolved { has_result: true } => run.result().map(|table| connections.platform.handle(table)).unwrap_or(JsValue::NULL),
                 _ => JsValue::NULL,
             };
-            connections.forget(query_id);
             Ok(outcome_value(outcome, table))
         });
         (query_id, done)
@@ -650,7 +774,9 @@ impl Connections {
 
     /// The key of the results of a script signature on a connection in the query result cache, none without a cache or
     /// before the connection has the params of a setup. The key derives from the params of the connector that identify
-    /// its results, the platform computes the SHA-256 digest.
+    /// its results, the platform computes the SHA-256 digest. The executor derives the same key, it uses the cache only
+    /// with the compute database that reads and writes its files (`describe`); the cache indicators and the exports
+    /// read the files of the keys without it.
     pub(crate) fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
         let input = if self.platform.has_cache() {
             let registry = self.registry.borrow();
@@ -686,9 +812,9 @@ impl Connections {
             return Err(QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}")));
         };
         let options = &description.options;
-        // The cache holds Parquet files that the compute database writes and reads
+        // The executor reads and writes the files of the cache with the compute database, through the mounts
         let cache = match &options.cache {
-            Some(cache) if self.platform.has_cache() && self.platform.has_mounts() => {
+            Some(cache) if self.platform.has_mounts() => {
                 self.result_key(connection_id, &cache.signature).await.map(|key| CacheRequest { key, refresh: cache.refresh })
             }
             _ => None,
@@ -720,7 +846,7 @@ impl Connections {
                 });
                 QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec: None, description, tokens })
             }
-            None => target_from_json(&described, &mut SpecCache::default()).map_err(|message| QueryFailure::new(FailureKind::Error, message))?,
+            None => target_from_json(&described).map_err(|message| QueryFailure::new(FailureKind::Error, message))?,
         };
         // Where a statement of a plan of workbook scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
         let mut log_details = Vec::new();
@@ -743,48 +869,62 @@ impl Connections {
             throw_on_error: options.throw_on_error == Some(true),
             failure: description.failure.clone().map(|message| QueryFailure::new(FailureKind::Error, message)),
             log_details,
+            keep_alive: None,
         })
     }
 
-    /// Describe a query and run it
-    async fn run(self: &Rc<Self>, query_id: QueryId, owner: QueryOwner, description: QueryDescription, failure: JsValue) -> QueryOutcome {
-        let now = || self.now() as i64;
-        let fail = |failure: QueryFailure, kind: &'static str| {
+    /// Describe a query and run it, the query ended once the future completed. Every step waits on the token of the run:
+    /// a cancel before the executor runs the query ends it as cancelled, one while it runs stops it at the backend.
+    async fn run(self: &Rc<Self>, run: &Rc<QueryRun>, owner: QueryOwner, description: QueryDescription, failure: JsValue) -> QueryOutcome {
+        let outcome = self.run_steps(run, &owner, description, failure).await;
+        run.end();
+        outcome
+    }
+
+    async fn run_steps(self: &Rc<Self>, run: &Rc<QueryRun>, owner: &QueryOwner, description: QueryDescription, failure: JsValue) -> QueryOutcome {
+        let query_id = run.query_id;
+        let fail = |failure: QueryFailure| {
             let error = query_error(&failure);
-            let action = match kind {
-                "cancelled" => QueryExecutionAction::QueryCancelled { query_id, error, metrics: None, now: now() },
-                _ => QueryExecutionAction::QueryFailed { query_id, error, metrics: None, now: now() },
+            let now = self.now() as i64;
+            let action = match failure.kind {
+                FailureKind::Cancelled => QueryExecutionAction::QueryCancelled { query_id, error, metrics: None, now },
+                _ => QueryExecutionAction::QueryFailed { query_id, error, metrics: None, now },
             };
-            let _ = self.apply_query(&owner, action, true);
+            let _ = self.apply_query(owner, action, true);
             QueryOutcome::Rejected(failure)
         };
-        let described = self.describe(query_id, &description).await;
-        if self.run_of(query_id, |run| run.cancelled).unwrap_or(true) {
-            return fail(QueryFailure::cancelled(), "cancelled");
-        }
-        let mut request = match described {
-            Ok(request) => request,
-            Err(failure) => return fail(failure, "failed"),
+        let token = &run.token;
+        let mut request = match token.run(self.describe(query_id, &description)).await {
+            None => return fail(QueryFailure::cancelled()),
+            Some(Err(failure)) => return fail(failure),
+            Some(Ok(request)) => request,
         };
-        if let Err(message) = self.load_spec(&mut request).await {
-            return fail(QueryFailure::new(FailureKind::Error, message), "failed");
+        match token.run(self.load_spec(&mut request)).await {
+            None => return fail(QueryFailure::cancelled()),
+            Some(Err(message)) => return fail(QueryFailure::new(FailureKind::Error, message)),
+            Some(Ok(())) => {}
         }
         if request.analyze_results && !self.platform.has_compute() {
-            return fail(QueryFailure::new(FailureKind::Error, "Compute database is not yet ready"), "failed");
+            return fail(QueryFailure::new(FailureKind::Error, "Compute database is not yet ready"));
         }
         if let Some(caller) = request.failure.take() {
             let value: Rc<dyn std::any::Any> = Rc::new(failure);
             request.failure = Some(QueryFailure { value: Some(value), ..caller });
         }
         let Some(executor) = self.executor() else {
-            return fail(QueryFailure::new(FailureKind::Error, "the runtime was destroyed"), "failed");
+            return fail(QueryFailure::new(FailureKind::Error, "the runtime was destroyed"));
         };
-        let viewers = self.run_of(query_id, |run| {
-            run.started = true;
-            run.profile_viewers
-        });
-        let outcome = executor.execute(request);
-        for _ in 0..viewers.unwrap_or(0) {
+        // The executor and its follow-ups hold the run
+        let keep_alive: Rc<dyn std::any::Any> = run.clone();
+        request.keep_alive = Some(keep_alive);
+        let viewers = {
+            let mut state = run.state.borrow_mut();
+            state.started = true;
+            state.profile_viewers
+        };
+        // A token that was cancelled meanwhile ends the query as cancelled in the executor
+        let outcome = executor.execute(request, token.clone());
+        for _ in 0..viewers {
             executor.watch_profile(query_id, 1);
         }
         outcome.await
@@ -838,51 +978,30 @@ impl Connections {
             failure: None,
         };
         let state = QueryExecutionState::new(query_id, 0, text.to_string(), metadata, self.now() as i64);
-        let registered = self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true);
-        if registered.is_ok() {
-            self.runs.borrow_mut().push((
-                query_id,
-                QueryRun {
-                    connection_id: connection_id.to_string(),
-                    text: text.to_string(),
-                    table: None,
-                    result: None,
-                    in_history: false,
-                    events: None,
-                    result_owner: None,
-                    log_details: Vec::new(),
-                    preset_failure: false,
-                    cancelled: false,
-                    started: false,
-                    profile_viewers: 0,
-                    ready: None,
-                },
-            ));
-        }
-        let connections = self.clone();
-        let token = cancellation.clone();
-        if registered.is_err() {
+        if self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).is_err() {
             let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}"));
             return (query_id, InternalQuery::Ready(Some(Err(failure))));
-        };
+        }
+        let run = self.adopt_run(QueryRun::new(query_id, connection_id, text, Vec::new(), false, &self.platform));
         // The query runs in a task of its own to its end, a caller that stops waiting leaves it to the cancellation
         let (sender, receiver) = oneshot();
         let ended = CancellationToken::new();
         {
-            let connections = connections.clone();
+            let connections = self.clone();
             let ended = ended.clone();
+            let caller = cancellation.clone();
             self.platform.spawn(Box::pin(async move {
-                if ended.run(token.cancelled()).await.is_some() {
+                if ended.run(caller.cancelled()).await.is_some() {
                     connections.cancel(query_id).await;
                 }
             }));
         }
+        let connections = self.clone();
         self.platform.spawn(Box::pin(async move {
-            let outcome = connections.run(query_id, owner, description, JsValue::UNDEFINED).await;
+            let outcome = connections.run(&run, owner, description, JsValue::UNDEFINED).await;
             ended.cancel();
-            // The table is read before the run is forgotten, the run releases a table that the history didn't take
-            let table = connections.run_of(query_id, |run| run.result).flatten();
-            let result = match (outcome, table) {
+            // The run owns its result table until it is dropped, the read happens before
+            let result = match (outcome, run.result()) {
                 (QueryOutcome::Resolved { has_result: true }, Some(table)) if read => {
                     connections.platform.read_table(table).map(Some).map_err(|error| QueryFailure::from_host(&error))
                 }
@@ -890,7 +1009,7 @@ impl Connections {
                 (QueryOutcome::Resolved { .. }, _) => Ok(None),
                 (QueryOutcome::Rejected(failure), _) => Err(failure),
             };
-            connections.forget(query_id);
+            drop(run);
             sender.send(result);
         }));
         (query_id, InternalQuery::Waiting(receiver))
@@ -927,37 +1046,21 @@ impl Connections {
         if let Some(workbook_id) = &statement.metadata.workbook_id {
             log_details.push(("workbookId".to_string(), workbook_id.clone()));
         }
-        let result_owner = statement.metadata.result_owner.clone();
         let state = QueryExecutionState::new(query_id, 0, statement.text.clone(), statement.metadata, self.now() as i64);
         if let Err(error) = self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
             let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}: {}", error.what()));
             return (query_id, Box::pin(std::future::pending()), Box::pin(std::future::ready(Err(failure))));
         }
         let (ready_sender, ready) = oneshot();
-        self.runs.borrow_mut().push((
-            query_id,
-            QueryRun {
-                connection_id: connection_id.to_string(),
-                text: statement.text,
-                table: None,
-                result: None,
-                in_history: false,
-                events: None,
-                result_owner,
-                log_details,
-                preset_failure: false,
-                cancelled: false,
-                started: false,
-                profile_viewers: 0,
-                ready: Some(ready_sender),
-            },
-        ));
+        let run = QueryRun::new(query_id, connection_id, &statement.text, log_details, false, &self.platform);
+        *run.caller.ready.borrow_mut() = Some(ready_sender);
+        let run = self.adopt_run(run);
         // The statement runs in a task of its own to its end, a run that stops waiting cancels it
         let (sender, done) = oneshot();
         let connections = self.clone();
         self.platform.spawn(Box::pin(async move {
-            let outcome = connections.run(query_id, owner, description, JsValue::UNDEFINED).await;
-            connections.forget(query_id);
+            let outcome = connections.run(&run, owner, description, JsValue::UNDEFINED).await;
+            drop(run);
             sender.send(match outcome {
                 QueryOutcome::Resolved { has_result } => Ok(has_result),
                 QueryOutcome::Rejected(failure) => Err(failure),
@@ -973,15 +1076,10 @@ impl Connections {
         (query_id, ready, done)
     }
 
-    /// Cancel a query: one that the executor runs stops at the backend, one that waits for its description ends as
-    /// cancelled, one that the host tracks is aborted through its record. Resolves once a query of the executor ended.
-    pub(crate) fn cancel(&self, query_id: QueryId) -> impl Future<Output = ()> + 'static {
-        let pending = self.run_of(query_id, |run| {
-            let pending = !run.started;
-            run.cancelled = true;
-            pending
-        });
-        if pending.is_none() {
+    /// Cancel a query right away: its token is cancelled, a query that the executor runs stops at the backend, one that
+    /// the host tracks is aborted through its record
+    pub(crate) fn cancel_now(&self, query_id: QueryId) {
+        let Some(run) = self.run_of(query_id) else {
             // A query that the host tracks is aborted through its record
             let history = self.registry.borrow().query_history(query_id).map(|(_, history)| history);
             let handle = history.and_then(|history| history.borrow().active(query_id).and_then(|query| query.handle));
@@ -990,22 +1088,34 @@ impl Connections {
                 self.platform.push_registry_effects(&[effect]);
                 self.platform.signal(true);
             }
+            return;
+        };
+        // The executor cancels a channel of the host at the backend within the call, the token stops the rest
+        match self.executor().filter(|executor| executor.is_running(query_id)) {
+            Some(executor) => drop(executor.cancel(query_id)),
+            None => run.token.cancel(),
         }
-        let cancelled = self.executor().map(|executor| executor.cancel(query_id));
+    }
+
+    /// Cancel a query, see `cancel_now`. Resolves once a query of the runtime ended, before the executor ran it or after.
+    pub(crate) fn cancel(&self, query_id: QueryId) -> impl Future<Output = ()> + 'static {
+        self.cancel_now(query_id);
+        let ended = self.run_of(query_id).map(|run| run.ended());
         async move {
-            if let Some(cancelled) = cancelled {
-                cancelled.await;
+            if let Some(ended) = ended {
+                ended.await;
             }
         }
     }
 
     /// A view starts (1) or stops (-1) showing the profile of a query
     pub(crate) fn watch_profile(&self, query_id: QueryId, delta: i32) {
-        let started = self.run_of(query_id, |run| {
-            if !run.started {
-                run.profile_viewers = (run.profile_viewers + delta).max(0);
+        let started = self.run_of(query_id).map(|run| {
+            let mut state = run.state.borrow_mut();
+            if !state.started {
+                state.profile_viewers = (state.profile_viewers + delta).max(0);
             }
-            run.started
+            state.started
         });
         if started == Some(true) {
             if let Some(executor) = self.executor() {

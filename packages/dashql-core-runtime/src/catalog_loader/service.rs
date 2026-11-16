@@ -54,8 +54,6 @@ pub trait CatalogLoaderHost: HttpHost {
     /// An update started. The host registers it with its connection (`ConnectionAction::UpdateCatalog`) and keeps a
     /// cancellation that calls `CatalogLoaderService::cancel`.
     fn update_started(&self, connection_id: &str, task: &CatalogUpdateTask);
-    /// Abort a running update, e.g. because a forced refresh supersedes it. The host aborts its cancellation.
-    fn abort_update(&self, connection_id: &str, task_id: u32, reason: &str);
     /// An update ended. The host applies the action of the outcome to the connection
     /// (`CatalogUpdateOutcome::connection_action`) and analyzes the scripts of the connection again if the outcome
     /// announces the new catalog.
@@ -140,6 +138,9 @@ impl<H: CatalogLoaderHost> Clone for CatalogLoaderService<H> {
     }
 }
 
+/// The wait before the loader schedules a refresh again that a busy connection held back
+const BUSY_RETRY_MS: f64 = 10.0;
+
 /// The views of the scheduler on connections that are borrowed
 fn views<'a>(borrowed: &'a [(String, Ref<'a, ConnectionState>, usize)]) -> Vec<CatalogLoaderConnection<'a>> {
     borrowed
@@ -155,16 +156,23 @@ fn views<'a>(borrowed: &'a [(String, Ref<'a, ConnectionState>, usize)]) -> Vec<C
         .collect()
 }
 
-/// Borrow the states of connections, a connection that is borrowed mutably is left out
-fn borrow_all(connections: &[(String, FollowedConnection)]) -> Vec<(String, Ref<'_, ConnectionState>, usize)> {
-    connections
-        .iter()
-        .filter_map(|(id, connection)| {
-            let state = connection.state.try_borrow().ok()?;
-            let active = connection.queries.try_borrow().map(|queries| queries.active_ids().len()).unwrap_or(0);
-            Some((id.clone(), state, active))
-        })
-        .collect()
+/// The states of connections that the loader borrows, and the ids of the busy ones that an action borrows mutably
+type Borrowed<'a> = (Vec<(String, Ref<'a, ConnectionState>, usize)>, Vec<String>);
+
+/// Borrow the states of connections. A connection that is borrowed mutably is busy, the scheduler keeps its requests.
+fn borrow_all(connections: &[(String, FollowedConnection)]) -> Borrowed<'_> {
+    let mut borrowed = Vec::with_capacity(connections.len());
+    let mut busy = Vec::new();
+    for (id, connection) in connections {
+        match connection.state.try_borrow() {
+            Ok(state) => {
+                let active = connection.queries.try_borrow().map(|queries| queries.active_ids().len()).unwrap_or(0);
+                borrowed.push((id.clone(), state, active));
+            }
+            Err(_) => busy.push(id.clone()),
+        }
+    }
+    (borrowed, busy)
 }
 
 impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
@@ -249,9 +257,9 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         self.run_registry_effects(effects);
 
         {
-            let borrowed = borrow_all(&connections);
+            let (borrowed, busy) = borrow_all(&connections);
             let views = views(&borrowed);
-            self.state.borrow_mut().scheduler.observe(&views);
+            self.state.borrow_mut().scheduler.observe(&views, &busy);
         }
         self.request_schedule();
     }
@@ -333,19 +341,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         self.state.borrow().tasks.contains_key(&task_id)
     }
 
-    /// Start an update of a connection outside of the schedule: of the whole catalog, or of relations. Returns the id
-    /// of the update and a future that completes once it ended, with an error only if the update couldn't start.
-    pub fn update(
-        &self,
-        connection_id: &str,
-        relations: Option<Vec<RelationName>>,
-    ) -> (u32, impl Future<Output = Result<(), CatalogLoadError>> + 'static) {
-        let task_id = self.state.borrow_mut().scheduler.allocate_task_id();
-        let service = self.clone();
-        let connection_id = connection_id.to_string();
-        (task_id, async move { service.run_update(&connection_id, task_id, relations).await })
-    }
-
     /// Schedule at the end of the task
     fn request_schedule(&self) {
         {
@@ -372,17 +367,18 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     fn schedule(&self) {
         let connections = self.live_connections();
         let schedule = {
-            let borrowed = borrow_all(&connections);
+            let (borrowed, busy) = borrow_all(&connections);
             let views = views(&borrowed);
             let now = self.host.now();
-            self.state.borrow_mut().scheduler.schedule(&views, now)
+            self.state.borrow_mut().scheduler.schedule(&views, &busy, now)
         };
+        // A busy connection is free again once the action that borrows it ended, the loader looks again shortly
+        if schedule.retry {
+            self.wake_at(self.host.now() + BUSY_RETRY_MS);
+        }
         for command in schedule.commands {
             match command {
-                CatalogLoaderCommand::Abort { connection_id, task_id } => {
-                    self.cancel(task_id, SUPERSEDED_MESSAGE);
-                    self.host.abort_update(&connection_id, task_id, SUPERSEDED_MESSAGE);
-                }
+                CatalogLoaderCommand::Abort { task_id, .. } => self.cancel(task_id, SUPERSEDED_MESSAGE),
                 CatalogLoaderCommand::Start { connection_id, task_id, relations } => {
                     let service = self.clone();
                     self.host.spawn(Box::pin(async move {

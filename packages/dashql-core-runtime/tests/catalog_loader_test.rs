@@ -1368,8 +1368,8 @@ impl Registry {
     /// Hand the loader the connection and run the commands of a scheduling pass
     fn schedule(&mut self) -> Option<Timestamp> {
         let view = [CatalogLoaderConnection::of(&self.connection, self.active_queries)];
-        self.loader.observe(&view);
-        let schedule = self.loader.schedule(&view, self.now);
+        self.loader.observe(&view, &[]);
+        let schedule = self.loader.schedule(&view, &[], self.now);
         for command in schedule.commands {
             match command {
                 CatalogLoaderCommand::Abort { task_id, .. } => {
@@ -1644,7 +1644,7 @@ fn a_request_for_a_connection_that_is_gone_is_dropped() {
     let mut loader = CatalogLoader::new();
     loader.enqueue("gone", true);
     assert!(loader.is_queued("gone"));
-    let schedule = loader.schedule(&[], NOW);
+    let schedule = loader.schedule(&[], &[], NOW);
     assert!(schedule.commands.is_empty());
     assert!(!loader.is_queued("gone"));
 }

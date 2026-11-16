@@ -2,6 +2,7 @@ import * as arrow from 'apache-arrow';
 import type * as core from '../../core/index.js';
 
 import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../../platform/platform/database/embedded_database.js';
+import { appendRowNumbers, isArrowTable } from '../store/runtime_tables.js';
 
 /// Executes the query of a task, e.g. to track it as a query of the connection of the table.
 /// The query runs with the client context that execute receives, e.g. to attribute it in the Hyper log.
@@ -44,7 +45,9 @@ export function clientContextJson(clientContext: EmbeddedClientContext | null | 
 
 /// The compute database of the computations of the runtime (`ComputePlatform` of the module) over the embedded Hyper.
 /// The SELECTs that create the tables of the tasks run through the query execution of the app, e.g. tracked in the
-/// query history of the connection of a computation. A cancelled run aborts its calls.
+/// query history of the connection of a computation. A cancelled run aborts its calls. Result data never enters the
+/// module: a result is imported from its Arrow table with the row numbers appended here, the tables that the tasks
+/// read stay Arrow tables (`queryTable`), only the small ones that the runtime parses cross as Arrow IPC.
 export function createComputePlatform(database: EmbeddedComputeDatabase, queryExecution: () => CreateComputeQueryExecution | null): core.ComputePlatform {
     /// The abort controllers of the calls of the runs
     const runs = new Map<number, Set<AbortController>>();
@@ -72,10 +75,10 @@ export function createComputePlatform(database: EmbeddedComputeDatabase, queryEx
         }
     };
     return {
-        importTable: async (_dataFrame, tableName, ipc, context) => {
-            // The bytes are a view of the module, which may belong to another realm
-            const table = arrow.tableFromIPC(new Uint8Array(ipc));
-            await inRun(context.run, () => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true })));
+        importTable: async (_dataFrame, tableName, result, rowNumberField, context) => {
+            if (!isArrowTable(result)) throw new Error(`the result to import into ${tableName} is no table`);
+            const table = appendRowNumbers(result as arrow.Table, rowNumberField);
+            await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true, abort: signal })));
         },
         createTable: async (_dataFrame, tableName, sql, context) => {
             const execution = queryExecution()?.({ tableId: context.tableId, title: context.title }) ?? executeDirectly;
@@ -85,6 +88,9 @@ export function createComputePlatform(database: EmbeddedComputeDatabase, queryEx
         query: async (sql, context) => {
             const table = await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));
             return arrow.tableToIPC(table, 'stream');
+        },
+        queryTable: async (sql, context) => {
+            return await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));
         },
         dropTable: async (_dataFrame, tableName) => {
             await withConnection(null, conn => conn.execute(`DROP TABLE IF EXISTS "${tableName}"`));

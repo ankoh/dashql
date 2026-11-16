@@ -331,7 +331,7 @@ impl ExecutorHost for FakeHost {
         std::future::ready(if fails { Err(HostError::new("quota exceeded")) } else { Ok(()) })
     }
 
-    fn analyze_result(&self, _query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static {
+    fn analyze_result(&self, _query_id: QueryId, _cancellation: &CancellationToken) -> impl Future<Output = Result<(), HostError>> + 'static {
         let fails = self.state.borrow().analysis_fails;
         std::future::ready(if fails { Err(HostError::new("no compute")) } else { Ok(()) })
     }
@@ -417,6 +417,7 @@ fn request(query_id: QueryId, target: QueryTarget) -> QueryRequest {
         throw_on_error: false,
         failure: None,
         log_details: vec![("workbookId".into(), "w".into())],
+        keep_alive: None,
     }
 }
 
@@ -424,7 +425,7 @@ fn request(query_id: QueryId, target: QueryTarget) -> QueryRequest {
 fn start(host: &Rc<FakeHost>, executor: &QueryExecutor<FakeHost>, request: QueryRequest) -> Rc<RefCell<Option<QueryOutcome>>> {
     let outcome = Rc::new(RefCell::new(None));
     let slot = outcome.clone();
-    let future = executor.execute(request);
+    let future = executor.execute(request, CancellationToken::new());
     host.executor.spawn(Box::pin(async move {
         *slot.borrow_mut() = Some(future.await);
     }));

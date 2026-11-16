@@ -409,6 +409,10 @@ pub struct QueryExecutionOutcome {
     pub changed: bool,
     /// The effects for the host, in order
     pub effects: Vec<QueryExecutionEffect>,
+    /// The queries whose result tables the history released for a later result of their owner. The history decides
+    /// which result of an owner is the latest, the host lets go of what it derived from the others, e.g. their
+    /// computations.
+    pub superseded: Vec<QueryId>,
 }
 
 /// The active and the finished queries of a connection
@@ -533,7 +537,7 @@ impl QueryExecutionHistory {
         let finished = std::mem::take(&mut self.queries_finished_ordered);
         let mut queries_active = std::mem::take(&mut self.queries_active);
         let mut queries_finished = std::mem::take(&mut self.queries_finished);
-        let mut outcome = QueryExecutionOutcome { changed: true, effects: Vec::new() };
+        let mut outcome = QueryExecutionOutcome { changed: true, ..Default::default() };
         for handle in active.iter().filter_map(|query_id| queries_active.get(query_id).and_then(|query| query.handle)) {
             outcome.effects.push(QueryExecutionEffect::Abort { handle, reason });
         }
@@ -696,7 +700,8 @@ impl QueryExecutionHistory {
     ///
     /// The finished queries keep their result tables for the views of their results. Internal queries return their
     /// results to their callers and keep only their metrics. A succeeded query with a result owner releases the result
-    /// tables of the other queries of its owner, except for a later one, like the latest result of a script.
+    /// tables of the other queries of its owner, except for a later one, like the latest result of a script. The queries
+    /// that lose their result this way are superseded, the host drops their computations.
     fn finish_query(&mut self, query_id: QueryId, outcome: &mut QueryExecutionOutcome) {
         let Some(mut query) = self.queries_active.remove(&query_id) else {
             return;
@@ -731,11 +736,13 @@ impl QueryExecutionHistory {
                     other.result_table = None;
                     other.revision = next_revision();
                     outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
+                    outcome.superseded.push(*other_id);
                 }
             }
             if !keep_own {
                 if let Some(table) = query.result_table.take() {
                     outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
+                    outcome.superseded.push(query_id);
                 }
             }
         }
