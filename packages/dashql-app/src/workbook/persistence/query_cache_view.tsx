@@ -12,7 +12,7 @@ import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 

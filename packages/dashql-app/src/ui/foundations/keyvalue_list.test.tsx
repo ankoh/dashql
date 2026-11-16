@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { vi } from 'vitest';
 
 import { KeyValueListBuilder } from './keyvalue_list.js';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 
 describe('KeyValueListBuilder', () => {
     let container: HTMLDivElement;

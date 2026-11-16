@@ -15,7 +15,7 @@ import { useCrossFilters } from './use_cross_filters.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { useScrollbarHeight } from '../../utils/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
 import { useDataTablePortalContainers } from './data_table_portals.js';

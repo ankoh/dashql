@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useLogger } from '../logger/logger_provider.js';
+import { useLogger } from '../logger_provider.js';
 import { awaitAndSet, Result } from '../../utils/result.js';
 import { Logger, stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { createTrace } from '@ankoh/dashql/platform/logger/trace_context';

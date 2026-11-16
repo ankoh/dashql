@@ -7,7 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
-import { getGlobalLogger, LoggerProvider } from '../logger/logger_provider.js';
+import { getGlobalLogger, LoggerProvider } from './logger_provider.js';
 
 function SetupConsumer(props: {
     context: string;

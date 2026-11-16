@@ -3,7 +3,7 @@ import * as React from 'react';
 import { buffers } from '@ankoh/dashql';
 import { ArrowTableFormatter } from '@ankoh/dashql/platform/compute/arrow_formatter';
 import type { LoggerLike } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import * as styles from './markdown_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';

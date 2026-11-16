@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import * as styles from './cell_detail_overlay.module.css';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { CellDetailOverlay, type CellDetailOverlayProps } from './cell_detail_overlay.js';
 

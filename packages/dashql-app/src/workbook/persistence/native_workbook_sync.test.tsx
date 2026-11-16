@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';

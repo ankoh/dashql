@@ -7,7 +7,7 @@ import { search, searchKeymap } from '@codemirror/search';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 import { DashQLExtensions, DashQLReadonlyExtensions } from './dashql_extension.js';
 
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 import './codemirror.css';
 

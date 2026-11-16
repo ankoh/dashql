@@ -4,7 +4,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useLocation } from 'react-router-dom';
 import { Tooltip } from '../ui/foundations/tooltip.js';
-import { WORKBOOK_PATH, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from './router/router.js';
+import { WORKBOOK_PATH, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from './router.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook/workbook_view_mode.js';
 import { classNames } from '../utils/classnames.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';

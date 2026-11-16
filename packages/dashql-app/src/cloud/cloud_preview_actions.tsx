@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { DownloadIcon, LockIcon, XIcon } from '../ui/foundations/symbol_icon.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import * as styles from './cloud_preview_actions.module.css';
 import { useCloudWorkbooks } from './cloud_workbooks.js';

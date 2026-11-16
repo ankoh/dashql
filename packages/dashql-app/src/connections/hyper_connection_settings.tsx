@@ -14,7 +14,7 @@ import {
     VALIDATION_ERROR,
     VALIDATION_UNKNOWN,
 } from '../ui/foundations/text_field.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { useHyperGrpcClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
 import { Dispatch } from '@ankoh/dashql/platform/utils/variant';

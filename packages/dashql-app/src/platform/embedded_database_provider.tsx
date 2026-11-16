@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
 import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../logger/logger_provider.js';
-import { useAppHandOver } from '../crosstab/app_hand_over.js';
+import { useLogger } from './logger_provider.js';
+import { useAppHandOver } from './app_hand_over.js';
 
 const SETUP_CTX = React.createContext<EmbeddedDatabaseSetupFn | null>(null);
 
@@ -36,7 +36,7 @@ type EmbeddedDatabaseFactory = (
 ) => Promise<EmbeddedComputeDatabase>;
 
 const setupDefaultDatabase: EmbeddedDatabaseFactory = async (context, logger, onSetupProgress, options) => {
-    const { setupWebHyperDB } = await import('../hyperdb/hyperdb_provider_web.js');
+    const { setupWebHyperDB } = await import('./hyperdb/hyperdb_provider_web.js');
     return await setupWebHyperDB(context, logger, onSetupProgress, options);
 };
 

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router/router.js';
+import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router.js';
 import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { embeddedConnection, newWorkbookConnection } from '../../connections/embedded_connection.js';
 import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { createTrace } from '@ankoh/dashql/platform/logger/trace_context';
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
@@ -14,7 +14,7 @@ import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
 import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
-import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';

@@ -2,8 +2,8 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
 
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
+import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
@@ -18,7 +18,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
-import '../connections/clfn/bundled_clfn_specs.js';
+import '../connections/bundled_clfn_specs.js';
 
 /// The pages of the demos, loaded when they are opened
 const PAGES = new Map(DEMOS.map(demo => [demo.id, React.lazy(demo.load)]));

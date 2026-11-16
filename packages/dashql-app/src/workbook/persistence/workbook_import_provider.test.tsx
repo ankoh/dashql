@@ -7,7 +7,7 @@ import * as core from '@ankoh/dashql';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';

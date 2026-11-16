@@ -4,7 +4,7 @@ import * as styles from '../ui/logs/log_viewer.module.css';
 import { List, useListRef } from 'react-window';
 
 import { LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../platform/logger/logger_provider.js';
+import { pollLogVersion, useLogger } from '../platform/logger_provider.js';
 import { observeSize } from '../ui/foundations/size_observer.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { useKeyEvents } from '../utils/key_events.js';

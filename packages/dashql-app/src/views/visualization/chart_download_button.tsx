@@ -7,7 +7,7 @@ import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { renderVegaLitePng } from '../../ui/vegalite/vegalite_image.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
 

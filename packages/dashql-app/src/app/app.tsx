@@ -10,7 +10,7 @@ import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';
-import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
+import { ComputeConnectionProvider } from '../connections/compute_connection_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { RuntimeProvider } from '../runtime/runtime_provider.js';
 import { FileDropzone } from './file_dropzone.js';
@@ -24,7 +24,7 @@ import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_c
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { NavBarContainer } from './navbar.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';
-import { RouterReset } from './router/router_reset.js';
+import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from '../connections/salesforce/salesforce_connector.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { VersionCheck } from '../platform/version/version_check.js';
@@ -33,9 +33,9 @@ import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 import { WorkbookPage } from '../workbook/workbook_page.js';
 import { AgentSessionProvider } from '../agent/agent_session_provider.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
-import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
+import { getGlobalLogger, LoggerProvider } from '../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
+import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/embedded_database_provider.js';
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
 
@@ -44,7 +44,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
-import '../connections/clfn/bundled_clfn_specs.js';
+import '../connections/bundled_clfn_specs.js';
 
 const LOG_CTX = 'app';
 

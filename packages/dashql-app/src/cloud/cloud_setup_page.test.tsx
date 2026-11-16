@@ -15,7 +15,7 @@ import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';

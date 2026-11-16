@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { ElectronVersionCheck } from '../../platform/version/electron_version_check.js';
 import { useVersionCheckRefresh } from '../../platform/version/version_check.js';
 import { WebVersionCheck } from '../../platform/version/web_version_check.js';

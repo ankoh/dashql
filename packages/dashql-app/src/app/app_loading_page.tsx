@@ -4,7 +4,7 @@ import * as baseStyles from '../ui/foundations/banner_page.module.css';
 
 import { AppLoadingStatus } from './loading/app_loading_status.js';
 import { Button, ButtonVariant } from '../ui/foundations/button.js';
-import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router/router.js';
+import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { getStatusFromProgressCounter, IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { AppLoadingProgress } from './loading/app_loading_progress.js';

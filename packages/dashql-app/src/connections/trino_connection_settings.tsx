@@ -17,7 +17,7 @@ import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@ankoh/dashql/platform/connections/connector_info';
 import { requiresSwitchingToNative } from './connector_list.js';
 import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.js';

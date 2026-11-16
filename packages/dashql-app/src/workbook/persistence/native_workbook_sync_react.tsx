@@ -3,7 +3,7 @@ import type * as core from '@ankoh/dashql';
 
 import { useRuntime, useView, useWorkbooks } from '../../runtime/runtime_hooks.js';
 import { isDesktopHost } from '../../platform/native_globals.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 

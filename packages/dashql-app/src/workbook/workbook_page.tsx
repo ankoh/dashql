@@ -5,8 +5,8 @@ import { useLocation } from 'react-router-dom';
 
 import { useConnections, useDispatch, useWorkbook } from '../runtime/runtime_hooks.js';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { useLogger } from '../platform/logger/logger_provider.js';
-import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
+import { useLogger } from '../platform/logger_provider.js';
+import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 
 import { WorkbookFeedPage } from './feed/workbook_feed_page.js';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';

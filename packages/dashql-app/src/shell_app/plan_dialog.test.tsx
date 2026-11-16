@@ -6,7 +6,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import {
     usePlanDialog,
     type PlanDialogController,

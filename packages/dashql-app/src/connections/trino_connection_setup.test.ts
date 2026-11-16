@@ -4,8 +4,8 @@ import * as core from '@ankoh/dashql';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
-import { PlatformType } from '../../platform/platform_type.js';
-import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
+import { PlatformType } from '../platform/platform_type.js';
+import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';

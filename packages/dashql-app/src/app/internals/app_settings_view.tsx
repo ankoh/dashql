@@ -7,15 +7,15 @@ import { ToggleSwitch } from '../../ui/foundations/toggle_switch.js';
 import { SegmentedControl } from '../../ui/foundations/segmented_control.js';
 
 import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../../config/app_config.js';
-import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { LogLevel } from '@ankoh/dashql/platform/logger/log_buffer';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { useDropAllCloudDatabases } from '../../connections/connection_deletion.js';
 import { AppFlavor, FLAVORS } from '../../config/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../../config/flavor_provider.js';
-import { useAppRestart } from '../../platform/crosstab/app_hand_over.js';
+import { useAppRestart } from '../../platform/app_hand_over.js';
 import { ColorScheme, useColorSchemeSetting } from '../../config/color_scheme.js';
 
 /// The boolean settings that the panel toggles directly

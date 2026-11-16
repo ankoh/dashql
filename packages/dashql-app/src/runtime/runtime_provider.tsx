@@ -13,14 +13,14 @@ import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@ankoh/dashql/platf
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
 import { HyperLogMetricsProvider, useCreateHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { useHyperGrpcClient } from '../connections/hyper/hyperdb_grpc_client_provider.js';
-import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { usePlatformType } from '../platform/platform_type.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
-import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
+import { useAppHandOver } from '../platform/app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';

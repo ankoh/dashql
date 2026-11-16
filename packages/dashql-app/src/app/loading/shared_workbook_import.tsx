@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
-import { OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
+import { OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { createTrace } from '@ankoh/dashql/platform/logger/trace_context';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';

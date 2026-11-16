@@ -10,7 +10,7 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { DatabaseIcon, FileDirectoryIcon, FileIcon, LibraryIcon, SearchIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { TextInput } from '../../ui/foundations/text_input.js';
 import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
-import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { ReadonlySqlView, useProjectedSqlText } from '../editor/readonly_sql_view.js';

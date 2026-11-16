@@ -4,7 +4,7 @@ import { act } from '@dashql/browser-test-act';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import { scriptResultOwner } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';

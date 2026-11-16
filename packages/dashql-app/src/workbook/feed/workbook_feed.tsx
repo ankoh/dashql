@@ -41,7 +41,7 @@ import {
 } from '../../runtime/runtime_hooks.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { renameAttachment } from '../attachments/attachment_rename.js';
+import { renameAttachment } from '../attachment_rename.js';
 import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
@@ -50,7 +50,7 @@ import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
 import type { WorkbookTableParameters } from './workbook_composer.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
 import { getKeywordCase } from '../scripts/script_format.js';

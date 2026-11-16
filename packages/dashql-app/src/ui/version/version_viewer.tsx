@@ -28,7 +28,7 @@ import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { ProgressBar } from '../foundations/progress_bar.js';
 import { relaunch } from '../../platform/process.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 

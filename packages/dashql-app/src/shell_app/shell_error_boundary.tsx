@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { Button } from '../ui/foundations/button.js';
 import { ErrorBoundary } from '../ui/foundations/error_boundary.js';

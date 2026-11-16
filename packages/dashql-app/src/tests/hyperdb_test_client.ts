@@ -5,7 +5,7 @@ import { OPFS_TESTS_FOLDER } from '@ankoh/dashql/platform/opfs_root';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql/platform/hyperdb/hyperdb_settings';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
-import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
+import type { SetupProgress } from '../platform/embedded_database_provider.js';
 import { openTestHyperDB } from '@ankoh/dashql/platform/testing/test_hyperdb';
 
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.

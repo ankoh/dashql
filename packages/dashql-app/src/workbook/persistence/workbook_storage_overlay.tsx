@@ -12,7 +12,7 @@ import { StorageBackendType } from '@ankoh/dashql/platform/storage/storage_backe
 import { displayPath } from '../../storage/workbook_locator.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useRuntime } from '../../runtime/runtime_hooks.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 
 /// The shared header for the storage view: title on the left, actions + close button on the right.

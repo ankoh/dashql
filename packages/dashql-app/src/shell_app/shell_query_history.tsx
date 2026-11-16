@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { QueryType, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../query/query_history_viewer.js';
+import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../views/query_history_viewer.js';
 import { useAllQueries, useConnection, useRuntime } from '../runtime/runtime_hooks.js';
 
 /// The id under which the queries of the shell are listed

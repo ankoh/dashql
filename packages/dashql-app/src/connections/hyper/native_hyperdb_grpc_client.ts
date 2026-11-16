@@ -16,7 +16,7 @@ import {
     NativeGrpcProxyConfig,
     NativeGrpcServerStream,
     NativeGrpcServerStreamMessageIterator,
-} from '../../../platform/grpc/native_grpc_client.js';
+} from '../../platform/native_grpc_client.js';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionProgress,

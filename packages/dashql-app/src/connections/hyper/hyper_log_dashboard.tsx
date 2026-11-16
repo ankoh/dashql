@@ -4,7 +4,7 @@ import type { TopLevelSpec } from 'vega-lite';
 
 import type { EmbeddedClientContext } from '@ankoh/dashql/platform/embedded_database';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { SyncIcon } from '../../ui/foundations/symbol_icon.js';

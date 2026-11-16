@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { HyperDatabaseClient } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
-import { NativeHyperDatabaseClient } from './platform/native_hyperdb_grpc_client.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 type Props = {
     children: React.ReactElement;

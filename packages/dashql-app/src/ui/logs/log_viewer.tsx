@@ -6,7 +6,7 @@ import type { RowComponentProps } from 'react-window';
 import { XIcon, DownloadIcon } from '../foundations/symbol_icon.js';
 
 import { getLogLevelName, LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
+import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';

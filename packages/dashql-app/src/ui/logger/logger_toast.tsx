@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { LogBuffer, LogLevel, LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
 import { classNames } from '../../utils/classnames.js';
 

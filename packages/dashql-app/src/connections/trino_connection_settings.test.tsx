@@ -13,7 +13,7 @@ import { type ConnectionParams } from '@ankoh/dashql/platform/connections/connec
 import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';

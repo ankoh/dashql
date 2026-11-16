@@ -4,10 +4,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import * as dashql from '@ankoh/dashql';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
-import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
+import { ComputeConnectionProvider } from './compute_connection_provider.js';
+import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { QueryTable } from './connection_query_table.js';
 import { StandaloneRuntime } from '../runtime/runtime_hooks.js';

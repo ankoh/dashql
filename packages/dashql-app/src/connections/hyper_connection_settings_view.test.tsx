@@ -15,7 +15,7 @@ import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runt
 import { HyperDatabaseClientProvider } from './hyper/hyperdb_grpc_client_provider.js';
 import { HYPERDB_WASM_ENGINE_SETTING_ELEMENTS, HyperConnectorSettings } from './hyper_connection_settings.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';

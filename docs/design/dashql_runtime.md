@@ -75,7 +75,7 @@ breaks a rule:
   the host through `setOPFSRootProvider`) and `platform/electron_fs.ts` (the file system of the desktop app).
   The specs of the client functions come through `provideClientFunctionSpecs` of
   `platform/connections/clfn_specs.ts`: the app passes its `import.meta.glob` in
-  `connections/clfn/bundled_clfn_specs.ts`, the tests in Node in `test/setup_node.mjs`.
+  `connections/bundled_clfn_specs.ts`, the tests in Node in `test/setup_node.mjs`.
 - The checks of the assets and the seams skip all of `core/` and every `*.test.ts`. The bindings load their Wasm in
   Node and in the browsers on their own, e.g. `core/batch_worker_client.ts` uses `new Worker(`, and a test may stand
   in for a platform.

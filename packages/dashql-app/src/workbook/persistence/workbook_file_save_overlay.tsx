@@ -18,7 +18,7 @@ import { useOptionalRuntime, useConnectionViews } from '../../runtime/runtime_ho
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import type { ExportedResults } from '@ankoh/dashql';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 const LOG_CTX = 'workbook_export';
 

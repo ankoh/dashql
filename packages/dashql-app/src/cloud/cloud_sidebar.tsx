@@ -17,9 +17,9 @@ import {
 } from '../ui/foundations/symbol_icon.js';
 import { useRowContextMenu } from '../ui/foundations/row_context_menu.js';
 import { classNames } from '../utils/classnames.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { SELECT_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
+import { SELECT_WORKBOOK, useRouterNavigate } from '../app/router.js';
 import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';

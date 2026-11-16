@@ -19,7 +19,7 @@ import { observeSize } from '../../ui/foundations/size_observer.js';
 import { classNames } from '../../utils/classnames.js';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';

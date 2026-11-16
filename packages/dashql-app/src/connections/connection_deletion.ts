@@ -8,9 +8,9 @@ import type { HyperDatabaseChannel } from '@ankoh/dashql/platform/connections/hy
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
 import { dropsAttachedDatabases } from '@ankoh/dashql/platform/embedded_database';
-import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
 import { embeddedAttachedDatabasePath } from '@ankoh/dashql/platform/hyperdb/hyperdb_opfs_instance';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError, type Logger } from '@ankoh/dashql/platform/logger/logger';
 
 /// Delete a connection

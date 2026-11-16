@@ -1,4 +1,4 @@
-import { WebLogger } from '../logger/web_logger.js';
+import { WebLogger } from '../web_logger.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
 
 export interface HyperDBCapabilityResult {

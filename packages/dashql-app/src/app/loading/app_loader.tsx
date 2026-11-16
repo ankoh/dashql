@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
+import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
 import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';

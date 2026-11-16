@@ -5,7 +5,7 @@ import type { ChannelConnector } from '@ankoh/dashql/runtime/runtime';
 import { HyperDatabaseClient } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { connectEmbeddedHyper } from '@ankoh/dashql/platform/connections/embedded_database_channel';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
-import type { EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
+import type { EmbeddedDatabaseSetupFn } from '../../platform/embedded_database_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState } from './hyper_link_tab.js';

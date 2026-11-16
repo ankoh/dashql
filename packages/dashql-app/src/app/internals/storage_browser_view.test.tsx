@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StorageBrowserView } from './storage_browser_view.js';
 import * as styles from './storage_browser_view.module.css';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { OPFS_TESTS_FOLDER } from '@ankoh/dashql/platform/opfs_root';

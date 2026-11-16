@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { DASHQL_LATEST_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
 import { RESULT_ERROR, RESULT_OK, Result } from '../../utils/result.js';
-import { useLogger } from '../logger/logger_provider.js';
+import { useLogger } from '../logger_provider.js';
 import {
     LATEST_RELEASE_MANIFEST_CTX,
     LATEST_UPDATE_MANIFEST_CTX,

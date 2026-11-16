@@ -7,7 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { LogLevel } from '@ankoh/dashql/platform/logger/log_buffer';
 import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
 import { testLogRecord } from '@ankoh/dashql/platform/testing/test_logger';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { LogViewer } from './log_viewer.js';

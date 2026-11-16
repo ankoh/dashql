@@ -5,7 +5,7 @@ import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connec
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useDetachConnection } from '../workbook/workbook_connection_detach.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 
 // Deleting a local cloud. A cloud on a server only stops being a cloud, its tables stay on the server. A local cloud

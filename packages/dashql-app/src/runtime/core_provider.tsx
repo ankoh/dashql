@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql';
 import * as React from 'react';
 
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { TracedLogger, stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { createTrace } from '@ankoh/dashql/platform/logger/trace_context';
 import { decodedContentLength } from '../utils/content_length.js';

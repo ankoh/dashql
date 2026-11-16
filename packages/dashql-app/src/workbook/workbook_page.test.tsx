@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbookViewMode } from './workbook_view_mode.js';
 import { WorkbookPage, type WorkbookPageDependencies } from './workbook_page.js';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { PROMOTE_WORKBOOK, workbookPath } from '../app/router/router.js';
+import { PROMOTE_WORKBOOK, workbookPath } from '../app/router.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

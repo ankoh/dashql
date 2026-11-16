@@ -4,9 +4,9 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
+import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from './snippet_registry.js';

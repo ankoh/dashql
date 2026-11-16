@@ -2,10 +2,10 @@ import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
 import { useComputation, useRuntime } from '../runtime/runtime_hooks.js';
-import { useComputeDatabase } from '../compute/compute_connection_provider.js';
+import { useComputeDatabase } from './compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@ankoh/dashql/platform/embedded_database';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { DataTable } from '../views/query_result/data_table.js';
 import { TableColumnHeader } from '../views/query_result/data_table_cell.js';
 

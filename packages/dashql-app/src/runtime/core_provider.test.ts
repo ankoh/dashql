@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DashQLCoreProvider, useDashQLCoreSetup, type DashQLSetupFn } from './core_provider.js';
 import { DashQL } from '@ankoh/dashql';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 
 describe('DashQLCoreProvider setup', () => {
     let container: HTMLDivElement;

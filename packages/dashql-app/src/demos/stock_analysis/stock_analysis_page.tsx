@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { VegaLiteChart } from '../../ui/vegalite/vegalite_chart.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';

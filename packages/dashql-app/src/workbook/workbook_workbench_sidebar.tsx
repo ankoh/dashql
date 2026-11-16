@@ -47,7 +47,7 @@ import {
     PaperAirplaneIcon,
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
-import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
+import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { findWorkbookQueries, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import {
@@ -114,7 +114,7 @@ import * as styles from './workbook_workbench_sidebar.module.css';
 import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../connections/connection_tree.js';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 

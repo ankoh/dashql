@@ -6,7 +6,7 @@ import { EditorView } from '@codemirror/view';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import { useShareDialog, type ShareDialogController } from './share_dialog.js';
 import { decodeShareScript, SHARE_SCRIPT_HASH_PARAMETER } from './shell_share.js';
 

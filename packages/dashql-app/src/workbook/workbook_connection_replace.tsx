@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 const LOG_CTX = 'connection_replace';

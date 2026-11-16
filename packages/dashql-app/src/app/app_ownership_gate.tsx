@@ -3,11 +3,11 @@ import * as React from 'react';
 import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as styles from './app_ownership_gate.module.css';
 
-import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../platform/crosstab/app_ownership.js';
-import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../platform/crosstab/app_hand_over.js';
+import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../platform/app_ownership.js';
+import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../platform/app_hand_over.js';
 import { Button, ButtonVariant } from '../ui/foundations/button.js';
 import { CompactNavBar } from './navbar.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 
 const LOG_CTX = 'app_ownership';

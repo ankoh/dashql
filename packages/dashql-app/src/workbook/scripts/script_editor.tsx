@@ -10,7 +10,7 @@ import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@an
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '../../runtime/runtime_hooks.js';
 import { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { getKeywordCase } from './script_format.js';

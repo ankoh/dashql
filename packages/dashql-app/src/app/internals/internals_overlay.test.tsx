@@ -8,7 +8,7 @@ import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/ap
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';

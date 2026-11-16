@@ -4,7 +4,7 @@ import type { ConnectionState } from '@ankoh/dashql/platform/connections/connect
 import type * as dashql from '@ankoh/dashql';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';

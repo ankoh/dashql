@@ -23,9 +23,9 @@ import {
     type WorkbookImportConnectionMapping,
     type WorkbookImportProgressConsumer,
 } from '../workbook/persistence/workbook_import_provider.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
+import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import {
     isCloudPreview,

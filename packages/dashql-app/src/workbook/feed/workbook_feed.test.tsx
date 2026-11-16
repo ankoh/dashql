@@ -10,7 +10,7 @@ import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../../platform/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';

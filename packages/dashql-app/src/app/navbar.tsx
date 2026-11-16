@@ -9,8 +9,8 @@ import { PlatformType, isMacDesktopHost, usePlatformType } from '../platform/pla
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from '../ui/version/version_viewer.js';
 import { VersionInfoOverlay } from '../ui/version/version_viewer.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
-import { useRouteContext } from './router/router.js';
+import { useLogger } from '../platform/logger_provider.js';
+import { useRouteContext } from './router.js';
 import { useVersionCheck } from '../platform/version/version_check.js';
 import { useLocation } from 'react-router-dom';
 import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter } from '@dnd-kit/core';
 
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as pb from '@ankoh/dashql/platform/proto';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { AsyncConsumerLambdas } from '@ankoh/dashql/platform/utils/async_consumer';
-import { installNativeGrpcProxy, nativeStreamBatch } from '../../../tests/mocks/native_proxy.js';
+import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
 import type { HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
 import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';

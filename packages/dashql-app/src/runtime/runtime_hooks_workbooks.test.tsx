@@ -11,7 +11,7 @@ import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_f
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { useDispatch, useRuntime, useScript, useWorkbook } from './runtime_hooks.js';
 import { TestRuntime } from '../tests/test_runtime.js';

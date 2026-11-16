@@ -2,8 +2,8 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
+import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { ShellErrorBoundary } from './shell_error_boundary.js';
@@ -26,7 +26,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
-import '../connections/clfn/bundled_clfn_specs.js';
+import '../connections/bundled_clfn_specs.js';
 
 /// The runtime of the shell, its connection to the embedded Hyper of the page follows the statements of the shell
 const ShellRuntime = (props: { children?: React.ReactNode }) => {

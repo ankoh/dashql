@@ -3,10 +3,10 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
-import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
+import { ComputeConnectionProvider, useComputeDatabase } from '../connections/compute_connection_provider.js';
+import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
-import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { useConnections, useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';

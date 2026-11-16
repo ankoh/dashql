@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
+import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router.js';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '../connections/embedded_connection.js';
 import { isHyperLinkParams } from '../connections/hyper/hyper_link.js';

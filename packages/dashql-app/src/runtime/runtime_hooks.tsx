@@ -10,8 +10,8 @@ import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { workbookExecutionIsBusy } from '@ankoh/dashql/platform/workbook/workbook_execution';
 
-import { useLogger } from '../platform/logger/logger_provider.js';
-import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
+import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
