@@ -7,7 +7,8 @@ import path from 'node:path';
 const root = import.meta.dirname;
 
 /// The tests of the runtime and of the platform: every test file gets a root folder, the embedded Hyper and the specs of
-/// the extensions (test/setup_node.mjs)
+/// the extensions (test/setup_node.mjs). The first test of a file that opens a HyperDB starts the engine within its own
+/// timeout, which takes seconds on a loaded host, hence the timeouts of the bindings.
 function runtimeProject(name) {
     return {
         extends: true,
@@ -16,6 +17,8 @@ function runtimeProject(name) {
             include: [`src/${name}/**/*.test.ts`],
             exclude: ['src/**/*.browser.test.ts'],
             setupFiles: [path.join(root, 'test/setup_node.mjs')],
+            hookTimeout: 30000,
+            testTimeout: 30000,
         },
     };
 }
